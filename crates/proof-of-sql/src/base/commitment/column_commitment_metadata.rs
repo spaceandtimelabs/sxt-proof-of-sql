@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn we_can_construct_metadata() {
-        let meta = ColumnTypeAssociatedData::default();
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         assert_eq!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::TinyInt(meta),
@@ -292,7 +292,7 @@ mod tests {
 
     #[test]
     fn we_cannot_construct_metadata_with_type_bounds_mismatch() {
-        let meta = ColumnTypeAssociatedData::default();
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::Boolean(meta),
@@ -380,7 +380,7 @@ mod tests {
 
     #[test]
     fn we_can_construct_metadata_from_column() {
-        let meta = ColumnTypeAssociatedData::default();
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let boolean_column =
             OwnedColumn::<Curve25519Scalar>::Boolean(meta, [true, false, true, false, true].to_vec());
         let committable_boolean_column = CommittableColumn::from(&boolean_column);
@@ -497,7 +497,7 @@ mod tests {
 
     #[test]
     fn we_can_union_matching_metadata() {
-        let meta = ColumnTypeAssociatedData::default();
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         // NoOrder cases
         let boolean_metadata = ColumnCommitmentMetadata {
             column_type: ColumnType::Boolean(meta),
@@ -632,7 +632,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             b_difference_a.column_type,
-            ColumnType::TimestampTZ(ColumnTypeAssociatedData::default(), timeunit, timezone)
+            ColumnType::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, timeunit, timezone)
         );
         if let ColumnBounds::TimestampTZ(Bounds::Bounded(bounds)) = b_difference_a.bounds {
             assert_eq!(bounds.min(), &1_625_065_000);
@@ -661,7 +661,7 @@ mod tests {
 
     #[test]
     fn we_can_difference_bigint_matching_metadata() {
-        let meta = ColumnTypeAssociatedData::default();
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         // Ordered case
         let ints = [1, 2, 3, 1, 0];
         let bigint_column_a = CommittableColumn::BigInt(&ints[..2]);
@@ -707,7 +707,7 @@ mod tests {
         let b_difference_a = tinyint_metadata_b
             .try_difference(tinyint_metadata_a)
             .unwrap();
-        assert_eq!(b_difference_a.column_type, ColumnType::TinyInt(ColumnTypeAssociatedData::default()));
+        assert_eq!(b_difference_a.column_type, ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE));
         if let ColumnBounds::TinyInt(Bounds::Bounded(bounds)) = b_difference_a.bounds() {
             assert_eq!(bounds.min(), &0);
             assert_eq!(bounds.max(), &3);
@@ -744,7 +744,7 @@ mod tests {
         let b_difference_a = smallint_metadata_b
             .try_difference(smallint_metadata_a)
             .unwrap();
-        assert_eq!(b_difference_a.column_type, ColumnType::SmallInt(ColumnTypeAssociatedData::default()));
+        assert_eq!(b_difference_a.column_type, ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE));
         if let ColumnBounds::SmallInt(Bounds::Bounded(bounds)) = b_difference_a.bounds() {
             assert_eq!(bounds.min(), &0);
             assert_eq!(bounds.max(), &3);
@@ -779,7 +779,7 @@ mod tests {
         let int_metadata_b = ColumnCommitmentMetadata::from_column(&int_column_b);
 
         let b_difference_a = int_metadata_b.try_difference(int_metadata_a).unwrap();
-        assert_eq!(b_difference_a.column_type, ColumnType::Int(ColumnTypeAssociatedData::default()));
+        assert_eq!(b_difference_a.column_type, ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE));
         if let ColumnBounds::Int(Bounds::Bounded(bounds)) = b_difference_a.bounds() {
             assert_eq!(bounds.min(), &0);
             assert_eq!(bounds.max(), &3);
@@ -802,7 +802,7 @@ mod tests {
 
     #[test]
     fn we_cannot_perform_arithmetic_on_mismatched_metadata() {
-        let meta = ColumnTypeAssociatedData::default();
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let boolean_metadata = ColumnCommitmentMetadata {
             column_type: ColumnType::Boolean(meta),
             bounds: ColumnBounds::NoOrder,

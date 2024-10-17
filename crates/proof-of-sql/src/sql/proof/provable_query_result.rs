@@ -105,18 +105,18 @@ impl ProvableQueryResult {
             let mut val = S::zero();
             for entry in evaluation_vec.iter().take(output_length) {
                 let (x, sz) = match field.data_type() {
-                    ColumnType::Boolean => decode_and_convert::<bool, S>(&self.data[offset..]),
-                    ColumnType::TinyInt => decode_and_convert::<i8, S>(&self.data[offset..]),
-                    ColumnType::SmallInt => decode_and_convert::<i16, S>(&self.data[offset..]),
-                    ColumnType::Int => decode_and_convert::<i32, S>(&self.data[offset..]),
-                    ColumnType::BigInt => decode_and_convert::<i64, S>(&self.data[offset..]),
-                    ColumnType::Int128 => decode_and_convert::<i128, S>(&self.data[offset..]),
-                    ColumnType::Decimal75(_, _) | ColumnType::Scalar => {
+                    ColumnType::Boolean(_) => decode_and_convert::<bool, S>(&self.data[offset..]),
+                    ColumnType::TinyInt(_) => decode_and_convert::<i8, S>(&self.data[offset..]),
+                    ColumnType::SmallInt(_) => decode_and_convert::<i16, S>(&self.data[offset..]),
+                    ColumnType::Int(_) => decode_and_convert::<i32, S>(&self.data[offset..]),
+                    ColumnType::BigInt(_) => decode_and_convert::<i64, S>(&self.data[offset..]),
+                    ColumnType::Int128(_) => decode_and_convert::<i128, S>(&self.data[offset..]),
+                    ColumnType::Decimal75(_, _, _) | ColumnType::Scalar(_) => {
                         decode_and_convert::<S, S>(&self.data[offset..])
                     }
 
-                    ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
-                    ColumnType::TimestampTZ(_, _) => {
+                    ColumnType::VarChar(_) => decode_and_convert::<&str, S>(&self.data[offset..]),
+                    ColumnType::TimestampTZ(_, _, _) => {
                         decode_and_convert::<i64, S>(&self.data[offset..])
                     }
                 }?;
@@ -154,55 +154,55 @@ impl ProvableQueryResult {
             column_result_fields
                 .iter()
                 .map(|field| match field.data_type() {
-                    ColumnType::Boolean => {
+                    ColumnType::Boolean(meta) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::Boolean(col)))
+                        Ok((field.name(), OwnedColumn::Boolean(meta, col)))
                     }
-                    ColumnType::TinyInt => {
+                    ColumnType::TinyInt(meta) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::TinyInt(col)))
+                        Ok((field.name(), OwnedColumn::TinyInt(meta, col)))
                     }
-                    ColumnType::SmallInt => {
+                    ColumnType::SmallInt(meta) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::SmallInt(col)))
+                        Ok((field.name(), OwnedColumn::SmallInt(meta, col)))
                     }
-                    ColumnType::Int => {
+                    ColumnType::Int(meta) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::Int(col)))
+                        Ok((field.name(), OwnedColumn::Int(meta, col)))
                     }
-                    ColumnType::BigInt => {
+                    ColumnType::BigInt(meta) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::BigInt(col)))
+                        Ok((field.name(), OwnedColumn::BigInt(meta, col)))
                     }
-                    ColumnType::Int128 => {
+                    ColumnType::Int128(meta) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::Int128(col)))
+                        Ok((field.name(), OwnedColumn::Int128(meta, col)))
                     }
-                    ColumnType::VarChar => {
+                    ColumnType::VarChar(meta) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::VarChar(col)))
+                        Ok((field.name(), OwnedColumn::VarChar(meta, col)))
                     }
-                    ColumnType::Scalar => {
+                    ColumnType::Scalar(meta) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::Scalar(col)))
+                        Ok((field.name(), OwnedColumn::Scalar(meta, col)))
                     }
-                    ColumnType::Decimal75(precision, scale) => {
+                    ColumnType::Decimal75(meta, precision, scale) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::Decimal75(precision, scale, col)))
+                        Ok((field.name(), OwnedColumn::Decimal75(meta, precision, scale, col)))
                     }
-                    ColumnType::TimestampTZ(tu, tz) => {
+                    ColumnType::TimestampTZ(meta, tu, tz) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::TimestampTZ(tu, tz, col)))
+                        Ok((field.name(), OwnedColumn::TimestampTZ(meta, tu, tz, col)))
                     }
                 })
                 .collect::<Result<_, QueryError>>()?,

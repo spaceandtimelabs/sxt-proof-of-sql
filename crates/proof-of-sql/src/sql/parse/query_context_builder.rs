@@ -131,7 +131,7 @@ impl<'a> QueryContextBuilder<'a> {
     /// Visits the expression and returns its data type.
     fn visit_expr(&mut self, expr: &Expression) -> ConversionResult<ColumnType> {
         match expr {
-            Expression::Wildcard => Ok(ColumnType::BigInt(ColumnTypeAssociatedData::default())), // Since COUNT(*) = COUNT(1)
+            Expression::Wildcard => Ok(ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)), // Since COUNT(*) = COUNT(1)
             Expression::Literal(literal) => self.visit_literal(literal),
             Expression::Column(_) => self.visit_column_expr(expr),
             Expression::Unary { op, expr } => self.visit_unary_expr(*op, expr),
@@ -165,7 +165,7 @@ impl<'a> QueryContextBuilder<'a> {
             | BinaryOperator::Or
             | BinaryOperator::Equal
             | BinaryOperator::GreaterThanOrEqual
-            | BinaryOperator::LessThanOrEqual => Ok(ColumnType::Boolean(ColumnTypeAssociatedData::default())),
+            | BinaryOperator::LessThanOrEqual => Ok(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)),
             BinaryOperator::Multiply
             | BinaryOperator::Division
             | BinaryOperator::Subtract
@@ -185,7 +185,7 @@ impl<'a> QueryContextBuilder<'a> {
                     Ok(dtype)
                 } else {
                     Err(ConversionError::InvalidDataType {
-                        expected: ColumnType::Boolean(ColumnTypeAssociatedData::default()),
+                        expected: ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE),
                         actual: dtype,
                     })
                 }
@@ -204,7 +204,7 @@ impl<'a> QueryContextBuilder<'a> {
          match (op, expr_dtype) {
             (AggregationOperator::Count, _) => {
                 self.context.set_in_agg_scope(false)?;
-                Ok(ColumnType::BigInt(ColumnTypeAssociatedData::default()))
+                Ok(ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE))
             },
             (_, ColumnType::VarChar(_)) => Err(ConversionError::non_numeric_expr_in_agg(
                 expr_dtype.to_string(),
@@ -219,7 +219,7 @@ impl<'a> QueryContextBuilder<'a> {
 
     #[allow(clippy::unused_self)]
     fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
-        let meta =  ColumnTypeAssociatedData::default();
+        let meta =  ColumnTypeAssociatedData::NOT_NULLABLE;
         match literal {
             Literal::Boolean(_) => Ok(ColumnType::Boolean(meta)),
             Literal::BigInt(_) => Ok(ColumnType::BigInt(meta)),

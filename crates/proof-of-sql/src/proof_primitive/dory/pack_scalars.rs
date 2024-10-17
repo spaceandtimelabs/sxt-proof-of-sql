@@ -57,15 +57,15 @@ fn output_bit_table(
 /// * `column_type` - The type of a committable column.
 const fn min_as_f(column_type: ColumnType) -> F {
     match column_type {
-        ColumnType::TinyInt => MontFp!("-128"),
-        ColumnType::SmallInt => MontFp!("-32768"),
-        ColumnType::Int => MontFp!("-2147483648"),
-        ColumnType::BigInt | ColumnType::TimestampTZ(_, _) => MontFp!("-9223372036854775808"),
-        ColumnType::Int128 => MontFp!("-170141183460469231731687303715884105728"),
-        ColumnType::Decimal75(_, _)
-        | ColumnType::Scalar
-        | ColumnType::VarChar
-        | ColumnType::Boolean => MontFp!("0"),
+        ColumnType::TinyInt(_) => MontFp!("-128"),
+        ColumnType::SmallInt(_) => MontFp!("-32768"),
+        ColumnType::Int(_) => MontFp!("-2147483648"),
+        ColumnType::BigInt(_) | ColumnType::TimestampTZ(_, _, _) => MontFp!("-9223372036854775808"),
+        ColumnType::Int128(_) => MontFp!("-170141183460469231731687303715884105728"),
+        ColumnType::Decimal75(_, _, _)
+        | ColumnType::Scalar(_)
+        | ColumnType::VarChar(_)
+        | ColumnType::Boolean(_) => MontFp!("0"),
     }
 }
 

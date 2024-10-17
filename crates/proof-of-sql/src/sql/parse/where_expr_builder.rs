@@ -33,7 +33,7 @@ impl<'a> WhereExprBuilder<'a> {
                 let expr_plan = self.builder.build(&where_expr)?;
                 // Ensure that the expression is a boolean expression
                 match expr_plan.data_type() {
-                    ColumnType::Boolean => Ok(expr_plan),
+                    ColumnType::Boolean(_) => Ok(expr_plan),
                     _ => Err(ConversionError::NonbooleanWhereClause {
                         datatype: expr_plan.data_type(),
                     }),
