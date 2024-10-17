@@ -1,9 +1,11 @@
-use super::DynProofExprBuilder;
+use super::{AliasedResultExpr, DynProofExprBuilder};
 use crate::{
     base::{commitment::Commitment, database::ColumnRef, map::IndexMap},
     sql::proof_exprs::DynProofExpr,
 };
 use alloc::boxed::Box;
+use sqlparser::ast::{Expr, Ident};
+
 /// Enriched expression
 ///
 /// An enriched expression consists of an `proof_of_sql_parser::intermediate_ast::AliasedResultExpr`
@@ -24,7 +26,7 @@ impl<C: Commitment> EnrichedExpr<C> {
     /// and the `residue_expression` will contain the remaining expression.
     pub fn new(
         expression: AliasedResultExpr,
-        column_mapping: IndexMap<Identifier, ColumnRef>,
+        column_mapping: IndexMap<Ident, ColumnRef>,
     ) -> Self {
         // TODO: Using new_agg (ironically) disables aggregations in `QueryExpr` for now.
         // Re-enable aggregations when we add `GroupByExec` generalizations.
@@ -35,7 +37,7 @@ impl<C: Commitment> EnrichedExpr<C> {
                 let alias = expression.alias;
                 Self {
                     residue_expression: AliasedResultExpr {
-                        expr: Box::new(Expression::Column(alias)),
+                        expr: Box::new(Expr::Identifier(alias.clone())),
                         alias,
                     },
                     dyn_proof_expr: Some(dyn_proof_expr),
@@ -52,7 +54,7 @@ impl<C: Commitment> EnrichedExpr<C> {
     ///
     /// Since we plan to support unaliased expressions in the future, this method returns an `Option`.
     #[allow(dead_code)]
-    pub fn get_alias(&self) -> Option<&Identifier> {
+    pub fn get_alias(&self) -> Option<&Ident> {
         self.residue_expression.try_as_identifier()
     }
 

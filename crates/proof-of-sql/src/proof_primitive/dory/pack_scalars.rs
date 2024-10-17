@@ -475,7 +475,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
 mod tests {
     use super::*;
     use crate::base::math::decimal::Precision;
-    use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_get_a_bit_table() {

@@ -13,7 +13,7 @@ use crate::{
 };
 use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
 use sqlparser::ast::{BinaryOperator, DataType, Expr, Ident, UnaryOperator, Value};
-use crate::posql_time::{PoSQLTimeUnit, PoSQLTimestamp, PoSQLTimestampError};
+use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimestamp, PoSQLTimestampError};
 
 /// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
 /// a `proof_of_sql_parser::intermediate_ast::Expr`.

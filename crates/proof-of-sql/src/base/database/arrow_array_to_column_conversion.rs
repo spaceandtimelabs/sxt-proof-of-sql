@@ -10,7 +10,7 @@ use arrow::{
 };
 use bumpalo::Bump;
 use core::ops::Range;
-use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
+use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use snafu::Snafu;
 
 #[derive(Snafu, Debug, PartialEq)]

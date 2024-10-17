@@ -4,7 +4,7 @@ use alloc::{
     format,
     string::{String, ToString},
 };
-use proof_of_sql_parser::intermediate_decimal::{IntermediateDecimal, IntermediateDecimalError};
+use crate::parse_common::intermediate_decimal::{IntermediateDecimal, IntermediateDecimalError};
 use serde::{Deserialize, Deserializer, Serialize};
 use snafu::Snafu;
 /// Errors related to decimal operations.

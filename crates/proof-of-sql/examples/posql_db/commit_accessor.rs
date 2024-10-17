@@ -6,6 +6,7 @@ use proof_of_sql::base::{
 };
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
+
 pub struct CommitAccessor<C: Commitment> {
     base_path: PathBuf,
     inner: QueryCommitments<C>,
@@ -55,7 +56,7 @@ impl<C: Commitment> SchemaAccessor for CommitAccessor<C> {
     fn lookup_column(
         &self,
         table_ref: proof_of_sql::base::database::TableRef,
-        column_id: proof_of_sql_parser::Identifier,
+        column_id: sqlparser::ast::Ident,
     ) -> Option<proof_of_sql::base::database::ColumnType> {
         self.inner.lookup_column(table_ref, column_id)
     }
@@ -64,7 +65,7 @@ impl<C: Commitment> SchemaAccessor for CommitAccessor<C> {
         &self,
         table_ref: proof_of_sql::base::database::TableRef,
     ) -> Vec<(
-        proof_of_sql_parser::Identifier,
+        sqlparser::ast::Ident,
         proof_of_sql::base::database::ColumnType,
     )> {
         self.inner.lookup_schema(table_ref)

@@ -77,7 +77,7 @@ impl fmt::Display for PoSQLTimeZone {
 
 #[cfg(test)]
 mod timezone_parsing_tests {
-    use crate::posql_time::timezone;
+    use crate::parse_common::posql_time::timezone;
     use alloc::format;
 
     #[test]
@@ -101,7 +101,7 @@ mod timezone_parsing_tests {
 
 #[cfg(test)]
 mod timezone_offset_tests {
-    use crate::posql_time::{timestamp::PoSQLTimestamp, timezone};
+    use crate::parse_common::posql_time::{timestamp::PoSQLTimestamp, timezone};
 
     #[test]
     fn test_utc_timezone() {

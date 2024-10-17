@@ -310,7 +310,7 @@ mod tests {
     use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::Curve25519Scalar};
     use alloc::{string::String, vec};
     use itertools::Itertools;
-    use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_construct_bounds_by_method() {

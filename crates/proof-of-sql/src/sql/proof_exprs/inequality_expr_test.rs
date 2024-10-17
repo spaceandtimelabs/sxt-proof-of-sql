@@ -18,7 +18,7 @@ use crate::{
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
-use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,

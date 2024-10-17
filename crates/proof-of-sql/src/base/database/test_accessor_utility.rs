@@ -8,7 +8,7 @@ use arrow::{
     datatypes::{i256, DataType, Field, Schema, TimeUnit},
     record_batch::RecordBatch,
 };
-use crate::posql_time::PoSQLTimeUnit;
+use crate::parse_common::posql_time::PoSQLTimeUnit;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,

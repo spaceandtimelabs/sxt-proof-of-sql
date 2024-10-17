@@ -1,6 +1,6 @@
 use crate::base::{database::ColumnType, math::decimal::Precision, scalar::Scalar};
 use alloc::string::String;
-use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
 
 /// Represents a literal value.

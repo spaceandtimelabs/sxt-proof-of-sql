@@ -7,7 +7,7 @@ use crate::base::{
 use alloc::vec::Vec;
 #[cfg(feature = "blitzar")]
 use blitzar::sequence::Sequence;
-use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 /// Column data in "committable form".
 ///

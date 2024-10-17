@@ -6,7 +6,7 @@ use crate::{
 };
 use ark_ec::pairing::Pairing;
 use num_traits::Zero;
-use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_compute_a_dynamic_dory_commitment_with_unsigned_bigint_values() {

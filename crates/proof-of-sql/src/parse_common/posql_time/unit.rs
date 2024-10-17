@@ -48,7 +48,7 @@ impl fmt::Display for PoSQLTimeUnit {
 #[allow(deprecated, clippy::missing_panics_doc)]
 mod time_unit_tests {
     use super::*;
-    use crate::posql_time::{PoSQLTimestamp, PoSQLTimestampError};
+    use crate::parse_common::posql_time::{PoSQLTimestamp, PoSQLTimestampError};
     use chrono::{TimeZone, Utc};
 
     #[test]

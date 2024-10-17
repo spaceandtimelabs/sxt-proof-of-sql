@@ -9,7 +9,7 @@ use crate::base::{
 };
 use blitzar::proof::InnerProductProof;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_query_the_length_of_a_table() {

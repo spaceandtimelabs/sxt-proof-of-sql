@@ -3,7 +3,7 @@ use arrow::array::{
     TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
     TimestampSecondArray,
 };
-use crate::posql_time::PoSQLTimeUnit;
+use crate::parse_common::posql_time::PoSQLTimeUnit;
 
 /// Extension trait for `Vec<T>` to convert it to an Arrow array
 pub trait ToArrow {

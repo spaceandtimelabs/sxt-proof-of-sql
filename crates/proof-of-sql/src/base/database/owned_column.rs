@@ -16,7 +16,7 @@ use alloc::{
 };
 use core::cmp::Ordering;
 use crate::base::utility::OrderByDirection;
-use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 
 #[derive(Debug, PartialEq, Clone, Eq)]

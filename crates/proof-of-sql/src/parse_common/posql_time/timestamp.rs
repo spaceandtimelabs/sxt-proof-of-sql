@@ -59,7 +59,7 @@ impl PoSQLTimestamp {
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
-    /// use proof_of_sql::posql_time::{PoSQLTimestamp, PoSQLTimeZone};
+    /// use proof_of_sql::parse_common::::{PoSQLTimestamp, PoSQLTimeZone};
     ///
     /// // Parsing an RFC 3339 timestamp without a timezone:
     /// let timestamp_str = "2009-01-03T18:15:05Z";
@@ -119,7 +119,7 @@ impl PoSQLTimestamp {
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
-    /// use proof_of_sql::posql_time::{PoSQLTimestamp, PoSQLTimeZone};
+    /// use proof_of_sql::parse_common::::{PoSQLTimestamp, PoSQLTimeZone};
     ///
     /// // Parsing a Unix epoch timestamp (assumed to be seconds and UTC):
     /// let unix_time = 1231006505;

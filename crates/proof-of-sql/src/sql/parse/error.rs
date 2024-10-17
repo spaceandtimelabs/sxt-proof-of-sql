@@ -8,12 +8,11 @@ use alloc::{
     string::{String, ToString},
 };
 use core::result::Result;
-use proof_of_sql_parser::{
-    intermediate_decimal::IntermediateDecimalError, posql_time::PoSQLTimestampError,
-    ResourceId,
-};
+use crate::parse_common::posql_time::PoSQLTimestampError;
 use snafu::Snafu;
 use sqlparser::ast::Ident;
+use crate::base::resource_id::ResourceId;
+use crate::parse_common::intermediate_decimal::IntermediateDecimalError;
 
 /// Errors from converting an intermediate AST into a provable AST.
 #[derive(Snafu, Debug, PartialEq, Eq)]

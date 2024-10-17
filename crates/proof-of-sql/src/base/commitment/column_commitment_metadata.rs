@@ -186,7 +186,7 @@ mod tests {
         scalar::Curve25519Scalar,
     };
     use alloc::string::String;
-    use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_construct_metadata() {

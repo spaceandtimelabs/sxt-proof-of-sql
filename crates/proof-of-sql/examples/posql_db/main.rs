@@ -24,7 +24,7 @@ use proof_of_sql::{
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
-use proof_of_sql_parser::{Identifier, SelectStatement};
+use sqlparser::ast::{Ident, Query};
 use std::{
     fs,
     io::{prelude::Write, stdout},
@@ -77,7 +77,7 @@ enum Commands {
         table: TableRef,
         /// The comma delimited column names of the table.
         #[arg(short, long, value_parser, num_args = 0.., value_delimiter = ',')]
-        columns: Vec<Identifier>,
+        columns: Vec<Ident>,
         /// The comma delimited data types of the columns.
         #[arg(short, long, value_parser, num_args = 0.., value_delimiter = ',')]
         data_types: Vec<CsvDataType>,
@@ -99,7 +99,7 @@ enum Commands {
     Prove {
         /// The query to prove. Note: the default schema is `example`.
         #[arg(short, long)]
-        query: SelectStatement,
+        query: Query,
         /// The file name of the file to write the proof to.
         #[arg(short, long)]
         file: PathBuf,
@@ -110,7 +110,7 @@ enum Commands {
     Verify {
         /// The query to verify. Note: the default schema is `example`.
         #[arg(short, long)]
-        query: SelectStatement,
+        query: Query,
         /// The file name of the file to read the proof from.
         #[arg(short, long)]
         file: PathBuf,

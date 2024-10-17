@@ -18,9 +18,7 @@ use crate::base::scalar::Scalar;
 use alloc::string::String;
 use core::ops::Deref;
 use sqlparser::ast::Ident;
-use crate::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-};
+use crate::parse_common::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use crate::base::utility;
 
 /// Creates an [`OwnedTable`] from a list of `(Ident, OwnedColumn)` pairs.
@@ -263,7 +261,7 @@ pub fn decimal75<S: Scalar>(
 /// use proof_of_sql::base::{database::owned_table_utility::*,
 ///     scalar::Curve25519Scalar,
 /// };
-/// use proof_of_sql::posql_time::{PoSQLTimeZone, PoSQLTimeUnit};
+/// use proof_of_sql::parse_common::::{PoSQLTimeZone, PoSQLTimeUnit};
 ///
 /// let result = owned_table::<Curve25519Scalar>([
 ///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600]),
