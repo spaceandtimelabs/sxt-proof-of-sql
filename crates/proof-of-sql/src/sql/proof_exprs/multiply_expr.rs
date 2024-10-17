@@ -18,6 +18,7 @@ use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
+use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable numerical * expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -59,7 +60,7 @@ impl<C: Commitment> ProofExpr<C> for MultiplyExpr<C> {
         let rhs_column: Column<'a, C::Scalar> =
             self.rhs.result_evaluate(table_length, alloc, accessor);
         let scalars = multiply_columns(&lhs_column, &rhs_column, alloc);
-        Column::Scalar(scalars)
+        Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, scalars)
     }
 
     #[tracing::instrument(
@@ -91,7 +92,7 @@ impl<C: Commitment> ProofExpr<C> for MultiplyExpr<C> {
                 ),
             ],
         );
-        Column::Scalar(lhs_times_rhs)
+        Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, lhs_times_rhs)
     }
 
     fn verifier_evaluate(

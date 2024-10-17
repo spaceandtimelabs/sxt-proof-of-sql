@@ -30,27 +30,27 @@ impl<'a, T: ProvableResultElement<'a>> ProvableResultColumn for &[T] {
 impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
     fn num_bytes(&self, length: u64) -> usize {
         match self {
-            Column::Boolean(col) => col.num_bytes(length),
-            Column::TinyInt(col) => col.num_bytes(length),
-            Column::SmallInt(col) => col.num_bytes(length),
-            Column::Int(col) => col.num_bytes(length),
-            Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col.num_bytes(length),
-            Column::Int128(col) => col.num_bytes(length),
-            Column::Decimal75(_, _, col) | Column::Scalar(col) => col.num_bytes(length),
-            Column::VarChar((col, _)) => col.num_bytes(length),
+            Column::Boolean(_, col) => col.num_bytes(length),
+            Column::TinyInt(_, col) => col.num_bytes(length),
+            Column::SmallInt(_, col) => col.num_bytes(length),
+            Column::Int(_, col) => col.num_bytes(length),
+            Column::BigInt(_, col) | Column::TimestampTZ(.., col) => col.num_bytes(length),
+            Column::Int128(_, col) => col.num_bytes(length),
+            Column::Decimal75(_, _, _, col) | Column::Scalar(_, col) => col.num_bytes(length),
+            Column::VarChar(_, (col, _)) => col.num_bytes(length),
         }
     }
 
     fn write(&self, out: &mut [u8], length: u64) -> usize {
         match self {
-            Column::Boolean(col) => col.write(out, length),
-            Column::TinyInt(col) => col.write(out, length),
-            Column::SmallInt(col) => col.write(out, length),
-            Column::Int(col) => col.write(out, length),
-            Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col.write(out, length),
-            Column::Int128(col) => col.write(out, length),
-            Column::Decimal75(_, _, col) | Column::Scalar(col) => col.write(out, length),
-            Column::VarChar((col, _)) => col.write(out, length),
+            Column::Boolean(_, col) => col.write(out, length),
+            Column::TinyInt(_, col) => col.write(out, length),
+            Column::SmallInt(_, col) => col.write(out, length),
+            Column::Int(_, col) => col.write(out, length),
+            Column::BigInt(_, col) | Column::TimestampTZ(.., col) => col.write(out, length),
+            Column::Int128(_, col) => col.write(out, length),
+            Column::Decimal75(.., col) | Column::Scalar(_, col) => col.write(out, length),
+            Column::VarChar(_, (col, _)) => col.write(out, length),
         }
     }
 }

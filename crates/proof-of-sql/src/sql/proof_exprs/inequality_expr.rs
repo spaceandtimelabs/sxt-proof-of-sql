@@ -16,6 +16,7 @@ use crate::{
 use alloc::boxed::Box;
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
+use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable AST expression for an inequality expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -51,7 +52,7 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
     }
 
     fn data_type(&self) -> ColumnType {
-        ColumnType::Boolean
+        ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)
     }
 
     #[tracing::instrument(name = "InequalityExpr::result_evaluate", level = "debug", skip_all)]
@@ -80,7 +81,10 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
         let sign = result_evaluate_sign(table_length, alloc, diff);
 
         // (diff == 0) || (sign(diff) == -1)
-        Column::Boolean(result_evaluate_or(table_length, alloc, equals_zero, sign))
+        Column::Boolean(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            result_evaluate_or(table_length, alloc, equals_zero, sign)
+        )
     }
 
     #[tracing::instrument(name = "InequalityExpr::prover_evaluate", level = "debug", skip_all)]
@@ -115,7 +119,10 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
         );
 
         // (diff == 0) || (sign(diff) == -1)
-        Column::Boolean(prover_evaluate_or(builder, alloc, equals_zero, sign))
+        Column::Boolean(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            prover_evaluate_or(builder, alloc, equals_zero, sign)
+        )
     }
 
     fn verifier_evaluate(

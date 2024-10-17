@@ -181,7 +181,7 @@ impl<'a> QueryContextBuilder<'a> {
         match op {
             UnaryOperator::Not => {
                 let dtype = self.visit_expr(expr)?;
-                if let ColumnType::Boolean(_) = expr {
+                if let ColumnType::Boolean(_) = dtype {
                     Ok(dtype)
                 } else {
                     Err(ConversionError::InvalidDataType {

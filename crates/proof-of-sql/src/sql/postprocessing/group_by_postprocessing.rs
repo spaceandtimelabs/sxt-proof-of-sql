@@ -12,6 +12,7 @@ use proof_of_sql_parser::{
     Identifier,
 };
 use serde::{Deserialize, Serialize};
+use crate::base::database::ColumnTypeAssociatedData;
 
 /// A group by expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -303,7 +304,10 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             ))
         });
         //TODO: When we have NULLs we need to differentiate between count(1) and count(expression)
-        let count_column = OwnedColumn::BigInt(aggregation_results.count_column.to_vec());
+        let count_column = OwnedColumn::BigInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            aggregation_results.count_column.to_vec()
+        );
         let count_outs = evaluated_columns
             .get(&AggregationOperator::Count)
             .into_iter()

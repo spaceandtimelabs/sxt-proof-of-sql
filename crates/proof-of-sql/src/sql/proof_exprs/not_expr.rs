@@ -11,6 +11,7 @@ use crate::{
 use alloc::boxed::Box;
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
+use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable logical NOT expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -31,7 +32,7 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
     }
 
     fn data_type(&self) -> ColumnType {
-        ColumnType::Boolean
+        ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)
     }
 
     #[tracing::instrument(name = "NotExpr::result_evaluate", level = "debug", skip_all)]
@@ -44,7 +45,7 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
         let expr_column: Column<'a, C::Scalar> =
             self.expr.result_evaluate(table_length, alloc, accessor);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
-        Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
+        Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
     }
 
     #[tracing::instrument(name = "NotExpr::prover_evaluate", level = "debug", skip_all)]
@@ -57,7 +58,10 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
         let expr_column: Column<'a, C::Scalar> =
             self.expr.prover_evaluate(builder, alloc, accessor);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
-        Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
+        Column::Boolean(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i])
+        )
     }
 
     fn verifier_evaluate(

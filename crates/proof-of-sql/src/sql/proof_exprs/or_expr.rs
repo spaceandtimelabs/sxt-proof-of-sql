@@ -12,6 +12,7 @@ use crate::{
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
+use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable logical OR expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -36,7 +37,7 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
     }
 
     fn data_type(&self) -> ColumnType {
-        ColumnType::Boolean
+        ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)
     }
 
     #[tracing::instrument(name = "OrExpr::result_evaluate", level = "debug", skip_all)]
@@ -52,7 +53,10 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
             self.rhs.result_evaluate(table_length, alloc, accessor);
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        Column::Boolean(result_evaluate_or(table_length, alloc, lhs, rhs))
+        Column::Boolean(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            result_evaluate_or(table_length, alloc, lhs, rhs)
+        )
     }
 
     #[tracing::instrument(name = "OrExpr::prover_evaluate", level = "debug", skip_all)]
@@ -66,7 +70,7 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
         let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        Column::Boolean(prover_evaluate_or(builder, alloc, lhs, rhs))
+        Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, prover_evaluate_or(builder, alloc, lhs, rhs))
     }
 
     fn verifier_evaluate(
