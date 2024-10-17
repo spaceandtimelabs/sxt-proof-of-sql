@@ -9,7 +9,7 @@ use arrow::{
         Array, ArrayRef, ArrowPrimitiveType, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray, RecordBatch, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray
     },
     compute::{concat_batches, sort_to_indices, take},
-    datatypes::{DataType, TimeUnit},
+    datatypes::{DataType, Decimal128Type, Field, Int16Type, Int32Type, Int64Type, Int8Type, Schema, TimeUnit, TimestampMicrosecondType, TimestampMillisecondType, TimestampNanosecondType, TimestampSecondType},
     error::ArrowError,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
@@ -265,6 +265,8 @@ fn sort_record_batch_by_meta_row_number(record_batch: RecordBatch) -> RecordBatc
         columns,
     )
     .unwrap()
+}
+
 #[test]
 fn we_can_replace_nulls(){
     let schema = Arc::new(Schema::new(vec![
