@@ -19,6 +19,7 @@ use bumpalo::Bump;
 use core::fmt::Debug;
 use proof_of_sql_parser::intermediate_ast::{AggregationOperator, BinaryOperator};
 use serde::{Deserialize, Serialize};
+use crate::base::database::ColumnTypeAssociatedData;
 
 /// Enum of AST column expression types that implement `ProofExpr`. Is itself a `ProofExpr`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -51,19 +52,19 @@ impl<C: Commitment> DynProofExpr<C> {
     }
     /// Create logical AND expression
     pub fn try_new_and(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
-        lhs.check_data_type(ColumnType::Boolean)?;
-        rhs.check_data_type(ColumnType::Boolean)?;
+        lhs.check_data_type(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))?;
+        rhs.check_data_type(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))?;
         Ok(Self::And(AndExpr::new(Box::new(lhs), Box::new(rhs))))
     }
     /// Create logical OR expression
     pub fn try_new_or(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
-        lhs.check_data_type(ColumnType::Boolean)?;
-        rhs.check_data_type(ColumnType::Boolean)?;
+        lhs.check_data_type(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))?;
+        rhs.check_data_type(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))?;
         Ok(Self::Or(OrExpr::new(Box::new(lhs), Box::new(rhs))))
     }
     /// Create logical NOT expression
     pub fn try_new_not(expr: DynProofExpr<C>) -> ConversionResult<Self> {
-        expr.check_data_type(ColumnType::Boolean)?;
+        expr.check_data_type(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))?;
         Ok(Self::Not(NotExpr::new(Box::new(expr))))
     }
     /// Create CONST expression
@@ -207,7 +208,7 @@ impl<C: Commitment> ProofExpr<C> for DynProofExpr<C> {
             | DynProofExpr::Or(_)
             | DynProofExpr::Not(_)
             | DynProofExpr::Equals(_)
-            | DynProofExpr::Inequality(_) => ColumnType::Boolean,
+            | DynProofExpr::Inequality(_) => ColumnType::Boolean(ColumnTypeAssociatedData::default()),
         }
     }
 
