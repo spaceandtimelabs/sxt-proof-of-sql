@@ -6,21 +6,22 @@ use crate::base::{
     scalar::Scalar,
 };
 use alloc::{string::ToString, vec::Vec};
-use proof_of_sql_parser::intermediate_ast::{OrderBy, OrderByDirection};
 #[cfg(feature = "rayon")]
 use rayon::prelude::ParallelSliceMut;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::{Expr, OrderByExpr};
+use crate::base::utility::OrderByDirection;
 
 /// A node representing a list of `OrderBy` expressions.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OrderByPostprocessing {
-    by_exprs: Vec<OrderBy>,
+    by_exprs: Vec<OrderByExpr>,
 }
 
 impl OrderByPostprocessing {
     /// Create a new `OrderByPostprocessing` node.
     #[must_use]
-    pub fn new(by_exprs: Vec<OrderBy>) -> Self {
+    pub fn new(by_exprs: Vec<OrderByExpr>) -> Self {
         Self { by_exprs }
     }
 }
@@ -39,12 +40,15 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
                     Ok((
                         owned_table
                             .inner_table()
-                            .get(&order_by.expr)
+                            .get(match &order_by.expr {
+                                 Expr::Identifier(ident) => ident,
+                                _ => panic!("Invalid orderby expression: {}", order_by.expr),
+                            })
                             .ok_or(PostprocessingError::ColumnNotFound {
                                 column: order_by.expr.to_string(),
                             })?
                             .clone(),
-                        order_by.direction,
+                        if order_by.asc.unwrap_or(false) { OrderByDirection::Asc } else { OrderByDirection::Desc },
                     ))
                 },
             )
