@@ -229,6 +229,11 @@ impl<'a, S: Scalar> Column<'a, S> {
     }
 }
 
+#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy, Default)]
+pub struct ColumnTypeAssociatedData {
+    nullable: bool
+}
+
 /// Represents the supported data types of a column in an in-memory,
 /// column-oriented database.
 ///
