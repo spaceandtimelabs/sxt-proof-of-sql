@@ -99,57 +99,57 @@ where
 impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
     fn inner_product(&self, evaluation_vec: &[S]) -> S {
         match self {
-            Column::Boolean(c) => c.inner_product(evaluation_vec),
-            Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
+            Column::Boolean(_, c) => c.inner_product(evaluation_vec),
+            Column::Scalar(_, c) | Column::VarChar(_, (_, c)) | Column::Decimal75(.., c) => {
                 c.inner_product(evaluation_vec)
             }
-            Column::TinyInt(c) => c.inner_product(evaluation_vec),
-            Column::SmallInt(c) => c.inner_product(evaluation_vec),
-            Column::Int(c) => c.inner_product(evaluation_vec),
-            Column::BigInt(c) | Column::TimestampTZ(_, _, c) => c.inner_product(evaluation_vec),
-            Column::Int128(c) => c.inner_product(evaluation_vec),
+            Column::TinyInt(_, c) => c.inner_product(evaluation_vec),
+            Column::SmallInt(_, c) => c.inner_product(evaluation_vec),
+            Column::Int(_, c, ) => c.inner_product(evaluation_vec),
+            Column::BigInt(_, c) | Column::TimestampTZ(.., c) => c.inner_product(evaluation_vec),
+            Column::Int128(_, c) => c.inner_product(evaluation_vec),
         }
     }
 
     fn mul_add(&self, res: &mut [S], multiplier: &S) {
         match self {
-            Column::Boolean(c) => c.mul_add(res, multiplier),
-            Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
+            Column::Boolean(_, c) => c.mul_add(res, multiplier),
+            Column::Scalar(_, c) | Column::VarChar(_, (_, c)) | Column::Decimal75(.., c) => {
                 c.mul_add(res, multiplier);
             }
-            Column::TinyInt(c) => c.mul_add(res, multiplier),
-            Column::SmallInt(c) => c.mul_add(res, multiplier),
-            Column::Int(c) => c.mul_add(res, multiplier),
-            Column::BigInt(c) | Column::TimestampTZ(_, _, c) => c.mul_add(res, multiplier),
-            Column::Int128(c) => c.mul_add(res, multiplier),
+            Column::TinyInt(_, c) => c.mul_add(res, multiplier),
+            Column::SmallInt(_, c) => c.mul_add(res, multiplier),
+            Column::Int(_, c) => c.mul_add(res, multiplier),
+            Column::BigInt(_, c) | Column::TimestampTZ(.., c) => c.mul_add(res, multiplier),
+            Column::Int128(_, c) => c.mul_add(res, multiplier),
         }
     }
 
     fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<S>> {
         match self {
-            Column::Boolean(c) => c.to_sumcheck_term(num_vars),
-            Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
+            Column::Boolean(_, c) => c.to_sumcheck_term(num_vars),
+            Column::Scalar(_, c) | Column::VarChar(_, (_, c)) | Column::Decimal75(.., c) => {
                 c.to_sumcheck_term(num_vars)
             }
-            Column::TinyInt(c) => c.to_sumcheck_term(num_vars),
-            Column::SmallInt(c) => c.to_sumcheck_term(num_vars),
-            Column::Int(c) => c.to_sumcheck_term(num_vars),
-            Column::BigInt(c) | Column::TimestampTZ(_, _, c) => c.to_sumcheck_term(num_vars),
-            Column::Int128(c) => c.to_sumcheck_term(num_vars),
+            Column::TinyInt(_, c) => c.to_sumcheck_term(num_vars),
+            Column::SmallInt(_, c) => c.to_sumcheck_term(num_vars),
+            Column::Int(_, c) => c.to_sumcheck_term(num_vars),
+            Column::BigInt(_, c) | Column::TimestampTZ(.., c) => c.to_sumcheck_term(num_vars),
+            Column::Int128(_, c) => c.to_sumcheck_term(num_vars),
         }
     }
 
     fn id(&self) -> *const c_void {
         match self {
-            Column::Boolean(c) => MultilinearExtension::<S>::id(c),
-            Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
+            Column::Boolean(_, c) => MultilinearExtension::<S>::id(c),
+            Column::Scalar(_, c) | Column::VarChar(_, (_, c)) | Column::Decimal75(_, _, _, c) => {
                 MultilinearExtension::<S>::id(c)
             }
-            Column::TinyInt(c) => MultilinearExtension::<S>::id(c),
-            Column::SmallInt(c) => MultilinearExtension::<S>::id(c),
-            Column::Int(c) => MultilinearExtension::<S>::id(c),
-            Column::BigInt(c) | Column::TimestampTZ(_, _, c) => MultilinearExtension::<S>::id(c),
-            Column::Int128(c) => MultilinearExtension::<S>::id(c),
+            Column::TinyInt(_, c) => MultilinearExtension::<S>::id(c),
+            Column::SmallInt(_, c) => MultilinearExtension::<S>::id(c),
+            Column::Int(_, c) => MultilinearExtension::<S>::id(c),
+            Column::BigInt(_, c) | Column::TimestampTZ(_, _, _, c) => MultilinearExtension::<S>::id(c),
+            Column::Int128(_, c) => MultilinearExtension::<S>::id(c),
         }
     }
 }
