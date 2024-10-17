@@ -1,12 +1,13 @@
 use crate::base::{
     database::{ColumnOperationError, ColumnType},
-    math::{DecimalError, IntermediateDecimalError, InvalidPrecisionError},
+    math::{DecimalError, InvalidPrecisionError},
 };
 use alloc::{
     boxed::Box,
     format,
     string::{String, ToString},
 };
+use bigdecimal::ParseBigDecimalError;
 use core::result::Result;
 use proof_of_sql_parser::{posql_time::PoSQLTimestampError, Identifier, ResourceId};
 use snafu::Snafu;
@@ -159,10 +160,10 @@ impl From<ConversionError> for String {
     }
 }
 
-impl From<IntermediateDecimalError> for ConversionError {
-    fn from(err: IntermediateDecimalError) -> ConversionError {
+impl From<ParseBigDecimalError> for ConversionError {
+    fn from(err: ParseBigDecimalError) -> ConversionError {
         ConversionError::DecimalConversionError {
-            source: DecimalError::IntermediateDecimalConversionError { source: err },
+            source: DecimalError::ParseError { error: err },
         }
     }
 }

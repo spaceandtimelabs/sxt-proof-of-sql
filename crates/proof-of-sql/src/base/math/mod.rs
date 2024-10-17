@@ -16,4 +16,4 @@ pub use precision::{InvalidPrecisionError, Precision};
 mod precision_test;
 
 mod decimal_error;
-pub use decimal_error::{DecimalError, DecimalResult, IntermediateDecimalError};
+pub use decimal_error::{DecimalError, DecimalResult};

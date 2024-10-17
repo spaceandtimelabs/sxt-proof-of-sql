@@ -1,5 +1,5 @@
 use super::{DecimalError, DecimalResult, Precision};
-use crate::base::scalar::{Scalar, ScalarConversionError};
+use crate::base::scalar::Scalar;
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 
@@ -63,7 +63,7 @@ impl BigDecimalExt for BigDecimal {
         target_precision: Precision,
         target_scale: i8,
     ) -> DecimalResult<S> {
-        try_convert_bigdecimal_into_bigint_with_precision_and_scale(
+        Ok(try_convert_bigdecimal_into_bigint_with_precision_and_scale(
             self,
             target_precision.value().into(),
             target_scale.into(),
@@ -71,10 +71,7 @@ impl BigDecimalExt for BigDecimal {
         .ok_or(DecimalError::RoundingError {
             error: self.to_string(),
         })?
-        .try_into()
-        .map_err(|e: ScalarConversionError| DecimalError::InvalidDecimal {
-            error: e.to_string(),
-        })
+        .try_into()?)
     }
 }
 
