@@ -158,18 +158,19 @@ fn make_empty_query_result<S: Scalar>(result_fields: Vec<ColumnField>) -> QueryR
                 (
                     field.name(),
                     match field.data_type() {
-                        ColumnType::Boolean => OwnedColumn::Boolean(vec![]),
-                        ColumnType::TinyInt => OwnedColumn::TinyInt(vec![]),
-                        ColumnType::SmallInt => OwnedColumn::SmallInt(vec![]),
-                        ColumnType::Int => OwnedColumn::Int(vec![]),
-                        ColumnType::BigInt => OwnedColumn::BigInt(vec![]),
-                        ColumnType::Int128 => OwnedColumn::Int128(vec![]),
-                        ColumnType::Decimal75(precision, scale) => {
-                            OwnedColumn::Decimal75(precision, scale, vec![])
+                        ColumnType::Boolean(meta) => OwnedColumn::Boolean(meta, vec![]),
+                        ColumnType::TinyInt(meta) => OwnedColumn::TinyInt(meta, vec![]),
+                        ColumnType::SmallInt(meta) => OwnedColumn::SmallInt(meta, vec![]),
+                        ColumnType::Int(meta) => OwnedColumn::Int(meta, vec![]),
+                        ColumnType::BigInt(meta) => OwnedColumn::BigInt(meta, vec![]),
+                        ColumnType::Int128(meta) => OwnedColumn::Int128(meta, vec![]),
+                        ColumnType::Decimal75(meta, precision, scale) => {
+                            OwnedColumn::Decimal75(meta, precision, scale, vec![])
                         }
-                        ColumnType::Scalar => OwnedColumn::Scalar(vec![]),
-                        ColumnType::VarChar => OwnedColumn::VarChar(vec![]),
-                        ColumnType::TimestampTZ(tu, tz) => OwnedColumn::TimestampTZ(tu, tz, vec![]),
+                        ColumnType::Scalar(meta) => OwnedColumn::Scalar(meta, vec![]),
+                        ColumnType::VarChar(meta) => OwnedColumn::VarChar(meta, vec![]),
+                        ColumnType::TimestampTZ(meta, tu, tz) =>
+                            OwnedColumn::TimestampTZ(meta, tu, tz, vec![]),
                     },
                 )
             })
