@@ -5,7 +5,7 @@ mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
 use alloc::string::String;
-use core::{cmp::Ordering, ops::Sub};
+use core::ops::Sub;
 pub use mont_scalar::Curve25519Scalar;
 pub(crate) use mont_scalar::MontScalar;
 /// Module for a test Scalar
@@ -79,12 +79,7 @@ pub trait Scalar:
     const ONE: Self;
     /// 1 + 1
     const TWO: Self;
-    /// Compare two `Scalar`s as signed numbers.
-    fn signed_cmp(&self, other: &Self) -> Ordering {
-        match *self - *other {
-            x if x.is_zero() => Ordering::Equal,
-            x if x > Self::MAX_SIGNED => Ordering::Less,
-            _ => Ordering::Greater,
-        }
-    }
 }
+
+mod scalar_ext;
+pub use scalar_ext::ScalarExt;

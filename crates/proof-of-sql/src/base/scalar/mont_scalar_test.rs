@@ -4,7 +4,6 @@ use crate::base::{
 };
 use alloc::{format, string::ToString, vec::Vec};
 use byte_slice_cast::AsByteSlice;
-use core::cmp::Ordering;
 use num_bigint::BigInt;
 use num_traits::{Inv, One, Zero};
 use rand::{
@@ -359,20 +358,6 @@ fn the_one_scalar_is_the_multiplicative_identity() {
             Curve25519Scalar::one()
         );
     }
-}
-
-#[test]
-fn scalar_comparison_works() {
-    let zero = Curve25519Scalar::ZERO;
-    let one = Curve25519Scalar::ONE;
-    let two = Curve25519Scalar::TWO;
-    let max = Curve25519Scalar::MAX_SIGNED;
-    let min = max + one;
-    assert_eq!(max.signed_cmp(&one), Ordering::Greater);
-    assert_eq!(one.signed_cmp(&zero), Ordering::Greater);
-    assert_eq!(min.signed_cmp(&zero), Ordering::Less);
-    assert_eq!((two * max).signed_cmp(&zero), Ordering::Less);
-    assert_eq!(two * max + one, zero);
 }
 
 #[test]

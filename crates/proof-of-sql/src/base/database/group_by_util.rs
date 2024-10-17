@@ -3,7 +3,7 @@
 use crate::base::{
     database::{filter_util::filter_column_by_index, Column, OwnedColumn},
     if_rayon,
-    scalar::Scalar,
+    scalar::{Scalar, ScalarExt},
 };
 use alloc::vec::Vec;
 use bumpalo::Bump;
@@ -306,7 +306,7 @@ where
         indexes[start..index]
             .iter()
             .map(|i| S::from(&slice[*i]))
-            .max_by(super::super::scalar::Scalar::signed_cmp)
+            .max_by(super::super::scalar::ScalarExt::signed_cmp)
     }))
 }
 
@@ -347,7 +347,7 @@ where
         indexes[start..index]
             .iter()
             .map(|i| S::from(&slice[*i]))
-            .min_by(super::super::scalar::Scalar::signed_cmp)
+            .min_by(super::super::scalar::ScalarExt::signed_cmp)
     }))
 }
 
