@@ -147,17 +147,17 @@ pub(crate) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
     indexes: &[usize],
 ) -> &'a [S] {
     match column {
-        Column::TinyInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::SmallInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::Int(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::BigInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::Int128(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::Decimal75(_, _, col) => {
+        Column::TinyInt(_, col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::SmallInt(_, col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Int(_, col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::BigInt(_, col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Int128(_, col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Decimal75(_, _, _, col) => {
             sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes)
         }
-        Column::Scalar(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Scalar(_, col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         // The following should never be reached because the `SUM` function can only be applied to numeric types.
-        Column::VarChar(_) | Column::TimestampTZ(_, _, _) | Column::Boolean(_) => {
+        Column::VarChar(_, _) | Column::TimestampTZ(..) | Column::Boolean(..) => {
             unreachable!("SUM can not be applied to non-numeric types")
         }
     }
@@ -175,21 +175,21 @@ pub(crate) fn max_aggregate_column_by_index_counts<'a, S: Scalar>(
     indexes: &[usize],
 ) -> &'a [Option<S>] {
     match column {
-        Column::Boolean(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::TinyInt(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::SmallInt(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::Int(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::BigInt(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::Int128(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::Decimal75(_, _, col) => {
+        Column::Boolean(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::TinyInt(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::SmallInt(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Int(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::BigInt(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Int128(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Decimal75(_, _, _, col) => {
             max_aggregate_slice_by_index_counts(alloc, col, counts, indexes)
         }
-        Column::TimestampTZ(_, _, col) => {
+        Column::TimestampTZ(_, _, _, col) => {
             max_aggregate_slice_by_index_counts(alloc, col, counts, indexes)
         }
-        Column::Scalar(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Scalar(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         // The following should never be reached because the `MAX` function can't be applied to varchar.
-        Column::VarChar(_) => {
+        Column::VarChar(_, _) => {
             unreachable!("MAX can not be applied to varchar")
         }
     }
@@ -207,21 +207,21 @@ pub(crate) fn min_aggregate_column_by_index_counts<'a, S: Scalar>(
     indexes: &[usize],
 ) -> &'a [Option<S>] {
     match column {
-        Column::Boolean(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::TinyInt(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::SmallInt(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::Int(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::BigInt(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::Int128(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::Decimal75(_, _, col) => {
+        Column::Boolean(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::TinyInt(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::SmallInt(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Int(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::BigInt(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Int128(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Decimal75(_, _, _, col) => {
             min_aggregate_slice_by_index_counts(alloc, col, counts, indexes)
         }
-        Column::TimestampTZ(_, _, col) => {
+        Column::TimestampTZ(_, _, _, col) => {
             min_aggregate_slice_by_index_counts(alloc, col, counts, indexes)
         }
-        Column::Scalar(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Scalar(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         // The following should never be reached because the `MIN` function can't be applied to varchar.
-        Column::VarChar(_) => {
+        Column::VarChar(_, _) => {
             unreachable!("MIN can not be applied to varchar")
         }
     }
@@ -361,15 +361,15 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
     group_by
         .iter()
         .map(|col| match col {
-            Column::Boolean(col) => col[i].cmp(&col[j]),
-            Column::TinyInt(col) => col[i].cmp(&col[j]),
-            Column::SmallInt(col) => col[i].cmp(&col[j]),
-            Column::Int(col) => col[i].cmp(&col[j]),
-            Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
-            Column::Int128(col) => col[i].cmp(&col[j]),
-            Column::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
-            Column::Scalar(col) => col[i].cmp(&col[j]),
-            Column::VarChar((col, _)) => col[i].cmp(col[j]),
+            Column::Boolean(_, col) => col[i].cmp(&col[j]),
+            Column::TinyInt(_, col) => col[i].cmp(&col[j]),
+            Column::SmallInt(_, col) => col[i].cmp(&col[j]),
+            Column::Int(_, col) => col[i].cmp(&col[j]),
+            Column::BigInt(_, col) | Column::TimestampTZ(.., col) => col[i].cmp(&col[j]),
+            Column::Int128(_, col) => col[i].cmp(&col[j]),
+            Column::Decimal75(_, _, _, col) => col[i].signed_cmp(&col[j]),
+            Column::Scalar(_, col) => col[i].cmp(&col[j]),
+            Column::VarChar(_, (col, _)) => col[i].cmp(col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
@@ -387,15 +387,15 @@ pub(crate) fn compare_indexes_by_owned_columns<S: Scalar>(
     group_by
         .iter()
         .map(|col| match col {
-            OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
-            OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
-            OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
-            OwnedColumn::Int(col) => col[i].cmp(&col[j]),
-            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
-            OwnedColumn::Int128(col) => col[i].cmp(&col[j]),
-            OwnedColumn::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
-            OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
-            OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
+            OwnedColumn::Boolean(_, col) => col[i].cmp(&col[j]),
+            OwnedColumn::TinyInt(_, col) => col[i].cmp(&col[j]),
+            OwnedColumn::SmallInt(_, col) => col[i].cmp(&col[j]),
+            OwnedColumn::Int(_, col) => col[i].cmp(&col[j]),
+            OwnedColumn::BigInt(_, col) | OwnedColumn::TimestampTZ(.., col) => col[i].cmp(&col[j]),
+            OwnedColumn::Int128(_, col) => col[i].cmp(&col[j]),
+            OwnedColumn::Decimal75(.., col) => col[i].signed_cmp(&col[j]),
+            OwnedColumn::Scalar(_, col) => col[i].cmp(&col[j]),
+            OwnedColumn::VarChar(_, col) => col[i].cmp(&col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
