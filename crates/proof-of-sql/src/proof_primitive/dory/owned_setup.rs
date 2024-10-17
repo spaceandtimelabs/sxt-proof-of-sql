@@ -1,7 +1,14 @@
 use super::{G1Affine, G2Affine, PublicParameters};
 use alloc::vec::Vec;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError, Valid};
-
+#[cfg(feature = "std")]
+use ark_serialize::{Compress, Validate};
+#[cfg(feature = "std")]
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter, Error, ErrorKind, Read, Write},
+    path::Path,
+};
 /// The transparent setup information that the prover must know to create a proof.
 /// This is public knowledge and must match with the verifier's setup information.
 /// See Section 3.3 of <https://eprint.iacr.org/2020/1274.pdf> for details.
@@ -72,6 +79,42 @@ impl OwnedProverSetup {
             #[cfg(feature = "blitzar")]
             _blitzar_handle,
         }
+    }
+
+    #[cfg(feature = "std")]
+    /// Function to save `OwnedProverSetup` to a file in binary form
+    pub fn save_to_file(&self, path: &Path) -> std::io::Result<()> {
+        let file = File::create(path)?;
+        let mut writer = BufWriter::new(file);
+
+        // Serialize the OwnedProverSetup struct into a buffer
+        let mut serialized_data = Vec::new();
+        self.serialize_with_mode(&mut serialized_data, Compress::No)
+            .map_err(|e| Error::new(ErrorKind::Other, format!("{e}")))?;
+
+        // Write serialized bytes to the file
+        writer.write_all(&serialized_data)?;
+        writer.flush()?;
+        Ok(())
+    }
+
+    #[cfg(feature = "std")]
+    /// Function to load `OwnedProverSetup` from a file in binary form
+    pub fn load_from_file(path: &Path) -> std::io::Result<Self> {
+        let file = File::open(path)?;
+        let mut reader = BufReader::new(file);
+
+        // Read the serialized data from the file
+        let mut serialized_data = Vec::new();
+        reader.read_to_end(&mut serialized_data)?;
+
+        // Deserialize the data into an OwnedProverSetup instance
+        OwnedProverSetup::deserialize_with_mode(
+            &mut &serialized_data[..],
+            Compress::No,
+            Validate::Yes,
+        )
+        .map_err(|e| Error::new(ErrorKind::Other, format!("{e}")))
     }
 
     #[cfg(feature = "blitzar")]
