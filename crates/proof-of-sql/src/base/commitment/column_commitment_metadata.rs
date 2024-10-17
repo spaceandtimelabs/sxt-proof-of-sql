@@ -44,17 +44,17 @@ impl ColumnCommitmentMetadata {
         bounds: ColumnBounds,
     ) -> Result<ColumnCommitmentMetadata, InvalidColumnCommitmentMetadata> {
         match (column_type, bounds) {
-            (ColumnType::TinyInt, ColumnBounds::TinyInt(_))
-            | (ColumnType::SmallInt, ColumnBounds::SmallInt(_))
-            | (ColumnType::Int, ColumnBounds::Int(_))
-            | (ColumnType::BigInt, ColumnBounds::BigInt(_))
-            | (ColumnType::Int128, ColumnBounds::Int128(_))
-            | (ColumnType::TimestampTZ(_, _), ColumnBounds::TimestampTZ(_))
+            (ColumnType::TinyInt(_), ColumnBounds::TinyInt(_))
+            | (ColumnType::SmallInt(_), ColumnBounds::SmallInt(_))
+            | (ColumnType::Int(_), ColumnBounds::Int(_))
+            | (ColumnType::BigInt(_), ColumnBounds::BigInt(_))
+            | (ColumnType::Int128(_), ColumnBounds::Int128(_))
+            | (ColumnType::TimestampTZ(_, _, _), ColumnBounds::TimestampTZ(_))
             | (
-                ColumnType::Boolean
-                | ColumnType::VarChar
-                | ColumnType::Scalar
-                | ColumnType::Decimal75(..),
+                ColumnType::Boolean(_)
+                | ColumnType::VarChar(_)
+                | ColumnType::Scalar(_)
+                | ColumnType::Decimal75(_, ..),
                 ColumnBounds::NoOrder,
             ) => Ok(ColumnCommitmentMetadata {
                 column_type,
