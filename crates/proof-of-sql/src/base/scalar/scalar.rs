@@ -2,7 +2,7 @@
 
 use crate::base::{encode::VarInt, ref_into::RefInto, scalar::ScalarConversionError};
 use alloc::string::String;
-use core::{cmp::Ordering, ops::Sub};
+use core::ops::Sub;
 use num_bigint::BigInt;
 
 /// A trait for the scalar field used in Proof of SQL.
@@ -69,12 +69,4 @@ pub trait Scalar:
     const ONE: Self;
     /// 1 + 1
     const TWO: Self;
-    /// Compare two `Scalar`s as signed numbers.
-    fn signed_cmp(&self, other: &Self) -> Ordering {
-        match *self - *other {
-            x if x.is_zero() => Ordering::Equal,
-            x if x > Self::MAX_SIGNED => Ordering::Less,
-            _ => Ordering::Greater,
-        }
-    }
 }

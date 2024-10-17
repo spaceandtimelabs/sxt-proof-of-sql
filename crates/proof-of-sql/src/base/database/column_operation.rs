@@ -3,7 +3,7 @@ use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::ColumnType,
     math::decimal::{scale_scalar, DecimalError, Precision},
-    scalar::Scalar,
+    scalar::{Scalar, ScalarExt},
 };
 use alloc::{format, string::ToString, vec::Vec};
 use core::{cmp::Ordering, fmt::Debug};
