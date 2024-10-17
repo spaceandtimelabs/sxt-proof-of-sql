@@ -1,6 +1,6 @@
 use crate::base::{
     database::{ColumnOperationError, ColumnType},
-    math::decimal::{DecimalError, IntermediateDecimalError},
+    math::decimal::{DecimalError, IntermediateDecimalError, InvalidPrecisionError},
 };
 use alloc::{
     boxed::Box,
@@ -139,6 +139,12 @@ pub enum ConversionError {
         /// The underlying error
         error: String,
     },
+}
+
+impl From<InvalidPrecisionError> for ConversionError {
+    fn from(value: InvalidPrecisionError) -> Self {
+        ConversionError::from(Into::<DecimalError>::into(value))
+    }
 }
 
 impl From<String> for ConversionError {

@@ -42,13 +42,13 @@ pub enum DecimalError {
         error: String,
     },
 
-    #[snafu(display("Decimal precision is not valid: {error}"))]
+    #[snafu(transparent)]
     /// Decimal precision exceeds the allowed limit,
     /// e.g. precision above 75/76/whatever set by Scalar
     /// or non-positive aka `InvalidPrecision`
     InvalidPrecision {
         /// The underlying error
-        error: String,
+        source: InvalidPrecisionError,
     },
 
     #[snafu(display("Decimal scale is not valid: {scale}"))]
@@ -86,6 +86,15 @@ impl From<DecimalError> for String {
     }
 }
 
+#[derive(Snafu, Debug, Eq, PartialEq)]
+#[snafu(display("Decimal precision is not valid: {precision}"))]
+/// Decimal precision exceeds the allowed limit,
+/// e.g. precision above 75/76/whatever set by Scalar
+/// or non-positive aka `InvalidPrecision`
+pub struct InvalidPrecisionError {
+    precision: String,
+}
+
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Copy)]
 /// limit-enforced precision
 pub struct Precision(u8);
@@ -93,10 +102,10 @@ pub(crate) const MAX_SUPPORTED_PRECISION: u8 = 75;
 
 impl Precision {
     /// Constructor for creating a Precision instance
-    pub fn new(value: u8) -> Result<Self, DecimalError> {
+    pub fn new(value: u8) -> Result<Self, InvalidPrecisionError> {
         if value > MAX_SUPPORTED_PRECISION || value == 0 {
-            Err(DecimalError::InvalidPrecision {
-                error: value.to_string(),
+            Err(InvalidPrecisionError {
+                precision: value.to_string(),
             })
         } else {
             Ok(Precision(value))
@@ -111,28 +120,20 @@ impl Precision {
 }
 
 impl TryFrom<i16> for Precision {
-    type Error = DecimalError;
+    type Error = InvalidPrecisionError;
     fn try_from(value: i16) -> Result<Self, Self::Error> {
-        Precision::new(
-            value
-                .try_into()
-                .map_err(|_| DecimalError::InvalidPrecision {
-                    error: value.to_string(),
-                })?,
-        )
+        Precision::new(value.try_into().map_err(|_| InvalidPrecisionError {
+            precision: value.to_string(),
+        })?)
     }
 }
 
 impl TryFrom<u64> for Precision {
-    type Error = DecimalError;
+    type Error = InvalidPrecisionError;
     fn try_from(value: u64) -> Result<Self, Self::Error> {
-        Precision::new(
-            value
-                .try_into()
-                .map_err(|_| DecimalError::InvalidPrecision {
-                    error: value.to_string(),
-                })?,
-        )
+        Precision::new(value.try_into().map_err(|_| InvalidPrecisionError {
+            precision: value.to_string(),
+        })?)
     }
 }
 

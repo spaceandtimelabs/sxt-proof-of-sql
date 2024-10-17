@@ -1,5 +1,9 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
-use crate::base::{database::Column, math::decimal::Precision, scalar::Scalar};
+use crate::base::{
+    database::Column,
+    math::decimal::{DecimalError, InvalidPrecisionError, Precision},
+    scalar::Scalar,
+};
 use arrow::{
     array::{
         Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
@@ -31,7 +35,7 @@ pub enum ArrowArrayToColumnConversionError {
     #[snafu(transparent)]
     DecimalError {
         /// The underlying source error
-        source: crate::base::math::decimal::DecimalError,
+        source: DecimalError,
     },
     /// This error occurs when trying to convert from an i256 to a Scalar.
     #[snafu(display("decimal conversion failed: {number}"))]
@@ -53,6 +57,12 @@ pub enum ArrowArrayToColumnConversionError {
         /// The underlying source error
         source: PoSQLTimestampError,
     },
+}
+
+impl From<InvalidPrecisionError> for ArrowArrayToColumnConversionError {
+    fn from(value: InvalidPrecisionError) -> Self {
+        ArrowArrayToColumnConversionError::from(Into::<DecimalError>::into(value))
+    }
 }
 
 /// This trait is used to provide utility functions to convert [`ArrayRef`]s into proof types (Column, Scalars, etc.)
