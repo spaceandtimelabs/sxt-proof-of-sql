@@ -40,6 +40,9 @@ Session.vim
 # Measurements are really pretty huge and not necessary to store in the repo
 measurements.json
 
+# to ignore package-lock.json 
+package-lock.json
+
 # ignore python files
 __pycache__/
 *.py[cod]
