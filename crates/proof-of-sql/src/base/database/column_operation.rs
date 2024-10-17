@@ -2,7 +2,7 @@
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::ColumnType,
-    math::{decimal::DecimalError, Precision},
+    math::{DecimalError, Precision},
     scalar::{Scalar, ScalarExt},
 };
 use alloc::{format, string::ToString, vec::Vec};

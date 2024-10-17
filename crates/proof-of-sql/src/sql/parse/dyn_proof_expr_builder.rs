@@ -4,7 +4,7 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
         map::IndexMap,
-        math::{decimal::DecimalError, BigDecimalExt, Precision},
+        math::{BigDecimalExt, DecimalError, Precision},
     },
     sql::{
         parse::dyn_proof_expr_builder::DecimalError::InvalidScale,

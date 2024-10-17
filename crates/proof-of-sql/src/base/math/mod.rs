@@ -13,3 +13,6 @@ mod precision;
 pub use precision::{InvalidPrecisionError, Precision};
 #[cfg(test)]
 mod precision_test;
+
+mod decimal_error;
+pub use decimal_error::{DecimalError, DecimalResult, IntermediateDecimalError};

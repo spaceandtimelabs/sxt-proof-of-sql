@@ -1,6 +1,6 @@
 use crate::base::{
     database::ColumnType,
-    math::{decimal::DecimalError, InvalidPrecisionError},
+    math::{DecimalError, InvalidPrecisionError},
 };
 use alloc::string::String;
 use core::result::Result;

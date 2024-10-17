@@ -1,8 +1,6 @@
 use super::{
-    decimal::{
-        DecimalError, DecimalResult,
-        IntermediateDecimalError::{self, LossyCast},
-    },
+    DecimalError, DecimalResult,
+    IntermediateDecimalError::{self, LossyCast},
     Precision,
 };
 use crate::base::scalar::{Scalar, ScalarConversionError};

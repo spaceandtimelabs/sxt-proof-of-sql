@@ -1,7 +1,7 @@
 use super::{ExpressionEvaluationError, ExpressionEvaluationResult};
 use crate::base::{
     database::{OwnedColumn, OwnedTable},
-    math::{decimal::DecimalError, BigDecimalExt, Precision},
+    math::{DecimalError, BigDecimalExt, Precision},
     scalar::Scalar,
 };
 use alloc::{format, string::ToString, vec};
