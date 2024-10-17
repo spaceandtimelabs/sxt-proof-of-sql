@@ -1,6 +1,6 @@
 use crate::base::{
     map::IndexSet,
-    scalar::{Curve25519Scalar, Scalar, ScalarConversionError},
+    scalar::{test_scalar::TestScalar, Curve25519Scalar, Scalar, ScalarConversionError},
 };
 use alloc::{format, string::ToString, vec::Vec};
 use byte_slice_cast::AsByteSlice;
@@ -470,4 +470,43 @@ fn the_string_hash_implementation_uses_the_full_range_of_bits() {
             curr_iters += 1;
         }
     }
+}
+
+#[test]
+fn test_bigint_to_scalar_overflow() {
+    assert_eq!(
+        TestScalar::try_from(
+            "3618502788666131106986593281521497120428558179689953803000975469142727125494"
+                .parse::<BigInt>()
+                .unwrap()
+        )
+        .unwrap(),
+        TestScalar::MAX_SIGNED
+    );
+    assert_eq!(
+        TestScalar::try_from(
+            "-3618502788666131106986593281521497120428558179689953803000975469142727125494"
+                .parse::<BigInt>()
+                .unwrap()
+        )
+        .unwrap(),
+        -TestScalar::MAX_SIGNED
+    );
+
+    assert!(matches!(
+        TestScalar::try_from(
+            "3618502788666131106986593281521497120428558179689953803000975469142727125495"
+                .parse::<BigInt>()
+                .unwrap()
+        ),
+        Err(ScalarConversionError::Overflow { .. })
+    ));
+    assert!(matches!(
+        TestScalar::try_from(
+            "-3618502788666131106986593281521497120428558179689953803000975469142727125495"
+                .parse::<BigInt>()
+                .unwrap()
+        ),
+        Err(ScalarConversionError::Overflow { .. })
+    ));
 }
