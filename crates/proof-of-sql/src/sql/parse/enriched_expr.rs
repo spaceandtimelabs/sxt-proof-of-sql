@@ -55,7 +55,11 @@ impl<C: Commitment> EnrichedExpr<C> {
     /// Since we plan to support unaliased expressions in the future, this method returns an `Option`.
     #[allow(dead_code)]
     pub fn get_alias(&self) -> Option<&Ident> {
-        self.residue_expression.try_as_identifier()
+        if let Expr::Identifier(alias) = &self.residue_expression.expr {
+            Some(alias)
+        } else {
+            None
+        }
     }
 
     /// Is the `EnrichedExpr` provable

@@ -78,11 +78,11 @@ where
     }
 
     fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
+        accessor.get_length(self.table.table_ref.clone())
     }
 
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset(self.table.table_ref)
+        accessor.get_offset(self.table.table_ref.clone())
     }
 
     #[allow(unused_variables)]
@@ -124,7 +124,7 @@ where
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         self.aliased_results
             .iter()
-            .map(|aliased_expr| ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type()))
+            .map(|aliased_expr| ColumnField::new(aliased_expr.alias.clone(), aliased_expr.expr.data_type()))
             .collect()
     }
 

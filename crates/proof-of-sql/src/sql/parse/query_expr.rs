@@ -69,7 +69,7 @@ impl<C: Commitment> QueryExpr<C> {
                 .visit_group_by_exprs(group_by)?
                 .visit_result_exprs(result_exprs)?
                 .visit_where_expr(where_expr)?
-                .visit_order_by_exprs(ast.order_by)
+                .visit_order_by(ast.order_by)
                 .visit_slice_expr(if slice == Slice::default() { None } else { Some(slice) })
                 .build()?;
         let result_aliased_exprs = context.get_aliased_result_exprs()?.to_vec();

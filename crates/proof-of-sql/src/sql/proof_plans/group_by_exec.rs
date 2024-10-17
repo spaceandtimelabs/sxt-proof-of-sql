@@ -55,7 +55,7 @@ impl<C: Commitment> GroupByExec<C> {
         group_by_exprs: Vec<ColumnExpr<C>>,
         sum_expr: Vec<AliasedDynProofExpr<C>>,
         count_alias: Ident,
-        table: Ident,
+        table: TableExpr,
         where_clause: DynProofExpr<C>,
     ) -> Self {
         Self {
@@ -93,11 +93,11 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
     }
 
     fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
+        accessor.get_length(self.table.table_ref.clone())
     }
 
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset(self.table.table_ref)
+        accessor.get_offset(self.table.table_ref.clone())
     }
 
     #[allow(unused_variables)]
@@ -179,10 +179,10 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             .iter()
             .map(|col| col.get_column_field())
             .chain(self.sum_expr.iter().map(|aliased_expr| {
-                ColumnField::new(&aliased_expr.alias, aliased_expr.expr.data_type())
+                ColumnField::new(aliased_expr.alias.clone(), aliased_expr.expr.data_type())
             }))
             .chain(iter::once(ColumnField::new(
-                &self.count_alias,
+                self.count_alias.clone(),
                 ColumnType::BigInt,
             )))
             .collect()

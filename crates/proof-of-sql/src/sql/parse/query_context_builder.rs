@@ -45,10 +45,10 @@ impl<'a> QueryContextBuilder<'a> {
         mut self,
         mut where_expr: Option<Expr>,
     ) -> ConversionResult<Self> {
-        if let Some(expr) = where_expr.as_deref_mut() {
+        if let Some(expr) = where_expr.as_ref() {
             self.visit_expr(expr)?;
         }
-        self.context.set_where_expr(where_expr);
+        self.context.set_where_expr(where_expr.into());
         Ok(self)
     }
 
@@ -77,9 +77,13 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
-    pub fn visit_order_by(mut self, order_by: Vec<OrderBy>) -> Self {
-        self.context.set_order_by_exprs(order_by_exprs);
-        self
+    pub fn visit_order_by(mut self, order_by: Option<OrderBy>) -> Self {
+        if let Some(order_by) = order_by {
+
+            self.visit_order_by_exprs(order_by.exprs)
+        } else {
+            Self
+        }
     }
     pub fn visit_order_by_exprs(mut self, order_by_exprs: Vec<OrderByExpr>) -> Self {
         self.context.set_order_by_exprs(order_by_exprs);
@@ -274,7 +278,7 @@ impl<'a> QueryContextBuilder<'a> {
 
         let column_type = column_type.ok_or_else(|| ConversionError::MissingColumn {
             identifier: Box::new(column_name.to_owned()),
-            resource_id: Box::new(table_ref.resource_id()),
+            resource_id: Box::new(table_ref.resource_id().clone()),
         })?;
 
         let column = ColumnRef::new(table_ref.clone(), column_name.clone(), column_type);
