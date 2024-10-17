@@ -109,33 +109,33 @@ impl<'a, S: Scalar> Column<'a, S> {
     ) -> Self {
         match literal {
             LiteralValue::Boolean(value) => {
-                Column::Boolean(alloc.alloc_slice_fill_copy(length, *value))
+                Column::Boolean(ColumnTypeAssociatedData::default(), alloc.alloc_slice_fill_copy(length, *value))
             }
             LiteralValue::TinyInt(value) => {
-                Column::TinyInt(alloc.alloc_slice_fill_copy(length, *value))
+                Column::TinyInt(ColumnTypeAssociatedData::default(), alloc.alloc_slice_fill_copy(length, *value))
             }
             LiteralValue::SmallInt(value) => {
-                Column::SmallInt(alloc.alloc_slice_fill_copy(length, *value))
+                Column::SmallInt(ColumnTypeAssociatedData::default(), alloc.alloc_slice_fill_copy(length, *value))
             }
-            LiteralValue::Int(value) => Column::Int(alloc.alloc_slice_fill_copy(length, *value)),
+            LiteralValue::Int(value) => Column::Int(ColumnTypeAssociatedData::default(), alloc.alloc_slice_fill_copy(length, *value)),
             LiteralValue::BigInt(value) => {
-                Column::BigInt(alloc.alloc_slice_fill_copy(length, *value))
+                Column::BigInt(ColumnTypeAssociatedData::default(), alloc.alloc_slice_fill_copy(length, *value))
             }
             LiteralValue::Int128(value) => {
-                Column::Int128(alloc.alloc_slice_fill_copy(length, *value))
+                Column::Int128(ColumnTypeAssociatedData::default(), alloc.alloc_slice_fill_copy(length, *value))
             }
             LiteralValue::Scalar(value) => {
-                Column::Scalar(alloc.alloc_slice_fill_copy(length, *value))
+                Column::Scalar(ColumnTypeAssociatedData::default(), alloc.alloc_slice_fill_copy(length, *value))
             }
-            LiteralValue::Decimal75(precision, scale, value) => Column::Decimal75(
+            LiteralValue::Decimal75(precision, scale, value) => Column::Decimal75(ColumnTypeAssociatedData::default(),
                 *precision,
                 *scale,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
             LiteralValue::TimeStampTZ(tu, tz, value) => {
-                Column::TimestampTZ(*tu, *tz, alloc.alloc_slice_fill_copy(length, *value))
+                Column::TimestampTZ(ColumnTypeAssociatedData::default(), *tu, *tz, alloc.alloc_slice_fill_copy(length, *value))
             }
-            LiteralValue::VarChar((string, scalar)) => Column::VarChar((
+            LiteralValue::VarChar((string, scalar)) => Column::VarChar(ColumnTypeAssociatedData::default() ,(
                 alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
                 alloc.alloc_slice_fill_copy(length, *scalar),
             )),
