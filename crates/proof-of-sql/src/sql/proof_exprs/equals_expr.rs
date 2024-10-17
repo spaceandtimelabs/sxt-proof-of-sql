@@ -13,6 +13,7 @@ use crate::{
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
+use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable AST expression for an equals expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -37,7 +38,7 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
     }
 
     fn data_type(&self) -> ColumnType {
-        ColumnType::Boolean
+        ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)
     }
 
     #[tracing::instrument(name = "EqualsExpr::result_evaluate", level = "debug", skip_all)]
@@ -53,7 +54,10 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        Column::Boolean(result_evaluate_equals_zero(table_length, alloc, res))
+        Column::Boolean(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            result_evaluate_equals_zero(table_length, alloc, res)
+        )
     }
 
     #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
@@ -69,7 +73,10 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        Column::Boolean(prover_evaluate_equals_zero(builder, alloc, res))
+        Column::Boolean(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            prover_evaluate_equals_zero(builder, alloc, res)
+        )
     }
 
     fn verifier_evaluate(
@@ -157,7 +164,7 @@ pub fn verifier_evaluate_equals_zero<C: Commitment>(
     // subpolynomial: selection * lhs
     builder.produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        selection_eval * lhs_eval,
+        selection_eval.clone() * lhs_eval,
     );
 
     // subpolynomial: selection_not - lhs * lhs_pseudo_inv
