@@ -456,7 +456,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::math::decimal::Precision;
+    use crate::base::math::Precision;
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]

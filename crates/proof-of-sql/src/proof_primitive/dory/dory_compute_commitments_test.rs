@@ -1,5 +1,5 @@
 use crate::{
-    base::{commitment::CommittableColumn, math::decimal::Precision},
+    base::{commitment::CommittableColumn, math::Precision},
     proof_primitive::dory::{
         compute_dory_commitments, DoryProverPublicSetup, ProverSetup, PublicParameters, F, GT,
     },

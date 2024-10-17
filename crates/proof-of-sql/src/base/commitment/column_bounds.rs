@@ -307,7 +307,7 @@ impl ColumnBounds {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::Curve25519Scalar};
+    use crate::base::{database::OwnedColumn, math::Precision, scalar::Curve25519Scalar};
     use alloc::{string::String, vec};
     use itertools::Itertools;
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};

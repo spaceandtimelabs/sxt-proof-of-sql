@@ -1,6 +1,6 @@
 use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
-    math::decimal::Precision,
+    math::Precision,
     scalar::{Scalar, ScalarExt},
     slice_ops::slice_cast_with,
 };

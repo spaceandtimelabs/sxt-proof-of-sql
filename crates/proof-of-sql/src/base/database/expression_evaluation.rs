@@ -2,8 +2,8 @@ use super::{ExpressionEvaluationError, ExpressionEvaluationResult};
 use crate::base::{
     database::{OwnedColumn, OwnedTable},
     math::{
-        decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError, Precision},
-        BigDecimalExt,
+        decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError},
+        BigDecimalExt, Precision,
     },
     scalar::Scalar,
 };

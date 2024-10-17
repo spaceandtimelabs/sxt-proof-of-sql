@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod precision_tests {
-    use crate::base::math::decimal::Precision;
+    use crate::base::math::Precision;
     use serde_json;
 
     #[test]

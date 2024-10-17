@@ -10,3 +10,5 @@ pub(crate) mod permutation;
 
 mod big_decimal_ext;
 pub(crate) use big_decimal_ext::BigDecimalExt;
+
+pub use decimal::{InvalidPrecisionError, Precision};

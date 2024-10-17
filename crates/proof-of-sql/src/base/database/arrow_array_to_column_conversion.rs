@@ -1,7 +1,7 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::base::{
     database::Column,
-    math::decimal::{DecimalError, InvalidPrecisionError, Precision},
+    math::{decimal::DecimalError, InvalidPrecisionError, Precision},
     scalar::Scalar,
 };
 use arrow::{

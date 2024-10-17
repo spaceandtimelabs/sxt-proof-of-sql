@@ -2,7 +2,7 @@ use super::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr};
 use crate::base::{
     commitment::Commitment,
     database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
-    math::decimal::Precision,
+    math::Precision,
 };
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 

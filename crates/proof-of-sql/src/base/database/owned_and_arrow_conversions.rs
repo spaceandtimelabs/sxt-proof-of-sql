@@ -19,7 +19,7 @@ use crate::base::{
         OwnedTableError,
     },
     map::IndexMap,
-    math::decimal::Precision,
+    math::Precision,
     scalar::Scalar,
 };
 use alloc::sync::Arc;

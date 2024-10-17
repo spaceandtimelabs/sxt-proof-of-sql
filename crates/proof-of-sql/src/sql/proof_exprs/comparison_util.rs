@@ -1,5 +1,5 @@
 use crate::{
-    base::{database::Column, if_rayon, math::decimal::Precision, scalar::Scalar},
+    base::{database::Column, if_rayon, math::Precision, scalar::Scalar},
     sql::parse::{type_check_binary_operation, ConversionError, ConversionResult},
 };
 use alloc::string::ToString;

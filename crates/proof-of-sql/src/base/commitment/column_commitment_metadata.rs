@@ -182,7 +182,7 @@ mod tests {
 
     use super::*;
     use crate::base::{
-        commitment::column_bounds::Bounds, database::OwnedColumn, math::decimal::Precision,
+        commitment::column_bounds::Bounds, database::OwnedColumn, math::Precision,
         scalar::Curve25519Scalar,
     };
     use alloc::string::String;

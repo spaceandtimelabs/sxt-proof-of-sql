@@ -5,8 +5,8 @@
 use super::{Column, ColumnType, OwnedColumnError, OwnedColumnResult};
 use crate::base::{
     math::{
-        decimal::Precision,
         permutation::{Permutation, PermutationError},
+        Precision,
     },
     scalar::Scalar,
 };
@@ -360,7 +360,7 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::base::{math::decimal::Precision, scalar::Curve25519Scalar};
+    use crate::base::{math::Precision, scalar::Curve25519Scalar};
     use alloc::vec;
     use bumpalo::Bump;
     use proof_of_sql_parser::intermediate_ast::OrderByDirection;

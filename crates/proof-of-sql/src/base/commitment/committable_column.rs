@@ -1,6 +1,6 @@
 use crate::base::{
     database::{Column, ColumnType, OwnedColumn},
-    math::decimal::Precision,
+    math::Precision,
     ref_into::RefInto,
     scalar::Scalar,
 };

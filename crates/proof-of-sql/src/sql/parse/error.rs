@@ -1,6 +1,9 @@
 use crate::base::{
     database::{ColumnOperationError, ColumnType},
-    math::decimal::{DecimalError, IntermediateDecimalError, InvalidPrecisionError},
+    math::{
+        decimal::{DecimalError, IntermediateDecimalError},
+        InvalidPrecisionError,
+    },
 };
 use alloc::{
     boxed::Box,
