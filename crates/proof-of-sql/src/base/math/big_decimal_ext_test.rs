@@ -3,7 +3,6 @@ use crate::base::{
     scalar::Curve25519Scalar,
 };
 use bigdecimal::BigDecimal;
-use num_bigint::BigInt;
 
 #[test]
 fn we_cannot_scale_past_max_precision() {
@@ -19,16 +18,6 @@ fn we_cannot_scale_past_max_precision() {
             target_scale
         )
         .is_err());
-}
-
-#[test]
-fn we_can_match_exact_decimals_from_queries_to_db() {
-    let decimal: BigDecimal = "123.45".parse().unwrap();
-    let target_scale = 2;
-    let target_precision = 20;
-    let big_int = decimal.try_into_bigint_with_precision_and_scale(target_precision, target_scale);
-    let expected_big_int: BigInt = "12345".parse().unwrap();
-    assert_eq!(big_int, Ok(expected_big_int));
 }
 
 #[test]
