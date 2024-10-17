@@ -181,15 +181,15 @@ impl<'a, S: Scalar> Column<'a, S> {
     /// Returns the column as a slice of scalars
     pub(crate) fn as_scalar(&self, alloc: &'a Bump) -> &'a [S] {
         match self {
-            Self::Boolean(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::TinyInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::SmallInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::Int(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::BigInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::Int128(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::Scalar(col) | Self::Decimal75(_, _, col) => col,
-            Self::VarChar((_, scals)) => scals,
-            Self::TimestampTZ(_, _, col) => {
+            Self::Boolean(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::TinyInt(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::SmallInt(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Int(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::BigInt(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Int128(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Scalar(_, col) | Self::Decimal75(_, _, _, col) => col,
+            Self::VarChar(_, (_, scals)) => scals,
+            Self::TimestampTZ(_, _, _, col) => {
                 alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i]))
             }
         }
@@ -200,14 +200,14 @@ impl<'a, S: Scalar> Column<'a, S> {
     /// Note that if index is out of bounds, this function will return None
     pub(crate) fn scalar_at(&self, index: usize) -> Option<S> {
         (index < self.len()).then_some(match self {
-            Self::Boolean(col) => S::from(col[index]),
-            Self::TinyInt(col) => S::from(col[index]),
-            Self::SmallInt(col) => S::from(col[index]),
-            Self::Int(col) => S::from(col[index]),
-            Self::BigInt(col) | Self::TimestampTZ(_, _, col) => S::from(col[index]),
-            Self::Int128(col) => S::from(col[index]),
-            Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
-            Self::VarChar((_, scals)) => scals[index],
+            Self::Boolean(_, col) => S::from(col[index]),
+            Self::TinyInt(_, col) => S::from(col[index]),
+            Self::SmallInt(_, col) => S::from(col[index]),
+            Self::Int(_, col) => S::from(col[index]),
+            Self::BigInt(_, col) | Self::TimestampTZ(_, _, _, col) => S::from(col[index]),
+            Self::Int128(_, col) => S::from(col[index]),
+            Self::Scalar(_, col) | Self::Decimal75(_, _, _, col) => col[index],
+            Self::VarChar(_, (_, scals)) => scals[index],
         })
     }
 
@@ -216,16 +216,16 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub(crate) fn to_scalar_with_scaling(self, scale: i8) -> Vec<S> {
         let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");
         match self {
-            Self::Boolean(col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
-            Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
-            Self::VarChar((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
-            Self::TinyInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::Int(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::BigInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Boolean(_, col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
+            Self::Decimal75(_, _, _, col) => slice_cast_with(col, |s| *s * scale_factor),
+            Self::VarChar(_, (_, values)) => slice_cast_with(values, |s| *s * scale_factor),
+            Self::TinyInt(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::SmallInt(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Int(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::BigInt(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Int128(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Scalar(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::TimestampTZ(_, _, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
         }
     }
 }
@@ -235,7 +235,15 @@ impl<'a, S: Scalar> Column<'a, S> {
 pub struct ColumnTypeAssociatedData {
     nullable: bool
 }
-
+impl Display for ColumnTypeAssociatedData {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if !self.nullable {
+            f.write_str( "NOT NULL")
+        } else {
+            Ok(())
+        }
+    }
+}
 /// Represents the supported data types of a column in an in-memory,
 /// column-oriented database.
 ///
@@ -306,7 +314,7 @@ impl ColumnType {
                 | ColumnType::BigInt(_)
                 | ColumnType::Int128(_)
                 | ColumnType::Scalar(_)
-                | ColumnType::Decimal75(_, _)
+                | ColumnType::Decimal75(_, _, _)
         )
     }
 
@@ -337,7 +345,7 @@ impl ColumnType {
 
     /// Returns the [`ColumnType`] of the integer type with the given number of bits if it is a valid integer type.
     ///
-    /// Otherwise, return None.
+    /// Otherwise, return None.from_literal_with_length
     fn from_integer_bits(bits: usize, nullable: bool) -> Option<Self> {
         let meta = ColumnTypeAssociatedData { nullable };
         match bits {
@@ -362,7 +370,7 @@ impl ColumnType {
         self.to_integer_bits().and_then(|self_bits| {
             other
                 .to_integer_bits()
-                .and_then(|other_bits| Self::from_integer_bits(self_bits.max(other_bits)))
+                .and_then(|other_bits| Self::from_integer_bits(self_bits.max(other_bits), false))
         })
     }
 
@@ -373,28 +381,28 @@ impl ColumnType {
             Self::TinyInt(_) => Some(3_u8),
             Self::SmallInt(_) => Some(5_u8),
             Self::Int(_) => Some(10_u8),
-            Self::BigInt(_) | Self::TimestampTZ(_, _) => Some(19_u8),
+            Self::BigInt(_) | Self::TimestampTZ(_, _, _) => Some(19_u8),
             Self::Int128(_) => Some(39_u8),
-            Self::Decimal75(precision, _) => Some(precision.value()),
+            Self::Decimal75(_, precision, _) => Some(precision.value()),
             // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
             // so that they do not cause errors when used in comparisons.
             Self::Scalar(_) => Some(0_u8),
-            Self::Boolean(_) | Self::VarChar => None,
+            Self::Boolean(_) | Self::VarChar(_) => None,
         }
     }
     /// Returns scale of a [`ColumnType`] if it is convertible to a decimal wrapped in `Some()`. Otherwise return None.
     #[must_use]
     pub fn scale(&self) -> Option<i8> {
         match self {
-            Self::Decimal75(_, scale) => Some(*scale),
-            Self::TinyInt
-            | Self::SmallInt
-            | Self::Int
-            | Self::BigInt
-            | Self::Int128
-            | Self::Scalar => Some(0),
-            Self::Boolean | Self::VarChar => None,
-            Self::TimestampTZ(tu, _) => match tu {
+            Self::Decimal75(_, _, scale) => Some(*scale),
+            Self::TinyInt(_)
+            | Self::SmallInt(_)
+            | Self::Int(_)
+            | Self::BigInt(_)
+            | Self::Int128(_)
+            | Self::Scalar(_) => Some(0),
+            Self::Boolean(_) | Self::VarChar(_) => None,
+            Self::TimestampTZ(_, tu, _) => match tu {
                 PoSQLTimeUnit::Second => Some(0),
                 PoSQLTimeUnit::Millisecond => Some(3),
                 PoSQLTimeUnit::Microsecond => Some(6),
@@ -407,13 +415,13 @@ impl ColumnType {
     #[must_use]
     pub fn byte_size(&self) -> usize {
         match self {
-            Self::Boolean => size_of::<bool>(),
-            Self::TinyInt => size_of::<i8>(),
-            Self::SmallInt => size_of::<i16>(),
-            Self::Int => size_of::<i32>(),
-            Self::BigInt | Self::TimestampTZ(_, _) => size_of::<i64>(),
-            Self::Int128 => size_of::<i128>(),
-            Self::Scalar | Self::Decimal75(_, _) | Self::VarChar => size_of::<[u64; 4]>(),
+            Self::Boolean(_) => size_of::<bool>(),
+            Self::TinyInt(_) => size_of::<i8>(),
+            Self::SmallInt(_) => size_of::<i16>(),
+            Self::Int(_) => size_of::<i32>(),
+            Self::BigInt(_) | Self::TimestampTZ(_, _, _) => size_of::<i64>(),
+            Self::Int128(_) => size_of::<i128>(),
+            Self::Scalar(_) | Self::Decimal75(_, _, _) | Self::VarChar(_) => size_of::<[u64; 4]>(),
         }
     }
 
@@ -427,13 +435,13 @@ impl ColumnType {
     #[must_use]
     pub const fn is_signed(&self) -> bool {
         match self {
-            Self::TinyInt
-            | Self::SmallInt
-            | Self::Int
-            | Self::BigInt
-            | Self::Int128
-            | Self::TimestampTZ(_, _) => true,
-            Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean => false,
+            Self::TinyInt(_)
+            | Self::SmallInt(_)
+            | Self::Int(_)
+            | Self::BigInt(_)
+            | Self::Int128(_)
+            | Self::TimestampTZ(_, _, _) => true,
+            Self::Decimal75(_, _, _) | Self::Scalar(_) | Self::VarChar(_) | Self::Boolean(_) => false,
         }
     }
 }
@@ -443,18 +451,18 @@ impl ColumnType {
 impl From<&ColumnType> for DataType {
     fn from(column_type: &ColumnType) -> Self {
         match column_type {
-            ColumnType::Boolean => DataType::Boolean,
-            ColumnType::TinyInt => DataType::Int8,
-            ColumnType::SmallInt => DataType::Int16,
-            ColumnType::Int => DataType::Int32,
-            ColumnType::BigInt => DataType::Int64,
-            ColumnType::Int128 => DataType::Decimal128(38, 0),
-            ColumnType::Decimal75(precision, scale) => {
+            ColumnType::Boolean(_) => DataType::Boolean,
+            ColumnType::TinyInt(_) => DataType::Int8,
+            ColumnType::SmallInt(_) => DataType::Int16,
+            ColumnType::Int(_) => DataType::Int32,
+            ColumnType::BigInt(_) => DataType::Int64,
+            ColumnType::Int128(_) => DataType::Decimal128(38, 0),
+            ColumnType::Decimal75(_, precision, scale) => {
                 DataType::Decimal256(precision.value(), *scale)
             }
-            ColumnType::VarChar => DataType::Utf8,
-            ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
-            ColumnType::TimestampTZ(timeunit, timezone) => {
+            ColumnType::VarChar(_) => DataType::Utf8,
+            ColumnType::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
+            ColumnType::TimestampTZ(_, timeunit, timezone) => {
                 let arrow_timezone = Some(Arc::from(timezone.to_string()));
                 let arrow_timeunit = match timeunit {
                     PoSQLTimeUnit::Second => ArrowTimeUnit::Second,
@@ -475,14 +483,14 @@ impl TryFrom<DataType> for ColumnType {
 
     fn try_from(data_type: DataType) -> Result<Self, Self::Error> {
         match data_type {
-            DataType::Boolean => Ok(ColumnType::Boolean),
-            DataType::Int8 => Ok(ColumnType::TinyInt),
-            DataType::Int16 => Ok(ColumnType::SmallInt),
-            DataType::Int32 => Ok(ColumnType::Int),
-            DataType::Int64 => Ok(ColumnType::BigInt),
-            DataType::Decimal128(38, 0) => Ok(ColumnType::Int128),
+            DataType::Boolean => Ok(ColumnType::Boolean(ColumnTypeAssociatedData::default())),
+            DataType::Int8 => Ok(ColumnType::TinyInt(ColumnTypeAssociatedData::default())),
+            DataType::Int16 => Ok(ColumnType::SmallInt(ColumnTypeAssociatedData::default())),
+            DataType::Int32 => Ok(ColumnType::Int(ColumnTypeAssociatedData::default())),
+            DataType::Int64 => Ok(ColumnType::BigInt(ColumnTypeAssociatedData::default())),
+            DataType::Decimal128(38, 0) => Ok(ColumnType::Int128(ColumnTypeAssociatedData::default())),
             DataType::Decimal256(precision, scale) if precision <= 75 => {
-                Ok(ColumnType::Decimal75(Precision::new(precision)?, scale))
+                Ok(ColumnType::Decimal75(ColumnTypeAssociatedData::default(), Precision::new(precision)?, scale))
             }
             DataType::Timestamp(time_unit, timezone_option) => {
                 let posql_time_unit = match time_unit {
@@ -492,11 +500,12 @@ impl TryFrom<DataType> for ColumnType {
                     ArrowTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
                 };
                 Ok(ColumnType::TimestampTZ(
+                    ColumnTypeAssociatedData::default(),
                     posql_time_unit,
                     PoSQLTimeZone::try_from(&timezone_option)?,
                 ))
             }
-            DataType::Utf8 => Ok(ColumnType::VarChar),
+            DataType::Utf8 => Ok(ColumnType::VarChar(ColumnTypeAssociatedData::default())),
             _ => Err(format!("Unsupported arrow data type {data_type:?}")),
         }
     }
