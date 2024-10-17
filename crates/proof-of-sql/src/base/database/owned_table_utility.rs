@@ -13,7 +13,7 @@
 //!     decimal75("f", 12, 1, [1, 2, 3]),
 //! ]);
 //! ```
-use super::{OwnedColumn, OwnedTable};
+use super::{ColumnTypeAssociatedData, OwnedColumn, OwnedTable};
 use crate::base::scalar::Scalar;
 use alloc::string::String;
 use core::ops::Deref;
@@ -65,7 +65,8 @@ pub fn tinyint<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::TinyInt(data.into_iter().map(Into::into).collect()),
+        OwnedColumn::TinyInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
     )
 }
 
@@ -86,7 +87,8 @@ pub fn smallint<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::SmallInt(data.into_iter().map(Into::into).collect()),
+        OwnedColumn::SmallInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
     )
 }
 
@@ -107,7 +109,8 @@ pub fn int<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::Int(data.into_iter().map(Into::into).collect()),
+        OwnedColumn::Int(
+            ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
     )
 }
 
@@ -127,7 +130,8 @@ pub fn bigint<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::BigInt(data.into_iter().map(Into::into).collect()),
+        OwnedColumn::BigInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
     )
 }
 
@@ -149,7 +153,8 @@ pub fn boolean<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::Boolean(data.into_iter().map(Into::into).collect()),
+        OwnedColumn::Boolean(
+            ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
     )
 }
 
@@ -171,7 +176,7 @@ pub fn int128<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::Int128(data.into_iter().map(Into::into).collect()),
+        OwnedColumn::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
     )
 }
 
@@ -193,7 +198,7 @@ pub fn scalar<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::Scalar(data.into_iter().map(Into::into).collect()),
+        OwnedColumn::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
     )
 }
 
@@ -215,7 +220,7 @@ pub fn varchar<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::VarChar(data.into_iter().map(Into::into).collect()),
+        OwnedColumn::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
     )
 }
 
@@ -241,6 +246,7 @@ pub fn decimal75<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
             crate::base::math::decimal::Precision::new(precision).unwrap(),
             scale,
             data.into_iter().map(Into::into).collect(),
@@ -280,6 +286,11 @@ pub fn timestamptz<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
+        OwnedColumn::TimestampTZ(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            time_unit,
+            timezone,
+            data.into_iter().collect()
+        ),
     )
 }
