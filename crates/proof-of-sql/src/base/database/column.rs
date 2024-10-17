@@ -29,31 +29,31 @@ use serde::{Deserialize, Serialize};
 #[non_exhaustive]
 pub enum Column<'a, S: Scalar> {
     /// Boolean columns
-    Boolean(&'a [bool]),
+    Boolean(ColumnTypeAssociatedData, &'a [bool]),
     /// i8 columns
-    TinyInt(&'a [i8]),
+    TinyInt(ColumnTypeAssociatedData, &'a [i8]),
     /// i16 columns
-    SmallInt(&'a [i16]),
+    SmallInt(ColumnTypeAssociatedData, &'a [i16]),
     /// i32 columns
-    Int(&'a [i32]),
+    Int(ColumnTypeAssociatedData, &'a [i32]),
     /// i64 columns
-    BigInt(&'a [i64]),
+    BigInt(ColumnTypeAssociatedData, &'a [i64]),
     /// i128 columns
-    Int128(&'a [i128]),
+    Int128(ColumnTypeAssociatedData, &'a [i128]),
     /// Decimal columns with a max width of 252 bits
     ///  - the backing store maps to the type [`crate::base::scalar::Curve25519Scalar`]
-    Decimal75(Precision, i8, &'a [S]),
+    Decimal75(ColumnTypeAssociatedData, Precision, i8, &'a [S]),
     /// Scalar columns
-    Scalar(&'a [S]),
+    Scalar(ColumnTypeAssociatedData, &'a [S]),
     /// String columns
     ///  - the first element maps to the str values.
     ///  - the second element maps to the str hashes (see [`crate::base::scalar::Scalar`]).
-    VarChar((&'a [&'a str], &'a [S])),
+    VarChar(ColumnTypeAssociatedData, &'a [&'a str], &'a [S]),
     /// Timestamp columns with timezone
     /// - the first element maps to the stored `TimeUnit`
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
-    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    TimestampTZ(ColumnTypeAssociatedData, PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
@@ -61,17 +61,18 @@ impl<'a, S: Scalar> Column<'a, S> {
     #[must_use]
     pub fn column_type(&self) -> ColumnType {
         match self {
-            Self::Boolean(_) => ColumnType::Boolean,
-            Self::TinyInt(_) => ColumnType::TinyInt,
-            Self::SmallInt(_) => ColumnType::SmallInt,
-            Self::Int(_) => ColumnType::Int,
-            Self::BigInt(_) => ColumnType::BigInt,
-            Self::VarChar(_) => ColumnType::VarChar,
-            Self::Int128(_) => ColumnType::Int128,
-            Self::Scalar(_) => ColumnType::Scalar,
-            Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(*precision, *scale),
-            Self::TimestampTZ(time_unit, timezone, _) => {
-                ColumnType::TimestampTZ(*time_unit, *timezone)
+            Self::Boolean(meta, _) => ColumnType::Boolean(*meta),
+            Self::TinyInt(meta, _) => ColumnType::TinyInt(*meta),
+            Self::SmallInt(meta, _) => ColumnType::SmallInt(*meta),
+            Self::Int(meta, _) => ColumnType::Int(*meta),
+            Self::BigInt(meta, _) => ColumnType::BigInt(*meta),
+            Self::VarChar(meta, _, _) => ColumnType::VarChar(*meta),
+            Self::Int128(meta, _) => ColumnType::Int128(*meta),
+            Self::Scalar(meta, _) => ColumnType::Scalar(*meta),
+            Self::Decimal75(meta, precision, scale, _) =>
+                ColumnType::Decimal75(*meta, *precision, *scale),
+            Self::TimestampTZ(meta, time_unit, timezone, _) => {
+                ColumnType::TimestampTZ(*meta, *time_unit, *timezone)
             }
         }
     }
@@ -229,6 +230,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     }
 }
 
+/// Represents the shared metadata for a column type
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy, Default)]
 pub struct ColumnTypeAssociatedData {
     nullable: bool
@@ -243,48 +245,67 @@ pub struct ColumnTypeAssociatedData {
 pub enum ColumnType {
     /// Mapped to bool
     #[serde(alias = "BOOLEAN", alias = "boolean")]
-    Boolean,
+    Boolean(ColumnTypeAssociatedData),
     /// Mapped to i8
     #[serde(alias = "TINYINT", alias = "tinyint")]
-    TinyInt,
+    TinyInt(ColumnTypeAssociatedData),
     /// Mapped to i16
     #[serde(alias = "SMALLINT", alias = "smallint")]
-    SmallInt,
+    SmallInt(ColumnTypeAssociatedData),
     /// Mapped to i32
     #[serde(alias = "INT", alias = "int")]
-    Int,
+    Int(ColumnTypeAssociatedData),
     /// Mapped to i64
     #[serde(alias = "BIGINT", alias = "bigint")]
-    BigInt,
+    BigInt(ColumnTypeAssociatedData),
     /// Mapped to i128
     #[serde(rename = "Decimal", alias = "DECIMAL", alias = "decimal")]
-    Int128,
+    Int128(ColumnTypeAssociatedData),
     /// Mapped to String
     #[serde(alias = "VARCHAR", alias = "varchar")]
-    VarChar,
+    VarChar(ColumnTypeAssociatedData),
     /// Mapped to i256
     #[serde(rename = "Decimal75", alias = "DECIMAL75", alias = "decimal75")]
-    Decimal75(Precision, i8),
+    Decimal75(ColumnTypeAssociatedData, Precision, i8),
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
-    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
+    TimestampTZ(ColumnTypeAssociatedData, PoSQLTimeUnit, PoSQLTimeZone),
     /// Mapped to [`Curve25519Scalar`](crate::base::scalar::Curve25519Scalar)
     #[serde(alias = "SCALAR", alias = "scalar")]
-    Scalar,
+    Scalar(ColumnTypeAssociatedData),
 }
 
 impl ColumnType {
+    fn get_metadata(&self) -> &ColumnTypeAssociatedData {
+        match self {
+            | Self::Boolean(m)
+            | Self::TinyInt(m)
+            | Self::SmallInt(m)
+            | Self::Int(m)
+            | Self::BigInt(m)
+            | Self::Int128(m)
+            | Self::VarChar(m)
+            | Self::Decimal75(m, _, _)
+            | Self::TimestampTZ(m, _, _)
+            | Self::Scalar(m)
+            => m
+        }
+    }
+
+    pub fn is_nullable(&self) -> bool {
+        self.get_metadata().nullable
+    }
     /// Returns true if this column is numeric and false otherwise
     #[must_use]
     pub fn is_numeric(&self) -> bool {
         matches!(
             self,
-            ColumnType::TinyInt
-                | ColumnType::SmallInt
-                | ColumnType::Int
-                | ColumnType::BigInt
-                | ColumnType::Int128
-                | ColumnType::Scalar
+            ColumnType::TinyInt(_)
+                | ColumnType::SmallInt(_)
+                | ColumnType::Int(_)
+                | ColumnType::BigInt(_)
+                | ColumnType::Int128(_)
+                | ColumnType::Scalar(_)
                 | ColumnType::Decimal75(_, _)
         )
     }
@@ -294,22 +315,22 @@ impl ColumnType {
     pub fn is_integer(&self) -> bool {
         matches!(
             self,
-            ColumnType::TinyInt
-                | ColumnType::SmallInt
-                | ColumnType::Int
-                | ColumnType::BigInt
-                | ColumnType::Int128
+            ColumnType::TinyInt(_)
+                | ColumnType::SmallInt(_)
+                | ColumnType::Int(_)
+                | ColumnType::BigInt(_)
+                | ColumnType::Int128(_)
         )
     }
 
     /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
     fn to_integer_bits(self) -> Option<usize> {
         match self {
-            ColumnType::TinyInt => Some(8),
-            ColumnType::SmallInt => Some(16),
-            ColumnType::Int => Some(32),
-            ColumnType::BigInt => Some(64),
-            ColumnType::Int128 => Some(128),
+            ColumnType::TinyInt(_) => Some(8),
+            ColumnType::SmallInt(_) => Some(16),
+            ColumnType::Int(_) => Some(32),
+            ColumnType::BigInt(_) => Some(64),
+            ColumnType::Int128(_) => Some(128),
             _ => None,
         }
     }
@@ -317,13 +338,14 @@ impl ColumnType {
     /// Returns the [`ColumnType`] of the integer type with the given number of bits if it is a valid integer type.
     ///
     /// Otherwise, return None.
-    fn from_integer_bits(bits: usize) -> Option<Self> {
+    fn from_integer_bits(bits: usize, nullable: bool) -> Option<Self> {
+        let meta = ColumnTypeAssociatedData { nullable };
         match bits {
-            8 => Some(ColumnType::TinyInt),
-            16 => Some(ColumnType::SmallInt),
-            32 => Some(ColumnType::Int),
-            64 => Some(ColumnType::BigInt),
-            128 => Some(ColumnType::Int128),
+            8 => Some(ColumnType::TinyInt(meta)),
+            16 => Some(ColumnType::SmallInt(meta)),
+            32 => Some(ColumnType::Int(meta)),
+            64 => Some(ColumnType::BigInt(meta)),
+            128 => Some(ColumnType::Int128(meta)),
             _ => None,
         }
     }
@@ -348,16 +370,16 @@ impl ColumnType {
     #[must_use]
     pub fn precision_value(&self) -> Option<u8> {
         match self {
-            Self::TinyInt => Some(3_u8),
-            Self::SmallInt => Some(5_u8),
-            Self::Int => Some(10_u8),
-            Self::BigInt | Self::TimestampTZ(_, _) => Some(19_u8),
-            Self::Int128 => Some(39_u8),
+            Self::TinyInt(_) => Some(3_u8),
+            Self::SmallInt(_) => Some(5_u8),
+            Self::Int(_) => Some(10_u8),
+            Self::BigInt(_) | Self::TimestampTZ(_, _) => Some(19_u8),
+            Self::Int128(_) => Some(39_u8),
             Self::Decimal75(precision, _) => Some(precision.value()),
             // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
             // so that they do not cause errors when used in comparisons.
-            Self::Scalar => Some(0_u8),
-            Self::Boolean | Self::VarChar => None,
+            Self::Scalar(_) => Some(0_u8),
+            Self::Boolean(_) | Self::VarChar => None,
         }
     }
     /// Returns scale of a [`ColumnType`] if it is convertible to a decimal wrapped in `Some()`. Otherwise return None.
