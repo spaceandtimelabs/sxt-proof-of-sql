@@ -31,6 +31,15 @@ pub struct Slice {
     /// (e.g. -1 is the last row, -2 is the second to last row, etc.)
     pub offset_value: i64,
 }
+
+impl Default for Slice {
+    fn default() -> Self {
+        Slice {
+            number_rows: u64::MAX,
+            offset_value: 0,
+        }
+    }
+}
 impl Slice {
     pub fn from_query(value: &Query) -> Self {
         fn num_from_expr(expr: &Expr) -> Option<Number> {

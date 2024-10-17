@@ -9,7 +9,7 @@ use alloc::{string::ToString, vec::Vec};
 #[cfg(feature = "rayon")]
 use rayon::prelude::ParallelSliceMut;
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::{Expr, OrderByExpr};
+use sqlparser::ast::{Expr, OrderBy, OrderByExpr};
 use crate::base::utility::OrderByDirection;
 
 /// A node representing a list of `OrderBy` expressions.
@@ -18,6 +18,11 @@ pub struct OrderByPostprocessing {
     by_exprs: Vec<OrderByExpr>,
 }
 
+impl From<OrderBy> for OrderByPostprocessing {
+    fn from(value: OrderBy) -> Self {
+        OrderByPostprocessing::new(value.exprs)
+    }
+}
 impl OrderByPostprocessing {
     /// Create a new `OrderByPostprocessing` node.
     #[must_use]

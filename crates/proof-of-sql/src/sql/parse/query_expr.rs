@@ -5,7 +5,7 @@ use crate::{
     sql::{
         parse::ConversionResult,
         postprocessing::{
-            GroupByPostprocessing, OrderByPostprocessing, OwnedTablePostprocessing,
+            GroupByPostprocessing, OwnedTablePostprocessing,
             SelectPostprocessing, SlicePostprocessing,
         },
         proof_plans::{DynProofPlan, GroupByExec},
@@ -80,7 +80,7 @@ impl<C: Commitment> QueryExpr<C> {
         let order_bys = context.get_order_by_exprs()?;
         if !order_bys.is_empty() {
             postprocessing.push(OwnedTablePostprocessing::new_order_by(
-                OrderByPostprocessing::new(order_bys.clone()),
+                order_bys.clone().into(),
             ));
         }
         if let Some(slice) = context.get_slice_expr() {

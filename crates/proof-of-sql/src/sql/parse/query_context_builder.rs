@@ -6,7 +6,7 @@ use crate::base::{database::{
 use alloc::{boxed::Box, string::ToString, vec::Vec};
 use ark_std::iterable::Iterable;
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::{Table, BinaryOperator, UnaryOperator, Expr, Value, OrderBy, Ident, TableWithJoins, SelectItem, GroupByExpr};
+use sqlparser::ast::{Table, BinaryOperator, UnaryOperator, Expr, Value, OrderBy, Ident, TableWithJoins, SelectItem, GroupByExpr, OrderByExpr};
 use crate::sql::parse::query_context::Slice;
 
 pub struct QueryContextBuilder<'a> {
@@ -43,7 +43,7 @@ impl<'a> QueryContextBuilder<'a> {
 
     pub fn visit_where_expr(
         mut self,
-        mut where_expr: Option<Box<Expr>>,
+        mut where_expr: Option<Expr>,
     ) -> ConversionResult<Self> {
         if let Some(expr) = where_expr.as_deref_mut() {
             self.visit_expr(expr)?;
@@ -77,7 +77,11 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
-    pub fn visit_order_by_exprs(mut self, order_by_exprs: Vec<OrderBy>) -> Self {
+    pub fn visit_order_by(mut self, order_by: Vec<OrderBy>) -> Self {
+        self.context.set_order_by_exprs(order_by_exprs);
+        self
+    }
+    pub fn visit_order_by_exprs(mut self, order_by_exprs: Vec<OrderByExpr>) -> Self {
         self.context.set_order_by_exprs(order_by_exprs);
         self
     }
