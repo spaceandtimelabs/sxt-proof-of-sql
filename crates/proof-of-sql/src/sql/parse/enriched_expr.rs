@@ -4,10 +4,6 @@ use crate::{
     sql::proof_exprs::DynProofExpr,
 };
 use alloc::boxed::Box;
-use proof_of_sql_parser::{
-    intermediate_ast::{AliasedResultExpr, Expression},
-    Identifier,
-};
 /// Enriched expression
 ///
 /// An enriched expression consists of an `proof_of_sql_parser::intermediate_ast::AliasedResultExpr`

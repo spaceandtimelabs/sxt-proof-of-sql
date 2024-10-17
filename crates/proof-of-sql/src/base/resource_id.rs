@@ -18,6 +18,11 @@ pub struct ResourceId {
     schema: Arc<Ident>,
     object_name: Arc<Ident>,
 }
+impl Default for ResourceId {
+    fn default() -> Self {
+        Self::new(Ident::from(""), Ident::new(""))
+    }
+}
 impl serde::Serialize for ResourceId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

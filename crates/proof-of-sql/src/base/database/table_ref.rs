@@ -4,13 +4,11 @@ use core::{
     fmt::{Display, Formatter},
     str::FromStr,
 };
-use serde::{Deserialize, Serialize};
 use sqlparser::ast::Ident;
-use proof_of_sql_parser::{impl_serde_from_str, Identifier, ResourceId};
 use crate::base::resource_id::ResourceId;
 
 /// Expression for an SQL table
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TableRef {
     resource_id: ResourceId,
 }
@@ -42,7 +40,7 @@ impl TableRef {
 }
 
 impl FromStr for TableRef {
-    type Err = proof_of_sql_parser::ParseError;
+    type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self::new(s.parse()?))

@@ -11,8 +11,8 @@ use crate::{
     },
 };
 use alloc::{fmt, vec, vec::Vec};
-use proof_of_sql_parser::{intermediate_ast::SetExpression, Identifier, SelectStatement};
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::{Ident, Select};
 
 #[derive(PartialEq, Serialize, Deserialize)]
 /// A `QueryExpr` represents a Proof of SQL query that can be executed against a database.
@@ -45,25 +45,23 @@ impl<C: Commitment> QueryExpr<C> {
 
     /// Parse an intermediate AST `SelectStatement` into a `QueryExpr`.
     pub fn try_new(
-        ast: SelectStatement,
-        default_schema: Identifier,
+        ast: Select,
+        default_schema: Ident,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Self> {
-        let context = match *ast.expr {
-            SetExpression::Query {
-                result_exprs,
-                from,
-                where_expr,
-                group_by,
-            } => QueryContextBuilder::new(schema_accessor)
+        let from = ast.from;
+        let where_expr = ast.selection;
+        let group_by = ast.group_by;
+        let result_exprs = ast.projection;
+
+        let context = QueryContextBuilder::new(schema_accessor)
                 .visit_table_expr(from, default_schema)
                 .visit_group_by_exprs(group_by)?
                 .visit_result_exprs(result_exprs)?
                 .visit_where_expr(where_expr)?
                 .visit_order_by_exprs(ast.order_by)
                 .visit_slice_expr(ast.slice)
-                .build()?,
-        };
+                .build()?;
         let result_aliased_exprs = context.get_aliased_result_exprs()?.to_vec();
         let group_by = context.get_group_by_exprs();
 

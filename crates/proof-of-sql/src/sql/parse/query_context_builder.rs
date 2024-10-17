@@ -4,8 +4,8 @@ use crate::base::{database::{
     SchemaAccessor, TableRef,
 }, math::decimal::Precision, resource_id::ResourceId, utility};
 use alloc::{boxed::Box, string::ToString, vec::Vec};
-
-use sqlparser::ast::{Table, BinaryOperator, UnaryOperator, Expr, Value, OrderBy, Ident};
+use serde::{Deserialize, Serialize};
+use sqlparser::ast::{Table, BinaryOperator, UnaryOperator, Expr, Value, OrderBy, Ident, TableWithJoins, SelectItem};
 
 
 pub struct QueryContextBuilder<'a> {
@@ -25,7 +25,7 @@ impl<'a> QueryContextBuilder<'a> {
     #[allow(clippy::vec_box, clippy::missing_panics_doc)]
     pub fn visit_table_expr(
         mut self,
-        table_expr: Vec<Box<Table>>,
+        table_expr: Vec<TableWithJoins>,
         default_schema: Ident,
     ) -> Self {
         assert_eq!(table_expr.len(), 1);
@@ -53,13 +53,22 @@ impl<'a> QueryContextBuilder<'a> {
 
     pub fn visit_result_exprs(
         mut self,
-        result_exprs: Vec<SelectResultExpr>,
+        result_exprs: Vec<SelectItem>,
     ) -> ConversionResult<Self> {
         self.context.toggle_result_scope();
         for column in result_exprs {
             match column {
-                SelectResultExpr::ALL => self.visit_select_all_expr()?,
-                SelectResultExpr::AliasedResultExpr(expr) => self.visit_aliased_expr(expr)?,
+                SelectItem::Wildcard(_) => self.visit_select_all_expr()?,
+                SelectItem::UnnamedExpr(expr @ Expr::Identifier(ident) ) => {
+                    self.visit_aliased_expr(AliasedResultExpr {
+                        alias: ident,
+                        expr: Box::new(expr),
+                    })?
+                },
+                SelectItem::ExprWithAlias(expr, alias) => self.visit_aliased_expr(AliasedResultExpr {
+                    alias,
+                    expr
+                })?,
             }
         }
         self.context.toggle_result_scope();
@@ -93,6 +102,16 @@ impl<'a> QueryContextBuilder<'a> {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+/// An expression with an alias e.g. `a + 1 AS b`
+struct AliasedResultExpr {
+    /// The expression e.g. `a + 1`, `COUNT(*)`, etc.
+    pub expr: Box<Expr>,
+    /// The alias e.g. `count` in `COUNT(*) AS count`
+    pub alias: Ident,
+}
+
+
 // Private interface
 impl<'a> QueryContextBuilder<'a> {
     #[allow(
@@ -108,8 +127,8 @@ impl<'a> QueryContextBuilder<'a> {
 
     fn visit_select_all_expr(&mut self) -> ConversionResult<()> {
         for (column_name, _) in self.lookup_schema() {
-            let col_expr = Expr::Identifier(column_name.clone());
-            self.visit_aliased_expr(AliasedResultExpr::new(col_expr, column_name))?;
+            let col_expr = Box::new(Expr::Identifier(column_name.clone()));
+            self.visit_aliased_expr(AliasedResultExpr {expr: col_expr, alias: column_name})?;
         }
         Ok(())
     }

@@ -1,7 +1,6 @@
 
 use alloc::{boxed::Box, vec, vec::Vec};
 use std::sync::Arc;
-use clap::Id;
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::{BinaryOperator, Expr, Ident, OrderBy, OrderByExpr, Query, SetExpr, Table, UnaryOperator, Value};
 
@@ -191,7 +190,7 @@ pub fn lit<L: IntoLiteral>(literal: L) -> Box<Expr> {
 pub fn sum(expr: Box<Expr>) -> Box<Query> {
     Box::new(Query {
         body: Box::new(SetExpr::Select(Box())),
-        op: AggregationOperator::Sum,
+
         fetch   : None,
         for_clause: Some()
     })

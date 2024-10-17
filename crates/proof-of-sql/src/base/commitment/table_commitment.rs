@@ -139,8 +139,8 @@ impl<C: Commitment> TableCommitment<C> {
         columns: &[ColumnField],
         accessor: &impl CommitmentAccessor<C>,
     ) -> Self {
-        let length = accessor.get_length(table_ref);
-        let offset = accessor.get_offset(table_ref);
+        let length = accessor.get_length(table_ref.clone());
+        let offset = accessor.get_offset(table_ref.clone());
         Self::try_new(
             ColumnCommitments::from_accessor_with_max_bounds(table_ref, columns, accessor),
             offset..offset + length,
