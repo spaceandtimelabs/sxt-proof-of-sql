@@ -6,9 +6,7 @@ use crate::{
 };
 use arrow::{
     array::{
-        Array, ArrayRef, ArrowPrimitiveType, BooleanArray, Decimal128Array, Decimal256Array,
-        Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray, RecordBatch, StringArray,
-        TimestampMicrosecondArray, TimestampMillisecondArray, TimestampSecondArray,
+        Array, ArrayRef, ArrowPrimitiveType, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray, RecordBatch, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray
     },
     compute::{concat_batches, sort_to_indices, take},
     datatypes::{DataType, TimeUnit},
@@ -213,7 +211,7 @@ fn replace_nulls_within_record_batch(record_batch: RecordBatch) -> RecordBatch {
                         replace_nulls_primitive(
                             column
                                 .as_any()
-                                .downcast_ref::<TimestampMicrosecondArray>()
+                                .downcast_ref::<TimestampNanosecondArray>()
                                 .unwrap(),
                         )
                         .with_timezone_opt(timezone.clone()),
@@ -267,4 +265,112 @@ fn sort_record_batch_by_meta_row_number(record_batch: RecordBatch) -> RecordBatc
         columns,
     )
     .unwrap()
+#[test]
+fn we_can_replace_nulls(){
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("utf8", DataType::Utf8, true),
+        Field::new("boolean", DataType::Boolean, true),
+        Field::new("timestamp_second", DataType::Timestamp(arrow::datatypes::TimeUnit::Second, None), true),
+        Field::new("timestamp_millisecond", DataType::Timestamp(arrow::datatypes::TimeUnit::Millisecond, None), true),
+        Field::new("timestamp_microsecond", DataType::Timestamp(arrow::datatypes::TimeUnit::Microsecond, None), true),
+        Field::new("timestamp_nanosecond", DataType::Timestamp(arrow::datatypes::TimeUnit::Nanosecond, None), true),
+        Field::new("decimal128", DataType::Decimal128(38, 10), true),
+        Field::new("int64", DataType::Int64, true),
+        Field::new("int32", DataType::Int32, true),
+        Field::new("int16", DataType::Int16, true),
+        Field::new("int8", DataType::Int8, true),
+    ]));
+
+    let utf8 = Arc::new(StringArray::from(vec![
+        Some("a"), None, Some("c"), Some("d"), None
+    ])) as ArrayRef;
+    let utf8_denulled = Arc::new(StringArray::from(vec![
+        Some("a"), Some(""), Some("c"), Some("d"), Some("")
+    ])) as ArrayRef;
+
+    let boolean = Arc::new(BooleanArray::from(vec![
+        Some(true), None, Some(false), Some(true), None
+    ])) as ArrayRef;
+    let boolean_denulled = Arc::new(BooleanArray::from(vec![
+        Some(true), Some(false), Some(false), Some(true), Some(false)
+    ])) as ArrayRef;
+
+    let timestamp_second = Arc::new(TimestampSecondArray::from(vec![
+        Some(1627846260), None, Some(1627846262), Some(1627846263), None
+    ])) as ArrayRef;
+    let timestamp_second_denulled = Arc::new(TimestampSecondArray::from(vec![
+        Some(1627846260), Some(TimestampSecondType::default_value()), Some(1627846262), Some(1627846263), Some(TimestampSecondType::default_value())
+    ])) as ArrayRef;
+
+    let timestamp_millisecond = Arc::new(TimestampMillisecondArray::from(vec![
+        Some(1627846260000), None, Some(1627846262000), Some(1627846263000), None
+    ])) as ArrayRef;
+    let timestamp_millisecond_denulled = Arc::new(TimestampMillisecondArray::from(vec![
+        Some(1627846260000), Some(TimestampMillisecondType::default_value()), Some(1627846262000), Some(1627846263000), Some(TimestampMillisecondType::default_value())
+    ])) as ArrayRef;
+
+    let timestamp_microsecond = Arc::new(TimestampMicrosecondArray::from(vec![
+        Some(1627846260000000), None, Some(1627846262000000), Some(1627846263000000), None
+    ])) as ArrayRef;
+    let timestamp_microsecond_denulled = Arc::new(TimestampMicrosecondArray::from(vec![
+        Some(1627846260000000), Some(TimestampMicrosecondType::default_value()), Some(1627846262000000), Some(1627846263000000), Some(TimestampMicrosecondType::default_value())
+    ])) as ArrayRef;
+
+    let timestamp_nanosecond = Arc::new(TimestampNanosecondArray::from(vec![
+        Some(1627846260000000000), None, Some(1627846262000000000), Some(1627846263000000000), None
+    ])) as ArrayRef;
+    let timestamp_nanosecond_denulled = Arc::new(TimestampNanosecondArray::from(vec![
+        Some(1627846260000000000), Some(TimestampNanosecondType::default_value()), Some(1627846262000000000), Some(1627846263000000000), Some(TimestampNanosecondType::default_value())
+    ])) as ArrayRef;
+
+    let decimal128 = Arc::new(Decimal128Array::from(vec![
+        Some(12345678901234567890_i128), None, Some(23456789012345678901_i128), Some(34567890123456789012_i128), None
+    ])) as ArrayRef;
+    let decimal128_denulled = Arc::new(Decimal128Array::from(vec![
+        Some(12345678901234567890_i128), Some(Decimal128Type::default_value()), Some(23456789012345678901_i128), Some(34567890123456789012_i128), Some(Decimal128Type::default_value())
+    ])) as ArrayRef;
+
+    let int64 = Arc::new(Int64Array::from(vec![
+        Some(1), None, Some(3), Some(4), None
+    ])) as ArrayRef;
+    let int64_denulled = Arc::new(Int64Array::from(vec![
+        Some(1), Some(Int64Type::default_value()), Some(3), Some(4), Some(Int64Type::default_value())
+    ])) as ArrayRef;
+
+    let int32 = Arc::new(Int32Array::from(vec![
+        Some(1), None, Some(3), Some(4), None
+    ])) as ArrayRef;
+    let int32_denulled = Arc::new(Int32Array::from(vec![
+        Some(1), Some(Int32Type::default_value()), Some(3), Some(4), Some(Int32Type::default_value())
+    ])) as ArrayRef;
+
+    let int16 = Arc::new(Int16Array::from(vec![
+        Some(1), None, Some(3), Some(4), None
+    ])) as ArrayRef;
+    let int16_denulled = Arc::new(Int16Array::from(vec![
+        Some(1), Some(Int16Type::default_value()), Some(3), Some(4), Some(Int16Type::default_value())
+    ])) as ArrayRef;
+
+    let int8 = Arc::new(Int8Array::from(vec![
+        Some(1), None, Some(3), Some(4), None
+    ])) as ArrayRef;
+    let int8_denulled = Arc::new(Int8Array::from(vec![
+        Some(1), Some(Int8Type::default_value()), Some(3), Some(4), Some(Int8Type::default_value())
+    ])) as ArrayRef;
+
+    let record_batch = RecordBatch::try_new(
+        schema.clone(),
+        vec![
+            utf8, boolean, timestamp_second, timestamp_millisecond, timestamp_microsecond, timestamp_nanosecond, decimal128, int64, int32, int16, int8
+        ],
+    ).unwrap();
+    let record_batch_denulled = RecordBatch::try_new(
+        schema,
+        vec![
+            utf8_denulled, boolean_denulled, timestamp_second_denulled, timestamp_millisecond_denulled, timestamp_microsecond_denulled, timestamp_nanosecond_denulled, decimal128_denulled, int64_denulled, int32_denulled, int16_denulled, int8_denulled
+        ],
+    ).unwrap();
+
+    let null_replaced_batch = replace_nulls_within_record_batch(record_batch);
+    assert_eq!(null_replaced_batch, record_batch_denulled);
 }
