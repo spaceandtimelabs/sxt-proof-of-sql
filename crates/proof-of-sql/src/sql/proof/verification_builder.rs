@@ -103,7 +103,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     /// Produce the evaluation of a subpolynomial used in sumcheck
     pub fn produce_sumcheck_subpolynomial_evaluation(
         &mut self,
-        subpolynomial_type: SumcheckSubpolynomialType,
+        subpolynomial_type: &SumcheckSubpolynomialType,
         eval: C::Scalar,
     ) {
         self.sumcheck_evaluation += self.subpolynomial_multipliers[self.produced_subpolynomials]

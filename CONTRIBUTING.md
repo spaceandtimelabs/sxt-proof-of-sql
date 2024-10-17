@@ -65,6 +65,10 @@ To contribute to this project, you'll need to have Rust installed on your machin
      rustup component add rustfmt
      rustup component add clippy
      ```
+   - You will also need to install [lld](https://lld.llvm.org/) which will be required for running tests. For example on Debian based systems you can install it using the package manager:
+     ```bash
+     apt install lld
+     ```
 
 If you run into any issues, please refer to the [official Rust documentation](https://www.rust-lang.org/learn/get-started) for troubleshooting and more detailed installation instructions.
 

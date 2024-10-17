@@ -7,7 +7,7 @@ use crate::base::{
     proof::ProofError,
     scalar::Scalar,
 };
-use alloc::{vec, vec::Vec};
+use alloc::vec;
 use serde::{Deserialize, Serialize};
 
 /// The result of an sql query along with a proof that the query is valid. The
@@ -133,7 +133,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
 
             let result_fields = expr.get_column_result_fields();
 
-            return make_empty_query_result(result_fields);
+            return make_empty_query_result(&result_fields);
         }
 
         if self.provable_result.is_none() || self.proof.is_none() {
@@ -150,7 +150,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     }
 }
 
-fn make_empty_query_result<S: Scalar>(result_fields: Vec<ColumnField>) -> QueryResult<S> {
+fn make_empty_query_result<S: Scalar>(result_fields: &[ColumnField]) -> QueryResult<S> {
     let table = OwnedTable::try_new(
         result_fields
             .iter()

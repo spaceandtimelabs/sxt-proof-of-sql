@@ -319,6 +319,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn verify_group_by<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     alpha: C::Scalar,
@@ -342,19 +343,19 @@ fn verify_group_by<C: Commitment>(
 
     // sum g_in_star * sel_in * sum_in_fold - g_out_star * sum_out_bar_fold = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::ZeroSum,
+        &SumcheckSubpolynomialType::ZeroSum,
         g_in_star_eval * sel_in_eval * sum_in_fold_eval - g_out_star_eval * sum_out_bar_fold_eval,
     );
 
     // g_in_star * g_in_fold - 1 = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
+        &SumcheckSubpolynomialType::Identity,
         g_in_star_eval * g_in_fold_eval - one_eval,
     );
 
     // g_out_star * g_out_bar_fold - 1 = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
+        &SumcheckSubpolynomialType::Identity,
         g_out_star_eval * g_out_bar_fold_eval - one_eval,
     );
 
