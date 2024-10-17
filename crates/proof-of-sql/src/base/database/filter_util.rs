@@ -40,37 +40,39 @@ pub fn filter_column_by_index<'a, S: Scalar>(
     indexes: &[usize],
 ) -> Column<'a, S> {
     match column {
-        Column::Boolean(col) => {
-            Column::Boolean(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
+        Column::Boolean(meta, col) => {
+            Column::Boolean(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }
-        Column::TinyInt(col) => {
-            Column::TinyInt(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
+        Column::TinyInt(meta, col) => {
+            Column::TinyInt(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }
-        Column::SmallInt(col) => {
-            Column::SmallInt(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
+        Column::SmallInt(meta, col) => {
+            Column::SmallInt(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }
-        Column::Int(col) => {
-            Column::Int(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
+        Column::Int(meta, col) => {
+            Column::Int(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }
-        Column::BigInt(col) => {
-            Column::BigInt(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
+        Column::BigInt(meta, col) => {
+            Column::BigInt(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }
-        Column::Int128(col) => {
-            Column::Int128(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
+        Column::Int128(meta, col) => {
+            Column::Int128(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }
-        Column::VarChar((col, scals)) => Column::VarChar((
+        Column::VarChar(meta, (col, scals)) => Column::VarChar(*meta, (
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| scals[i])),
         )),
-        Column::Scalar(col) => {
-            Column::Scalar(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
+        Column::Scalar(meta, col) => {
+            Column::Scalar(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }
-        Column::Decimal75(precision, scale, col) => Column::Decimal75(
+        Column::Decimal75(meta, precision, scale, col) => Column::Decimal75(
+            *meta,
             *precision,
             *scale,
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
         ),
-        Column::TimestampTZ(tu, tz, col) => Column::TimestampTZ(
+        Column::TimestampTZ(meta, tu, tz, col) => Column::TimestampTZ(
+            *meta,
             *tu,
             *tz,
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
