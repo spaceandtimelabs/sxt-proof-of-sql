@@ -4,10 +4,7 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
         map::IndexMap,
-        math::{
-            decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError},
-            BigDecimalExt, Precision,
-        },
+        math::{decimal::DecimalError, BigDecimalExt, Precision},
     },
     sql::{
         parse::dyn_proof_expr_builder::DecimalError::InvalidScale,
@@ -102,7 +99,7 @@ impl DynProofExprBuilder<'_> {
                 Ok(DynProofExpr::new_literal(LiteralValue::Decimal75(
                     precision,
                     scale,
-                    try_convert_intermediate_decimal_to_scalar(d, precision, scale)?,
+                    d.try_into_scalar_with_precision_and_scale(precision, scale)?,
                 )))
             }
             Literal::VarChar(s) => Ok(DynProofExpr::new_literal(LiteralValue::VarChar((
