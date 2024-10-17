@@ -596,23 +596,29 @@ impl ColumnRef {
 /// of a column in a table. Namely: it's name and type.
 ///
 /// This is the analog of a `Field` in Apache Arrow.
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Serialize, Deserialize)]
-pub struct ColumnField<'a> {
-    name: &'a Ident,
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub struct ColumnField {
+    name: Arc<Ident>,
     data_type: ColumnType,
 }
 
-impl ColumnField<'_> {
+impl ColumnField {
     /// Create a new `ColumnField` from a name and a type
     #[must_use]
-    pub fn new(name: &Ident, data_type: ColumnType) -> ColumnField {
-        ColumnField { name, data_type }
+    pub fn new(name: Ident, data_type: ColumnType) -> ColumnField {
+        ColumnField { name: name.into(), data_type }
     }
 
     /// Returns the name of the column
     #[must_use]
     pub fn name(&self) -> &Ident {
-        self.name
+        &self.name
+    }
+
+    /// Returns the name of the column
+    #[must_use]
+    pub fn name_rc(&self) -> Arc<Ident> {
+        self.name.clone()
     }
 
     /// Returns the type of the column
@@ -624,8 +630,8 @@ impl ColumnField<'_> {
 
 /// Convert [`ColumnField`] values to arrow Field
 #[cfg(feature = "arrow")]
-impl<'a> From<ColumnField<'a>> for Field {
-    fn from(column_field: ColumnField<'a>) -> Self {
+impl From<ColumnField> for Field {
+    fn from(column_field: ColumnField) -> Self {
         Field::new(
             column_field.name().to_string(),
             (&column_field.data_type()).into(),
@@ -633,6 +639,38 @@ impl<'a> From<ColumnField<'a>> for Field {
         )
     }
 }
+struct ColumnFieldRefVisitor;
+impl<'de> Visitor<'de> for ColumnFieldRefVisitor {
+    type Value = ColumnField;
+    fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+        write!(formatter, "ColumnRef")
+    }
+    fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+    where
+        M: MapAccess<'de>,
+    {
+        let mut map = ColumnField {data_type: ColumnType::Int, name: Arc::new(Ident::new(""))};
+        while let Some(key) = access.next_key::<&str>() {
+            match key {
+                "name" => map.name = utility::ident_arc( &access.next_value::<String>()?),
+                "data_type" => map.data_type = access.next_value::<ColumnType>()?,
+            }
+        }
+
+        Ok(map)
+    }
+}
+const COL_FIELDS_FIELDS: &[&str] = &["column_id", "column_type", "table_ref"];
+impl<'de> Deserialize<'de> for ColumnField {
+    fn deserialize< D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>
+    {
+
+        deserializer.deserialize_struct("ColumnField", COL_FIELDS_FIELDS, ColumnFieldRefVisitor)
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
