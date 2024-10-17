@@ -2,6 +2,7 @@ use crate::base::{database::ColumnType, math::decimal::Precision, scalar::Scalar
 use alloc::string::String;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
+use crate::base::database::ColumnTypeAssociatedData;
 
 /// Represents a literal value.
 ///
@@ -42,16 +43,24 @@ impl<S: Scalar> LiteralValue<S> {
     /// Provides the column type associated with the column
     pub fn column_type(&self) -> ColumnType {
         match self {
-            Self::Boolean(_) => ColumnType::Boolean,
-            Self::TinyInt(_) => ColumnType::TinyInt,
-            Self::SmallInt(_) => ColumnType::SmallInt,
-            Self::Int(_) => ColumnType::Int,
-            Self::BigInt(_) => ColumnType::BigInt,
-            Self::VarChar(_) => ColumnType::VarChar,
-            Self::Int128(_) => ColumnType::Int128,
-            Self::Scalar(_) => ColumnType::Scalar,
-            Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(*precision, *scale),
-            Self::TimeStampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
+            Self::Boolean(_) => ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE),
+            Self::TinyInt(_) => ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            Self::SmallInt(_) => ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            Self::Int(_) => ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE),
+            Self::BigInt(_) => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            Self::VarChar(_) => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+            Self::Int128(_) => ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE),
+            Self::Scalar(_) => ColumnType::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE),
+            Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                *precision,
+                *scale
+            ),
+            Self::TimeStampTZ(tu, tz, _) => ColumnType::TimestampTZ(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                *tu,
+                *tz
+            ),
         }
     }
 
