@@ -377,30 +377,35 @@ mod test {
 
     #[test]
     fn we_can_slice_a_column() {
-        let col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
-        assert_eq!(col.slice(1, 4), OwnedColumn::Int128(vec![2, 3, 4]));
+        let meta = ColumnTypeAssociatedData::default();
+        let col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(meta, vec![1, 2, 3, 4, 5]);
+        assert_eq!(col.slice(1, 4), OwnedColumn::Int128(meta, vec![2, 3, 4]));
     }
 
     #[test]
     fn we_can_permute_a_column() {
-        let col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
+        let meta = ColumnTypeAssociatedData::default();
+        let col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(meta, vec![1, 2, 3, 4, 5]);
         let permutation = Permutation::try_new(vec![1, 3, 4, 0, 2]).unwrap();
         assert_eq!(
             col.try_permute(&permutation).unwrap(),
-            OwnedColumn::Int128(vec![2, 4, 5, 1, 3])
+            OwnedColumn::Int128(meta, vec![2, 4, 5, 1, 3])
         );
     }
 
     #[test]
     fn we_can_compare_columns() {
-        let col1: OwnedColumn<Curve25519Scalar> = OwnedColumn::SmallInt(vec![1, 1, 2, 1, 1]);
+        let meta = ColumnTypeAssociatedData::default();
+        let col1: OwnedColumn<Curve25519Scalar> = OwnedColumn::SmallInt(meta, vec![1, 1, 2, 1, 1]);
         let col2: OwnedColumn<Curve25519Scalar> = OwnedColumn::VarChar(
+            meta,
             ["b", "b", "a", "b", "a"]
                 .iter()
                 .map(ToString::to_string)
                 .collect(),
         );
         let col3: OwnedColumn<Curve25519Scalar> = OwnedColumn::Decimal75(
+            meta,
             Precision::new(70).unwrap(),
             20,
             [1, 2, 2, 1, 2]
@@ -437,20 +442,21 @@ mod test {
 
     #[test]
     fn we_can_convert_columns_to_owned_columns_round_trip() {
+        let meta = ColumnTypeAssociatedData::default();
         let alloc = Bump::new();
         // Integers
-        let col: Column<'_, Curve25519Scalar> = Column::Int128(&[1, 2, 3, 4, 5]);
+        let col: Column<'_, Curve25519Scalar> = Column::Int128(meta, &[1, 2, 3, 4, 5]);
         let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
-        assert_eq!(owned_col, OwnedColumn::Int128(vec![1, 2, 3, 4, 5]));
+        assert_eq!(owned_col, OwnedColumn::Int128(meta, vec![1, 2, 3, 4, 5]));
         let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);
 
         // Booleans
-        let col: Column<'_, Curve25519Scalar> = Column::Boolean(&[true, false, true, false, true]);
+        let col: Column<'_, Curve25519Scalar> = Column::Boolean(meta, &[true, false, true, false, true]);
         let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
         assert_eq!(
             owned_col,
-            OwnedColumn::Boolean(vec![true, false, true, false, true])
+            OwnedColumn::Boolean(meta, vec![true, false, true, false, true])
         );
         let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);
@@ -465,11 +471,12 @@ mod test {
             "სივრცე და დრო",
         ];
         let scalars = strs.iter().map(Curve25519Scalar::from).collect::<Vec<_>>();
-        let col: Column<'_, Curve25519Scalar> = Column::VarChar((&strs, &scalars));
+        let col: Column<'_, Curve25519Scalar> = Column::VarChar(meta, (&strs, &scalars));
         let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
         assert_eq!(
             owned_col,
             OwnedColumn::VarChar(
+                meta,
                 strs.iter()
                     .map(ToString::to_string)
                     .collect::<Vec<String>>()
@@ -482,11 +489,11 @@ mod test {
         let scalars: Vec<Curve25519Scalar> =
             [1, 2, 3, 4, 5].iter().map(Curve25519Scalar::from).collect();
         let col: Column<'_, Curve25519Scalar> =
-            Column::Decimal75(Precision::new(75).unwrap(), -128, &scalars);
+            Column::Decimal75(meta, Precision::new(75).unwrap(), -128, &scalars);
         let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
         assert_eq!(
             owned_col,
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), -128, scalars.clone())
+            OwnedColumn::Decimal75(meta, Precision::new(75).unwrap(), -128, scalars.clone())
         );
         let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);
@@ -494,25 +501,26 @@ mod test {
 
     #[test]
     fn we_can_convert_scalars_to_owned_columns() {
+        let meta = ColumnTypeAssociatedData::default();
         // Int
         let scalars = [1, 2, 3, 4, 5]
             .iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Int128;
+        let column_type = ColumnType::Int128(meta);
         let owned_col = OwnedColumn::try_from_scalars(&scalars, column_type).unwrap();
-        assert_eq!(owned_col, OwnedColumn::Int128(vec![1, 2, 3, 4, 5]));
+        assert_eq!(owned_col, OwnedColumn::Int128(meta, vec![1, 2, 3, 4, 5]));
 
         // Boolean
         let scalars = [true, false, true, false, true]
             .iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Boolean;
+        let column_type = ColumnType::Boolean(meta);
         let owned_col = OwnedColumn::try_from_scalars(&scalars, column_type).unwrap();
         assert_eq!(
             owned_col,
-            OwnedColumn::Boolean(vec![true, false, true, false, true])
+            OwnedColumn::Boolean(meta, vec![true, false, true, false, true])
         );
 
         // Decimal
@@ -520,11 +528,11 @@ mod test {
             .iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Decimal75(Precision::new(75).unwrap(), -128);
+        let column_type = ColumnType::Decimal75(meta, Precision::new(75).unwrap(), -128);
         let owned_col = OwnedColumn::try_from_scalars(&scalars, column_type).unwrap();
         assert_eq!(
             owned_col,
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), -128, scalars)
+            OwnedColumn::Decimal75(meta, Precision::new(75).unwrap(), -128, scalars)
         );
     }
 
@@ -534,7 +542,7 @@ mod test {
             .iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let column_type = ColumnType::VarChar;
+        let column_type = ColumnType::VarChar(ColumnTypeAssociatedData::default());
         let res = OwnedColumn::try_from_scalars(&scalars, column_type);
         assert!(matches!(res, Err(OwnedColumnError::TypeCastError { .. })));
     }
@@ -546,7 +554,8 @@ mod test {
             .iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let column_type = ColumnType::BigInt;
+        let meta = ColumnTypeAssociatedData::default();
+        let column_type = ColumnType::BigInt(meta);
         let res = OwnedColumn::try_from_scalars(&scalars, column_type);
         assert!(matches!(
             res,
@@ -558,7 +567,7 @@ mod test {
             .iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Boolean;
+        let column_type = ColumnType::Boolean(meta);
         let res = OwnedColumn::try_from_scalars(&scalars, column_type);
         assert!(matches!(
             res,
@@ -568,25 +577,26 @@ mod test {
 
     #[test]
     fn we_can_convert_option_scalars_to_owned_columns() {
+        let meta = ColumnTypeAssociatedData::default();
         // Int
         let option_scalars = [Some(1), Some(2), Some(3), Some(4), Some(5)]
             .iter()
             .map(|s| s.map(Curve25519Scalar::from))
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Int128;
+        let column_type = ColumnType::Int128(meta);
         let owned_col = OwnedColumn::try_from_option_scalars(&option_scalars, column_type).unwrap();
-        assert_eq!(owned_col, OwnedColumn::Int128(vec![1, 2, 3, 4, 5]));
+        assert_eq!(owned_col, OwnedColumn::Int128(meta, vec![1, 2, 3, 4, 5]));
 
         // Boolean
         let option_scalars = [Some(true), Some(false), Some(true), Some(false), Some(true)]
             .iter()
             .map(|s| s.map(Curve25519Scalar::from))
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Boolean;
+        let column_type = ColumnType::Boolean(meta);
         let owned_col = OwnedColumn::try_from_option_scalars(&option_scalars, column_type).unwrap();
         assert_eq!(
             owned_col,
-            OwnedColumn::Boolean(vec![true, false, true, false, true])
+            OwnedColumn::Boolean(meta, vec![true, false, true, false, true])
         );
 
         // Decimal
@@ -598,11 +608,11 @@ mod test {
             .iter()
             .map(|&i| Curve25519Scalar::from(i))
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Decimal75(Precision::new(75).unwrap(), 127);
+        let column_type = ColumnType::Decimal75(meta, Precision::new(75).unwrap(), 127);
         let owned_col = OwnedColumn::try_from_option_scalars(&option_scalars, column_type).unwrap();
         assert_eq!(
             owned_col,
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), 127, scalars)
+            OwnedColumn::Decimal75(meta, Precision::new(75).unwrap(), 127, scalars)
         );
     }
 
@@ -612,13 +622,14 @@ mod test {
             .iter()
             .map(|s| Some(Curve25519Scalar::from(*s)))
             .collect::<Vec<_>>();
-        let column_type = ColumnType::VarChar;
+        let column_type = ColumnType::VarChar(ColumnTypeAssociatedData::default());
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
         assert!(matches!(res, Err(OwnedColumnError::TypeCastError { .. })));
     }
 
     #[test]
     fn we_cannot_convert_option_scalars_to_owned_columns_if_overflow() {
+        let meta = ColumnTypeAssociatedData::default();
         // Int
         let option_scalars = [
             Some(i128::MAX),
@@ -630,7 +641,7 @@ mod test {
         .iter()
         .map(|s| s.map(Curve25519Scalar::from))
         .collect::<Vec<_>>();
-        let column_type = ColumnType::BigInt;
+        let column_type = ColumnType::BigInt(meta);
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
         assert!(matches!(
             res,
@@ -648,7 +659,7 @@ mod test {
         .iter()
         .map(|s| s.map(Curve25519Scalar::from))
         .collect::<Vec<_>>();
-        let column_type = ColumnType::Boolean;
+        let column_type = ColumnType::Boolean(meta);
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
         assert!(matches!(
             res,
@@ -658,12 +669,13 @@ mod test {
 
     #[test]
     fn we_cannot_convert_option_scalars_to_owned_columns_if_none() {
+        let meta = ColumnTypeAssociatedData::default();
         // Int
         let option_scalars = [Some(1), Some(2), None, Some(4), Some(5)]
             .iter()
             .map(|s| s.map(Curve25519Scalar::from))
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Int128;
+        let column_type = ColumnType::Int128(meta);
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
         assert!(matches!(res, Err(OwnedColumnError::Unsupported { .. })));
 
@@ -672,7 +684,7 @@ mod test {
             .iter()
             .map(|s| s.map(Curve25519Scalar::from))
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Boolean;
+        let column_type = ColumnType::Boolean(meta);
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
         assert!(matches!(res, Err(OwnedColumnError::Unsupported { .. })));
     }
