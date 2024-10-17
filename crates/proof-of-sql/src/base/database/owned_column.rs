@@ -19,31 +19,32 @@ use proof_of_sql_parser::{
     intermediate_ast::OrderByDirection,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
 };
+use crate::base::database::column::ColumnTypeAssociatedData;
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
 /// Supported types for [`OwnedColumn`]
 pub enum OwnedColumn<S: Scalar> {
     /// Boolean columns
-    Boolean(Vec<bool>),
+    Boolean(ColumnTypeAssociatedData, Vec<bool>),
     /// i8 columns
-    TinyInt(Vec<i8>),
+    TinyInt(ColumnTypeAssociatedData, Vec<i8>),
     /// i16 columns
-    SmallInt(Vec<i16>),
+    SmallInt(ColumnTypeAssociatedData, Vec<i16>),
     /// i32 columns
-    Int(Vec<i32>),
+    Int(ColumnTypeAssociatedData, Vec<i32>),
     /// i64 columns
-    BigInt(Vec<i64>),
+    BigInt(ColumnTypeAssociatedData, Vec<i64>),
     /// String columns
-    VarChar(Vec<String>),
+    VarChar(ColumnTypeAssociatedData, Vec<String>),
     /// i128 columns
-    Int128(Vec<i128>),
+    Int128(ColumnTypeAssociatedData, Vec<i128>),
     /// Decimal columns
-    Decimal75(Precision, i8, Vec<S>),
+    Decimal75(ColumnTypeAssociatedData, Precision, i8, Vec<S>),
     /// Scalar columns
-    Scalar(Vec<S>),
+    Scalar(ColumnTypeAssociatedData, Vec<S>),
     /// Timestamp columns
-    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
+    TimestampTZ(ColumnTypeAssociatedData, PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
 }
 
 impl<S: Scalar> OwnedColumn<S> {

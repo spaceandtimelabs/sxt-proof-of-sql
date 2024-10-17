@@ -145,35 +145,35 @@ impl<'a, S: Scalar> Column<'a, S> {
     /// Convert an `OwnedColumn` to a `Column`
     pub fn from_owned_column(owned_column: &'a OwnedColumn<S>, alloc: &'a Bump) -> Self {
         match owned_column {
-            OwnedColumn::Boolean(col) => Column::Boolean(col.as_slice()),
-            OwnedColumn::TinyInt(col) => Column::TinyInt(col.as_slice()),
-            OwnedColumn::SmallInt(col) => Column::SmallInt(col.as_slice()),
-            OwnedColumn::Int(col) => Column::Int(col.as_slice()),
-            OwnedColumn::BigInt(col) => Column::BigInt(col.as_slice()),
-            OwnedColumn::Int128(col) => Column::Int128(col.as_slice()),
-            OwnedColumn::Decimal75(precision, scale, col) => {
-                Column::Decimal75(*precision, *scale, col.as_slice())
+            OwnedColumn::Boolean(meta, col) => Column::Boolean(*meta, col.as_slice()),
+            OwnedColumn::TinyInt(meta, col) => Column::TinyInt(*meta, col.as_slice()),
+            OwnedColumn::SmallInt(meta, col) => Column::SmallInt(*meta, col.as_slice()),
+            OwnedColumn::Int(meta, col) => Column::Int(*meta, col.as_slice()),
+            OwnedColumn::BigInt(meta, col) => Column::BigInt(*meta, col.as_slice()),
+            OwnedColumn::Int128(meta, col) => Column::Int128(*meta, col.as_slice()),
+            OwnedColumn::Decimal75(meta, precision, scale, col) => {
+                Column::Decimal75(*meta, *precision, *scale, col.as_slice())
             }
-            OwnedColumn::Scalar(col) => Column::Scalar(col.as_slice()),
-            OwnedColumn::VarChar(col) => {
+            OwnedColumn::Scalar(meta, col) => Column::Scalar(*meta, col.as_slice()),
+            OwnedColumn::VarChar(meta, col) => {
                 let scalars = col.iter().map(S::from).collect::<Vec<_>>();
                 let strs = col
                     .iter()
                     .map(|s| s.as_str() as &'a str)
                     .collect::<Vec<_>>();
-                Column::VarChar((
+                Column::VarChar(*meta, (
                     alloc.alloc_slice_clone(strs.as_slice()),
                     alloc.alloc_slice_copy(scalars.as_slice()),
                 ))
             }
-            OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col.as_slice()),
+            OwnedColumn::TimestampTZ(meta, tu, tz, col) => Column::TimestampTZ(*meta, *tu, *tz, col.as_slice()),
         }
     }
 
     /// Returns the column as a slice of booleans if it is a boolean column. Otherwise, returns None.
     pub(crate) fn as_boolean(&self) -> Option<&'a [bool]> {
         match self {
-            Self::Boolean(col) => Some(col),
+            Self::Boolean(_, col) => Some(col),
             _ => None,
         }
     }
