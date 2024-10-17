@@ -515,23 +515,23 @@ impl TryFrom<DataType> for ColumnType {
 impl Display for ColumnType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ColumnType::Boolean => write!(f, "BOOLEAN"),
-            ColumnType::TinyInt => write!(f, "TINYINT"),
-            ColumnType::SmallInt => write!(f, "SMALLINT"),
-            ColumnType::Int => write!(f, "INT"),
-            ColumnType::BigInt => write!(f, "BIGINT"),
-            ColumnType::Int128 => write!(f, "DECIMAL"),
-            ColumnType::Decimal75(precision, scale) => {
+            ColumnType::Boolean(meta) => write!(f, "BOOLEAN {meta}"),
+            ColumnType::TinyInt(meta) => write!(f, "TINYINT {meta}"),
+            ColumnType::SmallInt(meta) => write!(f, "SMALLINT {meta}"),
+            ColumnType::Int(meta) => write!(f, "INT {meta}"),
+            ColumnType::BigInt(meta) => write!(f, "BIGINT {meta}"),
+            ColumnType::Int128(meta) => write!(f, "DECIMAL {meta}"),
+            ColumnType::Decimal75(meta, precision, scale) => {
                 write!(
                     f,
-                    "DECIMAL75(PRECISION: {:?}, SCALE: {scale})",
+                    "DECIMAL75(PRECISION: {:?}, SCALE: {scale}) {meta}",
                     precision.value()
                 )
             }
-            ColumnType::VarChar => write!(f, "VARCHAR"),
-            ColumnType::Scalar => write!(f, "SCALAR"),
-            ColumnType::TimestampTZ(timeunit, timezone) => {
-                write!(f, "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone})")
+            ColumnType::VarChar(meta) => write!(f, "VARCHAR {meta}"),
+            ColumnType::Scalar(meta) => write!(f, "SCALAR {meta}"),
+            ColumnType::TimestampTZ(meta, timeunit, timezone) => {
+                write!(f, "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone}) {meta}")
             }
         }
     }
