@@ -82,17 +82,17 @@ impl<'a, S: Scalar> Column<'a, S> {
     #[must_use]
     pub fn len(&self) -> usize {
         match self {
-            Self::Boolean(col) => col.len(),
-            Self::TinyInt(col) => col.len(),
-            Self::SmallInt(col) => col.len(),
-            Self::Int(col) => col.len(),
-            Self::BigInt(col) | Self::TimestampTZ(_, _, col) => col.len(),
-            Self::VarChar((col, scals)) => {
+            Self::Boolean(_, col) => col.len(),
+            Self::TinyInt(_, col) => col.len(),
+            Self::SmallInt(_, col) => col.len(),
+            Self::Int(_, col) => col.len(),
+            Self::BigInt(_, col) | Self::TimestampTZ(_, _, _, col) => col.len(),
+            Self::VarChar(_, (col, scals)) => {
                 assert_eq!(col.len(), scals.len());
                 col.len()
             }
-            Self::Int128(col) => col.len(),
-            Self::Scalar(col) | Self::Decimal75(_, _, col) => col.len(),
+            Self::Int128(_, col) => col.len(),
+            Self::Scalar(_, col) | Self::Decimal75(_, _, _, col) => col.len(),
         }
     }
     /// Returns `true` if the column has no elements.
