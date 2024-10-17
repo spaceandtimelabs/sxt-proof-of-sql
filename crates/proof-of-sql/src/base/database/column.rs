@@ -48,7 +48,7 @@ pub enum Column<'a, S: Scalar> {
     /// String columns
     ///  - the first element maps to the str values.
     ///  - the second element maps to the str hashes (see [`crate::base::scalar::Scalar`]).
-    VarChar(ColumnTypeAssociatedData, &'a [&'a str], &'a [S]),
+    VarChar(ColumnTypeAssociatedData, (&'a [&'a str], &'a [S])),
     /// Timestamp columns with timezone
     /// - the first element maps to the stored `TimeUnit`
     /// - the second element maps to a timezone
@@ -66,7 +66,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::SmallInt(meta, _) => ColumnType::SmallInt(*meta),
             Self::Int(meta, _) => ColumnType::Int(*meta),
             Self::BigInt(meta, _) => ColumnType::BigInt(*meta),
-            Self::VarChar(meta, _, _) => ColumnType::VarChar(*meta),
+            Self::VarChar(meta, _) => ColumnType::VarChar(*meta),
             Self::Int128(meta, _) => ColumnType::Int128(*meta),
             Self::Scalar(meta, _) => ColumnType::Scalar(*meta),
             Self::Decimal75(meta, precision, scale, _) =>
