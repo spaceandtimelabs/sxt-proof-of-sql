@@ -1,4 +1,5 @@
 use super::{EnrichedExpr, FilterExecBuilder, QueryContextBuilder};
+use crate::sql::parse::query_context::Slice;
 use crate::{
     base::{commitment::Commitment, database::SchemaAccessor},
     sql::{
@@ -12,7 +13,7 @@ use crate::{
 };
 use alloc::{fmt, vec, vec::Vec};
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::{Ident, Select};
+use sqlparser::ast::{Expr, GroupByExpr, Ident, Query, SetExpr, TableWithJoins};
 
 #[derive(PartialEq, Serialize, Deserialize)]
 /// A `QueryExpr` represents a Proof of SQL query that can be executed against a database.
@@ -45,14 +46,23 @@ impl<C: Commitment> QueryExpr<C> {
 
     /// Parse an intermediate AST `SelectStatement` into a `QueryExpr`.
     pub fn try_new(
-        ast: Select,
+        ast: Query,
         default_schema: Ident,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Self> {
-        let from = ast.from;
-        let where_expr = ast.selection;
-        let group_by = ast.group_by;
-        let result_exprs = ast.projection;
+        let mut slice = Slice::from_query(&ast);
+        let mut from: Vec<TableWithJoins> = Vec::new();
+        let mut where_expr: Option<Expr> = None;
+        let mut group_by: GroupByExpr;
+        let mut result_exprs;
+        if let SetExpr::Select( select) = *ast.body {
+            from = select.from;
+            where_expr = select.selection;
+            group_by = select.group_by;
+            result_exprs = select.projection;
+        } else {
+            panic!("query type not supported in try_new()");
+        }
 
         let context = QueryContextBuilder::new(schema_accessor)
                 .visit_table_expr(from, default_schema)
@@ -60,7 +70,7 @@ impl<C: Commitment> QueryExpr<C> {
                 .visit_result_exprs(result_exprs)?
                 .visit_where_expr(where_expr)?
                 .visit_order_by_exprs(ast.order_by)
-                .visit_slice_expr(ast.slice)
+                .visit_slice_expr(if slice == Slice::default() { None } else { Some(slice) })
                 .build()?;
         let result_aliased_exprs = context.get_aliased_result_exprs()?.to_vec();
         let group_by = context.get_group_by_exprs();
@@ -93,7 +103,7 @@ impl<C: Commitment> QueryExpr<C> {
                     })
                     .collect::<Vec<_>>();
                 let filter = FilterExecBuilder::new(context.get_column_mapping())
-                    .add_table_expr(*context.get_table_ref())
+                    .add_table_expr(context.get_table_ref().clone())
                     .add_where_expr(context.get_where_expr().clone())?
                     .add_result_columns(&raw_enriched_exprs)
                     .build();
@@ -135,7 +145,7 @@ impl<C: Commitment> QueryExpr<C> {
                 .map(|enriched_expr| enriched_expr.residue_expression.clone())
                 .collect::<Vec<_>>();
             let filter = FilterExecBuilder::new(context.get_column_mapping())
-                .add_table_expr(*context.get_table_ref())
+                .add_table_expr(context.get_table_ref())
                 .add_where_expr(context.get_where_expr().clone())?
                 .add_result_columns(&enriched_exprs)
                 .build();

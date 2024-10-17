@@ -11,9 +11,48 @@ use crate::{
     },
 };
 use alloc::{borrow::ToOwned, boxed::Box, string::ToString, vec::Vec};
-use sqlparser::ast::{Expr, Ident, OrderBy};
+use serde::{Deserialize, Serialize};
+use serde_json::{Number, Value};
+use sqlparser::ast::{Expr, Ident, OrderBy, Query};
 
 
+/// Limits for a limit clause
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct Slice {
+    /// number of rows to return
+    ///
+    /// if `u64::MAX`, specify all rows
+    pub number_rows: u64,
+
+    /// number of rows to skip
+    ///
+    /// if 0, specify the first row as starting point
+    /// if negative, specify the offset from the end
+    /// (e.g. -1 is the last row, -2 is the second to last row, etc.)
+    pub offset_value: i64,
+}
+impl Slice {
+    pub fn from_query(value: &Query) -> Self {
+        fn num_from_expr(expr: &Expr) -> Option<Number> {
+            expr.and_then(|o| if let Expr::Value(Value::Number(v)) = o {
+                Some(v)
+            } else {
+                None
+            })
+        }
+        Slice {
+            offset_value: value.offset.as_ref()
+                .map(|o| &o.value)
+                .and_then( num_from_expr)
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0),
+            number_rows: value.limit.as_ref()
+                .and_then( num_from_expr)
+                .and_then(|v| v.as_u64())
+                .unwrap_or(u64::MAX),
+        }
+    }
+}
 #[derive(Default, Debug)]
 pub struct QueryContext {
     in_agg_scope: bool,

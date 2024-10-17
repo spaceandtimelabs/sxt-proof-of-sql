@@ -4,9 +4,10 @@ use crate::base::{database::{
     SchemaAccessor, TableRef,
 }, math::decimal::Precision, resource_id::ResourceId, utility};
 use alloc::{boxed::Box, string::ToString, vec::Vec};
+use ark_std::iterable::Iterable;
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::{Table, BinaryOperator, UnaryOperator, Expr, Value, OrderBy, Ident, TableWithJoins, SelectItem};
-
+use sqlparser::ast::{Table, BinaryOperator, UnaryOperator, Expr, Value, OrderBy, Ident, TableWithJoins, SelectItem, GroupByExpr};
+use crate::sql::parse::query_context::Slice;
 
 pub struct QueryContextBuilder<'a> {
     context: QueryContext,
@@ -59,10 +60,10 @@ impl<'a> QueryContextBuilder<'a> {
         for column in result_exprs {
             match column {
                 SelectItem::Wildcard(_) => self.visit_select_all_expr()?,
-                SelectItem::UnnamedExpr(expr @ Expr::Identifier(ident) ) => {
+                SelectItem::UnnamedExpr(ref expr @ Expr::Identifier(ident) ) => {
                     self.visit_aliased_expr(AliasedResultExpr {
                         alias: ident,
-                        expr: Box::new(expr),
+                        expr: Box::new(expr.clone()),
                     })?
                 },
                 SelectItem::ExprWithAlias(expr, alias) => self.visit_aliased_expr(AliasedResultExpr {
@@ -88,12 +89,25 @@ impl<'a> QueryContextBuilder<'a> {
 
     pub fn visit_group_by_exprs(
         mut self,
-        group_by_exprs: Vec<Ident>,
+        group_by_exprs: GroupByExpr,
     ) -> ConversionResult<Self> {
-        for id in &group_by_exprs {
-            self.visit_column_identifier(id)?;
-        }
-        self.context.set_group_by_exprs(group_by_exprs);
+
+        let mut group_by_idents: Vec<Ident> = vec![];
+
+        match group_by_exprs {
+            GroupByExpr::Expressions( exprs, _) => {
+                for expr in exprs {
+
+                    if let Expr::Identifier(ident) = expr {
+
+                        self.visit_column_identifier(&ident)?;
+                        group_by_idents.push(ident);
+                    }
+                }
+            },
+            _ => panic!("Unsupported groupby: {group_by_exprs}")
+        };
+        self.context.set_group_by_exprs(group_by_idents);
         Ok(self)
     }
 
@@ -239,9 +253,9 @@ impl<'a> QueryContextBuilder<'a> {
         match literal {
             Value::Boolean(_) => Ok(ColumnType::Boolean),
             Value::Number(_, true) => Ok(ColumnType::BigInt),
-            Value::Number(txt, false)  if   txt    => Ok(ColumnType::BigInt),
+            Value::Number(txt, false)  if   txt    => Ok(ColumnType::Int),
             Value::Int128(_) => Ok(ColumnType::Int128),
-            Value::VarChar(_) => Ok(ColumnType::VarChar),
+            Value::TripleDoubleQuotedString(_) => Ok(ColumnType::VarChar),
             Value::Decimal(d) => {
                 let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(precision, d.scale()))
