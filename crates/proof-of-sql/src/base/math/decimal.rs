@@ -110,6 +110,19 @@ impl Precision {
     }
 }
 
+impl TryFrom<i16> for Precision {
+    type Error = DecimalError;
+    fn try_from(value: i16) -> Result<Self, Self::Error> {
+        Precision::new(
+            value
+                .try_into()
+                .map_err(|_| DecimalError::InvalidPrecision {
+                    error: value.to_string(),
+                })?,
+        )
+    }
+}
+
 impl TryFrom<u64> for Precision {
     type Error = DecimalError;
     fn try_from(value: u64) -> Result<Self, Self::Error> {

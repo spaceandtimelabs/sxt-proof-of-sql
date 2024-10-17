@@ -10,10 +10,7 @@ use crate::{
         },
     },
     sql::{
-        parse::{
-            dyn_proof_expr_builder::DecimalError::{InvalidPrecision, InvalidScale},
-            ConversionError::DecimalConversionError,
-        },
+        parse::dyn_proof_expr_builder::DecimalError::InvalidScale,
         proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
     },
 };
@@ -101,12 +98,7 @@ impl DynProofExprBuilder<'_> {
                 let scale = raw_scale.try_into().map_err(|_| InvalidScale {
                     scale: raw_scale.to_string(),
                 })?;
-                let precision =
-                    Precision::try_from(d.precision()).map_err(|_| DecimalConversionError {
-                        source: InvalidPrecision {
-                            error: d.precision().to_string(),
-                        },
-                    })?;
+                let precision = Precision::try_from(d.precision())?;
                 Ok(DynProofExpr::new_literal(LiteralValue::Decimal75(
                     precision,
                     scale,
