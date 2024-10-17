@@ -5,6 +5,10 @@ use core::cmp::Ordering;
 /// This trait is primarily to avoid cluttering the core `Scalar` implementation with default implemenentations
 /// and provides helper methods for `Scalar`.
 pub trait ScalarExt: Scalar {
+    /// Compute 10^exponent for the Scalar. Note that we do not check for overflow.
+    fn pow10(exponent: u8) -> Self {
+        itertools::repeat_n(Self::TEN, exponent as usize).product()
+    }
     /// Compare two `Scalar`s as signed numbers.
     fn signed_cmp(&self, other: &Self) -> Ordering {
         match *self - *other {

@@ -430,6 +430,7 @@ impl super::Scalar for Curve25519Scalar {
     const ZERO: Self = Self(ark_ff::MontFp!("0"));
     const ONE: Self = Self(ark_ff::MontFp!("1"));
     const TWO: Self = Self(ark_ff::MontFp!("2"));
+    const TEN: Self = Self(ark_ff::MontFp!("10"));
 }
 
 impl<T> TryFrom<MontScalar<T>> for bool

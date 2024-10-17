@@ -1,4 +1,7 @@
-use crate::base::{database::Column, math::decimal::scale_scalar, scalar::Scalar};
+use crate::base::{
+    database::Column,
+    scalar::{Scalar, ScalarExt},
+};
 use bumpalo::Bump;
 
 #[allow(
@@ -65,10 +68,8 @@ pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
     is_subtract: bool,
 ) -> S {
     let max_scale = lhs_scale.max(rhs_scale);
-    let left_scaled_eval = scale_scalar(lhs_eval, max_scale - lhs_scale)
-        .expect("scaling factor should not be negative");
-    let right_scaled_eval = scale_scalar(rhs_eval, max_scale - rhs_scale)
-        .expect("scaling factor should not be negative");
+    let left_scaled_eval = lhs_eval * S::pow10(max_scale.abs_diff(lhs_scale));
+    let right_scaled_eval = rhs_eval * S::pow10(max_scale.abs_diff(rhs_scale));
     if is_subtract {
         left_scaled_eval - right_scaled_eval
     } else {
