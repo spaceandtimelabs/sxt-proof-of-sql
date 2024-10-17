@@ -13,8 +13,8 @@ use crate::{
 use alloc::{borrow::ToOwned, boxed::Box, string::ToString, vec::Vec};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number, Value};
-use sqlparser::ast::{Expr, Ident, OrderBy, Query};
-
+use sqlparser::ast::{Expr, Ident, OrderBy, OrderByExpr, Query};
+use crate::sql::parse::query_context_builder::AliasedResultExpr;
 
 /// Limits for a limit clause
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -71,7 +71,7 @@ pub struct QueryContext {
     table: Option<TableRef>,
     in_result_scope: bool,
     has_visited_group_by: bool,
-    order_by_exprs: Vec<OrderBy>,
+    order_by_exprs: Vec<OrderByExpr>,
     group_by_exprs: Vec<Ident>,
     where_expr: Option<Box<Expr>>,
     result_column_set: IndexSet<Ident>,
@@ -164,7 +164,7 @@ impl QueryContext {
     }
 
     #[allow(clippy::missing_panics_doc)]
-    pub fn push_aliased_result_expr(&mut self, expr: proof_of_sql_parser::intermediate_ast::AliasedResultExpr) -> ConversionResult<()> {
+    pub fn push_aliased_result_expr(&mut self, expr: AliasedResultExpr) -> ConversionResult<()> {
         assert!(&self.has_visited_group_by, "Group by must be visited first");
         self.res_aliased_exprs.push(expr);
 
@@ -183,8 +183,11 @@ impl QueryContext {
         self.has_visited_group_by = true;
     }
 
-    pub fn set_order_by_exprs(&mut self, order_by_exprs: Vec<OrderBy>) {
+    pub fn set_order_by_exprs(&mut self, order_by_exprs: Vec<OrderByExpr>) {
         self.order_by_exprs = order_by_exprs;
+    }
+    pub fn set_order_by(&mut self, order_by: OrderBy) {
+        self.set_order_by_exprs(order_by.exprs);
     }
 
     pub fn is_in_group_by_exprs(&self, column: &Ident) -> ConversionResult<bool> {
@@ -238,14 +241,14 @@ impl QueryContext {
         Ok(&self.res_aliased_exprs)
     }
 
-    pub fn get_order_by_exprs(&self) -> ConversionResult<Vec<OrderBy>> {
+    pub fn get_order_by_exprs(&self) -> ConversionResult<Vec<OrderByExpr>> {
         // Order by must reference only aliases in the result schema
         for by_expr in &self.order_by_exprs {
             self.res_aliased_exprs
                 .iter()
-                .find(|col| col.alias == by_expr.exprs)
+                .find(|col| if let Expr::Identifier(id) = by_expr { col.alias.value == id.value} else { false })
                 .ok_or_else(|| ConversionError::InvalidOrderBy {
-                    alias: by_expr.exprs.as_str().to_string(),
+                    alias: by_expr.to_string(),
                 })?;
         }
 
@@ -280,7 +283,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
             .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
-        let table = value.table.map(|table_ref| TableExpr { table_ref }).ok_or(
+        let table = value.table.as_ref().map(|table_ref| TableExpr { table_ref: table_ref.clone() }).ok_or(
             ConversionError::InvalidExpression {
                 expression: "QueryContext has no table_ref".to_owned(),
             },
@@ -339,7 +342,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
                     res_dyn_proof_expr
                         .ok()
                         .map(|dyn_proof_expr| AliasedDynProofExpr {
-                            alias: res.alias,
+                            alias: res.alias.clone(),
                             expr: dyn_proof_expr,
                         })
                 } else {
@@ -364,7 +367,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
         Ok(Some(GroupByExec::new(
             group_by_exprs,
             sum_expr.expect("the none case was just checked"),
-            count_column.alias,
+            count_column.alias.clone(),
             table,
             where_clause,
         )))

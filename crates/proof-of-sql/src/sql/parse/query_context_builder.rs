@@ -122,7 +122,7 @@ impl<'a> QueryContextBuilder<'a> {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 /// An expression with an alias e.g. `a + 1 AS b`
-struct AliasedResultExpr {
+pub struct AliasedResultExpr {
     /// The expression e.g. `a + 1`, `COUNT(*)`, etc.
     pub expr: Box<Expr>,
     /// The alias e.g. `count` in `COUNT(*) AS count`
