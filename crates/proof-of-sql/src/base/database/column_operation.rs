@@ -30,6 +30,9 @@ pub fn try_add_subtract_column_types(
     rhs: ColumnType,
     operator: BinaryOperator,
 ) -> ColumnOperationResult<ColumnType> {
+    let meta = ColumnTypeAssociatedData {
+        nullable: lhs.is_nullable() || rhs.is_nullable(),
+    };
     match (lhs, rhs) {
         (lhs, rhs) if !lhs.is_numeric() || !rhs.is_numeric() => {
             Err(ColumnOperationError::BinaryOperationInvalidColumnType {
@@ -42,10 +45,7 @@ pub fn try_add_subtract_column_types(
             // We can unwrap here because we know that both types are integers
             Ok(lhs.max_integer_type(&rhs).unwrap())
         }
-        (ColumnType::Scalar(meta), _) | (_, ColumnType::Scalar(meta)) => {
-            Ok(ColumnType::Scalar(meta))
-        }
-
+        (ColumnType::Scalar(_), _) | (_, ColumnType::Scalar(_)) => Ok(ColumnType::Scalar(meta)),
         _ => {
             let left_precision_value =
                 i16::from(lhs.precision_value().expect("Numeric types have precision"));
@@ -71,11 +71,7 @@ pub fn try_add_subtract_column_types(
                         },
                     })
                 })?;
-            Ok(ColumnType::Decimal75(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                precision,
-                scale,
-            ))
+            Ok(ColumnType::Decimal75(meta, precision, scale))
         }
     }
 }
