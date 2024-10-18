@@ -8,8 +8,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            Column, ColumnRef, ColumnType, ColumnTypeAssociatedData, CommitmentAccessor,
-            DataAccessor,
+            Column, ColumnNullability, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
         },
         map::IndexSet,
         proof::ProofError,
@@ -54,7 +53,7 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
     }
 
     fn data_type(&self) -> ColumnType {
-        ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)
+        ColumnType::Boolean(ColumnNullability::NotNullable)
     }
 
     #[tracing::instrument(name = "InequalityExpr::result_evaluate", level = "debug", skip_all)]
@@ -84,7 +83,7 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
 
         // (diff == 0) || (sign(diff) == -1)
         Column::Boolean(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             result_evaluate_or(table_length, alloc, equals_zero, sign),
         )
     }
@@ -122,7 +121,7 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
 
         // (diff == 0) || (sign(diff) == -1)
         Column::Boolean(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             prover_evaluate_or(builder, alloc, equals_zero, sign),
         )
     }

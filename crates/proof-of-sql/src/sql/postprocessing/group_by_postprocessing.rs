@@ -1,7 +1,7 @@
 use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
 use crate::base::{
     database::{
-        group_by_util::aggregate_columns, Column, ColumnTypeAssociatedData, OwnedColumn, OwnedTable,
+        group_by_util::aggregate_columns, Column, ColumnNullability, OwnedColumn, OwnedTable,
     },
     map::{indexmap, IndexMap, IndexSet},
     scalar::Scalar,
@@ -306,7 +306,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         });
         //TODO: When we have NULLs we need to differentiate between count(1) and count(expression)
         let count_column = OwnedColumn::BigInt(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             aggregation_results.count_column.to_vec(),
         );
         let count_outs = evaluated_columns

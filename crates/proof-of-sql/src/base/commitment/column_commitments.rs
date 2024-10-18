@@ -357,7 +357,7 @@ mod tests {
     use crate::base::{
         commitment::{column_bounds::Bounds, ColumnBounds},
         database::{
-            owned_table_utility::*, ColumnType, ColumnTypeAssociatedData, OwnedColumn, OwnedTable,
+            owned_table_utility::*, ColumnNullability, ColumnType, OwnedColumn, OwnedTable,
         },
         scalar::Curve25519Scalar,
     };
@@ -365,7 +365,7 @@ mod tests {
 
     #[test]
     fn we_can_construct_column_commitments_from_columns_and_identifiers() {
-        let col_meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let col_meta = ColumnNullability::NotNullable;
         // empty case
         let column_commitments =
             ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset::<
@@ -486,7 +486,7 @@ mod tests {
         let unique_identifier = "unique_identifier".parse().unwrap();
 
         let empty_column =
-            OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![]);
+            OwnedColumn::<Curve25519Scalar>::BigInt(ColumnNullability::NotNullable, vec![]);
 
         let from_columns_result = ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
             [
@@ -551,7 +551,7 @@ mod tests {
 
     #[test]
     fn we_can_iterate_over_column_commitments() {
-        let col_meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let col_meta = ColumnNullability::NotNullable;
         let bigint_id: Identifier = "bigint_column".parse().unwrap();
         let varchar_id: Identifier = "varchar_column".parse().unwrap();
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
@@ -828,7 +828,7 @@ mod tests {
 
     #[test]
     fn we_can_sub_column_commitments() {
-        let col_meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let col_meta = ColumnNullability::NotNullable;
         let bigint_id: Identifier = "bigint_column".parse().unwrap();
         let bigint_data = [1i64, 5, -5, 0, 10];
 

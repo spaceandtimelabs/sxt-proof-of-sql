@@ -1,9 +1,7 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{
-            owned_table_utility::*, Column, ColumnTypeAssociatedData, OwnedTableTestAccessor,
-        },
+        database::{owned_table_utility::*, Column, ColumnNullability, OwnedTableTestAccessor},
         scalar::Curve25519Scalar,
     },
     sql::{
@@ -353,6 +351,6 @@ fn we_can_compute_the_correct_output_of_a_multiply_expr_using_result_evaluate() 
         .iter()
         .map(|v| Curve25519Scalar::from(*v))
         .collect::<Vec<_>>();
-    let expected_res = Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, &expected_res_scalar);
+    let expected_res = Column::Scalar(ColumnNullability::NotNullable, &expected_res_scalar);
     assert_eq!(res, expected_res);
 }

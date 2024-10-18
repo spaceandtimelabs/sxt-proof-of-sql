@@ -3,8 +3,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            Column, ColumnRef, ColumnType, ColumnTypeAssociatedData, CommitmentAccessor,
-            DataAccessor,
+            Column, ColumnNullability, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
         },
         map::IndexSet,
         proof::ProofError,
@@ -34,7 +33,7 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
     }
 
     fn data_type(&self) -> ColumnType {
-        ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)
+        ColumnType::Boolean(ColumnNullability::NotNullable)
     }
 
     #[tracing::instrument(name = "NotExpr::result_evaluate", level = "debug", skip_all)]
@@ -48,7 +47,7 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
             self.expr.result_evaluate(table_length, alloc, accessor);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         Column::Boolean(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]),
         )
     }
@@ -64,7 +63,7 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
             self.expr.prover_evaluate(builder, alloc, accessor);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         Column::Boolean(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]),
         )
     }

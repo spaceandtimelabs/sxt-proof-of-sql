@@ -175,7 +175,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
 mod tests {
     use super::*;
     use crate::base::{
-        database::{Column, ColumnTypeAssociatedData, OwnedColumn},
+        database::{Column, ColumnNullability, OwnedColumn},
         scalar::Curve25519Scalar,
     };
     use blitzar::{compute::compute_curve25519_commitments, sequence::Sequence};
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn we_can_convert_from_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // empty case
         let commitments = Vec::<RistrettoPoint>::from_columns_with_offset(
             Vec::<Column<Curve25519Scalar>>::new(),
@@ -227,7 +227,7 @@ mod tests {
 
     #[test]
     fn we_can_append_rows() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn we_cannot_append_rows_with_different_column_count() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
@@ -310,7 +310,7 @@ mod tests {
 
     #[test]
     fn we_can_extend_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let column_a = [12i64, 34, 56];
         let column_b = ["Lorem", "ipsum", "dolor"].map(String::from);
         let column_c = ["sit", "amet", "consectetur"].map(String::from);
@@ -361,7 +361,7 @@ mod tests {
 
     #[test]
     fn we_can_add_commitment_collections() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
@@ -404,7 +404,7 @@ mod tests {
 
     #[test]
     fn we_cannot_add_commitment_collections_of_mixed_column_counts() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
@@ -446,7 +446,7 @@ mod tests {
 
     #[test]
     fn we_can_sub_commitment_collections() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
@@ -485,7 +485,7 @@ mod tests {
 
     #[test]
     fn we_cannot_sub_commitment_collections_of_mixed_column_counts() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 

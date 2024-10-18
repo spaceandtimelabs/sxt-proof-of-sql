@@ -6,9 +6,9 @@ use crate::{
         commitment::{Commitment, InnerProductProof},
         database::{
             owned_table_utility::{bigint, owned_table},
-            Column, ColumnField, ColumnRef, ColumnType, ColumnTypeAssociatedData,
-            CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTable, OwnedTableTestAccessor,
-            TestAccessor, UnimplementedTestAccessor,
+            Column, ColumnField, ColumnNullability, ColumnRef, ColumnType, CommitmentAccessor,
+            DataAccessor, MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TestAccessor,
+            UnimplementedTestAccessor,
         },
         map::IndexSet,
         proof::ProofError,
@@ -48,7 +48,7 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
-        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, col)]
+        vec![Column::BigInt(ColumnNullability::NotNullable, col)]
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -65,7 +65,7 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
             SumcheckSubpolynomialType::Identity,
             vec![(S::ONE, vec![Box::new(col as &[_])])],
         );
-        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, col)]
+        vec![Column::BigInt(ColumnNullability::NotNullable, col)]
     }
 }
 impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
@@ -106,7 +106,7 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new(
             "a1".parse().unwrap(),
-            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ColumnType::BigInt(ColumnNullability::NotNullable),
         )]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
@@ -208,7 +208,7 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
-        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, res)]
+        vec![Column::BigInt(ColumnNullability::NotNullable, res)]
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -222,7 +222,7 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
-            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ColumnType::BigInt(ColumnNullability::NotNullable),
         ));
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         builder.produce_anchored_mle(x);
@@ -234,7 +234,7 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
                 (-S::ONE, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, res)]
+        vec![Column::BigInt(ColumnNullability::NotNullable, res)]
     }
 }
 impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
@@ -265,7 +265,7 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
             * accessor.get_commitment(ColumnRef::new(
                 "sxt.test".parse().unwrap(),
                 "x".parse().unwrap(),
-                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+                ColumnType::BigInt(ColumnNullability::NotNullable),
             ));
         let x_eval = builder.consume_anchored_mle(x_commit);
         let res_eval = builder.consume_intermediate_mle();
@@ -278,7 +278,7 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new(
             "a1".parse().unwrap(),
-            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ColumnType::BigInt(ColumnNullability::NotNullable),
         )]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
@@ -393,7 +393,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
-        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, res)]
+        vec![Column::BigInt(ColumnNullability::NotNullable, res)]
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -407,7 +407,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
-            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ColumnType::BigInt(ColumnNullability::NotNullable),
         ));
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         let z: &[_] = alloc.alloc_slice_copy(&self.z);
@@ -432,7 +432,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
             ],
         );
         builder.produce_intermediate_mle(res);
-        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, res)]
+        vec![Column::BigInt(ColumnNullability::NotNullable, res)]
     }
 }
 impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
@@ -462,7 +462,7 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
         let x_commit = accessor.get_commitment(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
-            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ColumnType::BigInt(ColumnNullability::NotNullable),
         ));
         let x_eval = builder.consume_anchored_mle(x_commit);
         let z_eval = builder.consume_intermediate_mle();
@@ -484,7 +484,7 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new(
             "a1".parse().unwrap(),
-            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ColumnType::BigInt(ColumnNullability::NotNullable),
         )]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
@@ -607,10 +607,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        vec![Column::BigInt(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
-            &[9, 25],
-        )]
+        vec![Column::BigInt(ColumnNullability::NotNullable, &[9, 25])]
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -626,7 +623,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
-            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ColumnType::BigInt(ColumnNullability::NotNullable),
         ));
         let res: &[_] = alloc.alloc_slice_copy(&[9, 25]);
         let alpha = builder.consume_post_result_challenge();
@@ -640,10 +637,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
                 (-alpha, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        vec![Column::BigInt(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
-            &[9, 25],
-        )]
+        vec![Column::BigInt(ColumnNullability::NotNullable, &[9, 25])]
     }
 }
 impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
@@ -676,7 +670,7 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         let x_commit = accessor.get_commitment(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
-            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ColumnType::BigInt(ColumnNullability::NotNullable),
         ));
         let x_eval = builder.consume_anchored_mle(x_commit);
         let res_eval = builder.consume_intermediate_mle();
@@ -689,7 +683,7 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new(
             "a1".parse().unwrap(),
-            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ColumnType::BigInt(ColumnNullability::NotNullable),
         )]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {

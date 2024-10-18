@@ -1,4 +1,4 @@
-use super::{ColumnOperationError, ColumnOperationResult, ColumnTypeAssociatedData};
+use super::{ColumnNullability, ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::{
         column_operation::{
@@ -22,10 +22,9 @@ impl<S: Scalar> OwnedColumn<S> {
     /// Element-wise NOT operation for a column
     pub fn element_wise_not(&self) -> ColumnOperationResult<Self> {
         match self {
-            Self::Boolean(_, values) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                slice_not(values),
-            )),
+            Self::Boolean(_, values) => {
+                Ok(Self::Boolean(ColumnNullability::NotNullable, slice_not(values)))
+            }
             _ => Err(ColumnOperationError::UnaryOperationInvalidColumnType {
                 operator: UnaryOperator::Not,
                 operand_type: self.column_type(),
@@ -63,7 +62,7 @@ impl<S: Scalar> OwnedColumn<S> {
         }
         match (self, rhs) {
             (Self::Boolean(_, lhs), Self::Boolean(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_or(lhs, rhs),
             )),
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
@@ -84,27 +83,27 @@ impl<S: Scalar> OwnedColumn<S> {
         }
         match (self, rhs) {
             (Self::TinyInt(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 eq_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -114,27 +113,27 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::SmallInt(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(rhs, lhs),
             )),
             (Self::SmallInt(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 eq_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -144,27 +143,27 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::Int(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(rhs, lhs),
             )),
             (Self::Int(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(rhs, lhs),
             )),
             (Self::Int(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq(lhs, rhs),
             )),
             (Self::Int(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(lhs, rhs),
             )),
             (Self::Int(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(lhs, rhs),
             )),
             (Self::Int(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 eq_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -174,27 +173,27 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::BigInt(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(rhs, lhs),
             )),
             (Self::BigInt(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(rhs, lhs),
             )),
             (Self::BigInt(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(rhs, lhs),
             )),
             (Self::BigInt(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq(lhs, rhs),
             )),
             (Self::BigInt(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(lhs, rhs),
             )),
             (Self::BigInt(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 eq_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -204,27 +203,27 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::Int128(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(rhs, lhs),
             )),
             (Self::Int128(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(rhs, lhs),
             )),
             (Self::Int128(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(rhs, lhs),
             )),
             (Self::Int128(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq_with_casting(rhs, lhs),
             )),
             (Self::Int128(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq(lhs, rhs),
             )),
             (Self::Int128(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 eq_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -234,7 +233,7 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::Decimal75(.., lhs_values), Self::TinyInt(_, rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 eq_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -243,7 +242,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 ),
             )),
             (Self::Decimal75(.., lhs_values), Self::SmallInt(_, rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 eq_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -252,7 +251,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 ),
             )),
             (Self::Decimal75(.., lhs_values), Self::Int(_, rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 eq_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -261,7 +260,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 ),
             )),
             (Self::Decimal75(.., lhs_values), Self::BigInt(_, rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 eq_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -270,7 +269,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 ),
             )),
             (Self::Decimal75(.., lhs_values), Self::Int128(_, rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 eq_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -280,7 +279,7 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
             (Self::Decimal75(.., lhs_values), Self::Decimal75(.., rhs_values)) => {
                 Ok(Self::Boolean(
-                    ColumnTypeAssociatedData::NOT_NULLABLE,
+                    ColumnNullability::NotNullable,
                     eq_decimal_columns(
                         lhs_values,
                         rhs_values,
@@ -290,15 +289,15 @@ impl<S: Scalar> OwnedColumn<S> {
                 ))
             }
             (Self::Boolean(_, lhs), Self::Boolean(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq(lhs, rhs),
             )),
             (Self::Scalar(_, lhs), Self::Scalar(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq(lhs, rhs),
             )),
             (Self::VarChar(_, lhs), Self::VarChar(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_eq(lhs, rhs),
             )),
             (Self::TimestampTZ(_, _, _, _), Self::TimestampTZ(_, _, _, _)) => {
@@ -322,27 +321,27 @@ impl<S: Scalar> OwnedColumn<S> {
         }
         match (self, rhs) {
             (Self::TinyInt(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 le_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -352,27 +351,27 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::SmallInt(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(rhs, lhs),
             )),
             (Self::SmallInt(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 le_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -382,27 +381,27 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::Int(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(rhs, lhs),
             )),
             (Self::Int(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(rhs, lhs),
             )),
             (Self::Int(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le(lhs, rhs),
             )),
             (Self::Int(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(lhs, rhs),
             )),
             (Self::Int(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(lhs, rhs),
             )),
             (Self::Int(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 le_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -412,27 +411,27 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::BigInt(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(rhs, lhs),
             )),
             (Self::BigInt(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(rhs, lhs),
             )),
             (Self::BigInt(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(rhs, lhs),
             )),
             (Self::BigInt(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le(lhs, rhs),
             )),
             (Self::BigInt(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(lhs, rhs),
             )),
             (Self::BigInt(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 le_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -441,38 +440,23 @@ impl<S: Scalar> OwnedColumn<S> {
                 ),
             )),
 
-            (Self::Int128(_, lhs), Self::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, rhs)) => {
-                Ok(Self::Boolean(
-                    ColumnTypeAssociatedData::NOT_NULLABLE,
-                    slice_ge_with_casting(rhs, lhs),
-                ))
-            }
-            (Self::Int128(_, lhs), Self::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE, rhs)) => {
-                Ok(Self::Boolean(
-                    ColumnTypeAssociatedData::NOT_NULLABLE,
-                    slice_ge_with_casting(rhs, lhs),
-                ))
-            }
-            (Self::Int128(_, lhs), Self::Int(ColumnTypeAssociatedData::NOT_NULLABLE, rhs)) => {
-                Ok(Self::Boolean(
-                    ColumnTypeAssociatedData::NOT_NULLABLE,
-                    slice_ge_with_casting(rhs, lhs),
-                ))
-            }
-            (Self::Int128(_, lhs), Self::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, rhs)) => {
-                Ok(Self::Boolean(
-                    ColumnTypeAssociatedData::NOT_NULLABLE,
-                    slice_ge_with_casting(rhs, lhs),
-                ))
-            }
-            (Self::Int128(_, lhs), Self::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, rhs)) => {
-                Ok(Self::Boolean(
-                    ColumnTypeAssociatedData::NOT_NULLABLE,
-                    slice_le(lhs, rhs),
-                ))
-            }
+            (Self::Int128(_, lhs), Self::TinyInt(ColumnNullability::NotNullable, rhs)) => Ok(
+                Self::Boolean(ColumnNullability::NotNullable, slice_ge_with_casting(rhs, lhs)),
+            ),
+            (Self::Int128(_, lhs), Self::SmallInt(ColumnNullability::NotNullable, rhs)) => Ok(
+                Self::Boolean(ColumnNullability::NotNullable, slice_ge_with_casting(rhs, lhs)),
+            ),
+            (Self::Int128(_, lhs), Self::Int(ColumnNullability::NotNullable, rhs)) => Ok(
+                Self::Boolean(ColumnNullability::NotNullable, slice_ge_with_casting(rhs, lhs)),
+            ),
+            (Self::Int128(_, lhs), Self::BigInt(ColumnNullability::NotNullable, rhs)) => Ok(
+                Self::Boolean(ColumnNullability::NotNullable, slice_ge_with_casting(rhs, lhs)),
+            ),
+            (Self::Int128(_, lhs), Self::Int128(ColumnNullability::NotNullable, rhs)) => Ok(
+                Self::Boolean(ColumnNullability::NotNullable, slice_le(lhs, rhs)),
+            ),
             (Self::Int128(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 le_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -483,9 +467,9 @@ impl<S: Scalar> OwnedColumn<S> {
 
             (
                 Self::Decimal75(.., lhs_values),
-                Self::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, rhs_values),
+                Self::TinyInt(ColumnNullability::NotNullable, rhs_values),
             ) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 ge_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -495,9 +479,9 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
             (
                 Self::Decimal75(.., lhs_values),
-                Self::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE, rhs_values),
+                Self::SmallInt(ColumnNullability::NotNullable, rhs_values),
             ) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 ge_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -507,9 +491,9 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
             (
                 Self::Decimal75(.., lhs_values),
-                Self::Int(ColumnTypeAssociatedData::NOT_NULLABLE, rhs_values),
+                Self::Int(ColumnNullability::NotNullable, rhs_values),
             ) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 ge_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -519,9 +503,9 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
             (
                 Self::Decimal75(.., lhs_values),
-                Self::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, rhs_values),
+                Self::BigInt(ColumnNullability::NotNullable, rhs_values),
             ) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 ge_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -531,9 +515,9 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
             (
                 Self::Decimal75(.., lhs_values),
-                Self::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, rhs_values),
+                Self::Int128(ColumnNullability::NotNullable, rhs_values),
             ) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 ge_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -543,7 +527,7 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
             (Self::Decimal75(.., lhs_values), Self::Decimal75(.., rhs_values)) => {
                 Ok(Self::Boolean(
-                    ColumnTypeAssociatedData::NOT_NULLABLE,
+                    ColumnNullability::NotNullable,
                     le_decimal_columns(
                         lhs_values,
                         rhs_values,
@@ -553,11 +537,11 @@ impl<S: Scalar> OwnedColumn<S> {
                 ))
             }
             (Self::Boolean(_, lhs), Self::Boolean(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le(lhs, rhs),
             )),
             (Self::Scalar(_, lhs), Self::Scalar(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le(lhs, rhs),
             )),
             (Self::TimestampTZ(_, _, _, _), Self::TimestampTZ(_, _, _, _)) => {
@@ -581,27 +565,27 @@ impl<S: Scalar> OwnedColumn<S> {
         }
         match (self, rhs) {
             (Self::TinyInt(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(lhs, rhs),
             )),
             (Self::TinyInt(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 ge_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -611,27 +595,27 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::SmallInt(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(rhs, lhs),
             )),
             (Self::SmallInt(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(lhs, rhs),
             )),
             (Self::SmallInt(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 ge_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -641,27 +625,27 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::Int(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(rhs, lhs),
             )),
             (Self::Int(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(rhs, lhs),
             )),
             (Self::Int(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge(lhs, rhs),
             )),
             (Self::Int(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(lhs, rhs),
             )),
             (Self::Int(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(lhs, rhs),
             )),
             (Self::Int(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 ge_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -671,27 +655,27 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::BigInt(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(rhs, lhs),
             )),
             (Self::BigInt(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(rhs, lhs),
             )),
             (Self::BigInt(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(rhs, lhs),
             )),
             (Self::BigInt(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge(lhs, rhs),
             )),
             (Self::BigInt(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge_with_casting(lhs, rhs),
             )),
             (Self::BigInt(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 ge_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -701,27 +685,27 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::Int128(_, lhs), Self::TinyInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(rhs, lhs),
             )),
             (Self::Int128(_, lhs), Self::SmallInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(rhs, lhs),
             )),
             (Self::Int128(_, lhs), Self::Int(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(rhs, lhs),
             )),
             (Self::Int128(_, lhs), Self::BigInt(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_le_with_casting(rhs, lhs),
             )),
             (Self::Int128(_, lhs), Self::Int128(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge(lhs, rhs),
             )),
             (Self::Int128(_, lhs_values), Self::Decimal75(.., rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 ge_decimal_columns(
                     lhs_values,
                     rhs_values,
@@ -731,7 +715,7 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
 
             (Self::Decimal75(.., lhs_values), Self::TinyInt(_, rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 le_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -740,7 +724,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 ),
             )),
             (Self::Decimal75(.., lhs_values), Self::SmallInt(_, rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 le_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -749,7 +733,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 ),
             )),
             (Self::Decimal75(.., lhs_values), Self::Int(_, rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 le_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -758,7 +742,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 ),
             )),
             (Self::Decimal75(.., lhs_values), Self::BigInt(_, rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 le_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -767,7 +751,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 ),
             )),
             (Self::Decimal75(.., lhs_values), Self::Int128(_, rhs_values)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 le_decimal_columns(
                     rhs_values,
                     lhs_values,
@@ -777,7 +761,7 @@ impl<S: Scalar> OwnedColumn<S> {
             )),
             (Self::Decimal75(.., lhs_values), Self::Decimal75(.., rhs_values)) => {
                 Ok(Self::Boolean(
-                    ColumnTypeAssociatedData::NOT_NULLABLE,
+                    ColumnNullability::NotNullable,
                     ge_decimal_columns(
                         lhs_values,
                         rhs_values,
@@ -787,11 +771,11 @@ impl<S: Scalar> OwnedColumn<S> {
                 ))
             }
             (Self::Boolean(_, lhs), Self::Boolean(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge(lhs, rhs),
             )),
             (Self::Scalar(_, lhs), Self::Scalar(_, rhs)) => Ok(Self::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 slice_ge(lhs, rhs),
             )),
             (Self::TimestampTZ(_, _, _, _), Self::TimestampTZ(_, _, _, _)) => {
@@ -810,7 +794,7 @@ impl<S: Scalar> Add for OwnedColumn<S> {
     type Output = ColumnOperationResult<Self>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         if self.len() != rhs.len() {
             return Err(ColumnOperationError::DifferentColumnLength {
                 len_a: self.len(),
@@ -1010,7 +994,7 @@ impl<S: Scalar> Sub for OwnedColumn<S> {
     type Output = ColumnOperationResult<Self>;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         if self.len() != rhs.len() {
             return Err(ColumnOperationError::DifferentColumnLength {
                 len_a: self.len(),
@@ -1226,7 +1210,7 @@ impl<S: Scalar> Mul for OwnedColumn<S> {
     type Output = ColumnOperationResult<Self>;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         if self.len() != rhs.len() {
             return Err(ColumnOperationError::DifferentColumnLength {
                 len_a: self.len(),
@@ -1442,7 +1426,7 @@ impl<S: Scalar> Div for OwnedColumn<S> {
     type Output = ColumnOperationResult<Self>;
 
     fn div(self, rhs: Self) -> Self::Output {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         if self.len() != rhs.len() {
             return Err(ColumnOperationError::DifferentColumnLength {
                 len_a: self.len(),
@@ -1654,7 +1638,7 @@ mod test {
 
     #[test]
     fn we_cannot_do_binary_operation_on_columns_with_different_lengths() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(meta, vec![true, false, true]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Boolean(meta, vec![true, false]);
 
@@ -1719,7 +1703,7 @@ mod test {
 
     #[test]
     fn we_cannot_do_logical_operation_on_nonboolean_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![1, 2, 3]);
         let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![1, 2, 3]);
         let result = lhs.element_wise_and(&rhs);
@@ -1763,7 +1747,7 @@ mod test {
 
     #[test]
     fn we_can_do_logical_operation_on_boolean_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(meta, vec![true, false, true, false]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Boolean(meta, vec![true, true, false, false]);
         let result = lhs.element_wise_and(&rhs);
@@ -1796,7 +1780,7 @@ mod test {
 
     #[test]
     fn we_can_do_eq_operation() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // Integers
         let lhs = OwnedColumn::<Curve25519Scalar>::SmallInt(meta, vec![1, 3, 2]);
         let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![1, 2, 3]);
@@ -1918,7 +1902,7 @@ mod test {
 
     #[test]
     fn we_can_do_le_operation_on_numeric_and_boolean_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // Booleans
         let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(meta, vec![true, false, true]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Boolean(meta, vec![true, true, false]);
@@ -2016,7 +2000,7 @@ mod test {
 
     #[test]
     fn we_can_do_ge_operation_on_numeric_and_boolean_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // Booleans
         let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(meta, vec![true, false, true]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Boolean(meta, vec![true, true, false]);
@@ -2114,7 +2098,7 @@ mod test {
 
     #[test]
     fn we_cannot_do_comparison_on_columns_with_incompatible_types() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // Strings can't be compared with other types
         let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![1, 2, 3]);
         let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
@@ -2203,7 +2187,7 @@ mod test {
 
     #[test]
     fn we_cannot_do_arithmetic_on_nonnumeric_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let lhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             meta,
             ["Space", "and", "Time"]
@@ -2246,7 +2230,7 @@ mod test {
 
     #[test]
     fn we_can_add_integer_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // lhs and rhs have the same precision
         let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![1_i8, 2, 3]);
         let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![1_i8, 2, 3]);
@@ -2296,7 +2280,7 @@ mod test {
 
     #[test]
     fn we_can_try_add_decimal_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // lhs and rhs have the same precision and scale
         let lhs_scalars = [1, 2, 3].iter().map(Curve25519Scalar::from).collect();
         let rhs_scalars = [1, 2, 3].iter().map(Curve25519Scalar::from).collect();
@@ -2395,7 +2379,7 @@ mod test {
 
     #[test]
     fn we_can_try_subtract_integer_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // lhs and rhs have the same precision
         let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![4_i8, 5, 2]);
         let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![1_i8, 2, 3]);
@@ -2445,7 +2429,7 @@ mod test {
 
     #[test]
     fn we_can_try_subtract_decimal_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // lhs and rhs have the same precision and scale
         let lhs_scalars = [4, 5, 2].iter().map(Curve25519Scalar::from).collect();
         let rhs_scalars = [1, 2, 3].iter().map(Curve25519Scalar::from).collect();
@@ -2544,7 +2528,7 @@ mod test {
 
     #[test]
     fn we_can_try_multiply_integer_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // lhs and rhs have the same precision
         let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![4_i8, 5, -2]);
         let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![1_i8, 2, 3]);
@@ -2594,7 +2578,7 @@ mod test {
 
     #[test]
     fn we_can_try_multiply_decimal_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // lhs and rhs are both decimals
         let lhs_scalars = [4, 5, 2].iter().map(Curve25519Scalar::from).collect();
         let lhs = OwnedColumn::<Curve25519Scalar>::Decimal75(
@@ -2666,7 +2650,7 @@ mod test {
 
     #[test]
     fn we_can_try_divide_integer_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // lhs and rhs have the same precision
         let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![4_i8, 5, -2]);
         let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, vec![1_i8, 2, 3]);
@@ -2716,7 +2700,7 @@ mod test {
 
     #[test]
     fn we_can_try_divide_decimal_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // lhs and rhs are both decimals
         let lhs_scalars = [4, 5, 3].iter().map(Curve25519Scalar::from).collect();
         let lhs = OwnedColumn::<Curve25519Scalar>::Decimal75(

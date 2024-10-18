@@ -32,18 +32,18 @@ impl SchemaAccessor for TestSchemaAccessor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{database::ColumnTypeAssociatedData, map::indexmap};
+    use crate::base::{database::ColumnNullability, map::indexmap};
 
     fn sample_test_schema_accessor() -> TestSchemaAccessor {
         let table1: TableRef = TableRef::new("schema.table1".parse().unwrap());
         let table2: TableRef = TableRef::new("schema.table2".parse().unwrap());
         TestSchemaAccessor::new(indexmap! {
             table1 => indexmap! {
-                "col1".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
-                "col2".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+                "col1".parse().unwrap() => ColumnType::BigInt(ColumnNullability::NotNullable),
+                "col2".parse().unwrap() => ColumnType::VarChar(ColumnNullability::NotNullable),
             },
             table2 => indexmap! {
-                "col1".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+                "col1".parse().unwrap() => ColumnType::BigInt(ColumnNullability::NotNullable),
             },
         })
     }
@@ -56,11 +56,11 @@ mod tests {
         let not_a_table: TableRef = TableRef::new("schema.not_a_table".parse().unwrap());
         assert_eq!(
             accessor.lookup_column(table1, "col1".parse().unwrap()),
-            Some(ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE))
+            Some(ColumnType::BigInt(ColumnNullability::NotNullable))
         );
         assert_eq!(
             accessor.lookup_column(table1, "col2".parse().unwrap()),
-            Some(ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE))
+            Some(ColumnType::VarChar(ColumnNullability::NotNullable))
         );
         assert_eq!(
             accessor.lookup_column(table1, "not_a_col".parse().unwrap()),
@@ -68,7 +68,7 @@ mod tests {
         );
         assert_eq!(
             accessor.lookup_column(table2, "col1".parse().unwrap()),
-            Some(ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE))
+            Some(ColumnType::BigInt(ColumnNullability::NotNullable))
         );
         assert_eq!(
             accessor.lookup_column(table2, "col2".parse().unwrap()),
@@ -99,11 +99,11 @@ mod tests {
             vec![
                 (
                     "col1".parse().unwrap(),
-                    ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+                    ColumnType::BigInt(ColumnNullability::NotNullable)
                 ),
                 (
                     "col2".parse().unwrap(),
-                    ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)
+                    ColumnType::VarChar(ColumnNullability::NotNullable)
                 ),
             ]
         );
@@ -111,7 +111,7 @@ mod tests {
             accessor.lookup_schema(table2),
             vec![(
                 "col1".parse().unwrap(),
-                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+                ColumnType::BigInt(ColumnNullability::NotNullable)
             ),]
         );
         assert_eq!(accessor.lookup_schema(not_a_table), vec![]);

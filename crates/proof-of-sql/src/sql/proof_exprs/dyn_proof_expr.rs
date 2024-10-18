@@ -6,8 +6,8 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            Column, ColumnRef, ColumnType, ColumnTypeAssociatedData, CommitmentAccessor,
-            DataAccessor, LiteralValue,
+            Column, ColumnNullability, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
+            LiteralValue,
         },
         map::IndexSet,
         proof::ProofError,
@@ -54,19 +54,19 @@ impl<C: Commitment> DynProofExpr<C> {
     }
     /// Create logical AND expression
     pub fn try_new_and(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
-        lhs.check_data_type(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))?;
-        rhs.check_data_type(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))?;
+        lhs.check_data_type(ColumnType::Boolean(ColumnNullability::NotNullable))?;
+        rhs.check_data_type(ColumnType::Boolean(ColumnNullability::NotNullable))?;
         Ok(Self::And(AndExpr::new(Box::new(lhs), Box::new(rhs))))
     }
     /// Create logical OR expression
     pub fn try_new_or(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
-        lhs.check_data_type(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))?;
-        rhs.check_data_type(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))?;
+        lhs.check_data_type(ColumnType::Boolean(ColumnNullability::NotNullable))?;
+        rhs.check_data_type(ColumnType::Boolean(ColumnNullability::NotNullable))?;
         Ok(Self::Or(OrExpr::new(Box::new(lhs), Box::new(rhs))))
     }
     /// Create logical NOT expression
     pub fn try_new_not(expr: DynProofExpr<C>) -> ConversionResult<Self> {
-        expr.check_data_type(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))?;
+        expr.check_data_type(ColumnType::Boolean(ColumnNullability::NotNullable))?;
         Ok(Self::Not(NotExpr::new(Box::new(expr))))
     }
     /// Create CONST expression
@@ -210,9 +210,7 @@ impl<C: Commitment> ProofExpr<C> for DynProofExpr<C> {
             | DynProofExpr::Or(_)
             | DynProofExpr::Not(_)
             | DynProofExpr::Equals(_)
-            | DynProofExpr::Inequality(_) => {
-                ColumnType::Boolean(ColumnTypeAssociatedData::default())
-            }
+            | DynProofExpr::Inequality(_) => ColumnType::Boolean(ColumnNullability::default()),
         }
     }
 

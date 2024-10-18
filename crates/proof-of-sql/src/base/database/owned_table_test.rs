@@ -1,8 +1,7 @@
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, ColumnTypeAssociatedData, OwnedColumn, OwnedTable,
-            OwnedTableError,
+            owned_table_utility::*, ColumnNullability, OwnedColumn, OwnedTable, OwnedTableError,
         },
         map::IndexMap,
         scalar::Curve25519Scalar,
@@ -21,7 +20,7 @@ fn we_can_create_an_owned_table_with_no_columns() {
 }
 #[test]
 fn we_can_create_an_empty_owned_table() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let owned_table = owned_table::<DoryScalar>([
         bigint("bigint", [0; 0]),
         int128("decimal", [0; 0]),
@@ -54,7 +53,7 @@ fn we_can_create_an_empty_owned_table() {
 }
 #[test]
 fn we_can_create_an_owned_table_with_data() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let owned_table = owned_table([
         bigint("bigint", [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
         int128("decimal", [0, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX]),
@@ -190,7 +189,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
 }
 #[test]
 fn we_cannot_create_an_owned_table_with_differing_column_lengths() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     assert!(matches!(
         OwnedTable::<Curve25519Scalar>::try_from_iter([
             ("a".parse().unwrap(), OwnedColumn::BigInt(meta, vec![0])),

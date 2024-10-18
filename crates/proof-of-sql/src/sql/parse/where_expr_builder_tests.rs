@@ -1,8 +1,6 @@
 use crate::{
     base::{
-        database::{
-            ColumnRef, ColumnType, ColumnTypeAssociatedData, LiteralValue, TestSchemaAccessor,
-        },
+        database::{ColumnNullability, ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
         map::{indexmap, IndexMap},
         math::decimal::Precision,
     },
@@ -30,7 +28,7 @@ use proof_of_sql_parser::{
 ///   call is expected to succeed; however, if it encounters an invalid precision value, it will
 ///   cause a panic when `unwrap()` is called.
 fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let tab_ref = "sxt.sxt_tab".parse().unwrap();
     let mut column_mapping = IndexMap::default();
     // Setup column mapping
@@ -154,7 +152,7 @@ fn we_can_directly_check_whether_bigint_columns_ge_int128() {
         DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
             "sxt.sxt_tab".parse().unwrap(),
             ident("bigint_column"),
-            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ColumnType::BigInt(ColumnNullability::NotNullable),
         ))),
         DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
         false,
@@ -176,7 +174,7 @@ fn we_can_directly_check_whether_bigint_columns_le_int128() {
         DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
             "sxt.sxt_tab".parse().unwrap(),
             ident("bigint_column"),
-            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ColumnType::BigInt(ColumnNullability::NotNullable),
         ))),
         DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
         true,
@@ -310,7 +308,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::VarChar(ColumnNullability::NotNullable),
         },
     });
 
@@ -329,7 +327,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::VarChar(ColumnNullability::NotNullable),
         },
     });
 
@@ -348,7 +346,7 @@ fn we_do_not_expect_an_error_while_trying_to_check_int128_column_eq_decimal_with
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::Int128(ColumnNullability::NotNullable),
         },
     });
 
@@ -365,7 +363,7 @@ fn we_do_not_expect_an_error_while_trying_to_check_bigint_column_eq_decimal_with
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnNullability::NotNullable),
         },
     });
 

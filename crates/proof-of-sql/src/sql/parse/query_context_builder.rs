@@ -1,8 +1,8 @@
 use super::{ConversionError, ConversionResult, QueryContext};
 use crate::base::{
     database::{
-        try_add_subtract_column_types, try_multiply_column_types, ColumnRef, ColumnType,
-        ColumnTypeAssociatedData, SchemaAccessor, TableRef,
+        try_add_subtract_column_types, try_multiply_column_types, ColumnNullability, ColumnRef,
+        ColumnType, SchemaAccessor, TableRef,
     },
     math::decimal::Precision,
 };
@@ -130,7 +130,7 @@ impl<'a> QueryContextBuilder<'a> {
     /// Visits the expression and returns its data type.
     fn visit_expr(&mut self, expr: &Expression) -> ConversionResult<ColumnType> {
         match expr {
-            Expression::Wildcard => Ok(ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)), // Since COUNT(*) = COUNT(1)
+            Expression::Wildcard => Ok(ColumnType::BigInt(ColumnNullability::NotNullable)), // Since COUNT(*) = COUNT(1)
             Expression::Literal(literal) => self.visit_literal(literal),
             Expression::Column(_) => self.visit_column_expr(expr),
             Expression::Unary { op, expr } => self.visit_unary_expr(*op, expr),
@@ -165,7 +165,7 @@ impl<'a> QueryContextBuilder<'a> {
             | BinaryOperator::Equal
             | BinaryOperator::GreaterThanOrEqual
             | BinaryOperator::LessThanOrEqual => {
-                Ok(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))
+                Ok(ColumnType::Boolean(ColumnNullability::NotNullable))
             }
             BinaryOperator::Multiply
             | BinaryOperator::Division
@@ -186,7 +186,7 @@ impl<'a> QueryContextBuilder<'a> {
                     Ok(dtype)
                 } else {
                     Err(ConversionError::InvalidDataType {
-                        expected: ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE),
+                        expected: ColumnType::Boolean(ColumnNullability::NotNullable),
                         actual: dtype,
                     })
                 }
@@ -205,7 +205,7 @@ impl<'a> QueryContextBuilder<'a> {
         match (op, expr_dtype) {
             (AggregationOperator::Count, _) => {
                 self.context.set_in_agg_scope(false)?;
-                Ok(ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE))
+                Ok(ColumnType::BigInt(ColumnNullability::NotNullable))
             }
             (_, ColumnType::VarChar(_)) => Err(ConversionError::non_numeric_expr_in_agg(
                 expr_dtype.to_string(),
@@ -220,7 +220,7 @@ impl<'a> QueryContextBuilder<'a> {
 
     #[allow(clippy::unused_self)]
     fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         match literal {
             Literal::Boolean(_) => Ok(ColumnType::Boolean(meta)),
             Literal::BigInt(_) => Ok(ColumnType::BigInt(meta)),

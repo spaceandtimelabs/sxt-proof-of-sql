@@ -2,8 +2,8 @@ use super::{test_utility::*, DynProofPlan, ProjectionExec};
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, Column, ColumnField, ColumnRef, ColumnType,
-            ColumnTypeAssociatedData, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
+            owned_table_utility::*, Column, ColumnField, ColumnNullability, ColumnRef, ColumnType,
+            OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
         },
         map::{IndexMap, IndexSet},
         math::decimal::Precision,
@@ -24,7 +24,7 @@ use proof_of_sql_parser::{Identifier, ResourceId};
 
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let b = Identifier::try_new("b").unwrap();
@@ -61,7 +61,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
 
 #[test]
 fn we_can_correctly_fetch_all_the_referenced_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let f = Identifier::try_new("f").unwrap();
@@ -154,7 +154,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_nontrivial_projection() {
 
 #[test]
 fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_result_evaluate() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let data = owned_table([
         bigint("a", [0; 0]),
         bigint("b", [0; 0]),
@@ -224,7 +224,7 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
 
 #[test]
 fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let data = owned_table([
         bigint("a", [1, 4, 5, 2, 5]),
         bigint("b", [1, 2, 3, 4, 5]),

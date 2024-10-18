@@ -132,7 +132,7 @@ mod tests {
         base::{
             commitment::{Bounds, ColumnBounds},
             database::{
-                owned_table_utility::*, ColumnTypeAssociatedData, OwnedColumn, OwnedTable,
+                owned_table_utility::*, ColumnNullability, OwnedColumn, OwnedTable,
                 OwnedTableTestAccessor, TestAccessor,
             },
             scalar::Curve25519Scalar,
@@ -171,10 +171,7 @@ mod tests {
         let no_rows_commitment = TableCommitment::try_from_columns_with_offset(
             [(
                 &"column_c".parse().unwrap(),
-                &OwnedColumn::<Curve25519Scalar>::BigInt(
-                    ColumnTypeAssociatedData::NOT_NULLABLE,
-                    vec![],
-                ),
+                &OwnedColumn::<Curve25519Scalar>::BigInt(ColumnNullability::NotNullable, vec![]),
             )],
             3,
             &(),
@@ -205,7 +202,7 @@ mod tests {
     #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_commitment_of_a_column() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
@@ -256,7 +253,7 @@ mod tests {
     #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_schema_of_tables() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
@@ -332,7 +329,7 @@ mod tests {
     #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_query_commitments_from_accessor() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 3);

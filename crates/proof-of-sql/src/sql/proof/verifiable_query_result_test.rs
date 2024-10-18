@@ -7,9 +7,8 @@ use crate::{
         commitment::{Commitment, InnerProductProof},
         database::{
             owned_table_utility::{bigint, owned_table},
-            Column, ColumnField, ColumnRef, ColumnType, ColumnTypeAssociatedData,
-            CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTable, TestAccessor,
-            UnimplementedTestAccessor,
+            Column, ColumnField, ColumnNullability, ColumnRef, ColumnType, CommitmentAccessor,
+            DataAccessor, MetadataAccessor, OwnedTable, TestAccessor, UnimplementedTestAccessor,
         },
         map::IndexSet,
         proof::ProofError,
@@ -34,7 +33,7 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
     ) -> Vec<Column<'a, S>> {
         let zeros = vec![0; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
-        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, res); self.columns]
+        vec![Column::BigInt(ColumnNullability::NotNullable, res); self.columns]
     }
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
     fn final_round_evaluate<'a>(
@@ -48,7 +47,7 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
         let _ = std::iter::repeat_with(|| builder.produce_intermediate_mle(res))
             .take(self.columns)
             .collect::<Vec<_>>();
-        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, res); self.columns]
+        vec![Column::BigInt(ColumnNullability::NotNullable, res); self.columns]
     }
 }
 impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
@@ -85,7 +84,7 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
             .map(|i| {
                 ColumnField::new(
                     format!("a{i}").parse().unwrap(),
-                    ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+                    ColumnType::BigInt(ColumnNullability::NotNullable),
                 )
             })
             .collect()

@@ -308,7 +308,7 @@ impl ColumnBounds {
 mod tests {
     use super::*;
     use crate::base::{
-        database::{ColumnTypeAssociatedData, OwnedColumn},
+        database::{ColumnNullability, OwnedColumn},
         math::decimal::Precision,
         scalar::Curve25519Scalar,
     };
@@ -501,7 +501,7 @@ mod tests {
 
     #[test]
     fn we_can_construct_column_bounds_from_column() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let varchar_column = OwnedColumn::<Curve25519Scalar>::VarChar(
             meta,
             ["Lorem", "ipsum", "dolor", "sit", "amet"]

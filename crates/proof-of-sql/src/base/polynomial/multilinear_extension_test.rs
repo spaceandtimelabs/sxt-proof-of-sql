@@ -1,6 +1,6 @@
 use super::MultilinearExtension;
 use crate::base::{
-    database::{Column, ColumnTypeAssociatedData},
+    database::{Column, ColumnNullability},
     scalar::Curve25519Scalar,
 };
 
@@ -40,7 +40,7 @@ fn we_can_use_multilinear_extension_methods_for_i64_slice() {
 
 #[test]
 fn we_can_use_multilinear_extension_methods_for_column() {
-    let slice = Column::BigInt(ColumnTypeAssociatedData::default(), &[2, 3, 4, 5, 6]);
+    let slice = Column::BigInt(ColumnNullability::default(), &[2, 3, 4, 5, 6]);
     let evaluation_vec: Vec<Curve25519Scalar> =
         vec![101.into(), 102.into(), 103.into(), 104.into(), 105.into()];
     assert_eq!(

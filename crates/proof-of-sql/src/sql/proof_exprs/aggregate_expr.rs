@@ -3,8 +3,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            Column, ColumnRef, ColumnType, ColumnTypeAssociatedData, CommitmentAccessor,
-            DataAccessor,
+            Column, ColumnNullability, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
         },
         map::IndexSet,
         proof::ProofError,
@@ -39,9 +38,7 @@ impl<C: Commitment> ProofExpr<C> for AggregateExpr<C> {
 
     fn data_type(&self) -> ColumnType {
         match self.op {
-            AggregationOperator::Count => {
-                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
-            }
+            AggregationOperator::Count => ColumnType::BigInt(ColumnNullability::NotNullable),
             AggregationOperator::Sum => self.expr.data_type(),
             _ => todo!("Aggregation operator not supported here yet"),
         }

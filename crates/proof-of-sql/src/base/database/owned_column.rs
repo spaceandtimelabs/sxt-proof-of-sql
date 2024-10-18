@@ -4,7 +4,7 @@
 /// This is the analog of an arrow Array.
 use super::{Column, ColumnType, OwnedColumnError, OwnedColumnResult};
 use crate::base::{
-    database::column::ColumnTypeAssociatedData,
+    database::column::ColumnNullability,
     math::{
         decimal::Precision,
         permutation::{Permutation, PermutationError},
@@ -26,30 +26,25 @@ use proof_of_sql_parser::{
 /// Supported types for [`OwnedColumn`]
 pub enum OwnedColumn<S: Scalar> {
     /// Boolean columns
-    Boolean(ColumnTypeAssociatedData, Vec<bool>),
+    Boolean(ColumnNullability, Vec<bool>),
     /// i8 columns
-    TinyInt(ColumnTypeAssociatedData, Vec<i8>),
+    TinyInt(ColumnNullability, Vec<i8>),
     /// i16 columns
-    SmallInt(ColumnTypeAssociatedData, Vec<i16>),
+    SmallInt(ColumnNullability, Vec<i16>),
     /// i32 columns
-    Int(ColumnTypeAssociatedData, Vec<i32>),
+    Int(ColumnNullability, Vec<i32>),
     /// i64 columns
-    BigInt(ColumnTypeAssociatedData, Vec<i64>),
+    BigInt(ColumnNullability, Vec<i64>),
     /// String columns
-    VarChar(ColumnTypeAssociatedData, Vec<String>),
+    VarChar(ColumnNullability, Vec<String>),
     /// i128 columns
-    Int128(ColumnTypeAssociatedData, Vec<i128>),
+    Int128(ColumnNullability, Vec<i128>),
     /// Decimal columns
-    Decimal75(ColumnTypeAssociatedData, Precision, i8, Vec<S>),
+    Decimal75(ColumnNullability, Precision, i8, Vec<S>),
     /// Scalar columns
-    Scalar(ColumnTypeAssociatedData, Vec<S>),
+    Scalar(ColumnNullability, Vec<S>),
     /// Timestamp columns
-    TimestampTZ(
-        ColumnTypeAssociatedData,
-        PoSQLTimeUnit,
-        PoSQLTimeZone,
-        Vec<i64>,
-    ),
+    TimestampTZ(ColumnNullability, PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
 }
 
 impl<S: Scalar> OwnedColumn<S> {
@@ -246,7 +241,7 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             // Can not convert scalars to VarChar
             ColumnType::VarChar(meta) => Err(OwnedColumnError::TypeCastError {
-                from_type: ColumnType::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE),
+                from_type: ColumnType::Scalar(ColumnNullability::NotNullable),
                 to_type: ColumnType::VarChar(meta),
             }),
         }
@@ -408,14 +403,14 @@ mod test {
 
     #[test]
     fn we_can_slice_a_column() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(meta, vec![1, 2, 3, 4, 5]);
         assert_eq!(col.slice(1, 4), OwnedColumn::Int128(meta, vec![2, 3, 4]));
     }
 
     #[test]
     fn we_can_permute_a_column() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(meta, vec![1, 2, 3, 4, 5]);
         let permutation = Permutation::try_new(vec![1, 3, 4, 0, 2]).unwrap();
         assert_eq!(
@@ -426,7 +421,7 @@ mod test {
 
     #[test]
     fn we_can_compare_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let col1: OwnedColumn<Curve25519Scalar> = OwnedColumn::SmallInt(meta, vec![1, 1, 2, 1, 1]);
         let col2: OwnedColumn<Curve25519Scalar> = OwnedColumn::VarChar(
             meta,
@@ -473,7 +468,7 @@ mod test {
 
     #[test]
     fn we_can_convert_columns_to_owned_columns_round_trip() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let alloc = Bump::new();
         // Integers
         let col: Column<'_, Curve25519Scalar> = Column::Int128(meta, &[1, 2, 3, 4, 5]);
@@ -533,7 +528,7 @@ mod test {
 
     #[test]
     fn we_can_convert_scalars_to_owned_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // Int
         let scalars = [1, 2, 3, 4, 5]
             .iter()
@@ -574,7 +569,7 @@ mod test {
             .iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let column_type = ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE);
+        let column_type = ColumnType::VarChar(ColumnNullability::NotNullable);
         let res = OwnedColumn::try_from_scalars(&scalars, column_type);
         assert!(matches!(res, Err(OwnedColumnError::TypeCastError { .. })));
     }
@@ -586,7 +581,7 @@ mod test {
             .iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let column_type = ColumnType::BigInt(meta);
         let res = OwnedColumn::try_from_scalars(&scalars, column_type);
         assert!(matches!(
@@ -609,7 +604,7 @@ mod test {
 
     #[test]
     fn we_can_convert_option_scalars_to_owned_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // Int
         let option_scalars = [Some(1), Some(2), Some(3), Some(4), Some(5)]
             .iter()
@@ -654,14 +649,14 @@ mod test {
             .iter()
             .map(|s| Some(Curve25519Scalar::from(*s)))
             .collect::<Vec<_>>();
-        let column_type = ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE);
+        let column_type = ColumnType::VarChar(ColumnNullability::NotNullable);
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
         assert!(matches!(res, Err(OwnedColumnError::TypeCastError { .. })));
     }
 
     #[test]
     fn we_cannot_convert_option_scalars_to_owned_columns_if_overflow() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // Int
         let option_scalars = [
             Some(i128::MAX),
@@ -701,7 +696,7 @@ mod test {
 
     #[test]
     fn we_cannot_convert_option_scalars_to_owned_columns_if_none() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // Int
         let option_scalars = [Some(1), Some(2), None, Some(4), Some(5)]
             .iter()

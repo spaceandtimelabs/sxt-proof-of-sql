@@ -183,7 +183,7 @@ mod tests {
     use super::*;
     use crate::base::{
         commitment::column_bounds::Bounds,
-        database::{ColumnTypeAssociatedData, OwnedColumn},
+        database::{ColumnNullability, OwnedColumn},
         math::decimal::Precision,
         scalar::Curve25519Scalar,
     };
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn we_can_construct_metadata() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         assert_eq!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::TinyInt(meta),
@@ -302,7 +302,7 @@ mod tests {
 
     #[test]
     fn we_cannot_construct_metadata_with_type_bounds_mismatch() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::Boolean(meta),
@@ -390,7 +390,7 @@ mod tests {
 
     #[test]
     fn we_can_construct_metadata_from_column() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let boolean_column = OwnedColumn::<Curve25519Scalar>::Boolean(
             meta,
             [true, false, true, false, true].to_vec(),
@@ -511,7 +511,7 @@ mod tests {
 
     #[test]
     fn we_can_union_matching_metadata() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // NoOrder cases
         let boolean_metadata = ColumnCommitmentMetadata {
             column_type: ColumnType::Boolean(meta),
@@ -646,7 +646,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             b_difference_a.column_type,
-            ColumnType::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, timeunit, timezone)
+            ColumnType::TimestampTZ(ColumnNullability::NotNullable, timeunit, timezone)
         );
         if let ColumnBounds::TimestampTZ(Bounds::Bounded(bounds)) = b_difference_a.bounds {
             assert_eq!(bounds.min(), &1_625_065_000);
@@ -675,7 +675,7 @@ mod tests {
 
     #[test]
     fn we_can_difference_bigint_matching_metadata() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         // Ordered case
         let ints = [1, 2, 3, 1, 0];
         let bigint_column_a = CommittableColumn::BigInt(&ints[..2]);
@@ -723,7 +723,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             b_difference_a.column_type,
-            ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+            ColumnType::TinyInt(ColumnNullability::NotNullable)
         );
         if let ColumnBounds::TinyInt(Bounds::Bounded(bounds)) = b_difference_a.bounds() {
             assert_eq!(bounds.min(), &0);
@@ -763,7 +763,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             b_difference_a.column_type,
-            ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+            ColumnType::SmallInt(ColumnNullability::NotNullable)
         );
         if let ColumnBounds::SmallInt(Bounds::Bounded(bounds)) = b_difference_a.bounds() {
             assert_eq!(bounds.min(), &0);
@@ -801,7 +801,7 @@ mod tests {
         let b_difference_a = int_metadata_b.try_difference(int_metadata_a).unwrap();
         assert_eq!(
             b_difference_a.column_type,
-            ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE)
+            ColumnType::Int(ColumnNullability::NotNullable)
         );
         if let ColumnBounds::Int(Bounds::Bounded(bounds)) = b_difference_a.bounds() {
             assert_eq!(bounds.min(), &0);
@@ -825,7 +825,7 @@ mod tests {
 
     #[test]
     fn we_cannot_perform_arithmetic_on_mismatched_metadata() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let boolean_metadata = ColumnCommitmentMetadata {
             column_type: ColumnType::Boolean(meta),
             bounds: ColumnBounds::NoOrder,

@@ -1,6 +1,6 @@
 use super::{fold_columns, fold_vals};
 use crate::base::{
-    database::{Column, ColumnTypeAssociatedData},
+    database::{Column, ColumnNullability},
     math::decimal::Precision,
     scalar::Curve25519Scalar,
 };
@@ -9,7 +9,7 @@ use num_traits::Zero;
 
 #[test]
 fn we_can_fold_columns_with_scalars() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let expected = vec![
         Curve25519Scalar::from(77 + 2061 * 33)
             + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("1"),
@@ -56,7 +56,7 @@ fn we_can_fold_columns_with_scalars() {
 
 #[test]
 fn we_can_fold_columns_with_that_get_padded() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let expected = vec![
         Curve25519Scalar::from(77 + 2061 * 33)
             + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("1"),
@@ -105,7 +105,7 @@ fn we_can_fold_columns_with_that_get_padded() {
 
 #[test]
 fn we_can_fold_empty_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let columns = vec![
         Column::BigInt::<Curve25519Scalar>(meta, &[]),
         Column::Int128(meta, &[]),

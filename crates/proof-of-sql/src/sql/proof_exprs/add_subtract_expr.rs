@@ -3,7 +3,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            try_add_subtract_column_types, Column, ColumnRef, ColumnType, ColumnTypeAssociatedData,
+            try_add_subtract_column_types, Column, ColumnNullability, ColumnRef, ColumnType,
             CommitmentAccessor, DataAccessor,
         },
         map::IndexSet,
@@ -63,7 +63,7 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
         let rhs_column: Column<'a, C::Scalar> =
             self.rhs.result_evaluate(table_length, alloc, accessor);
         Column::Scalar(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             add_subtract_columns(
                 lhs_column,
                 rhs_column,
@@ -89,7 +89,7 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
         let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
         let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
         Column::Scalar(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             add_subtract_columns(
                 lhs_column,
                 rhs_column,

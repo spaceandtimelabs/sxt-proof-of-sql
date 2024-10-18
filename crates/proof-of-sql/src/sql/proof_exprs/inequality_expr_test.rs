@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, Column, ColumnTypeAssociatedData, LiteralValue, OwnedTable,
+            owned_table_utility::*, Column, ColumnNullability, LiteralValue, OwnedTable,
             OwnedTableTestAccessor, TestAccessor,
         },
         math::decimal::scale_scalar,
@@ -571,8 +571,7 @@ fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evalu
     let lte_expr = lte(lhs_expr, rhs_expr);
     let alloc = Bump::new();
     let res = lte_expr.result_evaluate(3, &alloc, &accessor);
-    let expected_res =
-        Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[true, false, true]);
+    let expected_res = Column::Boolean(ColumnNullability::NotNullable, &[true, false, true]);
     assert_eq!(res, expected_res);
 }
 
@@ -587,7 +586,6 @@ fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evalu
     let gte_expr = gte(col_expr, lit_expr);
     let alloc = Bump::new();
     let res = gte_expr.result_evaluate(3, &alloc, &accessor);
-    let expected_res =
-        Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[false, true, true]);
+    let expected_res = Column::Boolean(ColumnNullability::NotNullable, &[false, true, true]);
     assert_eq!(res, expected_res);
 }

@@ -1,5 +1,5 @@
 use crate::base::{
-    database::{filter_util::*, Column, ColumnTypeAssociatedData},
+    database::{filter_util::*, Column, ColumnNullability},
     math::decimal::Precision,
     scalar::Curve25519Scalar,
 };
@@ -7,7 +7,7 @@ use bumpalo::Bump;
 
 #[test]
 fn we_can_filter_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let selection = vec![true, false, true, false, true];
     let str_scalars: [Curve25519Scalar; 5] =
         ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
@@ -44,7 +44,7 @@ fn we_can_filter_columns() {
 }
 #[test]
 fn we_can_filter_columns_with_empty_result() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let selection = vec![false, false, false, false, false];
     let str_scalars: [Curve25519Scalar; 5] =
         ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
@@ -73,7 +73,7 @@ fn we_can_filter_columns_with_empty_result() {
 }
 #[test]
 fn we_can_filter_empty_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let selection = vec![];
     let columns = vec![
         Column::<Curve25519Scalar>::BigInt(meta, &[]),

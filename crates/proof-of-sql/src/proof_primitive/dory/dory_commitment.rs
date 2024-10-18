@@ -103,7 +103,7 @@ mod tests {
     use crate::{
         base::{
             commitment::{NumColumnsMismatch, VecCommitmentExt},
-            database::{Column, ColumnTypeAssociatedData, OwnedColumn},
+            database::{Column, ColumnNullability, OwnedColumn},
         },
         proof_primitive::dory::{rand_util::test_rng, ProverSetup, PublicParameters},
     };
@@ -131,11 +131,8 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                column_a.to_vec(),
-            ),
-            OwnedColumn::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, column_b.to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(ColumnNullability::NotNullable, column_a.to_vec()),
+            OwnedColumn::VarChar(ColumnNullability::NotNullable, column_b.to_vec()),
         ];
 
         let commitments = Vec::<DoryCommitment>::from_columns_with_offset(&columns, 0, &setup);
@@ -159,7 +156,7 @@ mod tests {
 
     #[test]
     fn we_can_append_rows() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -210,7 +207,7 @@ mod tests {
 
     #[test]
     fn we_cannot_append_rows_with_different_column_count() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -253,7 +250,7 @@ mod tests {
 
     #[test]
     fn we_can_extend_columns() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -311,7 +308,7 @@ mod tests {
 
     #[test]
     fn we_can_add_commitment_collections() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -363,7 +360,7 @@ mod tests {
 
     #[test]
     fn we_cannot_add_commitment_collections_of_mixed_column_counts() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -412,7 +409,7 @@ mod tests {
 
     #[test]
     fn we_can_sub_commitment_collections() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -456,7 +453,7 @@ mod tests {
 
     #[test]
     fn we_cannot_sub_commitment_collections_of_mixed_column_counts() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);

@@ -2,9 +2,7 @@ use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{
-            owned_table_utility::*, Column, ColumnTypeAssociatedData, OwnedTableTestAccessor,
-        },
+        database::{owned_table_utility::*, Column, ColumnNullability, OwnedTableTestAccessor},
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
@@ -127,9 +125,6 @@ fn we_can_compute_the_correct_output_of_a_literal_expr_using_result_evaluate() {
     let literal_expr: DynProofExpr<RistrettoPoint> = const_bool(true);
     let alloc = Bump::new();
     let res = literal_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = Column::Boolean(
-        ColumnTypeAssociatedData::NOT_NULLABLE,
-        &[true, true, true, true],
-    );
+    let expected_res = Column::Boolean(ColumnNullability::NotNullable, &[true, true, true, true]);
     assert_eq!(res, expected_res);
 }

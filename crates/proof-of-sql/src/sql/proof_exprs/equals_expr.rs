@@ -3,8 +3,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            Column, ColumnRef, ColumnType, ColumnTypeAssociatedData, CommitmentAccessor,
-            DataAccessor,
+            Column, ColumnNullability, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
         },
         map::IndexSet,
         proof::ProofError,
@@ -40,7 +39,7 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
     }
 
     fn data_type(&self) -> ColumnType {
-        ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)
+        ColumnType::Boolean(ColumnNullability::NotNullable)
     }
 
     #[tracing::instrument(name = "EqualsExpr::result_evaluate", level = "debug", skip_all)]
@@ -57,7 +56,7 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
         Column::Boolean(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             result_evaluate_equals_zero(table_length, alloc, res),
         )
     }
@@ -76,7 +75,7 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
         Column::Boolean(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             prover_evaluate_equals_zero(builder, alloc, res),
         )
     }

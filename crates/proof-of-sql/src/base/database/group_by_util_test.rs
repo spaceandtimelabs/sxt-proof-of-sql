@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{group_by_util::*, Column, ColumnTypeAssociatedData, OwnedColumn},
+        database::{group_by_util::*, Column, ColumnNullability, OwnedColumn},
         scalar::Curve25519Scalar,
     },
     proof_primitive::dory::DoryScalar,
@@ -10,7 +10,7 @@ use core::cmp::Ordering;
 
 #[test]
 fn we_can_aggregate_empty_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let column_a = Column::BigInt::<Curve25519Scalar>(meta, &[]);
     let column_b = Column::VarChar(meta, (&[], &[]));
     let column_c = Column::Int128(meta, &[]);
@@ -31,7 +31,7 @@ fn we_can_aggregate_empty_columns() {
 
 #[test]
 fn we_can_aggregate_columns_with_empty_group_by_and_no_rows_selected() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let slice_c = &[100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111];
     let slice_d = &[200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211];
     let selection = &[false; 12];
@@ -66,7 +66,7 @@ fn we_can_aggregate_columns_with_empty_group_by_and_no_rows_selected() {
 
 #[test]
 fn we_can_aggregate_columns_with_empty_group_by() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let slice_c = &[100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111];
     let slice_d = &[200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211];
     let selection = &[
@@ -116,7 +116,7 @@ fn we_can_aggregate_columns_with_empty_group_by() {
 
 #[test]
 fn we_can_aggregate_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let slice_a = &[3, 3, 3, 2, 2, 1, 1, 2, 2, 3, 3, 3];
     let slice_b = &[
         "Cat", "Cat", "Dog", "Cat", "Dog", "Cat", "Dog", "Cat", "Dog", "Cat", "Dog", "Cat",
@@ -233,7 +233,7 @@ fn we_can_compare_indexes_by_columns_with_no_columns() {
 
 #[test]
 fn we_can_compare_indexes_by_columns_for_bigint_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let slice_a = &[55, 44, 66, 66, 66, 77, 66, 66, 66, 66];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
@@ -263,7 +263,7 @@ fn we_can_compare_indexes_by_columns_for_bigint_columns() {
 }
 #[test]
 fn we_can_compare_indexes_by_columns_for_mixed_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let slice_a = &["55", "44", "66", "66", "66", "77", "66", "66", "66", "66"];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
@@ -294,7 +294,7 @@ fn we_can_compare_indexes_by_columns_for_mixed_columns() {
 }
 #[test]
 fn we_can_compare_indexes_by_owned_columns_for_mixed_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let slice_a = ["55", "44", "66", "66", "66", "77", "66", "66", "66", "66"]
         .into_iter()
         .map(Into::into)
@@ -375,7 +375,7 @@ fn we_can_compare_indexes_by_owned_columns_for_mixed_columns() {
 }
 #[test]
 fn we_can_compare_indexes_by_columns_for_scalar_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let slice_a = &[55, 44, 66, 66, 66, 77, 66, 66, 66, 66];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
@@ -483,7 +483,7 @@ fn we_can_sum_aggregate_slice_by_counts_without_empty_groups() {
 #[test]
 fn we_can_sum_aggregate_columns_by_counts_for_empty_column() {
     let slice_a: &[i64; 0] = &[];
-    let column_a = Column::BigInt::<DoryScalar>(ColumnTypeAssociatedData::NOT_NULLABLE, slice_a);
+    let column_a = Column::BigInt::<DoryScalar>(ColumnNullability::NotNullable, slice_a);
     let indexes = &[];
     let counts = &[];
     let expected: &[DoryScalar; 0] = &[];
@@ -495,7 +495,7 @@ fn we_can_sum_aggregate_columns_by_counts_for_empty_column() {
 
 #[test]
 fn we_can_sum_aggregate_columns_by_counts() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let slice_a = &[
         100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
     ];
@@ -603,7 +603,7 @@ fn we_can_max_aggregate_slice_by_counts_without_empty_groups() {
 #[test]
 fn we_can_max_aggregate_columns_by_counts_for_empty_column() {
     let slice_a: &[i64; 0] = &[];
-    let column_a = Column::BigInt::<DoryScalar>(ColumnTypeAssociatedData::NOT_NULLABLE, slice_a);
+    let column_a = Column::BigInt::<DoryScalar>(ColumnNullability::NotNullable, slice_a);
     let indexes = &[];
     let counts = &[];
     let expected: &[Option<DoryScalar>; 0] = &[];
@@ -615,7 +615,7 @@ fn we_can_max_aggregate_columns_by_counts_for_empty_column() {
 
 #[test]
 fn we_can_max_aggregate_columns_by_counts() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let slice_a = &[
         100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
     ];
@@ -724,7 +724,7 @@ fn we_can_min_aggregate_slice_by_counts_without_empty_groups() {
 #[test]
 fn we_can_min_aggregate_columns_by_counts_for_empty_column() {
     let slice_a: &[i64; 0] = &[];
-    let column_a = Column::BigInt::<DoryScalar>(ColumnTypeAssociatedData::NOT_NULLABLE, slice_a);
+    let column_a = Column::BigInt::<DoryScalar>(ColumnNullability::NotNullable, slice_a);
     let indexes = &[];
     let counts = &[];
     let expected: &[Option<DoryScalar>; 0] = &[];
@@ -736,7 +736,7 @@ fn we_can_min_aggregate_columns_by_counts_for_empty_column() {
 
 #[test]
 fn we_can_min_aggregate_columns_by_counts() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let slice_a = &[
         100, -101, 102, -103, 104, -105, 106, -107, 108, -109, 110, -111, 112, -113, 114, -115,
     ];

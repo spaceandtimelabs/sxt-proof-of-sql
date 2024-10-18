@@ -2,8 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, Column, ColumnTypeAssociatedData, OwnedTableTestAccessor,
-            TestAccessor,
+            owned_table_utility::*, Column, ColumnNullability, OwnedTableTestAccessor, TestAccessor,
         },
     },
     sql::{
@@ -188,9 +187,6 @@ fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
     );
     let alloc = Bump::new();
     let res = and_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = Column::Boolean(
-        ColumnTypeAssociatedData::NOT_NULLABLE,
-        &[false, true, true, true],
-    );
+    let expected_res = Column::Boolean(ColumnNullability::NotNullable, &[false, true, true, true]);
     assert_eq!(res, expected_res);
 }

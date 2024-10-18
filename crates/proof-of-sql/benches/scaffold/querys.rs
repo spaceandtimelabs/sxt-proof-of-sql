@@ -1,17 +1,17 @@
 use super::OptionalRandBound;
-use proof_of_sql::base::database::{ColumnType, ColumnTypeAssociatedData};
+use proof_of_sql::base::database::{ColumnNullability, ColumnType};
 
 const SINGLE_COLUMN_FILTER_TITLE: &str = "Single Column Filter";
 const SINGLE_COLUMN_FILTER_SQL: &str = "SELECT b FROM table WHERE a = 0";
 const SINGLE_COLUMN_FILTER_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
-        ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+        ColumnType::BigInt(ColumnNullability::NotNullable),
         Some(|size| (size / 10).max(10) as i64),
     ),
     (
         "b",
-        ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+        ColumnType::VarChar(ColumnNullability::NotNullable),
         None,
     ),
 ];
@@ -21,17 +21,17 @@ const MULTI_COLUMN_FILTER_SQL: &str =
 const MULTI_COLUMN_FILTER_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
-        ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+        ColumnType::BigInt(ColumnNullability::NotNullable),
         Some(|size| (size / 10).max(10) as i64),
     ),
     (
         "b",
-        ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+        ColumnType::BigInt(ColumnNullability::NotNullable),
         Some(|size| (size / 10).max(10) as i64),
     ),
     (
         "c",
-        ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+        ColumnType::VarChar(ColumnNullability::NotNullable),
         None,
     ),
 ];
@@ -40,17 +40,17 @@ const ARITHMETIC_SQL: &str = "SELECT a + b as r0, a * b - 2 as r1, c FROM table 
 const ARITHMETIC_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
-        ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+        ColumnType::BigInt(ColumnNullability::NotNullable),
         Some(|size| (size / 10).max(10) as i64),
     ),
     (
         "b",
-        ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+        ColumnType::BigInt(ColumnNullability::NotNullable),
         Some(|size| (size / 10).max(10) as i64),
     ),
     (
         "c",
-        ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+        ColumnType::VarChar(ColumnNullability::NotNullable),
         None,
     ),
 ];

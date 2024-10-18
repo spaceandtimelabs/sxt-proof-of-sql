@@ -2,8 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, Column, ColumnTypeAssociatedData, OwnedTable,
-            OwnedTableTestAccessor,
+            owned_table_utility::*, Column, ColumnNullability, OwnedTable, OwnedTableTestAccessor,
         },
         scalar::{Curve25519Scalar, Scalar},
     },
@@ -416,9 +415,6 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
     );
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = Column::Boolean(
-        ColumnTypeAssociatedData::NOT_NULLABLE,
-        &[true, false, true, false],
-    );
+    let expected_res = Column::Boolean(ColumnNullability::NotNullable, &[true, false, true, false]);
     assert_eq!(res, expected_res);
 }

@@ -1,5 +1,5 @@
 use super::{
-    Column, ColumnRef, ColumnType, ColumnTypeAssociatedData, CommitmentAccessor, DataAccessor,
+    Column, ColumnNullability, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
     MetadataAccessor, OwnedTableTestAccessor, SchemaAccessor, TestAccessor,
 };
 use crate::base::{
@@ -31,7 +31,7 @@ fn we_can_query_the_length_of_a_table() {
 
 #[test]
 fn we_can_access_the_columns_of_a_table() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
@@ -142,7 +142,7 @@ fn we_can_access_the_columns_of_a_table() {
 
 #[test]
 fn we_can_access_the_commitments_of_table_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
@@ -186,7 +186,7 @@ fn we_can_access_the_commitments_of_table_columns() {
 
 #[test]
 fn we_can_access_the_type_of_table_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
@@ -239,11 +239,11 @@ fn we_can_access_schema_and_column_names() {
         vec![
             (
                 "a".parse().unwrap(),
-                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+                ColumnType::BigInt(ColumnNullability::NotNullable)
             ),
             (
                 "b".parse().unwrap(),
-                ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)
+                ColumnType::VarChar(ColumnNullability::NotNullable)
             )
         ]
     );
@@ -252,7 +252,7 @@ fn we_can_access_schema_and_column_names() {
 
 #[test]
 fn we_can_correctly_update_offsets() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let mut accessor1 = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let table_ref = "sxt.test".parse().unwrap();
 

@@ -1,7 +1,7 @@
 use super::CommitmentEvaluationProof;
 use crate::base::{
     commitment::vec_commitment_ext::VecCommitmentExt,
-    database::{Column, ColumnTypeAssociatedData},
+    database::{Column, ColumnNullability},
 };
 use ark_std::UniformRand;
 #[cfg(feature = "blitzar")]
@@ -24,7 +24,7 @@ pub fn test_simple_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
 
     let commits = Vec::from_columns_with_offset(
         [Column::Scalar(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             &[CP::Scalar::one(), CP::Scalar::one() + CP::Scalar::one()],
         )],
         0,
@@ -54,7 +54,7 @@ pub fn test_commitment_evaluation_proof_with_length_1<CP: CommitmentEvaluationPr
     let proof = CP::new(&mut transcript, &[r], &[], 0, prover_setup);
 
     let commits = Vec::from_columns_with_offset(
-        [Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, &[r])],
+        [Column::Scalar(ColumnNullability::NotNullable, &[r])],
         0,
         prover_setup,
     );
@@ -86,7 +86,7 @@ pub fn test_random_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
     let proof = CP::new(&mut transcript, &a, &b_point, offset as u64, prover_setup);
 
     let commits = Vec::from_columns_with_offset(
-        [Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, &a)],
+        [Column::Scalar(ColumnNullability::NotNullable, &a)],
         offset,
         prover_setup,
     );

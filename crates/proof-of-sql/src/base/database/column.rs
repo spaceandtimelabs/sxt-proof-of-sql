@@ -29,41 +29,36 @@ use serde::{Deserialize, Serialize};
 #[non_exhaustive]
 pub enum Column<'a, S: Scalar> {
     /// Boolean columns
-    Boolean(ColumnTypeAssociatedData, &'a [bool]),
+    Boolean(ColumnNullability, &'a [bool]),
     /// i8 columns
-    TinyInt(ColumnTypeAssociatedData, &'a [i8]),
+    TinyInt(ColumnNullability, &'a [i8]),
     /// i16 columns
-    SmallInt(ColumnTypeAssociatedData, &'a [i16]),
+    SmallInt(ColumnNullability, &'a [i16]),
     /// i32 columns
-    Int(ColumnTypeAssociatedData, &'a [i32]),
+    Int(ColumnNullability, &'a [i32]),
     /// i64 columns
-    BigInt(ColumnTypeAssociatedData, &'a [i64]),
+    BigInt(ColumnNullability, &'a [i64]),
     /// i128 columns
-    Int128(ColumnTypeAssociatedData, &'a [i128]),
+    Int128(ColumnNullability, &'a [i128]),
     /// Decimal columns with a max width of 252 bits
     ///  - the backing store maps to the type [`crate::base::scalar::Curve25519Scalar`]
-    Decimal75(ColumnTypeAssociatedData, Precision, i8, &'a [S]),
+    Decimal75(ColumnNullability, Precision, i8, &'a [S]),
     /// Scalar columns
-    Scalar(ColumnTypeAssociatedData, &'a [S]),
+    Scalar(ColumnNullability, &'a [S]),
     /// String columns
     ///  - the first element maps to the str values.
     ///  - the second element maps to the str hashes (see [`crate::base::scalar::Scalar`]).
-    VarChar(ColumnTypeAssociatedData, (&'a [&'a str], &'a [S])),
+    VarChar(ColumnNullability, (&'a [&'a str], &'a [S])),
     /// Timestamp columns with timezone
     /// - the first element maps to the stored `TimeUnit`
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
-    TimestampTZ(
-        ColumnTypeAssociatedData,
-        PoSQLTimeUnit,
-        PoSQLTimeZone,
-        &'a [i64],
-    ),
+    TimestampTZ(ColumnNullability, PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
-    fn get_metadata(&self) -> &ColumnTypeAssociatedData {
-        match self {
+    fn get_nullability(&self) -> ColumnNullability {
+        *match self {
             Self::Boolean(meta, _) => meta,
             Self::TinyInt(meta, _) => meta,
             Self::SmallInt(meta, _) => meta,
@@ -79,7 +74,7 @@ impl<'a, S: Scalar> Column<'a, S> {
 
     /// Can null be stored in this column
     pub fn is_nullable(&self) -> bool {
-        self.get_metadata().nullable
+        self.get_nullability() == ColumnNullability::Nullable
     }
     /// Provides the column type associated with the column
     #[must_use]
@@ -134,47 +129,47 @@ impl<'a, S: Scalar> Column<'a, S> {
     ) -> Self {
         match literal {
             LiteralValue::Boolean(value) => Column::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
             LiteralValue::TinyInt(value) => Column::TinyInt(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
             LiteralValue::SmallInt(value) => Column::SmallInt(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
             LiteralValue::Int(value) => Column::Int(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
             LiteralValue::BigInt(value) => Column::BigInt(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
             LiteralValue::Int128(value) => Column::Int128(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
             LiteralValue::Scalar(value) => Column::Scalar(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
             LiteralValue::Decimal75(precision, scale, value) => Column::Decimal75(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 *precision,
                 *scale,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
             LiteralValue::TimeStampTZ(tu, tz, value) => Column::TimestampTZ(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 *tu,
                 *tz,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
             LiteralValue::VarChar((string, scalar)) => Column::VarChar(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 (
                     alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
                     alloc.alloc_slice_fill_copy(length, *scalar),
@@ -277,17 +272,29 @@ impl<'a, S: Scalar> Column<'a, S> {
 }
 
 /// Represents the shared metadata for a column type
-#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy, Default)]
-pub struct ColumnTypeAssociatedData {
-    pub(crate) nullable: bool,
+#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy)]
+pub enum ColumnNullability {
+    Nullable,
+    NotNullable,
 }
-impl ColumnTypeAssociatedData {
-    pub const NULLABLE: ColumnTypeAssociatedData = ColumnTypeAssociatedData { nullable: true };
-    pub const NOT_NULLABLE: ColumnTypeAssociatedData = ColumnTypeAssociatedData { nullable: false };
+impl Default for ColumnNullability {
+    fn default() -> Self {
+        ColumnNullability::Nullable
+    }
 }
-impl Display for ColumnTypeAssociatedData {
+
+impl ColumnNullability {
+    pub fn from_nullable(nullable: bool) -> Self {
+        if nullable {
+            Self::NotNullable
+        } else {
+            Self::Nullable
+        }
+    }
+}
+impl Display for ColumnNullability {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if !self.nullable {
+        if *self == ColumnNullability::NotNullable {
             f.write_str("NOT NULL")
         } else {
             Ok(())
@@ -303,42 +310,42 @@ impl Display for ColumnTypeAssociatedData {
 pub enum ColumnType {
     /// Mapped to bool
     #[serde(alias = "BOOLEAN", alias = "boolean")]
-    Boolean(#[serde(default)] ColumnTypeAssociatedData),
+    Boolean(#[serde(default)] ColumnNullability),
     /// Mapped to i8
     #[serde(alias = "TINYINT", alias = "tinyint")]
-    TinyInt(#[serde(default)] ColumnTypeAssociatedData),
+    TinyInt(#[serde(default)] ColumnNullability),
     /// Mapped to i16
     #[serde(alias = "SMALLINT", alias = "smallint")]
-    SmallInt(#[serde(default)] ColumnTypeAssociatedData),
+    SmallInt(#[serde(default)] ColumnNullability),
     /// Mapped to i32
     #[serde(alias = "INT", alias = "int")]
-    Int(#[serde(default)] ColumnTypeAssociatedData),
+    Int(#[serde(default)] ColumnNullability),
     /// Mapped to i64
     #[serde(alias = "BIGINT", alias = "bigint")]
-    BigInt(#[serde(default)] ColumnTypeAssociatedData),
+    BigInt(#[serde(default)] ColumnNullability),
     /// Mapped to i128
     #[serde(rename = "Decimal", alias = "DECIMAL", alias = "decimal")]
-    Int128(#[serde(default)] ColumnTypeAssociatedData),
+    Int128(#[serde(default)] ColumnNullability),
     /// Mapped to String
     #[serde(alias = "VARCHAR", alias = "varchar")]
-    VarChar(#[serde(default)] ColumnTypeAssociatedData),
+    VarChar(#[serde(default)] ColumnNullability),
     /// Mapped to i256
     #[serde(rename = "Decimal75", alias = "DECIMAL75", alias = "decimal75")]
-    Decimal75(#[serde(default)] ColumnTypeAssociatedData, Precision, i8),
+    Decimal75(#[serde(default)] ColumnNullability, Precision, i8),
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
     TimestampTZ(
-        #[serde(default)] ColumnTypeAssociatedData,
+        #[serde(default)] ColumnNullability,
         PoSQLTimeUnit,
         PoSQLTimeZone,
     ),
     /// Mapped to [`Curve25519Scalar`](crate::base::scalar::Curve25519Scalar)
     #[serde(alias = "SCALAR", alias = "scalar")]
-    Scalar(#[serde(default)] ColumnTypeAssociatedData),
+    Scalar(#[serde(default)] ColumnNullability),
 }
 
 impl ColumnType {
-    fn get_metadata(&self) -> &ColumnTypeAssociatedData {
+    fn get_nullability(&self) -> &ColumnNullability {
         match self {
             Self::Boolean(m)
             | Self::TinyInt(m)
@@ -354,7 +361,7 @@ impl ColumnType {
     }
 
     pub fn is_nullable(&self) -> bool {
-        self.get_metadata().nullable
+        *self.get_nullability() == ColumnNullability::Nullable
     }
     /// Returns true if this column is numeric and false otherwise
     #[must_use]
@@ -400,7 +407,7 @@ impl ColumnType {
     ///
     /// Otherwise, return None.from_literal_with_length
     fn from_integer_bits(bits: usize, nullable: bool) -> Option<Self> {
-        let meta = ColumnTypeAssociatedData { nullable };
+        let meta = ColumnNullability::from_nullable(nullable);
         match bits {
             8 => Some(ColumnType::TinyInt(meta)),
             16 => Some(ColumnType::SmallInt(meta)),
@@ -541,16 +548,14 @@ impl TryFrom<DataType> for ColumnType {
 
     fn try_from(data_type: DataType) -> Result<Self, Self::Error> {
         match data_type {
-            DataType::Boolean => Ok(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            DataType::Int8 => Ok(ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            DataType::Int16 => Ok(ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            DataType::Int32 => Ok(ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            DataType::Int64 => Ok(ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            DataType::Decimal128(38, 0) => {
-                Ok(ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE))
-            }
+            DataType::Boolean => Ok(ColumnType::Boolean(ColumnNullability::NotNullable)),
+            DataType::Int8 => Ok(ColumnType::TinyInt(ColumnNullability::NotNullable)),
+            DataType::Int16 => Ok(ColumnType::SmallInt(ColumnNullability::NotNullable)),
+            DataType::Int32 => Ok(ColumnType::Int(ColumnNullability::NotNullable)),
+            DataType::Int64 => Ok(ColumnType::BigInt(ColumnNullability::NotNullable)),
+            DataType::Decimal128(38, 0) => Ok(ColumnType::Int128(ColumnNullability::NotNullable)),
             DataType::Decimal256(precision, scale) if precision <= 75 => Ok(ColumnType::Decimal75(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
+                ColumnNullability::NotNullable,
                 Precision::new(precision)?,
                 scale,
             )),
@@ -562,12 +567,12 @@ impl TryFrom<DataType> for ColumnType {
                     ArrowTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
                 };
                 Ok(ColumnType::TimestampTZ(
-                    ColumnTypeAssociatedData::NOT_NULLABLE,
+                    ColumnNullability::NotNullable,
                     posql_time_unit,
                     PoSQLTimeZone::try_from(&timezone_option)?,
                 ))
             }
-            DataType::Utf8 => Ok(ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            DataType::Utf8 => Ok(ColumnType::VarChar(ColumnNullability::NotNullable)),
             _ => Err(format!("Unsupported arrow data type {data_type:?}")),
         }
     }
@@ -691,7 +696,7 @@ mod tests {
     #[test]
     fn column_type_serializes_to_string() {
         let column_type = ColumnType::TimestampTZ(
-            ColumnTypeAssociatedData { nullable: true },
+            ColumnNullability::from_nullable(true),
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
         );
@@ -699,14 +704,14 @@ mod tests {
         assert_eq!(serialized, r#"{"TimestampTZ":["Second","Utc"]}"#);
 
         let column_type = ColumnType::TimestampTZ(
-            ColumnTypeAssociatedData { nullable: false },
+            ColumnNullability::from_nullable(false),
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
         );
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#"{"TimestampTZ":["Second","Utc"]} NOT NULL"#);
 
-        let null_meta = ColumnTypeAssociatedData::NULLABLE;
+        let null_meta = ColumnNullability::Nullable;
         let column_type = ColumnType::Boolean(null_meta);
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Boolean""#);
@@ -746,7 +751,7 @@ mod tests {
 
     #[test]
     fn we_can_deserialize_columns_from_valid_strings() {
-        let null_meta = ColumnTypeAssociatedData { nullable: true };
+        let null_meta = ColumnNullability::from_nullable(true);
         let expected_column_type =
             ColumnType::TimestampTZ(null_meta, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc);
         let deserialized: ColumnType =
@@ -814,7 +819,7 @@ mod tests {
 
     #[test]
     fn we_can_deserialize_columns_from_lowercase_or_uppercase_strings() {
-        let null_meta = ColumnTypeAssociatedData { nullable: true };
+        let null_meta = ColumnNullability::from_nullable(true);
         assert_eq!(
             serde_json::from_str::<ColumnType>(r#""boolean""#).unwrap(),
             ColumnType::Boolean(null_meta)
@@ -938,7 +943,7 @@ mod tests {
 
     #[test]
     fn we_can_convert_columntype_to_json_string_and_back() {
-        let null_meta = ColumnTypeAssociatedData { nullable: true };
+        let null_meta = ColumnNullability::from_nullable(true);
         let boolean = ColumnType::Boolean(null_meta);
         let boolean_json = serde_json::to_string(&boolean).unwrap();
         assert_eq!(boolean_json, "\"Boolean\"");
@@ -1011,7 +1016,7 @@ mod tests {
 
     #[test]
     fn we_can_get_the_len_of_a_column() {
-        let null_meta = ColumnTypeAssociatedData { nullable: true };
+        let null_meta = ColumnNullability::Nullable;
         let precision = 10;
         let scale = 2;
 
@@ -1106,7 +1111,7 @@ mod tests {
 
     #[test]
     fn we_can_convert_owned_columns_to_columns_round_trip() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let alloc = Bump::new();
         // Integers
         let owned_col: OwnedColumn<Curve25519Scalar> =
@@ -1163,7 +1168,7 @@ mod tests {
 
     #[test]
     fn we_can_get_the_data_size_of_a_column() {
-        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnNullability::NotNullable;
         let column = Column::<DoryScalar>::Boolean(meta, &[true, false, true]);
         assert_eq!(column.column_type().byte_size(), 1);
         assert_eq!(column.column_type().bit_size(), 8);

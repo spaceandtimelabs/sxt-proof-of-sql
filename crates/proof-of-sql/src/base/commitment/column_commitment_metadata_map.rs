@@ -139,7 +139,7 @@ mod tests {
     use super::*;
     use crate::base::{
         commitment::{column_bounds::Bounds, ColumnBounds},
-        database::{owned_table_utility::*, ColumnType, ColumnTypeAssociatedData, OwnedTable},
+        database::{owned_table_utility::*, ColumnNullability, ColumnType, OwnedTable},
         scalar::Curve25519Scalar,
     };
     use alloc::vec::Vec;
@@ -159,7 +159,7 @@ mod tests {
 
     #[test]
     fn we_can_construct_metadata_map_from_columns() {
-        let col_meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let col_meta = ColumnNullability::NotNullable;
         // No-columns case
         let empty_metadata_map = ColumnCommitmentMetadataMap::from_columns([]);
         assert_eq!(empty_metadata_map.len(), 0);
@@ -237,7 +237,7 @@ mod tests {
     }
     #[test]
     fn we_can_difference_matching_metadata_maps() {
-        let col_meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+        let col_meta = ColumnNullability::NotNullable;
         let table_a = owned_table([
             bigint("bigint_column", [1, 5]),
             int128("int128_column", [100, 200]),

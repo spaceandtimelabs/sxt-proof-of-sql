@@ -13,7 +13,7 @@
 //!     decimal75("f", 12, 1, [1, 2, 3]),
 //! ]);
 //! ```
-use super::{ColumnTypeAssociatedData, OwnedColumn, OwnedTable};
+use super::{ColumnNullability, OwnedColumn, OwnedTable};
 use crate::base::scalar::Scalar;
 use alloc::string::String;
 use core::ops::Deref;
@@ -66,7 +66,7 @@ pub fn tinyint<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::TinyInt(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -90,7 +90,7 @@ pub fn tinyint_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::TinyInt(
-            ColumnTypeAssociatedData::NULLABLE,
+            ColumnNullability::Nullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -114,7 +114,7 @@ pub fn smallint<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::SmallInt(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -137,7 +137,7 @@ pub fn smallint_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::SmallInt(
-            ColumnTypeAssociatedData::NULLABLE,
+            ColumnNullability::Nullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -161,7 +161,7 @@ pub fn int<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Int(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -184,7 +184,7 @@ pub fn int_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Int(
-            ColumnTypeAssociatedData::NULLABLE,
+            ColumnNullability::Nullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -207,7 +207,7 @@ pub fn bigint<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::BigInt(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -229,7 +229,7 @@ pub fn bigint_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::BigInt(
-            ColumnTypeAssociatedData::NULLABLE,
+            ColumnNullability::Nullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -254,7 +254,7 @@ pub fn boolean<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Boolean(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -278,7 +278,7 @@ pub fn boolean_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Boolean(
-            ColumnTypeAssociatedData::NULLABLE,
+            ColumnNullability::Nullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -303,7 +303,7 @@ pub fn int128<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Int128(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -327,7 +327,7 @@ pub fn int128_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Int128(
-            ColumnTypeAssociatedData::NULLABLE,
+            ColumnNullability::Nullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -352,7 +352,7 @@ pub fn scalar<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Scalar(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -377,7 +377,7 @@ pub fn scalar_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Scalar(
-            ColumnTypeAssociatedData::NULLABLE,
+            ColumnNullability::Nullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -402,7 +402,7 @@ pub fn varchar<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::VarChar(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -427,7 +427,7 @@ pub fn varchar_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::VarChar(
-            ColumnTypeAssociatedData::NULLABLE,
+            ColumnNullability::Nullable,
             data.into_iter().map(Into::into).collect(),
         ),
     )
@@ -455,7 +455,7 @@ pub fn decimal75<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Decimal75(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             crate::base::math::decimal::Precision::new(precision).unwrap(),
             scale,
             data.into_iter().map(Into::into).collect(),
@@ -485,7 +485,7 @@ pub fn decimal75_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Decimal75(
-            ColumnTypeAssociatedData::NULLABLE,
+            ColumnNullability::Nullable,
             crate::base::math::decimal::Precision::new(precision).unwrap(),
             scale,
             data.into_iter().map(Into::into).collect(),
@@ -526,7 +526,7 @@ pub fn timestamptz<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::TimestampTZ(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             time_unit,
             timezone,
             data.into_iter().collect(),
@@ -566,7 +566,7 @@ pub fn timestamptz_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::TimestampTZ(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ColumnNullability::NotNullable,
             time_unit,
             timezone,
             data.into_iter().collect(),

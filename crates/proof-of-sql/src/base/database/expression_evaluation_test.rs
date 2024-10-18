@@ -1,7 +1,7 @@
 use crate::base::{
     database::{
-        owned_table_utility::*, ColumnOperationError, ColumnTypeAssociatedData,
-        ExpressionEvaluationError, OwnedColumn, OwnedTable,
+        owned_table_utility::*, ColumnNullability, ColumnOperationError, ExpressionEvaluationError,
+        OwnedColumn, OwnedTable,
     },
     math::decimal::Precision,
     scalar::Curve25519Scalar,
@@ -15,7 +15,7 @@ use proof_of_sql_parser::{
 
 #[test]
 fn we_can_evaluate_a_simple_literal() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let table: OwnedTable<Curve25519Scalar> =
         owned_table([varchar("languages", ["en", "es", "pt", "fr", "ht"])]);
 
@@ -65,7 +65,7 @@ fn we_can_evaluate_a_simple_column() {
     let expr = col("bigints");
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_column = OwnedColumn::BigInt(
-        ColumnTypeAssociatedData::NOT_NULLABLE,
+        ColumnNullability::NotNullable,
         vec![i64::MIN, -1, 0, 1, i64::MAX],
     );
     assert_eq!(actual_column, expected_column);
@@ -73,7 +73,7 @@ fn we_can_evaluate_a_simple_column() {
     let expr = col("john");
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_column = OwnedColumn::VarChar(
-        ColumnTypeAssociatedData::NOT_NULLABLE,
+        ColumnNullability::NotNullable,
         ["John", "Juan", "João", "Jean", "Jean"]
             .iter()
             .map(ToString::to_string)
@@ -96,7 +96,7 @@ fn we_can_not_evaluate_a_nonexisting_column() {
 
 #[test]
 fn we_can_evaluate_a_logical_expression() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let table: OwnedTable<Curve25519Scalar> = owned_table([
         varchar("en", ["Elizabeth", "John", "cat", "dog", "Munich"]),
         varchar("pl", ["Elżbieta", "Jan", "kot", "pies", "Monachium"]),
@@ -150,7 +150,7 @@ fn we_can_evaluate_a_logical_expression() {
 
 #[test]
 fn we_can_evaluate_an_arithmetic_expression() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let meta = ColumnNullability::NotNullable;
     let table: OwnedTable<Curve25519Scalar> = owned_table([
         smallint("smallints", [-2_i16, -1, 0, 1, 2]),
         int("ints", [-4_i32, -2, 0, 2, 4]),
