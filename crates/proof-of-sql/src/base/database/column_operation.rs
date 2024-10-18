@@ -176,7 +176,9 @@ pub fn try_divide_column_types(
                         },
                     })
                 })?;
-            Ok(ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, precision, scale))
+            Ok(ColumnType::Decimal75(ColumnTypeAssociatedData {
+                nullable: lhs.is_nullable() || rhs.is_nullable(),
+            }, precision, scale))
         }
     }
 }

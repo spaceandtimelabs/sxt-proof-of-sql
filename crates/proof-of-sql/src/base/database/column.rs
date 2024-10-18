@@ -233,7 +233,7 @@ impl<'a, S: Scalar> Column<'a, S> {
 /// Represents the shared metadata for a column type
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy, Default)]
 pub struct ColumnTypeAssociatedData {
-    nullable: bool
+    pub(crate) nullable: bool
 }
 impl  ColumnTypeAssociatedData {
     pub const NULLABLE: ColumnTypeAssociatedData = ColumnTypeAssociatedData { nullable: true };
@@ -374,7 +374,11 @@ impl ColumnType {
         self.to_integer_bits().and_then(|self_bits| {
             other
                 .to_integer_bits()
-                .and_then(|other_bits| Self::from_integer_bits(self_bits.max(other_bits), false))
+                .and_then(|other_bits|
+                    Self::from_integer_bits(
+                        self_bits.max(other_bits),
+                        self.is_nullable()
+                    ))
         })
     }
 
