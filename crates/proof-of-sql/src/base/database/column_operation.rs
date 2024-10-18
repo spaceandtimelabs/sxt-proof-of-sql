@@ -942,19 +942,55 @@ mod test {
     use super::*;
     use crate::base::scalar::Curve25519Scalar;
 
+    macro_rules! test_nullability {
+        ($cty:ident, $func:expr, $args:expr) => {
+            let lhs = ColumnType::$cty(ColumnTypeAssociatedData::NULLABLE);
+            let rhs = ColumnType::$cty(ColumnTypeAssociatedData::NOT_NULLABLE);
+            let actual = $func(lhs, rhs, $args).unwrap();
+            let expected = ColumnType::$cty(ColumnTypeAssociatedData::NULLABLE);
+            assert_eq!(expected, actual);
+
+            let lhs = ColumnType::$cty(ColumnTypeAssociatedData::NOT_NULLABLE);
+            let rhs = ColumnType::$cty(ColumnTypeAssociatedData::NULLABLE);
+            let actual = $func(lhs, rhs, $args).unwrap();
+            let expected = ColumnType::$cty(ColumnTypeAssociatedData::NULLABLE);
+            assert_eq!(expected, actual);
+        };
+        ($cty:ident, $func:expr) => {
+            let lhs = ColumnType::$cty(ColumnTypeAssociatedData::NULLABLE);
+            let rhs = ColumnType::$cty(ColumnTypeAssociatedData::NOT_NULLABLE);
+            let actual = $func(lhs, rhs).unwrap();
+            let expected = ColumnType::$cty(ColumnTypeAssociatedData::NULLABLE);
+            assert_eq!(expected, actual);
+
+            let lhs = ColumnType::$cty(ColumnTypeAssociatedData::NOT_NULLABLE);
+            let rhs = ColumnType::$cty(ColumnTypeAssociatedData::NULLABLE);
+            let actual = $func(lhs, rhs).unwrap();
+            let expected = ColumnType::$cty(ColumnTypeAssociatedData::NULLABLE);
+            assert_eq!(expected, actual);
+        };
+    }
+
     #[test]
     fn we_can_add_null_numeric_types() {
-        let lhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NULLABLE);
-        let rhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
-        let expected = ColumnType::TinyInt(ColumnTypeAssociatedData::NULLABLE);
-        assert_eq!(expected, actual);
-
-        let lhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let rhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NULLABLE);
-        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
-        let expected = ColumnType::TinyInt(ColumnTypeAssociatedData::NULLABLE);
-        assert_eq!(expected, actual);
+        test_nullability!(TinyInt, try_add_subtract_column_types, BinaryOperator::Add);
+        test_nullability!(Int, try_add_subtract_column_types, BinaryOperator::Add);
+        test_nullability!(BigInt, try_add_subtract_column_types, BinaryOperator::Add);
+        test_nullability!(Int128, try_add_subtract_column_types, BinaryOperator::Add);
+    }
+    #[test]
+    fn we_can_mul_null_numeric_types() {
+        test_nullability!(TinyInt, try_multiply_column_types);
+        test_nullability!(Int, try_multiply_column_types);
+        test_nullability!(BigInt, try_multiply_column_types);
+        test_nullability!(Int128, try_multiply_column_types);
+    }
+    #[test]
+    fn we_can_divide_null_numeric_types() {
+        test_nullability!(TinyInt, try_divide_column_types);
+        test_nullability!(Int, try_divide_column_types);
+        test_nullability!(BigInt, try_divide_column_types);
+        test_nullability!(Int128, try_divide_column_types);
     }
     #[test]
     fn we_can_add_numeric_types() {
