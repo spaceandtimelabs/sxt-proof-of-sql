@@ -127,6 +127,63 @@ impl<'a, S: Scalar> ColumnKind<'a, S> {
             )),
         }
     }
+
+    /// Returns the column as a slice of booleans if it is a boolean column. Otherwise, returns None.
+    pub(crate) fn as_boolean(&self) -> Option<&'a [bool]> {
+        match self {
+            Self::Boolean(col) => Some(col),
+            _ => None,
+        }
+    }
+    /// Returns the column as a slice of scalars
+    pub(crate) fn as_scalar(&self, alloc: &'a Bump) -> &'a [S] {
+        match self {
+            Self::Boolean(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::TinyInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::SmallInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Int(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::BigInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Int128(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Scalar(col) | Self::Decimal75(_, _, col) => col,
+            Self::VarChar((_, scals)) => scals,
+            Self::TimestampTZ(_, _, col) => {
+                alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i]))
+            }
+        }
+    }
+    /// Returns element at index as scalar
+    ///
+    /// Note that if index is out of bounds, this function will return None
+    pub(crate) fn scalar_at(&self, index: usize) -> Option<S> {
+        (index < self.len()).then_some(match self {
+            Self::Boolean(col) => S::from(col[index]),
+            Self::TinyInt(col) => S::from(col[index]),
+            Self::SmallInt(col) => S::from(col[index]),
+            Self::Int(col) => S::from(col[index]),
+            Self::BigInt(col) | Self::TimestampTZ(_, _, col) => S::from(col[index]),
+            Self::Int128(col) => S::from(col[index]),
+            Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
+            Self::VarChar((_, scals)) => scals[index],
+        })
+    }
+
+    /// Convert a column to a vector of Scalar values with scaling
+    #[allow(clippy::missing_panics_doc)]
+    pub(crate) fn to_scalar_with_scaling(self, scale: i8) -> Vec<S> {
+        let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");
+        match self {
+            Self::Boolean(col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
+            Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
+            Self::VarChar((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
+            Self::TinyInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Int(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::BigInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+        }
+    }
 }
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -220,70 +277,25 @@ impl<'a, S: Scalar> Column<'a, S> {
 
     /// Returns the column as a slice of booleans if it is a boolean column. Otherwise, returns None.
     pub(crate) fn as_boolean(&self) -> Option<&'a [bool]> {
-        match self {
-            Self::Boolean(_, col) => Some(col),
-            _ => None,
-        }
+        self.kind.as_boolean()
     }
 
     /// Returns the column as a slice of scalars
     pub(crate) fn as_scalar(&self, alloc: &'a Bump) -> &'a [S] {
-        match self {
-            Self::Boolean(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::TinyInt(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::SmallInt(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::Int(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::BigInt(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::Int128(_, col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::Scalar(_, col) | Self::Decimal75(_, _, _, col) => col,
-            Self::VarChar(_, (_, scals)) => scals,
-            Self::TimestampTZ(_, _, _, col) => {
-                alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i]))
-            }
-        }
+        self.kind.as_scalar(alloc)
     }
 
     /// Returns element at index as scalar
     ///
     /// Note that if index is out of bounds, this function will return None
     pub(crate) fn scalar_at(&self, index: usize) -> Option<S> {
-        (index < self.len()).then_some(match self {
-            Self::Boolean(_, col) => S::from(col[index]),
-            Self::TinyInt(_, col) => S::from(col[index]),
-            Self::SmallInt(_, col) => S::from(col[index]),
-            Self::Int(_, col) => S::from(col[index]),
-            Self::BigInt(_, col) | Self::TimestampTZ(_, _, _, col) => S::from(col[index]),
-            Self::Int128(_, col) => S::from(col[index]),
-            Self::Scalar(_, col) | Self::Decimal75(_, _, _, col) => col[index],
-            Self::VarChar(_, (_, scals)) => scals[index],
-        })
+        self.kind.scalar_at(index)
     }
 
     /// Convert a column to a vector of Scalar values with scaling
     #[allow(clippy::missing_panics_doc)]
     pub(crate) fn to_scalar_with_scaling(self, scale: i8) -> Vec<S> {
-        let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");
-        match self {
-            Self::Boolean(_, col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
-            Self::Decimal75(_, _, _, col) => slice_cast_with(col, |s| *s * scale_factor),
-            Self::VarChar(_, (_, values)) => slice_cast_with(values, |s| *s * scale_factor),
-            Self::TinyInt(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::SmallInt(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::Int(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::BigInt(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::Int128(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::Scalar(_, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::TimestampTZ(_, _, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-        }
-    }
-}
-impl ColumnNullability {
-    pub fn from_nullable(nullable: bool) -> Self {
-        if nullable {
-            Self::NotNullable
-        } else {
-            Self::Nullable
-        }
+        self.to_scalar_with_scaling(scale)
     }
 }
 /// Represents the supported data types of a column in an in-memory,
@@ -449,9 +461,9 @@ impl ColumnType {
         }
         self.to_integer_bits().and_then(|self_bits| {
             other.to_integer_bits().and_then(|other_bits| {
-                Self::from_integer_bits(
-                    self_bits.max(other_bits),
-                    self.is_nullable() || other.is_nullable(),
+                ColumnType::new(
+                    ColumnTypeKind::from_integer_bits(self_bits),
+                    self.nullable || other.nullable,
                 )
             })
         })
