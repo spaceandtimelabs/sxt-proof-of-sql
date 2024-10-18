@@ -128,13 +128,12 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
-    use crate::base::database::ColumnTypeAssociatedData;
     use crate::{
         base::{
             commitment::{Bounds, ColumnBounds},
             database::{
-                owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableTestAccessor,
-                TestAccessor,
+                owned_table_utility::*, ColumnTypeAssociatedData, OwnedColumn, OwnedTable,
+                OwnedTableTestAccessor, TestAccessor,
             },
             scalar::Curve25519Scalar,
         },

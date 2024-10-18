@@ -1,7 +1,8 @@
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
-        database::{ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
+        database::{
+            ColumnRef, ColumnType, ColumnTypeAssociatedData, LiteralValue, TestSchemaAccessor,
+        },
         map::{indexmap, IndexMap},
         math::decimal::Precision,
     },

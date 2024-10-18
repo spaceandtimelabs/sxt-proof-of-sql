@@ -100,11 +100,10 @@ impl Commitment for DoryCommitment {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::database::ColumnTypeAssociatedData;
     use crate::{
         base::{
             commitment::{NumColumnsMismatch, VecCommitmentExt},
-            database::{Column, OwnedColumn},
+            database::{Column, ColumnTypeAssociatedData, OwnedColumn},
         },
         proof_primitive::dory::{rand_util::test_rng, ProverSetup, PublicParameters},
     };

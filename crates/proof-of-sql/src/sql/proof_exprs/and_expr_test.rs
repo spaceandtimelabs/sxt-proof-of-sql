@@ -1,8 +1,9 @@
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
+        database::{
+            owned_table_utility::*, Column, ColumnTypeAssociatedData, OwnedTableTestAccessor,
+        },
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},

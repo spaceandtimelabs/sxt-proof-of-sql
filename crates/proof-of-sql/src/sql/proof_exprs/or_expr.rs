@@ -1,9 +1,11 @@
 use super::{DynProofExpr, ProofExpr};
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{
+            Column, ColumnRef, ColumnType, ColumnTypeAssociatedData, CommitmentAccessor,
+            DataAccessor,
+        },
         map::IndexSet,
         proof::ProofError,
         scalar::Scalar,

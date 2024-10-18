@@ -1,6 +1,8 @@
 use super::MultilinearExtension;
-use crate::base::database::ColumnTypeAssociatedData;
-use crate::base::{database::Column, scalar::Curve25519Scalar};
+use crate::base::{
+    database::{Column, ColumnTypeAssociatedData},
+    scalar::Curve25519Scalar,
+};
 
 #[test]
 fn we_can_use_multilinear_extension_methods_for_i64_slice() {

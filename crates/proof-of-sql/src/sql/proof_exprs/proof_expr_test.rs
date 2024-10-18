@@ -1,8 +1,10 @@
 use super::{test_utility::*, DynProofExpr, ProofExpr};
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
     commitment::InnerProductProof,
-    database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},
+    database::{
+        owned_table_utility::*, Column, ColumnTypeAssociatedData, OwnedTableTestAccessor,
+        TestAccessor,
+    },
 };
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;

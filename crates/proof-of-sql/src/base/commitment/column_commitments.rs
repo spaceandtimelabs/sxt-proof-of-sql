@@ -354,10 +354,11 @@ impl<C> FromIterator<(Identifier, ColumnCommitmentMetadata, C)> for ColumnCommit
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
-    use crate::base::database::ColumnTypeAssociatedData;
     use crate::base::{
         commitment::{column_bounds::Bounds, ColumnBounds},
-        database::{owned_table_utility::*, ColumnType, OwnedColumn, OwnedTable},
+        database::{
+            owned_table_utility::*, ColumnType, ColumnTypeAssociatedData, OwnedColumn, OwnedTable,
+        },
         scalar::Curve25519Scalar,
     };
     use curve25519_dalek::RistrettoPoint;

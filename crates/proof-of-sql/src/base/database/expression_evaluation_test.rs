@@ -1,8 +1,7 @@
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
     database::{
-        owned_table_utility::*, ColumnOperationError, ExpressionEvaluationError, OwnedColumn,
-        OwnedTable,
+        owned_table_utility::*, ColumnOperationError, ColumnTypeAssociatedData,
+        ExpressionEvaluationError, OwnedColumn, OwnedTable,
     },
     math::decimal::Precision,
     scalar::Curve25519Scalar,

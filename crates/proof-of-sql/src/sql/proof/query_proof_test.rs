@@ -1,15 +1,14 @@
 use super::{
     CountBuilder, FinalRoundBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder,
 };
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::{Commitment, InnerProductProof},
         database::{
             owned_table_utility::{bigint, owned_table},
-            Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TestAccessor,
-            UnimplementedTestAccessor,
+            Column, ColumnField, ColumnRef, ColumnType, ColumnTypeAssociatedData,
+            CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTable, OwnedTableTestAccessor,
+            TestAccessor, UnimplementedTestAccessor,
         },
         map::IndexSet,
         proof::ProofError,

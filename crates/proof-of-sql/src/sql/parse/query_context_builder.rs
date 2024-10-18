@@ -1,9 +1,8 @@
 use super::{ConversionError, ConversionResult, QueryContext};
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
     database::{
         try_add_subtract_column_types, try_multiply_column_types, ColumnRef, ColumnType,
-        SchemaAccessor, TableRef,
+        ColumnTypeAssociatedData, SchemaAccessor, TableRef,
     },
     math::decimal::Precision,
 };

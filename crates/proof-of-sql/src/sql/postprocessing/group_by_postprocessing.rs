@@ -1,7 +1,8 @@
 use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
-    database::{group_by_util::aggregate_columns, Column, OwnedColumn, OwnedTable},
+    database::{
+        group_by_util::aggregate_columns, Column, ColumnTypeAssociatedData, OwnedColumn, OwnedTable,
+    },
     map::{indexmap, IndexMap, IndexSet},
     scalar::Scalar,
 };

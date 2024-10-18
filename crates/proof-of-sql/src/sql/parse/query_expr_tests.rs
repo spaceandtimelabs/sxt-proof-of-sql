@@ -1,8 +1,7 @@
 use super::ConversionError;
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
-        database::{ColumnType, TableRef, TestSchemaAccessor},
+        database::{ColumnType, ColumnTypeAssociatedData, TableRef, TestSchemaAccessor},
         map::{indexmap, IndexMap, IndexSet},
     },
     sql::{

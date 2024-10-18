@@ -1,5 +1,4 @@
 use super::{fold_columns, fold_vals};
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
@@ -7,8 +6,8 @@ use crate::{
             group_by_util::{
                 aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
             },
-            Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable,
+            Column, ColumnField, ColumnRef, ColumnType, ColumnTypeAssociatedData,
+            CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTable,
         },
         map::IndexSet,
         proof::ProofError,

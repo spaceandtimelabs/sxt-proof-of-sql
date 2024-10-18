@@ -1,9 +1,8 @@
 use super::{FinalRoundBuilder, ProvableQueryResult, SumcheckRandomScalars};
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::{Commitment, CommittableColumn},
-        database::{Column, ColumnField, ColumnType},
+        database::{Column, ColumnField, ColumnType, ColumnTypeAssociatedData},
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
         scalar::Curve25519Scalar,
     },

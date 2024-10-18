@@ -1,11 +1,10 @@
 use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
         database::{
-            try_add_subtract_column_types, Column, ColumnRef, ColumnType, CommitmentAccessor,
-            DataAccessor,
+            try_add_subtract_column_types, Column, ColumnRef, ColumnType, ColumnTypeAssociatedData,
+            CommitmentAccessor, DataAccessor,
         },
         map::IndexSet,
         proof::ProofError,

@@ -1,6 +1,5 @@
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
-    database::{Column, ColumnType, OwnedColumn},
+    database::{Column, ColumnType, ColumnTypeAssociatedData, OwnedColumn},
     math::decimal::Precision,
     ref_into::RefInto,
     scalar::Scalar,

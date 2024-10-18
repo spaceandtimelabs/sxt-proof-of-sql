@@ -1,6 +1,5 @@
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
-    database::{filter_util::*, Column},
+    database::{filter_util::*, Column, ColumnTypeAssociatedData},
     math::decimal::Precision,
     scalar::Curve25519Scalar,
 };

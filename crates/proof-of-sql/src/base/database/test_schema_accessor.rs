@@ -32,8 +32,7 @@ impl SchemaAccessor for TestSchemaAccessor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::database::ColumnTypeAssociatedData;
-    use crate::base::map::indexmap;
+    use crate::base::{database::ColumnTypeAssociatedData, map::indexmap};
 
     fn sample_test_schema_accessor() -> TestSchemaAccessor {
         let table1: TableRef = TableRef::new("schema.table1".parse().unwrap());

@@ -1,7 +1,9 @@
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
-        database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
+        database::{
+            owned_table_utility::*, ColumnTypeAssociatedData, OwnedColumn, OwnedTable,
+            OwnedTableError,
+        },
         map::IndexMap,
         scalar::Curve25519Scalar,
     },

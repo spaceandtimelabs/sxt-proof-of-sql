@@ -2,10 +2,12 @@ use super::{
     verifiable_query_result_test::EmptyTestQueryExpr, ProofPlan, ProvableQueryResult, QueryProof,
     VerifiableQueryResult,
 };
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
-    database::{Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
+    database::{
+        Column, ColumnTypeAssociatedData, CommitmentAccessor, OwnedTableTestAccessor, TableRef,
+        TestAccessor,
+    },
     scalar::Curve25519Scalar,
 };
 use blitzar::proof::InnerProductProof;

@@ -3,8 +3,8 @@
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow Array.
 use super::{Column, ColumnType, OwnedColumnError, OwnedColumnResult};
-use crate::base::database::column::ColumnTypeAssociatedData;
 use crate::base::{
+    database::column::ColumnTypeAssociatedData,
     math::{
         decimal::Precision,
         permutation::{Permutation, PermutationError},

@@ -181,9 +181,10 @@ impl ColumnCommitmentMetadata {
 mod tests {
 
     use super::*;
-    use crate::base::database::ColumnTypeAssociatedData;
     use crate::base::{
-        commitment::column_bounds::Bounds, database::OwnedColumn, math::decimal::Precision,
+        commitment::column_bounds::Bounds,
+        database::{ColumnTypeAssociatedData, OwnedColumn},
+        math::decimal::Precision,
         scalar::Curve25519Scalar,
     };
     use alloc::string::String;

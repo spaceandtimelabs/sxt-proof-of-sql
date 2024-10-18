@@ -1,7 +1,6 @@
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
-        database::{group_by_util::*, Column, OwnedColumn},
+        database::{group_by_util::*, Column, ColumnTypeAssociatedData, OwnedColumn},
         scalar::Curve25519Scalar,
     },
     proof_primitive::dory::DoryScalar,

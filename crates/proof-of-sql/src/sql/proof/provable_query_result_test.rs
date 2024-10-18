@@ -1,7 +1,6 @@
 use super::{ProvableQueryResult, QueryError};
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
-    database::{Column, ColumnField, ColumnType},
+    database::{Column, ColumnField, ColumnType, ColumnTypeAssociatedData},
     math::decimal::Precision,
     polynomial::compute_evaluation_vector,
     scalar::{Curve25519Scalar, Scalar},

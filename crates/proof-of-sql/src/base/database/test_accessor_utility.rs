@@ -173,8 +173,7 @@ pub fn make_random_test_accessor_data(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::database::ColumnTypeAssociatedData;
-    use crate::record_batch;
+    use crate::{base::database::ColumnTypeAssociatedData, record_batch};
     use rand_core::SeedableRng;
 
     #[test]

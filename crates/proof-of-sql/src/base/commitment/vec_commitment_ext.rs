@@ -174,9 +174,8 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
-    use crate::base::database::ColumnTypeAssociatedData;
     use crate::base::{
-        database::{Column, OwnedColumn},
+        database::{Column, ColumnTypeAssociatedData, OwnedColumn},
         scalar::Curve25519Scalar,
     };
     use blitzar::{compute::compute_curve25519_commitments, sequence::Sequence};

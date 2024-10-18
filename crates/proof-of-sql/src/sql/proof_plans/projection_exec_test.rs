@@ -1,10 +1,9 @@
 use super::{test_utility::*, DynProofPlan, ProjectionExec};
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, Column, ColumnField, ColumnRef, ColumnType, OwnedTable,
-            OwnedTableTestAccessor, TableRef, TestAccessor,
+            owned_table_utility::*, Column, ColumnField, ColumnRef, ColumnType,
+            ColumnTypeAssociatedData, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
         },
         map::{IndexMap, IndexSet},
         math::decimal::Precision,

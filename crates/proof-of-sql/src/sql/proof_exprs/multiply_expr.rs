@@ -1,11 +1,10 @@
 use super::{DynProofExpr, ProofExpr};
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
         database::{
-            try_multiply_column_types, Column, ColumnRef, ColumnType, CommitmentAccessor,
-            DataAccessor,
+            try_multiply_column_types, Column, ColumnRef, ColumnType, ColumnTypeAssociatedData,
+            CommitmentAccessor, DataAccessor,
         },
         map::IndexSet,
         proof::ProofError,

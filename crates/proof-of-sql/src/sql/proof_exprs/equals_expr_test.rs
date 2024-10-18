@@ -1,8 +1,10 @@
-use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTable, OwnedTableTestAccessor},
+        database::{
+            owned_table_utility::*, Column, ColumnTypeAssociatedData, OwnedTable,
+            OwnedTableTestAccessor,
+        },
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::{

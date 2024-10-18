@@ -505,10 +505,9 @@ fn num_rows_of_columns<'a>(
 #[cfg(all(test, feature = "arrow", feature = "blitzar"))]
 mod tests {
     use super::*;
-    use crate::base::database::ColumnTypeAssociatedData;
     use crate::{
         base::{
-            database::{owned_table_utility::*, OwnedColumn},
+            database::{owned_table_utility::*, ColumnTypeAssociatedData, OwnedColumn},
             map::IndexMap,
             scalar::Curve25519Scalar,
         },

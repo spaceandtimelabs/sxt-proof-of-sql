@@ -1,6 +1,8 @@
 use super::CommitmentEvaluationProof;
-use crate::base::database::ColumnTypeAssociatedData;
-use crate::base::{commitment::vec_commitment_ext::VecCommitmentExt, database::Column};
+use crate::base::{
+    commitment::vec_commitment_ext::VecCommitmentExt,
+    database::{Column, ColumnTypeAssociatedData},
+};
 use ark_std::UniformRand;
 #[cfg(feature = "blitzar")]
 use blitzar::proof::InnerProductProof;
