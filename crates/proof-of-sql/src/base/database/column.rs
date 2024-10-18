@@ -87,6 +87,46 @@ impl<'a, S: Scalar> ColumnKind<'a, S> {
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col.len(),
         }
     }
+    /// Generate a constant column from a literal value with a given length
+    pub fn from_literal_with_length(
+        literal: &LiteralValue<S>,
+        length: usize,
+        alloc: &'a Bump,
+    ) -> Self {
+        match literal {
+            LiteralValue::Boolean(value) => {
+                Self::Boolean(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::TinyInt(value) => {
+                Self::TinyInt(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::SmallInt(value) => {
+                Self::SmallInt(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::Int(value) => Self::Int(alloc.alloc_slice_fill_copy(length, *value)),
+            LiteralValue::BigInt(value) => {
+                Self::BigInt(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::Int128(value) => {
+                Self::Int128(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::Scalar(value) => {
+                Self::Scalar(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::Decimal75(precision, scale, value) => Self::Decimal75(
+                *precision,
+                *scale,
+                alloc.alloc_slice_fill_copy(length, *value),
+            ),
+            LiteralValue::TimeStampTZ(tu, tz, value) => {
+                Self::TimestampTZ(*tu, *tz, alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::VarChar((string, scalar)) => Self::VarChar((
+                alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
+                alloc.alloc_slice_fill_copy(length, *scalar),
+            )),
+        }
+    }
 }
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -139,55 +179,10 @@ impl<'a, S: Scalar> Column<'a, S> {
         length: usize,
         alloc: &'a Bump,
     ) -> Self {
-        match literal {
-            LiteralValue::Boolean(value) => Column::Boolean(
-                ColumnNullability::NotNullable,
-                alloc.alloc_slice_fill_copy(length, *value),
-            ),
-            LiteralValue::TinyInt(value) => Column::TinyInt(
-                ColumnNullability::NotNullable,
-                alloc.alloc_slice_fill_copy(length, *value),
-            ),
-            LiteralValue::SmallInt(value) => Column::SmallInt(
-                ColumnNullability::NotNullable,
-                alloc.alloc_slice_fill_copy(length, *value),
-            ),
-            LiteralValue::Int(value) => Column::Int(
-                ColumnNullability::NotNullable,
-                alloc.alloc_slice_fill_copy(length, *value),
-            ),
-            LiteralValue::BigInt(value) => Column::BigInt(
-                ColumnNullability::NotNullable,
-                alloc.alloc_slice_fill_copy(length, *value),
-            ),
-            LiteralValue::Int128(value) => Column::Int128(
-                ColumnNullability::NotNullable,
-                alloc.alloc_slice_fill_copy(length, *value),
-            ),
-            LiteralValue::Scalar(value) => Column::Scalar(
-                ColumnNullability::NotNullable,
-                alloc.alloc_slice_fill_copy(length, *value),
-            ),
-            LiteralValue::Decimal75(precision, scale, value) => Column::Decimal75(
-                ColumnNullability::NotNullable,
-                *precision,
-                *scale,
-                alloc.alloc_slice_fill_copy(length, *value),
-            ),
-            LiteralValue::TimeStampTZ(tu, tz, value) => Column::TimestampTZ(
-                ColumnNullability::NotNullable,
-                *tu,
-                *tz,
-                alloc.alloc_slice_fill_copy(length, *value),
-            ),
-            LiteralValue::VarChar((string, scalar)) => Column::VarChar(
-                ColumnNullability::NotNullable,
-                (
-                    alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
-                    alloc.alloc_slice_fill_copy(length, *scalar),
-                ),
-            ),
-        }
+        Self::new(
+            ColumnKind::from_literal_with_length(literal, length, alloc),
+            false,
+        )
     }
 
     /// Convert an `OwnedColumn` to a `Column`
@@ -298,8 +293,8 @@ impl ColumnNullability {
 /// a description of the native types used by Apache Ignite.
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy)]
 pub struct ColumnType {
-    pub kind: ColumnTypeKind,
-    pub nullable: bool,
+    kind: ColumnTypeKind,
+    nullable: bool,
 }
 impl Display for ColumnType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -343,27 +338,79 @@ pub enum ColumnTypeKind {
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
 }
+impl ColumnTypeKind {
+    #[must_use]
+    pub fn is_numeric(&self) -> bool {
+        matches!(
+            self,
+            ColumnTypeKind::TinyInt
+                | ColumnTypeKind::SmallInt
+                | ColumnTypeKind::Int
+                | ColumnTypeKind::BigInt
+                | ColumnTypeKind::Int128
+                | ColumnTypeKind::Scalar
+                | ColumnTypeKind::Decimal75(_, _)
+        )
+    }
+    /// Returns true if this column is an integer and false otherwise
+    #[must_use]
+    pub fn is_integer(&self) -> bool {
+        matches!(
+            self,
+            ColumnTypeKind::TinyInt
+                | ColumnTypeKind::SmallInt
+                | ColumnTypeKind::Int
+                | ColumnTypeKind::BigInt
+                | ColumnTypeKind::Int128
+        )
+    }
+    /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
+    pub(self) fn to_integer_bits(self) -> Option<usize> {
+        match self {
+            Self::TinyInt => Some(8),
+            Self::SmallInt => Some(16),
+            Self::Int => Some(32),
+            Self::BigInt => Some(64),
+            Self::Int128 => Some(128),
+            _ => None,
+        }
+    }
+
+    /// Returns the [`ColumnType`] of the integer type with the given number of bits if it is a valid integer type.
+    ///
+    /// Otherwise, return None.from_literal_with_length
+    pub(self) fn from_integer_bits(bits: usize) -> Option<Self> {
+        match bits {
+            8 => Some(ColumnTypeKind::TinyInt),
+            16 => Some(ColumnTypeKind::SmallInt),
+            32 => Some(ColumnTypeKind::Int),
+            64 => Some(ColumnTypeKind::BigInt),
+            128 => Some(ColumnTypeKind::Int128),
+            _ => None,
+        }
+    }
+}
 
 /// Display the column type as a str name (in all caps)
 impl Display for ColumnTypeKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ColumnTypeKind::Boolean => f.write_str("BOOLEAN"),
-            ColumnTypeKind::TinyInt => f.write_str("TINYINT"),
-            ColumnTypeKind::SmallInt => f.write_str("SMALLINT"),
-            ColumnTypeKind::Int => f.write_str("INT"),
-            ColumnTypeKind::BigInt => f.write_str("BIGINT"),
-            ColumnTypeKind::Int128 => f.write_str("DECIMAL"),
-            ColumnTypeKind::Decimal75(precision, scale) => {
+            Self::Boolean => f.write_str("BOOLEAN"),
+            Self::TinyInt => f.write_str("TINYINT"),
+            Self::SmallInt => f.write_str("SMALLINT"),
+            Self::Int => f.write_str("INT"),
+            Self::BigInt => f.write_str("BIGINT"),
+            Self::Int128 => f.write_str("DECIMAL"),
+            Self::Decimal75(precision, scale) => {
                 write!(
                     f,
                     "DECIMAL75(PRECISION: {:?}, SCALE: {scale})",
                     precision.value()
                 )
             }
-            ColumnTypeKind::VarChar => f.write_str("VARCHAR"),
-            ColumnTypeKind::Scalar => f.write_str("SCALAR"),
-            ColumnTypeKind::TimestampTZ(timeunit, timezone) => {
+            Self::VarChar => f.write_str("VARCHAR"),
+            Self::Scalar => f.write_str("SCALAR"),
+            Self::TimestampTZ(timeunit, timezone) => {
                 write!(f, "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone})")
             }
         }
@@ -374,94 +421,21 @@ impl ColumnType {
         Self { kind, nullable }
     }
     pub fn get_kind(&self) -> ColumnTypeKind {
-        match self {
-            ColumnType::Boolean(_) => ColumnTypeKind::Boolean,
-            ColumnType::TinyInt(_) => ColumnTypeKind::TinyInt,
-            ColumnType::SmallInt(_) => ColumnTypeKind::SmallInt,
-            ColumnType::Int(_) => ColumnTypeKind::Int,
-            ColumnType::BigInt(_) => ColumnTypeKind::BigInt,
-            ColumnType::Int128(_) => ColumnTypeKind::Int128,
-            ColumnType::VarChar(_) => ColumnTypeKind::VarChar,
-            ColumnType::Decimal75(_, precision, bits) => {
-                ColumnTypeKind::Decimal75(*precision, *bits)
-            }
-            ColumnType::TimestampTZ(_, unit, zone) => {
-                ColumnTypeKind::TimestampTZ(unit.clone(), *zone)
-            }
-            ColumnType::Scalar(_) => ColumnTypeKind::Scalar,
-        }
+        self.kind
     }
-    fn get_nullability(&self) -> &ColumnNullability {
-        match self {
-            Self::Boolean(m)
-            | Self::TinyInt(m)
-            | Self::SmallInt(m)
-            | Self::Int(m)
-            | Self::BigInt(m)
-            | Self::Int128(m)
-            | Self::VarChar(m)
-            | Self::Decimal75(m, _, _)
-            | Self::TimestampTZ(m, _, _)
-            | Self::Scalar(m) => m,
-        }
-    }
-
     pub fn is_nullable(&self) -> bool {
-        *self.get_nullability() == ColumnNullability::Nullable
+        self.nullable
     }
     /// Returns true if this column is numeric and false otherwise
     #[must_use]
     pub fn is_numeric(&self) -> bool {
-        matches!(
-            self,
-            ColumnType::TinyInt(_)
-                | ColumnType::SmallInt(_)
-                | ColumnType::Int(_)
-                | ColumnType::BigInt(_)
-                | ColumnType::Int128(_)
-                | ColumnType::Scalar(_)
-                | ColumnType::Decimal75(_, _, _)
-        )
+        self.kind.is_numeric()
     }
 
     /// Returns true if this column is an integer and false otherwise
     #[must_use]
     pub fn is_integer(&self) -> bool {
-        matches!(
-            self,
-            ColumnType::TinyInt(_)
-                | ColumnType::SmallInt(_)
-                | ColumnType::Int(_)
-                | ColumnType::BigInt(_)
-                | ColumnType::Int128(_)
-        )
-    }
-
-    /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
-    fn to_integer_bits(self) -> Option<usize> {
-        match self {
-            ColumnType::TinyInt(_) => Some(8),
-            ColumnType::SmallInt(_) => Some(16),
-            ColumnType::Int(_) => Some(32),
-            ColumnType::BigInt(_) => Some(64),
-            ColumnType::Int128(_) => Some(128),
-            _ => None,
-        }
-    }
-
-    /// Returns the [`ColumnType`] of the integer type with the given number of bits if it is a valid integer type.
-    ///
-    /// Otherwise, return None.from_literal_with_length
-    fn from_integer_bits(bits: usize, nullable: bool) -> Option<Self> {
-        let meta = ColumnNullability::from_nullable(nullable);
-        match bits {
-            8 => Some(ColumnType::TinyInt(meta)),
-            16 => Some(ColumnType::SmallInt(meta)),
-            32 => Some(ColumnType::Int(meta)),
-            64 => Some(ColumnType::BigInt(meta)),
-            128 => Some(ColumnType::Int128(meta)),
-            _ => None,
-        }
+        self.is_integer()
     }
 
     /// Returns the larger integer type of two [`ColumnType`]s if they are both integers.
