@@ -14,6 +14,12 @@ use num_traits::{
 };
 use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 
+fn meta_from_bin_op(lhs: &ColumnType, rhs: &ColumnType) -> ColumnTypeAssociatedData {
+    ColumnTypeAssociatedData {
+        nullable: lhs.is_nullable() || rhs.is_nullable(),
+    }
+}
+
 // For decimal type manipulation please refer to
 // https://learn.microsoft.com/en-us/sql/t-sql/data-types/precision-scale-and-length-transact-sql?view=sql-server-ver16
 
@@ -30,9 +36,7 @@ pub fn try_add_subtract_column_types(
     rhs: ColumnType,
     operator: BinaryOperator,
 ) -> ColumnOperationResult<ColumnType> {
-    let meta = ColumnTypeAssociatedData {
-        nullable: lhs.is_nullable() || rhs.is_nullable(),
-    };
+    let meta = meta_from_bin_op(&lhs, &rhs);
     match (lhs, rhs) {
         (lhs, rhs) if !lhs.is_numeric() || !rhs.is_numeric() => {
             Err(ColumnOperationError::BinaryOperationInvalidColumnType {
@@ -88,6 +92,7 @@ pub fn try_multiply_column_types(
     lhs: ColumnType,
     rhs: ColumnType,
 ) -> ColumnOperationResult<ColumnType> {
+    let meta = meta_from_bin_op(&lhs, &rhs);
     match (lhs, rhs) {
         (lhs, rhs) if !lhs.is_numeric() || !rhs.is_numeric() => {
             Err(ColumnOperationError::BinaryOperationInvalidColumnType {
@@ -123,11 +128,7 @@ pub fn try_multiply_column_types(
                     },
                 },
             )?;
-            Ok(ColumnType::Decimal75(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                precision,
-                scale,
-            ))
+            Ok(ColumnType::Decimal75(meta, precision, scale))
         }
     }
 }
@@ -144,6 +145,7 @@ pub fn try_divide_column_types(
     lhs: ColumnType,
     rhs: ColumnType,
 ) -> ColumnOperationResult<ColumnType> {
+    let meta = meta_from_bin_op(&lhs, &rhs);
     let bin_err = Err(ColumnOperationError::BinaryOperationInvalidColumnType {
         operator: BinaryOperator::Division,
         left_type: lhs,
@@ -182,13 +184,7 @@ pub fn try_divide_column_types(
                         },
                     })
                 })?;
-            Ok(ColumnType::Decimal75(
-                ColumnTypeAssociatedData {
-                    nullable: lhs.is_nullable() || rhs.is_nullable(),
-                },
-                precision,
-                scale,
-            ))
+            Ok(ColumnType::Decimal75(meta, precision, scale))
         }
     }
 }
