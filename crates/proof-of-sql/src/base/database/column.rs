@@ -271,7 +271,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     }
 }
 
-/// Represents the shared metadata for a column type
+/// Represents a columns nullability
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy)]
 pub enum ColumnNullability {
     Nullable,

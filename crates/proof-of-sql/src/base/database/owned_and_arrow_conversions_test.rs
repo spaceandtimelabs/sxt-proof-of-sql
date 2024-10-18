@@ -32,7 +32,7 @@ fn we_can_convert_between_boolean_owned_column_and_array_ref_impl(data: Vec<bool
 }
 fn we_can_convert_between_bigint_owned_column_and_array_ref_impl(data: Vec<i64>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        &OwnedColumn::<Curve25519Scalar>::BigInt(ColumnNullability::NotNullable,, data.clone()),
+        &OwnedColumn::<Curve25519Scalar>::BigInt(ColumnNullability::NotNullable, data.clone()),
         Arc::new(Int64Array::from(data)),
     );
 }
