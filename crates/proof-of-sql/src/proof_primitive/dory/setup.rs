@@ -6,10 +6,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError
 use itertools::MultiUnzip;
 use num_traits::One;
 #[cfg(feature = "std")]
-use std::{
-    io::{Read, Write},
-    sync::Arc,
-};
+use std::io::{Read, Write};
 /// The transparent setup information that the prover must know to create a proof.
 /// This is public knowledge and must match with the verifier's setup information.
 /// See Section 3.3 of <https://eprint.iacr.org/2020/1274.pdf> for details.
@@ -253,38 +250,32 @@ impl<'a> CanonicalDeserialize for ProverSetup<'a> {
         // Calculate the total number of elements to be deserialized (2^max_nu)
         let total_elements = 1 << max_nu;
 
-        // Deserialize Gamma_1 as a flat Vec<G1Affine> and then convert it to Arc<[G1Affine]>
-        let flat_gamma_1: Arc<[G1Affine]> = Arc::from(
-            (0..total_elements)
-                .map(|_| G1Affine::deserialize_with_mode(&mut reader, compress, validate))
-                .collect::<Result<Vec<_>, _>>()?
-                .into_boxed_slice(), // Convert Vec to Box<[T]>, then to Arc<[T]>
-        );
+        // Deserialize Gamma_1 as a flat Vec<G1Affine>
+        let flat_gamma_1: Vec<G1Affine> = (0..total_elements)
+            .map(|_| G1Affine::deserialize_with_mode(&mut reader, compress, validate))
+            .collect::<Result<_, _>>()?;
 
-        // Deserialize Gamma_2 as a flat Vec<G2Affine> and then convert it to Arc<[G2Affine]>
-        let flat_gamma_2: Arc<[G2Affine]> = Arc::from(
-            (0..total_elements)
-                .map(|_| G2Affine::deserialize_with_mode(&mut reader, compress, validate))
-                .collect::<Result<Vec<_>, _>>()?
-                .into_boxed_slice(), // Convert Vec to Box<[T]>, then to Arc<[T]>
-        );
+        // Deserialize Gamma_2 as a flat Vec<G2Affine>
+        let flat_gamma_2: Vec<G2Affine> = (0..total_elements)
+            .map(|_| G2Affine::deserialize_with_mode(&mut reader, compress, validate))
+            .collect::<Result<_, _>>()?;
 
         // Manually construct Gamma_1 as Vec<&'a [G1Affine]>
         let mut Gamma_1: Vec<&[G1Affine]> = Vec::with_capacity(max_nu + 1);
         let mut offset = 0;
         for k in 0..=max_nu {
             let level_size = 1 << k;
-            let slice = &flat_gamma_1[offset..offset + level_size]; // Reference from Arc<[T]>
+            let slice = &flat_gamma_1[offset..offset + level_size];
             Gamma_1.push(slice);
             offset += level_size;
         }
 
-        // Manually construct Gamma_2 as Vec<&[G2Affine]>
+        // Manually construct Gamma_2 as Vec<&'a [G2Affine]>
         let mut Gamma_2: Vec<&[G2Affine]> = Vec::with_capacity(max_nu + 1);
         let mut offset = 0;
         for k in 0..=max_nu {
             let level_size = 1 << k;
-            let slice = &flat_gamma_2[offset..offset + level_size]; // Reference from Arc<[T]>
+            let slice = &flat_gamma_2[offset..offset + level_size];
             Gamma_2.push(slice);
             offset += level_size;
         }
@@ -301,7 +292,7 @@ impl<'a> CanonicalDeserialize for ProverSetup<'a> {
         // TODO: deserialize blitzar handle
 
         // Return the deserialized ProverSetup
-        // #[allow(unreachable_code)]
+        #[allow(unreachable_code)]
         Ok(ProverSetup {
             Gamma_1,
             Gamma_2,
@@ -309,7 +300,7 @@ impl<'a> CanonicalDeserialize for ProverSetup<'a> {
             H_2,
             Gamma_2_fin,
             max_nu,
-            // #[cfg(feature = "blitzar")]
+            #[cfg(feature = "blitzar")]
             blitzar_handle: todo!(),
         })
     }
