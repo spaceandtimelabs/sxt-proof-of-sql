@@ -3,7 +3,7 @@ use super::{
     FrConfig, G1Affine, F,
 };
 use crate::{
-    base::{commitment::CommittableColumn, database::ColumnType},
+    base::{commitment::CommittableColumn, database::ColumnType, if_rayon},
     proof_primitive::dory::offset_to_bytes::OffsetToBytes,
 };
 use alloc::{vec, vec::Vec};
@@ -12,6 +12,11 @@ use ark_ff::{BigInt, MontBackend, MontFp};
 use ark_std::ops::Mul;
 use core::iter;
 use itertools::Itertools;
+#[cfg(feature = "rayon")]
+use rayon::{
+    iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator},
+    prelude::ParallelSliceMut,
+};
 use tracing::{span, Level};
 
 const BYTE_SIZE: u32 = 8;
@@ -84,11 +89,18 @@ pub fn signed_commits(
         }
     }
 
-    unsigned_sub_commits
-        .into_iter()
-        .zip(min_sub_commits.into_iter())
-        .map(|(unsigned, min)| (unsigned + min).into())
-        .collect()
+    if_rayon!(
+        unsigned_sub_commits
+            .into_par_iter()
+            .zip(min_sub_commits.into_par_iter())
+            .map(|(signed, offset)| (signed + offset).into())
+            .collect(),
+        unsigned_sub_commits
+            .into_iter()
+            .zip(min_sub_commits.into_iter())
+            .map(|(unsigned, min)| (unsigned + min).into())
+            .collect()
+    )
 }
 
 /// Copies the column data to the scalar row slice.
@@ -238,52 +250,104 @@ pub fn create_blitzar_metadata_tables(
     // Populate the scalars array.
     let span = span!(Level::INFO, "pack_blitzar_scalars").entered();
     if !blitzar_scalars.is_empty() {
-        blitzar_scalars
-            .chunks_exact_mut(num_scalar_columns)
-            .enumerate()
-            .for_each(|(scalar_row, scalar_row_slice)| {
-                // Iterate over the columns and populate the scalars array.
-                for scalar_col in 0..max_height {
-                    // Find index in the committable columns. Note, the scalar is in
-                    // column major order, that is why the (row, col) arguments are flipped.
-                    if let Some(index) = index_from_row_and_column(scalar_col, scalar_row).and_then(
-                        |committable_column_idx| committable_column_idx.checked_sub(offset),
-                    ) {
-                        for (i, committable_column) in committable_columns
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, committable_column)| index < committable_column.len())
+        if_rayon!(
+            blitzar_scalars
+                .par_chunks_exact_mut(num_scalar_columns)
+                .enumerate()
+                .for_each(|(scalar_row, scalar_row_slice)| {
+                    // Iterate over the columns and populate the scalars array.
+                    for scalar_col in 0..max_height {
+                        // Find index in the committable columns. Note, the scalar is in
+                        // column major order, that is why the (row, col) arguments are flipped.
+                        if let Some(index) = index_from_row_and_column(scalar_col, scalar_row)
+                            .and_then(|committable_column_idx| {
+                                committable_column_idx.checked_sub(offset)
+                            })
                         {
-                            let start = cumulative_byte_length_table
-                                [i + scalar_col * single_entry_in_blitzar_output_bit_table.len()];
-                            let end = start
-                                + (single_entry_in_blitzar_output_bit_table[i] / BYTE_SIZE)
-                                    as usize;
+                            for (i, committable_column) in committable_columns
+                                .iter()
+                                .enumerate()
+                                .filter(|(_, committable_column)| index < committable_column.len())
+                            {
+                                let start = cumulative_byte_length_table[i + scalar_col
+                                    * single_entry_in_blitzar_output_bit_table.len()];
+                                let end = start
+                                    + (single_entry_in_blitzar_output_bit_table[i] / BYTE_SIZE)
+                                        as usize;
 
-                            copy_column_data_to_slice(
-                                committable_column,
-                                scalar_row_slice,
-                                start,
-                                end,
-                                index,
-                            );
+                                copy_column_data_to_slice(
+                                    committable_column,
+                                    scalar_row_slice,
+                                    start,
+                                    end,
+                                    index,
+                                );
+                            }
+
+                            ones_columns_lengths
+                                .iter()
+                                .positions(|ones_columns_length| index < *ones_columns_length)
+                                .for_each(|i| {
+                                    let ones_index = i
+                                        + scalar_col
+                                            * (num_of_bytes_in_committable_columns
+                                                + ones_columns_lengths.len())
+                                        + num_of_bytes_in_committable_columns;
+
+                                    scalar_row_slice[ones_index] = 1_u8;
+                                });
                         }
-
-                        ones_columns_lengths
-                            .iter()
-                            .positions(|ones_columns_length| index < *ones_columns_length)
-                            .for_each(|i| {
-                                let ones_index = i
-                                    + scalar_col
-                                        * (num_of_bytes_in_committable_columns
-                                            + ones_columns_lengths.len())
-                                    + num_of_bytes_in_committable_columns;
-
-                                scalar_row_slice[ones_index] = 1_u8;
-                            });
                     }
-                }
-            });
+                }),
+            blitzar_scalars
+                .chunks_exact_mut(num_scalar_columns)
+                .enumerate()
+                .for_each(|(scalar_row, scalar_row_slice)| {
+                    // Iterate over the columns and populate the scalars array.
+                    for scalar_col in 0..max_height {
+                        // Find index in the committable columns. Note, the scalar is in
+                        // column major order, that is why the (row, col) arguments are flipped.
+                        if let Some(index) = index_from_row_and_column(scalar_col, scalar_row)
+                            .and_then(|committable_column_idx| {
+                                committable_column_idx.checked_sub(offset)
+                            })
+                        {
+                            for (i, committable_column) in committable_columns
+                                .iter()
+                                .enumerate()
+                                .filter(|(_, committable_column)| index < committable_column.len())
+                            {
+                                let start = cumulative_byte_length_table[i + scalar_col
+                                    * single_entry_in_blitzar_output_bit_table.len()];
+                                let end = start
+                                    + (single_entry_in_blitzar_output_bit_table[i] / BYTE_SIZE)
+                                        as usize;
+
+                                copy_column_data_to_slice(
+                                    committable_column,
+                                    scalar_row_slice,
+                                    start,
+                                    end,
+                                    index,
+                                );
+                            }
+
+                            ones_columns_lengths
+                                .iter()
+                                .positions(|ones_columns_length| index < *ones_columns_length)
+                                .for_each(|i| {
+                                    let ones_index = i
+                                        + scalar_col
+                                            * (num_of_bytes_in_committable_columns
+                                                + ones_columns_lengths.len())
+                                        + num_of_bytes_in_committable_columns;
+
+                                    scalar_row_slice[ones_index] = 1_u8;
+                                });
+                        }
+                    }
+                })
+        );
     }
     span.exit();
 
