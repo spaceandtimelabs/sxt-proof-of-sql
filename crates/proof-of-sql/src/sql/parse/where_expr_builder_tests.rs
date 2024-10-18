@@ -17,6 +17,7 @@ use proof_of_sql_parser::{
     utility::*,
     Identifier, SelectStatement,
 };
+use crate::base::database::ColumnTypeAssociatedData;
 
 /// # Panics
 ///
@@ -28,40 +29,41 @@ use proof_of_sql_parser::{
 ///   call is expected to succeed; however, if it encounters an invalid precision value, it will
 ///   cause a panic when `unwrap()` is called.
 fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let tab_ref = "sxt.sxt_tab".parse().unwrap();
     let mut column_mapping = IndexMap::default();
     // Setup column mapping
     column_mapping.insert(
         ident("boolean_column"),
-        ColumnRef::new(tab_ref, ident("boolean_column"), ColumnType::Boolean),
+        ColumnRef::new(tab_ref, ident("boolean_column"), ColumnType::Boolean(meta)),
     );
     column_mapping.insert(
         ident("decimal_column"),
         ColumnRef::new(
             tab_ref,
             ident("decimal_column"),
-            ColumnType::Decimal75(Precision::new(7).unwrap(), 2),
+            ColumnType::Decimal75(meta, Precision::new(7).unwrap(), 2),
         ),
     );
     column_mapping.insert(
         ident("int128_column"),
-        ColumnRef::new(tab_ref, ident("int128_column"), ColumnType::Int128),
+        ColumnRef::new(tab_ref, ident("int128_column"), ColumnType::Int128(meta)),
     );
     column_mapping.insert(
         ident("bigint_column"),
-        ColumnRef::new(tab_ref, ident("bigint_column"), ColumnType::BigInt),
+        ColumnRef::new(tab_ref, ident("bigint_column"), ColumnType::BigInt(meta)),
     );
 
     column_mapping.insert(
         ident("varchar_column"),
-        ColumnRef::new(tab_ref, ident("varchar_column"), ColumnType::VarChar),
+        ColumnRef::new(tab_ref, ident("varchar_column"), ColumnType::VarChar(meta)),
     );
     column_mapping.insert(
         ident("timestamp_second_column"),
         ColumnRef::new(
             tab_ref,
             ident("timestamp_second_column"),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
+            ColumnType::TimestampTZ(meta, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
         ),
     );
     column_mapping.insert(
@@ -69,7 +71,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             ident("timestamp_millisecond_column"),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::Utc),
+            ColumnType::TimestampTZ(meta, PoSQLTimeUnit::Millisecond, PoSQLTimeZone::Utc),
         ),
     );
     column_mapping.insert(
@@ -77,7 +79,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             ident("timestamp_microsecond_column"),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Microsecond, PoSQLTimeZone::Utc),
+            ColumnType::TimestampTZ(meta, PoSQLTimeUnit::Microsecond, PoSQLTimeZone::Utc),
         ),
     );
     column_mapping.insert(
@@ -85,7 +87,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             ident("timestamp_nanosecond_column"),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::Utc),
+            ColumnType::TimestampTZ(meta, PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::Utc),
         ),
     );
     column_mapping
@@ -151,7 +153,7 @@ fn we_can_directly_check_whether_bigint_columns_ge_int128() {
         DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
             "sxt.sxt_tab".parse().unwrap(),
             ident("bigint_column"),
-            ColumnType::BigInt,
+            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         ))),
         DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
         false,
@@ -173,7 +175,7 @@ fn we_can_directly_check_whether_bigint_columns_le_int128() {
         DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
             "sxt.sxt_tab".parse().unwrap(),
             ident("bigint_column"),
-            ColumnType::BigInt,
+            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         ))),
         DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
         true,
@@ -307,7 +309,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::VarChar,
+            "b".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     });
 
@@ -326,7 +328,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::VarChar,
+            "b".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     });
 
@@ -345,7 +347,7 @@ fn we_do_not_expect_an_error_while_trying_to_check_int128_column_eq_decimal_with
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::Int128,
+            "b".parse().unwrap() => ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     });
 
@@ -362,7 +364,7 @@ fn we_do_not_expect_an_error_while_trying_to_check_bigint_column_eq_decimal_with
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     });
 

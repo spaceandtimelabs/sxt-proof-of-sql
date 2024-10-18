@@ -12,22 +12,24 @@ use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
     utility::*,
 };
+use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_evaluate_a_simple_literal() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let table: OwnedTable<Curve25519Scalar> =
         owned_table([varchar("languages", ["en", "es", "pt", "fr", "ht"])]);
 
     // "Space and Time" in Hebrew
     let expr = lit("מרחב וזמן".to_string());
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column = OwnedColumn::VarChar(vec!["מרחב וזמן".to_string(); 5]);
+    let expected_column = OwnedColumn::VarChar(meta, vec!["מרחב וזמן".to_string(); 5]);
     assert_eq!(actual_column, expected_column);
 
     // Is Proof of SQL in production?
     let expr = lit(true);
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column = OwnedColumn::Boolean(vec![true; 5]);
+    let expected_column = OwnedColumn::Boolean(meta, vec![true; 5]);
     assert_eq!(actual_column, expected_column);
 
     // When was Space and Time founded?
@@ -39,6 +41,7 @@ fn we_can_evaluate_a_simple_literal() {
     // UNIX timestamp for 2022-03-01T00:00:00Z
     let actual_timestamp = 1_646_092_800;
     let expected_column = OwnedColumn::TimestampTZ(
+        meta,
         PoSQLTimeUnit::Second,
         PoSQLTimeZone::Utc,
         vec![actual_timestamp; 5],
@@ -48,7 +51,7 @@ fn we_can_evaluate_a_simple_literal() {
     // A group of people has about 0.67 cats per person
     let expr = lit("0.67".parse::<IntermediateDecimal>().unwrap());
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column = OwnedColumn::Decimal75(Precision::new(2).unwrap(), 2, vec![67.into(); 5]);
+    let expected_column = OwnedColumn::Decimal75(meta, Precision::new(2).unwrap(), 2, vec![67.into(); 5]);
     assert_eq!(actual_column, expected_column);
 }
 
@@ -61,12 +64,13 @@ fn we_can_evaluate_a_simple_column() {
     ]);
     let expr = col("bigints");
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column = OwnedColumn::BigInt(vec![i64::MIN, -1, 0, 1, i64::MAX]);
+    let expected_column = OwnedColumn::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![i64::MIN, -1, 0, 1, i64::MAX]);
     assert_eq!(actual_column, expected_column);
 
     let expr = col("john");
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_column = OwnedColumn::VarChar(
+        ColumnTypeAssociatedData::NOT_NULLABLE,
         ["John", "Juan", "João", "Jean", "Jean"]
             .iter()
             .map(ToString::to_string)
@@ -89,6 +93,7 @@ fn we_can_not_evaluate_a_nonexisting_column() {
 
 #[test]
 fn we_can_evaluate_a_logical_expression() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let table: OwnedTable<Curve25519Scalar> = owned_table([
         varchar("en", ["Elizabeth", "John", "cat", "dog", "Munich"]),
         varchar("pl", ["Elżbieta", "Jan", "kot", "pies", "Monachium"]),
@@ -102,21 +107,21 @@ fn we_can_evaluate_a_logical_expression() {
     // Find words that are not proper nouns
     let expr = not(col("is_proper_noun"));
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column = OwnedColumn::Boolean(vec![false, false, true, true, false]);
+    let expected_column = OwnedColumn::Boolean(meta, vec![false, false, true, true, false]);
     assert_eq!(actual_column, expected_column);
 
     // Which Czech and Slovak words agree?
     let expr = equal(col("cz"), col("sk"));
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_column: OwnedColumn<Curve25519Scalar> =
-        OwnedColumn::Boolean(vec![false, false, false, true, false]);
+        OwnedColumn::Boolean(meta, vec![false, false, false, true, false]);
     assert_eq!(actual_column, expected_column);
 
     // Find words shared among Slovak, Croatian and Slovenian
     let expr = and(equal(col("sk"), col("hr")), equal(col("hr"), col("sl")));
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_column: OwnedColumn<Curve25519Scalar> =
-        OwnedColumn::Boolean(vec![false, false, true, false, false]);
+        OwnedColumn::Boolean(meta, vec![false, false, true, false, false]);
     assert_eq!(actual_column, expected_column);
 
     // Find words shared between Polish and Czech but not Slovenian
@@ -126,7 +131,7 @@ fn we_can_evaluate_a_logical_expression() {
     );
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_column: OwnedColumn<Curve25519Scalar> =
-        OwnedColumn::Boolean(vec![false, true, false, false, false]);
+        OwnedColumn::Boolean(meta, vec![false, true, false, false, false]);
     assert_eq!(actual_column, expected_column);
 
     // Proper nouns as well as words shared between Croatian and Slovenian
@@ -136,12 +141,13 @@ fn we_can_evaluate_a_logical_expression() {
     );
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_column: OwnedColumn<Curve25519Scalar> =
-        OwnedColumn::Boolean(vec![true, true, true, false, true]);
+        OwnedColumn::Boolean(meta, vec![true, true, true, false, true]);
     assert_eq!(actual_column, expected_column);
 }
 
 #[test]
 fn we_can_evaluate_an_arithmetic_expression() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let table: OwnedTable<Curve25519Scalar> = owned_table([
         smallint("smallints", [-2_i16, -1, 0, 1, 2]),
         int("ints", [-4_i32, -2, 0, 2, 4]),
@@ -153,13 +159,13 @@ fn we_can_evaluate_an_arithmetic_expression() {
     // Subtract 1 from the bigints
     let expr = sub(col("bigints"), lit(1));
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column = OwnedColumn::BigInt(vec![-9, -5, -1, 3, 7]);
+    let expected_column = OwnedColumn::BigInt(meta, vec![-9, -5, -1, 3, 7]);
     assert_eq!(actual_column, expected_column);
 
     // Add bigints to the smallints and multiply the sum by the ints
     let expr = mul(add(col("bigints"), col("smallints")), col("ints"));
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column = OwnedColumn::BigInt(vec![40, 10, 0, 10, 40]);
+    let expected_column = OwnedColumn::BigInt(meta, vec![40, 10, 0, 10, 40]);
     assert_eq!(actual_column, expected_column);
 
     // Multiply decimals with 0.75 and add smallints to the product
@@ -175,7 +181,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
         .iter()
         .map(|&x| x.into())
         .collect();
-    let expected_column = OwnedColumn::Decimal75(Precision::new(9).unwrap(), 3, expected_scalars);
+    let expected_column = OwnedColumn::Decimal75(meta, Precision::new(9).unwrap(), 3, expected_scalars);
     assert_eq!(actual_column, expected_column);
 
     // Decimals over 2.5 plus int128s
@@ -191,7 +197,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
         .iter()
         .map(|&x| x.into())
         .collect();
-    let expected_column = OwnedColumn::Decimal75(Precision::new(46).unwrap(), 6, expected_scalars);
+    let expected_column = OwnedColumn::Decimal75(meta, Precision::new(46).unwrap(), 6, expected_scalars);
     assert_eq!(actual_column, expected_column);
 }
 

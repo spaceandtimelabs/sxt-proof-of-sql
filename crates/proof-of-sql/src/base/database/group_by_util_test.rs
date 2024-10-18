@@ -7,13 +7,15 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::cmp::Ordering;
+use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_aggregate_empty_columns() {
-    let column_a = Column::BigInt::<Curve25519Scalar>(&[]);
-    let column_b = Column::VarChar((&[], &[]));
-    let column_c = Column::Int128(&[]);
-    let column_d = Column::Scalar(&[]);
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let column_a = Column::BigInt::<Curve25519Scalar>(meta, &[]);
+    let column_b = Column::VarChar(meta, (&[], &[]));
+    let column_c = Column::Int128(meta, &[]);
+    let column_d = Column::Scalar(meta, &[]);
     let group_by = &[column_a, column_b];
     let sum_columns = &[column_c, column_d];
     let selection = &[];
@@ -22,7 +24,7 @@ fn we_can_aggregate_empty_columns() {
         .expect("Aggregation should succeed");
     assert_eq!(
         aggregate_result.group_by_columns,
-        vec![Column::BigInt(&[]), Column::VarChar((&[], &[]))]
+        vec![Column::BigInt(meta, &[]), Column::VarChar(meta, (&[], &[]))]
     );
     assert_eq!(aggregate_result.sum_columns, vec![&[], &[]]);
     assert_eq!(aggregate_result.count_column, &[0i64; 0]);
@@ -30,12 +32,13 @@ fn we_can_aggregate_empty_columns() {
 
 #[test]
 fn we_can_aggregate_columns_with_empty_group_by_and_no_rows_selected() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let slice_c = &[100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111];
     let slice_d = &[200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211];
     let selection = &[false; 12];
     let scals_d: Vec<Curve25519Scalar> = slice_d.iter().map(core::convert::Into::into).collect();
-    let column_c = Column::Int128(slice_c);
-    let column_d = Column::Scalar(&scals_d);
+    let column_c = Column::Int128(meta, slice_c);
+    let column_d = Column::Scalar(meta, &scals_d);
     let group_by = &[];
     let sum_columns = &[column_c, column_d];
     let max_columns = &[column_c, column_d];
@@ -64,14 +67,15 @@ fn we_can_aggregate_columns_with_empty_group_by_and_no_rows_selected() {
 
 #[test]
 fn we_can_aggregate_columns_with_empty_group_by() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let slice_c = &[100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111];
     let slice_d = &[200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211];
     let selection = &[
         false, true, true, true, true, true, true, true, true, true, true, true,
     ];
     let scals_d: Vec<Curve25519Scalar> = slice_d.iter().map(core::convert::Into::into).collect();
-    let column_c = Column::Int128(slice_c);
-    let column_d = Column::Scalar(&scals_d);
+    let column_c = Column::Int128(meta, slice_c);
+    let column_d = Column::Scalar(meta, &scals_d);
     let group_by = &[];
     let sum_columns = &[column_c, column_d];
     let max_columns = &[column_c, column_d];
@@ -113,6 +117,7 @@ fn we_can_aggregate_columns_with_empty_group_by() {
 
 #[test]
 fn we_can_aggregate_columns() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let slice_a = &[3, 3, 3, 2, 2, 1, 1, 2, 2, 3, 3, 3];
     let slice_b = &[
         "Cat", "Cat", "Dog", "Cat", "Dog", "Cat", "Dog", "Cat", "Dog", "Cat", "Dog", "Cat",
@@ -124,10 +129,10 @@ fn we_can_aggregate_columns() {
     ];
     let scals_b: Vec<Curve25519Scalar> = slice_b.iter().map(core::convert::Into::into).collect();
     let scals_d: Vec<Curve25519Scalar> = slice_d.iter().map(core::convert::Into::into).collect();
-    let column_a = Column::BigInt(slice_a);
-    let column_b = Column::VarChar((slice_b, &scals_b));
-    let column_c = Column::Int128(slice_c);
-    let column_d = Column::Scalar(&scals_d);
+    let column_a = Column::BigInt(meta, slice_a);
+    let column_b = Column::VarChar(meta, (slice_b, &scals_b));
+    let column_c = Column::Int128(meta, slice_c);
+    let column_d = Column::Scalar(meta, &scals_d);
     let group_by = &[column_a, column_b];
     let sum_columns = &[column_c, column_d];
     let max_columns = &[column_c, column_d];
@@ -151,8 +156,8 @@ fn we_can_aggregate_columns() {
         Curve25519Scalar::from("Dog"),
     ];
     let expected_group_by_result = &[
-        Column::BigInt(&[1, 1, 2, 2, 3, 3]),
-        Column::VarChar((&["Cat", "Dog", "Cat", "Dog", "Cat", "Dog"], &scals_res)),
+        Column::BigInt(meta, &[1, 1, 2, 2, 3, 3]),
+        Column::VarChar(meta, (&["Cat", "Dog", "Cat", "Dog", "Cat", "Dog"], &scals_res)),
     ];
     let expected_sum_result = &[
         &[
@@ -226,12 +231,13 @@ fn we_can_compare_indexes_by_columns_with_no_columns() {
 
 #[test]
 fn we_can_compare_indexes_by_columns_for_bigint_columns() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let slice_a = &[55, 44, 66, 66, 66, 77, 66, 66, 66, 66];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
-    let column_a = Column::BigInt::<DoryScalar>(slice_a);
-    let column_b = Column::BigInt::<DoryScalar>(slice_b);
-    let column_c = Column::BigInt::<DoryScalar>(slice_c);
+    let column_a = Column::BigInt::<DoryScalar>(meta, slice_a);
+    let column_b = Column::BigInt::<DoryScalar>(meta, slice_b);
+    let column_c = Column::BigInt::<DoryScalar>(meta, slice_c);
 
     let columns = &[column_a];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
@@ -255,13 +261,14 @@ fn we_can_compare_indexes_by_columns_for_bigint_columns() {
 }
 #[test]
 fn we_can_compare_indexes_by_columns_for_mixed_columns() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let slice_a = &["55", "44", "66", "66", "66", "77", "66", "66", "66", "66"];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
     let scals_a: Vec<Curve25519Scalar> = slice_a.iter().map(core::convert::Into::into).collect();
-    let column_a = Column::VarChar((slice_a, &scals_a));
-    let column_b = Column::Int128(slice_b);
-    let column_c = Column::BigInt(slice_c);
+    let column_a = Column::VarChar(meta, (slice_a, &scals_a));
+    let column_b = Column::Int128(meta, slice_b);
+    let column_c = Column::BigInt(meta, slice_c);
 
     let columns = &[column_a];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
@@ -285,15 +292,16 @@ fn we_can_compare_indexes_by_columns_for_mixed_columns() {
 }
 #[test]
 fn we_can_compare_indexes_by_owned_columns_for_mixed_columns() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let slice_a = ["55", "44", "66", "66", "66", "77", "66", "66", "66", "66"]
         .into_iter()
         .map(Into::into)
         .collect();
     let slice_b = vec![22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = vec![11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
-    let column_a = OwnedColumn::<DoryScalar>::VarChar(slice_a);
-    let column_b = OwnedColumn::Int128(slice_b);
-    let column_c = OwnedColumn::BigInt(slice_c);
+    let column_a = OwnedColumn::<DoryScalar>::VarChar(meta, slice_a);
+    let column_b = OwnedColumn::Int128(meta, slice_b);
+    let column_c = OwnedColumn::BigInt(meta, slice_c);
 
     let columns = &[&column_a];
     assert_eq!(
@@ -365,13 +373,14 @@ fn we_can_compare_indexes_by_owned_columns_for_mixed_columns() {
 }
 #[test]
 fn we_can_compare_indexes_by_columns_for_scalar_columns() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let slice_a = &[55, 44, 66, 66, 66, 77, 66, 66, 66, 66];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
     let scals_a: Vec<Curve25519Scalar> = slice_a.iter().map(core::convert::Into::into).collect();
-    let column_a = Column::Scalar(&scals_a);
-    let column_b = Column::Int128(slice_b);
-    let column_c = Column::BigInt(slice_c);
+    let column_a = Column::Scalar(meta, &scals_a);
+    let column_b = Column::Int128(meta, slice_b);
+    let column_c = Column::BigInt(meta, slice_c);
 
     let columns = &[column_a];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
@@ -472,7 +481,7 @@ fn we_can_sum_aggregate_slice_by_counts_without_empty_groups() {
 #[test]
 fn we_can_sum_aggregate_columns_by_counts_for_empty_column() {
     let slice_a: &[i64; 0] = &[];
-    let column_a = Column::BigInt::<DoryScalar>(slice_a);
+    let column_a = Column::BigInt::<DoryScalar>(ColumnTypeAssociatedData::NOT_NULLABLE, slice_a);
     let indexes = &[];
     let counts = &[];
     let expected: &[DoryScalar; 0] = &[];
@@ -484,6 +493,7 @@ fn we_can_sum_aggregate_columns_by_counts_for_empty_column() {
 
 #[test]
 fn we_can_sum_aggregate_columns_by_counts() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let slice_a = &[
         100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
     ];
@@ -494,9 +504,9 @@ fn we_can_sum_aggregate_columns_by_counts() {
         100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
     ];
     let scals_c: Vec<Curve25519Scalar> = slice_c.iter().map(core::convert::Into::into).collect();
-    let column_a = Column::BigInt::<Curve25519Scalar>(slice_a);
-    let columns_b = Column::Int128::<Curve25519Scalar>(slice_b);
-    let columns_c = Column::Scalar(&scals_c);
+    let column_a = Column::BigInt::<Curve25519Scalar>(meta, slice_a);
+    let columns_b = Column::Int128::<Curve25519Scalar>(meta, slice_b);
+    let columns_c = Column::Scalar(meta, &scals_c);
     let indexes = &[12, 11, 1, 10, 2, 3, 6, 14, 13, 9];
     let counts = &[3, 3, 4];
     let expected = &[
@@ -591,7 +601,7 @@ fn we_can_max_aggregate_slice_by_counts_without_empty_groups() {
 #[test]
 fn we_can_max_aggregate_columns_by_counts_for_empty_column() {
     let slice_a: &[i64; 0] = &[];
-    let column_a = Column::BigInt::<DoryScalar>(slice_a);
+    let column_a = Column::BigInt::<DoryScalar>(ColumnTypeAssociatedData::NOT_NULLABLE, slice_a);
     let indexes = &[];
     let counts = &[];
     let expected: &[Option<DoryScalar>; 0] = &[];
@@ -603,6 +613,7 @@ fn we_can_max_aggregate_columns_by_counts_for_empty_column() {
 
 #[test]
 fn we_can_max_aggregate_columns_by_counts() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let slice_a = &[
         100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
     ];
@@ -613,9 +624,9 @@ fn we_can_max_aggregate_columns_by_counts() {
         100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
     ];
     let scals_c: Vec<Curve25519Scalar> = slice_c.iter().map(core::convert::Into::into).collect();
-    let column_a = Column::BigInt::<Curve25519Scalar>(slice_a);
-    let columns_b = Column::Int128::<Curve25519Scalar>(slice_b);
-    let columns_c = Column::Scalar(&scals_c);
+    let column_a = Column::BigInt::<Curve25519Scalar>(meta, slice_a);
+    let columns_b = Column::Int128::<Curve25519Scalar>(meta, slice_b);
+    let columns_c = Column::Scalar(meta, &scals_c);
     let indexes = &[12, 11, 1, 10, 2, 3, 6, 14, 13, 9];
     let counts = &[3, 3, 4, 0];
     let expected = &[
@@ -711,7 +722,7 @@ fn we_can_min_aggregate_slice_by_counts_without_empty_groups() {
 #[test]
 fn we_can_min_aggregate_columns_by_counts_for_empty_column() {
     let slice_a: &[i64; 0] = &[];
-    let column_a = Column::BigInt::<DoryScalar>(slice_a);
+    let column_a = Column::BigInt::<DoryScalar>(ColumnTypeAssociatedData::NOT_NULLABLE, slice_a);
     let indexes = &[];
     let counts = &[];
     let expected: &[Option<DoryScalar>; 0] = &[];
@@ -723,6 +734,7 @@ fn we_can_min_aggregate_columns_by_counts_for_empty_column() {
 
 #[test]
 fn we_can_min_aggregate_columns_by_counts() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let slice_a = &[
         100, -101, 102, -103, 104, -105, 106, -107, 108, -109, 110, -111, 112, -113, 114, -115,
     ];
@@ -733,9 +745,9 @@ fn we_can_min_aggregate_columns_by_counts() {
         100, -101, 102, -103, 104, -105, 106, -107, 108, -109, 110, -111, 112, -113, 114, -115,
     ];
     let scals_c: Vec<Curve25519Scalar> = slice_c.iter().map(core::convert::Into::into).collect();
-    let column_a = Column::BigInt::<Curve25519Scalar>(slice_a);
-    let columns_b = Column::Int128::<Curve25519Scalar>(slice_b);
-    let columns_c = Column::Scalar(&scals_c);
+    let column_a = Column::BigInt::<Curve25519Scalar>(meta, slice_a);
+    let columns_b = Column::Int128::<Curve25519Scalar>(meta, slice_b);
+    let columns_c = Column::Scalar(meta, &scals_c);
     let indexes = &[12, 11, 1, 10, 2, 3, 6, 14, 13, 9];
     let counts = &[3, 3, 4, 0];
     let expected = &[

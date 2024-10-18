@@ -123,12 +123,12 @@ fn tamper_column<'a>(
     mut columns: Vec<Column<'a, Curve25519Scalar>>,
 ) -> Vec<Column<'a, Curve25519Scalar>> {
     for column in &mut columns {
-        if let Column::Scalar(tampered_column) = column {
+        if let Column::Scalar(meta, tampered_column) = column {
             if !tampered_column.is_empty() {
                 let tampered_column = alloc.alloc_slice_copy(tampered_column);
                 // The following could be changed for different types of tests, but for the simplest one, we will simply increase the first element by 1.
                 tampered_column[0] += Curve25519Scalar::one();
-                *column = Column::Scalar(tampered_column);
+                *column = Column::Scalar(meta.clone(), tampered_column);
                 break;
             }
         }

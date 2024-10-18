@@ -90,26 +90,26 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
             .get(&column.column_id())
             .unwrap()
         {
-            OwnedColumn::Boolean(col) => Column::Boolean(col),
-            OwnedColumn::TinyInt(col) => Column::TinyInt(col),
-            OwnedColumn::SmallInt(col) => Column::SmallInt(col),
-            OwnedColumn::Int(col) => Column::Int(col),
-            OwnedColumn::BigInt(col) => Column::BigInt(col),
-            OwnedColumn::Int128(col) => Column::Int128(col),
-            OwnedColumn::Decimal75(precision, scale, col) => {
-                Column::Decimal75(*precision, *scale, col)
+            OwnedColumn::Boolean(meta,  col) => Column::Boolean(*meta, col),
+            OwnedColumn::TinyInt(meta,  col) => Column::TinyInt(*meta, col),
+            OwnedColumn::SmallInt(meta,  col) => Column::SmallInt(*meta, col),
+            OwnedColumn::Int(meta,  col) => Column::Int(*meta, col),
+            OwnedColumn::BigInt(meta,  col) => Column::BigInt(*meta, col),
+            OwnedColumn::Int128(meta,  col) => Column::Int128(*meta, col),
+            OwnedColumn::Decimal75(meta, precision, scale, col) => {
+                Column::Decimal75(*meta, *precision, *scale, col)
             }
-            OwnedColumn::Scalar(col) => Column::Scalar(col),
-            OwnedColumn::VarChar(col) => {
+            OwnedColumn::Scalar(meta,  col) => Column::Scalar(*meta, col),
+            OwnedColumn::VarChar(meta,  col) => {
                 let col: &mut [&str] = self
                     .alloc
                     .alloc_slice_fill_iter(col.iter().map(String::as_str));
                 let scals: &mut [_] = self
                     .alloc
                     .alloc_slice_fill_iter(col.iter().map(|s| (*s).into()));
-                Column::VarChar((col, scals))
+                Column::VarChar(*meta, (col, scals))
             }
-            OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col),
+            OwnedColumn::TimestampTZ(meta, tu, tz, col) => Column::TimestampTZ(*meta, *tu, *tz, col),
         }
     }
 }

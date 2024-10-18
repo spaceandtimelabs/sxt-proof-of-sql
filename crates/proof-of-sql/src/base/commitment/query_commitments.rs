@@ -143,6 +143,7 @@ mod tests {
         },
     };
     use curve25519_dalek::RistrettoPoint;
+    use crate::base::database::ColumnTypeAssociatedData;
 
     #[test]
     fn we_can_get_length_and_offset_of_tables() {
@@ -171,7 +172,7 @@ mod tests {
         let no_rows_commitment = TableCommitment::try_from_columns_with_offset(
             [(
                 &"column_c".parse().unwrap(),
-                &OwnedColumn::<Curve25519Scalar>::BigInt(vec![]),
+                &OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![]),
             )],
             3,
             &(),
@@ -202,6 +203,7 @@ mod tests {
     #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_commitment_of_a_column() {
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
@@ -227,7 +229,7 @@ mod tests {
             query_commitments.get_commitment(ColumnRef::new(
                 table_a_id,
                 column_a_id,
-                ColumnType::BigInt
+                ColumnType::BigInt(meta)
             )),
             table_a_commitment.column_commitments().commitments()[0]
         );
@@ -235,7 +237,7 @@ mod tests {
             query_commitments.get_commitment(ColumnRef::new(
                 table_a_id,
                 column_b_id,
-                ColumnType::VarChar
+                ColumnType::VarChar(meta)
             )),
             table_a_commitment.column_commitments().commitments()[1]
         );
@@ -243,7 +245,7 @@ mod tests {
             query_commitments.get_commitment(ColumnRef::new(
                 table_b_id,
                 column_a_id,
-                ColumnType::Scalar
+                ColumnType::Scalar(meta)
             )),
             table_b_commitment.column_commitments().commitments()[0]
         );
@@ -252,6 +254,7 @@ mod tests {
     #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_schema_of_tables() {
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
@@ -286,19 +289,19 @@ mod tests {
             query_commitments
                 .lookup_column(table_a_id, column_a_id)
                 .unwrap(),
-            ColumnType::BigInt
+            ColumnType::BigInt(meta)
         );
         assert_eq!(
             query_commitments
                 .lookup_column(table_a_id, column_b_id)
                 .unwrap(),
-            ColumnType::VarChar
+            ColumnType::VarChar(meta)
         );
         assert_eq!(
             query_commitments.lookup_schema(table_a_id),
             vec![
-                (column_a_id, ColumnType::BigInt),
-                (column_b_id, ColumnType::VarChar)
+                (column_a_id, ColumnType::BigInt(meta)),
+                (column_b_id, ColumnType::VarChar(meta))
             ]
         );
 
@@ -306,7 +309,7 @@ mod tests {
             query_commitments
                 .lookup_column(table_b_id, column_a_id)
                 .unwrap(),
-            ColumnType::Scalar
+            ColumnType::Scalar(meta)
         );
         assert_eq!(
             query_commitments.lookup_column(table_b_id, column_b_id),
@@ -314,7 +317,7 @@ mod tests {
         );
         assert_eq!(
             query_commitments.lookup_schema(table_b_id),
-            vec![(column_a_id, ColumnType::Scalar),]
+            vec![(column_a_id, ColumnType::Scalar(meta)),]
         );
 
         assert_eq!(
@@ -327,6 +330,7 @@ mod tests {
     #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_query_commitments_from_accessor() {
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -372,10 +376,10 @@ mod tests {
 
         let query_commitments = QueryCommitments::<DoryCommitment>::from_accessor_with_max_bounds(
             [
-                ColumnRef::new(table_a_id, column_a_id, ColumnType::BigInt),
-                ColumnRef::new(table_b_id, column_a_id, ColumnType::Scalar),
-                ColumnRef::new(table_a_id, column_b_id, ColumnType::VarChar),
-                ColumnRef::new(table_b_id, column_b_id, ColumnType::Int128),
+                ColumnRef::new(table_a_id, column_a_id, ColumnType::BigInt(meta)),
+                ColumnRef::new(table_b_id, column_a_id, ColumnType::Scalar(meta)),
+                ColumnRef::new(table_a_id, column_b_id, ColumnType::VarChar(meta)),
+                ColumnRef::new(table_b_id, column_b_id, ColumnType::Int128(meta)),
             ],
             &accessor,
         );

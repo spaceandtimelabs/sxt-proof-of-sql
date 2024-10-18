@@ -1,4 +1,4 @@
-use super::{OwnedColumn, OwnedTable};
+use super::{ColumnTypeAssociatedData, OwnedColumn, OwnedTable};
 use crate::{
     base::{
         database::{owned_table_utility::*, OwnedArrowConversionError},
@@ -26,19 +26,19 @@ fn we_can_convert_between_owned_column_and_array_ref_impl(
 }
 fn we_can_convert_between_boolean_owned_column_and_array_ref_impl(data: Vec<bool>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        OwnedColumn::<Curve25519Scalar>::Boolean(data.clone()),
+        OwnedColumn::<Curve25519Scalar>::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, data.clone()),
         Arc::new(BooleanArray::from(data)),
     );
 }
 fn we_can_convert_between_bigint_owned_column_and_array_ref_impl(data: Vec<i64>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        OwnedColumn::<Curve25519Scalar>::BigInt(data.clone()),
+        OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, data.clone()),
         Arc::new(Int64Array::from(data)),
     );
 }
 fn we_can_convert_between_int128_owned_column_and_array_ref_impl(data: Vec<i128>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        OwnedColumn::<Curve25519Scalar>::Int128(data.clone()),
+        OwnedColumn::<Curve25519Scalar>::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, data.clone()),
         Arc::new(
             Decimal128Array::from(data)
                 .with_precision_and_scale(38, 0)
@@ -48,7 +48,7 @@ fn we_can_convert_between_int128_owned_column_and_array_ref_impl(data: Vec<i128>
 }
 fn we_can_convert_between_varchar_owned_column_and_array_ref_impl(data: Vec<String>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        OwnedColumn::<Curve25519Scalar>::VarChar(data.clone()),
+        OwnedColumn::<Curve25519Scalar>::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, data.clone()),
         Arc::new(StringArray::from(data)),
     );
 }

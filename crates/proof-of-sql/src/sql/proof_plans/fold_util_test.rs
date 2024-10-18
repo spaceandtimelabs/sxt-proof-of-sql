@@ -2,9 +2,11 @@ use super::{fold_columns, fold_vals};
 use crate::base::{database::Column, math::decimal::Precision, scalar::Curve25519Scalar};
 use bumpalo::Bump;
 use num_traits::Zero;
+use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_fold_columns_with_scalars() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let expected = vec![
         Curve25519Scalar::from(77 + 2061 * 33)
             + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("1"),
@@ -22,10 +24,10 @@ fn we_can_fold_columns_with_scalars() {
         ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
     let scalars = [2.into(), 3.into(), 5.into(), 7.into(), 1.into()];
     let mut columns = vec![
-        Column::BigInt(&[1, 2, 3, 4, 5]),
-        Column::Int128(&[6, 7, 8, 9, 0]),
-        Column::VarChar((&["1", "2", "3", "4", "5"], &str_scalars)),
-        Column::Scalar(&scalars),
+        Column::BigInt(meta, &[1, 2, 3, 4, 5]),
+        Column::Int128(meta, &[6, 7, 8, 9, 0]),
+        Column::VarChar(meta, (&["1", "2", "3", "4", "5"], &str_scalars)),
+        Column::Scalar(meta, &scalars),
     ];
 
     let alloc = Bump::new();
@@ -35,7 +37,7 @@ fn we_can_fold_columns_with_scalars() {
     assert_eq!(result, expected);
 
     columns.pop();
-    columns.push(Column::Decimal75(Precision::new(75).unwrap(), -1, &scalars));
+    columns.push(Column::Decimal75(meta, Precision::new(75).unwrap(), -1, &scalars));
 
     let alloc = Bump::new();
     let result = alloc.alloc_slice_fill_copy(5, 77.into());
@@ -46,6 +48,7 @@ fn we_can_fold_columns_with_scalars() {
 
 #[test]
 fn we_can_fold_columns_with_that_get_padded() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let expected = vec![
         Curve25519Scalar::from(77 + 2061 * 33)
             + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("1"),
@@ -66,10 +69,10 @@ fn we_can_fold_columns_with_that_get_padded() {
     let str_scalars: [Curve25519Scalar; 3] = ["1".into(), "2".into(), "3".into()];
     let scalars = [2.into(), 3.into()];
     let mut columns = vec![
-        Column::BigInt(&[1, 2, 3, 4, 5]),
-        Column::Int128(&[6, 7, 8, 9]),
-        Column::VarChar((&["1", "2", "3"], &str_scalars)),
-        Column::Scalar(&scalars),
+        Column::BigInt(meta, &[1, 2, 3, 4, 5]),
+        Column::Int128(meta, &[6, 7, 8, 9]),
+        Column::VarChar(meta, (&["1", "2", "3"], &str_scalars)),
+        Column::Scalar(meta, &scalars),
     ];
     let alloc = Bump::new();
     let result = alloc.alloc_slice_fill_copy(11, 77.into());
@@ -78,7 +81,7 @@ fn we_can_fold_columns_with_that_get_padded() {
     assert_eq!(result, expected);
 
     columns.pop();
-    columns.push(Column::Decimal75(Precision::new(75).unwrap(), -1, &scalars));
+    columns.push(Column::Decimal75(meta, Precision::new(75).unwrap(), -1, &scalars));
 
     let alloc = Bump::new();
     let result = alloc.alloc_slice_fill_copy(11, 77.into());
@@ -89,12 +92,13 @@ fn we_can_fold_columns_with_that_get_padded() {
 
 #[test]
 fn we_can_fold_empty_columns() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let columns = vec![
-        Column::BigInt::<Curve25519Scalar>(&[]),
-        Column::Int128(&[]),
-        Column::VarChar((&[], &[])),
-        Column::Scalar(&[]),
-        Column::Decimal75(Precision::new(75).unwrap(), -1, &[]),
+        Column::BigInt::<Curve25519Scalar>(meta, &[]),
+        Column::Int128(meta, &[]),
+        Column::VarChar(meta, (&[], &[])),
+        Column::Scalar(meta, &[]),
+        Column::Decimal75(meta, Precision::new(75).unwrap(), -1, &[]),
     ];
     let alloc = Bump::new();
     let result = alloc.alloc_slice_fill_copy(0, 77.into());

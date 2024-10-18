@@ -22,6 +22,7 @@ use proof_of_sql_parser::{
     },
     Identifier,
 };
+use crate::base::database::ColumnTypeAssociatedData;
 
 /// # Panics
 ///
@@ -54,19 +55,20 @@ pub fn schema_accessor_from_table_ref_with_schema(
 }
 
 fn get_test_accessor() -> (TableRef, TestSchemaAccessor) {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let table = "sxt.t".parse().unwrap();
     let accessor = schema_accessor_from_table_ref_with_schema(
         table,
         indexmap! {
-            "s".parse().unwrap() => ColumnType::VarChar,
-            "i".parse().unwrap() => ColumnType::BigInt,
-            "d".parse().unwrap() => ColumnType::Int128,
-            "s0".parse().unwrap() => ColumnType::VarChar,
-            "i0".parse().unwrap() => ColumnType::BigInt,
-            "d0".parse().unwrap() => ColumnType::Int128,
-            "s1".parse().unwrap() => ColumnType::VarChar,
-            "i1".parse().unwrap() => ColumnType::BigInt,
-            "d1".parse().unwrap() => ColumnType::Int128,
+            "s".parse().unwrap() => ColumnType::VarChar(meta),
+            "i".parse().unwrap() => ColumnType::BigInt(meta),
+            "d".parse().unwrap() => ColumnType::Int128(meta),
+            "s0".parse().unwrap() => ColumnType::VarChar(meta),
+            "i0".parse().unwrap() => ColumnType::BigInt(meta),
+            "d0".parse().unwrap() => ColumnType::Int128(meta),
+            "s1".parse().unwrap() => ColumnType::VarChar(meta),
+            "i1".parse().unwrap() => ColumnType::BigInt(meta),
+            "d1".parse().unwrap() => ColumnType::Int128(meta),
         },
     );
     (table, accessor)
@@ -115,7 +117,7 @@ fn we_can_convert_an_ast_with_one_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
@@ -136,7 +138,7 @@ fn we_can_convert_an_ast_with_one_column_and_i128_data() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::Int128,
+            "a".parse().unwrap() => ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
@@ -157,7 +159,7 @@ fn we_can_convert_an_ast_with_one_column_and_a_filter_by_a_string_literal() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::VarChar,
+            "a".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 'abc'", &accessor);
@@ -178,8 +180,8 @@ fn we_cannot_convert_an_ast_with_duplicate_aliases() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     invalid_query_to_provable_ast(
@@ -202,7 +204,7 @@ fn we_dont_have_duplicate_filter_result_expressions() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -227,9 +229,9 @@ fn we_can_convert_an_ast_with_two_columns() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "c".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a,  b from sxt_tab where c = 123", &accessor);
@@ -250,9 +252,9 @@ fn we_can_convert_an_ast_with_two_columns_and_arithmetic() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "c".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -283,8 +285,8 @@ fn we_can_parse_all_result_columns_with_select_star() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3", &accessor);
@@ -305,8 +307,8 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b = +4", &accessor);
@@ -327,8 +329,8 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b <> +4", &accessor);
@@ -349,8 +351,8 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b <= -4", &accessor);
@@ -371,9 +373,9 @@ fn we_can_convert_an_ast_with_cond_and() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "c".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -401,9 +403,9 @@ fn we_can_convert_an_ast_with_cond_or() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "c".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -434,9 +436,9 @@ fn we_can_convert_an_ast_with_conds_or_not() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "c".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -460,14 +462,15 @@ fn we_can_convert_an_ast_with_conds_or_not() {
 
 #[test]
 fn we_can_convert_an_ast_with_conds_not_and_or() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
-            "f".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(meta),
+            "b".parse().unwrap() => ColumnType::BigInt(meta),
+            "c".parse().unwrap() => ColumnType::BigInt(meta),
+            "f".parse().unwrap() => ColumnType::BigInt(meta),
         },
     );
     let ast = query_to_provable_ast(
@@ -507,7 +510,7 @@ fn we_can_convert_an_ast_with_the_min_i128_filter_value_and_const() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -535,7 +538,7 @@ fn we_can_convert_an_ast_with_the_max_i128_filter_value_and_const() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -563,8 +566,8 @@ fn we_can_convert_an_ast_using_an_aliased_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -595,7 +598,7 @@ fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     invalid_query_to_provable_ast(t, "select * from sxt_tab where a = 3", &accessor);
@@ -607,7 +610,7 @@ fn we_cannot_convert_an_ast_with_a_column_type_different_than_equal_literal() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::VarChar,
+            "b".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     invalid_query_to_provable_ast(t, "select * from sxt_tab where b = 123", &accessor);
@@ -619,7 +622,7 @@ fn we_can_convert_an_ast_with_a_schema() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from eth.sxt_tab where a = 3", &accessor);
@@ -640,7 +643,7 @@ fn we_can_convert_an_ast_without_any_filter() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let expected_ast = QueryExpr::new(
@@ -673,8 +676,8 @@ fn we_can_parse_order_by_with_a_single_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3 order by b", &accessor);
@@ -695,8 +698,8 @@ fn we_can_parse_order_by_with_multiple_columns() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -725,8 +728,8 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "name".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -754,7 +757,7 @@ fn we_cannot_parse_order_by_referencing_a_column_name_instead_of_an_alias() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     invalid_query_to_provable_ast(
@@ -770,8 +773,8 @@ fn we_cannot_parse_order_by_referencing_invalid_aliased_expressions() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     // Note: While this operation is acceptable with PostgreSQL, we do not currently support it.
@@ -787,8 +790,8 @@ fn we_cannot_parse_order_by_referencing_an_alias_name_associated_with_two_differ
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "name".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     invalid_query_to_provable_ast(
@@ -826,8 +829,8 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "name".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     for order_by in ["s", "d"] {
@@ -862,7 +865,7 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 3", &accessor);
@@ -883,7 +886,7 @@ fn slice_is_still_applied_when_limit_is_u64_max_and_offset_is_zero() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 0", &accessor);
@@ -904,7 +907,7 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 7", &accessor);
@@ -925,7 +928,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset -7", &accessor);
@@ -946,7 +949,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 55 offset 3", &accessor);
@@ -971,8 +974,8 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "boolean".parse().unwrap() => ColumnType::Boolean,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "boolean".parse().unwrap() =>ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1009,8 +1012,8 @@ fn we_can_do_provable_group_by() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1037,8 +1040,8 @@ fn we_can_do_provable_group_by_without_sum() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1065,9 +1068,9 @@ fn we_can_do_provable_group_by_with_two_group_by_columns() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "state".parse().unwrap() => ColumnType::VarChar,
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "state".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1094,9 +1097,9 @@ fn we_can_do_provable_group_by_with_two_sums_and_filter() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "tax".parse().unwrap() => ColumnType::BigInt,
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "tax".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1129,8 +1132,8 @@ fn we_can_group_by_without_using_aggregate_functions() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1200,8 +1203,8 @@ fn we_cannot_parse_non_aggregated_or_non_group_by_columns_in_the_select_clause()
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     invalid_query_to_provable_ast(
@@ -1217,8 +1220,8 @@ fn alias_references_are_not_allowed_in_the_group_by() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     invalid_query_to_provable_ast(
@@ -1239,8 +1242,8 @@ fn order_by_cannot_reference_an_invalid_group_by_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     invalid_query_to_provable_ast(
@@ -1261,8 +1264,8 @@ fn group_by_column_cannot_be_a_column_result_alias() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     invalid_query_to_provable_ast(
@@ -1291,9 +1294,9 @@ fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_ex
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "bonus".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1321,9 +1324,9 @@ fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "bonus".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1355,9 +1358,9 @@ fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "bonus".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1385,9 +1388,9 @@ fn aggregate_result_columns_cannot_reference_invalid_columns() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "bonus".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     invalid_query_to_provable_ast(
@@ -1403,9 +1406,9 @@ fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_wi
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "department".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "bonus".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1463,10 +1466,10 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "f".parse().unwrap() => ColumnType::Int128,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "h".parse().unwrap() => ColumnType::Int128,
+            "a".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "f".parse().unwrap() =>ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "b".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "h".parse().unwrap() =>ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     // TODO: add `a / b as a_div_b` result expr once polars properly
@@ -1508,10 +1511,10 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "c".parse().unwrap() => ColumnType::BigInt,
-            "f".parse().unwrap() => ColumnType::BigInt,
-            "g".parse().unwrap() => ColumnType::BigInt,
-            "h".parse().unwrap() => ColumnType::BigInt,
+            "c".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "f".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "g".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "h".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1563,10 +1566,10 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "c".parse().unwrap() => ColumnType::BigInt,
-            "f".parse().unwrap() => ColumnType::BigInt,
-            "g".parse().unwrap() => ColumnType::BigInt,
-            "k".parse().unwrap() => ColumnType::BigInt,
+            "c".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "f".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "g".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "k".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let ast = query_to_provable_ast(
@@ -1636,43 +1639,45 @@ fn we_cannot_use_non_grouped_columns_outside_agg() {
 
 #[test]
 fn varchar_column_is_not_compatible_with_integer_column() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     assert_eq!(
         query!(select: ["-123 * s"], should_err: true),
         ConversionError::DataTypeMismatch {
-            left_type: ColumnType::BigInt.to_string(),
-            right_type: ColumnType::VarChar.to_string()
+            left_type: ColumnType::BigInt(meta).to_string(),
+            right_type: ColumnType::VarChar(meta).to_string()
         }
     );
     assert_eq!(
         query!(select: ["i - s"], should_err: true),
         ConversionError::DataTypeMismatch {
-            left_type: ColumnType::BigInt.to_string(),
-            right_type: ColumnType::VarChar.to_string()
+            left_type: ColumnType::BigInt(meta).to_string(),
+            right_type: ColumnType::VarChar(meta).to_string()
         }
     );
     assert_eq!(
         query!(select: ["s"], filter: "'abc' = i", should_err: true),
         ConversionError::DataTypeMismatch {
-            left_type: ColumnType::VarChar.to_string(),
-            right_type: ColumnType::BigInt.to_string(),
+            left_type: ColumnType::VarChar(meta).to_string(),
+            right_type: ColumnType::BigInt(meta).to_string(),
         }
     );
     assert_eq!(
         query!(select: ["s"], filter: "'abc' != i", should_err: true),
         ConversionError::DataTypeMismatch {
-            left_type: ColumnType::VarChar.to_string(),
-            right_type: ColumnType::BigInt.to_string(),
+            left_type: ColumnType::VarChar(meta).to_string(),
+            right_type: ColumnType::BigInt(meta).to_string(),
         }
     );
 }
 
 #[test]
 fn arithmetic_operations_are_not_allowed_with_varchar_column() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     assert_eq!(
         query!(select: ["s - s1"], should_err: true),
         ConversionError::DataTypeMismatch {
-            left_type: ColumnType::VarChar.to_string(),
-            right_type: ColumnType::VarChar.to_string()
+            left_type: ColumnType::VarChar(meta).to_string(),
+            right_type: ColumnType::VarChar(meta).to_string()
         }
     );
 }
@@ -1929,9 +1934,9 @@ fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
     let schema_accessor = schema_accessor_from_table_ref_with_schema(
         "test.table".parse().unwrap(),
         indexmap! {
-            "bigint_column".parse().unwrap() => ColumnType::BigInt,
-            "varchar_column".parse().unwrap() => ColumnType::VarChar,
-            "int128_column".parse().unwrap() => ColumnType::Int128,
+            "bigint_column".parse().unwrap() => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "varchar_column".parse().unwrap() => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+            "int128_column".parse().unwrap() =>ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE),
         },
     );
     let default_schema = "test".parse().unwrap();

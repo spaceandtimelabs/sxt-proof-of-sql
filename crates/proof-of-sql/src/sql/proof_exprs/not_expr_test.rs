@@ -17,6 +17,7 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
+use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
@@ -121,6 +122,6 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
         not(equal(column(t, "b", &accessor), const_int128(1)));
     let alloc = Bump::new();
     let res = not_expr.result_evaluate(2, &alloc, &accessor);
-    let expected_res = Column::Boolean(&[true, false]);
+    let expected_res = Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[true, false]);
     assert_eq!(res, expected_res);
 }

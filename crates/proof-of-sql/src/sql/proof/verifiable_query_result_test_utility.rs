@@ -11,6 +11,7 @@ use blitzar::proof::InnerProductProof;
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
 use num_traits::One;
 use serde::Serialize;
+use crate::base::database::ColumnTypeAssociatedData;
 
 /// This function takes a valid `verifiable_result`, copies it, tweaks it, and checks that
 /// verification fails.
@@ -92,7 +93,7 @@ fn tamper_no_result(
 ) {
     // add a result
     let mut res_p = res.clone();
-    let cols: [Column<'_, Curve25519Scalar>; 1] = [Column::BigInt(&[0_i64; 0])];
+    let cols: [Column<'_, Curve25519Scalar>; 1] = [Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[0_i64; 0])];
     res_p.provable_result = Some(ProvableQueryResult::new(0, &cols));
     assert!(res_p.verify(expr, accessor, &()).is_err());
 
@@ -115,7 +116,7 @@ fn tamper_empty_result(
 ) {
     // try to add a result
     let mut res_p = res.clone();
-    let cols: [Column<'_, Curve25519Scalar>; 1] = [Column::BigInt(&[123_i64])];
+    let cols: [Column<'_, Curve25519Scalar>; 1] = [Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[123_i64])];
     res_p.provable_result = Some(ProvableQueryResult::new(1, &cols));
     assert!(res_p.verify(expr, accessor, &()).is_err());
 }

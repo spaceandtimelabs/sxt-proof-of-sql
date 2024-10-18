@@ -360,9 +360,11 @@ mod tests {
         scalar::Curve25519Scalar,
     };
     use curve25519_dalek::RistrettoPoint;
+    use crate::base::database::ColumnTypeAssociatedData;
 
     #[test]
     fn we_can_construct_column_commitments_from_columns_and_identifiers() {
+        let col_meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         // empty case
         let column_commitments =
             ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset::<
@@ -415,7 +417,7 @@ mod tests {
                 .get_metadata(&bigint_id)
                 .unwrap()
                 .column_type(),
-            &ColumnType::BigInt
+            &ColumnType::BigInt(col_meta)
         );
         assert_eq!(
             column_commitments.get_commitment(&bigint_id).unwrap(),
@@ -427,7 +429,7 @@ mod tests {
                 .get_metadata(&varchar_id)
                 .unwrap()
                 .column_type(),
-            &ColumnType::VarChar
+            &ColumnType::VarChar(col_meta)
         );
         assert_eq!(
             column_commitments.get_commitment(&varchar_id).unwrap(),
@@ -439,7 +441,7 @@ mod tests {
                 .get_metadata(&scalar_id)
                 .unwrap()
                 .column_type(),
-            &ColumnType::Scalar
+            &ColumnType::Scalar(col_meta)
         );
         assert_eq!(
             column_commitments.get_commitment(&scalar_id).unwrap(),
@@ -482,7 +484,7 @@ mod tests {
         let duplicate_identifier_b = "duplicate_identifier_b".parse().unwrap();
         let unique_identifier = "unique_identifier".parse().unwrap();
 
-        let empty_column = OwnedColumn::<Curve25519Scalar>::BigInt(vec![]);
+        let empty_column = OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![]);
 
         let from_columns_result = ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
             [
@@ -547,6 +549,7 @@ mod tests {
 
     #[test]
     fn we_can_iterate_over_column_commitments() {
+        let col_meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let bigint_id: Identifier = "bigint_column".parse().unwrap();
         let varchar_id: Identifier = "varchar_column".parse().unwrap();
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
@@ -573,17 +576,17 @@ mod tests {
         let (identifier, metadata, commitment) = iterator.next().unwrap();
         assert_eq!(commitment, &expected_commitments[0]);
         assert_eq!(identifier, &bigint_id);
-        assert_eq!(metadata.column_type(), &ColumnType::BigInt);
+        assert_eq!(metadata.column_type(), &ColumnType::BigInt(col_meta));
 
         let (identifier, metadata, commitment) = iterator.next().unwrap();
         assert_eq!(commitment, &expected_commitments[1]);
         assert_eq!(identifier, &varchar_id);
-        assert_eq!(metadata.column_type(), &ColumnType::VarChar);
+        assert_eq!(metadata.column_type(), &ColumnType::VarChar(col_meta));
 
         let (identifier, metadata, commitment) = iterator.next().unwrap();
         assert_eq!(commitment, &expected_commitments[2]);
         assert_eq!(identifier, &scalar_id);
-        assert_eq!(metadata.column_type(), &ColumnType::Scalar);
+        assert_eq!(metadata.column_type(), &ColumnType::Scalar(col_meta));
     }
 
     #[test]
@@ -823,6 +826,7 @@ mod tests {
 
     #[test]
     fn we_can_sub_column_commitments() {
+        let col_meta =ColumnTypeAssociatedData::NOT_NULLABLE;
         let bigint_id: Identifier = "bigint_column".parse().unwrap();
         let bigint_data = [1i64, 5, -5, 0, 10];
 
@@ -885,18 +889,18 @@ mod tests {
         );
 
         let bigint_metadata = actual_difference.get_metadata(&bigint_id).unwrap();
-        assert_eq!(bigint_metadata.column_type(), &ColumnType::BigInt);
+        assert_eq!(bigint_metadata.column_type(), &ColumnType::BigInt(col_meta));
         if let ColumnBounds::BigInt(Bounds::Bounded(bounds)) = bigint_metadata.bounds() {
             assert_eq!(bounds.min(), &-5);
             assert_eq!(bounds.max(), &10);
         }
 
         let varchar_metadata = actual_difference.get_metadata(&varchar_id).unwrap();
-        assert_eq!(varchar_metadata.column_type(), &ColumnType::VarChar);
+        assert_eq!(varchar_metadata.column_type(), &ColumnType::VarChar(col_meta));
         assert_eq!(varchar_metadata.bounds(), &ColumnBounds::NoOrder);
 
         let scalar_metadata = actual_difference.get_metadata(&scalar_id).unwrap();
-        assert_eq!(scalar_metadata.column_type(), &ColumnType::Scalar);
+        assert_eq!(scalar_metadata.column_type(), &ColumnType::Scalar(col_meta));
         assert_eq!(scalar_metadata.bounds(), &ColumnBounds::NoOrder);
     }
 

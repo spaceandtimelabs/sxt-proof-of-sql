@@ -17,6 +17,7 @@ use arrow::{
 };
 use curve25519_dalek::RistrettoPoint;
 use num_traits::{One, Zero};
+use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
@@ -136,13 +137,14 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
 #[cfg(feature = "arrow")]
 #[test]
 fn we_can_form_the_provable_query_result() {
-    let col1: Column<Curve25519Scalar> = Column::BigInt(&[11_i64, 12]);
-    let col2: Column<Curve25519Scalar> = Column::BigInt(&[-3_i64, -4]);
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let col1: Column<Curve25519Scalar> = Column::BigInt(meta, &[11_i64, 12]);
+    let col2: Column<Curve25519Scalar> = Column::BigInt(meta, &[-3_i64, -4]);
     let res = ProvableQueryResult::new(2, &[col1, col2]);
 
     let column_fields = vec![
-        ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
-        ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
+        ColumnField::new("a".parse().unwrap(), ColumnType::BigInt(meta)),
+        ColumnField::new("b".parse().unwrap(), ColumnType::BigInt(meta)),
     ];
     let res = RecordBatch::try_from(
         res.to_owned_table::<Curve25519Scalar>(&column_fields)

@@ -5,6 +5,7 @@ use ark_std::UniformRand;
 use blitzar::proof::InnerProductProof;
 use merlin::Transcript;
 use num_traits::{One, Zero};
+use crate::base::database::ColumnTypeAssociatedData;
 
 pub fn test_simple_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
     prover_setup: &CP::ProverPublicSetup<'_>,
@@ -20,7 +21,7 @@ pub fn test_simple_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
     );
 
     let commits = Vec::from_columns_with_offset(
-        [Column::Scalar(&[
+        [Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, &[
             CP::Scalar::one(),
             CP::Scalar::one() + CP::Scalar::one(),
         ])],
@@ -50,7 +51,7 @@ pub fn test_commitment_evaluation_proof_with_length_1<CP: CommitmentEvaluationPr
     let mut transcript = Transcript::new(b"evaluation_proof");
     let proof = CP::new(&mut transcript, &[r], &[], 0, prover_setup);
 
-    let commits = Vec::from_columns_with_offset([Column::Scalar(&[r])], 0, prover_setup);
+    let commits = Vec::from_columns_with_offset([Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, &[r])], 0, prover_setup);
 
     let mut transcript = Transcript::new(b"evaluation_proof");
     let r = proof.verify_proof(&mut transcript, &commits[0], &r, &[], 0, 1, verifier_setup);
@@ -78,7 +79,7 @@ pub fn test_random_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
     let mut transcript = Transcript::new(b"evaluation_proof");
     let proof = CP::new(&mut transcript, &a, &b_point, offset as u64, prover_setup);
 
-    let commits = Vec::from_columns_with_offset([Column::Scalar(&a)], offset, prover_setup);
+    let commits = Vec::from_columns_with_offset([Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, &a)], offset, prover_setup);
 
     let mut b = vec![CP::Scalar::zero(); a.len()];
     crate::base::polynomial::compute_evaluation_vector(&mut b, &b_point);

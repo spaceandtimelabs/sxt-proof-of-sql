@@ -18,6 +18,7 @@ use crate::{
 };
 use bumpalo::Bump;
 use serde::Serialize;
+use crate::base::database::ColumnTypeAssociatedData;
 
 #[derive(Debug, Serialize, Default)]
 pub(super) struct EmptyTestQueryExpr {
@@ -33,7 +34,7 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
     ) -> Vec<Column<'a, S>> {
         let zeros = vec![0; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
-        vec![Column::BigInt(res); self.columns]
+        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, res); self.columns]
     }
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
     fn final_round_evaluate<'a>(
@@ -47,7 +48,7 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
         let _ = std::iter::repeat_with(|| builder.produce_intermediate_mle(res))
             .take(self.columns)
             .collect::<Vec<_>>();
-        vec![Column::BigInt(res); self.columns]
+        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, res); self.columns]
     }
 }
 impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
@@ -81,7 +82,7 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         (1..=self.columns)
-            .map(|i| ColumnField::new(format!("a{i}").parse().unwrap(), ColumnType::BigInt))
+            .map(|i| ColumnField::new(format!("a{i}").parse().unwrap(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)))
             .collect()
     }
 

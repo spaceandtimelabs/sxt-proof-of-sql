@@ -19,6 +19,7 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
+use crate::base::database::ColumnTypeAssociatedData;
 
 // select a, c, b + 4 as res, d from sxt.t where a - b = 3
 #[test]
@@ -322,6 +323,6 @@ fn we_can_compute_the_correct_output_of_an_add_subtract_expr_using_result_evalua
         .iter()
         .map(|v| Curve25519Scalar::from(*v))
         .collect::<Vec<_>>();
-    let expected_res = Column::Scalar(&expected_res_scalar);
+    let expected_res = Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, &expected_res_scalar);
     assert_eq!(res, expected_res);
 }

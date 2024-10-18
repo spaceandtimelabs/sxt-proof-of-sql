@@ -5,6 +5,7 @@ use crate::base::{
 };
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
+use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluate() {
@@ -37,7 +38,7 @@ fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluat
     );
     let alloc = Bump::new();
     let res = bool_expr.result_evaluate(17, &alloc, &accessor);
-    let expected_res = Column::Boolean(&[
+    let expected_res = Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[
         false, true, false, true, false, true, false, true, false, true, false, true, false, true,
         false, false, false,
     ]);

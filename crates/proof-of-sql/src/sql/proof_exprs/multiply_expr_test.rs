@@ -19,6 +19,7 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
+use crate::base::database::ColumnTypeAssociatedData;
 
 // select a * 2 as a, c, b * 4.5 as b, d * 3  + 4.7 as d, e from sxt.t where d * 3.9 = 8.19
 #[test]
@@ -351,6 +352,6 @@ fn we_can_compute_the_correct_output_of_a_multiply_expr_using_result_evaluate() 
         .iter()
         .map(|v| Curve25519Scalar::from(*v))
         .collect::<Vec<_>>();
-    let expected_res = Column::Scalar(&expected_res_scalar);
+    let expected_res = Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, &expected_res_scalar);
     assert_eq!(res, expected_res);
 }

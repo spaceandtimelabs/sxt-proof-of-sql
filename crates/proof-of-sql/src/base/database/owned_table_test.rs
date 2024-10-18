@@ -10,6 +10,7 @@ use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
+use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {
@@ -18,6 +19,7 @@ fn we_can_create_an_owned_table_with_no_columns() {
 }
 #[test]
 fn we_can_create_an_empty_owned_table() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let owned_table = owned_table::<DoryScalar>([
         bigint("bigint", [0; 0]),
         int128("decimal", [0; 0]),
@@ -28,28 +30,29 @@ fn we_can_create_an_empty_owned_table() {
     let mut table = IndexMap::default();
     table.insert(
         Identifier::try_new("bigint").unwrap(),
-        OwnedColumn::BigInt(vec![]),
+        OwnedColumn::BigInt(meta, vec![]),
     );
     table.insert(
         Identifier::try_new("decimal").unwrap(),
-        OwnedColumn::Int128(vec![]),
+        OwnedColumn::Int128(meta, vec![]),
     );
     table.insert(
         Identifier::try_new("varchar").unwrap(),
-        OwnedColumn::VarChar(vec![]),
+        OwnedColumn::VarChar(meta, vec![]),
     );
     table.insert(
         Identifier::try_new("scalar").unwrap(),
-        OwnedColumn::Scalar(vec![]),
+        OwnedColumn::Scalar(meta, vec![]),
     );
     table.insert(
         Identifier::try_new("boolean").unwrap(),
-        OwnedColumn::Boolean(vec![]),
+        OwnedColumn::Boolean(meta, vec![]),
     );
     assert_eq!(owned_table.into_inner(), table);
 }
 #[test]
 fn we_can_create_an_owned_table_with_data() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     let owned_table = owned_table([
         bigint("bigint", [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
         int128("decimal", [0, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX]),
@@ -70,6 +73,7 @@ fn we_can_create_an_owned_table_with_data() {
     table.insert(
         Identifier::try_new("time_stamp").unwrap(),
         OwnedColumn::TimestampTZ(
+            meta,
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
             [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX].into(),
@@ -77,15 +81,15 @@ fn we_can_create_an_owned_table_with_data() {
     );
     table.insert(
         Identifier::try_new("bigint").unwrap(),
-        OwnedColumn::BigInt(vec![0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
+        OwnedColumn::BigInt(meta, vec![0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
     );
     table.insert(
         Identifier::try_new("decimal").unwrap(),
-        OwnedColumn::Int128(vec![0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX]),
+        OwnedColumn::Int128(meta, vec![0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX]),
     );
     table.insert(
         Identifier::try_new("varchar").unwrap(),
-        OwnedColumn::VarChar(vec![
+        OwnedColumn::VarChar(meta, vec![
             "0".to_string(),
             "1".to_string(),
             "2".to_string(),
@@ -99,7 +103,7 @@ fn we_can_create_an_owned_table_with_data() {
     );
     table.insert(
         Identifier::try_new("scalar").unwrap(),
-        OwnedColumn::Scalar(vec![
+        OwnedColumn::Scalar(meta, vec![
             DoryScalar::from(0),
             1.into(),
             2.into(),
@@ -113,7 +117,7 @@ fn we_can_create_an_owned_table_with_data() {
     );
     table.insert(
         Identifier::try_new("boolean").unwrap(),
-        OwnedColumn::Boolean(vec![
+        OwnedColumn::Boolean(meta, vec![
             true, false, true, false, true, false, true, false, true,
         ]),
     );
@@ -177,10 +181,11 @@ fn we_get_inequality_between_tables_with_differing_data() {
 }
 #[test]
 fn we_cannot_create_an_owned_table_with_differing_column_lengths() {
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
     assert!(matches!(
         OwnedTable::<Curve25519Scalar>::try_from_iter([
-            ("a".parse().unwrap(), OwnedColumn::BigInt(vec![0])),
-            ("b".parse().unwrap(), OwnedColumn::BigInt(vec![])),
+            ("a".parse().unwrap(), OwnedColumn::BigInt(meta, vec![0])),
+            ("b".parse().unwrap(), OwnedColumn::BigInt(meta, vec![])),
         ]),
         Err(OwnedTableError::ColumnLengthMismatch)
     ));

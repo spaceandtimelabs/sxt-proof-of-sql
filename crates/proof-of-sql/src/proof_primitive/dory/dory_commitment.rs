@@ -108,6 +108,7 @@ mod tests {
         proof_primitive::dory::{rand_util::test_rng, ProverSetup, PublicParameters},
     };
     use ark_ec::pairing::Pairing;
+    use crate::base::database::ColumnTypeAssociatedData;
 
     #[test]
     fn we_can_convert_from_columns() {
@@ -131,8 +132,8 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a.to_vec()),
-            OwnedColumn::VarChar(column_b.to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, column_a.to_vec()),
+            OwnedColumn::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, column_b.to_vec()),
         ];
 
         let commitments = Vec::<DoryCommitment>::from_columns_with_offset(&columns, 0, &setup);
@@ -156,6 +157,7 @@ mod tests {
 
     #[test]
     fn we_can_append_rows() {
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -166,15 +168,15 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a[..3].to_vec()),
-            OwnedColumn::VarChar(column_b[..3].to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a[..3].to_vec()),
+            OwnedColumn::VarChar(meta, column_b[..3].to_vec()),
         ];
 
         let mut commitments = Vec::<DoryCommitment>::from_columns_with_offset(&columns, 0, &setup);
 
         let new_columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a[3..].to_vec()),
-            OwnedColumn::VarChar(column_b[3..].to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a[3..].to_vec()),
+            OwnedColumn::VarChar(meta, column_b[3..].to_vec()),
         ];
 
         commitments
@@ -206,6 +208,7 @@ mod tests {
 
     #[test]
     fn we_cannot_append_rows_with_different_column_count() {
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -214,8 +217,8 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a[..3].to_vec()),
-            OwnedColumn::VarChar(column_b[..3].to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a[..3].to_vec()),
+            OwnedColumn::VarChar(meta, column_b[..3].to_vec()),
         ];
 
         let mut commitments = Vec::<DoryCommitment>::from_columns_with_offset(&columns, 0, &setup);
@@ -226,16 +229,16 @@ mod tests {
             Err(NumColumnsMismatch)
         ));
 
-        let new_columns = vec![OwnedColumn::<DoryScalar>::BigInt(column_a[3..].to_vec())];
+        let new_columns = vec![OwnedColumn::<DoryScalar>::BigInt(meta, column_a[3..].to_vec())];
         assert!(matches!(
             commitments.try_append_rows_with_offset(&new_columns, 3, &setup),
             Err(NumColumnsMismatch)
         ));
 
         let new_columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a[3..].to_vec()),
-            OwnedColumn::VarChar(column_b[3..].to_vec()),
-            OwnedColumn::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a[3..].to_vec()),
+            OwnedColumn::VarChar(meta, column_b[3..].to_vec()),
+            OwnedColumn::BigInt(meta, column_a[3..].to_vec()),
         ];
         assert!(matches!(
             commitments.try_append_rows_with_offset(&new_columns, 3, &setup),
@@ -245,6 +248,7 @@ mod tests {
 
     #[test]
     fn we_can_extend_columns() {
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -257,15 +261,15 @@ mod tests {
         let column_d = [78i64, 90, 1112];
 
         let columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a.to_vec()),
-            OwnedColumn::VarChar(column_b.to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a.to_vec()),
+            OwnedColumn::VarChar(meta, column_b.to_vec()),
         ];
 
         let mut commitments = Vec::<DoryCommitment>::from_columns_with_offset(&columns, 0, &setup);
 
         let new_columns = vec![
-            OwnedColumn::<DoryScalar>::VarChar(column_c.to_vec()),
-            OwnedColumn::BigInt(column_d.to_vec()),
+            OwnedColumn::<DoryScalar>::VarChar(meta, column_c.to_vec()),
+            OwnedColumn::BigInt(meta, column_d.to_vec()),
         ];
 
         commitments.extend_columns_with_offset(&new_columns, 0, &setup);
@@ -302,6 +306,7 @@ mod tests {
 
     #[test]
     fn we_can_add_commitment_collections() {
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -312,15 +317,15 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a[..3].to_vec()),
-            OwnedColumn::VarChar(column_b[..3].to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a[..3].to_vec()),
+            OwnedColumn::VarChar(meta, column_b[..3].to_vec()),
         ];
 
         let commitments_a = Vec::<DoryCommitment>::from_columns_with_offset(&columns, 0, &setup);
 
         let new_columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a[3..].to_vec()),
-            OwnedColumn::VarChar(column_b[3..].to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a[3..].to_vec()),
+            OwnedColumn::VarChar(meta, column_b[3..].to_vec()),
         ];
 
         let commitments_b =
@@ -353,6 +358,7 @@ mod tests {
 
     #[test]
     fn we_cannot_add_commitment_collections_of_mixed_column_counts() {
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -361,8 +367,8 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a[..3].to_vec()),
-            OwnedColumn::VarChar(column_b[..3].to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a[..3].to_vec()),
+            OwnedColumn::VarChar(meta, column_b[..3].to_vec()),
         ];
 
         let commitments = Vec::<DoryCommitment>::from_columns_with_offset(&columns, 0, &setup);
@@ -375,7 +381,7 @@ mod tests {
             Err(NumColumnsMismatch)
         ));
 
-        let new_columns = vec![OwnedColumn::<DoryScalar>::BigInt(column_a[3..].to_vec())];
+        let new_columns = vec![OwnedColumn::<DoryScalar>::BigInt(meta, column_a[3..].to_vec())];
         let new_commitments =
             Vec::<DoryCommitment>::from_columns_with_offset(&new_columns, 3, &setup);
         assert!(matches!(
@@ -384,9 +390,9 @@ mod tests {
         ));
 
         let new_columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a[3..].to_vec()),
-            OwnedColumn::VarChar(column_b[3..].to_vec()),
-            OwnedColumn::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a[3..].to_vec()),
+            OwnedColumn::VarChar(meta, column_b[3..].to_vec()),
+            OwnedColumn::BigInt(meta, column_a[3..].to_vec()),
         ];
         let new_commitments =
             Vec::<DoryCommitment>::from_columns_with_offset(&new_columns, 3, &setup);
@@ -398,6 +404,7 @@ mod tests {
 
     #[test]
     fn we_can_sub_commitment_collections() {
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -408,15 +415,15 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a[..3].to_vec()),
-            OwnedColumn::VarChar(column_b[..3].to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a[..3].to_vec()),
+            OwnedColumn::VarChar(meta, column_b[..3].to_vec()),
         ];
 
         let commitments_a = Vec::<DoryCommitment>::from_columns_with_offset(&columns, 0, &setup);
 
         let full_columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a.to_vec()),
-            OwnedColumn::VarChar(column_b.to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a.to_vec()),
+            OwnedColumn::VarChar(meta, column_b.to_vec()),
         ];
 
         let commitments_b =
@@ -441,6 +448,7 @@ mod tests {
 
     #[test]
     fn we_cannot_sub_commitment_collections_of_mixed_column_counts() {
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -449,8 +457,8 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a[..3].to_vec()),
-            OwnedColumn::VarChar(column_b[..3].to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a[..3].to_vec()),
+            OwnedColumn::VarChar(meta, column_b[..3].to_vec()),
         ];
 
         let commitments = Vec::<DoryCommitment>::from_columns_with_offset(&columns, 0, &setup);
@@ -463,7 +471,7 @@ mod tests {
             Err(NumColumnsMismatch)
         ));
 
-        let full_columns = vec![OwnedColumn::<DoryScalar>::BigInt(column_a.to_vec())];
+        let full_columns = vec![OwnedColumn::<DoryScalar>::BigInt(meta, column_a.to_vec())];
         let full_commitments =
             Vec::<DoryCommitment>::from_columns_with_offset(&full_columns, 0, &setup);
         assert!(matches!(
@@ -472,9 +480,9 @@ mod tests {
         ));
 
         let full_columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(column_a.to_vec()),
-            OwnedColumn::VarChar(column_b.to_vec()),
-            OwnedColumn::BigInt(column_a.to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(meta, column_a.to_vec()),
+            OwnedColumn::VarChar(meta, column_b.to_vec()),
+            OwnedColumn::BigInt(meta, column_a.to_vec()),
         ];
         let full_commitments =
             Vec::<DoryCommitment>::from_columns_with_offset(&full_columns, 0, &setup);
