@@ -303,34 +303,38 @@ impl Display for ColumnTypeAssociatedData {
 pub enum ColumnType {
     /// Mapped to bool
     #[serde(alias = "BOOLEAN", alias = "boolean")]
-    Boolean(ColumnTypeAssociatedData),
+    Boolean(#[serde(default)] ColumnTypeAssociatedData),
     /// Mapped to i8
     #[serde(alias = "TINYINT", alias = "tinyint")]
-    TinyInt(ColumnTypeAssociatedData),
+    TinyInt(#[serde(default)] ColumnTypeAssociatedData),
     /// Mapped to i16
     #[serde(alias = "SMALLINT", alias = "smallint")]
-    SmallInt(ColumnTypeAssociatedData),
+    SmallInt(#[serde(default)] ColumnTypeAssociatedData),
     /// Mapped to i32
     #[serde(alias = "INT", alias = "int")]
-    Int(ColumnTypeAssociatedData),
+    Int(#[serde(default)] ColumnTypeAssociatedData),
     /// Mapped to i64
     #[serde(alias = "BIGINT", alias = "bigint")]
-    BigInt(ColumnTypeAssociatedData),
+    BigInt(#[serde(default)] ColumnTypeAssociatedData),
     /// Mapped to i128
     #[serde(rename = "Decimal", alias = "DECIMAL", alias = "decimal")]
-    Int128(ColumnTypeAssociatedData),
+    Int128(#[serde(default)] ColumnTypeAssociatedData),
     /// Mapped to String
     #[serde(alias = "VARCHAR", alias = "varchar")]
-    VarChar(ColumnTypeAssociatedData),
+    VarChar(#[serde(default)] ColumnTypeAssociatedData),
     /// Mapped to i256
     #[serde(rename = "Decimal75", alias = "DECIMAL75", alias = "decimal75")]
-    Decimal75(ColumnTypeAssociatedData, Precision, i8),
+    Decimal75(#[serde(default)] ColumnTypeAssociatedData, Precision, i8),
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
-    TimestampTZ(ColumnTypeAssociatedData, PoSQLTimeUnit, PoSQLTimeZone),
+    TimestampTZ(
+        #[serde(default)] ColumnTypeAssociatedData,
+        PoSQLTimeUnit,
+        PoSQLTimeZone,
+    ),
     /// Mapped to [`Curve25519Scalar`](crate::base::scalar::Curve25519Scalar)
     #[serde(alias = "SCALAR", alias = "scalar")]
-    Scalar(ColumnTypeAssociatedData),
+    Scalar(#[serde(default)] ColumnTypeAssociatedData),
 }
 
 impl ColumnType {
