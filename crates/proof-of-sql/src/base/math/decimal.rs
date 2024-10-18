@@ -4,10 +4,9 @@ use alloc::{
     format,
     string::{String, ToString},
 };
-use proof_of_sql_parser::intermediate_decimal::{IntermediateDecimal, IntermediateDecimalError};
+use proof_of_sql_utils::big_decimal_ext::BigDecimalExt;
 use serde::{Deserialize, Deserializer, Serialize};
 use snafu::Snafu;
-
 /// Errors related to decimal operations.
 #[derive(Snafu, Debug, Eq, PartialEq)]
 pub enum DecimalError {
@@ -43,14 +42,6 @@ pub enum DecimalError {
     RoundingError {
         /// The underlying error
         error: String,
-    },
-
-    /// Errors that may occur when parsing an intermediate decimal
-    /// into a posql decimal
-    #[snafu(transparent)]
-    IntermediateDecimalConversionError {
-        /// The underlying source error
-        source: IntermediateDecimalError,
     },
 }
 
@@ -195,17 +186,6 @@ impl<S: Scalar> Decimal<S> {
 /// Returns `DecimalError::InvalidPrecision` error if the number of digits in
 /// the decimal exceeds the `target_precision` before or after adjusting for
 /// `target_scale`, or if the target precision is zero.
-pub(crate) fn try_into_to_scalar<S: Scalar>(
-    d: &IntermediateDecimal,
-    target_precision: Precision,
-    target_scale: i8,
-) -> DecimalResult<S> {
-    d.try_into_bigint_with_precision_and_scale(target_precision.value(), target_scale)?
-        .try_into()
-        .map_err(|e: ScalarConversionError| DecimalError::InvalidDecimal {
-            error: e.to_string(),
-        })
-}
 
 /// Scale scalar by the given scale factor. Negative scaling is not allowed.
 /// Note that we do not check for overflow.
@@ -231,6 +211,7 @@ mod scale_adjust_test {
 
     use super::*;
     use crate::base::scalar::Curve25519Scalar;
+    use bigdecimal::BigDecimal;
     use num_bigint::BigInt;
 
     #[test]
@@ -251,7 +232,7 @@ mod scale_adjust_test {
 
     #[test]
     fn we_can_match_exact_decimals_from_queries_to_db() {
-        let decimal: IntermediateDecimal = "123.45".parse().unwrap();
+        let decimal: BigDecimal = "123.45".parse().unwrap();
         let target_scale = 2;
         let target_precision = 20;
         let big_int =

@@ -6,12 +6,13 @@ use crate::base::{
     math::decimal::Precision,
     scalar::Curve25519Scalar,
 };
+use bigdecimal::BigDecimal;
 use proof_of_sql_parser::{
     intermediate_ast::Literal,
-    intermediate_decimal::IntermediateDecimal,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
     utility::*,
 };
+use proof_of_sql_utils::big_decimal_ext::BigDecimalExt;
 
 #[test]
 fn we_can_evaluate_a_simple_literal() {
@@ -46,7 +47,7 @@ fn we_can_evaluate_a_simple_literal() {
     assert_eq!(actual_column, expected_column);
 
     // A group of people has about 0.67 cats per person
-    let expr = lit("0.67".parse::<IntermediateDecimal>().unwrap());
+    let expr = lit("0.67".parse::<BigDecimal>().unwrap());
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_column = OwnedColumn::Decimal75(Precision::new(2).unwrap(), 2, vec![67.into(); 5]);
     assert_eq!(actual_column, expected_column);
@@ -165,10 +166,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
     // Multiply decimals with 0.75 and add smallints to the product
     let expr = add(
         col("smallints"),
-        mul(
-            col("decimals"),
-            lit("0.75".parse::<IntermediateDecimal>().unwrap()),
-        ),
+        mul(col("decimals"), lit("0.75".parse::<BigDecimal>().unwrap())),
     );
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_scalars = [-2000, -925, 150, 1225, 2300]
@@ -180,10 +178,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
 
     // Decimals over 2.5 plus int128s
     let expr = add(
-        div(
-            col("decimals"),
-            lit("2.5".parse::<IntermediateDecimal>().unwrap()),
-        ),
+        div(col("decimals"), lit("2.5".parse::<BigDecimal>().unwrap())),
         col("int128s"),
     );
     let actual_column = table.evaluate(&expr).unwrap();

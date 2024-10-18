@@ -5,5 +5,6 @@ pub mod decimal;
 mod decimal_tests;
 mod log;
 pub(crate) use log::log2_up;
+pub mod big_decimal_ext;
 /// TODO: add docs
 pub(crate) mod permutation;
