@@ -5,6 +5,7 @@ use crate::base::{
     slice_ops::slice_cast_with,
 };
 use alloc::{sync::Arc, vec::Vec};
+use ark_std::iterable::Iterable;
 #[cfg(feature = "arrow")]
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
@@ -19,80 +20,51 @@ use proof_of_sql_parser::{
 };
 use serde::{Deserialize, Serialize};
 
-/// Represents a read-only view of a column in an in-memory,
-/// column-oriented database.
-///
-/// Note: The types here should correspond to native SQL database types.
-/// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
-/// a description of the native types used by Apache Ignite.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 #[non_exhaustive]
-pub enum Column<'a, S: Scalar> {
+pub enum ColumnKind<'a, S: Scalar> {
     /// Boolean columns
-    Boolean(ColumnNullability, &'a [bool]),
+    Boolean(&'a [bool]),
     /// i8 columns
-    TinyInt(ColumnNullability, &'a [i8]),
+    TinyInt(&'a [i8]),
     /// i16 columns
-    SmallInt(ColumnNullability, &'a [i16]),
+    SmallInt(&'a [i16]),
     /// i32 columns
-    Int(ColumnNullability, &'a [i32]),
+    Int(&'a [i32]),
     /// i64 columns
-    BigInt(ColumnNullability, &'a [i64]),
+    BigInt(&'a [i64]),
     /// i128 columns
-    Int128(ColumnNullability, &'a [i128]),
+    Int128(&'a [i128]),
     /// Decimal columns with a max width of 252 bits
     ///  - the backing store maps to the type [`crate::base::scalar::Curve25519Scalar`]
-    Decimal75(ColumnNullability, Precision, i8, &'a [S]),
+    Decimal75(Precision, i8, &'a [S]),
     /// Scalar columns
-    Scalar(ColumnNullability, &'a [S]),
+    Scalar(&'a [S]),
     /// String columns
     ///  - the first element maps to the str values.
     ///  - the second element maps to the str hashes (see [`crate::base::scalar::Scalar`]).
-    VarChar(ColumnNullability, (&'a [&'a str], &'a [S])),
+    VarChar((&'a [&'a str], &'a [S])),
     /// Timestamp columns with timezone
     /// - the first element maps to the stored `TimeUnit`
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
-    TimestampTZ(ColumnNullability, PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
 }
 
-impl<'a, S: Scalar> Column<'a, S> {
-    fn get_nullability(&self) -> ColumnNullability {
-        *match self {
-            Self::Boolean(meta, _) => meta,
-            Self::TinyInt(meta, _) => meta,
-            Self::SmallInt(meta, _) => meta,
-            Self::Int(meta, _) => meta,
-            Self::BigInt(meta, _) => meta,
-            Self::VarChar(meta, _) => meta,
-            Self::Int128(meta, _) => meta,
-            Self::Scalar(meta, _) => meta,
-            Self::Decimal75(meta, ..) => meta,
-            Self::TimestampTZ(meta, ..) => meta,
-        }
-    }
-
-    /// Can null be stored in this column
-    pub fn is_nullable(&self) -> bool {
-        self.get_nullability() == ColumnNullability::Nullable
-    }
-    /// Provides the column type associated with the column
-    #[must_use]
-    pub fn column_type(&self) -> ColumnType {
-        match self {
-            Self::Boolean(meta, _) => ColumnType::Boolean(*meta),
-            Self::TinyInt(meta, _) => ColumnType::TinyInt(*meta),
-            Self::SmallInt(meta, _) => ColumnType::SmallInt(*meta),
-            Self::Int(meta, _) => ColumnType::Int(*meta),
-            Self::BigInt(meta, _) => ColumnType::BigInt(*meta),
-            Self::VarChar(meta, _) => ColumnType::VarChar(*meta),
-            Self::Int128(meta, _) => ColumnType::Int128(*meta),
-            Self::Scalar(meta, _) => ColumnType::Scalar(*meta),
-            Self::Decimal75(meta, precision, scale, _) => {
-                ColumnType::Decimal75(*meta, *precision, *scale)
-            }
-            Self::TimestampTZ(meta, time_unit, timezone, _) => {
-                ColumnType::TimestampTZ(*meta, *time_unit, *timezone)
+impl<'a, S: Scalar> ColumnKind<'a, S> {
+    pub fn get_type_kind(&self) -> ColumnTypeKind {
+        match *self {
+            Self::Boolean(_) => ColumnTypeKind::Boolean,
+            Self::TinyInt(_) => ColumnTypeKind::TinyInt,
+            Self::SmallInt(_) => ColumnTypeKind::SmallInt,
+            Self::Int(_) => ColumnTypeKind::Int,
+            Self::BigInt(_) => ColumnTypeKind::BigInt,
+            Self::VarChar(_) => ColumnTypeKind::VarChar,
+            Self::Int128(_) => ColumnTypeKind::Int128,
+            Self::Scalar(_) => ColumnTypeKind::Scalar,
+            Self::Decimal75(precision, scale, _) => ColumnTypeKind::Decimal75(*precision, *scale),
+            Self::TimestampTZ(time_unit, timezone, _) => {
+                ColumnTypeKind::TimestampTZ(*time_unit, *timezone)
             }
         }
     }
@@ -102,18 +74,58 @@ impl<'a, S: Scalar> Column<'a, S> {
     #[must_use]
     pub fn len(&self) -> usize {
         match self {
-            Self::Boolean(_, col) => col.len(),
-            Self::TinyInt(_, col) => col.len(),
-            Self::SmallInt(_, col) => col.len(),
-            Self::Int(_, col) => col.len(),
-            Self::BigInt(_, col) | Self::TimestampTZ(_, _, _, col) => col.len(),
-            Self::VarChar(_, (col, scals)) => {
+            Self::Boolean(col) => col.len(),
+            Self::TinyInt(col) => col.len(),
+            Self::SmallInt(col) => col.len(),
+            Self::Int(col) => col.len(),
+            Self::BigInt(col) | Self::TimestampTZ(_, _, col) => col.len(),
+            Self::VarChar((col, scals)) => {
                 assert_eq!(col.len(), scals.len());
                 col.len()
             }
-            Self::Int128(_, col) => col.len(),
-            Self::Scalar(_, col) | Self::Decimal75(_, _, _, col) => col.len(),
+            Self::Int128(col) => col.len(),
+            Self::Scalar(col) | Self::Decimal75(_, _, col) => col.len(),
         }
+    }
+}
+/// Represents a read-only view of a column in an in-memory,
+/// column-oriented database.
+///
+/// Note: The types here should correspond to native SQL database types.
+/// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
+/// a description of the native types used by Apache Ignite.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct Column<'a, S: Scalar> {
+    kind: ColumnKind<'a, S>,
+    nullable: bool,
+}
+
+impl<'a, S: Scalar> Column<'a, S> {
+    pub fn new(kind: ColumnKind<'a, S>, nullable: bool) -> Self {
+        Self { kind, nullable }
+    }
+    /// Can null be stored in this column
+    pub fn is_nullable(&self) -> bool {
+        self.nullable
+    }
+    /// Can null be stored in this column
+    pub fn get_column_kind(&self) -> ColumnKind<'a, S> {
+        self.kind
+    }
+    /// Provides the column type associated with the column
+    #[must_use]
+    pub fn column_type(&self) -> ColumnType {
+        ColumnType {
+            kind: self.kind.get_type_kind(),
+            nullable: self.nullable,
+        }
+    }
+    /// Returns the length of the column.
+    /// # Panics
+    /// this function requires that `col` and `scals` have the same length.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.kind.len()
     }
     /// Returns `true` if the column has no elements.
     #[must_use]
@@ -270,19 +282,6 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 }
-
-/// Represents a columns nullability
-#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy)]
-pub enum ColumnNullability {
-    Nullable,
-    NotNullable,
-}
-impl Default for ColumnNullability {
-    fn default() -> Self {
-        ColumnNullability::Nullable
-    }
-}
-
 impl ColumnNullability {
     pub fn from_nullable(nullable: bool) -> Self {
         if nullable {
@@ -292,56 +291,24 @@ impl ColumnNullability {
         }
     }
 }
-impl Display for ColumnNullability {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if *self == ColumnNullability::NotNullable {
-            f.write_str("NOT NULL")
-        } else {
-            Ok(())
-        }
-    }
-}
 /// Represents the supported data types of a column in an in-memory,
 /// column-oriented database.
 ///
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy)]
-pub enum ColumnType {
-    /// Mapped to bool
-    #[serde(alias = "BOOLEAN", alias = "boolean")]
-    Boolean(#[serde(default)] ColumnNullability),
-    /// Mapped to i8
-    #[serde(alias = "TINYINT", alias = "tinyint")]
-    TinyInt(#[serde(default)] ColumnNullability),
-    /// Mapped to i16
-    #[serde(alias = "SMALLINT", alias = "smallint")]
-    SmallInt(#[serde(default)] ColumnNullability),
-    /// Mapped to i32
-    #[serde(alias = "INT", alias = "int")]
-    Int(#[serde(default)] ColumnNullability),
-    /// Mapped to i64
-    #[serde(alias = "BIGINT", alias = "bigint")]
-    BigInt(#[serde(default)] ColumnNullability),
-    /// Mapped to i128
-    #[serde(rename = "Decimal", alias = "DECIMAL", alias = "decimal")]
-    Int128(#[serde(default)] ColumnNullability),
-    /// Mapped to String
-    #[serde(alias = "VARCHAR", alias = "varchar")]
-    VarChar(#[serde(default)] ColumnNullability),
-    /// Mapped to i256
-    #[serde(rename = "Decimal75", alias = "DECIMAL75", alias = "decimal75")]
-    Decimal75(#[serde(default)] ColumnNullability, Precision, i8),
-    /// Mapped to i64
-    #[serde(alias = "TIMESTAMP", alias = "timestamp")]
-    TimestampTZ(
-        #[serde(default)] ColumnNullability,
-        PoSQLTimeUnit,
-        PoSQLTimeZone,
-    ),
-    /// Mapped to [`Curve25519Scalar`](crate::base::scalar::Curve25519Scalar)
-    #[serde(alias = "SCALAR", alias = "scalar")]
-    Scalar(#[serde(default)] ColumnNullability),
+pub struct ColumnType {
+    pub kind: ColumnTypeKind,
+    pub nullable: bool,
+}
+impl Display for ColumnType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.nullable {
+            f.write_str("NOT NULL")
+        } else {
+            Ok(())
+        }
+    }
 }
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy)]
 pub enum ColumnTypeKind {
@@ -403,6 +370,9 @@ impl Display for ColumnTypeKind {
     }
 }
 impl ColumnType {
+    pub fn new(kind: ColumnTypeKind, nullable: bool) -> Self {
+        Self { kind, nullable }
+    }
     pub fn get_kind(&self) -> ColumnTypeKind {
         match self {
             ColumnType::Boolean(_) => ColumnTypeKind::Boolean,
