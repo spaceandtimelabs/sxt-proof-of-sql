@@ -1,10 +1,8 @@
 use super::{
-    blitzar_metadata_table::{
-        create_blitzar_metadata_tables_for_T_vec_prime_setup, signed_commits_for_T_vec_prime_setup,
-    },
+    blitzar_metadata_table::create_blitzar_metadata_tables_for_T_vec_prime_setup,
     dynamic_dory_standard_basis_helper::fold_dynamic_standard_basis_tensors,
-    dynamic_dory_structure::row_and_column_from_index,
-    ExtendedVerifierState, G1Affine, ProverSetup, F,
+    dynamic_dory_structure::row_and_column_from_index, ExtendedVerifierState, G1Affine,
+    ProverSetup, F,
 };
 use crate::{
     base::slice_ops::slice_cast,
@@ -72,10 +70,10 @@ pub(super) fn compute_dynamic_T_vec_prime(
     );
 
     let all_sub_commits: Vec<G1Affine> = slice_cast(&blitzar_sub_commits);
-    let T_vec_prime: Vec<G1Affine> = signed_commits_for_T_vec_prime_setup(&all_sub_commits);
 
-    T_vec_prime
+    all_sub_commits
         .iter()
+        .step_by(2)
         .chain(repeat(&G1Affine::identity()))
         .take(1 << nu)
         .copied()

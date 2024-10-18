@@ -35,20 +35,6 @@ pub const fn min_as_f(column_type: ColumnType) -> F {
     }
 }
 
-/// Modifies the sub commits in the T vec prime setup. The sub commits are a single
-/// column of unsigned scalar data values, so we can skip adding the minimum commitment.
-///
-/// # Arguments
-///
-/// * `all_sub_commits` - A reference to the sub commits.
-///
-/// # Returns
-///
-/// A vector containing the modified sub commits to be used by the dynamic Dory commitment computation.
-pub fn signed_commits_for_T_vec_prime_setup(all_sub_commits: &[G1Affine]) -> Vec<G1Affine> {
-    all_sub_commits.iter().step_by(2).copied().collect()
-}
-
 /// Modifies the sub commits by adding the minimum commitment of the column type to the signed sub commits.
 ///
 /// # Arguments
