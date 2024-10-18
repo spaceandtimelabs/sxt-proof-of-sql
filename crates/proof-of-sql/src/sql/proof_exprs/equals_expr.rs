@@ -59,12 +59,17 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
     #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
+        table_length: usize,
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
+        let lhs_column = self
+            .lhs
+            .prover_evaluate(table_length, builder, alloc, accessor);
+        let rhs_column = self
+            .rhs
+            .prover_evaluate(table_length, builder, alloc, accessor);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
