@@ -94,7 +94,7 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
     ) -> Result<Vec<C::Scalar>, ProofError> {
         assert_eq!(builder.consume_intermediate_mle(), C::Scalar::ZERO);
         builder.produce_sumcheck_subpolynomial_evaluation(
-            SumcheckSubpolynomialType::ZeroSum,
+            &SumcheckSubpolynomialType::ZeroSum,
             C::Scalar::from(self.evaluation),
         );
         Ok(vec![C::Scalar::ZERO])
@@ -270,7 +270,7 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         let x_eval = builder.consume_anchored_mle(x_commit);
         let res_eval = builder.consume_intermediate_mle();
         builder.produce_sumcheck_subpolynomial_evaluation(
-            SumcheckSubpolynomialType::Identity,
+            &SumcheckSubpolynomialType::Identity,
             res_eval - x_eval * x_eval,
         );
         Ok(vec![res_eval])
@@ -470,13 +470,13 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
 
         // poly1
         builder.produce_sumcheck_subpolynomial_evaluation(
-            SumcheckSubpolynomialType::Identity,
+            &SumcheckSubpolynomialType::Identity,
             z_eval - x_eval * x_eval,
         );
 
         // poly2
         builder.produce_sumcheck_subpolynomial_evaluation(
-            SumcheckSubpolynomialType::Identity,
+            &SumcheckSubpolynomialType::Identity,
             res_eval - z_eval * z_eval,
         );
         Ok(vec![res_eval])
@@ -675,7 +675,7 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         let x_eval = builder.consume_anchored_mle(x_commit);
         let res_eval = builder.consume_intermediate_mle();
         builder.produce_sumcheck_subpolynomial_evaluation(
-            SumcheckSubpolynomialType::Identity,
+            &SumcheckSubpolynomialType::Identity,
             alpha * res_eval - alpha * x_eval * x_eval,
         );
         Ok(vec![res_eval])

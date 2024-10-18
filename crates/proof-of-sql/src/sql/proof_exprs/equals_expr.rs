@@ -39,7 +39,7 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
     }
 
     fn data_type(&self) -> ColumnType {
-        ColumnType::Boolean(ColumnNullability::NotNullable)
+        ColumnType::Boolean
     }
 
     #[tracing::instrument(name = "EqualsExpr::result_evaluate", level = "debug", skip_all)]
@@ -55,10 +55,7 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        Column::Boolean(
-            ColumnNullability::NotNullable,
-            result_evaluate_equals_zero(table_length, alloc, res),
-        )
+        Column::Boolean(result_evaluate_equals_zero(table_length, alloc, res))
     }
 
     #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
@@ -74,10 +71,7 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        Column::Boolean(
-            ColumnNullability::NotNullable,
-            prover_evaluate_equals_zero(builder, alloc, res),
-        )
+        Column::Boolean(prover_evaluate_equals_zero(builder, alloc, res))
     }
 
     fn verifier_evaluate(
@@ -165,7 +159,7 @@ pub fn verifier_evaluate_equals_zero<C: Commitment>(
     // subpolynomial: selection * lhs
     builder.produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        selection_eval.clone() * lhs_eval,
+        selection_eval * lhs_eval,
     );
 
     // subpolynomial: selection_not - lhs * lhs_pseudo_inv

@@ -53,6 +53,7 @@ rayon = { version = "1.5" }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 snafu = { version = "0.8.4", default-features = false }
+sqlparser = { version = "0.45.0", default-features = false }
 tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
 tracing = { version = "0.1.36", default-features = false }
 tracing-opentelemetry = { version = "0.22.0" }
@@ -101,3 +102,6 @@ match_wildcard_for_single_variants = "deny"
 match_bool = "deny"  
 manual_assert = "deny"    
 trivially_copy_pass_by_ref = "deny"
+unnecessary_wraps = "deny"
+should_panic_without_expect = "deny"
+needless_pass_by_value = "deny"

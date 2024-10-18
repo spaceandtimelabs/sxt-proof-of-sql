@@ -2,7 +2,7 @@
 use super::{ColumnNullability, ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::ColumnType,
-    math::decimal::{scale_scalar, DecimalError, Precision, MAX_SUPPORTED_PRECISION},
+    math::decimal::{scale_scalar, DecimalError, Precision},
     scalar::Scalar,
 };
 use alloc::{format, string::ToString, vec::Vec};
@@ -544,7 +544,13 @@ where
         // If scale difference is above max decimal precision values
         // are equal if they are both zero and unequal otherwise
         let upscale = max_scale - lhs_scale;
-        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+        if i8::try_from(
+            right_column_type
+                .precision_value()
+                .expect("Decimal types have scale"),
+        )
+        .is_ok_and(|precision| upscale > precision)
+        {
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool { l.is_zero() && *r == S::ZERO })
@@ -559,7 +565,13 @@ where
         }
     } else if rhs_scale < max_scale {
         let upscale = max_scale - rhs_scale;
-        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+        if i8::try_from(
+            left_column_type
+                .precision_value()
+                .expect("Numeric types have scale"),
+        )
+        .is_ok_and(|precision| upscale > precision)
+        {
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool { l.is_zero() && *r == S::ZERO })
@@ -605,7 +617,13 @@ where
         // always have larger absolute value than the other one as long as it is nonzero
         // Hence a (extremely upscaled) <= b if and only if a < 0 or (a == 0 and b >= 0)
         let upscale = max_scale - lhs_scale;
-        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+        if i8::try_from(
+            right_column_type
+                .precision_value()
+                .expect("Decimal types have scale"),
+        )
+        .is_ok_and(|precision| upscale > precision)
+        {
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool {
@@ -625,7 +643,13 @@ where
         }
     } else if rhs_scale < max_scale {
         let upscale = max_scale - rhs_scale;
-        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+        if i8::try_from(
+            left_column_type
+                .precision_value()
+                .expect("Numeric types have scale"),
+        )
+        .is_ok_and(|precision| upscale > precision)
+        {
             // Similarly with extreme scaling we have
             // a <= (extremely upscaled) b if and only if a < 0 or (a == 0 and b >= 0)
             lhs.iter()
@@ -678,7 +702,13 @@ where
         // always have larger absolute value than the other one as long as it is nonzero
         // Hence a (extremely upscaled) >= b if and only if a > 0 or (a == 0 and b <= 0)
         let upscale = max_scale - lhs_scale;
-        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+        if i8::try_from(
+            right_column_type
+                .precision_value()
+                .expect("Decimal types have scale"),
+        )
+        .is_ok_and(|precision| upscale > precision)
+        {
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool {
@@ -698,7 +728,13 @@ where
         }
     } else if rhs_scale < max_scale {
         let upscale = max_scale - rhs_scale;
-        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+        if i8::try_from(
+            left_column_type
+                .precision_value()
+                .expect("Numeric types have scale"),
+        )
+        .is_ok_and(|precision| upscale > precision)
+        {
             // Similarly with extreme scaling we have
             // a >= (extremely upscaled) b if and only if b < 0 or (a >= 0 and b == 0)
             lhs.iter()

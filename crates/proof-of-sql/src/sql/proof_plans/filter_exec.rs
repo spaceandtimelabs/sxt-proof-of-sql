@@ -225,6 +225,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn verify_filter<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     alpha: C::Scalar,
@@ -243,19 +244,19 @@ fn verify_filter<C: Commitment>(
 
     // sum c_star * s - d_star = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::ZeroSum,
+        &SumcheckSubpolynomialType::ZeroSum,
         c_star_eval * s_eval - d_star_eval,
     );
 
     // c_fold * c_star - 1 = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
+        &SumcheckSubpolynomialType::Identity,
         c_fold_eval * c_star_eval - one_eval,
     );
 
     // d_bar_fold * d_star - chi = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
+        &SumcheckSubpolynomialType::Identity,
         d_bar_fold_eval * d_star_eval - chi_eval,
     );
 
