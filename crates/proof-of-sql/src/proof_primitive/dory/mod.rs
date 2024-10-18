@@ -17,7 +17,7 @@
 // This is so that the naming in the code more closely matches the naming in the paper, since the paper used both capital and non-capital letters.
 #![allow(non_snake_case)]
 
-use ark_bls12_381::{Fr as F, FrConfig, G1Affine, G1Projective, G2Affine, G2Projective};
+use ark_bls12_381::{Fr as F, G1Affine, G1Projective, G2Affine, G2Projective};
 /// The pairing output of the BLS12-381 curve.
 type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
 

@@ -1,6 +1,6 @@
 use super::{
     dynamic_dory_structure::{full_width_of_row, index_from_row_and_column, matrix_size},
-    FrConfig, G1Affine, F,
+    G1Affine, F,
 };
 use crate::{
     base::{commitment::CommittableColumn, database::ColumnType},
@@ -8,7 +8,7 @@ use crate::{
 };
 use alloc::{vec, vec::Vec};
 use ark_ec::CurveGroup;
-use ark_ff::{BigInt, MontBackend, MontFp};
+use ark_ff::MontFp;
 use ark_std::ops::Mul;
 use core::iter;
 use itertools::Itertools;
@@ -119,29 +119,6 @@ fn copy_column_data_to_slice(
         }
         CommittableColumn::RangeCheckWord(_) => todo!(),
     }
-}
-
-/// Creates the metadata tables for Blitzar's `vlen_msm` algorithm
-/// used durning the `T_vec` prime setup.
-///
-/// # Arguments
-///
-/// * `scalars` - A reference scalar Arkworks values.
-///
-/// # Returns
-///
-/// A tuple containing the output bit table, output length table,
-/// and scalars required to call Blitzar's `vlen_msm` function.
-pub fn create_blitzar_metadata_tables_for_T_vec_prime_setup(
-    scalars: &[ark_ff::Fp<MontBackend<FrConfig, 4>, 4>],
-) -> (Vec<u32>, Vec<u32>, Vec<u8>) {
-    let scalar_column = CommittableColumn::Scalar(
-        scalars
-            .iter()
-            .map(|&element| BigInt::<4>::from(element).0)
-            .collect(),
-    );
-    create_blitzar_metadata_tables(&[scalar_column], 0)
 }
 
 /// Creates the metadata tables for Blitzar's `vlen_msm` algorithm.

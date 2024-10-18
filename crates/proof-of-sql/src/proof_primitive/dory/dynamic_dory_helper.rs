@@ -1,17 +1,21 @@
 use super::{
-    blitzar_metadata_table::create_blitzar_metadata_tables_for_T_vec_prime_setup,
+    blitzar_metadata_table::create_blitzar_metadata_tables,
     dynamic_dory_standard_basis_helper::fold_dynamic_standard_basis_tensors,
     dynamic_dory_structure::row_and_column_from_index, ExtendedVerifierState, G1Affine,
     ProverSetup, F,
 };
 use crate::{
-    base::slice_ops::slice_cast,
-    proof_primitive::dory::dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs,
+    base::{commitment::CommittableColumn, slice_ops::slice_cast},
+    proof_primitive::dory::{
+        dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs, DoryScalar,
+    },
 };
 use alloc::{vec, vec::Vec};
 use ark_ff::Field;
 #[cfg(feature = "blitzar")]
 use blitzar::compute::ElementP2;
+#[cfg(feature = "blitzar")]
+use bytemuck::TransparentWrapper;
 use itertools::{Itertools, __std_iter::repeat};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
@@ -56,8 +60,10 @@ pub(super) fn compute_dynamic_T_vec_prime(
     nu: usize,
     prover_setup: &ProverSetup,
 ) -> Vec<G1Affine> {
+    let a_col = CommittableColumn::from(TransparentWrapper::wrap_slice(a) as &[DoryScalar]);
+
     let (blitzar_output_bit_table, blitzar_output_length_table, blitzar_scalars) =
-        create_blitzar_metadata_tables_for_T_vec_prime_setup(a);
+        create_blitzar_metadata_tables(&[a_col], 0);
 
     let mut blitzar_sub_commits =
         vec![ElementP2::<ark_bls12_381::g1::Config>::default(); blitzar_output_bit_table.len()];
