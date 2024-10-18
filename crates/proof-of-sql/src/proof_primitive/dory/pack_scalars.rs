@@ -1,10 +1,8 @@
-use super::{G1Affine, G1Projective, F};
+use super::{blitzar_metadata_table::min_as_f, G1Affine, G1Projective};
 use crate::{
-    base::{commitment::CommittableColumn, database::ColumnType},
-    proof_primitive::dory::offset_to_bytes::OffsetToBytes,
+    base::commitment::CommittableColumn, proof_primitive::dory::offset_to_bytes::OffsetToBytes,
 };
 use alloc::{vec, vec::Vec};
-use ark_ff::MontFp;
 use ark_std::ops::Mul;
 use core::iter;
 
@@ -48,25 +46,6 @@ fn output_bit_table(
             )
         })
         .collect()
-}
-
-/// Returns the minimum value of a column as F.
-///
-/// # Arguments
-///
-/// * `column_type` - The type of a committable column.
-pub const fn min_as_f(column_type: ColumnType) -> F {
-    match column_type {
-        ColumnType::TinyInt => MontFp!("-128"),
-        ColumnType::SmallInt => MontFp!("-32768"),
-        ColumnType::Int => MontFp!("-2147483648"),
-        ColumnType::BigInt | ColumnType::TimestampTZ(_, _) => MontFp!("-9223372036854775808"),
-        ColumnType::Int128 => MontFp!("-170141183460469231731687303715884105728"),
-        ColumnType::Decimal75(_, _)
-        | ColumnType::Scalar
-        | ColumnType::VarChar
-        | ColumnType::Boolean => MontFp!("0"),
-    }
 }
 
 /// Modifies the signed matrix commitment columns by adding the offset to the matrix commitment columns.

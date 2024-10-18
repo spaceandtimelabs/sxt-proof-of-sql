@@ -1,12 +1,22 @@
 use super::{
+    blitzar_metadata_table::create_blitzar_metadata_tables,
     dynamic_dory_standard_basis_helper::fold_dynamic_standard_basis_tensors,
     dynamic_dory_structure::row_and_column_from_index, ExtendedVerifierState, G1Affine,
     ProverSetup, F,
 };
-use crate::proof_primitive::dory::dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs;
+use crate::{
+    base::{commitment::CommittableColumn, slice_ops::slice_cast},
+    proof_primitive::dory::{
+        dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs, DoryScalar,
+    },
+};
 use alloc::{vec, vec::Vec};
 use ark_ff::Field;
-use itertools::Itertools;
+#[cfg(feature = "blitzar")]
+use blitzar::compute::ElementP2;
+#[cfg(feature = "blitzar")]
+use bytemuck::TransparentWrapper;
+use itertools::{Itertools, __std_iter::repeat};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
 ///
@@ -29,6 +39,7 @@ pub(super) fn compute_dynamic_v_vec(a: &[F], hi_vec: &[F], nu: usize) -> Vec<F> 
 }
 
 /// Compute the commitments to the rows of the matrix M that is derived from `a`.
+#[cfg(not(feature = "blitzar"))]
 pub(super) fn compute_dynamic_T_vec_prime(
     a: &[F],
     nu: usize,
@@ -40,6 +51,39 @@ pub(super) fn compute_dynamic_T_vec_prime(
         T_vec_prime[row] = (T_vec_prime[row] + prover_setup.Gamma_1[nu][column] * v).into();
     }
     T_vec_prime
+}
+
+/// Compute the commitments to the rows of the matrix M that is derived from `a`.
+#[cfg(feature = "blitzar")]
+pub(super) fn compute_dynamic_T_vec_prime(
+    a: &[F],
+    nu: usize,
+    prover_setup: &ProverSetup,
+) -> Vec<G1Affine> {
+    let a_col = CommittableColumn::from(TransparentWrapper::wrap_slice(a) as &[DoryScalar]);
+
+    let (blitzar_output_bit_table, blitzar_output_length_table, blitzar_scalars) =
+        create_blitzar_metadata_tables(&[a_col], 0);
+
+    let mut blitzar_sub_commits =
+        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); blitzar_output_bit_table.len()];
+
+    prover_setup.blitzar_vlen_msm(
+        &mut blitzar_sub_commits,
+        &blitzar_output_bit_table,
+        &blitzar_output_length_table,
+        blitzar_scalars.as_slice(),
+    );
+
+    let all_sub_commits: Vec<G1Affine> = slice_cast(&blitzar_sub_commits);
+
+    all_sub_commits
+        .iter()
+        .step_by(2)
+        .chain(repeat(&G1Affine::identity()))
+        .take(1 << nu)
+        .copied()
+        .collect()
 }
 
 /// Compute the size of the matrix M that is derived from `a`.
