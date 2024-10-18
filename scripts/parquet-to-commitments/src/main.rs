@@ -29,9 +29,10 @@ fn main() {
     let output_prefix = args.next().unwrap();
 
     let mut sql = "".to_string();
-    File::open("./ddl_ethereum_snapshot_2024_10_11.sql")
+    File::open("/testnet-parquets/Etherium_ddl_snapshot.sql")
         .unwrap()
-        .read_to_string(&mut sql);
+        .read_to_string(&mut sql)
+        .unwrap();
     let big_decimal_commitments = find_bigdecimals(&sql);
 
     let table_identifiers: Vec<(String, String)> = read_dir(source.clone())
@@ -97,7 +98,13 @@ fn main() {
                     parquets_for_table,
                     &full_output_prefix,
                     &prover_setup,
-                    big_decimal_commitments.get(table_name).unwrap().to_vec(),
+                    big_decimal_commitments
+                        .iter()
+                        .find(|(k, _)| {
+                            k.to_lowercase() == format!("{namespace}.{table_name}").to_lowercase()
+                        })
+                        .map(|(_, v)| v)
+                        .unwrap(),
                 );
             });
             if result.is_err() {
