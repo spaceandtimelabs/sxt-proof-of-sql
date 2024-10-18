@@ -57,6 +57,25 @@ pub enum Column<'a, S: Scalar> {
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
+    fn get_metadata(&self) -> &ColumnTypeAssociatedData {
+        match self {
+            Self::Boolean(meta, _) => meta,
+            Self::TinyInt(meta, _) => meta,
+            Self::SmallInt(meta, _) => meta,
+            Self::Int(meta, _) => meta,
+            Self::BigInt(meta, _) => meta,
+            Self::VarChar(meta, _) => meta,
+            Self::Int128(meta, _) => meta,
+            Self::Scalar(meta, _) => meta,
+            Self::Decimal75(meta,  ..) => meta,
+            Self::TimestampTZ(meta, ..) => meta,
+        }
+    }
+
+    /// Can null be stored in this column
+    pub fn is_nullable(&self) -> bool {
+        self.get_metadata().nullable
+    }
     /// Provides the column type associated with the column
     #[must_use]
     pub fn column_type(&self) -> ColumnType {
