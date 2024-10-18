@@ -1685,15 +1685,15 @@ fn arithmetic_operations_are_not_allowed_with_varchar_column() {
 fn varchar_column_is_not_allowed_within_numeric_aggregations() {
     assert_eq!(
         query!(select: ["sum(s)"], should_err: true),
-        ConversionError::non_numeric_expr_in_agg("varchar", "sum")
+        ConversionError::non_numeric_expr_in_agg("varchar not null", "sum")
     );
     assert_eq!(
         query!(select: ["max(s)"], should_err: true),
-        ConversionError::non_numeric_expr_in_agg("varchar", "max")
+        ConversionError::non_numeric_expr_in_agg("varchar not null", "max")
     );
     assert_eq!(
         query!(select: ["min(s)"], should_err: true),
-        ConversionError::non_numeric_expr_in_agg("varchar", "min")
+        ConversionError::non_numeric_expr_in_agg("varchar not null", "min")
     );
 }
 
