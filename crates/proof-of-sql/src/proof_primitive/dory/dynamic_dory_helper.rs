@@ -14,7 +14,7 @@ use alloc::{vec, vec::Vec};
 use ark_ff::Field;
 #[cfg(feature = "blitzar")]
 use blitzar::compute::ElementP2;
-use itertools::{repeat_n, Itertools};
+use itertools::{Itertools, __std_iter::repeat};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
 ///
@@ -76,7 +76,7 @@ pub(super) fn compute_dynamic_T_vec_prime(
 
     T_vec_prime
         .iter()
-        .chain(repeat_n(&G1Affine::identity(), 1 << nu))
+        .chain(repeat(&G1Affine::identity()))
         .take(1 << nu)
         .copied()
         .collect()
