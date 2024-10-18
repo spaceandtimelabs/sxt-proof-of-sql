@@ -64,12 +64,12 @@ pub fn make_random_test_accessor_data(
         let values: Vec<i64> = dist.sample_iter(&mut *rng).take(n).collect();
 
         match col_type {
-            ColumnType::Boolean => {
+            ColumnType::Boolean(_) => {
                 column_fields.push(Field::new(*col_name, DataType::Boolean, false));
                 let boolean_values: Vec<bool> = values.iter().map(|x| x % 2 != 0).collect();
                 columns.push(Arc::new(BooleanArray::from(boolean_values)));
             }
-            ColumnType::TinyInt => {
+            ColumnType::TinyInt(_) => {
                 column_fields.push(Field::new(*col_name, DataType::Int8, false));
                 let values: Vec<i8> = values
                     .iter()
@@ -77,7 +77,7 @@ pub fn make_random_test_accessor_data(
                     .collect();
                 columns.push(Arc::new(Int8Array::from(values)));
             }
-            ColumnType::SmallInt => {
+            ColumnType::SmallInt(_) => {
                 column_fields.push(Field::new(*col_name, DataType::Int16, false));
                 let values: Vec<i16> = values
                     .iter()
@@ -85,7 +85,7 @@ pub fn make_random_test_accessor_data(
                     .collect();
                 columns.push(Arc::new(Int16Array::from(values)));
             }
-            ColumnType::Int => {
+            ColumnType::Int(_) => {
                 column_fields.push(Field::new(*col_name, DataType::Int32, false));
                 let values: Vec<i32> = values
                     .iter()
@@ -93,12 +93,12 @@ pub fn make_random_test_accessor_data(
                     .collect();
                 columns.push(Arc::new(Int32Array::from(values)));
             }
-            ColumnType::BigInt => {
+            ColumnType::BigInt(_) => {
                 column_fields.push(Field::new(*col_name, DataType::Int64, false));
                 let values: Vec<i64> = values.clone();
                 columns.push(Arc::new(Int64Array::from(values)));
             }
-            ColumnType::Int128 => {
+            ColumnType::Int128(_) => {
                 column_fields.push(Field::new(*col_name, DataType::Decimal128(38, 0), false));
 
                 let values: Vec<i128> = values.iter().map(|x| i128::from(*x)).collect();
@@ -108,7 +108,7 @@ pub fn make_random_test_accessor_data(
                         .unwrap(),
                 ));
             }
-            ColumnType::Decimal75(precision, scale) => {
+            ColumnType::Decimal75(_, precision, scale) => {
                 column_fields.push(Field::new(
                     *col_name,
                     DataType::Decimal256(precision.value(), *scale),
@@ -122,7 +122,7 @@ pub fn make_random_test_accessor_data(
                         .unwrap(),
                 ));
             }
-            ColumnType::VarChar => {
+            ColumnType::VarChar(_) => {
                 let col = &values
                     .iter()
                     .map(|v| "s".to_owned() + &v.to_string()[..])
@@ -133,8 +133,8 @@ pub fn make_random_test_accessor_data(
 
                 columns.push(Arc::new(StringArray::from(col)));
             }
-            ColumnType::Scalar => unimplemented!("Scalar columns are not supported by arrow"),
-            ColumnType::TimestampTZ(tu, tz) => {
+            ColumnType::Scalar(_) => unimplemented!("Scalar columns are not supported by arrow"),
+            ColumnType::TimestampTZ(_, tu, tz) => {
                 column_fields.push(Field::new(
                     *col_name,
                     DataType::Timestamp(
@@ -175,18 +175,19 @@ mod tests {
     use super::*;
     use crate::record_batch;
     use rand_core::SeedableRng;
+    use crate::base::database::ColumnTypeAssociatedData;
 
     #[test]
     fn we_can_construct_a_random_test_data() {
         let descriptor = RandomTestAccessorDescriptor::default();
         let mut rng = StdRng::from_seed([0u8; 32]);
         let cols = [
-            ("a", ColumnType::BigInt),
-            ("b", ColumnType::VarChar),
-            ("c", ColumnType::Int128),
-            ("d", ColumnType::SmallInt),
-            ("e", ColumnType::Int),
-            ("f", ColumnType::TinyInt),
+            ("a", ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            ("b", ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            ("c", ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            ("d", ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            ("e", ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            ("f", ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
         ];
 
         let data1 = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
@@ -204,9 +205,9 @@ mod tests {
         };
         let mut rng = StdRng::from_seed([0u8; 32]);
         let cols = [
-            ("b", ColumnType::BigInt),
-            ("a", ColumnType::VarChar),
-            ("c", ColumnType::Int128),
+            ("b", ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            ("a", ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            ("c", ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE)),
         ];
         let data = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
 
