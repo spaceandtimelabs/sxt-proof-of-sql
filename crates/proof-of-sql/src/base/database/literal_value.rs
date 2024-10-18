@@ -1,8 +1,8 @@
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{database::ColumnType, math::decimal::Precision, scalar::Scalar};
 use alloc::string::String;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Represents a literal value.
 ///
@@ -51,16 +51,12 @@ impl<S: Scalar> LiteralValue<S> {
             Self::VarChar(_) => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
             Self::Int128(_) => ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE),
             Self::Scalar(_) => ColumnType::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE),
-            Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                *precision,
-                *scale
-            ),
-            Self::TimeStampTZ(tu, tz, _) => ColumnType::TimestampTZ(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                *tu,
-                *tz
-            ),
+            Self::Decimal75(precision, scale, _) => {
+                ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, *precision, *scale)
+            }
+            Self::TimeStampTZ(tu, tz, _) => {
+                ColumnType::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, *tu, *tz)
+            }
         }
     }
 

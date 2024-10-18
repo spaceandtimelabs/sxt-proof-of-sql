@@ -1,4 +1,5 @@
 use super::{DynProofExpr, ProofExpr};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
@@ -18,7 +19,6 @@ use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable numerical * expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

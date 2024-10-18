@@ -1,4 +1,5 @@
 use super::{FinalRoundBuilder, ProvableQueryResult, SumcheckRandomScalars};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::{Commitment, CommittableColumn},
@@ -17,7 +18,6 @@ use arrow::{
 };
 use curve25519_dalek::RistrettoPoint;
 use num_traits::{One, Zero};
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {

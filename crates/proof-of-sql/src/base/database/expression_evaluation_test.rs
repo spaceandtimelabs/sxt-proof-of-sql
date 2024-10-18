@@ -1,3 +1,4 @@
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
     database::{
         owned_table_utility::*, ColumnOperationError, ExpressionEvaluationError, OwnedColumn,
@@ -12,7 +13,6 @@ use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
     utility::*,
 };
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_evaluate_a_simple_literal() {
@@ -51,7 +51,8 @@ fn we_can_evaluate_a_simple_literal() {
     // A group of people has about 0.67 cats per person
     let expr = lit("0.67".parse::<IntermediateDecimal>().unwrap());
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column = OwnedColumn::Decimal75(meta, Precision::new(2).unwrap(), 2, vec![67.into(); 5]);
+    let expected_column =
+        OwnedColumn::Decimal75(meta, Precision::new(2).unwrap(), 2, vec![67.into(); 5]);
     assert_eq!(actual_column, expected_column);
 }
 
@@ -64,7 +65,10 @@ fn we_can_evaluate_a_simple_column() {
     ]);
     let expr = col("bigints");
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column = OwnedColumn::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![i64::MIN, -1, 0, 1, i64::MAX]);
+    let expected_column = OwnedColumn::BigInt(
+        ColumnTypeAssociatedData::NOT_NULLABLE,
+        vec![i64::MIN, -1, 0, 1, i64::MAX],
+    );
     assert_eq!(actual_column, expected_column);
 
     let expr = col("john");
@@ -181,7 +185,8 @@ fn we_can_evaluate_an_arithmetic_expression() {
         .iter()
         .map(|&x| x.into())
         .collect();
-    let expected_column = OwnedColumn::Decimal75(meta, Precision::new(9).unwrap(), 3, expected_scalars);
+    let expected_column =
+        OwnedColumn::Decimal75(meta, Precision::new(9).unwrap(), 3, expected_scalars);
     assert_eq!(actual_column, expected_column);
 
     // Decimals over 2.5 plus int128s
@@ -197,7 +202,8 @@ fn we_can_evaluate_an_arithmetic_expression() {
         .iter()
         .map(|&x| x.into())
         .collect();
-    let expected_column = OwnedColumn::Decimal75(meta, Precision::new(46).unwrap(), 6, expected_scalars);
+    let expected_column =
+        OwnedColumn::Decimal75(meta, Precision::new(46).unwrap(), 6, expected_scalars);
     assert_eq!(actual_column, expected_column);
 }
 

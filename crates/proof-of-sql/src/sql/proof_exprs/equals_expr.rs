@@ -1,4 +1,5 @@
 use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
@@ -13,7 +14,6 @@ use crate::{
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable AST expression for an equals expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -56,7 +56,7 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
             .expect("Failed to scale and subtract");
         Column::Boolean(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            result_evaluate_equals_zero(table_length, alloc, res)
+            result_evaluate_equals_zero(table_length, alloc, res),
         )
     }
 
@@ -75,7 +75,7 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
             .expect("Failed to scale and subtract");
         Column::Boolean(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            prover_evaluate_equals_zero(builder, alloc, res)
+            prover_evaluate_equals_zero(builder, alloc, res),
         )
     }
 

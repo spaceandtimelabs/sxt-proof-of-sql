@@ -174,13 +174,13 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
+    use crate::base::database::ColumnTypeAssociatedData;
     use crate::base::{
         database::{Column, OwnedColumn},
         scalar::Curve25519Scalar,
     };
     use blitzar::{compute::compute_curve25519_commitments, sequence::Sequence};
     use curve25519_dalek::{ristretto::CompressedRistretto, RistrettoPoint};
-    use crate::base::database::ColumnTypeAssociatedData;
 
     #[test]
     fn we_can_convert_from_columns() {
@@ -505,7 +505,10 @@ mod tests {
             Err(NumColumnsMismatch)
         ));
 
-        let full_columns = vec![OwnedColumn::<Curve25519Scalar>::BigInt(meta, column_a.to_vec())];
+        let full_columns = vec![OwnedColumn::<Curve25519Scalar>::BigInt(
+            meta,
+            column_a.to_vec(),
+        )];
         let full_commitments =
             Vec::<RistrettoPoint>::from_columns_with_offset(&full_columns, 0, &());
         assert!(matches!(

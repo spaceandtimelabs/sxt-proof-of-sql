@@ -100,6 +100,7 @@ impl Commitment for DoryCommitment {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::base::database::ColumnTypeAssociatedData;
     use crate::{
         base::{
             commitment::{NumColumnsMismatch, VecCommitmentExt},
@@ -108,7 +109,6 @@ mod tests {
         proof_primitive::dory::{rand_util::test_rng, ProverSetup, PublicParameters},
     };
     use ark_ec::pairing::Pairing;
-    use crate::base::database::ColumnTypeAssociatedData;
 
     #[test]
     fn we_can_convert_from_columns() {
@@ -132,7 +132,10 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<DoryScalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, column_a.to_vec()),
+            OwnedColumn::<DoryScalar>::BigInt(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                column_a.to_vec(),
+            ),
             OwnedColumn::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, column_b.to_vec()),
         ];
 
@@ -229,7 +232,10 @@ mod tests {
             Err(NumColumnsMismatch)
         ));
 
-        let new_columns = vec![OwnedColumn::<DoryScalar>::BigInt(meta, column_a[3..].to_vec())];
+        let new_columns = vec![OwnedColumn::<DoryScalar>::BigInt(
+            meta,
+            column_a[3..].to_vec(),
+        )];
         assert!(matches!(
             commitments.try_append_rows_with_offset(&new_columns, 3, &setup),
             Err(NumColumnsMismatch)
@@ -381,7 +387,10 @@ mod tests {
             Err(NumColumnsMismatch)
         ));
 
-        let new_columns = vec![OwnedColumn::<DoryScalar>::BigInt(meta, column_a[3..].to_vec())];
+        let new_columns = vec![OwnedColumn::<DoryScalar>::BigInt(
+            meta,
+            column_a[3..].to_vec(),
+        )];
         let new_commitments =
             Vec::<DoryCommitment>::from_columns_with_offset(&new_columns, 3, &setup);
         assert!(matches!(

@@ -1,3 +1,4 @@
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         database::{ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
@@ -17,7 +18,6 @@ use proof_of_sql_parser::{
     utility::*,
     Identifier, SelectStatement,
 };
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// # Panics
 ///

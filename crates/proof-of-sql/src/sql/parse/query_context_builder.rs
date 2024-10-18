@@ -1,4 +1,5 @@
 use super::{ConversionError, ConversionResult, QueryContext};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
     database::{
         try_add_subtract_column_types, try_multiply_column_types, ColumnRef, ColumnType,
@@ -14,7 +15,6 @@ use proof_of_sql_parser::{
     },
     Identifier, ResourceId,
 };
-use crate::base::database::ColumnTypeAssociatedData;
 
 pub struct QueryContextBuilder<'a> {
     context: QueryContext,
@@ -165,7 +165,9 @@ impl<'a> QueryContextBuilder<'a> {
             | BinaryOperator::Or
             | BinaryOperator::Equal
             | BinaryOperator::GreaterThanOrEqual
-            | BinaryOperator::LessThanOrEqual => Ok(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            | BinaryOperator::LessThanOrEqual => {
+                Ok(ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE))
+            }
             BinaryOperator::Multiply
             | BinaryOperator::Division
             | BinaryOperator::Subtract
@@ -201,11 +203,11 @@ impl<'a> QueryContextBuilder<'a> {
         self.context.set_in_agg_scope(true)?;
         let expr_dtype = self.visit_expr(expr)?;
 
-         match (op, expr_dtype) {
+        match (op, expr_dtype) {
             (AggregationOperator::Count, _) => {
                 self.context.set_in_agg_scope(false)?;
                 Ok(ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE))
-            },
+            }
             (_, ColumnType::VarChar(_)) => Err(ConversionError::non_numeric_expr_in_agg(
                 expr_dtype.to_string(),
                 op.to_string(),
@@ -213,13 +215,13 @@ impl<'a> QueryContextBuilder<'a> {
             (_, _) => {
                 self.context.set_in_agg_scope(false)?;
                 Ok(expr_dtype)
-            },
+            }
         }
     }
 
     #[allow(clippy::unused_self)]
     fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
-        let meta =  ColumnTypeAssociatedData::NOT_NULLABLE;
+        let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         match literal {
             Literal::Boolean(_) => Ok(ColumnType::Boolean(meta)),
             Literal::BigInt(_) => Ok(ColumnType::BigInt(meta)),
@@ -229,7 +231,11 @@ impl<'a> QueryContextBuilder<'a> {
                 let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(meta, precision, d.scale()))
             }
-            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(meta, its.timeunit(), its.timezone())),
+            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(
+                meta,
+                its.timeunit(),
+                its.timezone(),
+            )),
         }
     }
 
@@ -267,7 +273,10 @@ pub(crate) fn type_check_binary_operation(
             matches!(
                 (left_dtype, right_dtype),
                 (ColumnType::VarChar(_), ColumnType::VarChar(_))
-                    | (ColumnType::TimestampTZ(_, _, _), ColumnType::TimestampTZ(_, _, _))
+                    | (
+                        ColumnType::TimestampTZ(_, _, _),
+                        ColumnType::TimestampTZ(_, _, _)
+                    )
                     | (ColumnType::Boolean(_), ColumnType::Boolean(_))
                     | (_, ColumnType::Scalar(_))
                     | (ColumnType::Scalar(_), _)
@@ -293,7 +302,10 @@ pub(crate) fn type_check_binary_operation(
                 || matches!(
                     (left_dtype, right_dtype),
                     (ColumnType::Boolean(_), ColumnType::Boolean(_))
-                        | (ColumnType::TimestampTZ(_, _, _), ColumnType::TimestampTZ(_, _, _))
+                        | (
+                            ColumnType::TimestampTZ(_, _, _),
+                            ColumnType::TimestampTZ(_, _, _)
+                        )
                 )
         }
         BinaryOperator::Add => {

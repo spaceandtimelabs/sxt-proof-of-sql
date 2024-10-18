@@ -197,7 +197,10 @@ impl ProvableQueryResult {
                     ColumnType::Decimal75(meta, precision, scale) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::Decimal75(meta, precision, scale, col)))
+                        Ok((
+                            field.name(),
+                            OwnedColumn::Decimal75(meta, precision, scale, col),
+                        ))
                     }
                     ColumnType::TimestampTZ(meta, tu, tz) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;

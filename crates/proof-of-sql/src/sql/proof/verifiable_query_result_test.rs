@@ -2,6 +2,7 @@ use super::{
     CountBuilder, FinalRoundBuilder, ProofPlan, ProverEvaluate, VerifiableQueryResult,
     VerificationBuilder,
 };
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::{Commitment, InnerProductProof},
@@ -18,7 +19,6 @@ use crate::{
 };
 use bumpalo::Bump;
 use serde::Serialize;
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[derive(Debug, Serialize, Default)]
 pub(super) struct EmptyTestQueryExpr {
@@ -82,7 +82,12 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         (1..=self.columns)
-            .map(|i| ColumnField::new(format!("a{i}").parse().unwrap(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)))
+            .map(|i| {
+                ColumnField::new(
+                    format!("a{i}").parse().unwrap(),
+                    ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+                )
+            })
             .collect()
     }
 

@@ -173,21 +173,36 @@ pub fn make_random_test_accessor_data(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::base::database::ColumnTypeAssociatedData;
     use crate::record_batch;
     use rand_core::SeedableRng;
-    use crate::base::database::ColumnTypeAssociatedData;
 
     #[test]
     fn we_can_construct_a_random_test_data() {
         let descriptor = RandomTestAccessorDescriptor::default();
         let mut rng = StdRng::from_seed([0u8; 32]);
         let cols = [
-            ("a", ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            ("b", ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            ("c", ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            ("d", ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            (
+                "a",
+                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ),
+            (
+                "b",
+                ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ),
+            (
+                "c",
+                ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ),
+            (
+                "d",
+                ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ),
             ("e", ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            ("f", ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            (
+                "f",
+                ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ),
         ];
 
         let data1 = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
@@ -205,9 +220,18 @@ mod tests {
         };
         let mut rng = StdRng::from_seed([0u8; 32]);
         let cols = [
-            ("b", ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            ("a", ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            ("c", ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE)),
+            (
+                "b",
+                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ),
+            (
+                "a",
+                ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ),
+            (
+                "c",
+                ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE),
+            ),
         ];
         let data = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
 

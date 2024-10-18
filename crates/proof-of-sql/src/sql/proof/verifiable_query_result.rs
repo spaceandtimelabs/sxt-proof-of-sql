@@ -169,8 +169,9 @@ fn make_empty_query_result<S: Scalar>(result_fields: Vec<ColumnField>) -> QueryR
                         }
                         ColumnType::Scalar(meta) => OwnedColumn::Scalar(meta, vec![]),
                         ColumnType::VarChar(meta) => OwnedColumn::VarChar(meta, vec![]),
-                        ColumnType::TimestampTZ(meta, tu, tz) =>
-                            OwnedColumn::TimestampTZ(meta, tu, tz, vec![]),
+                        ColumnType::TimestampTZ(meta, tu, tz) => {
+                            OwnedColumn::TimestampTZ(meta, tu, tz, vec![])
+                        }
                     },
                 )
             })

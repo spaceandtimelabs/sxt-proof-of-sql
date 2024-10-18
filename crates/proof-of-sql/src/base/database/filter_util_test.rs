@@ -1,10 +1,10 @@
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
     database::{filter_util::*, Column},
     math::decimal::Precision,
     scalar::Curve25519Scalar,
 };
 use bumpalo::Bump;
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_filter_columns() {
@@ -29,9 +29,13 @@ fn we_can_filter_columns() {
         vec![
             Column::BigInt(meta, &[1, 3, 5]),
             Column::Int128(meta, &[1, 3, 5]),
-            Column::VarChar(meta, (&["1", "3", "5"], &["1".into(), "3".into(), "5".into()])),
+            Column::VarChar(
+                meta,
+                (&["1", "3", "5"], &["1".into(), "3".into(), "5".into()])
+            ),
             Column::Scalar(meta, &[1.into(), 3.into(), 5.into()]),
-            Column::Decimal75(meta,
+            Column::Decimal75(
+                meta,
                 Precision::new(75).unwrap(),
                 0,
                 &[1.into(), 3.into(), 5.into()]

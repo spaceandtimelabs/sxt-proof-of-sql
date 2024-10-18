@@ -3,6 +3,7 @@
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow Array.
 use super::{Column, ColumnType, OwnedColumnError, OwnedColumnResult};
+use crate::base::database::column::ColumnTypeAssociatedData;
 use crate::base::{
     math::{
         decimal::Precision,
@@ -19,7 +20,6 @@ use proof_of_sql_parser::{
     intermediate_ast::OrderByDirection,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
 };
-use crate::base::database::column::ColumnTypeAssociatedData;
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
@@ -44,7 +44,12 @@ pub enum OwnedColumn<S: Scalar> {
     /// Scalar columns
     Scalar(ColumnTypeAssociatedData, Vec<S>),
     /// Timestamp columns
-    TimestampTZ(ColumnTypeAssociatedData, PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
+    TimestampTZ(
+        ColumnTypeAssociatedData,
+        PoSQLTimeUnit,
+        PoSQLTimeZone,
+        Vec<i64>,
+    ),
 }
 
 impl<S: Scalar> OwnedColumn<S> {
@@ -66,17 +71,31 @@ impl<S: Scalar> OwnedColumn<S> {
     /// Returns the column with its entries permutated
     pub fn try_permute(&self, permutation: &Permutation) -> Result<Self, PermutationError> {
         Ok(match self {
-            OwnedColumn::Boolean(meta, col) => OwnedColumn::Boolean(*meta, permutation.try_apply(col)?),
-            OwnedColumn::TinyInt(meta, col) => OwnedColumn::TinyInt(*meta, permutation.try_apply(col)?),
-            OwnedColumn::SmallInt(meta, col) => OwnedColumn::SmallInt(*meta, permutation.try_apply(col)?),
+            OwnedColumn::Boolean(meta, col) => {
+                OwnedColumn::Boolean(*meta, permutation.try_apply(col)?)
+            }
+            OwnedColumn::TinyInt(meta, col) => {
+                OwnedColumn::TinyInt(*meta, permutation.try_apply(col)?)
+            }
+            OwnedColumn::SmallInt(meta, col) => {
+                OwnedColumn::SmallInt(*meta, permutation.try_apply(col)?)
+            }
             OwnedColumn::Int(meta, col) => OwnedColumn::Int(*meta, permutation.try_apply(col)?),
-            OwnedColumn::BigInt(meta, col) => OwnedColumn::BigInt(*meta, permutation.try_apply(col)?),
-            OwnedColumn::VarChar(meta, col) => OwnedColumn::VarChar(*meta, permutation.try_apply(col)?),
-            OwnedColumn::Int128(meta, col) => OwnedColumn::Int128(*meta, permutation.try_apply(col)?),
+            OwnedColumn::BigInt(meta, col) => {
+                OwnedColumn::BigInt(*meta, permutation.try_apply(col)?)
+            }
+            OwnedColumn::VarChar(meta, col) => {
+                OwnedColumn::VarChar(*meta, permutation.try_apply(col)?)
+            }
+            OwnedColumn::Int128(meta, col) => {
+                OwnedColumn::Int128(*meta, permutation.try_apply(col)?)
+            }
             OwnedColumn::Decimal75(meta, precision, scale, col) => {
                 OwnedColumn::Decimal75(*meta, *precision, *scale, permutation.try_apply(col)?)
             }
-            OwnedColumn::Scalar(meta, col) => OwnedColumn::Scalar(*meta, permutation.try_apply(col)?),
+            OwnedColumn::Scalar(meta, col) => {
+                OwnedColumn::Scalar(*meta, permutation.try_apply(col)?)
+            }
             OwnedColumn::TimestampTZ(meta, tu, tz, col) => {
                 OwnedColumn::TimestampTZ(*meta, *tu, *tz, permutation.try_apply(col)?)
             }
@@ -87,12 +106,20 @@ impl<S: Scalar> OwnedColumn<S> {
     #[must_use]
     pub fn slice(&self, start: usize, end: usize) -> Self {
         match self {
-            OwnedColumn::Boolean(meta, col) => OwnedColumn::Boolean(*meta, col[start..end].to_vec()),
-            OwnedColumn::TinyInt(meta, col) => OwnedColumn::TinyInt(*meta, col[start..end].to_vec()),
-            OwnedColumn::SmallInt(meta, col) => OwnedColumn::SmallInt(*meta, col[start..end].to_vec()),
+            OwnedColumn::Boolean(meta, col) => {
+                OwnedColumn::Boolean(*meta, col[start..end].to_vec())
+            }
+            OwnedColumn::TinyInt(meta, col) => {
+                OwnedColumn::TinyInt(*meta, col[start..end].to_vec())
+            }
+            OwnedColumn::SmallInt(meta, col) => {
+                OwnedColumn::SmallInt(*meta, col[start..end].to_vec())
+            }
             OwnedColumn::Int(meta, col) => OwnedColumn::Int(*meta, col[start..end].to_vec()),
             OwnedColumn::BigInt(meta, col) => OwnedColumn::BigInt(*meta, col[start..end].to_vec()),
-            OwnedColumn::VarChar(meta, col) => OwnedColumn::VarChar(*meta, col[start..end].to_vec()),
+            OwnedColumn::VarChar(meta, col) => {
+                OwnedColumn::VarChar(*meta, col[start..end].to_vec())
+            }
             OwnedColumn::Int128(meta, col) => OwnedColumn::Int128(*meta, col[start..end].to_vec()),
             OwnedColumn::Decimal75(meta, precision, scale, col) => {
                 OwnedColumn::Decimal75(*meta, *precision, *scale, col[start..end].to_vec())
@@ -112,7 +139,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::TinyInt(_, col) => col.is_empty(),
             OwnedColumn::SmallInt(_, col) => col.is_empty(),
             OwnedColumn::Int(_, col) => col.is_empty(),
-            OwnedColumn::BigInt(_, col) | OwnedColumn::TimestampTZ(_,_, _, col) => col.is_empty(),
+            OwnedColumn::BigInt(_, col) | OwnedColumn::TimestampTZ(_, _, _, col) => col.is_empty(),
             OwnedColumn::VarChar(_, col) => col.is_empty(),
             OwnedColumn::Int128(_, col) => col.is_empty(),
             OwnedColumn::Scalar(_, col) | OwnedColumn::Decimal75(_, _, _, col) => col.is_empty(),
@@ -133,8 +160,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Decimal75(meta, precision, scale, _) => {
                 ColumnType::Decimal75(*meta, *precision, *scale)
             }
-            OwnedColumn::TimestampTZ(meta, tu, tz, _) =>
-                ColumnType::TimestampTZ(*meta, *tu, *tz),
+            OwnedColumn::TimestampTZ(meta, tu, tz, _) => ColumnType::TimestampTZ(*meta, *tu, *tz),
         }
     }
 
@@ -201,11 +227,13 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
-            ColumnType::Scalar(meta) => Ok(OwnedColumn::Scalar(
-                meta,scalars.to_vec())),
-            ColumnType::Decimal75(meta, precision, scale) => {
-                Ok(OwnedColumn::Decimal75(meta, precision, scale, scalars.to_vec()))
-            }
+            ColumnType::Scalar(meta) => Ok(OwnedColumn::Scalar(meta, scalars.to_vec())),
+            ColumnType::Decimal75(meta, precision, scale) => Ok(OwnedColumn::Decimal75(
+                meta,
+                precision,
+                scale,
+                scalars.to_vec(),
+            )),
             ColumnType::TimestampTZ(meta, tu, tz) => {
                 let raw_values: Vec<i64> = scalars
                     .iter()
@@ -329,8 +357,9 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
                 OwnedColumn::Decimal75(*meta, *precision, *scale, col.to_vec())
             }
             Column::Scalar(meta, col) => OwnedColumn::Scalar(*meta, col.to_vec()),
-            Column::TimestampTZ(meta, tu, tz, col) =>
-                OwnedColumn::TimestampTZ(*meta, *tu, *tz, col.to_vec()),
+            Column::TimestampTZ(meta, tu, tz, col) => {
+                OwnedColumn::TimestampTZ(*meta, *tu, *tz, col.to_vec())
+            }
         }
     }
 }
@@ -355,7 +384,9 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
                     col[i].cmp(&col[j])
                 }
                 OwnedColumn::Int128(_, col) => col[i].cmp(&col[j]),
-                OwnedColumn::Decimal75(_, _, _, col) | OwnedColumn::Scalar(_, col) => col[i].cmp(&col[j]),
+                OwnedColumn::Decimal75(_, _, _, col) | OwnedColumn::Scalar(_, col) => {
+                    col[i].cmp(&col[j])
+                }
                 OwnedColumn::VarChar(_, col) => col[i].cmp(&col[j]),
             };
             match direction {
@@ -452,7 +483,8 @@ mod test {
         assert_eq!(col, new_col);
 
         // Booleans
-        let col: Column<'_, Curve25519Scalar> = Column::Boolean(meta, &[true, false, true, false, true]);
+        let col: Column<'_, Curve25519Scalar> =
+            Column::Boolean(meta, &[true, false, true, false, true]);
         let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
         assert_eq!(
             owned_col,

@@ -1,4 +1,5 @@
 use super::{DynProofExpr, ProofExpr};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -17,7 +18,6 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-use crate::base::database::ColumnTypeAssociatedData;
 
 fn test_random_tables_with_given_offset(offset: usize) {
     let dist = Uniform::new(-3, 4);
@@ -126,6 +126,9 @@ fn we_can_compute_the_correct_output_of_a_literal_expr_using_result_evaluate() {
     let literal_expr: DynProofExpr<RistrettoPoint> = const_bool(true);
     let alloc = Bump::new();
     let res = literal_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[true, true, true, true]);
+    let expected_res = Column::Boolean(
+        ColumnTypeAssociatedData::NOT_NULLABLE,
+        &[true, true, true, true],
+    );
     assert_eq!(res, expected_res);
 }

@@ -1,4 +1,5 @@
 use super::{DynProofExpr, ProofExpr};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
@@ -12,7 +13,6 @@ use alloc::boxed::Box;
 use bumpalo::Bump;
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use serde::{Deserialize, Serialize};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable aggregate expression
 ///
@@ -37,7 +37,9 @@ impl<C: Commitment> ProofExpr<C> for AggregateExpr<C> {
 
     fn data_type(&self) -> ColumnType {
         match self.op {
-            AggregationOperator::Count => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            AggregationOperator::Count => {
+                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+            }
             AggregationOperator::Sum => self.expr.data_type(),
             _ => todo!("Aggregation operator not supported here yet"),
         }

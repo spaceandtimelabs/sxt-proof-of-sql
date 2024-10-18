@@ -307,11 +307,11 @@ impl ColumnBounds {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::base::database::ColumnTypeAssociatedData;
     use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::Curve25519Scalar};
     use alloc::{string::String, vec};
     use itertools::Itertools;
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
-    use crate::base::database::ColumnTypeAssociatedData;
 
     #[test]
     fn we_can_construct_bounds_by_method() {
@@ -499,7 +499,8 @@ mod tests {
     #[test]
     fn we_can_construct_column_bounds_from_column() {
         let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
-        let varchar_column = OwnedColumn::<Curve25519Scalar>::VarChar(meta,
+        let varchar_column = OwnedColumn::<Curve25519Scalar>::VarChar(
+            meta,
             ["Lorem", "ipsum", "dolor", "sit", "amet"]
                 .map(String::from)
                 .to_vec(),
@@ -508,7 +509,8 @@ mod tests {
         let varchar_column_bounds = ColumnBounds::from_column(&committable_varchar_column);
         assert_eq!(varchar_column_bounds, ColumnBounds::NoOrder);
 
-        let tinyint_column = OwnedColumn::<Curve25519Scalar>::TinyInt(meta, [1, 2, 3, 1, 0].to_vec());
+        let tinyint_column =
+            OwnedColumn::<Curve25519Scalar>::TinyInt(meta, [1, 2, 3, 1, 0].to_vec());
         let committable_tinyint_column = CommittableColumn::from(&tinyint_column);
         let tinyint_column_bounds = ColumnBounds::from_column(&committable_tinyint_column);
         assert_eq!(
@@ -516,7 +518,8 @@ mod tests {
             ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 0, max: 3 }))
         );
 
-        let smallint_column = OwnedColumn::<Curve25519Scalar>::SmallInt(meta, [1, 2, 3, 1, 0].to_vec());
+        let smallint_column =
+            OwnedColumn::<Curve25519Scalar>::SmallInt(meta, [1, 2, 3, 1, 0].to_vec());
         let committable_smallint_column = CommittableColumn::from(&smallint_column);
         let smallint_column_bounds = ColumnBounds::from_column(&committable_smallint_column);
         assert_eq!(

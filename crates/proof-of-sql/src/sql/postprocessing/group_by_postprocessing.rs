@@ -1,4 +1,5 @@
 use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
     database::{group_by_util::aggregate_columns, Column, OwnedColumn, OwnedTable},
     map::{indexmap, IndexMap, IndexSet},
@@ -12,7 +13,6 @@ use proof_of_sql_parser::{
     Identifier,
 };
 use serde::{Deserialize, Serialize};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// A group by expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -306,7 +306,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         //TODO: When we have NULLs we need to differentiate between count(1) and count(expression)
         let count_column = OwnedColumn::BigInt(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            aggregation_results.count_column.to_vec()
+            aggregation_results.count_column.to_vec(),
         );
         let count_outs = evaluated_columns
             .get(&AggregationOperator::Count)

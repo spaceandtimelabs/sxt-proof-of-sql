@@ -37,17 +37,16 @@ pub fn try_add_subtract_column_types(
                 left_type: lhs,
                 right_type: rhs,
             })
-        },
+        }
         (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
             // We can unwrap here because we know that both types are integers
             Ok(lhs.max_integer_type(&rhs).unwrap())
-        },
+        }
         (ColumnType::Scalar(meta), _) | (_, ColumnType::Scalar(meta)) => {
             Ok(ColumnType::Scalar(meta))
-        },
+        }
 
         _ => {
-
             let left_precision_value =
                 i16::from(lhs.precision_value().expect("Numeric types have precision"));
             let right_precision_value =
@@ -57,7 +56,7 @@ pub fn try_add_subtract_column_types(
             let scale = left_scale.max(right_scale);
             let precision_value: i16 = i16::from(scale)
                 + (left_precision_value - i16::from(left_scale))
-                .max(right_precision_value - i16::from(right_scale))
+                    .max(right_precision_value - i16::from(right_scale))
                 + 1_i16;
             let precision = u8::try_from(precision_value)
                 .map_err(|_| ColumnOperationError::DecimalConversionError {
@@ -72,7 +71,11 @@ pub fn try_add_subtract_column_types(
                         },
                     })
                 })?;
-            Ok(ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, precision, scale))
+            Ok(ColumnType::Decimal75(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                precision,
+                scale,
+            ))
         }
     }
 }
@@ -91,19 +94,20 @@ pub fn try_multiply_column_types(
 ) -> ColumnOperationResult<ColumnType> {
     match (lhs, rhs) {
         (lhs, rhs) if !lhs.is_numeric() || !rhs.is_numeric() => {
-             Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType {
                 operator: BinaryOperator::Multiply,
                 left_type: lhs,
                 right_type: rhs,
             })
-        },
+        }
         (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
             Ok(lhs.max_integer_type(&rhs).unwrap())
-        },
+        }
         (ColumnType::Scalar(_), ColumnType::Scalar(_)) => Ok(lhs),
         (lhs, rhs) => {
             let left_precision_value = lhs.precision_value().expect("Numeric types have precision");
-            let right_precision_value = rhs.precision_value().expect("Numeric types have precision");
+            let right_precision_value =
+                rhs.precision_value().expect("Numeric types have precision");
             let precision_value = left_precision_value + right_precision_value + 1;
             let precision = Precision::new(precision_value).map_err(|_| {
                 ColumnOperationError::DecimalConversionError {
@@ -123,7 +127,11 @@ pub fn try_multiply_column_types(
                     },
                 },
             )?;
-            Ok(ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, precision, scale))
+            Ok(ColumnType::Decimal75(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                precision,
+                scale,
+            ))
         }
     }
 }
@@ -148,8 +156,9 @@ pub fn try_divide_column_types(
     match (lhs, rhs) {
         (lhs, rhs) if !lhs.is_numeric() || !rhs.is_numeric() => bin_err,
         (ColumnType::Scalar(_), _) | (_, ColumnType::Scalar(_)) => bin_err,
-        (lhs, rhs) if lhs.is_integer() && rhs.is_integer() =>
-            Ok(lhs.max_integer_type(&rhs).unwrap()),
+        (lhs, rhs) if lhs.is_integer() && rhs.is_integer() => {
+            Ok(lhs.max_integer_type(&rhs).unwrap())
+        }
         (lhs, rhs) => {
             let left_precision_value =
                 i16::from(lhs.precision_value().expect("Numeric types have precision"));
@@ -159,10 +168,11 @@ pub fn try_divide_column_types(
             let right_scale = i16::from(rhs.scale().expect("Numeric types have scale"));
             let raw_scale = (left_scale + right_precision_value + 1_i16).max(6_i16);
             let precision_value: i16 = left_precision_value - left_scale + right_scale + raw_scale;
-            let scale =
-                i8::try_from(raw_scale).map_err(|_| ColumnOperationError::DecimalConversionError {
+            let scale = i8::try_from(raw_scale).map_err(|_| {
+                ColumnOperationError::DecimalConversionError {
                     source: DecimalError::InvalidScale { scale: raw_scale },
-                })?;
+                }
+            })?;
             let precision = u8::try_from(precision_value)
                 .map_err(|_| ColumnOperationError::DecimalConversionError {
                     source: DecimalError::InvalidPrecision {
@@ -176,9 +186,13 @@ pub fn try_divide_column_types(
                         },
                     })
                 })?;
-            Ok(ColumnType::Decimal75(ColumnTypeAssociatedData {
-                nullable: lhs.is_nullable() || rhs.is_nullable(),
-            }, precision, scale))
+            Ok(ColumnType::Decimal75(
+                ColumnTypeAssociatedData {
+                    nullable: lhs.is_nullable() || rhs.is_nullable(),
+                },
+                precision,
+                scale,
+            ))
         }
     }
 }
@@ -949,7 +963,6 @@ mod test {
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
         let expected = ColumnType::TinyInt(ColumnTypeAssociatedData::NULLABLE);
         assert_eq!(expected, actual);
-
     }
     #[test]
     fn we_can_add_numeric_types() {
@@ -993,22 +1006,26 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is a decimal with nonnegative scale and rhs is an integer
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE,
-                                        Precision::new(10).unwrap(),
-                                        2);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
 
         let rhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE,
-                                             Precision::new(11).unwrap(),
-                                             2);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(11).unwrap(),
+            2,
+        );
 
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(10).unwrap(),
-            2
+            2,
         );
 
         let rhs = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
@@ -1016,7 +1033,7 @@ mod test {
         let expected = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(11).unwrap(),
-            2
+            2,
         );
 
         assert_eq!(expected, actual);
@@ -1025,20 +1042,20 @@ mod test {
         let lhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(20).unwrap(),
-            3
+            3,
         );
 
         let rhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(10).unwrap(),
-            2
+            2,
         );
 
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
         let expected = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(21).unwrap(),
-            3
+            3,
         );
 
         assert_eq!(expected, actual);
@@ -1048,13 +1065,14 @@ mod test {
         let rhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(10).unwrap(),
-            -2
+            -2,
         );
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
         let expected = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(13).unwrap(),
-            0);
+            0,
+        );
 
         assert_eq!(expected, actual);
 
@@ -1062,13 +1080,13 @@ mod test {
         let rhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(10).unwrap(),
-            -2
+            -2,
         );
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
         let expected = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(13).unwrap(),
-            0
+            0,
         );
 
         assert_eq!(expected, actual);
@@ -1077,19 +1095,19 @@ mod test {
         let lhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(40).unwrap(),
-            -13
+            -13,
         );
         let rhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(15).unwrap(),
-            5
+            5,
         );
 
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
         let expected = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(59).unwrap(),
-            5
+            5,
         );
         assert_eq!(expected, actual);
 
@@ -1098,18 +1116,18 @@ mod test {
         let lhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(74).unwrap(),
-            -13
+            -13,
         );
         let rhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(15).unwrap(),
-            -14
+            -14,
         );
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
         let expected = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(75).unwrap(),
-            -13
+            -13,
         );
         assert_eq!(expected, actual);
     }
@@ -1143,12 +1161,12 @@ mod test {
         let lhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(75).unwrap(),
-            4
+            4,
         );
         let rhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(73).unwrap(),
-            4
+            4,
         );
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add),
@@ -1161,7 +1179,7 @@ mod test {
         let rhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             Precision::new(75).unwrap(),
-            10
+            10,
         );
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add),
@@ -1213,51 +1231,119 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is a decimal and rhs is an integer
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let rhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(11).unwrap(), 2);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(11).unwrap(),
+            2,
+        );
         assert_eq!(expected, actual);
 
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let rhs = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(11).unwrap(), 2);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(11).unwrap(),
+            2,
+        );
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with nonnegative scale
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(20).unwrap(), 3);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(20).unwrap(),
+            3,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(21).unwrap(), 3);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(21).unwrap(),
+            3,
+        );
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with negative scale
         let lhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(13).unwrap(), 0);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(13).unwrap(),
+            0,
+        );
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(13).unwrap(), 0);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(13).unwrap(),
+            0,
+        );
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals one of which has negative scale
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(15).unwrap(), 5);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            -13,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(15).unwrap(),
+            5,
+        );
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(59).unwrap(), 5);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(59).unwrap(),
+            5,
+        );
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals both with negative scale
         // and with result having maximum precision
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(61).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(73).unwrap(), -14);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(61).unwrap(),
+            -13,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(73).unwrap(),
+            -14,
+        );
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(75).unwrap(), -13);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(75).unwrap(),
+            -13,
+        );
         assert_eq!(expected, actual);
     }
 
@@ -1287,8 +1373,16 @@ mod test {
 
     #[test]
     fn we_cannot_subtract_some_numeric_types_due_to_decimal_issues() {
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(75).unwrap(), 0);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(73).unwrap(), 1);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(75).unwrap(),
+            0,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(73).unwrap(),
+            1,
+        );
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract),
             Err(ColumnOperationError::DecimalConversionError {
@@ -1297,7 +1391,11 @@ mod test {
         ));
 
         let lhs = ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(75).unwrap(), 12);
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(75).unwrap(),
+            12,
+        );
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract),
             Err(ColumnOperationError::DecimalConversionError {
@@ -1348,51 +1446,119 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is a decimal and rhs is an integer
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let rhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(14).unwrap(), 2);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(14).unwrap(),
+            2,
+        );
         assert_eq!(expected, actual);
 
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let rhs = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(16).unwrap(), 2);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(16).unwrap(),
+            2,
+        );
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with nonnegative scale
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(20).unwrap(), 3);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(20).unwrap(),
+            3,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(31).unwrap(), 5);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(31).unwrap(),
+            5,
+        );
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with negative scale
         let lhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(14).unwrap(), -2);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(14).unwrap(),
+            -2,
+        );
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(16).unwrap(), -2);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(16).unwrap(),
+            -2,
+        );
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals one of which has negative scale
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(15).unwrap(), 5);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            -13,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(15).unwrap(),
+            5,
+        );
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(56).unwrap(), -8);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(56).unwrap(),
+            -8,
+        );
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals both with negative scale
         // and with result having maximum precision
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(61).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(13).unwrap(), -14);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(61).unwrap(),
+            -13,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(13).unwrap(),
+            -14,
+        );
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(75).unwrap(), -27);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(75).unwrap(),
+            -27,
+        );
         assert_eq!(expected, actual);
     }
 
@@ -1423,8 +1589,16 @@ mod test {
     #[test]
     fn we_cannot_multiply_some_numeric_types_due_to_decimal_issues() {
         // Invalid precision
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(38).unwrap(), 4);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(37).unwrap(), 4);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(38).unwrap(),
+            4,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(37).unwrap(),
+            4,
+        );
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -1433,7 +1607,11 @@ mod test {
         ));
 
         let lhs = ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(65).unwrap(), 0);
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(65).unwrap(),
+            0,
+        );
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -1442,8 +1620,16 @@ mod test {
         ));
 
         // Invalid scale
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(5).unwrap(), -64_i8);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(5).unwrap(), -65_i8);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(5).unwrap(),
+            -64_i8,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(5).unwrap(),
+            -65_i8,
+        );
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -1451,8 +1637,16 @@ mod test {
             })
         ));
 
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(5).unwrap(), 64_i8);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(5).unwrap(), 64_i8);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(5).unwrap(),
+            64_i8,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(5).unwrap(),
+            64_i8,
+        );
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -1490,68 +1684,148 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is a decimal with nonnegative scale and rhs is an integer
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let rhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(14).unwrap(), 6);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(14).unwrap(),
+            6,
+        );
         assert_eq!(expected, actual);
 
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let rhs = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(16).unwrap(), 8);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(16).unwrap(),
+            8,
+        );
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with nonnegative scale
         let lhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let rhs = ColumnType::Decimal75(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            Precision::new(10).unwrap()
-            ,2
+            Precision::new(10).unwrap(),
+            2,
         );
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(16).unwrap(), 11);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(16).unwrap(),
+            11,
+        );
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(18).unwrap(), 11);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(18).unwrap(),
+            11,
+        );
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with nonnegative scale
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(20).unwrap(), 3);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(20).unwrap(),
+            3,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(33).unwrap(), 14);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(33).unwrap(),
+            14,
+        );
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with negative scale
         let lhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(12).unwrap(), 11);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(12).unwrap(),
+            11,
+        );
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(14).unwrap(), 11);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(14).unwrap(),
+            11,
+        );
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals one of which has negative scale
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(15).unwrap(), 5);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            -13,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(15).unwrap(),
+            5,
+        );
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(64).unwrap(), 6);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(64).unwrap(),
+            6,
+        );
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals both with negative scale
         // and with result having maximum precision
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(70).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(13).unwrap(), -14);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(70).unwrap(),
+            -13,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(13).unwrap(),
+            -14,
+        );
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(75).unwrap(), 6);
+        let expected = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(75).unwrap(),
+            6,
+        );
         assert_eq!(expected, actual);
     }
 
@@ -1589,8 +1863,16 @@ mod test {
     #[test]
     fn we_cannot_divide_some_numeric_types_due_to_decimal_issues() {
         // Invalid precision
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(71).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(13).unwrap(), -14);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(71).unwrap(),
+            -13,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(13).unwrap(),
+            -14,
+        );
         assert!(matches!(
             try_divide_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -1599,7 +1881,11 @@ mod test {
         ));
 
         let lhs = ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(68).unwrap(), 67);
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(68).unwrap(),
+            67,
+        );
         assert!(matches!(
             try_divide_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -1608,8 +1894,16 @@ mod test {
         ));
 
         // Invalid scale
-        let lhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(15).unwrap(), 53_i8);
-        let rhs = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(75).unwrap(), 40_i8);
+        let lhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(15).unwrap(),
+            53_i8,
+        );
+        let rhs = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(75).unwrap(),
+            40_i8,
+        );
         assert!(matches!(
             try_divide_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -1682,7 +1976,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, false];
         assert_eq!(expected, actual);
@@ -1693,7 +1991,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, false];
         assert_eq!(expected, actual);
@@ -1705,7 +2007,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
@@ -1719,8 +2025,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 3);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            3,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -1734,8 +2048,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            2,
+        );
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -1749,8 +2071,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -1764,8 +2094,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), -46);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -50,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            -46,
+        );
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -1779,8 +2117,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), 26);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -50,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            26,
+        );
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, false];
         assert_eq!(expected, actual);
@@ -1814,7 +2160,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -1825,7 +2175,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -1837,7 +2191,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -1851,8 +2209,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 3);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            3,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -1866,8 +2232,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            2,
+        );
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, false];
         assert_eq!(expected, actual);
@@ -1881,8 +2255,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -1896,8 +2278,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), -46);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -50,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            -46,
+        );
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -1911,8 +2301,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), 26);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -50,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            26,
+        );
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, false, false, true, true, false, true, true, true];
         assert_eq!(expected, actual);
@@ -1946,7 +2344,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
@@ -1957,7 +2359,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
@@ -1969,7 +2375,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
@@ -1983,8 +2393,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 3);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            3,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -1998,8 +2416,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            2,
+        );
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -2013,8 +2439,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -2028,8 +2462,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), -46);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -50,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            -46,
+        );
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -2043,8 +2485,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), 26);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -50,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            26,
+        );
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, true, false, true, true, false, false, false];
         assert_eq!(expected, actual);
@@ -2098,7 +2548,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2115,7 +2569,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2132,7 +2590,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let right_column_type = ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
@@ -2153,8 +2615,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(12).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 3);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(12).unwrap(),
+            2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            3,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2175,8 +2645,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(69).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(50).unwrap(), 3);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(69).unwrap(),
+            -2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(50).unwrap(),
+            3,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2197,8 +2675,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(74).unwrap(), -128);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(74).unwrap(), -128);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(74).unwrap(),
+            -128,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(74).unwrap(),
+            -128,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2277,7 +2763,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2294,7 +2784,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2311,7 +2805,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let right_column_type = ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
@@ -2332,8 +2830,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(12).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 3);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(12).unwrap(),
+            2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            3,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2354,8 +2860,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(69).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(50).unwrap(), 3);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(69).unwrap(),
+            -2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(50).unwrap(),
+            3,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2376,8 +2890,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(74).unwrap(), -128);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(74).unwrap(), -128);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(74).unwrap(),
+            -128,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(74).unwrap(),
+            -128,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2437,7 +2959,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2454,7 +2980,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            2,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2471,7 +3001,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let right_column_type = ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
@@ -2493,8 +3027,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(42).unwrap(), 72);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(32).unwrap(), 55);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(42).unwrap(),
+            72,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(32).unwrap(),
+            55,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2515,8 +3057,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(69).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(5).unwrap(), 3);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(69).unwrap(),
+            -2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(5).unwrap(),
+            3,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2537,8 +3087,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(34).unwrap(), -64);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(40).unwrap(), -64);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(34).unwrap(),
+            -64,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(40).unwrap(),
+            -64,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2617,7 +3175,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(3).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(3).unwrap(),
+            2,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2634,7 +3196,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(3).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(3).unwrap(),
+            2,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2651,7 +3217,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let right_column_type = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
@@ -2668,7 +3238,11 @@ mod test {
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(10).unwrap(),
+            -2,
+        );
         let right_column_type = ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE);
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
@@ -2689,8 +3263,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(4).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(3).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(4).unwrap(),
+            2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(3).unwrap(),
+            2,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2710,8 +3292,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(2).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(3).unwrap(), 3);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(2).unwrap(),
+            -2,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(3).unwrap(),
+            3,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
@@ -2731,8 +3321,16 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(2).unwrap(), -3);
-        let right_column_type = ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(3).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(2).unwrap(),
+            -3,
+        );
+        let right_column_type = ColumnType::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(3).unwrap(),
+            -2,
+        );
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![

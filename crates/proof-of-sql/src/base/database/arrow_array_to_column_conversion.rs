@@ -1,4 +1,5 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{database::Column, math::decimal::Precision, scalar::Scalar};
 use arrow::{
     array::{
@@ -12,7 +13,6 @@ use bumpalo::Bump;
 use core::ops::Range;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use snafu::Snafu;
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[derive(Snafu, Debug, PartialEq)]
 /// Errors caused by conversions between Arrow and owned types.
@@ -236,7 +236,10 @@ impl ArrayRefExt for ArrayRef {
             }
             DataType::Int8 => {
                 if let Some(array) = self.as_any().downcast_ref::<Int8Array>() {
-                    Ok(Column::TinyInt(meta, &array.values()[range.start..range.end]))
+                    Ok(Column::TinyInt(
+                        meta,
+                        &array.values()[range.start..range.end],
+                    ))
                 } else {
                     Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
@@ -245,7 +248,10 @@ impl ArrayRefExt for ArrayRef {
             }
             DataType::Int16 => {
                 if let Some(array) = self.as_any().downcast_ref::<Int16Array>() {
-                    Ok(Column::SmallInt(meta, &array.values()[range.start..range.end]))
+                    Ok(Column::SmallInt(
+                        meta,
+                        &array.values()[range.start..range.end],
+                    ))
                 } else {
                     Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
@@ -263,7 +269,10 @@ impl ArrayRefExt for ArrayRef {
             }
             DataType::Int64 => {
                 if let Some(array) = self.as_any().downcast_ref::<Int64Array>() {
-                    Ok(Column::BigInt(meta, &array.values()[range.start..range.end]))
+                    Ok(Column::BigInt(
+                        meta,
+                        &array.values()[range.start..range.end],
+                    ))
                 } else {
                     Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
@@ -272,7 +281,10 @@ impl ArrayRefExt for ArrayRef {
             }
             DataType::Decimal128(38, 0) => {
                 if let Some(array) = self.as_any().downcast_ref::<Decimal128Array>() {
-                    Ok(Column::Int128(meta, &array.values()[range.start..range.end]))
+                    Ok(Column::Int128(
+                        meta,
+                        &array.values()[range.start..range.end],
+                    ))
                 } else {
                     Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
@@ -410,7 +422,12 @@ mod tests {
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
         assert_eq!(
             result.unwrap(),
-            Column::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[1..3])
+            Column::TimestampTZ(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc,
+                &data[1..3]
+            )
         );
     }
 
@@ -428,7 +445,12 @@ mod tests {
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
+            Column::TimestampTZ(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc,
+                &[]
+            )
         );
     }
 
@@ -444,7 +466,12 @@ mod tests {
         let result = array.to_column::<DoryScalar>(&alloc, &(1..1), None);
         assert_eq!(
             result.unwrap(),
-            Column::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
+            Column::TimestampTZ(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc,
+                &[]
+            )
         );
     }
 
@@ -502,7 +529,10 @@ mod tests {
 
         assert_eq!(
             result.unwrap(),
-            Column::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (expected_vals.as_slice(), expected_scals.as_slice()))
+            Column::VarChar(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                (expected_vals.as_slice(), expected_scals.as_slice())
+            )
         );
     }
 
@@ -511,7 +541,10 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(StringArray::from(vec!["hello", "world", "test"]));
         let result = array.to_column::<DoryScalar>(&alloc, &(1..1), None);
-        assert_eq!(result.unwrap(), Column::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (&[], &[])));
+        assert_eq!(
+            result.unwrap(),
+            Column::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (&[], &[]))
+        );
     }
 
     #[test]
@@ -539,7 +572,10 @@ mod tests {
 
         assert_eq!(
             result.unwrap(),
-            Column::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (expected_vals.as_slice(), expected_scals))
+            Column::VarChar(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                (expected_vals.as_slice(), expected_scals)
+            )
         );
     }
 
@@ -578,7 +614,12 @@ mod tests {
         ];
         assert_eq!(
             result.unwrap(),
-            Column::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(75).unwrap(), 0, expected_scalars.as_slice())
+            Column::Decimal75(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                Precision::new(75).unwrap(),
+                0,
+                expected_scalars.as_slice()
+            )
         );
     }
 
@@ -594,7 +635,12 @@ mod tests {
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
         assert_eq!(
             result.unwrap(),
-            Column::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(75).unwrap(), 0, &[])
+            Column::Decimal75(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                Precision::new(75).unwrap(),
+                0,
+                &[]
+            )
         );
     }
 
@@ -641,7 +687,10 @@ mod tests {
         );
 
         let result = array.to_column::<DoryScalar>(&alloc, &(1..1), None);
-        assert_eq!(result.unwrap(), Column::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        assert_eq!(
+            result.unwrap(),
+            Column::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, &[])
+        );
     }
 
     #[test]
@@ -689,7 +738,10 @@ mod tests {
         );
 
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
-        assert_eq!(result.unwrap(), Column::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, &data[1..3]));
+        assert_eq!(
+            result.unwrap(),
+            Column::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, &data[1..3])
+        );
     }
 
     #[test]
@@ -701,7 +753,10 @@ mod tests {
             Some(true),
         ]));
         let result = array.to_column::<DoryScalar>(&alloc, &(1..3), None);
-        assert_eq!(result.unwrap(), Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[false, true]));
+        assert_eq!(
+            result.unwrap(),
+            Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[false, true])
+        );
     }
 
     #[test]
@@ -713,7 +768,10 @@ mod tests {
             Some(true),
         ]));
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
-        assert_eq!(result.unwrap(), Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        assert_eq!(
+            result.unwrap(),
+            Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[])
+        );
     }
 
     #[test]
@@ -749,7 +807,10 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int8Array::from(vec![1, -3, 42]));
         let result = array.to_column::<DoryScalar>(&alloc, &(1..3), None);
-        assert_eq!(result.unwrap(), Column::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[-3, 42]));
+        assert_eq!(
+            result.unwrap(),
+            Column::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[-3, 42])
+        );
     }
 
     #[test]
@@ -757,7 +818,10 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int16Array::from(vec![1, -3, 42]));
         let result = array.to_column::<DoryScalar>(&alloc, &(1..3), None);
-        assert_eq!(result.unwrap(), Column::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[-3, 42]));
+        assert_eq!(
+            result.unwrap(),
+            Column::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[-3, 42])
+        );
     }
 
     #[test]
@@ -765,7 +829,10 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int8Array::from(vec![1, -3, 42]));
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
-        assert_eq!(result.unwrap(), Column::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        assert_eq!(
+            result.unwrap(),
+            Column::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[])
+        );
     }
 
     #[test]
@@ -773,7 +840,10 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int16Array::from(vec![1, -3, 42]));
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
-        assert_eq!(result.unwrap(), Column::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        assert_eq!(
+            result.unwrap(),
+            Column::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[])
+        );
     }
 
     #[test]
@@ -829,7 +899,10 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int32Array::from(vec![1, -3, 42]));
         let result = array.to_column::<DoryScalar>(&alloc, &(1..3), None);
-        assert_eq!(result.unwrap(), Column::Int(ColumnTypeAssociatedData::NOT_NULLABLE, &[-3, 42]));
+        assert_eq!(
+            result.unwrap(),
+            Column::Int(ColumnTypeAssociatedData::NOT_NULLABLE, &[-3, 42])
+        );
     }
 
     #[test]
@@ -837,7 +910,10 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int32Array::from(vec![1, -3, 42]));
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
-        assert_eq!(result.unwrap(), Column::Int(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        assert_eq!(
+            result.unwrap(),
+            Column::Int(ColumnTypeAssociatedData::NOT_NULLABLE, &[])
+        );
     }
 
     #[test]
@@ -937,7 +1013,10 @@ mod tests {
         let result = array
             .to_column::<DoryScalar>(&alloc, &(2..2), None)
             .unwrap();
-        assert_eq!(result, Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        assert_eq!(
+            result,
+            Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[])
+        );
     }
 
     #[test]
@@ -947,7 +1026,10 @@ mod tests {
         let result = array
             .to_column::<Curve25519Scalar>(&alloc, &(2..2), None)
             .unwrap();
-        assert_eq!(result, Column::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        assert_eq!(
+            result,
+            Column::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[])
+        );
     }
 
     #[test]
@@ -957,7 +1039,10 @@ mod tests {
         let result = array
             .to_column::<Curve25519Scalar>(&alloc, &(2..2), None)
             .unwrap();
-        assert_eq!(result, Column::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        assert_eq!(
+            result,
+            Column::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[])
+        );
     }
 
     #[test]
@@ -967,7 +1052,10 @@ mod tests {
         let result = array
             .to_column::<DoryScalar>(&alloc, &(2..2), None)
             .unwrap();
-        assert_eq!(result, Column::Int(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        assert_eq!(
+            result,
+            Column::Int(ColumnTypeAssociatedData::NOT_NULLABLE, &[])
+        );
     }
 
     #[test]
@@ -977,7 +1065,10 @@ mod tests {
         let result = array
             .to_column::<Curve25519Scalar>(&alloc, &(2..2), None)
             .unwrap();
-        assert_eq!(result, Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        assert_eq!(
+            result,
+            Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[])
+        );
     }
 
     #[test]
@@ -995,7 +1086,10 @@ mod tests {
         let result = array
             .to_column::<DoryScalar>(&alloc, &(0..0), None)
             .unwrap();
-        assert_eq!(result, Column::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        assert_eq!(
+            result,
+            Column::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, &[])
+        );
     }
 
     #[test]
@@ -1081,7 +1175,10 @@ mod tests {
             array
                 .to_column::<DoryScalar>(&alloc, &(0..2), None)
                 .unwrap(),
-            Column::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (&data[..], &scals[..]))
+            Column::VarChar(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                (&data[..], &scals[..])
+            )
         );
     }
 
@@ -1112,7 +1209,12 @@ mod tests {
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[..])
+            Column::TimestampTZ(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc,
+                &data[..]
+            )
         );
     }
 
@@ -1182,7 +1284,12 @@ mod tests {
             array
                 .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
                 .unwrap(),
-            Column::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[1..3])
+            Column::TimestampTZ(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc,
+                &data[1..3]
+            )
         );
     }
 
@@ -1198,7 +1305,10 @@ mod tests {
             array
                 .to_column::<DoryScalar>(&alloc, &(1..3), None)
                 .unwrap(),
-            Column::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (&data[1..3], &scals[1..3]))
+            Column::VarChar(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                (&data[1..3], &scals[1..3])
+            )
         );
     }
 
@@ -1212,7 +1322,10 @@ mod tests {
             array
                 .to_column::<Curve25519Scalar>(&alloc, &(0..2), Some(&scals))
                 .unwrap(),
-            Column::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (&data[..], &scals[..]))
+            Column::VarChar(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                (&data[..], &scals[..])
+            )
         );
     }
 
@@ -1224,7 +1337,10 @@ mod tests {
         let result = array
             .to_column::<DoryScalar>(&alloc, &(0..0), None)
             .unwrap();
-        assert_eq!(result, Column::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (&[], &[])));
+        assert_eq!(
+            result,
+            Column::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (&[], &[]))
+        );
     }
 
     #[test]
@@ -1240,7 +1356,12 @@ mod tests {
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
+            Column::TimestampTZ(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc,
+                &[]
+            )
         );
     }
 

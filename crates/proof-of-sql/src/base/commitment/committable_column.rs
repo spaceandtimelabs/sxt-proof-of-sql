@@ -1,3 +1,4 @@
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
     database::{Column, ColumnType, OwnedColumn},
     math::decimal::Precision,
@@ -8,7 +9,6 @@ use alloc::vec::Vec;
 #[cfg(feature = "blitzar")]
 use blitzar::sequence::Sequence;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Column data in "committable form".
 ///
@@ -83,20 +83,34 @@ impl<'a> CommittableColumn<'a> {
 impl<'a> From<&CommittableColumn<'a>> for ColumnType {
     fn from(value: &CommittableColumn<'a>) -> Self {
         match value {
-            CommittableColumn::TinyInt(_) => ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE),
-            CommittableColumn::SmallInt(_) => ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+            CommittableColumn::TinyInt(_) => {
+                ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+            }
+            CommittableColumn::SmallInt(_) => {
+                ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+            }
             CommittableColumn::Int(_) => ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE),
-            CommittableColumn::BigInt(_) => ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
-            CommittableColumn::Int128(_) => ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE),
+            CommittableColumn::BigInt(_) => {
+                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+            }
+            CommittableColumn::Int128(_) => {
+                ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE)
+            }
             CommittableColumn::Decimal75(precision, scale, _) => {
                 ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, *precision, *scale)
             }
-            CommittableColumn::Scalar(_) => ColumnType::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE),
-            CommittableColumn::VarChar(_) => ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
-            CommittableColumn::Boolean(_) => ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE),
-            CommittableColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                *tu, *tz),
+            CommittableColumn::Scalar(_) => {
+                ColumnType::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE)
+            }
+            CommittableColumn::VarChar(_) => {
+                ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)
+            }
+            CommittableColumn::Boolean(_) => {
+                ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)
+            }
+            CommittableColumn::TimestampTZ(tu, tz, _) => {
+                ColumnType::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, *tu, *tz)
+            }
             CommittableColumn::RangeCheckWord(_) => {
                 unimplemented!("Range check words are not a column type.")
             }
@@ -122,7 +136,9 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
                 let as_limbs: Vec<_> = scalars.iter().map(RefInto::<[u64; 4]>::ref_into).collect();
                 CommittableColumn::VarChar(as_limbs)
             }
-            Column::TimestampTZ(_, tu, tz, times) => CommittableColumn::TimestampTZ(*tu, *tz, times),
+            Column::TimestampTZ(_, tu, tz, times) => {
+                CommittableColumn::TimestampTZ(*tu, *tz, times)
+            }
         }
     }
 }
@@ -242,7 +258,12 @@ mod tests {
             Curve25519Scalar::from(1),
             Curve25519Scalar::from(2),
         ];
-        let decimal_column = OwnedColumn::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(75).unwrap(), -1, decimals);
+        let decimal_column = OwnedColumn::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Precision::new(75).unwrap(),
+            -1,
+            decimals,
+        );
 
         let res_committable_column: CommittableColumn = (&decimal_column).into();
         let test_committable_column: CommittableColumn = CommittableColumn::Decimal75(
@@ -266,7 +287,11 @@ mod tests {
         assert!(committable_column.is_empty());
         assert_eq!(
             committable_column.column_type(),
-            ColumnType::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc)
+            ColumnType::TimestampTZ(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc
+            )
         );
 
         let committable_column = CommittableColumn::TimestampTZ(
@@ -278,7 +303,11 @@ mod tests {
         assert!(!committable_column.is_empty());
         assert_eq!(
             committable_column.column_type(),
-            ColumnType::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc)
+            ColumnType::TimestampTZ(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc
+            )
         );
     }
 
@@ -328,12 +357,18 @@ mod tests {
         let int_committable_column = CommittableColumn::Int(&[]);
         assert_eq!(int_committable_column.len(), 0);
         assert!(int_committable_column.is_empty());
-        assert_eq!(int_committable_column.column_type(), ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            int_committable_column.column_type(),
+            ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
 
         let int_committable_column = CommittableColumn::Int(&[12, 34, 56]);
         assert_eq!(int_committable_column.len(), 3);
         assert!(!int_committable_column.is_empty());
-        assert_eq!(int_committable_column.column_type(), ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            int_committable_column.column_type(),
+            ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
     }
 
     #[test]
@@ -342,12 +377,18 @@ mod tests {
         let bigint_committable_column = CommittableColumn::BigInt(&[]);
         assert_eq!(bigint_committable_column.len(), 0);
         assert!(bigint_committable_column.is_empty());
-        assert_eq!(bigint_committable_column.column_type(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            bigint_committable_column.column_type(),
+            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
 
         let bigint_committable_column = CommittableColumn::BigInt(&[12, 34, 56]);
         assert_eq!(bigint_committable_column.len(), 3);
         assert!(!bigint_committable_column.is_empty());
-        assert_eq!(bigint_committable_column.column_type(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            bigint_committable_column.column_type(),
+            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
     }
 
     #[test]
@@ -359,7 +400,11 @@ mod tests {
         assert!(decimal_committable_column.is_empty());
         assert_eq!(
             decimal_committable_column.column_type(),
-            ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(1).unwrap(), 0)
+            ColumnType::Decimal75(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                Precision::new(1).unwrap(),
+                0
+            )
         );
         let decimal_committable_column = CommittableColumn::Decimal75(
             Precision::new(10).unwrap(),
@@ -370,8 +415,11 @@ mod tests {
         assert!(!decimal_committable_column.is_empty());
         assert_eq!(
             decimal_committable_column.column_type(),
-            ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE,
-                                  Precision::new(10).unwrap(), 10)
+            ColumnType::Decimal75(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                Precision::new(10).unwrap(),
+                10
+            )
         );
     }
 
@@ -381,12 +429,18 @@ mod tests {
         let bigint_committable_column = CommittableColumn::Int128(&[]);
         assert_eq!(bigint_committable_column.len(), 0);
         assert!(bigint_committable_column.is_empty());
-        assert_eq!(bigint_committable_column.column_type(), ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            bigint_committable_column.column_type(),
+            ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
 
         let bigint_committable_column = CommittableColumn::Int128(&[12, 34, 56]);
         assert_eq!(bigint_committable_column.len(), 3);
         assert!(!bigint_committable_column.is_empty());
-        assert_eq!(bigint_committable_column.column_type(), ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            bigint_committable_column.column_type(),
+            ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
     }
 
     #[test]
@@ -395,7 +449,10 @@ mod tests {
         let bigint_committable_column = CommittableColumn::VarChar(Vec::new());
         assert_eq!(bigint_committable_column.len(), 0);
         assert!(bigint_committable_column.is_empty());
-        assert_eq!(bigint_committable_column.column_type(), ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            bigint_committable_column.column_type(),
+            ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
 
         let bigint_committable_column = CommittableColumn::VarChar(
             ["12", "34", "56"]
@@ -406,7 +463,10 @@ mod tests {
         );
         assert_eq!(bigint_committable_column.len(), 3);
         assert!(!bigint_committable_column.is_empty());
-        assert_eq!(bigint_committable_column.column_type(), ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            bigint_committable_column.column_type(),
+            ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
     }
 
     #[test]
@@ -415,7 +475,10 @@ mod tests {
         let bigint_committable_column = CommittableColumn::Scalar(Vec::new());
         assert_eq!(bigint_committable_column.len(), 0);
         assert!(bigint_committable_column.is_empty());
-        assert_eq!(bigint_committable_column.column_type(), ColumnType::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            bigint_committable_column.column_type(),
+            ColumnType::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
 
         let bigint_committable_column = CommittableColumn::Scalar(
             [12, 34, 56]
@@ -425,7 +488,10 @@ mod tests {
         );
         assert_eq!(bigint_committable_column.len(), 3);
         assert!(!bigint_committable_column.is_empty());
-        assert_eq!(bigint_committable_column.column_type(), ColumnType::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            bigint_committable_column.column_type(),
+            ColumnType::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
     }
 
     #[test]
@@ -434,12 +500,18 @@ mod tests {
         let bool_committable_column = CommittableColumn::Boolean(&[]);
         assert_eq!(bool_committable_column.len(), 0);
         assert!(bool_committable_column.is_empty());
-        assert_eq!(bool_committable_column.column_type(), ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            bool_committable_column.column_type(),
+            ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
 
         let bool_committable_column = CommittableColumn::Boolean(&[true, false, true]);
         assert_eq!(bool_committable_column.len(), 3);
         assert!(!bool_committable_column.is_empty());
-        assert_eq!(bool_committable_column.column_type(), ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE));
+        assert_eq!(
+            bool_committable_column.column_type(),
+            ColumnType::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE)
+        );
     }
 
     #[test]
@@ -487,13 +559,16 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_bigint_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::BigInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[],
+        ));
         assert_eq!(from_borrowed_column, CommittableColumn::BigInt(&[]));
 
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE,
-                                                                        &[12, 34, 56]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::BigInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[12, 34, 56],
+        ));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::BigInt(&[12, 34, 56])
@@ -503,15 +578,16 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_tinyint_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[],
+        ));
         assert_eq!(from_borrowed_column, CommittableColumn::TinyInt(&[]));
 
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                &[12, 34, 56])
-            );
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[12, 34, 56],
+        ));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::TinyInt(&[12, 34, 56])
@@ -521,18 +597,16 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_smallint_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::SmallInt(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                &[])
-            );
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::SmallInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[],
+        ));
         assert_eq!(from_borrowed_column, CommittableColumn::SmallInt(&[]));
 
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::SmallInt(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                &[12, 34, 56])
-            );
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::SmallInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[12, 34, 56],
+        ));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::SmallInt(&[12, 34, 56])
@@ -544,15 +618,14 @@ mod tests {
         // empty case
         let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::Int(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            &[]
+            &[],
         ));
         assert_eq!(from_borrowed_column, CommittableColumn::Int(&[]));
 
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Int(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                &[12, 34, 56]
-            ));
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::Int(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[12, 34, 56],
+        ));
         assert_eq!(from_borrowed_column, CommittableColumn::Int(&[12, 34, 56]));
     }
 
@@ -566,8 +639,12 @@ mod tests {
         ];
 
         let precision = Precision::new(75).unwrap();
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, precision, 0, &binding));
+        let from_borrowed_column = CommittableColumn::from(&Column::Decimal75(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            precision,
+            0,
+            &binding,
+        ));
 
         let expected_decimals = binding
             .iter()
@@ -583,15 +660,16 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_int128_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, &[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::Int128(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[],
+        ));
         assert_eq!(from_borrowed_column, CommittableColumn::Int128(&[]));
 
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Int128(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                &[12, 34, 56]
-            ));
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::Int128(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[12, 34, 56],
+        ));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::Int128(&[12, 34, 56])
@@ -601,14 +679,18 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_varchar_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (&[], &[])));
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::VarChar(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            (&[], &[]),
+        ));
         assert_eq!(from_borrowed_column, CommittableColumn::VarChar(Vec::new()));
 
         let varchar_data = ["12", "34", "56"];
         let scalars = varchar_data.map(Curve25519Scalar::from);
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (&varchar_data, &scalars)));
+        let from_borrowed_column = CommittableColumn::from(&Column::VarChar(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            (&varchar_data, &scalars),
+        ));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::VarChar(scalars.map(<[u64; 4]>::from).into())
@@ -618,17 +700,16 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_scalar_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Scalar(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                &[])
-            );
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::Scalar(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[],
+        ));
         assert_eq!(from_borrowed_column, CommittableColumn::Scalar(Vec::new()));
 
         let scalars = [12, 34, 56].map(Curve25519Scalar::from);
         let from_borrowed_column = CommittableColumn::from(&Column::Scalar(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            &scalars
+            &scalars,
         ));
         assert_eq!(
             from_borrowed_column,
@@ -639,18 +720,16 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_boolean_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                &[]
-            ));
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::Boolean(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[],
+        ));
         assert_eq!(from_borrowed_column, CommittableColumn::Boolean(&[]));
 
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Boolean(
-                ColumnTypeAssociatedData::NOT_NULLABLE,
-                &[true, false, true]
-            ));
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::Boolean(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[true, false, true],
+        ));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::Boolean(&[true, false, true])
@@ -662,12 +741,15 @@ mod tests {
         // empty case
         let owned_column = OwnedColumn::<Curve25519Scalar>::BigInt(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            Vec::new()
+            Vec::new(),
         );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::BigInt(&[]));
 
-        let owned_column = OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![12, 34, 56]);
+        let owned_column = OwnedColumn::<Curve25519Scalar>::BigInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            vec![12, 34, 56],
+        );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::BigInt(&[12, 34, 56]));
     }
@@ -675,11 +757,15 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_tinyint_column() {
         // empty case
-        let owned_column = OwnedColumn::<DoryScalar>::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, Vec::new());
+        let owned_column =
+            OwnedColumn::<DoryScalar>::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::TinyInt(&[]));
 
-        let owned_column = OwnedColumn::<DoryScalar>::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![12, 34, 56]);
+        let owned_column = OwnedColumn::<DoryScalar>::TinyInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            vec![12, 34, 56],
+        );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::TinyInt(&[12, 34, 56]));
     }
@@ -687,13 +773,14 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_smallint_column() {
         // empty case
-        let owned_column = OwnedColumn::<DoryScalar>::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE,Vec::new());
+        let owned_column =
+            OwnedColumn::<DoryScalar>::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE, Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::SmallInt(&[]));
 
         let owned_column = OwnedColumn::<DoryScalar>::SmallInt(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-           vec![12, 34, 56]
+            vec![12, 34, 56],
         );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(
@@ -735,16 +822,14 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_int_column() {
         // empty case
-        let owned_column = OwnedColumn::<DoryScalar>::Int(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
-            Vec::new()
-        );
+        let owned_column =
+            OwnedColumn::<DoryScalar>::Int(ColumnTypeAssociatedData::NOT_NULLABLE, Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Int(&[]));
 
         let owned_column = OwnedColumn::<DoryScalar>::Int(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            vec![12, 34, 56]
+            vec![12, 34, 56],
         );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Int(&[12, 34, 56]));
@@ -753,11 +838,17 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_int128_column() {
         // empty case
-        let owned_column = OwnedColumn::<Curve25519Scalar>::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, Vec::new());
+        let owned_column = OwnedColumn::<Curve25519Scalar>::Int128(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Vec::new(),
+        );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Int128(&[]));
 
-        let owned_column = OwnedColumn::<Curve25519Scalar>::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, vec![12, 34, 56]);
+        let owned_column = OwnedColumn::<Curve25519Scalar>::Int128(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            vec![12, 34, 56],
+        );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Int128(&[12, 34, 56]));
     }
@@ -765,12 +856,18 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_varchar_column() {
         // empty case
-        let owned_column = OwnedColumn::<Curve25519Scalar>::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, Vec::new());
+        let owned_column = OwnedColumn::<Curve25519Scalar>::VarChar(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Vec::new(),
+        );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::VarChar(Vec::new()));
 
         let strings = ["12", "34", "56"].map(String::from);
-        let owned_column = OwnedColumn::<Curve25519Scalar>::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, strings.to_vec());
+        let owned_column = OwnedColumn::<Curve25519Scalar>::VarChar(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            strings.to_vec(),
+        );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(
             from_owned_column,
@@ -786,12 +883,16 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_scalar_column() {
         // empty case
-        let owned_column = OwnedColumn::<Curve25519Scalar>::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, Vec::new());
+        let owned_column = OwnedColumn::<Curve25519Scalar>::Scalar(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            Vec::new(),
+        );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Scalar(Vec::new()));
 
         let scalars = [12, 34, 56].map(Curve25519Scalar::from);
-        let owned_column = OwnedColumn::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, scalars.to_vec());
+        let owned_column =
+            OwnedColumn::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, scalars.to_vec());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(
             from_owned_column,
@@ -802,15 +903,14 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_boolean_column() {
         // empty case
-        let owned_column = OwnedColumn::<DoryScalar>::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, Vec::new());
+        let owned_column =
+            OwnedColumn::<DoryScalar>::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Boolean(&[]));
 
         let booleans = [true, false, true];
-        let owned_column: OwnedColumn<DoryScalar> = OwnedColumn::Boolean(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
-            booleans.to_vec()
-        );
+        let owned_column: OwnedColumn<DoryScalar> =
+            OwnedColumn::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, booleans.to_vec());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Boolean(&booleans));
     }
@@ -1005,7 +1105,7 @@ mod tests {
         let values = ["12", "34", "56"].map(String::from);
         let owned_column = OwnedColumn::<Curve25519Scalar>::VarChar(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            values.to_vec()
+            values.to_vec(),
         );
         let committable_column = CommittableColumn::from(&owned_column);
 
@@ -1032,7 +1132,8 @@ mod tests {
 
         // nonempty case
         let values = [12, 34, 56].map(Curve25519Scalar::from);
-        let owned_column = OwnedColumn::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, values.to_vec());
+        let owned_column =
+            OwnedColumn::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, values.to_vec());
         let committable_column = CommittableColumn::from(&owned_column);
 
         let sequence_actual = Sequence::from(&committable_column);

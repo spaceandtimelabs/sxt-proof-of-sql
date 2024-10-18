@@ -1,4 +1,5 @@
 use super::{test_utility::*, DynProofPlan, ProjectionExec};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         database::{
@@ -21,7 +22,6 @@ use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
 use proof_of_sql_parser::{Identifier, ResourceId};
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
@@ -62,7 +62,8 @@ fn we_can_correctly_fetch_the_query_result_schema() {
 
 #[test]
 fn we_can_correctly_fetch_all_the_referenced_columns() {
-    let meta = ColumnTypeAssociatedData::NOT_NULLABLE; let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
+    let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
+    let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let f = Identifier::try_new("f").unwrap();
     let provable_ast = ProjectionExec::<RistrettoPoint>::new(

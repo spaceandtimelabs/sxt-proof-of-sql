@@ -1,4 +1,5 @@
 use super::ConversionError;
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         database::{ColumnType, TableRef, TestSchemaAccessor},
@@ -22,7 +23,6 @@ use proof_of_sql_parser::{
     },
     Identifier,
 };
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// # Panics
 ///

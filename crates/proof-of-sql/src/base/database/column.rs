@@ -53,7 +53,12 @@ pub enum Column<'a, S: Scalar> {
     /// - the first element maps to the stored `TimeUnit`
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
-    TimestampTZ(ColumnTypeAssociatedData, PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    TimestampTZ(
+        ColumnTypeAssociatedData,
+        PoSQLTimeUnit,
+        PoSQLTimeZone,
+        &'a [i64],
+    ),
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
@@ -67,7 +72,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::VarChar(meta, _) => meta,
             Self::Int128(meta, _) => meta,
             Self::Scalar(meta, _) => meta,
-            Self::Decimal75(meta,  ..) => meta,
+            Self::Decimal75(meta, ..) => meta,
             Self::TimestampTZ(meta, ..) => meta,
         }
     }
@@ -88,8 +93,9 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::VarChar(meta, _) => ColumnType::VarChar(*meta),
             Self::Int128(meta, _) => ColumnType::Int128(*meta),
             Self::Scalar(meta, _) => ColumnType::Scalar(*meta),
-            Self::Decimal75(meta, precision, scale, _) =>
-                ColumnType::Decimal75(*meta, *precision, *scale),
+            Self::Decimal75(meta, precision, scale, _) => {
+                ColumnType::Decimal75(*meta, *precision, *scale)
+            }
             Self::TimestampTZ(meta, time_unit, timezone, _) => {
                 ColumnType::TimestampTZ(*meta, *time_unit, *timezone)
             }
@@ -127,37 +133,53 @@ impl<'a, S: Scalar> Column<'a, S> {
         alloc: &'a Bump,
     ) -> Self {
         match literal {
-            LiteralValue::Boolean(value) => {
-                Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, alloc.alloc_slice_fill_copy(length, *value))
-            }
-            LiteralValue::TinyInt(value) => {
-                Column::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE, alloc.alloc_slice_fill_copy(length, *value))
-            }
-            LiteralValue::SmallInt(value) => {
-                Column::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE, alloc.alloc_slice_fill_copy(length, *value))
-            }
-            LiteralValue::Int(value) => Column::Int(ColumnTypeAssociatedData::NOT_NULLABLE, alloc.alloc_slice_fill_copy(length, *value)),
-            LiteralValue::BigInt(value) => {
-                Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, alloc.alloc_slice_fill_copy(length, *value))
-            }
-            LiteralValue::Int128(value) => {
-                Column::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, alloc.alloc_slice_fill_copy(length, *value))
-            }
-            LiteralValue::Scalar(value) => {
-                Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, alloc.alloc_slice_fill_copy(length, *value))
-            }
-            LiteralValue::Decimal75(precision, scale, value) => Column::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE,
+            LiteralValue::Boolean(value) => Column::Boolean(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                alloc.alloc_slice_fill_copy(length, *value),
+            ),
+            LiteralValue::TinyInt(value) => Column::TinyInt(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                alloc.alloc_slice_fill_copy(length, *value),
+            ),
+            LiteralValue::SmallInt(value) => Column::SmallInt(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                alloc.alloc_slice_fill_copy(length, *value),
+            ),
+            LiteralValue::Int(value) => Column::Int(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                alloc.alloc_slice_fill_copy(length, *value),
+            ),
+            LiteralValue::BigInt(value) => Column::BigInt(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                alloc.alloc_slice_fill_copy(length, *value),
+            ),
+            LiteralValue::Int128(value) => Column::Int128(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                alloc.alloc_slice_fill_copy(length, *value),
+            ),
+            LiteralValue::Scalar(value) => Column::Scalar(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                alloc.alloc_slice_fill_copy(length, *value),
+            ),
+            LiteralValue::Decimal75(precision, scale, value) => Column::Decimal75(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
                 *precision,
                 *scale,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
-            LiteralValue::TimeStampTZ(tu, tz, value) => {
-                Column::TimestampTZ(ColumnTypeAssociatedData::NOT_NULLABLE, *tu, *tz, alloc.alloc_slice_fill_copy(length, *value))
-            }
-            LiteralValue::VarChar((string, scalar)) => Column::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE ,(
-                alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
-                alloc.alloc_slice_fill_copy(length, *scalar),
-            )),
+            LiteralValue::TimeStampTZ(tu, tz, value) => Column::TimestampTZ(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                *tu,
+                *tz,
+                alloc.alloc_slice_fill_copy(length, *value),
+            ),
+            LiteralValue::VarChar((string, scalar)) => Column::VarChar(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                (
+                    alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
+                    alloc.alloc_slice_fill_copy(length, *scalar),
+                ),
+            ),
         }
     }
 
@@ -180,12 +202,17 @@ impl<'a, S: Scalar> Column<'a, S> {
                     .iter()
                     .map(|s| s.as_str() as &'a str)
                     .collect::<Vec<_>>();
-                Column::VarChar(*meta, (
-                    alloc.alloc_slice_clone(strs.as_slice()),
-                    alloc.alloc_slice_copy(scalars.as_slice()),
-                ))
+                Column::VarChar(
+                    *meta,
+                    (
+                        alloc.alloc_slice_clone(strs.as_slice()),
+                        alloc.alloc_slice_copy(scalars.as_slice()),
+                    ),
+                )
             }
-            OwnedColumn::TimestampTZ(meta, tu, tz, col) => Column::TimestampTZ(*meta, *tu, *tz, col.as_slice()),
+            OwnedColumn::TimestampTZ(meta, tu, tz, col) => {
+                Column::TimestampTZ(*meta, *tu, *tz, col.as_slice())
+            }
         }
     }
 
@@ -252,16 +279,16 @@ impl<'a, S: Scalar> Column<'a, S> {
 /// Represents the shared metadata for a column type
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy, Default)]
 pub struct ColumnTypeAssociatedData {
-    pub(crate) nullable: bool
+    pub(crate) nullable: bool,
 }
-impl  ColumnTypeAssociatedData {
+impl ColumnTypeAssociatedData {
     pub const NULLABLE: ColumnTypeAssociatedData = ColumnTypeAssociatedData { nullable: true };
     pub const NOT_NULLABLE: ColumnTypeAssociatedData = ColumnTypeAssociatedData { nullable: false };
 }
 impl Display for ColumnTypeAssociatedData {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if !self.nullable {
-            f.write_str( "NOT NULL")
+            f.write_str("NOT NULL")
         } else {
             Ok(())
         }
@@ -309,7 +336,7 @@ pub enum ColumnType {
 impl ColumnType {
     fn get_metadata(&self) -> &ColumnTypeAssociatedData {
         match self {
-            | Self::Boolean(m)
+            Self::Boolean(m)
             | Self::TinyInt(m)
             | Self::SmallInt(m)
             | Self::Int(m)
@@ -318,8 +345,7 @@ impl ColumnType {
             | Self::VarChar(m)
             | Self::Decimal75(m, _, _)
             | Self::TimestampTZ(m, _, _)
-            | Self::Scalar(m)
-            => m
+            | Self::Scalar(m) => m,
         }
     }
 
@@ -391,13 +417,9 @@ impl ColumnType {
             return None;
         }
         self.to_integer_bits().and_then(|self_bits| {
-            other
-                .to_integer_bits()
-                .and_then(|other_bits|
-                    Self::from_integer_bits(
-                        self_bits.max(other_bits),
-                        self.is_nullable()
-                    ))
+            other.to_integer_bits().and_then(|other_bits| {
+                Self::from_integer_bits(self_bits.max(other_bits), self.is_nullable())
+            })
         })
     }
 
@@ -468,7 +490,9 @@ impl ColumnType {
             | Self::BigInt(_)
             | Self::Int128(_)
             | Self::TimestampTZ(_, _, _) => true,
-            Self::Decimal75(_, _, _) | Self::Scalar(_) | Self::VarChar(_) | Self::Boolean(_) => false,
+            Self::Decimal75(_, _, _) | Self::Scalar(_) | Self::VarChar(_) | Self::Boolean(_) => {
+                false
+            }
         }
     }
 }
@@ -515,10 +539,14 @@ impl TryFrom<DataType> for ColumnType {
             DataType::Int16 => Ok(ColumnType::SmallInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
             DataType::Int32 => Ok(ColumnType::Int(ColumnTypeAssociatedData::NOT_NULLABLE)),
             DataType::Int64 => Ok(ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            DataType::Decimal128(38, 0) => Ok(ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            DataType::Decimal256(precision, scale) if precision <= 75 => {
-                Ok(ColumnType::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, Precision::new(precision)?, scale))
+            DataType::Decimal128(38, 0) => {
+                Ok(ColumnType::Int128(ColumnTypeAssociatedData::NOT_NULLABLE))
             }
+            DataType::Decimal256(precision, scale) if precision <= 75 => Ok(ColumnType::Decimal75(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                Precision::new(precision)?,
+                scale,
+            )),
             DataType::Timestamp(time_unit, timezone_option) => {
                 let posql_time_unit = match time_unit {
                     ArrowTimeUnit::Second => PoSQLTimeUnit::Second,
@@ -558,7 +586,10 @@ impl Display for ColumnType {
             ColumnType::VarChar(meta) => write!(f, "VARCHAR {meta}"),
             ColumnType::Scalar(meta) => write!(f, "SCALAR {meta}"),
             ColumnType::TimestampTZ(meta, timeunit, timezone) => {
-                write!(f, "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone}) {meta}")
+                write!(
+                    f,
+                    "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone}) {meta}"
+                )
             }
         }
     }
@@ -652,15 +683,19 @@ mod tests {
 
     #[test]
     fn column_type_serializes_to_string() {
-        let column_type = ColumnType::TimestampTZ(ColumnTypeAssociatedData {
-            nullable: true,
-        }, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc);
+        let column_type = ColumnType::TimestampTZ(
+            ColumnTypeAssociatedData { nullable: true },
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+        );
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#"{"TimestampTZ":["Second","Utc"]}"#);
 
-        let column_type = ColumnType::TimestampTZ(ColumnTypeAssociatedData {
-            nullable: false,
-        }, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc);
+        let column_type = ColumnType::TimestampTZ(
+            ColumnTypeAssociatedData { nullable: false },
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+        );
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#"{"TimestampTZ":["Second","Utc"]} NOT NULL"#);
 
@@ -704,7 +739,6 @@ mod tests {
 
     #[test]
     fn we_can_deserialize_columns_from_valid_strings() {
-
         let null_meta = ColumnTypeAssociatedData { nullable: true };
         let expected_column_type =
             ColumnType::TimestampTZ(null_meta, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc);
@@ -756,7 +790,8 @@ mod tests {
         let deserialized: ColumnType = serde_json::from_str(r#""SCALAR""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::Decimal75(null_meta, Precision::new(75).unwrap(), i8::MAX);
+        let expected_column_type =
+            ColumnType::Decimal75(null_meta, Precision::new(75).unwrap(), i8::MAX);
         let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[75, 127]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
@@ -1056,7 +1091,8 @@ mod tests {
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column: Column<'_, Curve25519Scalar> = Column::Decimal75(null_meta, precision, scale, &[]);
+        let column: Column<'_, Curve25519Scalar> =
+            Column::Decimal75(null_meta, precision, scale, &[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
     }
@@ -1066,7 +1102,8 @@ mod tests {
         let meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let alloc = Bump::new();
         // Integers
-        let owned_col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(meta, vec![1, 2, 3, 4, 5]);
+        let owned_col: OwnedColumn<Curve25519Scalar> =
+            OwnedColumn::Int128(meta, vec![1, 2, 3, 4, 5]);
         let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, Column::Int128(meta, &[1, 2, 3, 4, 5]));
         let new_owned_col = (&col).into();
@@ -1076,7 +1113,10 @@ mod tests {
         let owned_col: OwnedColumn<Curve25519Scalar> =
             OwnedColumn::Boolean(meta, vec![true, false, true, false, true]);
         let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
-        assert_eq!(col, Column::Boolean(meta, &[true, false, true, false, true]));
+        assert_eq!(
+            col,
+            Column::Boolean(meta, &[true, false, true, false, true])
+        );
         let new_owned_col = (&col).into();
         assert_eq!(owned_col, new_owned_col);
 

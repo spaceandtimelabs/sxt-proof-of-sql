@@ -137,6 +137,7 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::base::database::ColumnTypeAssociatedData;
     use crate::base::{
         commitment::{column_bounds::Bounds, ColumnBounds},
         database::{owned_table_utility::*, ColumnType, OwnedTable},
@@ -144,7 +145,6 @@ mod tests {
     };
     use alloc::vec::Vec;
     use itertools::Itertools;
-    use crate::base::database::ColumnTypeAssociatedData;
 
     fn metadata_map_from_owned_table(
         table: OwnedTable<Curve25519Scalar>,

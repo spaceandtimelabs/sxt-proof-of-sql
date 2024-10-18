@@ -1,8 +1,8 @@
 use super::{fold_columns, fold_vals};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{database::Column, math::decimal::Precision, scalar::Curve25519Scalar};
 use bumpalo::Bump;
 use num_traits::Zero;
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_fold_columns_with_scalars() {
@@ -37,7 +37,12 @@ fn we_can_fold_columns_with_scalars() {
     assert_eq!(result, expected);
 
     columns.pop();
-    columns.push(Column::Decimal75(meta, Precision::new(75).unwrap(), -1, &scalars));
+    columns.push(Column::Decimal75(
+        meta,
+        Precision::new(75).unwrap(),
+        -1,
+        &scalars,
+    ));
 
     let alloc = Bump::new();
     let result = alloc.alloc_slice_fill_copy(5, 77.into());
@@ -81,7 +86,12 @@ fn we_can_fold_columns_with_that_get_padded() {
     assert_eq!(result, expected);
 
     columns.pop();
-    columns.push(Column::Decimal75(meta, Precision::new(75).unwrap(), -1, &scalars));
+    columns.push(Column::Decimal75(
+        meta,
+        Precision::new(75).unwrap(),
+        -1,
+        &scalars,
+    ));
 
     let alloc = Bump::new();
     let result = alloc.alloc_slice_fill_copy(11, 77.into());

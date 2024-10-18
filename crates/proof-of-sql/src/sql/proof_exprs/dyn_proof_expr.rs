@@ -2,6 +2,7 @@ use super::{
     AddSubtractExpr, AggregateExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr,
     MultiplyExpr, NotExpr, OrExpr, ProofExpr,
 };
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
@@ -19,7 +20,6 @@ use bumpalo::Bump;
 use core::fmt::Debug;
 use proof_of_sql_parser::intermediate_ast::{AggregationOperator, BinaryOperator};
 use serde::{Deserialize, Serialize};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Enum of AST column expression types that implement `ProofExpr`. Is itself a `ProofExpr`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -208,7 +208,9 @@ impl<C: Commitment> ProofExpr<C> for DynProofExpr<C> {
             | DynProofExpr::Or(_)
             | DynProofExpr::Not(_)
             | DynProofExpr::Equals(_)
-            | DynProofExpr::Inequality(_) => ColumnType::Boolean(ColumnTypeAssociatedData::default()),
+            | DynProofExpr::Inequality(_) => {
+                ColumnType::Boolean(ColumnTypeAssociatedData::default())
+            }
         }
     }
 

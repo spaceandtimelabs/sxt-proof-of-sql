@@ -40,16 +40,33 @@ impl<S: Scalar> OwnedTable<S> {
     fn evaluate_literal(&self, lit: &Literal) -> ExpressionEvaluationResult<OwnedColumn<S>> {
         let len = self.num_rows();
         match lit {
-            Literal::Boolean(b) => Ok(OwnedColumn::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, vec![*b; len])),
-            Literal::BigInt(i) => Ok(OwnedColumn::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![*i; len])),
-            Literal::Int128(i) => Ok(OwnedColumn::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, vec![*i; len])),
+            Literal::Boolean(b) => Ok(OwnedColumn::Boolean(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                vec![*b; len],
+            )),
+            Literal::BigInt(i) => Ok(OwnedColumn::BigInt(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                vec![*i; len],
+            )),
+            Literal::Int128(i) => Ok(OwnedColumn::Int128(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                vec![*i; len],
+            )),
             Literal::Decimal(d) => {
                 let scale = d.scale();
                 let precision = Precision::new(d.precision())?;
                 let scalar = try_into_to_scalar(d, precision, scale)?;
-                Ok(OwnedColumn::Decimal75(ColumnTypeAssociatedData::NOT_NULLABLE, precision, scale, vec![scalar; len]))
+                Ok(OwnedColumn::Decimal75(
+                    ColumnTypeAssociatedData::NOT_NULLABLE,
+                    precision,
+                    scale,
+                    vec![scalar; len],
+                ))
             }
-            Literal::VarChar(s) => Ok(OwnedColumn::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, vec![s.clone(); len])),
+            Literal::VarChar(s) => Ok(OwnedColumn::VarChar(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                vec![s.clone(); len],
+            )),
             Literal::Timestamp(its) => Ok(OwnedColumn::TimestampTZ(
                 ColumnTypeAssociatedData::NOT_NULLABLE,
                 its.timeunit(),

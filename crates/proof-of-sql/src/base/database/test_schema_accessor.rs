@@ -31,8 +31,8 @@ impl SchemaAccessor for TestSchemaAccessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::base::database::ColumnTypeAssociatedData;
     use super::*;
+    use crate::base::database::ColumnTypeAssociatedData;
     use crate::base::map::indexmap;
 
     fn sample_test_schema_accessor() -> TestSchemaAccessor {
@@ -98,13 +98,22 @@ mod tests {
         assert_eq!(
             accessor.lookup_schema(table1),
             vec![
-                ("col1".parse().unwrap(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
-                ("col2".parse().unwrap(), ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)),
+                (
+                    "col1".parse().unwrap(),
+                    ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+                ),
+                (
+                    "col2".parse().unwrap(),
+                    ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)
+                ),
             ]
         );
         assert_eq!(
             accessor.lookup_schema(table2),
-            vec![("col1".parse().unwrap(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)),]
+            vec![(
+                "col1".parse().unwrap(),
+                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+            ),]
         );
         assert_eq!(accessor.lookup_schema(not_a_table), vec![]);
     }

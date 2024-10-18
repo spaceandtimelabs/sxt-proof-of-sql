@@ -1,4 +1,5 @@
 use super::{test_utility::*, FilterExec};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         database::{
@@ -21,7 +22,6 @@ use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
 use proof_of_sql_parser::{Identifier, ResourceId};
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
@@ -63,8 +63,14 @@ fn we_can_correctly_fetch_the_query_result_schema() {
     assert_eq!(
         column_fields,
         vec![
-            ColumnField::new("a".parse().unwrap(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            ColumnField::new("b".parse().unwrap(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE))
+            ColumnField::new(
+                "a".parse().unwrap(),
+                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+            ),
+            ColumnField::new(
+                "b".parse().unwrap(),
+                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+            )
         ]
     );
 }

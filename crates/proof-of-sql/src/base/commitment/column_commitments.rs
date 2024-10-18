@@ -354,13 +354,13 @@ impl<C> FromIterator<(Identifier, ColumnCommitmentMetadata, C)> for ColumnCommit
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
+    use crate::base::database::ColumnTypeAssociatedData;
     use crate::base::{
         commitment::{column_bounds::Bounds, ColumnBounds},
         database::{owned_table_utility::*, ColumnType, OwnedColumn, OwnedTable},
         scalar::Curve25519Scalar,
     };
     use curve25519_dalek::RistrettoPoint;
-    use crate::base::database::ColumnTypeAssociatedData;
 
     #[test]
     fn we_can_construct_column_commitments_from_columns_and_identifiers() {
@@ -484,7 +484,8 @@ mod tests {
         let duplicate_identifier_b = "duplicate_identifier_b".parse().unwrap();
         let unique_identifier = "unique_identifier".parse().unwrap();
 
-        let empty_column = OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![]);
+        let empty_column =
+            OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![]);
 
         let from_columns_result = ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
             [
@@ -826,7 +827,7 @@ mod tests {
 
     #[test]
     fn we_can_sub_column_commitments() {
-        let col_meta =ColumnTypeAssociatedData::NOT_NULLABLE;
+        let col_meta = ColumnTypeAssociatedData::NOT_NULLABLE;
         let bigint_id: Identifier = "bigint_column".parse().unwrap();
         let bigint_data = [1i64, 5, -5, 0, 10];
 
@@ -896,7 +897,10 @@ mod tests {
         }
 
         let varchar_metadata = actual_difference.get_metadata(&varchar_id).unwrap();
-        assert_eq!(varchar_metadata.column_type(), &ColumnType::VarChar(col_meta));
+        assert_eq!(
+            varchar_metadata.column_type(),
+            &ColumnType::VarChar(col_meta)
+        );
         assert_eq!(varchar_metadata.bounds(), &ColumnBounds::NoOrder);
 
         let scalar_metadata = actual_difference.get_metadata(&scalar_id).unwrap();

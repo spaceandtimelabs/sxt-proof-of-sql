@@ -1,6 +1,7 @@
 use super::{
     CountBuilder, FinalRoundBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder,
 };
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::{Commitment, InnerProductProof},
@@ -18,7 +19,6 @@ use crate::{
 };
 use bumpalo::Bump;
 use serde::Serialize;
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Type to allow us to prove and verify an artificial polynomial where we prove
 /// that every entry in the result is zero
@@ -105,7 +105,10 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
     ///
     /// This method will panic if the `ColumnField` cannot be created from the provided column name (e.g., if the name parsing fails).
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE))]
+        vec![ColumnField::new(
+            "a1".parse().unwrap(),
+            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+        )]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         unimplemented!("no real usage for this function yet")
@@ -274,7 +277,10 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         Ok(vec![res_eval])
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE))]
+        vec![ColumnField::new(
+            "a1".parse().unwrap(),
+            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+        )]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         unimplemented!("no real usage for this function yet")
@@ -477,7 +483,10 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
         Ok(vec![res_eval])
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE))]
+        vec![ColumnField::new(
+            "a1".parse().unwrap(),
+            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+        )]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         unimplemented!("no real usage for this function yet")
@@ -599,7 +608,10 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[9, 25])]
+        vec![Column::BigInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[9, 25],
+        )]
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -629,7 +641,10 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
                 (-alpha, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        vec![Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[9, 25])]
+        vec![Column::BigInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            &[9, 25],
+        )]
     }
 }
 impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
@@ -673,7 +688,10 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         Ok(vec![res_eval])
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE))]
+        vec![ColumnField::new(
+            "a1".parse().unwrap(),
+            ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
+        )]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         unimplemented!("no real usage for this function yet")

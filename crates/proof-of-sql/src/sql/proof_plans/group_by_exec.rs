@@ -1,4 +1,5 @@
 use super::{fold_columns, fold_vals};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
@@ -28,7 +29,6 @@ use core::{iter, iter::repeat_with};
 use num_traits::One;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -245,14 +245,16 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             ..
         } = aggregate_columns(alloc, &group_by_columns, &sum_columns, &[], &[], selection)
             .expect("columns should be aggregatable");
-        let sum_result_columns_iter = sum_result_columns.iter().map(|col| Column::Scalar(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
-            col
-        ));
+        let sum_result_columns_iter = sum_result_columns
+            .iter()
+            .map(|col| Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, col));
         group_by_result_columns
             .into_iter()
             .chain(sum_result_columns_iter)
-            .chain(iter::once(Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, count_column)))
+            .chain(iter::once(Column::BigInt(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                count_column,
+            )))
             .collect::<Vec<_>>()
     }
 
@@ -299,12 +301,17 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
         let beta = builder.consume_post_result_challenge();
 
         // 4. Tally results
-        let sum_result_columns_iter = sum_result_columns.iter().map(|col| Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, col));
+        let sum_result_columns_iter = sum_result_columns
+            .iter()
+            .map(|col| Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, col));
         let res = group_by_result_columns
             .clone()
             .into_iter()
             .chain(sum_result_columns_iter)
-            .chain(core::iter::once(Column::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, count_column)))
+            .chain(core::iter::once(Column::BigInt(
+                ColumnTypeAssociatedData::NOT_NULLABLE,
+                count_column,
+            )))
             .collect::<Vec<_>>();
         // 5. Produce MLEs
         res.iter().copied().for_each(|column| {

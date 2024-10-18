@@ -1,3 +1,4 @@
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -17,7 +18,6 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_prove_a_simple_or_query() {
@@ -186,6 +186,9 @@ fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
     );
     let alloc = Bump::new();
     let res = and_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[false, true, true, true]);
+    let expected_res = Column::Boolean(
+        ColumnTypeAssociatedData::NOT_NULLABLE,
+        &[false, true, true, true],
+    );
     assert_eq!(res, expected_res);
 }

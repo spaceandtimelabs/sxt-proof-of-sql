@@ -1,4 +1,5 @@
 use super::{DynProofExpr, ProofExpr};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
@@ -12,7 +13,6 @@ use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable logical AND expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -55,7 +55,10 @@ impl<C: Commitment> ProofExpr<C> for AndExpr<C> {
             self.rhs.result_evaluate(table_length, alloc, accessor);
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, alloc.alloc_slice_fill_with(table_length, |i| lhs[i] && rhs[i]))
+        Column::Boolean(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            alloc.alloc_slice_fill_with(table_length, |i| lhs[i] && rhs[i]),
+        )
     }
 
     #[tracing::instrument(name = "AndExpr::prover_evaluate", level = "debug", skip_all)]

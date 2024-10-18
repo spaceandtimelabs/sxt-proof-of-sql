@@ -505,6 +505,7 @@ fn num_rows_of_columns<'a>(
 #[cfg(all(test, feature = "arrow", feature = "blitzar"))]
 mod tests {
     use super::*;
+    use crate::base::database::ColumnTypeAssociatedData;
     use crate::{
         base::{
             database::{owned_table_utility::*, OwnedColumn},
@@ -514,7 +515,6 @@ mod tests {
         record_batch,
     };
     use curve25519_dalek::RistrettoPoint;
-    use crate::base::database::ColumnTypeAssociatedData;
 
     #[test]
     #[allow(clippy::reversed_empty_ranges)]
@@ -546,10 +546,10 @@ mod tests {
         assert_eq!(empty_table_commitment.num_rows(), 0);
 
         // no-rows case
-        empty_columns_iter.insert("column_a".parse().unwrap(), OwnedColumn::BigInt(
-            ColumnTypeAssociatedData::NOT_NULLABLE,
-            vec![]
-        ));
+        empty_columns_iter.insert(
+            "column_a".parse().unwrap(),
+            OwnedColumn::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![]),
+        );
         let empty_table_commitment =
             TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
                 &empty_columns_iter,
@@ -600,7 +600,8 @@ mod tests {
         let duplicate_identifier_b = "duplicate_identifier_b".parse().unwrap();
         let unique_identifier = "unique_identifier".parse().unwrap();
 
-        let empty_column = OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![]);
+        let empty_column =
+            OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![]);
 
         let from_columns_result = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
             [
@@ -657,8 +658,14 @@ mod tests {
         let column_id_b = "column_b".parse().unwrap();
         let column_id_c = "column_c".parse().unwrap();
 
-        let one_row_column = OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![1]);
-        let two_row_column = OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![1, 2]);
+        let one_row_column = OwnedColumn::<Curve25519Scalar>::BigInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            vec![1],
+        );
+        let two_row_column = OwnedColumn::<Curve25519Scalar>::BigInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            vec![1, 2],
+        );
 
         let from_columns_result = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
             [
@@ -796,7 +803,10 @@ mod tests {
         let column_id_a = "column_a".parse().unwrap();
         let column_id_b = "column_b".parse().unwrap();
 
-        let column_data = OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![1, 2, 3]);
+        let column_data = OwnedColumn::<Curve25519Scalar>::BigInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            vec![1, 2, 3],
+        );
 
         let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
             [(&column_id_a, &column_data), (&column_id_b, &column_data)],
@@ -844,9 +854,14 @@ mod tests {
         .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
-        let column_a_append_data = OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![5, 6, 7]);
-        let column_b_append_data =
-            OwnedColumn::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, ["amet", "consectetur"].map(String::from).to_vec());
+        let column_a_append_data = OwnedColumn::<Curve25519Scalar>::BigInt(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            vec![5, 6, 7],
+        );
+        let column_b_append_data = OwnedColumn::VarChar(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            ["amet", "consectetur"].map(String::from).to_vec(),
+        );
 
         let append_result = table_commitment.try_append_rows(
             [
@@ -1280,11 +1295,17 @@ mod tests {
         let columns = [
             (
                 &"a".parse().unwrap(),
-                &Column::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[1, 2, 3]),
+                &Column::<Curve25519Scalar>::BigInt(
+                    ColumnTypeAssociatedData::NOT_NULLABLE,
+                    &[1, 2, 3],
+                ),
             ),
             (
                 &"b".parse().unwrap(),
-                &Column::<Curve25519Scalar>::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (&["1", "2", "3"], &b_scals)),
+                &Column::<Curve25519Scalar>::VarChar(
+                    ColumnTypeAssociatedData::NOT_NULLABLE,
+                    (&["1", "2", "3"], &b_scals),
+                ),
             ),
         ];
 
@@ -1307,11 +1328,17 @@ mod tests {
         let columns2 = [
             (
                 &"a".parse().unwrap(),
-                &Column::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, &[4, 5, 6]),
+                &Column::<Curve25519Scalar>::BigInt(
+                    ColumnTypeAssociatedData::NOT_NULLABLE,
+                    &[4, 5, 6],
+                ),
             ),
             (
                 &"b".parse().unwrap(),
-                &Column::<Curve25519Scalar>::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, (&["4", "5", "6"], &b_scals2)),
+                &Column::<Curve25519Scalar>::VarChar(
+                    ColumnTypeAssociatedData::NOT_NULLABLE,
+                    (&["4", "5", "6"], &b_scals2),
+                ),
             ),
         ];
 

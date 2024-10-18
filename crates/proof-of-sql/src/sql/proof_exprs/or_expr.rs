@@ -1,4 +1,5 @@
 use super::{DynProofExpr, ProofExpr};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
@@ -12,7 +13,6 @@ use crate::{
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable logical OR expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -55,7 +55,7 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         Column::Boolean(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            result_evaluate_or(table_length, alloc, lhs, rhs)
+            result_evaluate_or(table_length, alloc, lhs, rhs),
         )
     }
 
@@ -70,7 +70,10 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
         let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, prover_evaluate_or(builder, alloc, lhs, rhs))
+        Column::Boolean(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            prover_evaluate_or(builder, alloc, lhs, rhs),
+        )
     }
 
     fn verifier_evaluate(

@@ -1,4 +1,7 @@
-use super::{Column, ColumnRef, ColumnType, ColumnTypeAssociatedData, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTableTestAccessor, SchemaAccessor, TestAccessor};
+use super::{
+    Column, ColumnRef, ColumnType, ColumnTypeAssociatedData, CommitmentAccessor, DataAccessor,
+    MetadataAccessor, OwnedTableTestAccessor, SchemaAccessor, TestAccessor,
+};
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
     database::owned_table_utility::*,
@@ -70,7 +73,11 @@ fn we_can_access_the_columns_of_a_table() {
         _ => panic!("Invalid column type"),
     };
 
-    let column = ColumnRef::new(table_ref_2, "c128".parse().unwrap(), ColumnType::Int128(meta));
+    let column = ColumnRef::new(
+        table_ref_2,
+        "c128".parse().unwrap(),
+        ColumnType::Int128(meta),
+    );
     match accessor.get_column(column) {
         Column::Int128(_, col) => assert_eq!(col.to_vec(), vec![1, 2, 3, 4]),
         _ => panic!("Invalid column type"),
@@ -81,7 +88,11 @@ fn we_can_access_the_columns_of_a_table() {
         .iter()
         .map(core::convert::Into::into)
         .collect();
-    let column = ColumnRef::new(table_ref_2, "varchar".parse().unwrap(), ColumnType::VarChar(meta));
+    let column = ColumnRef::new(
+        table_ref_2,
+        "varchar".parse().unwrap(),
+        ColumnType::VarChar(meta),
+    );
     match accessor.get_column(column) {
         Column::VarChar(_, (col, scals)) => {
             assert_eq!(col.to_vec(), col_slice);
@@ -90,7 +101,11 @@ fn we_can_access_the_columns_of_a_table() {
         _ => panic!("Invalid column type"),
     };
 
-    let column = ColumnRef::new(table_ref_2, "scalar".parse().unwrap(), ColumnType::Scalar(meta));
+    let column = ColumnRef::new(
+        table_ref_2,
+        "scalar".parse().unwrap(),
+        ColumnType::Scalar(meta),
+    );
     match accessor.get_column(column) {
         Column::Scalar(_, col) => assert_eq!(
             col.to_vec(),
@@ -104,7 +119,11 @@ fn we_can_access_the_columns_of_a_table() {
         _ => panic!("Invalid column type"),
     };
 
-    let column = ColumnRef::new(table_ref_2, "boolean".parse().unwrap(), ColumnType::Boolean(meta));
+    let column = ColumnRef::new(
+        table_ref_2,
+        "boolean".parse().unwrap(),
+        ColumnType::Boolean(meta),
+    );
     match accessor.get_column(column) {
         Column::Boolean(_, col) => assert_eq!(col.to_vec(), vec![true, false, true, false]),
         _ => panic!("Invalid column type"),
@@ -218,8 +237,14 @@ fn we_can_access_schema_and_column_names() {
     assert_eq!(
         accessor.lookup_schema(table_ref_1),
         vec![
-            ("a".parse().unwrap(), ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)),
-            ("b".parse().unwrap(), ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE))
+            (
+                "a".parse().unwrap(),
+                ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE)
+            ),
+            (
+                "b".parse().unwrap(),
+                ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE)
+            )
         ]
     );
     assert_eq!(accessor.get_column_names(table_ref_1), vec!["a", "b"]);

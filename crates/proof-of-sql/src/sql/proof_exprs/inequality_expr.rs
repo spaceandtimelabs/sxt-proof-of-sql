@@ -4,6 +4,7 @@ use super::{
     scale_and_add_subtract_eval, scale_and_subtract, verifier_evaluate_equals_zero,
     verifier_evaluate_or, verifier_evaluate_sign, DynProofExpr, ProofExpr,
 };
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
@@ -16,7 +17,6 @@ use crate::{
 use alloc::boxed::Box;
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable AST expression for an inequality expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -83,7 +83,7 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
         // (diff == 0) || (sign(diff) == -1)
         Column::Boolean(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            result_evaluate_or(table_length, alloc, equals_zero, sign)
+            result_evaluate_or(table_length, alloc, equals_zero, sign),
         )
     }
 
@@ -121,7 +121,7 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
         // (diff == 0) || (sign(diff) == -1)
         Column::Boolean(
             ColumnTypeAssociatedData::NOT_NULLABLE,
-            prover_evaluate_or(builder, alloc, equals_zero, sign)
+            prover_evaluate_or(builder, alloc, equals_zero, sign),
         )
     }
 

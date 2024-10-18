@@ -13,6 +13,7 @@
 //! This does not check that the values are less than 39 digits.
 //! However, the actual arrow backing `i128` is the correct value.
 use super::scalar_and_i256_conversions::convert_scalar_to_i256;
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::base::{
     database::{
         scalar_and_i256_conversions::convert_i256_to_scalar, OwnedColumn, OwnedTable,
@@ -38,7 +39,6 @@ use proof_of_sql_parser::{
     Identifier, ParseError,
 };
 use snafu::Snafu;
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[derive(Snafu, Debug)]
 #[non_exhaustive]

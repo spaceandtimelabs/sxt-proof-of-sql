@@ -105,7 +105,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             }
             Column::TinyInt(_, c) => c.inner_product(evaluation_vec),
             Column::SmallInt(_, c) => c.inner_product(evaluation_vec),
-            Column::Int(_, c, ) => c.inner_product(evaluation_vec),
+            Column::Int(_, c) => c.inner_product(evaluation_vec),
             Column::BigInt(_, c) | Column::TimestampTZ(.., c) => c.inner_product(evaluation_vec),
             Column::Int128(_, c) => c.inner_product(evaluation_vec),
         }
@@ -148,7 +148,9 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             Column::TinyInt(_, c) => MultilinearExtension::<S>::id(c),
             Column::SmallInt(_, c) => MultilinearExtension::<S>::id(c),
             Column::Int(_, c) => MultilinearExtension::<S>::id(c),
-            Column::BigInt(_, c) | Column::TimestampTZ(_, _, _, c) => MultilinearExtension::<S>::id(c),
+            Column::BigInt(_, c) | Column::TimestampTZ(_, _, _, c) => {
+                MultilinearExtension::<S>::id(c)
+            }
             Column::Int128(_, c) => MultilinearExtension::<S>::id(c),
         }
     }

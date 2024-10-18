@@ -1,3 +1,4 @@
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -18,7 +19,6 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_prove_an_equality_query_with_no_rows() {
@@ -414,6 +414,9 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
     );
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = Column::Boolean(ColumnTypeAssociatedData::NOT_NULLABLE, &[true, false, true, false]);
+    let expected_res = Column::Boolean(
+        ColumnTypeAssociatedData::NOT_NULLABLE,
+        &[true, false, true, false],
+    );
     assert_eq!(res, expected_res);
 }

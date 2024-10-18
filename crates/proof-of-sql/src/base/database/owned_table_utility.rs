@@ -66,10 +66,11 @@ pub fn tinyint<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::TinyInt(
-            ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
-
 
 /// Creates a (Identifier, `OwnedColumn`) pair for a nullable tinyint column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
@@ -89,7 +90,9 @@ pub fn tinyint_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::TinyInt(
-            ColumnTypeAssociatedData::NULLABLE, data.into_iter().map(Into::into).collect()),
+            ColumnTypeAssociatedData::NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 
@@ -111,7 +114,9 @@ pub fn smallint<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::SmallInt(
-            ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 /// Creates a `(Identifier, OwnedColumn)` pair for a smallint column.
@@ -132,7 +137,9 @@ pub fn smallint_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::SmallInt(
-            ColumnTypeAssociatedData::NULLABLE, data.into_iter().map(Into::into).collect()),
+            ColumnTypeAssociatedData::NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 
@@ -154,7 +161,9 @@ pub fn int<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Int(
-            ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 /// Creates a `(Identifier, OwnedColumn)` pair for a nullable int column.
@@ -175,7 +184,9 @@ pub fn int_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Int(
-            ColumnTypeAssociatedData::NULLABLE, data.into_iter().map(Into::into).collect()),
+            ColumnTypeAssociatedData::NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 
@@ -196,7 +207,9 @@ pub fn bigint<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::BigInt(
-            ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 /// Creates a `(Identifier, OwnedColumn)` pair for a nullable bigint column.
@@ -216,7 +229,9 @@ pub fn bigint_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::BigInt(
-            ColumnTypeAssociatedData::NULLABLE, data.into_iter().map(Into::into).collect()),
+            ColumnTypeAssociatedData::NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 
@@ -239,7 +254,9 @@ pub fn boolean<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Boolean(
-            ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 /// Creates a `(Identifier, OwnedColumn)` pair for a nullable boolean column.
@@ -261,7 +278,9 @@ pub fn boolean_nullable<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Boolean(
-            ColumnTypeAssociatedData::NULLABLE, data.into_iter().map(Into::into).collect()),
+            ColumnTypeAssociatedData::NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 
@@ -283,7 +302,10 @@ pub fn int128<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::Int128(ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
+        OwnedColumn::Int128(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 /// Creates a `(Identifier, OwnedColumn)` pair for a nullable int128 column.
@@ -304,7 +326,10 @@ pub fn int128_nullable<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::Int128(ColumnTypeAssociatedData::NULLABLE, data.into_iter().map(Into::into).collect()),
+        OwnedColumn::Int128(
+            ColumnTypeAssociatedData::NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 
@@ -326,7 +351,10 @@ pub fn scalar<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
+        OwnedColumn::Scalar(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 
@@ -348,7 +376,10 @@ pub fn scalar_nullable<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::Scalar(ColumnTypeAssociatedData::NULLABLE, data.into_iter().map(Into::into).collect()),
+        OwnedColumn::Scalar(
+            ColumnTypeAssociatedData::NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 
@@ -370,7 +401,10 @@ pub fn varchar<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE, data.into_iter().map(Into::into).collect()),
+        OwnedColumn::VarChar(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 
@@ -392,7 +426,10 @@ pub fn varchar_nullable<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::VarChar(ColumnTypeAssociatedData::NULLABLE, data.into_iter().map(Into::into).collect()),
+        OwnedColumn::VarChar(
+            ColumnTypeAssociatedData::NULLABLE,
+            data.into_iter().map(Into::into).collect(),
+        ),
     )
 }
 
@@ -425,7 +462,6 @@ pub fn decimal75<S: Scalar>(
         ),
     )
 }
-
 
 /// Creates a `(Identifier, OwnedColumn)` pair for a nullable decimal75 column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
@@ -493,7 +529,7 @@ pub fn timestamptz<S: Scalar>(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             time_unit,
             timezone,
-            data.into_iter().collect()
+            data.into_iter().collect(),
         ),
     )
 }
@@ -533,7 +569,7 @@ pub fn timestamptz_nullable<S: Scalar>(
             ColumnTypeAssociatedData::NOT_NULLABLE,
             time_unit,
             timezone,
-            data.into_iter().collect()
+            data.into_iter().collect(),
         ),
     )
 }

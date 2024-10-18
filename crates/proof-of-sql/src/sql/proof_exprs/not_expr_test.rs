@@ -1,3 +1,4 @@
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -17,7 +18,6 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {

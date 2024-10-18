@@ -1,3 +1,4 @@
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         database::{group_by_util::*, Column, OwnedColumn},
@@ -7,7 +8,6 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::cmp::Ordering;
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_aggregate_empty_columns() {
@@ -157,7 +157,10 @@ fn we_can_aggregate_columns() {
     ];
     let expected_group_by_result = &[
         Column::BigInt(meta, &[1, 1, 2, 2, 3, 3]),
-        Column::VarChar(meta, (&["Cat", "Dog", "Cat", "Dog", "Cat", "Dog"], &scals_res)),
+        Column::VarChar(
+            meta,
+            (&["Cat", "Dog", "Cat", "Dog", "Cat", "Dog"], &scals_res),
+        ),
     ];
     let expected_sum_result = &[
         &[

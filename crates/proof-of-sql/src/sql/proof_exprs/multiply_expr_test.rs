@@ -1,3 +1,4 @@
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -19,7 +20,6 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-use crate::base::database::ColumnTypeAssociatedData;
 
 // select a * 2 as a, c, b * 4.5 as b, d * 3  + 4.7 as d, e from sxt.t where d * 3.9 = 8.19
 #[test]

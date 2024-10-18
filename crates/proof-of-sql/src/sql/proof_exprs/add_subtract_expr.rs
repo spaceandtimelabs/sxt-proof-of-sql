@@ -1,4 +1,5 @@
 use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         commitment::Commitment,
@@ -15,7 +16,6 @@ use alloc::boxed::Box;
 use bumpalo::Bump;
 use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 use serde::{Deserialize, Serialize};
-use crate::base::database::ColumnTypeAssociatedData;
 
 /// Provable numerical `+` / `-` expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -63,14 +63,17 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
             self.lhs.result_evaluate(table_length, alloc, accessor);
         let rhs_column: Column<'a, C::Scalar> =
             self.rhs.result_evaluate(table_length, alloc, accessor);
-        Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE, add_subtract_columns(
-            lhs_column,
-            rhs_column,
-            self.lhs.data_type().scale().unwrap_or(0),
-            self.rhs.data_type().scale().unwrap_or(0),
-            alloc,
-            self.is_subtract,
-        ))
+        Column::Scalar(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            add_subtract_columns(
+                lhs_column,
+                rhs_column,
+                self.lhs.data_type().scale().unwrap_or(0),
+                self.rhs.data_type().scale().unwrap_or(0),
+                alloc,
+                self.is_subtract,
+            ),
+        )
     }
 
     #[tracing::instrument(
@@ -86,14 +89,17 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
     ) -> Column<'a, C::Scalar> {
         let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
         let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
-        Column::Scalar(ColumnTypeAssociatedData::NOT_NULLABLE,add_subtract_columns(
-            lhs_column,
-            rhs_column,
-            self.lhs.data_type().scale().unwrap_or(0),
-            self.rhs.data_type().scale().unwrap_or(0),
-            alloc,
-            self.is_subtract,
-        ))
+        Column::Scalar(
+            ColumnTypeAssociatedData::NOT_NULLABLE,
+            add_subtract_columns(
+                lhs_column,
+                rhs_column,
+                self.lhs.data_type().scale().unwrap_or(0),
+                self.rhs.data_type().scale().unwrap_or(0),
+                alloc,
+                self.is_subtract,
+            ),
+        )
     }
 
     fn verifier_evaluate(

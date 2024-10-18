@@ -128,6 +128,7 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
+    use crate::base::database::ColumnTypeAssociatedData;
     use crate::{
         base::{
             commitment::{Bounds, ColumnBounds},
@@ -143,7 +144,6 @@ mod tests {
         },
     };
     use curve25519_dalek::RistrettoPoint;
-    use crate::base::database::ColumnTypeAssociatedData;
 
     #[test]
     fn we_can_get_length_and_offset_of_tables() {
@@ -172,7 +172,10 @@ mod tests {
         let no_rows_commitment = TableCommitment::try_from_columns_with_offset(
             [(
                 &"column_c".parse().unwrap(),
-                &OwnedColumn::<Curve25519Scalar>::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE, vec![]),
+                &OwnedColumn::<Curve25519Scalar>::BigInt(
+                    ColumnTypeAssociatedData::NOT_NULLABLE,
+                    vec![],
+                ),
             )],
             3,
             &(),

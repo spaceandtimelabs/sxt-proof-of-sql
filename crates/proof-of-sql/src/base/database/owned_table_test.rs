@@ -1,3 +1,4 @@
+use crate::base::database::ColumnTypeAssociatedData;
 use crate::{
     base::{
         database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
@@ -10,7 +11,6 @@ use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
-use crate::base::database::ColumnTypeAssociatedData;
 
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {
@@ -89,37 +89,44 @@ fn we_can_create_an_owned_table_with_data() {
     );
     table.insert(
         Identifier::try_new("varchar").unwrap(),
-        OwnedColumn::VarChar(meta, vec![
-            "0".to_string(),
-            "1".to_string(),
-            "2".to_string(),
-            "3".to_string(),
-            "4".to_string(),
-            "5".to_string(),
-            "6".to_string(),
-            "7".to_string(),
-            "8".to_string(),
-        ]),
+        OwnedColumn::VarChar(
+            meta,
+            vec![
+                "0".to_string(),
+                "1".to_string(),
+                "2".to_string(),
+                "3".to_string(),
+                "4".to_string(),
+                "5".to_string(),
+                "6".to_string(),
+                "7".to_string(),
+                "8".to_string(),
+            ],
+        ),
     );
     table.insert(
         Identifier::try_new("scalar").unwrap(),
-        OwnedColumn::Scalar(meta, vec![
-            DoryScalar::from(0),
-            1.into(),
-            2.into(),
-            3.into(),
-            4.into(),
-            5.into(),
-            6.into(),
-            7.into(),
-            8.into(),
-        ]),
+        OwnedColumn::Scalar(
+            meta,
+            vec![
+                DoryScalar::from(0),
+                1.into(),
+                2.into(),
+                3.into(),
+                4.into(),
+                5.into(),
+                6.into(),
+                7.into(),
+                8.into(),
+            ],
+        ),
     );
     table.insert(
         Identifier::try_new("boolean").unwrap(),
-        OwnedColumn::Boolean(meta, vec![
-            true, false, true, false, true, false, true, false, true,
-        ]),
+        OwnedColumn::Boolean(
+            meta,
+            vec![true, false, true, false, true, false, true, false, true],
+        ),
     );
     assert_eq!(owned_table.into_inner(), table);
 }

@@ -148,7 +148,9 @@ pub(crate) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
 ) -> &'a [S] {
     match column {
         Column::TinyInt(_, col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::SmallInt(_, col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::SmallInt(_, col) => {
+            sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes)
+        }
         Column::Int(_, col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::BigInt(_, col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::Int128(_, col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
@@ -177,7 +179,9 @@ pub(crate) fn max_aggregate_column_by_index_counts<'a, S: Scalar>(
     match column {
         Column::Boolean(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::TinyInt(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::SmallInt(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::SmallInt(_, col) => {
+            max_aggregate_slice_by_index_counts(alloc, col, counts, indexes)
+        }
         Column::Int(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::BigInt(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::Int128(_, col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
@@ -209,7 +213,9 @@ pub(crate) fn min_aggregate_column_by_index_counts<'a, S: Scalar>(
     match column {
         Column::Boolean(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::TinyInt(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::SmallInt(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::SmallInt(_, col) => {
+            min_aggregate_slice_by_index_counts(alloc, col, counts, indexes)
+        }
         Column::Int(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::BigInt(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::Int128(_, col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),

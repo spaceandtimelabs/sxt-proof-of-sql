@@ -40,31 +40,41 @@ pub fn filter_column_by_index<'a, S: Scalar>(
     indexes: &[usize],
 ) -> Column<'a, S> {
     match column {
-        Column::Boolean(meta, col) => {
-            Column::Boolean(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
-        }
-        Column::TinyInt(meta, col) => {
-            Column::TinyInt(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
-        }
-        Column::SmallInt(meta, col) => {
-            Column::SmallInt(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
-        }
-        Column::Int(meta, col) => {
-            Column::Int(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
-        }
-        Column::BigInt(meta, col) => {
-            Column::BigInt(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
-        }
-        Column::Int128(meta, col) => {
-            Column::Int128(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
-        }
-        Column::VarChar(meta, (col, scals)) => Column::VarChar(*meta, (
+        Column::Boolean(meta, col) => Column::Boolean(
+            *meta,
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
-            alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| scals[i])),
-        )),
-        Column::Scalar(meta, col) => {
-            Column::Scalar(*meta, alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
-        }
+        ),
+        Column::TinyInt(meta, col) => Column::TinyInt(
+            *meta,
+            alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
+        ),
+        Column::SmallInt(meta, col) => Column::SmallInt(
+            *meta,
+            alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
+        ),
+        Column::Int(meta, col) => Column::Int(
+            *meta,
+            alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
+        ),
+        Column::BigInt(meta, col) => Column::BigInt(
+            *meta,
+            alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
+        ),
+        Column::Int128(meta, col) => Column::Int128(
+            *meta,
+            alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
+        ),
+        Column::VarChar(meta, (col, scals)) => Column::VarChar(
+            *meta,
+            (
+                alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
+                alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| scals[i])),
+            ),
+        ),
+        Column::Scalar(meta, col) => Column::Scalar(
+            *meta,
+            alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
+        ),
         Column::Decimal75(meta, precision, scale, col) => Column::Decimal75(
             *meta,
             *precision,
