@@ -422,7 +422,10 @@ impl ColumnType {
         }
         self.to_integer_bits().and_then(|self_bits| {
             other.to_integer_bits().and_then(|other_bits| {
-                Self::from_integer_bits(self_bits.max(other_bits), self.is_nullable())
+                Self::from_integer_bits(
+                    self_bits.max(other_bits),
+                    self.is_nullable() || other.is_nullable(),
+                )
             })
         })
     }
