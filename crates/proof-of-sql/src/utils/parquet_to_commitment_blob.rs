@@ -349,7 +349,7 @@ fn correct_utf8_fields(
 
 #[cfg(test)]
 mod tests{
-    use std::sync::Arc;
+    use std::{panic, sync::Arc};
     use arrow::{array::{ArrayRef, ArrowPrimitiveType, BooleanArray, Decimal128Array, Decimal256Builder, Int16Array, Int32Array, Int64Array, Int8Array, RecordBatch, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray}, datatypes::{i256, DataType, Decimal128Type, Field, Int16Type, Int32Type, Int64Type, Int8Type, Schema, TimestampMicrosecondType, TimestampMillisecondType, TimestampNanosecondType, TimestampSecondType}};
 
     use crate::utils::parquet_to_commitment_blob::{correct_utf8_fields, replace_nulls_within_record_batch};
@@ -703,10 +703,35 @@ mod tests{
     }
     
     #[test]
-    fn we_can_fail_if_datatype_of_big_decimal_column_is_not_decimal_256() {}
+    fn we_can_fail_if_datatype_of_big_decimal_column_is_not_decimal_256(){
+        
+    }
     
     #[test]
-    fn we_can_fail_if_big_decimal_column_is_not_castable() {}
+    fn we_can_fail_if_big_decimal_column_is_not_castable() {
+        let err = panic::catch_unwind(|| {
+            let string_array: ArrayRef = Arc::new(StringArray::from(vec![
+                None,
+                Some("Bob"),
+                Some("Charlie"),
+                None,
+                Some("Eve"),
+            ]));
+            let schema = Arc::new(Schema::new(vec![
+                Arc::new(Field::new("nullable_regular_string", DataType::Utf8, true)),
+            ]));
+            let record_batch = RecordBatch::try_new(
+                schema,
+                vec![
+                    string_array
+                ],
+            )
+            .unwrap();
+            let big_decimal_columns = vec![
+                ("nullable_regular_string".to_string(), 25, 4),
+            ];
+            let _test = correct_utf8_fields(record_batch, big_decimal_columns);
+        });
+        assert!(err.is_err());
+    }
 }
-
-
