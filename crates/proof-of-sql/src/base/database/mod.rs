@@ -5,7 +5,7 @@ mod accessor;
 pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor};
 
 mod column;
-pub use column::{Column, ColumnField, ColumnNullability, ColumnRef, ColumnType};
+pub use column::{Column, ColumnField, ColumnNullability, ColumnRef, ColumnType, ColumnTypeKind};
 
 mod column_operation;
 pub use column_operation::{

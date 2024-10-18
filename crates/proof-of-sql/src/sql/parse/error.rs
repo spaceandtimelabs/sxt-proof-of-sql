@@ -1,3 +1,4 @@
+use crate::base::database::ColumnTypeKind;
 use crate::base::{
     database::{ColumnOperationError, ColumnType},
     math::decimal::DecimalError,
@@ -31,6 +32,15 @@ pub enum ConversionError {
     MissingColumnWithoutTable {
         /// The missing column identifier
         identifier: Box<Identifier>,
+    },
+
+    #[snafu(display("Expected '{expected}' but found '{actual}'"))]
+    /// Invalid data type received
+    InvalidDataTypeKind {
+        /// Expected data type
+        expected: ColumnTypeKind,
+        /// Actual data type found
+        actual: ColumnTypeKind,
     },
 
     #[snafu(display("Expected '{expected}' but found '{actual}'"))]

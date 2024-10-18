@@ -1,3 +1,4 @@
+use crate::base::database::ColumnTypeKind;
 use crate::{
     base::{
         commitment::Commitment,
@@ -17,6 +18,10 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync {
 
     /// Get the data type of the expression
     fn data_type(&self) -> ColumnType;
+    /// Get the data type of the expression
+    fn data_type_kind(&self) -> ColumnTypeKind {
+        self.data_type().get_kind()
+    }
 
     /// This returns the result of evaluating the expression on the given table, and returns
     /// a column of values. This result slice is guarenteed to have length `table_length`.

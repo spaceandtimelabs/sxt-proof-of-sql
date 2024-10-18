@@ -2,6 +2,7 @@ use super::{
     AddSubtractExpr, AggregateExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr,
     MultiplyExpr, NotExpr, OrExpr, ProofExpr,
 };
+use crate::base::database::ColumnTypeKind;
 use crate::{
     base::{
         commitment::Commitment,
@@ -54,19 +55,19 @@ impl<C: Commitment> DynProofExpr<C> {
     }
     /// Create logical AND expression
     pub fn try_new_and(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
-        lhs.check_data_type(ColumnType::Boolean(ColumnNullability::NotNullable))?;
-        rhs.check_data_type(ColumnType::Boolean(ColumnNullability::NotNullable))?;
+        lhs.check_data_type_kind(ColumnTypeKind::Boolean)?;
+        rhs.check_data_type_kind(ColumnTypeKind::Boolean)?;
         Ok(Self::And(AndExpr::new(Box::new(lhs), Box::new(rhs))))
     }
     /// Create logical OR expression
     pub fn try_new_or(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
-        lhs.check_data_type(ColumnType::Boolean(ColumnNullability::NotNullable))?;
-        rhs.check_data_type(ColumnType::Boolean(ColumnNullability::NotNullable))?;
+        lhs.check_data_type_kind(ColumnTypeKind::Boolean)?;
+        rhs.check_data_type_kind(ColumnTypeKind::Boolean)?;
         Ok(Self::Or(OrExpr::new(Box::new(lhs), Box::new(rhs))))
     }
     /// Create logical NOT expression
     pub fn try_new_not(expr: DynProofExpr<C>) -> ConversionResult<Self> {
-        expr.check_data_type(ColumnType::Boolean(ColumnNullability::NotNullable))?;
+        expr.check_data_type_kind(ColumnTypeKind::Boolean)?;
         Ok(Self::Not(NotExpr::new(Box::new(expr))))
     }
     /// Create CONST expression
@@ -171,12 +172,12 @@ impl<C: Commitment> DynProofExpr<C> {
     }
 
     /// Check that the plan has the correct data type
-    fn check_data_type(&self, data_type: ColumnType) -> ConversionResult<()> {
-        if self.data_type() == data_type {
+    fn check_data_type_kind(&self, data_type: ColumnTypeKind) -> ConversionResult<()> {
+        if self.data_type_kind() == data_type {
             Ok(())
         } else {
-            Err(ConversionError::InvalidDataType {
-                actual: self.data_type(),
+            Err(ConversionError::InvalidDataTypeKind {
+                actual: self.data_type_kind(),
                 expected: data_type,
             })
         }
@@ -213,7 +214,6 @@ impl<C: Commitment> ProofExpr<C> for DynProofExpr<C> {
             | DynProofExpr::Inequality(_) => ColumnType::Boolean(ColumnNullability::default()),
         }
     }
-
     fn result_evaluate<'a>(
         &self,
         table_length: usize,

@@ -343,8 +343,84 @@ pub enum ColumnType {
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar(#[serde(default)] ColumnNullability),
 }
+#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy)]
+pub enum ColumnTypeKind {
+    /// Mapped to bool
+    #[serde(alias = "BOOLEAN", alias = "boolean")]
+    Boolean,
+    /// Mapped to i8
+    #[serde(alias = "TINYINT", alias = "tinyint")]
+    TinyInt,
+    /// Mapped to i16
+    #[serde(alias = "SMALLINT", alias = "smallint")]
+    SmallInt,
+    /// Mapped to i32
+    #[serde(alias = "INT", alias = "int")]
+    Int,
+    /// Mapped to i64
+    #[serde(alias = "BIGINT", alias = "bigint")]
+    BigInt,
+    /// Mapped to i128
+    #[serde(rename = "Decimal", alias = "DECIMAL", alias = "decimal")]
+    Int128,
+    /// Mapped to String
+    #[serde(alias = "VARCHAR", alias = "varchar")]
+    VarChar,
+    /// Mapped to i256
+    #[serde(rename = "Decimal75", alias = "DECIMAL75", alias = "decimal75")]
+    Decimal75(Precision, i8),
+    /// Mapped to i64
+    #[serde(alias = "TIMESTAMP", alias = "timestamp")]
+    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
+    /// Mapped to [`Curve25519Scalar`](crate::base::scalar::Curve25519Scalar)
+    #[serde(alias = "SCALAR", alias = "scalar")]
+    Scalar,
+}
 
+/// Display the column type as a str name (in all caps)
+impl Display for ColumnTypeKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ColumnTypeKind::Boolean => f.write_str("BOOLEAN"),
+            ColumnTypeKind::TinyInt => f.write_str("TINYINT"),
+            ColumnTypeKind::SmallInt => f.write_str("SMALLINT"),
+            ColumnTypeKind::Int => f.write_str("INT"),
+            ColumnTypeKind::BigInt => f.write_str("BIGINT"),
+            ColumnTypeKind::Int128 => f.write_str("DECIMAL"),
+            ColumnTypeKind::Decimal75(precision, scale) => {
+                write!(
+                    f,
+                    "DECIMAL75(PRECISION: {:?}, SCALE: {scale})",
+                    precision.value()
+                )
+            }
+            ColumnTypeKind::VarChar => f.write_str("VARCHAR"),
+            ColumnTypeKind::Scalar => f.write_str("SCALAR"),
+            ColumnTypeKind::TimestampTZ(timeunit, timezone) => {
+                write!(f, "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone})")
+            }
+        }
+    }
+}
 impl ColumnType {
+    pub fn get_kind(&self) -> ColumnTypeKind {
+        match self {
+            ColumnType::Boolean(_) => ColumnTypeKind::Boolean,
+            ColumnType::TinyInt(_) => ColumnTypeKind::TinyInt,
+            ColumnType::SmallInt(_) => ColumnTypeKind::SmallInt,
+            ColumnType::Int(_) => ColumnTypeKind::Int,
+            ColumnType::BigInt(_) => ColumnTypeKind::BigInt,
+            ColumnType::Int128(_) => ColumnTypeKind::Int128,
+            ColumnType::VarChar(_) => ColumnTypeKind::VarChar,
+            ColumnType::Decimal75(_, precision, bits) => {
+                ColumnTypeKind::Decimal75(*precision, *bits)
+            }
+            ColumnType::TimestampTZ(_, unit, zone) => {
+                ColumnTypeKind::TimestampTZ(unit.clone(), *zone)
+            }
+            ColumnType::Scalar(_) => ColumnTypeKind::Scalar,
+        }
+    }
     fn get_nullability(&self) -> &ColumnNullability {
         match self {
             Self::Boolean(m)
