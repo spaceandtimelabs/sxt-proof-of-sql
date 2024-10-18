@@ -145,7 +145,7 @@ pub fn try_divide_column_types(
         left_type: lhs,
         right_type: rhs,
     });
-    return match (lhs, rhs) {
+    match (lhs, rhs) {
         (lhs, rhs) if !lhs.is_numeric() || !rhs.is_numeric() => bin_err,
         (ColumnType::Scalar(_), _) | (_, ColumnType::Scalar(_)) => bin_err,
         (lhs, rhs) if lhs.is_integer() && rhs.is_integer() =>
