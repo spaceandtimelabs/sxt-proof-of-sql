@@ -6,7 +6,7 @@
 
 use glob::glob;
 use proof_of_sql::{
-    proof_primitive::dory::{ProverSetup, PublicParameters},
+    proof_primitive::dory::{DoryProverPublicSetup, ProverSetup, PublicParameters},
     utils::{
         parquet_to_commitment_blob::read_parquet_file_to_commitment_as_blob,
         parse::find_bigdecimals,
@@ -79,6 +79,7 @@ fn main() {
 
     println!("Creating prover setup..");
     let prover_setup = ProverSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 12);
 
     println!("Beginning parquet to commitments..");
     table_identifiers
@@ -97,7 +98,7 @@ fn main() {
                 read_parquet_file_to_commitment_as_blob(
                     parquets_for_table,
                     &full_output_prefix,
-                    &prover_setup,
+                    &dory_prover_setup,
                     big_decimal_commitments
                         .iter()
                         .find(|(k, _)| {

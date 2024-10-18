@@ -1,7 +1,7 @@
 use crate::{
     base::commitment::{Commitment, TableCommitment},
     proof_primitive::dory::{
-        DynamicDoryCommitment, ProverSetup,
+        DoryCommitment, DoryProverPublicSetup,
     },
 };
 use arrow::{
@@ -37,10 +37,10 @@ pub static PARQUET_FILE_PROOF_ORDER_COLUMN: &str = "META_ROW_NUMBER";
 pub fn read_parquet_file_to_commitment_as_blob(
     parquet_files: Vec<PathBuf>,
     output_path_prefix: &str,
-    prover_setup: &ProverSetup,
+    prover_setup: &DoryProverPublicSetup,
     big_decimal_columns: &Vec<(String, u8, i8)>,
 ) {
-    let mut commitments: Vec<TableCommitment<DynamicDoryCommitment>> = parquet_files
+    let mut commitments: Vec<TableCommitment<DoryCommitment>> = parquet_files
         .par_iter()
         .flat_map(|path| {
             println!("Committing to {}..", path.as_path().to_str().unwrap());
@@ -78,14 +78,12 @@ pub fn read_parquet_file_to_commitment_as_blob(
                         unmodified_record_batch,
                         big_decimal_columns.clone(),
                     ));
-                    let dynamic_dory_commitment =
-                    TableCommitment::<DynamicDoryCommitment>::try_from_record_batch_with_offset(
+                    let dory_commitment = TableCommitment::<DoryCommitment>::try_from_record_batch_with_offset(
                         &record_batch,
                         offset as usize,
                         &&prover_setup,
-                    )
-                    .unwrap();
-                    dynamic_dory_commitment
+                    ).unwrap();
+                    dory_commitment
                 })
                 .collect();
             println!("Commitments generated");
