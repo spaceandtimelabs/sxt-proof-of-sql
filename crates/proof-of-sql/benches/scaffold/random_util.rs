@@ -24,26 +24,28 @@ pub fn generate_random_columns<'a, S: Scalar>(
             (
                 id.parse().unwrap(),
                 match (ty, bound) {
-                    (ColumnType::BigInt, None) => {
-                        Column::BigInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
+                    (ColumnType::BigInt(meta), None) => {
+                        Column::BigInt(*meta, alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
                     }
-                    (ColumnType::BigInt, Some(b)) => {
-                        Column::BigInt(alloc.alloc_slice_fill_with(num_rows, |_| {
+                    (ColumnType::BigInt(meta), Some(b)) => Column::BigInt(
+                        *meta,
+                        alloc.alloc_slice_fill_with(num_rows, |_| {
                             rng.gen_range(-b(num_rows)..=b(num_rows))
-                        }))
+                        }),
+                    ),
+                    (ColumnType::Boolean(meta), _) => {
+                        Column::Boolean(*meta, alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
                     }
-                    (ColumnType::Boolean, _) => {
-                        Column::Boolean(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
+                    (ColumnType::Int128(meta), None) => {
+                        Column::Int128(*meta, alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
                     }
-                    (ColumnType::Int128, None) => {
-                        Column::Int128(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
-                    }
-                    (ColumnType::Int128, Some(b)) => {
-                        Column::Int128(alloc.alloc_slice_fill_with(num_rows, |_| {
+                    (ColumnType::Int128(meta), Some(b)) => Column::Int128(
+                        *meta,
+                        alloc.alloc_slice_fill_with(num_rows, |_| {
                             rng.gen_range((i128::from(-b(num_rows)))..=(i128::from(b(num_rows))))
-                        }))
-                    }
-                    (ColumnType::VarChar, _) => {
+                        }),
+                    ),
+                    (ColumnType::VarChar(meta), _) => {
                         let strs = alloc.alloc_slice_fill_with(num_rows, |_| {
                             let len = rng
                                 .gen_range(0..=bound.map(|b| b(num_rows) as usize).unwrap_or(10));
@@ -54,10 +56,13 @@ pub fn generate_random_columns<'a, S: Scalar>(
                                     .collect::<String>(),
                             ) as &str
                         });
-                        Column::VarChar((
-                            strs,
-                            alloc.alloc_slice_fill_iter(strs.iter().map(|&s| Into::into(s))),
-                        ))
+                        Column::VarChar(
+                            *meta,
+                            (
+                                strs,
+                                alloc.alloc_slice_fill_iter(strs.iter().map(|&s| Into::into(s))),
+                            ),
+                        )
                     }
                     _ => todo!(),
                 },
