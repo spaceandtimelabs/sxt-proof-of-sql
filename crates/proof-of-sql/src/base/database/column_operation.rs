@@ -935,6 +935,21 @@ mod test {
     use crate::base::scalar::Curve25519Scalar;
 
     #[test]
+    fn we_can_add_null_numeric_types() {
+        let lhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NULLABLE);
+        let rhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
+        let expected = ColumnType::TinyInt(ColumnTypeAssociatedData::NULLABLE);
+        assert_eq!(expected, actual);
+
+        let lhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
+        let rhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NULLABLE);
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
+        let expected = ColumnType::TinyInt(ColumnTypeAssociatedData::NULLABLE);
+        assert_eq!(expected, actual);
+
+    }
+    #[test]
     fn we_can_add_numeric_types() {
         // lhs and rhs are integers with the same precision
         let lhs = ColumnType::TinyInt(ColumnTypeAssociatedData::NOT_NULLABLE);
