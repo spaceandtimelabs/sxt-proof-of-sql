@@ -1,15 +1,19 @@
 use super::OptionalRandBound;
-use proof_of_sql::base::database::ColumnType;
+use proof_of_sql::base::database::{ColumnType, ColumnTypeAssociatedData};
 
 const SINGLE_COLUMN_FILTER_TITLE: &str = "Single Column Filter";
 const SINGLE_COLUMN_FILTER_SQL: &str = "SELECT b FROM table WHERE a = 0";
 const SINGLE_COLUMN_FILTER_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
-        ColumnType::BigInt,
+        ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         Some(|size| (size / 10).max(10) as i64),
     ),
-    ("b", ColumnType::VarChar, None),
+    (
+        "b",
+        ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+        None,
+    ),
 ];
 const MULTI_COLUMN_FILTER_TITLE: &str = "Multi Column Filter";
 const MULTI_COLUMN_FILTER_SQL: &str =
@@ -17,30 +21,38 @@ const MULTI_COLUMN_FILTER_SQL: &str =
 const MULTI_COLUMN_FILTER_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
-        ColumnType::BigInt,
+        ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         Some(|size| (size / 10).max(10) as i64),
     ),
     (
         "b",
-        ColumnType::BigInt,
+        ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         Some(|size| (size / 10).max(10) as i64),
     ),
-    ("c", ColumnType::VarChar, None),
+    (
+        "c",
+        ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+        None,
+    ),
 ];
 const ARITHMETIC_TITLE: &str = "Arithmetic";
 const ARITHMETIC_SQL: &str = "SELECT a + b as r0, a * b - 2 as r1, c FROM table WHERE a >= b";
 const ARITHMETIC_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
-        ColumnType::BigInt,
+        ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         Some(|size| (size / 10).max(10) as i64),
     ),
     (
         "b",
-        ColumnType::BigInt,
+        ColumnType::BigInt(ColumnTypeAssociatedData::NOT_NULLABLE),
         Some(|size| (size / 10).max(10) as i64),
     ),
-    ("c", ColumnType::VarChar, None),
+    (
+        "c",
+        ColumnType::VarChar(ColumnTypeAssociatedData::NOT_NULLABLE),
+        None,
+    ),
 ];
 
 #[allow(clippy::type_complexity)]
