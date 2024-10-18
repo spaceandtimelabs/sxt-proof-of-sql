@@ -55,7 +55,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let alloc = Bump::new();
 
         // Evaluate query result
-        let result_cols = expr.result_evaluate(table_length, &alloc, accessor);
+        let result_cols = expr.result_evaluate(&[table_length], &alloc, accessor);
         let output_length = result_cols.first().map_or(0, Column::len);
         let provable_result = ProvableQueryResult::new(output_length as u64, &result_cols);
 
@@ -79,7 +79,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let mut builder =
             FinalRoundBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
-        expr.final_round_evaluate(&mut builder, &alloc, accessor);
+        expr.final_round_evaluate(&[table_length], &mut builder, &alloc, accessor);
 
         let num_sumcheck_variables = builder.num_sumcheck_variables();
         let table_length = builder.table_length();

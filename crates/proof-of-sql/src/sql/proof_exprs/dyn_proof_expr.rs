@@ -253,40 +253,41 @@ impl<C: Commitment> ProofExpr<C> for DynProofExpr<C> {
 
     fn prover_evaluate<'a>(
         &self,
+        table_length: usize,
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
         match self {
             DynProofExpr::Column(expr) => {
-                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, table_length, builder, alloc, accessor)
             }
             DynProofExpr::And(expr) => {
-                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, table_length, builder, alloc, accessor)
             }
             DynProofExpr::Or(expr) => {
-                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, table_length, builder, alloc, accessor)
             }
             DynProofExpr::Not(expr) => {
-                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, table_length, builder, alloc, accessor)
             }
             DynProofExpr::Literal(expr) => {
-                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, table_length, builder, alloc, accessor)
             }
             DynProofExpr::Equals(expr) => {
-                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, table_length, builder, alloc, accessor)
             }
             DynProofExpr::Inequality(expr) => {
-                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, table_length, builder, alloc, accessor)
             }
             DynProofExpr::AddSubtract(expr) => {
-                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, table_length, builder, alloc, accessor)
             }
             DynProofExpr::Multiply(expr) => {
-                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, table_length, builder, alloc, accessor)
             }
             DynProofExpr::Aggregate(expr) => {
-                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, table_length, builder, alloc, accessor)
             }
         }
     }
