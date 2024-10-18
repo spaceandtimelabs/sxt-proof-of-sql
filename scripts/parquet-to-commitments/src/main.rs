@@ -4,37 +4,32 @@
 //! 1. the source, a path to the `v0/ETHEREUM/` directory
 //! 2. the output_prefix, used when writing commitments to files
 
+use std::env;
+use std::fs::read_dir;
+use std::path::{Path, PathBuf};
+
 use glob::glob;
-use proof_of_sql::{
-    proof_primitive::dory::{ProverSetup, PublicParameters},
-    utils::parquet_to_commitment_blob::read_parquet_file_to_commitment_as_blob,
-};
+use proof_of_sql::proof_primitive::dory::{ProverSetup, PublicParameters};
+use proof_of_sql::utils::parquet_to_commitment_blob::read_parquet_file_to_commitment_as_blob;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use std::{
-    env,
-    fs::read_dir,
-    path::{Path, PathBuf},
-};
+
+const TABLE_IDENTIFIERS: [(&str, &str); 8] = [
+    ("ETHEREUM", "ERC1155_EVT_TRANSFERBATCH"),
+    ("ETHEREUM", "CONTRACTS"),
+    ("ETHEREUM", "LOGS"),
+    ("ETHEREUM", "NFT_COLLECTIONS"),
+    ("ETHEREUM", "ERC1155_EVT_TRANSFERBATCH"),
+    ("ETHEREUM", "CONTRACT_EVT_APPROVALFORALL"),
+    ("ETHEREUM", "CONTRACT_EVT_OWNERSHIPTRANSFERRED"),
+    ("ETHEREUM", "STORAGE_SLOTS"),
+];
 
 fn main() {
     let mut args = env::args().skip(1);
 
     let source: PathBuf = args.next().unwrap().parse().unwrap();
     let output_prefix = args.next().unwrap();
-
-    let table_identifiers: Vec<(String, String)> = read_dir(source.clone())
-        .unwrap()
-        .map(|entry| {
-            let dir_name = entry.unwrap().file_name();
-
-            let table_name = dir_name.to_str().unwrap().to_string();
-
-            let table_name = table_name.strip_prefix("SQL_ETHEREUM_").unwrap();
-
-            ("ETHEREUM".to_string(), table_name.to_string())
-        })
-        .collect();
 
     let public_parameters_path = Path::new("public-parameters");
 
@@ -55,7 +50,7 @@ fn main() {
                 .expect("collection is guaranteed to contain 32 elements");
             ChaCha20Rng::from_seed(seed_bytes) // Seed ChaChaRng
         };
-        let public_parameters = PublicParameters::rand(12, &mut rng);
+        let public_parameters = PublicParameters::rand(16, &mut rng);
 
         println!("Saving public parameters..");
         public_parameters
@@ -69,7 +64,7 @@ fn main() {
     let prover_setup = ProverSetup::from(&public_parameters);
 
     println!("Beginning parquet to commitments..");
-    table_identifiers
+    TABLE_IDENTIFIERS
         .iter()
         .for_each(|(namespace, table_name)| {
             let parquets_for_table = glob(&format!(
@@ -87,5 +82,6 @@ fn main() {
                 &full_output_prefix,
                 &prover_setup,
             )
+            .ok();
         });
 }

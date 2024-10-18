@@ -1,26 +1,45 @@
-use crate::{
-    base::commitment::{Commitment, TableCommitment},
-    proof_primitive::dory::{
-        DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup,
-    },
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use arrow::array::{
+    Array,
+    ArrayRef,
+    ArrowPrimitiveType,
+    BooleanArray,
+    Decimal128Array,
+    Decimal256Array,
+    Int16Array,
+    Int32Array,
+    Int64Array,
+    Int8Array,
+    PrimitiveArray,
+    RecordBatch,
+    StringArray,
+    TimestampMicrosecondArray,
+    TimestampMillisecondArray,
+    TimestampSecondArray,
 };
-use arrow::{
-    array::{
-        Array, ArrayRef, ArrowPrimitiveType, BooleanArray, Decimal128Array, Decimal256Array,
-        Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray, RecordBatch, StringArray,
-        TimestampMicrosecondArray, TimestampMillisecondArray, TimestampSecondArray,
-    },
-    compute::concat_batches,
-    datatypes::{DataType, TimeUnit},
-    error::ArrowError,
-};
+use arrow::compute::concat_batches;
+use arrow::datatypes::{DataType, TimeUnit};
+use arrow::error::ArrowError;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use postcard::to_allocvec;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write, path::PathBuf, sync::Arc};
+
+use crate::base::commitment::{Commitment, TableCommitment};
+use crate::proof_primitive::dory::{
+    DoryCommitment,
+    DoryProverPublicSetup,
+    DynamicDoryCommitment,
+    ProverSetup,
+};
 
 static PARQUET_FILE_PROOF_ORDER_COLUMN: &str = "META_ROW_NUMBER";
+
+pub struct HasNulls;
 
 /// Performs the following:
 /// Reads a collection of parquet files which in aggregate represent a single table of data,
@@ -34,23 +53,9 @@ pub fn read_parquet_file_to_commitment_as_blob(
     parquet_files: Vec<PathBuf>,
     output_path_prefix: &str,
     prover_setup: &ProverSetup,
-) {
-    //let setup_seed = "SpaceAndTime".to_string();
-    //let mut rng = {
-    //// Convert the seed string to bytes and create a seeded RNG
-    //let seed_bytes = setup_seed
-    //.bytes()
-    //.chain(std::iter::repeat(0u8))
-    //.take(32)
-    //.collect::<Vec<_>>()
-    //.try_into()
-    //.expect("collection is guaranteed to contain 32 elements");
-    //ChaCha20Rng::from_seed(seed_bytes) // Seed ChaChaRng
-    //};
-    //let public_parameters = PublicParameters::rand(12, &mut rng);
-    //let prover_setup = ProverSetup::from(&public_parameters);
-    //let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 20);
-    let mut commitments: Vec<TableCommitment<DynamicDoryCommitment>> = parquet_files
+) -> Result<(), HasNulls> {
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 12);
+    let mut commitments: Vec<TableCommitment<DoryCommitment>> = parquet_files
         .par_iter()
         .map(|path| {
             println!("Committing to {}..", path.as_path().to_str().unwrap());
@@ -65,7 +70,12 @@ pub fn read_parquet_file_to_commitment_as_blob(
                 .map(|record_batch_result| record_batch_result.unwrap())
                 .collect();
             let schema = record_batches.first().unwrap().schema();
-            let mut record_batch = concat_batches(&schema, &record_batches).unwrap();
+            let record_batch = concat_batches(&schema, &record_batches).unwrap();
+
+            if batch_has_nulls(&record_batch) {
+                println!("found nullable column in table, skipping...");
+                Err(HasNulls)?;
+            }
 
             let meta_row_number_column = record_batch
                 .column_by_name(PARQUET_FILE_PROOF_ORDER_COLUMN)
@@ -75,25 +85,18 @@ pub fn read_parquet_file_to_commitment_as_blob(
                 .unwrap();
 
             let offset = meta_row_number_column.value(0) - 1;
-            record_batch.remove_column(schema.index_of(PARQUET_FILE_PROOF_ORDER_COLUMN).unwrap());
+
             let record_batch = replace_nulls_within_record_batch(record_batch);
-            //let dory_commitment =
-            //TableCommitment::<DoryCommitment>::try_from_record_batch_with_offset(
-            //&record_batch,
-            //offset,
-            //&dory_prover_setup,
-            //)
-            //.unwrap();
-            let dynamic_dory_commitment =
-                TableCommitment::<DynamicDoryCommitment>::try_from_record_batch_with_offset(
+            let dory_commitment =
+                TableCommitment::<DoryCommitment>::try_from_record_batch_with_offset(
                     &record_batch,
                     offset as usize,
-                    &&prover_setup,
+                    &dory_prover_setup,
                 )
                 .unwrap();
-            dynamic_dory_commitment
+            Ok(dory_commitment)
         })
-        .collect();
+        .collect::<Result<_, HasNulls>>()?;
 
     println!("done computing per-file commitments, now sorting and aggregating");
     commitments.sort_by(|commitment_a, commitment_b| {
@@ -101,10 +104,16 @@ pub fn read_parquet_file_to_commitment_as_blob(
     });
 
     //aggregate_commitments_to_blob(unzipped.0, format!("{output_path_prefix}-dory-commitment"));
-    aggregate_commitments_to_blob(
-        commitments,
-        format!("{output_path_prefix}-dynamic-dory-commitment"),
-    );
+    aggregate_commitments_to_blob(commitments, format!("{output_path_prefix}-dory-commitment"));
+
+    Ok(())
+}
+
+fn batch_has_nulls(record_batch: &RecordBatch) -> bool {
+    record_batch
+        .columns()
+        .iter()
+        .any(|col| col.null_count() > 0)
 }
 
 /// # Panics
