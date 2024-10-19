@@ -1,6 +1,5 @@
-use crate::base::database::ColumnTypeKind;
 use crate::base::{
-    database::{ColumnOperationError, ColumnType},
+    database::{ColumnOperationError, ColumnType, ColumnTypeKind},
     math::decimal::DecimalError,
 };
 use alloc::{

@@ -2,13 +2,12 @@ use super::{
     AddSubtractExpr, AggregateExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr,
     MultiplyExpr, NotExpr, OrExpr, ProofExpr,
 };
-use crate::base::database::ColumnTypeKind;
 use crate::{
     base::{
         commitment::Commitment,
         database::{
-            Column, ColumnNullability, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            LiteralValue,
+            Column, ColumnNullability, ColumnRef, ColumnType, ColumnTypeKind, CommitmentAccessor,
+            DataAccessor, LiteralValue,
         },
         map::IndexSet,
         proof::ProofError,

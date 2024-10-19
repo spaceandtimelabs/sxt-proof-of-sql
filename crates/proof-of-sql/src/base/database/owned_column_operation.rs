@@ -22,9 +22,10 @@ impl<S: Scalar> OwnedColumn<S> {
     /// Element-wise NOT operation for a column
     pub fn element_wise_not(&self) -> ColumnOperationResult<Self> {
         match self {
-            Self::Boolean(_, values) => {
-                Ok(Self::Boolean(ColumnNullability::NotNullable, slice_not(values)))
-            }
+            Self::Boolean(_, values) => Ok(Self::Boolean(
+                ColumnNullability::NotNullable,
+                slice_not(values),
+            )),
             _ => Err(ColumnOperationError::UnaryOperationInvalidColumnType {
                 operator: UnaryOperator::Not,
                 operand_type: self.column_type(),
@@ -440,18 +441,30 @@ impl<S: Scalar> OwnedColumn<S> {
                 ),
             )),
 
-            (Self::Int128(_, lhs), Self::TinyInt(ColumnNullability::NotNullable, rhs)) => Ok(
-                Self::Boolean(ColumnNullability::NotNullable, slice_ge_with_casting(rhs, lhs)),
-            ),
-            (Self::Int128(_, lhs), Self::SmallInt(ColumnNullability::NotNullable, rhs)) => Ok(
-                Self::Boolean(ColumnNullability::NotNullable, slice_ge_with_casting(rhs, lhs)),
-            ),
-            (Self::Int128(_, lhs), Self::Int(ColumnNullability::NotNullable, rhs)) => Ok(
-                Self::Boolean(ColumnNullability::NotNullable, slice_ge_with_casting(rhs, lhs)),
-            ),
-            (Self::Int128(_, lhs), Self::BigInt(ColumnNullability::NotNullable, rhs)) => Ok(
-                Self::Boolean(ColumnNullability::NotNullable, slice_ge_with_casting(rhs, lhs)),
-            ),
+            (Self::Int128(_, lhs), Self::TinyInt(ColumnNullability::NotNullable, rhs)) => {
+                Ok(Self::Boolean(
+                    ColumnNullability::NotNullable,
+                    slice_ge_with_casting(rhs, lhs),
+                ))
+            }
+            (Self::Int128(_, lhs), Self::SmallInt(ColumnNullability::NotNullable, rhs)) => {
+                Ok(Self::Boolean(
+                    ColumnNullability::NotNullable,
+                    slice_ge_with_casting(rhs, lhs),
+                ))
+            }
+            (Self::Int128(_, lhs), Self::Int(ColumnNullability::NotNullable, rhs)) => {
+                Ok(Self::Boolean(
+                    ColumnNullability::NotNullable,
+                    slice_ge_with_casting(rhs, lhs),
+                ))
+            }
+            (Self::Int128(_, lhs), Self::BigInt(ColumnNullability::NotNullable, rhs)) => {
+                Ok(Self::Boolean(
+                    ColumnNullability::NotNullable,
+                    slice_ge_with_casting(rhs, lhs),
+                ))
+            }
             (Self::Int128(_, lhs), Self::Int128(ColumnNullability::NotNullable, rhs)) => Ok(
                 Self::Boolean(ColumnNullability::NotNullable, slice_le(lhs, rhs)),
             ),

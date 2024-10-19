@@ -1,8 +1,9 @@
-use crate::base::database::ColumnTypeKind;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{
+            Column, ColumnRef, ColumnType, ColumnTypeKind, CommitmentAccessor, DataAccessor,
+        },
         map::IndexSet,
         proof::ProofError,
     },
