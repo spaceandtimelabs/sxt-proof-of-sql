@@ -76,7 +76,11 @@ where
 /// Let `d` be `evals.len() - 1` and let `f` be the polynomial such that `f(i) = evals[i]`.
 /// The output of this function is the vector of coefficients of `f`, with the leading coefficient first.
 /// That is, `f(x) = evals[j] * x^(d - j)`.
-#[allow(clippy::missing_panics_doc)]
+#[allow(
+    clippy::missing_panics_doc,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap
+)]
 // This function is guaranteed not to panic because:
 // - The product in `inv()` will never be zero, as the numbers being multiplied are all non-zero by construction.
 // - If there are no elements to reduce, `unwrap_or(vec![])` provides an empty vector as a safe fallback.
@@ -90,22 +94,16 @@ where
         + Inv<Output = Option<S>>
         + Product,
 {
+    assert!(i32::try_from(evals.len()).is_ok());
     let n = evals.len().max(1) - 1;
     evals
         .iter()
         .enumerate()
         .map(|(idx, &eval_i)| {
-            let i = match idx.try_into() {
-                Ok(val) => val,
-                Err(_) => i32::MAX,
-            };
+            let i = idx as i32;
             let mut scaled_lagrange_basis = vec![S::zero(); n + 1];
-            let n_i32 = match n.try_into() {
-                Ok(val) => val,
-                Err(_) => i32::MAX,
-            };
             // First compute the constant factor of this lagrange basis polynomial:
-            scaled_lagrange_basis[0] = (i - n_i32..0)
+            scaled_lagrange_basis[0] = (i - n as i32..0)
                 .chain(1..=i)
                 .map(S::from)
                 .product::<S>()
@@ -114,7 +112,7 @@ where
                 * eval_i;
             // Then multiply by the appropriate linear terms:
             // for j in 0..=n if j != i {
-            for neg_j in (-(n_i32)..-i).chain(1 - i..=0).map(S::from) {
+            for neg_j in (-(n as i32)..-i).chain(1 - i..=0).map(S::from) {
                 for k in (0..n).rev() {
                     scaled_lagrange_basis[k + 1] =
                         scaled_lagrange_basis[k + 1] + neg_j * scaled_lagrange_basis[k];

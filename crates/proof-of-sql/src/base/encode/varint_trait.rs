@@ -187,6 +187,7 @@ impl VarInt for u64 {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     #[inline]
     fn encode_var(self, dst: &mut [u8]) -> usize {
         assert!(dst.len() >= self.required_space());
@@ -194,12 +195,12 @@ impl VarInt for u64 {
         let mut i = 0;
 
         while n >= 0x80 {
-            dst[i] = MSB | u8::try_from(n).unwrap_or(u8::MAX);
+            dst[i] = MSB | (n as u8);
             i += 1;
             n >>= 7;
         }
 
-        dst[i] = u8::try_from(n).unwrap_or(u8::MAX);
+        dst[i] = n as u8;
         i + 1
     }
 }

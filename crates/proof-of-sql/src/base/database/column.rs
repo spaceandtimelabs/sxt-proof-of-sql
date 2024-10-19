@@ -390,13 +390,11 @@ impl ColumnType {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     /// Returns the bit size of the column type.
     #[must_use]
     pub fn bit_size(&self) -> u32 {
-        match u32::try_from(self.byte_size()) {
-            Ok(val) => val * 8,
-            Err(_) => u32::MAX,
-        }
+        self.byte_size() as u32 * 8
     }
 
     /// Returns if the column type supports signed values.

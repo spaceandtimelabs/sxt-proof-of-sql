@@ -17,11 +17,13 @@ pub struct ProvableQueryResult {
     data: Vec<u8>,
 }
 
+// TODO: Handle truncation properly. The `allow(clippy::cast_possible_truncation)` is a temporary fix and should be replaced with proper logic to manage possible truncation scenarios.
 impl ProvableQueryResult {
+    #[allow(clippy::cast_possible_truncation)]
     /// The number of columns in the result
     #[must_use]
     pub fn num_columns(&self) -> usize {
-        usize::try_from(self.num_columns).unwrap_or(usize::MAX)
+        self.num_columns as usize
     }
     /// A mutable reference to the number of columns in the result. Because the struct is deserialized from untrusted data, it
     /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
@@ -29,10 +31,12 @@ impl ProvableQueryResult {
     pub fn num_columns_mut(&mut self) -> &mut u64 {
         &mut self.num_columns
     }
+
+    #[allow(clippy::cast_possible_truncation)]
     /// The number of rows in the result
     #[must_use]
     pub fn table_length(&self) -> usize {
-        usize::try_from(self.table_length).unwrap_or(usize::MAX)
+        self.table_length as usize
     }
     /// A mutable reference to the underlying encoded data of the result. Because the struct is deserialized from untrusted data, it
     /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
@@ -77,6 +81,7 @@ impl ProvableQueryResult {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     #[allow(
         clippy::missing_panics_doc,
         reason = "Assertions ensure preconditions are met, eliminating the possibility of panic."
@@ -93,14 +98,13 @@ impl ProvableQueryResult {
         output_length: usize,
         column_result_fields: &[ColumnField],
     ) -> Result<Vec<S>, QueryError> {
-        let num_columns_usize = usize::try_from(self.num_columns).unwrap_or(usize::MAX);
-        if num_columns_usize != column_result_fields.len() {
+        if self.num_columns as usize != column_result_fields.len() {
             return Err(QueryError::InvalidColumnCount);
         }
         let mut evaluation_vec = vec![Zero::zero(); output_length];
         compute_evaluation_vector(&mut evaluation_vec, evaluation_point);
         let mut offset: usize = 0;
-        let mut res = Vec::with_capacity(num_columns_usize);
+        let mut res = Vec::with_capacity(self.num_columns as usize);
 
         for field in column_result_fields {
             let mut val = S::zero();

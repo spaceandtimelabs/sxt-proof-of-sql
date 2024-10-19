@@ -56,7 +56,7 @@ pub(super) fn compute_T_vec_prime(
 
     prover_setup.blitzar_msm(
         &mut blitzar_commits,
-        u32::try_from(data_size).unwrap_or(u32::MAX),
+        u32::try_from(data_size).expect("the size of `data_size` should fit in u32"),
         a_transpose.as_slice(),
     );
 

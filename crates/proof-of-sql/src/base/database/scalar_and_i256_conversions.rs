@@ -27,6 +27,7 @@ pub fn convert_scalar_to_i256<S: Scalar>(val: &S) -> i256 {
     }
 }
 
+#[allow(clippy::cast_possible_truncation)]
 /// Converts an arrow i256 into limbed representation and then
 /// into a type implementing [Scalar]
 #[must_use]
@@ -39,10 +40,10 @@ pub fn convert_i256_to_scalar<S: Scalar>(value: &i256) -> Option<S> {
         let abs_value = if value.is_negative() { -*value } else { *value };
         let (low, high) = abs_value.to_parts();
         let limbs = [
-            u64::try_from(low).unwrap_or(u64::MAX),
-            u64::try_from(low >> 64).unwrap_or(u64::MAX),
-            u64::try_from(high).unwrap_or(u64::MAX),
-            u64::try_from(high >> 64).unwrap_or(u64::MAX),
+            low as u64,
+            (low >> 64) as u64,
+            high as u64,
+            (high >> 64) as u64,
         ];
 
         // Convert limbs to Scalar and adjust for sign

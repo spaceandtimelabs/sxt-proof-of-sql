@@ -307,6 +307,7 @@ mod scale_adjust_test {
         assert_eq!(limbs, -Curve25519Scalar::from(expected_limbs));
     }
 
+    #[allow(clippy::cast_possible_wrap)]
     #[test]
     fn we_can_match_decimals_at_extrema() {
         // a big decimal cannot scale up past the supported precision
@@ -352,10 +353,7 @@ mod scale_adjust_test {
             "0.000000000000000000000000000000000000000000000000000000000000000000000000001"
                 .parse()
                 .unwrap();
-        let target_scale = match MAX_SUPPORTED_PRECISION.try_into() {
-            Ok(val) => val,
-            Err(_) => i8::MAX,
-        };
+        let target_scale = MAX_SUPPORTED_PRECISION as i8;
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
             Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
@@ -365,10 +363,7 @@ mod scale_adjust_test {
 
         // this is ok because it can be scaled to 75 precision
         let decimal = "0.1".parse().unwrap();
-        let target_scale = match MAX_SUPPORTED_PRECISION.try_into() {
-            Ok(val) => val,
-            Err(_) => i8::MAX,
-        };
+        let target_scale = MAX_SUPPORTED_PRECISION as i8;
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
             Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),

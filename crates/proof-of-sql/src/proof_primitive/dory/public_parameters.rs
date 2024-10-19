@@ -170,7 +170,9 @@ impl CanonicalDeserialize for PublicParameters {
     ) -> Result<Self, SerializationError> {
         // Deserialize max_nu (u64)
         let max_nu_u64 = u64::deserialize_with_mode(&mut reader, compress, validate)?;
-        let max_nu: usize = max_nu_u64.try_into().unwrap_or(usize::MAX);
+        let max_nu: usize = max_nu_u64
+            .try_into()
+            .map_err(|_| SerializationError::InvalidData)?;
 
         // Deserialize Gamma_1 (Vec<G1Affine>)
         let Gamma_1: Vec<G1Affine> = (0..(1 << max_nu))
