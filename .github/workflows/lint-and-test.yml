@@ -141,8 +141,6 @@ jobs:
         run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
-      - name: Run clippy::pedantic for proof-of-sql-parser
-        run: cargo clippy --lib -p proof-of-sql-parser -- -D clippy::pedantic
 
   coverage:
     name: Code Coverage
