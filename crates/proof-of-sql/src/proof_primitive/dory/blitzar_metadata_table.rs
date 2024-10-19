@@ -121,6 +121,7 @@ fn copy_column_data_to_slice(
     }
 }
 
+#[allow(clippy::cast_possible_truncation)]
 /// Creates the metadata tables for Blitzar's `vlen_msm` algorithm.
 ///
 /// # Arguments

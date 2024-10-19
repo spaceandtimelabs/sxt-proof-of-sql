@@ -36,6 +36,7 @@ pub enum AggregateColumnsError {
     ColumnLengthMismatch,
 }
 
+#[allow(clippy::missing_panics_doc)]
 /// This is a function that gives the result of a group by query similar to the following:
 /// ```sql
 ///     SELECT <group_by[0]>, <group_by[1]>, ..., SUM(<sum_columns[0]>), SUM(<sum_columns[1]>), ...,
