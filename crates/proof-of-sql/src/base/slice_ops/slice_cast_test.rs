@@ -39,25 +39,25 @@ fn test_slice_cast_with_random() {
     assert_eq!(a, b);
 }
 
-/// random test casting from integer to curve25519scalar
+/// random test casting from integer to `TestScalar`
 #[test]
-fn test_slice_cast_with_random_from_integer_to_curve25519scalar() {
+fn test_slice_cast_with_random_from_integer_to_testscalar() {
     use rand::Rng;
     let mut rng = rand::thread_rng();
     let a: Vec<u32> = (0..100).map(|_| rng.gen()).collect();
-    let b: Vec<Curve25519Scalar> = a.iter().map(|&x| Curve25519Scalar::from(x)).collect();
-    let a: Vec<Curve25519Scalar> = slice_cast_with(&a, |&x| Curve25519Scalar::from(x));
+    let b: Vec<TestScalar> = a.iter().map(|&x| TestScalar::from(x)).collect();
+    let a: Vec<TestScalar> = slice_cast_with(&a, |&x| TestScalar::from(x));
     assert_eq!(a, b);
 }
 
-/// random test auto casting from integer to curve25519scalar
+/// random test auto casting from integer to `TestScalar`
 #[test]
-fn test_slice_cast_random_from_integer_to_curve25519scalar() {
+fn test_slice_cast_random_from_integer_to_testscalar() {
     use rand::Rng;
     let mut rng = rand::thread_rng();
     let a: Vec<u32> = (0..100).map(|_| rng.gen()).collect();
-    let b: Vec<Curve25519Scalar> = a.iter().map(|&x| Curve25519Scalar::from(x)).collect();
-    let a: Vec<Curve25519Scalar> = slice_cast(&a);
+    let b: Vec<TestScalar> = a.iter().map(|&x| TestScalar::from(x)).collect();
+    let a: Vec<TestScalar> = slice_cast(&a);
     assert_eq!(a, b);
 }
 
