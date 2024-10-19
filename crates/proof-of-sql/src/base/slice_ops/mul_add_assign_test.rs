@@ -31,9 +31,9 @@ fn test_mul_add_assign_uneven_panic() {
     mul_add_assign(&mut a, 10, &b);
 }
 
-/// test [`mul_add_assign`] with curve25519scalar
+/// test [`mul_add_assign`] with `TestScalar`
 #[test]
-fn test_mul_add_assign_curve25519scalar() {
+fn test_mul_add_assign_testscalar() {
     let mut a = vec![TestScalar::from(1u64), TestScalar::from(2u64)];
     let b = vec![TestScalar::from(2u64), TestScalar::from(3u64)];
     mul_add_assign(&mut a, TestScalar::from(10u64), &b);
@@ -44,9 +44,9 @@ fn test_mul_add_assign_curve25519scalar() {
     assert_eq!(a, c);
 }
 
-/// test [`mul_add_assign`] with uneven curve25519scalars
+/// test [`mul_add_assign`] with uneven `TestScalar`
 #[test]
-fn test_mul_add_assign_curve25519scalar_uneven() {
+fn test_mul_add_assign_testscalar_uneven() {
     let mut a = vec![
         TestScalar::from(1u64),
         TestScalar::from(2u64),
