@@ -2,7 +2,8 @@
 
 use crate::base::{
     encode::VarInt,
-    scalar::{RefInto, ScalarConversionError},
+    ref_into::RefInto,
+    scalar::ScalarConversionError,
 };
 use alloc::string::String;
 use core::{cmp::Ordering, ops::Sub};
