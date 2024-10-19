@@ -1,5 +1,5 @@
 use crate::base::{
-    database::{Column, ColumnNullability, ColumnType, OwnedColumn},
+    database::{Column, ColumnType, OwnedColumn},
     math::decimal::Precision,
     ref_into::RefInto,
     scalar::Scalar,

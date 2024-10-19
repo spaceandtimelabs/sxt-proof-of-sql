@@ -401,6 +401,75 @@ impl ColumnTypeKind {
             _ => None,
         }
     }
+
+    /// Returns the precision of a [`ColumnTypeKind`] if it is converted to a decimal wrapped in `Some()`. If it can not be converted to a decimal, return None.
+    #[must_use]
+    pub fn precision_value(&self) -> Option<u8> {
+        match self {
+            Self::TinyInt => Some(3_u8),
+            Self::SmallInt => Some(5_u8),
+            Self::Int => Some(10_u8),
+            Self::BigInt | Self::TimestampTZ(_, _) => Some(19_u8),
+            Self::Int128 => Some(39_u8),
+            Self::Decimal75(precision, _) => Some(precision.value()),
+            // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
+            // so that they do not cause errors when used in comparisons.
+            Self::Scalar => Some(0_u8),
+            Self::Boolean | Self::VarChar => None,
+        }
+    }
+    /// Returns scale of a [`ColumnTypeKind`] if it is convertible to a decimal wrapped in `Some()`. Otherwise return None.
+    #[must_use]
+    pub fn scale(&self) -> Option<i8> {
+        match self {
+            Self::Decimal75(_, scale) => Some(*scale),
+            Self::TinyInt
+            | Self::SmallInt
+            | Self::Int
+            | Self::BigInt
+            | Self::Int128
+            | Self::Scalar => Some(0),
+            Self::Boolean | Self::VarChar => None,
+            Self::TimestampTZ(tu, _) => match tu {
+                PoSQLTimeUnit::Second => Some(0),
+                PoSQLTimeUnit::Millisecond => Some(3),
+                PoSQLTimeUnit::Microsecond => Some(6),
+                PoSQLTimeUnit::Nanosecond => Some(9),
+            },
+        }
+    }
+    /// Returns the byte size of the column type.
+    #[must_use]
+    pub fn byte_size(&self) -> usize {
+        match self {
+            Self::Boolean => size_of::<bool>(),
+            Self::TinyInt => size_of::<i8>(),
+            Self::SmallInt => size_of::<i16>(),
+            Self::Int => size_of::<i32>(),
+            Self::BigInt | Self::TimestampTZ(_, _) => size_of::<i64>(),
+            Self::Int128 => size_of::<i128>(),
+            Self::Scalar | Self::Decimal75(_, _) | Self::VarChar => size_of::<[u64; 4]>(),
+        }
+    }
+    /// Returns the bit size of the column type.
+    #[must_use]
+    pub fn bit_size(&self) -> u32 {
+        self.byte_size() as u32 * 8
+    }
+
+    /// Returns if the column type supports signed values.
+    #[must_use]
+    pub const fn is_signed(&self) -> bool {
+        match self {
+            Self::TinyInt
+            | Self::SmallInt
+            | Self::Int
+            | Self::BigInt
+            | Self::Int128
+            | Self::TimestampTZ(_, _) => true,
+            Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean => false,
+        }
+    }
 }
 
 /// Display the column type as a str name (in all caps)
@@ -472,94 +541,50 @@ impl ColumnType {
     /// Returns the precision of a [`ColumnType`] if it is converted to a decimal wrapped in `Some()`. If it can not be converted to a decimal, return None.
     #[must_use]
     pub fn precision_value(&self) -> Option<u8> {
-        match self {
-            Self::TinyInt(_) => Some(3_u8),
-            Self::SmallInt(_) => Some(5_u8),
-            Self::Int(_) => Some(10_u8),
-            Self::BigInt(_) | Self::TimestampTZ(_, _, _) => Some(19_u8),
-            Self::Int128(_) => Some(39_u8),
-            Self::Decimal75(_, precision, _) => Some(precision.value()),
-            // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
-            // so that they do not cause errors when used in comparisons.
-            Self::Scalar(_) => Some(0_u8),
-            Self::Boolean(_) | Self::VarChar(_) => None,
-        }
+        self.kind.precision_value()
     }
     /// Returns scale of a [`ColumnType`] if it is convertible to a decimal wrapped in `Some()`. Otherwise return None.
     #[must_use]
     pub fn scale(&self) -> Option<i8> {
-        match self {
-            Self::Decimal75(_, _, scale) => Some(*scale),
-            Self::TinyInt(_)
-            | Self::SmallInt(_)
-            | Self::Int(_)
-            | Self::BigInt(_)
-            | Self::Int128(_)
-            | Self::Scalar(_) => Some(0),
-            Self::Boolean(_) | Self::VarChar(_) => None,
-            Self::TimestampTZ(_, tu, _) => match tu {
-                PoSQLTimeUnit::Second => Some(0),
-                PoSQLTimeUnit::Millisecond => Some(3),
-                PoSQLTimeUnit::Microsecond => Some(6),
-                PoSQLTimeUnit::Nanosecond => Some(9),
-            },
-        }
+        self.kind.scale()
     }
 
     /// Returns the byte size of the column type.
     #[must_use]
     pub fn byte_size(&self) -> usize {
-        match self {
-            Self::Boolean(_) => size_of::<bool>(),
-            Self::TinyInt(_) => size_of::<i8>(),
-            Self::SmallInt(_) => size_of::<i16>(),
-            Self::Int(_) => size_of::<i32>(),
-            Self::BigInt(_) | Self::TimestampTZ(_, _, _) => size_of::<i64>(),
-            Self::Int128(_) => size_of::<i128>(),
-            Self::Scalar(_) | Self::Decimal75(_, _, _) | Self::VarChar(_) => size_of::<[u64; 4]>(),
-        }
+        self.kind.byte_size()
     }
 
     /// Returns the bit size of the column type.
     #[must_use]
     pub fn bit_size(&self) -> u32 {
-        self.byte_size() as u32 * 8
+        self.kind.bit_size()
     }
 
     /// Returns if the column type supports signed values.
     #[must_use]
     pub const fn is_signed(&self) -> bool {
-        match self {
-            Self::TinyInt(_)
-            | Self::SmallInt(_)
-            | Self::Int(_)
-            | Self::BigInt(_)
-            | Self::Int128(_)
-            | Self::TimestampTZ(_, _, _) => true,
-            Self::Decimal75(_, _, _) | Self::Scalar(_) | Self::VarChar(_) | Self::Boolean(_) => {
-                false
-            }
-        }
+        self.kind.is_signed()
     }
 }
 
 /// Convert [`ColumnType`] values to some arrow [`DataType`]
 #[cfg(feature = "arrow")]
-impl From<&ColumnType> for DataType {
-    fn from(column_type: &ColumnType) -> Self {
+impl From<&ColumnTypeKind> for DataType {
+    fn from(column_type: &ColumnTypeKind) -> Self {
         match column_type {
-            ColumnType::Boolean(_) => DataType::Boolean,
-            ColumnType::TinyInt(_) => DataType::Int8,
-            ColumnType::SmallInt(_) => DataType::Int16,
-            ColumnType::Int(_) => DataType::Int32,
-            ColumnType::BigInt(_) => DataType::Int64,
-            ColumnType::Int128(_) => DataType::Decimal128(38, 0),
-            ColumnType::Decimal75(_, precision, scale) => {
+            ColumnTypeKind::Boolean => DataType::Boolean,
+            ColumnTypeKind::TinyInt => DataType::Int8,
+            ColumnTypeKind::SmallInt => DataType::Int16,
+            ColumnTypeKind::Int => DataType::Int32,
+            ColumnTypeKind::BigInt => DataType::Int64,
+            ColumnTypeKind::Int128 => DataType::Decimal128(38, 0),
+            ColumnTypeKind::Decimal75(precision, scale) => {
                 DataType::Decimal256(precision.value(), *scale)
             }
-            ColumnType::VarChar(_) => DataType::Utf8,
-            ColumnType::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
-            ColumnType::TimestampTZ(_, timeunit, timezone) => {
+            ColumnTypeKind::VarChar => DataType::Utf8,
+            ColumnTypeKind::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
+            ColumnTypeKind::TimestampTZ(timeunit, timezone) => {
                 let arrow_timezone = Some(Arc::from(timezone.to_string()));
                 let arrow_timeunit = match timeunit {
                     PoSQLTimeUnit::Second => ArrowTimeUnit::Second,
@@ -575,22 +600,20 @@ impl From<&ColumnType> for DataType {
 
 /// Convert arrow [`DataType`] values to some [`ColumnType`]
 #[cfg(feature = "arrow")]
-impl TryFrom<DataType> for ColumnType {
+impl TryFrom<DataType> for ColumnTypeKind {
     type Error = String;
 
     fn try_from(data_type: DataType) -> Result<Self, Self::Error> {
         match data_type {
-            DataType::Boolean => Ok(ColumnType::Boolean(ColumnNullability::NotNullable)),
-            DataType::Int8 => Ok(ColumnType::TinyInt(ColumnNullability::NotNullable)),
-            DataType::Int16 => Ok(ColumnType::SmallInt(ColumnNullability::NotNullable)),
-            DataType::Int32 => Ok(ColumnType::Int(ColumnNullability::NotNullable)),
-            DataType::Int64 => Ok(ColumnType::BigInt(ColumnNullability::NotNullable)),
-            DataType::Decimal128(38, 0) => Ok(ColumnType::Int128(ColumnNullability::NotNullable)),
-            DataType::Decimal256(precision, scale) if precision <= 75 => Ok(ColumnType::Decimal75(
-                ColumnNullability::NotNullable,
-                Precision::new(precision)?,
-                scale,
-            )),
+            DataType::Boolean => Ok(ColumnTypeKind::Boolean),
+            DataType::Int8 => Ok(ColumnTypeKind::TinyInt),
+            DataType::Int16 => Ok(ColumnTypeKind::SmallInt),
+            DataType::Int32 => Ok(ColumnTypeKind::Int),
+            DataType::Int64 => Ok(ColumnTypeKind::BigInt),
+            DataType::Decimal128(38, 0) => Ok(ColumnTypeKind::Int128),
+            DataType::Decimal256(precision, scale) if precision <= 75 => {
+                Ok(ColumnTypeKind::Decimal75(Precision::new(precision)?, scale))
+            }
             DataType::Timestamp(time_unit, timezone_option) => {
                 let posql_time_unit = match time_unit {
                     ArrowTimeUnit::Second => PoSQLTimeUnit::Second,
@@ -598,13 +621,12 @@ impl TryFrom<DataType> for ColumnType {
                     ArrowTimeUnit::Microsecond => PoSQLTimeUnit::Microsecond,
                     ArrowTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
                 };
-                Ok(ColumnType::TimestampTZ(
-                    ColumnNullability::NotNullable,
+                Ok(ColumnTypeKind::TimestampTZ(
                     posql_time_unit,
                     PoSQLTimeZone::try_from(&timezone_option)?,
                 ))
             }
-            DataType::Utf8 => Ok(ColumnType::VarChar(ColumnNullability::NotNullable)),
+            DataType::Utf8 => Ok(ColumnTypeKind::VarChar),
             _ => Err(format!("Unsupported arrow data type {data_type:?}")),
         }
     }
@@ -613,29 +635,9 @@ impl TryFrom<DataType> for ColumnType {
 /// Display the column type as a str name (in all caps)
 impl Display for ColumnType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ColumnType::Boolean(meta) => write!(f, "BOOLEAN {meta}"),
-            ColumnType::TinyInt(meta) => write!(f, "TINYINT {meta}"),
-            ColumnType::SmallInt(meta) => write!(f, "SMALLINT {meta}"),
-            ColumnType::Int(meta) => write!(f, "INT {meta}"),
-            ColumnType::BigInt(meta) => write!(f, "BIGINT {meta}"),
-            ColumnType::Int128(meta) => write!(f, "DECIMAL {meta}"),
-            ColumnType::Decimal75(meta, precision, scale) => {
-                write!(
-                    f,
-                    "DECIMAL75(PRECISION: {:?}, SCALE: {scale}) {meta}",
-                    precision.value()
-                )
-            }
-            ColumnType::VarChar(meta) => write!(f, "VARCHAR {meta}"),
-            ColumnType::Scalar(meta) => write!(f, "SCALAR {meta}"),
-            ColumnType::TimestampTZ(meta, timeunit, timezone) => {
-                write!(
-                    f,
-                    "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone}) {meta}"
-                )
-            }
-        }
+        let my = self.kind;
+        let meta = if self.nullable { "" } else { "NOT NULL" };
+        write!(f, "{my} {meta}")
     }
 }
 
@@ -727,215 +729,205 @@ mod tests {
 
     #[test]
     fn column_type_serializes_to_string() {
-        let column_type = ColumnType::TimestampTZ(
-            ColumnNullability::from_nullable(true),
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-        );
+        let column_type = ColumnTypeKind::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc);
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#"{"TimestampTZ":["Second","Utc"]}"#);
 
-        let column_type = ColumnType::TimestampTZ(
-            ColumnNullability::from_nullable(false),
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-        );
+        let column_type = ColumnTypeKind::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc);
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#"{"TimestampTZ":["Second","Utc"]} NOT NULL"#);
 
-        let null_meta = ColumnNullability::Nullable;
-        let column_type = ColumnType::Boolean(null_meta);
+        let column_type = ColumnTypeKind::Boolean;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Boolean""#);
 
-        let column_type = ColumnType::TinyInt(null_meta);
+        let column_type = ColumnTypeKind::TinyInt;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""TinyInt""#);
 
-        let column_type = ColumnType::SmallInt(null_meta);
+        let column_type = ColumnTypeKind::SmallInt;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""SmallInt""#);
 
-        let column_type = ColumnType::Int(null_meta);
+        let column_type = ColumnTypeKind::Int;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Int""#);
 
-        let column_type = ColumnType::BigInt(null_meta);
+        let column_type = ColumnTypeKind::BigInt;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""BigInt""#);
 
-        let column_type = ColumnType::Int128(null_meta);
+        let column_type = ColumnTypeKind::Int128;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Decimal""#);
 
-        let column_type = ColumnType::VarChar(null_meta);
+        let column_type = ColumnTypeKind::VarChar;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""VarChar""#);
 
-        let column_type = ColumnType::Scalar(null_meta);
+        let column_type = ColumnTypeKind::Scalar;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Scalar""#);
 
-        let column_type = ColumnType::Decimal75(null_meta, Precision::new(1).unwrap(), 0);
+        let column_type = ColumnTypeKind::Decimal75(Precision::new(1).unwrap(), 0);
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#"{"Decimal75":[1,0]}"#);
     }
 
     #[test]
     fn we_can_deserialize_columns_from_valid_strings() {
-        let null_meta = ColumnNullability::from_nullable(true);
         let expected_column_type =
-            ColumnType::TimestampTZ(null_meta, PoSQLTimeUnit::Second, PoSQLTimeZone::Utc);
-        let deserialized: ColumnType =
+            ColumnTypeKind::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc);
+        let deserialized: ColumnTypeKind =
             serde_json::from_str(r#"{"TimestampTZ":["Second","Utc"]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::Boolean(null_meta);
-        let deserialized: ColumnType = serde_json::from_str(r#""Boolean""#).unwrap();
+        let expected_column_type = ColumnTypeKind::Boolean;
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#""Boolean""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::TinyInt(null_meta);
-        let deserialized: ColumnType = serde_json::from_str(r#""TinyInt""#).unwrap();
+        let expected_column_type = ColumnTypeKind::TinyInt;
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#""TinyInt""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::SmallInt(null_meta);
-        let deserialized: ColumnType = serde_json::from_str(r#""SmallInt""#).unwrap();
+        let expected_column_type = ColumnTypeKind::SmallInt;
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#""SmallInt""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::Int(null_meta);
-        let deserialized: ColumnType = serde_json::from_str(r#""Int""#).unwrap();
+        let expected_column_type = ColumnTypeKind::Int;
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#""Int""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::BigInt(null_meta);
-        let deserialized: ColumnType = serde_json::from_str(r#""BigInt""#).unwrap();
+        let expected_column_type = ColumnTypeKind::BigInt;
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#""BigInt""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::TinyInt(null_meta);
-        let deserialized: ColumnType = serde_json::from_str(r#""TINYINT""#).unwrap();
+        let expected_column_type = ColumnTypeKind::TinyInt;
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#""TINYINT""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::SmallInt(null_meta);
-        let deserialized: ColumnType = serde_json::from_str(r#""SMALLINT""#).unwrap();
+        let expected_column_type = ColumnTypeKind::SmallInt;
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#""SMALLINT""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::Int128(null_meta);
-        let deserialized: ColumnType = serde_json::from_str(r#""DECIMAL""#).unwrap();
+        let expected_column_type = ColumnTypeKind::Int128;
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#""DECIMAL""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::Int128(null_meta);
-        let deserialized: ColumnType = serde_json::from_str(r#""Decimal""#).unwrap();
+        let expected_column_type = ColumnTypeKind::Int128;
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#""Decimal""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::VarChar(null_meta);
-        let deserialized: ColumnType = serde_json::from_str(r#""VarChar""#).unwrap();
+        let expected_column_type = ColumnTypeKind::VarChar;
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#""VarChar""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::Scalar(null_meta);
-        let deserialized: ColumnType = serde_json::from_str(r#""SCALAR""#).unwrap();
+        let expected_column_type = ColumnTypeKind::Scalar;
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#""SCALAR""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
+        let expected_column_type = ColumnTypeKind::Decimal75(Precision::new(75).unwrap(), i8::MAX);
+        let deserialized: ColumnTypeKind =
+            serde_json::from_str(r#"{"Decimal75":[75, 127]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
         let expected_column_type =
-            ColumnType::Decimal75(null_meta, Precision::new(75).unwrap(), i8::MAX);
-        let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[75, 127]}"#).unwrap();
+            ColumnTypeKind::Decimal75(Precision::new(u8::MIN + 1).unwrap(), i8::MIN);
+        let deserialized: ColumnTypeKind =
+            serde_json::from_str(r#"{"Decimal75":[1, -128]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type =
-            ColumnType::Decimal75(null_meta, Precision::new(u8::MIN + 1).unwrap(), i8::MIN);
-        let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[1, -128]}"#).unwrap();
-        assert_eq!(deserialized, expected_column_type);
-
-        let expected_column_type = ColumnType::Decimal75(null_meta, Precision::new(1).unwrap(), 0);
-        let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[1, 0]}"#).unwrap();
+        let expected_column_type = ColumnTypeKind::Decimal75(Precision::new(1).unwrap(), 0);
+        let deserialized: ColumnTypeKind = serde_json::from_str(r#"{"Decimal75":[1, 0]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
     }
 
     #[test]
     fn we_can_deserialize_columns_from_lowercase_or_uppercase_strings() {
-        let null_meta = ColumnNullability::from_nullable(true);
         assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""boolean""#).unwrap(),
-            ColumnType::Boolean(null_meta)
+            serde_json::from_str::<ColumnTypeKind>(r#""boolean""#).unwrap(),
+            ColumnTypeKind::Boolean
         );
         assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""BOOLEAN""#).unwrap(),
-            ColumnType::Boolean(null_meta)
-        );
-
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""bigint""#).unwrap(),
-            ColumnType::BigInt(null_meta)
-        );
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""BIGINT""#).unwrap(),
-            ColumnType::BigInt(null_meta)
-        );
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""TINYINT""#).unwrap(),
-            ColumnType::TinyInt(null_meta)
-        );
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""tinyint""#).unwrap(),
-            ColumnType::TinyInt(null_meta)
-        );
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""SMALLINT""#).unwrap(),
-            ColumnType::SmallInt(null_meta)
-        );
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""smallint""#).unwrap(),
-            ColumnType::SmallInt(null_meta)
-        );
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""int""#).unwrap(),
-            ColumnType::Int(null_meta)
-        );
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""INT""#).unwrap(),
-            ColumnType::Int(null_meta)
-        );
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""decimal""#).unwrap(),
-            ColumnType::Int128(null_meta)
-        );
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""DECIMAL""#).unwrap(),
-            ColumnType::Int128(null_meta)
+            serde_json::from_str::<ColumnTypeKind>(r#""BOOLEAN""#).unwrap(),
+            ColumnTypeKind::Boolean
         );
 
         assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""VARCHAR""#).unwrap(),
-            ColumnType::VarChar(null_meta)
+            serde_json::from_str::<ColumnTypeKind>(r#""bigint""#).unwrap(),
+            ColumnTypeKind::BigInt
         );
         assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""varchar""#).unwrap(),
-            ColumnType::VarChar(null_meta)
+            serde_json::from_str::<ColumnTypeKind>(r#""BIGINT""#).unwrap(),
+            ColumnTypeKind::BigInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#""TINYINT""#).unwrap(),
+            ColumnTypeKind::TinyInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#""tinyint""#).unwrap(),
+            ColumnTypeKind::TinyInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#""SMALLINT""#).unwrap(),
+            ColumnTypeKind::SmallInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#""smallint""#).unwrap(),
+            ColumnTypeKind::SmallInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#""int""#).unwrap(),
+            ColumnTypeKind::Int
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#""INT""#).unwrap(),
+            ColumnTypeKind::Int
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#""decimal""#).unwrap(),
+            ColumnTypeKind::Int128
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#""DECIMAL""#).unwrap(),
+            ColumnTypeKind::Int128
         );
 
         assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""SCALAR""#).unwrap(),
-            ColumnType::Scalar(null_meta)
+            serde_json::from_str::<ColumnTypeKind>(r#""VARCHAR""#).unwrap(),
+            ColumnTypeKind::VarChar
         );
         assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""scalar""#).unwrap(),
-            ColumnType::Scalar(null_meta)
-        );
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#"{"decimal75":[1,0]}"#).unwrap(),
-            ColumnType::Decimal75(null_meta, Precision::new(1).unwrap(), 0)
-        );
-        assert_eq!(
-            serde_json::from_str::<ColumnType>(r#"{"DECIMAL75":[1,0]}"#).unwrap(),
-            ColumnType::Decimal75(null_meta, Precision::new(1).unwrap(), 0)
+            serde_json::from_str::<ColumnTypeKind>(r#""varchar""#).unwrap(),
+            ColumnTypeKind::VarChar
         );
 
         assert_eq!(
-            serde_json::from_str::<ColumnType>(r#"{"decimal75":[10,5]}"#).unwrap(),
-            ColumnType::Decimal75(null_meta, Precision::new(10).unwrap(), 5)
+            serde_json::from_str::<ColumnTypeKind>(r#""SCALAR""#).unwrap(),
+            ColumnTypeKind::Scalar
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#""scalar""#).unwrap(),
+            ColumnTypeKind::Scalar
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#"{"decimal75":[1,0]}"#).unwrap(),
+            ColumnTypeKind::Decimal75(Precision::new(1).unwrap(), 0)
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#"{"DECIMAL75":[1,0]}"#).unwrap(),
+            ColumnTypeKind::Decimal75(Precision::new(1).unwrap(), 0)
         );
 
         assert_eq!(
-            serde_json::from_str::<ColumnType>(r#"{"DECIMAL75":[1,-128]}"#).unwrap(),
-            ColumnType::Decimal75(null_meta, Precision::new(1).unwrap(), -128)
+            serde_json::from_str::<ColumnTypeKind>(r#"{"decimal75":[10,5]}"#).unwrap(),
+            ColumnTypeKind::Decimal75(Precision::new(10).unwrap(), 5)
+        );
+
+        assert_eq!(
+            serde_json::from_str::<ColumnTypeKind>(r#"{"DECIMAL75":[1,-128]}"#).unwrap(),
+            ColumnTypeKind::Decimal75(Precision::new(1).unwrap(), -128)
         );
     }
 
@@ -975,80 +967,78 @@ mod tests {
 
     #[test]
     fn we_can_convert_columntype_to_json_string_and_back() {
-        let null_meta = ColumnNullability::from_nullable(true);
-        let boolean = ColumnType::Boolean(null_meta);
+        let boolean = ColumnTypeKind::Boolean;
         let boolean_json = serde_json::to_string(&boolean).unwrap();
         assert_eq!(boolean_json, "\"Boolean\"");
         assert_eq!(
-            serde_json::from_str::<ColumnType>(&boolean_json).unwrap(),
+            serde_json::from_str::<ColumnTypeKind>(&boolean_json).unwrap(),
             boolean
         );
 
-        let tinyint = ColumnType::TinyInt(null_meta);
+        let tinyint = ColumnTypeKind::TinyInt;
         let tinyint_json = serde_json::to_string(&tinyint).unwrap();
         assert_eq!(tinyint_json, "\"TinyInt\"");
         assert_eq!(
-            serde_json::from_str::<ColumnType>(&tinyint_json).unwrap(),
+            serde_json::from_str::<ColumnTypeKind>(&tinyint_json).unwrap(),
             tinyint
         );
 
-        let smallint = ColumnType::SmallInt(null_meta);
+        let smallint = ColumnTypeKind::SmallInt;
         let smallint_json = serde_json::to_string(&smallint).unwrap();
         assert_eq!(smallint_json, "\"SmallInt\"");
         assert_eq!(
-            serde_json::from_str::<ColumnType>(&smallint_json).unwrap(),
+            serde_json::from_str::<ColumnTypeKind>(&smallint_json).unwrap(),
             smallint
         );
 
-        let int = ColumnType::Int(null_meta);
+        let int = ColumnTypeKind::Int;
         let int_json = serde_json::to_string(&int).unwrap();
         assert_eq!(int_json, "\"Int\"");
-        assert_eq!(serde_json::from_str::<ColumnType>(&int_json).unwrap(), int);
+        assert_eq!(serde_json::from_str::<ColumnTypeKind>(&int_json).unwrap(), int);
 
-        let bigint = ColumnType::BigInt(null_meta);
+        let bigint = ColumnTypeKind::BigInt;
         let bigint_json = serde_json::to_string(&bigint).unwrap();
         assert_eq!(bigint_json, "\"BigInt\"");
         assert_eq!(
-            serde_json::from_str::<ColumnType>(&bigint_json).unwrap(),
+            serde_json::from_str::<ColumnTypeKind>(&bigint_json).unwrap(),
             bigint
         );
 
-        let int128 = ColumnType::Int128(null_meta);
+        let int128 = ColumnTypeKind::Int128;
         let int128_json = serde_json::to_string(&int128).unwrap();
         assert_eq!(int128_json, "\"Decimal\"");
         assert_eq!(
-            serde_json::from_str::<ColumnType>(&int128_json).unwrap(),
+            serde_json::from_str::<ColumnTypeKind>(&int128_json).unwrap(),
             int128
         );
 
-        let varchar = ColumnType::VarChar(null_meta);
+        let varchar = ColumnTypeKind::VarChar;
         let varchar_json = serde_json::to_string(&varchar).unwrap();
         assert_eq!(varchar_json, "\"VarChar\"");
         assert_eq!(
-            serde_json::from_str::<ColumnType>(&varchar_json).unwrap(),
+            serde_json::from_str::<ColumnTypeKind>(&varchar_json).unwrap(),
             varchar
         );
 
-        let scalar = ColumnType::Scalar(null_meta);
+        let scalar = ColumnTypeKind::Scalar;
         let scalar_json = serde_json::to_string(&scalar).unwrap();
         assert_eq!(scalar_json, "\"Scalar\"");
         assert_eq!(
-            serde_json::from_str::<ColumnType>(&scalar_json).unwrap(),
+            serde_json::from_str::<ColumnTypeKind>(&scalar_json).unwrap(),
             scalar
         );
 
-        let decimal75 = ColumnType::Decimal75(null_meta, Precision::new(75).unwrap(), 0);
+        let decimal75 = ColumnTypeKind::Decimal75(Precision::new(75).unwrap(), 0);
         let decimal75_json = serde_json::to_string(&decimal75).unwrap();
         assert_eq!(decimal75_json, r#"{"Decimal75":[75,0]}"#);
         assert_eq!(
-            serde_json::from_str::<ColumnType>(&decimal75_json).unwrap(),
+            serde_json::from_str::<ColumnTypeKind>(&decimal75_json).unwrap(),
             decimal75
         );
     }
 
     #[test]
     fn we_can_get_the_len_of_a_column() {
-        let null_meta = ColumnNullability::Nullable;
         let precision = 10;
         let scale = 2;
 
@@ -1059,31 +1049,31 @@ mod tests {
         ];
 
         // Test non-empty columns
-        let column = Column::<DoryScalar>::Boolean(null_meta, &[true, false, true]);
+        let column = Column::<DoryScalar>::new(ColumnKind::Boolean( &[true, false, true]), false);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::<DoryScalar>::TinyInt(null_meta, &[1, 2, 3]);
+        let column = Column::<DoryScalar>::new(ColumnKind::Int( &[1, 2, 3]), false);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::<Curve25519Scalar>::SmallInt(null_meta, &[1, 2, 3]);
+        let column = Column::<Curve25519Scalar>::new(ColumnKind::SmallInt( &[1, 2, 3]), false);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::<Curve25519Scalar>::Int(null_meta, &[1, 2, 3]);
+        let column = Column::<Curve25519Scalar>::new(ColumnKind::Int(&[1, 2, 3]), false);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::<Curve25519Scalar>::BigInt(null_meta, &[1, 2, 3]);
+        let column = Column::<Curve25519Scalar>::new(ColumnKind::BigInt( &[1, 2, 3]), false);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::VarChar(null_meta, (&["a", "b", "c"], &scalar_values));
+        let column = Column::new(ColumnKind::VarChar( (&["a", "b", "c"])), false);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::<DoryScalar>::Int128(null_meta, &[1, 2, 3]);
+        let column = Column::<DoryScalar>::Int1::new(ColumnKind::28(null_meta &[1, 2, 3]));
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
