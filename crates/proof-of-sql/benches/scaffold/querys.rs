@@ -7,10 +7,7 @@ const SINGLE_COLUMN_FILTER_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &
     (
         "a",
         ColumnType::BigInt,
-        Some(|size| {
-            let calculated_size = (size / 10).max(10);
-            calculated_size.try_into().unwrap_or(i64::MAX)
-        }),
+        Some(|size| (size / 10).max(10) as i64),
     ),
     ("b", ColumnType::VarChar, None),
 ];
@@ -21,18 +18,12 @@ const MULTI_COLUMN_FILTER_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
         ColumnType::BigInt,
-        Some(|size| {
-            let calculated_size = (size / 10).max(10);
-            calculated_size.try_into().unwrap_or(i64::MAX)
-        }),
+        Some(|size| (size / 10).max(10) as i64),
     ),
     (
         "b",
         ColumnType::BigInt,
-        Some(|size| {
-            let calculated_size = (size / 10).max(10);
-            calculated_size.try_into().unwrap_or(i64::MAX)
-        }),
+        Some(|size| (size / 10).max(10) as i64),
     ),
     ("c", ColumnType::VarChar, None),
 ];
@@ -42,18 +33,12 @@ const ARITHMETIC_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
         ColumnType::BigInt,
-        Some(|size| {
-            let calculated_size = (size / 10).max(10);
-            calculated_size.try_into().unwrap_or(i64::MAX)
-        }),
+        Some(|size| (size / 10).max(10) as i64),
     ),
     (
         "b",
         ColumnType::BigInt,
-        Some(|size| {
-            let calculated_size = (size / 10).max(10);
-            calculated_size.try_into().unwrap_or(i64::MAX)
-        }),
+        Some(|size| (size / 10).max(10) as i64),
     ),
     ("c", ColumnType::VarChar, None),
 ];
