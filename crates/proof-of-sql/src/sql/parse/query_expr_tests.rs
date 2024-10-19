@@ -1578,8 +1578,8 @@ fn we_cannot_use_non_grouped_columns_outside_agg() {
         "select max(i) + 2 * i from sxt.t",
     ];
 
-    for query_text in query_texts {
-        let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    for query_text in &query_texts {
+        let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
         let result =
             QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
 
@@ -1591,8 +1591,8 @@ fn we_cannot_use_non_grouped_columns_outside_agg() {
         ));
     }
 
-    for query_text in query_texts {
-        let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    for query_text in &query_texts {
+        let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
         let result =
             QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
 
@@ -1612,8 +1612,8 @@ fn varchar_column_is_not_compatible_with_integer_column() {
         "select s from sxt.t where 'abc' != i",
     ];
 
-    for query_text in bigint_to_varchar_queries {
-        let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    for query_text in &bigint_to_varchar_queries {
+        let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
         let result =
             QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
 
@@ -1626,8 +1626,8 @@ fn varchar_column_is_not_compatible_with_integer_column() {
         );
     }
 
-    for query_text in varchar_to_bigint_queries {
-        let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    for query_text in &varchar_to_bigint_queries {
+        let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
         let result =
             QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
 
