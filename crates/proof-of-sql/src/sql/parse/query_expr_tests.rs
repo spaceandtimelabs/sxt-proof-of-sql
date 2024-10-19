@@ -1131,7 +1131,7 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
         "select max(i) max_sal, i0 d, count(i0) from sxt.t group by i0, i1 order by max_sal";
     let (t, accessor) = get_test_accessor();
 
-    let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let query =
         QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
@@ -1243,7 +1243,7 @@ fn we_can_have_aggregate_functions_without_a_group_by_clause() {
     let query_text = "select count(s) from sxt.t";
     let (t, accessor) = get_test_accessor();
 
-    let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let ast =
         QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
@@ -1404,7 +1404,7 @@ fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
     let (t, accessor) = get_test_accessor();
     let query_text = "select i d1, max(i1), i d2, sum(i0) sum_bonus, count(s) count_s from sxt.t group by i, i0, i";
 
-    let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let ast =
         QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
@@ -1568,17 +1568,14 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
 #[test]
 fn we_cannot_use_non_grouped_columns_outside_agg() {
     let (t, accessor) = get_test_accessor();
-    let query_texts = vec![
+    let identifier_not_in_agg_queries = vec![
         "select i from sxt.t group by s",
         "select sum(i), i from sxt.t group by s",
         "select min(i) + i from sxt.t group by s",
         "select 2 * i, min(i) from sxt.t group by s",
-        "select 2 * i, min(i) from sxt.t",
-        "select sum(i), i from sxt.t",
-        "select max(i) + 2 * i from sxt.t",
     ];
 
-    for query_text in &query_texts {
+    for query_text in &identifier_not_in_agg_queries {
         let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
         let result =
             QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
@@ -1591,7 +1588,13 @@ fn we_cannot_use_non_grouped_columns_outside_agg() {
         ));
     }
 
-    for query_text in &query_texts {
+    let invalid_group_by_queries = vec![
+        "select 2 * i, min(i) from sxt.t",
+        "select sum(i), i from sxt.t",
+        "select max(i) + 2 * i from sxt.t",
+    ];
+
+    for query_text in &invalid_group_by_queries {
         let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
         let result =
             QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
@@ -1645,7 +1648,7 @@ fn varchar_column_is_not_compatible_with_integer_column() {
 fn arithmetic_operations_are_not_allowed_with_varchar_column() {
     let (t, accessor) = get_test_accessor();
     let query_text = "select s - s1 from sxt.t";
-    let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
 
     assert_eq!(
@@ -1661,7 +1664,7 @@ fn arithmetic_operations_are_not_allowed_with_varchar_column() {
 fn varchar_column_is_not_allowed_within_numeric_aggregations() {
     let (t, accessor) = get_test_accessor();
     let sum_query = "select sum(s) from sxt.t";
-    let intermediate_ast = SelectStatementParser::new().parse(&sum_query).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(sum_query).unwrap();
     let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
 
     assert!(matches!(
@@ -1671,7 +1674,7 @@ fn varchar_column_is_not_allowed_within_numeric_aggregations() {
     ));
 
     let max_query = "select max(s) from sxt.t";
-    let intermediate_ast = SelectStatementParser::new().parse(&max_query).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(max_query).unwrap();
     let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
 
     assert!(matches!(
@@ -1681,7 +1684,7 @@ fn varchar_column_is_not_allowed_within_numeric_aggregations() {
     ));
 
     let min_query = "select min(s) from sxt.t";
-    let intermediate_ast = SelectStatementParser::new().parse(&min_query).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(min_query).unwrap();
     let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
 
     assert!(matches!(
@@ -1696,7 +1699,7 @@ fn group_by_with_bigint_column_is_valid() {
     let (t, accessor) = get_test_accessor();
     let query_text = "select i from sxt.t group by i";
 
-    let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let query =
         QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
@@ -1719,7 +1722,7 @@ fn group_by_with_decimal_column_is_valid() {
     let (t, accessor) = get_test_accessor();
     let query_text = "select d from sxt.t group by d";
 
-    let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let query =
         QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
@@ -1742,7 +1745,7 @@ fn group_by_with_varchar_column_is_valid() {
     let (t, accessor) = get_test_accessor();
     let query_text = "select s from sxt.t group by s";
 
-    let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let query =
         QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
@@ -1765,7 +1768,7 @@ fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
     let (t, accessor) = get_test_accessor();
     let query_text = "select 2 * i + sum(i) - i1 from sxt.t group by i, i1";
 
-    let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let query =
         QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
@@ -1797,7 +1800,7 @@ fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
     let (t, accessor) = get_test_accessor();
     let query_text = "select 7 + max(i) as max_i, min(i + 777 * d) * -5 as min_d from t";
 
-    let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let ast =
         QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
@@ -1832,7 +1835,7 @@ fn count_aggregation_always_have_integer_type() {
     let (t, accessor) = get_test_accessor();
     let query_text = "select 7 + count(s) as cs, count(i) * -5 as ci, count(d) from t";
 
-    let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let ast =
         QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
@@ -1952,7 +1955,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
             order_cols_vec
                 .iter()
                 .zip(ordering_vec.iter())
-                .map(|(c, o)| format!("{} {}", c, o))
+                .map(|(c, o)| format!("{c} {o}"))
                 .collect::<Vec<_>>()
                 .join(", ")
         );
