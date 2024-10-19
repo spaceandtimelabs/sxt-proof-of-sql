@@ -228,16 +228,16 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
-    use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
+    use crate::{base::scalar::test_scalar::TestScalar, proof_primitive::dory::DoryScalar};
     use blitzar::compute::compute_curve25519_commitments;
     use curve25519_dalek::ristretto::CompressedRistretto;
 
     #[test]
     fn we_can_convert_from_owned_decimal75_column_to_committable_column() {
         let decimals = vec![
-            Curve25519Scalar::from(-1),
-            Curve25519Scalar::from(1),
-            Curve25519Scalar::from(2),
+            TestScalar::from(-1),
+            TestScalar::from(1),
+            TestScalar::from(2),
         ];
         let decimal_column = OwnedColumn::Decimal75(Precision::new(75).unwrap(), -1, decimals);
 
@@ -246,7 +246,7 @@ mod tests {
             Precision::new(75).unwrap(),
             -1,
             [-1, 1, 2]
-                .map(<Curve25519Scalar>::from)
+                .map(<TestScalar>::from)
                 .map(<[u64; 4]>::from)
                 .into(),
         );
@@ -396,7 +396,7 @@ mod tests {
         let bigint_committable_column = CommittableColumn::VarChar(
             ["12", "34", "56"]
                 .map(Into::<String>::into)
-                .map(Into::<Curve25519Scalar>::into)
+                .map(Into::<TestScalar>::into)
                 .map(Into::<[u64; 4]>::into)
                 .into(),
         );
@@ -415,7 +415,7 @@ mod tests {
 
         let bigint_committable_column = CommittableColumn::Scalar(
             [12, 34, 56]
-                .map(<Curve25519Scalar>::from)
+                .map(<TestScalar>::from)
                 .map(<[u64; 4]>::from)
                 .into(),
         );
@@ -453,12 +453,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_timestamp_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::TimestampTZ(
-                PoSQLTimeUnit::Second,
-                PoSQLTimeZone::Utc,
-                &[],
-            ));
+        let from_borrowed_column = CommittableColumn::from(&Column::<TestScalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+            &[],
+        ));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
@@ -466,12 +465,11 @@ mod tests {
 
         // non-empty case
         let timestamps = [1_625_072_400, 1_625_076_000, 1_625_083_200];
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::TimestampTZ(
-                PoSQLTimeUnit::Second,
-                PoSQLTimeZone::Utc,
-                &timestamps,
-            ));
+        let from_borrowed_column = CommittableColumn::from(&Column::<TestScalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+            &timestamps,
+        ));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &timestamps)
@@ -481,12 +479,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_bigint_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::BigInt(&[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<TestScalar>::BigInt(&[]));
         assert_eq!(from_borrowed_column, CommittableColumn::BigInt(&[]));
 
         let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::BigInt(&[12, 34, 56]));
+            CommittableColumn::from(&Column::<TestScalar>::BigInt(&[12, 34, 56]));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::BigInt(&[12, 34, 56])
@@ -496,12 +493,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_tinyint_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(&[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<TestScalar>::TinyInt(&[]));
         assert_eq!(from_borrowed_column, CommittableColumn::TinyInt(&[]));
 
         let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(&[12, 34, 56]));
+            CommittableColumn::from(&Column::<TestScalar>::TinyInt(&[12, 34, 56]));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::TinyInt(&[12, 34, 56])
@@ -511,12 +507,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_smallint_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::SmallInt(&[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<TestScalar>::SmallInt(&[]));
         assert_eq!(from_borrowed_column, CommittableColumn::SmallInt(&[]));
 
         let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::SmallInt(&[12, 34, 56]));
+            CommittableColumn::from(&Column::<TestScalar>::SmallInt(&[12, 34, 56]));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::SmallInt(&[12, 34, 56])
@@ -526,21 +521,21 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_int_column() {
         // empty case
-        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::Int(&[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<TestScalar>::Int(&[]));
         assert_eq!(from_borrowed_column, CommittableColumn::Int(&[]));
 
         let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Int(&[12, 34, 56]));
+            CommittableColumn::from(&Column::<TestScalar>::Int(&[12, 34, 56]));
         assert_eq!(from_borrowed_column, CommittableColumn::Int(&[12, 34, 56]));
     }
 
     #[test]
     fn we_can_convert_from_borrowing_decimal_column() {
-        // Define a non-empty array of Curve25519Scalars
+        // Define a non-empty array of TestScalars
         let binding = vec![
-            Curve25519Scalar::from(-1),
-            Curve25519Scalar::from(34),
-            Curve25519Scalar::from(56),
+            TestScalar::from(-1),
+            TestScalar::from(34),
+            TestScalar::from(56),
         ];
 
         let precision = Precision::new(75).unwrap();
@@ -561,12 +556,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_int128_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Int128(&[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<TestScalar>::Int128(&[]));
         assert_eq!(from_borrowed_column, CommittableColumn::Int128(&[]));
 
         let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Int128(&[12, 34, 56]));
+            CommittableColumn::from(&Column::<TestScalar>::Int128(&[12, 34, 56]));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::Int128(&[12, 34, 56])
@@ -577,11 +571,11 @@ mod tests {
     fn we_can_convert_from_borrowing_varchar_column() {
         // empty case
         let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::VarChar((&[], &[])));
+            CommittableColumn::from(&Column::<TestScalar>::VarChar((&[], &[])));
         assert_eq!(from_borrowed_column, CommittableColumn::VarChar(Vec::new()));
 
         let varchar_data = ["12", "34", "56"];
-        let scalars = varchar_data.map(Curve25519Scalar::from);
+        let scalars = varchar_data.map(TestScalar::from);
         let from_borrowed_column =
             CommittableColumn::from(&Column::VarChar((&varchar_data, &scalars)));
         assert_eq!(
@@ -593,11 +587,10 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_scalar_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Scalar(&[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<TestScalar>::Scalar(&[]));
         assert_eq!(from_borrowed_column, CommittableColumn::Scalar(Vec::new()));
 
-        let scalars = [12, 34, 56].map(Curve25519Scalar::from);
+        let scalars = [12, 34, 56].map(TestScalar::from);
         let from_borrowed_column = CommittableColumn::from(&Column::Scalar(&scalars));
         assert_eq!(
             from_borrowed_column,
@@ -608,12 +601,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_boolean_column() {
         // empty case
-        let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Boolean(&[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<TestScalar>::Boolean(&[]));
         assert_eq!(from_borrowed_column, CommittableColumn::Boolean(&[]));
 
         let from_borrowed_column =
-            CommittableColumn::from(&Column::<Curve25519Scalar>::Boolean(&[true, false, true]));
+            CommittableColumn::from(&Column::<TestScalar>::Boolean(&[true, false, true]));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::Boolean(&[true, false, true])
@@ -623,11 +615,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_bigint_column() {
         // empty case
-        let owned_column = OwnedColumn::<Curve25519Scalar>::BigInt(Vec::new());
+        let owned_column = OwnedColumn::<TestScalar>::BigInt(Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::BigInt(&[]));
 
-        let owned_column = OwnedColumn::<Curve25519Scalar>::BigInt(vec![12, 34, 56]);
+        let owned_column = OwnedColumn::<TestScalar>::BigInt(vec![12, 34, 56]);
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::BigInt(&[12, 34, 56]));
     }
@@ -662,7 +654,7 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_timestamp_column() {
         // empty case
-        let owned_column = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+        let owned_column = OwnedColumn::<TestScalar>::TimestampTZ(
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
             Vec::new(),
@@ -675,7 +667,7 @@ mod tests {
 
         // non-empty case
         let timestamps = vec![1_625_072_400, 1_625_076_000, 1_625_083_200];
-        let owned_column = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+        let owned_column = OwnedColumn::<TestScalar>::TimestampTZ(
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
             timestamps.clone(),
@@ -702,11 +694,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_int128_column() {
         // empty case
-        let owned_column = OwnedColumn::<Curve25519Scalar>::Int128(Vec::new());
+        let owned_column = OwnedColumn::<TestScalar>::Int128(Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Int128(&[]));
 
-        let owned_column = OwnedColumn::<Curve25519Scalar>::Int128(vec![12, 34, 56]);
+        let owned_column = OwnedColumn::<TestScalar>::Int128(vec![12, 34, 56]);
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Int128(&[12, 34, 56]));
     }
@@ -714,32 +706,27 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_varchar_column() {
         // empty case
-        let owned_column = OwnedColumn::<Curve25519Scalar>::VarChar(Vec::new());
+        let owned_column = OwnedColumn::<TestScalar>::VarChar(Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::VarChar(Vec::new()));
 
         let strings = ["12", "34", "56"].map(String::from);
-        let owned_column = OwnedColumn::<Curve25519Scalar>::VarChar(strings.to_vec());
+        let owned_column = OwnedColumn::<TestScalar>::VarChar(strings.to_vec());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(
             from_owned_column,
-            CommittableColumn::VarChar(
-                strings
-                    .map(Curve25519Scalar::from)
-                    .map(<[u64; 4]>::from)
-                    .into()
-            )
+            CommittableColumn::VarChar(strings.map(TestScalar::from).map(<[u64; 4]>::from).into())
         );
     }
 
     #[test]
     fn we_can_convert_from_owned_scalar_column() {
         // empty case
-        let owned_column = OwnedColumn::<Curve25519Scalar>::Scalar(Vec::new());
+        let owned_column = OwnedColumn::<TestScalar>::Scalar(Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Scalar(Vec::new()));
 
-        let scalars = [12, 34, 56].map(Curve25519Scalar::from);
+        let scalars = [12, 34, 56].map(TestScalar::from);
         let owned_column = OwnedColumn::Scalar(scalars.to_vec());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(
@@ -893,9 +880,9 @@ mod tests {
 
         // nonempty case
         let values = [
-            Curve25519Scalar::from(12),
-            Curve25519Scalar::from(34),
-            Curve25519Scalar::from(56),
+            TestScalar::from(12),
+            TestScalar::from(34),
+            TestScalar::from(56),
         ]
         .map(<[u64; 4]>::from);
         let committable_column =
@@ -949,11 +936,11 @@ mod tests {
 
         // nonempty case
         let values = ["12", "34", "56"].map(String::from);
-        let owned_column = OwnedColumn::<Curve25519Scalar>::VarChar(values.to_vec());
+        let owned_column = OwnedColumn::<TestScalar>::VarChar(values.to_vec());
         let committable_column = CommittableColumn::from(&owned_column);
 
         let sequence_actual = Sequence::from(&committable_column);
-        let scalars = values.map(Curve25519Scalar::from).map(<[u64; 4]>::from);
+        let scalars = values.map(TestScalar::from).map(<[u64; 4]>::from);
         let sequence_expected = Sequence::from(scalars.as_slice());
         let mut commitment_buffer = [CompressedRistretto::default(); 2];
         compute_curve25519_commitments(
@@ -974,12 +961,12 @@ mod tests {
         assert_eq!(commitment_buffer[0], CompressedRistretto::default());
 
         // nonempty case
-        let values = [12, 34, 56].map(Curve25519Scalar::from);
+        let values = [12, 34, 56].map(TestScalar::from);
         let owned_column = OwnedColumn::Scalar(values.to_vec());
         let committable_column = CommittableColumn::from(&owned_column);
 
         let sequence_actual = Sequence::from(&committable_column);
-        let scalars = values.map(Curve25519Scalar::from).map(<[u64; 4]>::from);
+        let scalars = values.map(TestScalar::from).map(<[u64; 4]>::from);
         let sequence_expected = Sequence::from(scalars.as_slice());
         let mut commitment_buffer = [CompressedRistretto::default(); 2];
         compute_curve25519_commitments(
