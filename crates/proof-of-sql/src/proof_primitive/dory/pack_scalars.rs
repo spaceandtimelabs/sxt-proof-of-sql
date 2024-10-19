@@ -325,7 +325,10 @@ pub fn bit_table_and_scalars_for_packed_msm(
     let bit_table_sub_commits_sum = bit_table.iter().sum::<u32>() as usize;
 
     // Add offsets to handle signed values to the bit table.
-    bit_table.extend(iter::repeat(BYTE_SIZE as u32).take(OFFSET_SIZE + committable_columns.len()));
+    bit_table.extend(
+        iter::repeat(u32::try_from(BYTE_SIZE).unwrap_or(u32::MAX))
+            .take(OFFSET_SIZE + committable_columns.len()),
+    );
     let bit_table_full_sum_in_bytes = bit_table.iter().sum::<u32>() as usize / BYTE_SIZE;
 
     // Create the packed_scalar array.
