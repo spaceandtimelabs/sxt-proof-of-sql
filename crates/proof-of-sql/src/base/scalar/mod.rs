@@ -2,7 +2,6 @@
 pub mod scalar;
 pub use scalar::Scalar;
 mod error;
-pub use super::{encode::VarInt, ref_into::RefInto};
 pub use error::ScalarConversionError;
 mod mont_scalar;
 #[cfg(test)]
