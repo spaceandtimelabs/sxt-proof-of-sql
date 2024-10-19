@@ -69,4 +69,6 @@ pub trait Scalar:
     const ONE: Self;
     /// 1 + 1
     const TWO: Self;
+    /// 2 + 2 + 2 + 2 + 2
+    const TEN: Self;
 }
