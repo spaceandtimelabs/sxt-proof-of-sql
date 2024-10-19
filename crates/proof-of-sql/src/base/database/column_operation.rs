@@ -530,10 +530,6 @@ where
     let lhs_scale = left_column_type.scale().expect("Numeric types have scale");
     let rhs_scale = right_column_type.scale().expect("Decimal types have scale");
     let max_scale = lhs_scale.max(rhs_scale);
-    let target_scale = match MAX_SUPPORTED_PRECISION.try_into() {
-        Ok(val) => val,
-        Err(_) => i8::MAX,
-    };
     // At most one of the scales is non-zero
     if lhs_scale < max_scale {
         // If scale difference is above max decimal precision values
@@ -606,10 +602,6 @@ where
     let lhs_scale = left_column_type.scale().expect("Numeric types have scale");
     let rhs_scale = right_column_type.scale().expect("Decimal types have scale");
     let max_scale = lhs_scale.max(rhs_scale);
-    let target_scale = match MAX_SUPPORTED_PRECISION.try_into() {
-        Ok(val) => val,
-        Err(_) => i8::MAX,
-    };
     // At most one of the scales is non-zero
     if lhs_scale < max_scale {
         // If scale difference is above max decimal precision the upscaled
@@ -695,10 +687,6 @@ where
     let lhs_scale = left_column_type.scale().expect("Numeric types have scale");
     let rhs_scale = right_column_type.scale().expect("Decimal types have scale");
     let max_scale = lhs_scale.max(rhs_scale);
-    let target_scale = match MAX_SUPPORTED_PRECISION.try_into() {
-        Ok(val) => val,
-        Err(_) => i8::MAX,
-    };
     // At most one of the scales is non-zero
     if lhs_scale < max_scale {
         // If scale difference is above max decimal precision the upscaled
