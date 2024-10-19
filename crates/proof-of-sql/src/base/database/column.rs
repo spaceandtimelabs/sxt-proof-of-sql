@@ -390,6 +390,7 @@ impl ColumnType {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     /// Returns the bit size of the column type.
     #[must_use]
     pub fn bit_size(&self) -> u32 {

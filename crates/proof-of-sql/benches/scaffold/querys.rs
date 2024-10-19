@@ -1,3 +1,4 @@
+#![allow(clippy::cast_possible_wrap)]
 use super::OptionalRandBound;
 use proof_of_sql::base::database::ColumnType;
 

@@ -36,6 +36,7 @@ pub enum AggregateColumnsError {
     ColumnLengthMismatch,
 }
 
+#[allow(clippy::missing_panics_doc)]
 /// This is a function that gives the result of a group by query similar to the following:
 /// ```sql
 ///     SELECT <group_by[0]>, <group_by[1]>, ..., SUM(<sum_columns[0]>), SUM(<sum_columns[1]>), ...,
@@ -124,7 +125,11 @@ pub fn aggregate_columns<'a, S: Scalar>(
         .collect();
 
     // Cast the counts to something compatible with BigInt.
-    let count_column_out = alloc.alloc_slice_fill_iter(counts.into_iter().map(|c| c as i64));
+    let count_column_out = alloc.alloc_slice_fill_iter(
+        counts
+            .into_iter()
+            .map(|c| c.try_into().expect("Count should fit within i64")),
+    );
 
     Ok(AggregatedColumns {
         group_by_columns: group_by_columns_out,

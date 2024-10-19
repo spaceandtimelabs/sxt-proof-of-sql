@@ -126,6 +126,7 @@ impl<S: Scalar> Decimal<S> {
     }
 
     /// Scale the decimal to the new scale factor. Negative scaling and overflow error out.
+    #[allow(clippy::cast_sign_loss)]
     pub fn with_precision_and_scale(
         &self,
         new_precision: Precision,
@@ -142,6 +143,7 @@ impl<S: Scalar> Decimal<S> {
     }
 
     /// Get a decimal with given precision and scale from an i64
+    #[allow(clippy::cast_sign_loss)]
     pub fn from_i64(value: i64, precision: Precision, scale: i8) -> DecimalResult<Self> {
         const MINIMAL_PRECISION: u8 = 19;
         let raw_precision = precision.value();
@@ -160,6 +162,7 @@ impl<S: Scalar> Decimal<S> {
     }
 
     /// Get a decimal with given precision and scale from an i128
+    #[allow(clippy::cast_sign_loss)]
     pub fn from_i128(value: i128, precision: Precision, scale: i8) -> DecimalResult<Self> {
         const MINIMAL_PRECISION: u8 = 39;
         let raw_precision = precision.value();
@@ -243,7 +246,7 @@ mod scale_adjust_test {
 
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
             target_scale
         )
         .is_err());
@@ -282,7 +285,7 @@ mod scale_adjust_test {
 
         let limbs = try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
             target_scale,
         )
         .unwrap();
@@ -297,13 +300,14 @@ mod scale_adjust_test {
         let expected_limbs = [12345, 0, 0, 0];
         let limbs = try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
             target_scale,
         )
         .unwrap();
         assert_eq!(limbs, -Curve25519Scalar::from(expected_limbs));
     }
 
+    #[allow(clippy::cast_possible_wrap)]
     #[test]
     fn we_can_match_decimals_at_extrema() {
         // a big decimal cannot scale up past the supported precision
@@ -313,7 +317,7 @@ mod scale_adjust_test {
         let target_scale = 6; // now precision exceeds maximum
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8,).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
             target_scale
         )
         .is_err());
@@ -352,7 +356,7 @@ mod scale_adjust_test {
         let target_scale = MAX_SUPPORTED_PRECISION as i8;
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8,).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
             target_scale
         )
         .is_ok());
@@ -372,7 +376,7 @@ mod scale_adjust_test {
         let target_scale = 75;
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8,).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
             target_scale
         )
         .is_err());

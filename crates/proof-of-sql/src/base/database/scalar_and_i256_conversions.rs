@@ -27,6 +27,7 @@ pub fn convert_scalar_to_i256<S: Scalar>(val: &S) -> i256 {
     }
 }
 
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 /// Converts an arrow i256 into limbed representation and then
 /// into a type implementing [Scalar]
 #[must_use]

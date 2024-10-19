@@ -791,6 +791,7 @@ mod tests {
         );
     }
 
+    #[allow(clippy::too_many_lines)]
     #[test]
     fn we_cannot_perform_arithmetic_on_mismatched_metadata() {
         let boolean_metadata = ColumnCommitmentMetadata {
