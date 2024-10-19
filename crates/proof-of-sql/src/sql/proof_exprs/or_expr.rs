@@ -141,7 +141,7 @@ pub fn verifier_evaluate_or<C: Commitment>(
 
     // subpolynomial: lhs_and_rhs - lhs * rhs
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
+        &SumcheckSubpolynomialType::Identity,
         lhs_and_rhs - *lhs * *rhs,
     );
 

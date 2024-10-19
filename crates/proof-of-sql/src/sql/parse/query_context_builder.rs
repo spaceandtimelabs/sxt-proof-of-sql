@@ -32,7 +32,7 @@ impl<'a> QueryContextBuilder<'a> {
     #[allow(clippy::vec_box, clippy::missing_panics_doc)]
     pub fn visit_table_expr(
         mut self,
-        table_expr: Vec<Box<TableExpression>>,
+        table_expr: &[Box<TableExpression>],
         default_schema: Identifier,
     ) -> Self {
         assert_eq!(table_expr.len(), 1);
@@ -95,6 +95,7 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     pub fn build(self) -> ConversionResult<QueryContext> {
         Ok(self.context)
     }
