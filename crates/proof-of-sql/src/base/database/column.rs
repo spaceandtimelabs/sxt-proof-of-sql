@@ -286,9 +286,9 @@ impl Default for ColumnNullability {
 impl ColumnNullability {
     pub fn from_nullable(nullable: bool) -> Self {
         if nullable {
-            Self::NotNullable
-        } else {
             Self::Nullable
+        } else {
+            Self::NotNullable
         }
     }
 }
