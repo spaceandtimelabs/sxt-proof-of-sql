@@ -130,38 +130,37 @@ mod tests {
     use super::*;
     use crate::{
         base::{
-            commitment::{Bounds, ColumnBounds},
+            commitment::{naive_commitment::NaiveCommitment, Bounds, ColumnBounds},
             database::{
                 owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableTestAccessor,
                 TestAccessor,
             },
-            scalar::Curve25519Scalar,
+            scalar::test_scalar::TestScalar,
         },
         proof_primitive::dory::{
             test_rng, DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup,
             PublicParameters,
         },
     };
-    use curve25519_dalek::RistrettoPoint;
 
     #[test]
     fn we_can_get_length_and_offset_of_tables() {
-        let table_a: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_a: OwnedTable<TestScalar> = owned_table([
             bigint("column_a", [1, 2, 3, 4]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
 
-        let table_b: OwnedTable<Curve25519Scalar> = owned_table([scalar("column_c", [1, 2])]);
+        let table_b: OwnedTable<TestScalar> = owned_table([scalar("column_c", [1, 2])]);
 
         let offset_commitment =
-            TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
+            TableCommitment::<NaiveCommitment>::from_owned_table_with_offset(&table_a, 2, &());
         let offset_table_id = "off.table".parse().unwrap();
 
         let no_offset_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());
         let no_offset_id = "no.off".parse().unwrap();
 
         let no_columns_commitment = TableCommitment::try_from_columns_with_offset(
-            Vec::<(&Identifier, &OwnedColumn<Curve25519Scalar>)>::new(),
+            Vec::<(&Identifier, &OwnedColumn<TestScalar>)>::new(),
             0,
             &(),
         )
@@ -171,7 +170,7 @@ mod tests {
         let no_rows_commitment = TableCommitment::try_from_columns_with_offset(
             [(
                 &"column_c".parse().unwrap(),
-                &OwnedColumn::<Curve25519Scalar>::BigInt(vec![]),
+                &OwnedColumn::<TestScalar>::BigInt(vec![]),
             )],
             3,
             &(),
@@ -205,14 +204,14 @@ mod tests {
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
-        let table_a: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_a: OwnedTable<TestScalar> = owned_table([
             bigint(column_a_id, [1, 2, 3, 4]),
             varchar(column_b_id, ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
-        let table_b: OwnedTable<Curve25519Scalar> = owned_table([scalar(column_a_id, [1, 2])]);
+        let table_b: OwnedTable<TestScalar> = owned_table([scalar(column_a_id, [1, 2])]);
 
         let table_a_commitment =
-            TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
+            TableCommitment::<NaiveCommitment>::from_owned_table_with_offset(&table_a, 2, &());
         let table_a_id = "table.a".parse().unwrap();
 
         let table_b_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());
@@ -255,21 +254,21 @@ mod tests {
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
-        let table_a: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_a: OwnedTable<TestScalar> = owned_table([
             bigint(column_a_id, [1, 2, 3, 4]),
             varchar(column_b_id, ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
-        let table_b: OwnedTable<Curve25519Scalar> = owned_table([scalar(column_a_id, [1, 2])]);
+        let table_b: OwnedTable<TestScalar> = owned_table([scalar(column_a_id, [1, 2])]);
 
         let table_a_commitment =
-            TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
+            TableCommitment::<NaiveCommitment>::from_owned_table_with_offset(&table_a, 2, &());
         let table_a_id = "table.a".parse().unwrap();
 
         let table_b_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());
         let table_b_id = "table.b".parse().unwrap();
 
         let no_columns_commitment = TableCommitment::try_from_columns_with_offset(
-            Vec::<(&Identifier, &OwnedColumn<Curve25519Scalar>)>::new(),
+            Vec::<(&Identifier, &OwnedColumn<TestScalar>)>::new(),
             0,
             &(),
         )
