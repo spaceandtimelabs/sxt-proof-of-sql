@@ -4,7 +4,10 @@ use crate::base::{
         try_add_subtract_column_types, try_multiply_column_types, ColumnRef, ColumnType,
         SchemaAccessor, TableRef,
     },
-    math::decimal::{DecimalError, Precision},
+    math::{
+        decimal::{DecimalError, Precision},
+        IntermediateDecimalExt,
+    },
 };
 use alloc::{boxed::Box, string::ToString, vec::Vec};
 use proof_of_sql_parser::{

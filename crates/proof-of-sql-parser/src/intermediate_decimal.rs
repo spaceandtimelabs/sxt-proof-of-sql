@@ -6,10 +6,10 @@
 //! A decimal must have a decimal point. The lexer does not route
 //! whole integers to this contructor.
 use crate::intermediate_decimal::IntermediateDecimalError::{LossyCast, OutOfRange, ParseError};
-use bigdecimal::{num_bigint::BigInt, BigDecimal, ParseBigDecimalError, ToPrimitive};
+use bigdecimal::{BigDecimal, ParseBigDecimalError, ToPrimitive};
 use core::{fmt, hash::Hash, str::FromStr};
 use serde::{Deserialize, Serialize};
-use snafu::{ensure, Snafu};
+use snafu::Snafu;
 
 /// Errors related to the processing of decimal values in proof-of-sql
 #[allow(clippy::module_name_repetitions)]
@@ -50,37 +50,6 @@ impl IntermediateDecimal {
     #[must_use]
     pub fn value(&self) -> BigDecimal {
         self.value.clone()
-    }
-
-    /// Get the precision of the fixed-point representation of this intermediate decimal.
-    #[must_use]
-    pub fn precision(&self) -> u64 {
-        self.value.digits()
-    }
-
-    /// Get the scale of the fixed-point representation of this intermediate decimal.
-    #[must_use]
-    pub fn scale(&self) -> i64 {
-        self.value.fractional_digit_count()
-    }
-
-    /// Attempts to convert the decimal to `BigInt` while adjusting it to the specified precision and scale.
-    /// Returns an error if the conversion cannot be performed due to precision or scale constraints.
-    ///
-    /// # Errors
-    /// Returns an `IntermediateDecimalError::LossyCast` error if the number of digits in the scaled decimal exceeds the specified precision.
-    pub fn try_into_bigint_with_precision_and_scale(
-        &self,
-        precision: u8,
-        scale: i8,
-    ) -> Result<BigInt, IntermediateDecimalError> {
-        ensure!(self.scale() <= scale.into(), ConversionFailureSnafu);
-        let scaled_decimal = self.value.with_scale(scale.into());
-        if scaled_decimal.digits() > precision.into() {
-            return Err(LossyCast);
-        }
-        let (d, _) = scaled_decimal.into_bigint_and_exponent();
-        Ok(d)
     }
 }
 
@@ -151,36 +120,6 @@ impl TryFrom<IntermediateDecimal> for i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloc::string::ToString;
-
-    #[test]
-    fn test_valid_decimal_simple() {
-        let decimal = "123.45".parse();
-        assert!(decimal.is_ok());
-        let unwrapped_decimal: IntermediateDecimal = decimal.unwrap();
-        assert_eq!(unwrapped_decimal.to_string(), "123.45");
-        assert_eq!(unwrapped_decimal.precision(), 5);
-        assert_eq!(unwrapped_decimal.scale(), 2);
-    }
-
-    #[test]
-    fn test_valid_decimal_with_leading_and_trailing_zeros() {
-        let decimal = "000123.45000".parse();
-        assert!(decimal.is_ok());
-        let unwrapped_decimal: IntermediateDecimal = decimal.unwrap();
-        assert_eq!(unwrapped_decimal.to_string(), "123.45");
-        assert_eq!(unwrapped_decimal.precision(), 5);
-        assert_eq!(unwrapped_decimal.scale(), 2);
-    }
-
-    #[test]
-    fn test_accessors() {
-        let decimal: IntermediateDecimal = "123.456".parse().unwrap();
-        assert_eq!(decimal.to_string(), "123.456");
-        assert_eq!(decimal.precision(), 6);
-        assert_eq!(decimal.scale(), 3);
-    }
-
     #[test]
     fn test_conversion_to_i128() {
         let valid_decimal = IntermediateDecimal {

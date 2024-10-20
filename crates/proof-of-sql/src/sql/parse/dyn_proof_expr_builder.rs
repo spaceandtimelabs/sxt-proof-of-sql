@@ -4,7 +4,10 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
         map::IndexMap,
-        math::decimal::{try_into_to_scalar, DecimalError, Precision},
+        math::{
+            decimal::{try_into_to_scalar, DecimalError, Precision},
+            IntermediateDecimalExt,
+        },
     },
     sql::{
         parse::{
