@@ -427,8 +427,6 @@ mod tests {
     fn we_can_sub_commitment_collections() {
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
-        let front_emptied_column_a = [0i64, 0, 0, 78, 90];
-        let front_emptied_column_b = ["", "", "", "sit", "amet"].map(String::from);
 
         let columns = vec![
             OwnedColumn::<TestScalar>::BigInt(column_a[..3].to_vec()),
@@ -447,18 +445,17 @@ mod tests {
         let commitments = commitments_b.try_sub(commitments_a).unwrap();
 
         let committable_columns = [
-            CommittableColumn::BigInt(&front_emptied_column_a),
+            CommittableColumn::BigInt(&column_a[3..]),
             CommittableColumn::VarChar(
-                front_emptied_column_b
+                column_b[3..]
                     .iter()
                     .map(Into::<TestScalar>::into)
                     .map(Into::<[u64; 4]>::into)
                     .collect(),
             ),
         ];
-
         let expected_commitments =
-            NaiveCommitment::compute_commitments(&committable_columns, 0, &());
+            NaiveCommitment::compute_commitments(&committable_columns, 3, &());
         assert_eq!(commitments, expected_commitments);
     }
 
