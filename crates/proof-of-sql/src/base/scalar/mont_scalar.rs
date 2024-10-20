@@ -430,6 +430,7 @@ impl super::Scalar for Curve25519Scalar {
     const ZERO: Self = Self(ark_ff::MontFp!("0"));
     const ONE: Self = Self(ark_ff::MontFp!("1"));
     const TWO: Self = Self(ark_ff::MontFp!("2"));
+    const TEN: Self = Self(ark_ff::MontFp!("10"));
 }
 
 impl<T> TryFrom<MontScalar<T>> for bool
@@ -562,6 +563,8 @@ where
     MontScalar<T>: Scalar,
 {
     type Error = ScalarConversionError;
+
+    #[allow(clippy::cast_possible_wrap)]
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
         let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
             (-1, (-value).into())

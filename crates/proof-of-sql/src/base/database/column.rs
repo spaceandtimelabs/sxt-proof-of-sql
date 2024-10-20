@@ -1,7 +1,7 @@
 use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
-    math::decimal::{scale_scalar, Precision},
-    scalar::Scalar,
+    math::decimal::Precision,
+    scalar::{Scalar, ScalarExt},
     slice_ops::slice_cast_with,
 };
 use alloc::{sync::Arc, vec::Vec};
@@ -213,7 +213,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     /// Convert a column to a vector of Scalar values with scaling
     #[allow(clippy::missing_panics_doc)]
     pub(crate) fn to_scalar_with_scaling(self, scale: i8) -> Vec<S> {
-        let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");
+        let scale_factor = S::pow10(u8::try_from(scale).expect("Upscale factor is nonnegative"));
         match self {
             Self::Boolean(col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
             Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
@@ -390,6 +390,7 @@ impl ColumnType {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     /// Returns the bit size of the column type.
     #[must_use]
     pub fn bit_size(&self) -> u32 {

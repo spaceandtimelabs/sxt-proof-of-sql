@@ -13,6 +13,7 @@ impl Scalar for TestScalar {
     const ZERO: Self = Self(ark_ff::MontFp!("0"));
     const ONE: Self = Self(ark_ff::MontFp!("1"));
     const TWO: Self = Self(ark_ff::MontFp!("2"));
+    const TEN: Self = Self(ark_ff::MontFp!("10"));
 }
 
 pub struct TestMontConfig(pub ark_curve25519::FrConfig);
