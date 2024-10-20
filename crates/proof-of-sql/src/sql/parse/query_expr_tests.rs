@@ -1826,11 +1826,11 @@ fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
         t,
         indexmap! {
             "salary".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::BigInt,
+            "tax".parse().unwrap() => ColumnType::BigInt,
         },
     );
     let query_text =
-        "select 2 * salary + sum(salary) - bonus from sxt.employees group by salary, bonus";
+        "select 2 * salary + sum(salary) - tax from sxt.employees group by salary, tax";
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let query =
@@ -1838,17 +1838,17 @@ fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
 
     let expected_query = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["salary", "bonus"], &accessor),
+            cols_expr_plan(t, &["salary", "tax"], &accessor),
             tab(t),
             const_bool(true),
         ),
         vec![
             group_by_postprocessing(
-                &["salary", "bonus"],
+                &["salary", "tax"],
                 &[aliased_expr(
                     psub(
                         padd(pmul(lit(2), col("salary")), sum(col("salary"))),
-                        col("bonus"),
+                        col("tax"),
                     ),
                     "__expr__",
                 )],
@@ -1856,7 +1856,7 @@ fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
             select_expr(&[aliased_expr(
                 psub(
                     padd(pmul(lit(2), col("salary")), col("__col_agg_0")),
-                    col("bonus"),
+                    col("tax"),
                 ),
                 "__expr__",
             )]),
@@ -1875,7 +1875,7 @@ fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
             "bonus".parse().unwrap() => ColumnType::Int128,
         },
     );
-    let query_text = "select 7 + max(salary) as max_salary, min(salary + 777 * bonus) * -5 as min_bonus from sxt.employees";
+    let query_text = "select 7 + max(salary) as max_i, min(salary + 777 * bonus) * -5 as min_d from sxt.employees";
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let ast =
@@ -1883,7 +1883,7 @@ fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
 
     let expected_ast = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["salary", "bonus"], &accessor),
+            cols_expr_plan(t, &["bonus", "salary"], &accessor),
             tab(t),
             const_bool(true),
         ),
@@ -1891,19 +1891,19 @@ fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
             group_by_postprocessing(
                 &[],
                 &[
-                    aliased_expr(padd(lit(7), max(col("salary"))), "max_salary"),
+                    aliased_expr(padd(lit(7), max(col("salary"))), "max_i"),
                     aliased_expr(
                         pmul(
                             min(padd(col("salary"), pmul(lit(777), col("bonus")))),
                             lit(-5),
                         ),
-                        "min_bonus",
+                        "min_d",
                     ),
                 ],
             ),
             select_expr(&[
-                aliased_expr(padd(lit(7), col("__col_agg_0")), "max_salary"),
-                aliased_expr(pmul(col("__col_agg_1"), lit(-5)), "min_bonus"),
+                aliased_expr(padd(lit(7), col("__col_agg_0")), "max_i"),
+                aliased_expr(pmul(col("__col_agg_1"), lit(-5)), "min_d"),
             ]),
         ],
     );
@@ -1930,7 +1930,7 @@ fn count_aggregation_always_have_integer_type() {
 
     let expected_ast = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["name", "salary", "bonus"], &accessor),
+            cols_expr_plan(t, &["bonus", "salary", "name"], &accessor),
             tab(t),
             const_bool(true),
         ),
