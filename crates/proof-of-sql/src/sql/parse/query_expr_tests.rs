@@ -1109,15 +1109,15 @@ fn we_can_group_by_without_using_aggregate_functions() {
 #[test]
 fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_alias_result() {
     let query_text =
-        "select max(salary) as max_sal, department as d, count(department) from sxt.employees group by department, tax order by max_sal";
+        "select max(i) max_sal, i0 d, count(i0) from sxt.t group by i0, i1 order by max_sal";
 
-    let t = "sxt.employees".parse().unwrap();
+    let t = "sxt.t".parse().unwrap();
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "tax".parse().unwrap() => ColumnType::BigInt,
+            "i".parse().unwrap() => ColumnType::BigInt,
+            "i0".parse().unwrap() => ColumnType::BigInt,
+            "i1".parse().unwrap() => ColumnType::BigInt,
         },
     );
 
@@ -1128,20 +1128,20 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
     let expected_query = QueryExpr::new(
         filter(
             vec![
-                col_expr_plan(t, "salary", &accessor),
-                col_expr_plan(t, "department", &accessor),
-                col_expr_plan(t, "tax", &accessor),
+                col_expr_plan(t, "i", &accessor),
+                col_expr_plan(t, "i0", &accessor),
+                col_expr_plan(t, "i1", &accessor),
             ],
             tab(t),
             const_bool(true),
         ),
         vec![
             group_by_postprocessing(
-                &["department", "tax"],
+                &["i0", "i1"],
                 &[
-                    aliased_expr(max(col("salary")), "max_sal"),
-                    aliased_expr(col("department"), "d"),
-                    aliased_expr(count(col("department")), "__count__"),
+                    aliased_expr(max(col("i")), "max_sal"),
+                    aliased_expr(col("i0"), "d"),
+                    aliased_expr(count(col("i0")), "__count__"),
                 ],
             ),
             orders(&["max_sal"], &[Asc]),
@@ -1397,17 +1397,17 @@ fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_wi
 
 #[test]
 fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
-    let t = "sxt.employees".parse().unwrap();
+    let t = "sxt.t".parse().unwrap();
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::BigInt,
-            "tax".parse().unwrap() => ColumnType::BigInt,
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "i".parse().unwrap() => ColumnType::BigInt,
+            "i0".parse().unwrap() => ColumnType::BigInt,
+            "i1".parse().unwrap() => ColumnType::BigInt,
+            "s".parse().unwrap() => ColumnType::VarChar,
         },
     );
-    let query_text = "select salary as d1, max(tax), salary as d2, sum(bonus) as sum_bonus, count(name) as count_s from sxt.employees group by salary, bonus, salary";
+    let query_text = "select i d1, max(i1), i d2, sum(i0) sum_bonus, count(s) count_s from sxt.t group by i, i0, i";
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let ast =
@@ -1415,18 +1415,18 @@ fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
 
     let expected_ast = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["salary", "bonus", "tax", "name"], &accessor),
+            cols_expr_plan(t, &["i", "i0", "i1", "s"], &accessor),
             tab(t),
             const_bool(true),
         ),
         vec![group_by_postprocessing(
-            &["salary", "bonus", "salary"],
+            &["i", "i0", "i"],
             &[
-                aliased_expr(col("salary"), "d1"),
-                aliased_expr(max(col("tax")), "__max__"),
-                aliased_expr(col("salary"), "d2"),
-                aliased_expr(sum(col("bonus")), "sum_bonus"),
-                aliased_expr(count(col("name")), "count_s"),
+                aliased_expr(col("i"), "d1"),
+                aliased_expr(max(col("i1")), "__max__"),
+                aliased_expr(col("i"), "d2"),
+                aliased_expr(sum(col("i0")), "sum_bonus"),
+                aliased_expr(count(col("s")), "count_s"),
             ],
         )],
     );
@@ -1912,17 +1912,16 @@ fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
 
 #[test]
 fn count_aggregation_always_have_integer_type() {
-    let t = "sxt.employees".parse().unwrap();
+    let t = "sxt.t".parse().unwrap();
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "name".parse().unwrap() => ColumnType::VarChar,
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::Int128,
+            "s".parse().unwrap() => ColumnType::VarChar,
+            "i".parse().unwrap() => ColumnType::BigInt,
+            "d".parse().unwrap() => ColumnType::Int128,
         },
     );
-    let query_text =
-        "select 7 + count(name) as cs, count(salary) * -5 as ci, count(bonus) from sxt.employees";
+    let query_text = "select 7 + count(s) as cs, count(i) * -5 as ci, count(d) from sxt.t";
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let ast =
@@ -1930,7 +1929,7 @@ fn count_aggregation_always_have_integer_type() {
 
     let expected_ast = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["bonus", "salary", "name"], &accessor),
+            cols_expr_plan(t, &["d", "i", "s"], &accessor),
             tab(t),
             const_bool(true),
         ),
@@ -1938,9 +1937,9 @@ fn count_aggregation_always_have_integer_type() {
             group_by_postprocessing(
                 &[],
                 &[
-                    aliased_expr(padd(lit(7), count(col("name"))), "cs"),
-                    aliased_expr(pmul(count(col("salary")), lit(-5)), "ci"),
-                    aliased_expr(count(col("bonus")), "__count__"),
+                    aliased_expr(padd(lit(7), count(col("s"))), "cs"),
+                    aliased_expr(pmul(count(col("i")), lit(-5)), "ci"),
+                    aliased_expr(count(col("d")), "__count__"),
                 ],
             ),
             select_expr(&[
