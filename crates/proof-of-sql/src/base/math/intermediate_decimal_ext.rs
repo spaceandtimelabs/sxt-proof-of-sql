@@ -1,6 +1,7 @@
+use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use proof_of_sql_parser::intermediate_decimal::{
-    IntermediateDecimal, IntermediateDecimalError, IntermediateDecimalError::LossyCast,
+    IntermediateDecimalError, IntermediateDecimalError::LossyCast,
 };
 
 pub trait IntermediateDecimalExt {
@@ -12,17 +13,17 @@ pub trait IntermediateDecimalExt {
         scale: i8,
     ) -> Result<BigInt, IntermediateDecimalError>;
 }
-impl IntermediateDecimalExt for IntermediateDecimal {
+impl IntermediateDecimalExt for BigDecimal {
     /// Get the precision of the fixed-point representation of this intermediate decimal.
     #[must_use]
     fn precision(&self) -> u64 {
-        self.value().digits()
+        self.normalized().digits()
     }
 
     /// Get the scale of the fixed-point representation of this intermediate decimal.
     #[must_use]
     fn scale(&self) -> i64 {
-        self.value().fractional_digit_count()
+        self.normalized().fractional_digit_count()
     }
 
     /// Attempts to convert the decimal to `BigInt` while adjusting it to the specified precision and scale.
@@ -38,7 +39,7 @@ impl IntermediateDecimalExt for IntermediateDecimal {
         if self.scale() > scale.into() {
             Err(IntermediateDecimalError::ConversionFailure)?;
         }
-        let scaled_decimal = self.value().with_scale(scale.into());
+        let scaled_decimal = self.normalized().with_scale(scale.into());
         if scaled_decimal.digits() > precision.into() {
             return Err(LossyCast);
         }
@@ -54,9 +55,9 @@ mod tests {
 
     #[test]
     fn test_valid_decimal_simple() {
-        let decimal = "123.45".parse();
+        let decimal = "123.45".parse::<BigDecimal>();
         assert!(decimal.is_ok());
-        let unwrapped_decimal: IntermediateDecimal = decimal.unwrap();
+        let unwrapped_decimal: BigDecimal = decimal.unwrap().normalized();
         assert_eq!(unwrapped_decimal.to_string(), "123.45");
         assert_eq!(unwrapped_decimal.precision(), 5);
         assert_eq!(unwrapped_decimal.scale(), 2);
@@ -64,9 +65,9 @@ mod tests {
 
     #[test]
     fn test_valid_decimal_with_leading_and_trailing_zeros() {
-        let decimal = "000123.45000".parse();
+        let decimal = "000123.45000".parse::<BigDecimal>();
         assert!(decimal.is_ok());
-        let unwrapped_decimal: IntermediateDecimal = decimal.unwrap();
+        let unwrapped_decimal: BigDecimal = decimal.unwrap().normalized();
         assert_eq!(unwrapped_decimal.to_string(), "123.45");
         assert_eq!(unwrapped_decimal.precision(), 5);
         assert_eq!(unwrapped_decimal.scale(), 2);
@@ -74,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_accessors() {
-        let decimal: IntermediateDecimal = "123.456".parse().unwrap();
+        let decimal: BigDecimal = "123.456".parse::<BigDecimal>().unwrap().normalized();
         assert_eq!(decimal.to_string(), "123.456");
         assert_eq!(decimal.precision(), 6);
         assert_eq!(decimal.scale(), 3);

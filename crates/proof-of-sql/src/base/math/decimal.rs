@@ -4,7 +4,8 @@ use crate::base::{
     scalar::{Scalar, ScalarConversionError, ScalarExt},
 };
 use alloc::string::{String, ToString};
-use proof_of_sql_parser::intermediate_decimal::{IntermediateDecimal, IntermediateDecimalError};
+use bigdecimal::BigDecimal;
+use proof_of_sql_parser::intermediate_decimal::IntermediateDecimalError;
 use serde::{Deserialize, Deserializer, Serialize};
 use snafu::Snafu;
 
@@ -216,7 +217,7 @@ impl<S: Scalar> Decimal<S> {
 /// the decimal exceeds the `target_precision` before or after adjusting for
 /// `target_scale`, or if the target precision is zero.
 pub(crate) fn try_convert_intermediate_decimal_to_scalar<S: Scalar>(
-    d: &IntermediateDecimal,
+    d: &BigDecimal,
     target_precision: Precision,
     target_scale: i8,
 ) -> DecimalResult<S> {
@@ -245,7 +246,7 @@ mod scale_adjust_test {
         assert!(
             try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
                 &decimal,
-                Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
+                Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX)).unwrap(),
                 target_scale
             )
             .is_err()
@@ -254,7 +255,7 @@ mod scale_adjust_test {
 
     #[test]
     fn we_can_match_exact_decimals_from_queries_to_db() {
-        let decimal: IntermediateDecimal = "123.45".parse().unwrap();
+        let decimal: BigDecimal = "123.45".parse().unwrap();
         let target_scale = 2;
         let target_precision = 20;
         let big_int =
@@ -285,7 +286,7 @@ mod scale_adjust_test {
 
         let limbs = try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
+            Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX)).unwrap(),
             target_scale,
         )
         .unwrap();
@@ -300,7 +301,7 @@ mod scale_adjust_test {
         let expected_limbs = [12345, 0, 0, 0];
         let limbs = try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
+            Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX)).unwrap(),
             target_scale,
         )
         .unwrap();
@@ -318,7 +319,7 @@ mod scale_adjust_test {
         assert!(
             try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
                 &decimal,
-                Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
+                Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX),).unwrap(),
                 target_scale
             )
             .is_err()
@@ -363,7 +364,7 @@ mod scale_adjust_test {
         assert!(
             try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
                 &decimal,
-                Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
+                Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX),).unwrap(),
                 target_scale
             )
             .is_ok()
@@ -387,7 +388,7 @@ mod scale_adjust_test {
         assert!(
             try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
                 &decimal,
-                Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
+                Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX),).unwrap(),
                 target_scale
             )
             .is_err()

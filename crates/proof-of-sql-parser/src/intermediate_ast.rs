@@ -4,7 +4,7 @@
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
 ***/
 
-use crate::{intermediate_decimal::IntermediateDecimal, posql_time::PoSQLTimestamp, Identifier};
+use crate::{posql_time::PoSQLTimestamp, Identifier};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use bigdecimal::BigDecimal;
 use core::{
@@ -346,7 +346,7 @@ pub enum Literal {
     /// String Literal
     VarChar(String),
     /// Decimal Literal
-    Decimal(IntermediateDecimal),
+    Decimal(BigDecimal),
     /// Timestamp Literal
     Timestamp(PoSQLTimestamp),
 }
@@ -398,7 +398,7 @@ impl_string_to_literal!(String);
 
 impl From<BigDecimal> for Literal {
     fn from(val: BigDecimal) -> Self {
-        Literal::Decimal(val.into())
+        Literal::Decimal(val)
     }
 }
 
