@@ -218,7 +218,7 @@ fn we_can_check_exact_scale_and_precision_eq() {
     // Decimal column with matching scale decimal literal
     let expr = equal(
         col("decimal_column"),
-        lit(IntermediateDecimal::try_from("123.45").unwrap()),
+        lit("123.45".parse::<IntermediateDecimal>().unwrap()),
     );
     let builder = WhereExprBuilder::new(&column_mapping);
     let result = builder.build::<RistrettoPoint>(Some(expr));

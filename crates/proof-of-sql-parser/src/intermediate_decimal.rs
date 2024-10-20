@@ -6,7 +6,6 @@
 //! A decimal must have a decimal point. The lexer does not route
 //! whole integers to this contructor.
 use crate::intermediate_decimal::IntermediateDecimalError::{LossyCast, OutOfRange, ParseError};
-use alloc::string::String;
 use bigdecimal::{num_bigint::BigInt, BigDecimal, ParseBigDecimalError, ToPrimitive};
 use core::{fmt, hash::Hash, str::FromStr};
 use serde::{Deserialize, Serialize};
@@ -116,22 +115,6 @@ impl From<i64> for IntermediateDecimal {
         IntermediateDecimal {
             value: BigDecimal::from(value),
         }
-    }
-}
-
-impl TryFrom<&str> for IntermediateDecimal {
-    type Error = IntermediateDecimalError;
-
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
-        IntermediateDecimal::from_str(s)
-    }
-}
-
-impl TryFrom<String> for IntermediateDecimal {
-    type Error = IntermediateDecimalError;
-
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        IntermediateDecimal::from_str(&s)
     }
 }
 

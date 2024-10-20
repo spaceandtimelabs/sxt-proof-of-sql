@@ -357,7 +357,7 @@ Int128UnaryNumericLiteral: i128 = {
 };
 
 DecimalNumericLiteral: IntermediateDecimal = {
-    <lit:DECIMAL_LIT> =>? IntermediateDecimal::try_from(lit).map_err(|e| User {error: "decimal out of range"}),
+    <lit:DECIMAL_LIT> =>? <>.parse::<IntermediateDecimal>().map_err(|e| User {error: "decimal out of range"}),
 };
 
 Int128NumericLiteral: i128 = {
