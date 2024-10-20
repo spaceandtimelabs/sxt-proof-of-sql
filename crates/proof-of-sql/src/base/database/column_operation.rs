@@ -2,8 +2,8 @@
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::ColumnType,
-    math::decimal::{scale_scalar, DecimalError, Precision},
-    scalar::Scalar,
+    math::decimal::{DecimalError, Precision},
+    scalar::{Scalar, ScalarExt},
 };
 use alloc::{format, string::ToString, vec::Vec};
 use core::{cmp::Ordering, fmt::Debug};
@@ -548,7 +548,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool { Into::<S>::into(*l) * upscale_factor == *r })
@@ -569,7 +569,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool { Into::<S>::into(*l) == *r * upscale_factor })
@@ -624,7 +624,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool {
@@ -652,7 +652,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool {
@@ -709,7 +709,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool {
@@ -737,7 +737,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool {
@@ -786,13 +786,15 @@ where
             .expect("numeric columns have scale");
     // One of left_scale and right_scale is 0 so we can avoid scaling when unnecessary
     let scalars: Vec<S> = if left_upscale > 0 {
-        let upscale_factor = scale_scalar(S::ONE, left_upscale)?;
+        let upscale_factor =
+            S::pow10(u8::try_from(left_upscale).expect("Upscale factor is nonnegative"));
         lhs.iter()
             .zip(rhs)
             .map(|(l, r)| S::from(*l) * upscale_factor + S::from(*r))
             .collect()
     } else if right_upscale > 0 {
-        let upscale_factor = scale_scalar(S::ONE, right_upscale)?;
+        let upscale_factor =
+            S::pow10(u8::try_from(right_upscale).expect("Upscale factor is nonnegative"));
         lhs.iter()
             .zip(rhs)
             .map(|(l, r)| S::from(*l) + upscale_factor * S::from(*r))
@@ -846,13 +848,15 @@ where
             .expect("numeric columns have scale");
     // One of left_scale and right_scale is 0 so we can avoid scaling when unnecessary
     let scalars: Vec<S> = if left_upscale > 0 {
-        let upscale_factor = scale_scalar(S::ONE, left_upscale)?;
+        let upscale_factor =
+            S::pow10(u8::try_from(left_upscale).expect("Upscale factor is nonnegative"));
         lhs.iter()
             .zip(rhs)
             .map(|(l, r)| S::from(*l) * upscale_factor - S::from(*r))
             .collect()
     } else if right_upscale > 0 {
-        let upscale_factor = scale_scalar(S::ONE, right_upscale)?;
+        let upscale_factor =
+            S::pow10(u8::try_from(right_upscale).expect("Upscale factor is nonnegative"));
         lhs.iter()
             .zip(rhs)
             .map(|(l, r)| S::from(*l) - upscale_factor * S::from(*r))

@@ -1,5 +1,5 @@
 //! Module for parsing an `IntermediateDecimal` into a `Decimal75`.
-use crate::base::scalar::{Scalar, ScalarConversionError};
+use crate::base::scalar::{Scalar, ScalarConversionError, ScalarExt};
 use alloc::{
     format,
     string::{String, ToString},
@@ -125,6 +125,7 @@ impl<S: Scalar> Decimal<S> {
         }
     }
 
+    #[allow(clippy::missing_panics_doc)]
     /// Scale the decimal to the new scale factor. Negative scaling and overflow error out.
     #[allow(clippy::cast_sign_loss)]
     pub fn with_precision_and_scale(
@@ -138,10 +139,12 @@ impl<S: Scalar> Decimal<S> {
                 error: "Scale factor must be non-negative".to_string(),
             });
         }
-        let scaled_value = scale_scalar(self.value, scale_factor)?;
+        let scaled_value =
+            self.value * S::pow10(u8::try_from(scale_factor).expect("scale_factor is nonnegative"));
         Ok(Decimal::new(scaled_value, new_precision, new_scale))
     }
 
+    #[allow(clippy::missing_panics_doc)]
     /// Get a decimal with given precision and scale from an i64
     #[allow(clippy::cast_sign_loss)]
     pub fn from_i64(value: i64, precision: Precision, scale: i8) -> DecimalResult<Self> {
@@ -157,10 +160,12 @@ impl<S: Scalar> Decimal<S> {
                 error: "Can not scale down a decimal".to_string(),
             });
         }
-        let scaled_value = scale_scalar(S::from(&value), scale)?;
+        let scaled_value =
+            S::from(&value) * S::pow10(u8::try_from(scale).expect("scale is nonnegative"));
         Ok(Decimal::new(scaled_value, precision, scale))
     }
 
+    #[allow(clippy::missing_panics_doc)]
     /// Get a decimal with given precision and scale from an i128
     #[allow(clippy::cast_sign_loss)]
     pub fn from_i128(value: i128, precision: Precision, scale: i8) -> DecimalResult<Self> {
@@ -176,7 +181,8 @@ impl<S: Scalar> Decimal<S> {
                 error: "Can not scale down a decimal".to_string(),
             });
         }
-        let scaled_value = scale_scalar(S::from(&value), scale)?;
+        let scaled_value =
+            S::from(&value) * S::pow10(u8::try_from(scale).expect("scale is nonnegative"));
         Ok(Decimal::new(scaled_value, precision, scale))
     }
 }
@@ -208,25 +214,6 @@ pub(crate) fn try_into_to_scalar<S: Scalar>(
         .map_err(|e: ScalarConversionError| DecimalError::InvalidDecimal {
             error: e.to_string(),
         })
-}
-
-/// Scale scalar by the given scale factor. Negative scaling is not allowed.
-/// Note that we do not check for overflow.
-pub(crate) fn scale_scalar<S: Scalar>(s: S, scale: i8) -> DecimalResult<S> {
-    match scale {
-        0 => Ok(s),
-        _ if scale < 0 => Err(DecimalError::RoundingError {
-            error: "Scale factor must be non-negative".to_string(),
-        }),
-        _ => {
-            let ten = S::from(10);
-            let mut res = s;
-            for _ in 0..scale {
-                res *= ten;
-            }
-            Ok(res)
-        }
-    }
 }
 
 #[cfg(test)]
