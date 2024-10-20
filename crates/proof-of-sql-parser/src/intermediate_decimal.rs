@@ -53,6 +53,14 @@ impl IntermediateDecimal {
     }
 }
 
+impl From<BigDecimal> for IntermediateDecimal {
+    fn from(value: BigDecimal) -> Self {
+        Self {
+            value: value.normalized(),
+        }
+    }
+}
+
 impl fmt::Display for IntermediateDecimal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.value)
