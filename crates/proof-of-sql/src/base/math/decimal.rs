@@ -1,7 +1,7 @@
 //! Module for parsing an `IntermediateDecimal` into a `Decimal75`.
 use crate::base::{
     math::BigDecimalExt,
-    scalar::{Scalar, ScalarConversionError, ScalarExt},
+    scalar::{Scalar, ScalarConversionError},
 };
 use alloc::string::{String, ToString};
 use bigdecimal::{BigDecimal, ParseBigDecimalError};
@@ -134,89 +134,6 @@ impl<'de> Deserialize<'de> for Precision {
 
         // Use the Precision::new method to ensure the value is within the allowed range
         Precision::new(value).map_err(serde::de::Error::custom)
-    }
-}
-
-/// A decimal type that is parameterized by the scalar type
-#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize)]
-pub struct Decimal<S: Scalar> {
-    /// The raw value of the decimal as scalar
-    pub value: S,
-    /// The precision of the decimal
-    pub precision: Precision,
-    /// The scale of the decimal
-    pub scale: i8,
-}
-
-impl<S: Scalar> Decimal<S> {
-    /// Constructor for creating a Decimal instance
-    pub fn new(value: S, precision: Precision, scale: i8) -> Self {
-        Decimal {
-            value,
-            precision,
-            scale,
-        }
-    }
-
-    #[allow(clippy::missing_panics_doc)]
-    /// Scale the decimal to the new scale factor. Negative scaling and overflow error out.
-    #[allow(clippy::cast_sign_loss)]
-    pub fn with_precision_and_scale(
-        &self,
-        new_precision: Precision,
-        new_scale: i8,
-    ) -> DecimalResult<Decimal<S>> {
-        let scale_factor = new_scale - self.scale;
-        if scale_factor < 0 || new_precision.value() < self.precision.value() + scale_factor as u8 {
-            return Err(DecimalError::RoundingError {
-                error: "Scale factor must be non-negative".to_string(),
-            });
-        }
-        let scaled_value =
-            self.value * S::pow10(u8::try_from(scale_factor).expect("scale_factor is nonnegative"));
-        Ok(Decimal::new(scaled_value, new_precision, new_scale))
-    }
-
-    #[allow(clippy::missing_panics_doc)]
-    /// Get a decimal with given precision and scale from an i64
-    #[allow(clippy::cast_sign_loss)]
-    pub fn from_i64(value: i64, precision: Precision, scale: i8) -> DecimalResult<Self> {
-        const MINIMAL_PRECISION: u8 = 19;
-        let raw_precision = precision.value();
-        if raw_precision < MINIMAL_PRECISION {
-            return Err(DecimalError::RoundingError {
-                error: "Precision must be at least 19".to_string(),
-            });
-        }
-        if scale < 0 || raw_precision < MINIMAL_PRECISION + scale as u8 {
-            return Err(DecimalError::RoundingError {
-                error: "Can not scale down a decimal".to_string(),
-            });
-        }
-        let scaled_value =
-            S::from(&value) * S::pow10(u8::try_from(scale).expect("scale is nonnegative"));
-        Ok(Decimal::new(scaled_value, precision, scale))
-    }
-
-    #[allow(clippy::missing_panics_doc)]
-    /// Get a decimal with given precision and scale from an i128
-    #[allow(clippy::cast_sign_loss)]
-    pub fn from_i128(value: i128, precision: Precision, scale: i8) -> DecimalResult<Self> {
-        const MINIMAL_PRECISION: u8 = 39;
-        let raw_precision = precision.value();
-        if raw_precision < MINIMAL_PRECISION {
-            return Err(DecimalError::RoundingError {
-                error: "Precision must be at least 19".to_string(),
-            });
-        }
-        if scale < 0 || raw_precision < MINIMAL_PRECISION + scale as u8 {
-            return Err(DecimalError::RoundingError {
-                error: "Can not scale down a decimal".to_string(),
-            });
-        }
-        let scaled_value =
-            S::from(&value) * S::pow10(u8::try_from(scale).expect("scale is nonnegative"));
-        Ok(Decimal::new(scaled_value, precision, scale))
     }
 }
 
