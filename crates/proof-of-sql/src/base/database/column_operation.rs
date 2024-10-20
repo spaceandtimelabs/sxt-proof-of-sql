@@ -115,7 +115,7 @@ pub fn try_multiply_column_types(
         let scale = left_scale.checked_add(right_scale).ok_or(
             ColumnOperationError::DecimalConversionError {
                 source: DecimalError::InvalidScale {
-                    scale: i16::from(left_scale) + i16::from(right_scale),
+                    scale: (i16::from(left_scale) + i16::from(right_scale)).to_string(),
                 },
             },
         )?;
@@ -160,7 +160,9 @@ pub fn try_divide_column_types(
     let precision_value: i16 = left_precision_value - left_scale + right_scale + raw_scale;
     let scale =
         i8::try_from(raw_scale).map_err(|_| ColumnOperationError::DecimalConversionError {
-            source: DecimalError::InvalidScale { scale: raw_scale },
+            source: DecimalError::InvalidScale {
+                scale: raw_scale.to_string(),
+            },
         })?;
     let precision = u8::try_from(precision_value)
         .map_err(|_| ColumnOperationError::DecimalConversionError {

@@ -10,7 +10,7 @@ use alloc::string::String;
 use bigdecimal::{num_bigint::BigInt, BigDecimal, ParseBigDecimalError, ToPrimitive};
 use core::{fmt, hash::Hash, str::FromStr};
 use serde::{Deserialize, Serialize};
-use snafu::Snafu;
+use snafu::{ensure, Snafu};
 
 /// Errors related to the processing of decimal values in proof-of-sql
 #[allow(clippy::module_name_repetitions)]
@@ -55,20 +55,14 @@ impl IntermediateDecimal {
 
     /// Get the precision of the fixed-point representation of this intermediate decimal.
     #[must_use]
-    pub fn precision(&self) -> u8 {
-        match u8::try_from(self.value.digits()) {
-            Ok(v) => v,
-            Err(_) => u8::MAX, // Returning u8::MAX on truncation
-        }
+    pub fn precision(&self) -> u64 {
+        self.value.digits()
     }
 
     /// Get the scale of the fixed-point representation of this intermediate decimal.
     #[must_use]
-    pub fn scale(&self) -> i8 {
-        match i8::try_from(self.value.fractional_digit_count()) {
-            Ok(v) => v,
-            Err(_) => i8::MAX, // Returning i8::MAX on truncation
-        }
+    pub fn scale(&self) -> i64 {
+        self.value.fractional_digit_count()
     }
 
     /// Attempts to convert the decimal to `BigInt` while adjusting it to the specified precision and scale.
@@ -81,6 +75,7 @@ impl IntermediateDecimal {
         precision: u8,
         scale: i8,
     ) -> Result<BigInt, IntermediateDecimalError> {
+        ensure!(self.scale() <= scale.into(), ConversionFailureSnafu);
         let scaled_decimal = self.value.with_scale(scale.into());
         if scaled_decimal.digits() > precision.into() {
             return Err(LossyCast);

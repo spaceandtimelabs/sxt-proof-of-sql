@@ -4,10 +4,13 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
         map::IndexMap,
-        math::decimal::{try_into_to_scalar, DecimalError::InvalidPrecision, Precision},
+        math::decimal::{try_into_to_scalar, DecimalError, Precision},
     },
     sql::{
-        parse::ConversionError::DecimalConversionError,
+        parse::{
+            dyn_proof_expr_builder::DecimalError::{InvalidPrecision, InvalidScale},
+            ConversionError::DecimalConversionError,
+        },
         proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
     },
 };
@@ -91,9 +94,12 @@ impl DynProofExprBuilder<'_> {
             Literal::BigInt(i) => Ok(DynProofExpr::new_literal(LiteralValue::BigInt(*i))),
             Literal::Int128(i) => Ok(DynProofExpr::new_literal(LiteralValue::Int128(*i))),
             Literal::Decimal(d) => {
-                let scale = d.scale();
+                let raw_scale = d.scale();
+                let scale = raw_scale.try_into().map_err(|_| InvalidScale {
+                    scale: raw_scale.to_string(),
+                })?;
                 let precision =
-                    Precision::new(d.precision()).map_err(|_| DecimalConversionError {
+                    Precision::try_from(d.precision()).map_err(|_| DecimalConversionError {
                         source: InvalidPrecision {
                             error: d.precision().to_string(),
                         },

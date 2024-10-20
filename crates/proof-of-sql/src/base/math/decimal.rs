@@ -1,9 +1,6 @@
 //! Module for parsing an `IntermediateDecimal` into a `Decimal75`.
 use crate::base::scalar::{Scalar, ScalarConversionError, ScalarExt};
-use alloc::{
-    format,
-    string::{String, ToString},
-};
+use alloc::string::{String, ToString};
 use proof_of_sql_parser::intermediate_decimal::{IntermediateDecimal, IntermediateDecimalError};
 use serde::{Deserialize, Deserializer, Serialize};
 use snafu::Snafu;
@@ -34,7 +31,7 @@ pub enum DecimalError {
     /// invalid scale values
     InvalidScale {
         /// The invalid scale value
-        scale: i16,
+        scale: String,
     },
 
     #[snafu(display("Unsupported operation: cannot round decimal: {error}"))]
@@ -74,9 +71,7 @@ impl Precision {
     pub fn new(value: u8) -> Result<Self, DecimalError> {
         if value > MAX_SUPPORTED_PRECISION || value == 0 {
             Err(DecimalError::InvalidPrecision {
-                error: format!(
-                    "Failed to parse precision. Value of {value} exceeds max supported precision of {MAX_SUPPORTED_PRECISION}"
-                ),
+                error: value.to_string(),
             })
         } else {
             Ok(Precision(value))
@@ -87,6 +82,19 @@ impl Precision {
     #[must_use]
     pub fn value(&self) -> u8 {
         self.0
+    }
+}
+
+impl TryFrom<u64> for Precision {
+    type Error = DecimalError;
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        Precision::new(
+            value
+                .try_into()
+                .map_err(|_| DecimalError::InvalidPrecision {
+                    error: value.to_string(),
+                })?,
+        )
     }
 }
 
