@@ -4,10 +4,31 @@ use crate::base::{
     scalar::{Scalar, ScalarConversionError, ScalarExt},
 };
 use alloc::string::{String, ToString};
-use bigdecimal::BigDecimal;
-use proof_of_sql_parser::intermediate_decimal::IntermediateDecimalError;
+use bigdecimal::{BigDecimal, ParseBigDecimalError};
 use serde::{Deserialize, Deserializer, Serialize};
 use snafu::Snafu;
+
+/// Errors related to the processing of decimal values in proof-of-sql
+#[derive(Snafu, Debug, PartialEq)]
+pub enum IntermediateDecimalError {
+    /// Represents an error encountered during the parsing of a decimal string.
+    #[snafu(display("{error}"))]
+    ParseError {
+        /// The underlying error
+        error: ParseBigDecimalError,
+    },
+    /// Error occurs when this decimal cannot fit in a primitive.
+    #[snafu(display("Value out of range for target type"))]
+    OutOfRange,
+    /// Error occurs when this decimal cannot be losslessly cast into a primitive.
+    #[snafu(display("Fractional part of decimal is non-zero"))]
+    LossyCast,
+    /// Cannot cast this decimal to a big integer
+    #[snafu(display("Conversion to integer failed"))]
+    ConversionFailure,
+}
+
+impl Eq for IntermediateDecimalError {}
 
 /// Errors related to decimal operations.
 #[derive(Snafu, Debug, Eq, PartialEq)]

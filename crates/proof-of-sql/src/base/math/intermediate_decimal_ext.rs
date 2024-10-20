@@ -1,8 +1,6 @@
+use super::decimal::{IntermediateDecimalError, IntermediateDecimalError::LossyCast};
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
-use proof_of_sql_parser::intermediate_decimal::{
-    IntermediateDecimalError, IntermediateDecimalError::LossyCast,
-};
 
 pub trait IntermediateDecimalExt {
     fn precision(&self) -> u64;
