@@ -6,7 +6,7 @@ use crate::base::{
     },
     math::{
         decimal::{DecimalError, Precision},
-        IntermediateDecimalExt,
+        BigDecimalExt,
     },
 };
 use alloc::{boxed::Box, string::ToString, vec::Vec};

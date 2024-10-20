@@ -8,5 +8,5 @@ pub(crate) use log::log2_up;
 /// TODO: add docs
 pub(crate) mod permutation;
 
-mod intermediate_decimal_ext;
-pub(crate) use intermediate_decimal_ext::IntermediateDecimalExt;
+mod big_decimal_ext;
+pub(crate) use big_decimal_ext::BigDecimalExt;

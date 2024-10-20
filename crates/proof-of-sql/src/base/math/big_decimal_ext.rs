@@ -2,7 +2,7 @@ use super::decimal::{IntermediateDecimalError, IntermediateDecimalError::LossyCa
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 
-pub trait IntermediateDecimalExt {
+pub trait BigDecimalExt {
     fn precision(&self) -> u64;
     fn scale(&self) -> i64;
     fn try_into_bigint_with_precision_and_scale(
@@ -11,7 +11,7 @@ pub trait IntermediateDecimalExt {
         scale: i8,
     ) -> Result<BigInt, IntermediateDecimalError>;
 }
-impl IntermediateDecimalExt for BigDecimal {
+impl BigDecimalExt for BigDecimal {
     /// Get the precision of the fixed-point representation of this intermediate decimal.
     #[must_use]
     fn precision(&self) -> u64 {

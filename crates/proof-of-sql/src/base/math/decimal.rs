@@ -1,6 +1,6 @@
 //! Module for parsing an `IntermediateDecimal` into a `Decimal75`.
 use crate::base::{
-    math::IntermediateDecimalExt,
+    math::BigDecimalExt,
     scalar::{Scalar, ScalarConversionError, ScalarExt},
 };
 use alloc::string::{String, ToString};

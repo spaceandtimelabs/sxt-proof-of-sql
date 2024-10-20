@@ -6,7 +6,7 @@ use crate::{
         map::IndexMap,
         math::{
             decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError, Precision},
-            IntermediateDecimalExt,
+            BigDecimalExt,
         },
     },
     sql::{
