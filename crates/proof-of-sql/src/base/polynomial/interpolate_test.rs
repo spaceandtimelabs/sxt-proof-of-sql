@@ -89,7 +89,7 @@ fn interpolate_uni_poly_gives_correct_value_for_known_evaluation() {
     ];
     for i in 0..evaluations.len() {
         assert_eq!(
-            interpolate_uni_poly(&evaluations, TestScalar::from(i as u32)),
+            interpolate_uni_poly(&evaluations, TestScalar::from(u32::try_from(i).unwrap())),
             evaluations[i]
         );
     }
