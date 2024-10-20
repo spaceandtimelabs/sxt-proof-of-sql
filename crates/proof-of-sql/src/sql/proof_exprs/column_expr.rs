@@ -75,11 +75,13 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
     /// add the components needed to prove the result
     fn prover_evaluate<'a>(
         &self,
+        table_length: usize,
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
         let column = accessor.get_column(self.column_ref);
+        assert!(column.len() == table_length);
         builder.produce_anchored_mle(column);
         column
     }

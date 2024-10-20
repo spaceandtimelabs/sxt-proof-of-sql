@@ -52,7 +52,7 @@ pub trait ProverEvaluate<S: Scalar> {
     /// Evaluate the query and modify `FirstRoundBuilder` to track the result of the query.
     fn result_evaluate<'a>(
         &self,
-        input_length: usize,
+        input_lengths: &[usize],
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>>;
@@ -68,6 +68,7 @@ pub trait ProverEvaluate<S: Scalar> {
     /// will be bulk deallocated once the proof is formed.
     fn final_round_evaluate<'a>(
         &self,
+        input_lengths: &[usize],
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,

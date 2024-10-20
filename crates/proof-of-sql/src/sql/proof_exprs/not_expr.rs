@@ -50,12 +50,14 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
     #[tracing::instrument(name = "NotExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
+        table_length: usize,
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
         let expr_column: Column<'a, C::Scalar> =
-            self.expr.prover_evaluate(builder, alloc, accessor);
+            self.expr
+                .prover_evaluate(table_length, builder, alloc, accessor);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
     }
