@@ -57,17 +57,6 @@ pub enum ArrowArrayToColumnConversionError {
 
 /// This trait is used to provide utility functions to convert [`ArrayRef`]s into proof types (Column, Scalars, etc.)
 pub trait ArrayRefExt {
-    /// Convert an [`ArrayRef`] into a Proof of SQL Vec<Scalar>
-    ///
-    /// Note: this function must not be called from unsupported arrays or arrays with nulls.
-    /// It should only be used during testing.
-    #[cfg(any(test, feature = "test"))]
-    #[cfg(feature = "blitzar")]
-    #[cfg(test)]
-    fn to_test_scalars(
-        &self,
-    ) -> Result<Vec<crate::base::scalar::test_scalar::TestScalar>, ArrowArrayToColumnConversionError>;
-
     /// Convert an [`ArrayRef`] into a Proof of SQL Column type
     ///
     /// Parameters:
@@ -90,97 +79,6 @@ pub trait ArrayRefExt {
 }
 
 impl ArrayRefExt for ArrayRef {
-    #[cfg(any(test, feature = "test"))]
-    #[cfg(feature = "blitzar")]
-    #[cfg(test)]
-    fn to_test_scalars(
-        &self,
-    ) -> Result<Vec<crate::base::scalar::test_scalar::TestScalar>, ArrowArrayToColumnConversionError>
-    {
-        if self.null_count() != 0 {
-            return Err(ArrowArrayToColumnConversionError::ArrayContainsNulls);
-        }
-
-        let result = match self.data_type() {
-            DataType::Boolean => self.as_any().downcast_ref::<BooleanArray>().map(|array| {
-                array
-                    .iter()
-                    .map(|v| {
-                        v.ok_or(ArrowArrayToColumnConversionError::ArrayContainsNulls)
-                            .map(Into::into)
-                    })
-                    .collect()
-            }),
-            DataType::Int16 => self
-                .as_any()
-                .downcast_ref::<Int16Array>()
-                .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-            DataType::Int32 => self
-                .as_any()
-                .downcast_ref::<Int32Array>()
-                .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-            DataType::Int64 => self
-                .as_any()
-                .downcast_ref::<Int64Array>()
-                .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-            DataType::Decimal128(38, 0) => self
-                .as_any()
-                .downcast_ref::<Decimal128Array>()
-                .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-            DataType::Decimal256(_, _) => {
-                self.as_any()
-                    .downcast_ref::<Decimal256Array>()
-                    .map(|array| {
-                        array
-                            .values()
-                            .iter()
-                            .map(|v| {
-                                convert_i256_to_scalar(v).ok_or(
-                                    ArrowArrayToColumnConversionError::DecimalConversionFailed {
-                                        number: *v,
-                                    },
-                                )
-                            })
-                            .collect()
-                    })
-            }
-            DataType::Utf8 => self.as_any().downcast_ref::<StringArray>().map(|array| {
-                array
-                    .iter()
-                    .map(|v| {
-                        v.ok_or(ArrowArrayToColumnConversionError::ArrayContainsNulls)
-                            .map(Into::into)
-                    })
-                    .collect()
-            }),
-            DataType::Timestamp(time_unit, _) => match time_unit {
-                ArrowTimeUnit::Second => self
-                    .as_any()
-                    .downcast_ref::<TimestampSecondArray>()
-                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-                ArrowTimeUnit::Millisecond => self
-                    .as_any()
-                    .downcast_ref::<TimestampMillisecondArray>()
-                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-                ArrowTimeUnit::Microsecond => self
-                    .as_any()
-                    .downcast_ref::<TimestampMicrosecondArray>()
-                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-                ArrowTimeUnit::Nanosecond => self
-                    .as_any()
-                    .downcast_ref::<TimestampNanosecondArray>()
-                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-            },
-            _ => None,
-        };
-
-        result.unwrap_or_else(|| {
-            Err(ArrowArrayToColumnConversionError::UnsupportedType {
-                datatype: self.data_type().clone(),
-            })
-        })
-    }
-
     /// Converts the given `ArrowArray` into a [`Column`] data type based on its [`DataType`]. Returns an
     /// empty [`Column`] for any empty tange if it is in-bounds.
     ///
@@ -1237,83 +1135,6 @@ mod tests {
         assert_eq!(
             result,
             Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
-        );
-    }
-
-    #[test]
-    fn we_can_convert_valid_boolean_array_refs_into_valid_vec_scalars() {
-        let data = vec![false, true];
-        let array: ArrayRef = Arc::new(arrow::array::BooleanArray::from(data.clone()));
-        assert_eq!(
-            array.to_test_scalars(),
-            Ok(data
-                .iter()
-                .map(core::convert::Into::into)
-                .collect::<Vec<TestScalar>>())
-        );
-    }
-
-    #[test]
-    fn we_can_convert_valid_timestamp_array_refs_into_valid_vec_scalars() {
-        let data = vec![1_625_072_400, 1_625_076_000]; // Example Unix timestamps
-        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
-            data.clone().into(),
-            Some("Utc"),
-        ));
-
-        assert_eq!(
-            array.to_test_scalars(),
-            Ok(data
-                .iter()
-                .map(|&v| TestScalar::from(v))
-                .collect::<Vec<TestScalar>>())
-        );
-    }
-
-    #[test]
-    fn we_can_convert_valid_integer_array_refs_into_valid_vec_scalars() {
-        let data = vec![1, -3];
-
-        let array: ArrayRef = Arc::new(Int16Array::from(data.clone()));
-        assert_eq!(
-            array.to_test_scalars(),
-            Ok(data
-                .iter()
-                .map(core::convert::Into::into)
-                .collect::<Vec<TestScalar>>())
-        );
-
-        let data = vec![1, -3];
-        let array: ArrayRef = Arc::new(Int32Array::from(data.clone()));
-        assert_eq!(
-            array.to_test_scalars(),
-            Ok(data
-                .iter()
-                .map(core::convert::Into::into)
-                .collect::<Vec<TestScalar>>())
-        );
-
-        let data = vec![1, -3];
-        let array: ArrayRef = Arc::new(Int64Array::from(data.clone()));
-        assert_eq!(
-            array.to_test_scalars(),
-            Ok(data
-                .iter()
-                .map(core::convert::Into::into)
-                .collect::<Vec<TestScalar>>())
-        );
-    }
-
-    #[test]
-    fn we_can_convert_valid_string_array_refs_into_valid_vec_scalars() {
-        let data = vec!["ab", "-f34"];
-        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
-        assert_eq!(
-            array.to_test_scalars(),
-            Ok(data
-                .iter()
-                .map(core::convert::Into::into)
-                .collect::<Vec<TestScalar>>())
         );
     }
 }
