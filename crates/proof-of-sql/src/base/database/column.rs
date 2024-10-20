@@ -41,7 +41,7 @@ pub enum Column<'a, S: Scalar> {
     /// i128 columns
     Int128(&'a [i128]),
     /// Decimal columns with a max width of 252 bits
-    ///  - the backing store maps to the type [`crate::base::scalar::test_scalar::TestScalar`]
+    ///  - the backing store maps to the type `S`
     Decimal75(Precision, i8, &'a [S]),
     /// Scalar columns
     Scalar(&'a [S]),
@@ -263,7 +263,7 @@ pub enum ColumnType {
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
-    /// Mapped to [`TestScalar`](crate::base::scalar::test_scalar::TestScalar)
+    /// Mapped to `S`
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
 }
