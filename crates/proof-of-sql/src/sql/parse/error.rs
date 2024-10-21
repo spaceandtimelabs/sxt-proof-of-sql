@@ -139,6 +139,26 @@ pub enum ConversionError {
         /// The underlying error
         error: String,
     },
+
+    #[snafu(display("Unsupported query type encountered"))]
+    /// Unsupported SQL query type in the AST
+    UnsupportedQueryType,
+
+    #[snafu(display("Invalid table found in SQL query"))]
+    /// Invalid table reference in SQL query
+    InvalidTable,
+
+    #[snafu(display("Unsupported SQL operator encountered"))]
+    /// Unsupported SQL operator in the query
+    UnsupportedOperator,
+
+    #[snafu(display("Invalid projection in the SELECT clause"))]
+    /// Invalid projection found in SQL query
+    InvalidProjection,
+
+    #[snafu(display("Unsupported SQL expression encountered"))]
+    /// Unsupported SQL expression in the query
+    UnsupportedExpression
 }
 
 impl From<String> for ConversionError {

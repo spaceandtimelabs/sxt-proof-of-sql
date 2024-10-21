@@ -37,6 +37,19 @@ impl Identifier {
         Self::from_str(string.as_ref())
     }
 
+    /// An alias for [`Identifier::new`], provided for convenience.
+    pub fn new_valid<S: AsRef<str>>(string: S) -> Result<Self, ParseError> {
+        IdentifierParser::new()
+            .parse(string.as_ref())
+            .map(Identifier::new) // Use the internal new method for valid identifiers
+            .map_err(|e| ParseError::IdentifierParseError {
+                error: format!(
+                    "Failed to parse identifier: {}. (reserved keyword or invalid format)",
+                    e
+                ),
+            })
+    }
+    
     /// The name of this [Identifier]
     /// It already implements [Deref] to [str], so this method is not necessary for most use cases.
     #[must_use]
