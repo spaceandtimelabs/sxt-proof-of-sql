@@ -380,6 +380,114 @@ mod tests {
     }
 
     #[test]
+    fn we_can_populate_blitzar_metadata_tables_with_simple_column_and_non_trivial_offsets() {
+        let committable_columns = [CommittableColumn::TinyInt(&[1])];
+
+        let offset = 0;
+        let (bit_table, length_table, scalars) =
+            create_blitzar_metadata_tables(&committable_columns, offset);
+
+        assert_eq!(bit_table, vec![8, 8]);
+        assert_eq!(length_table, vec![1, 1]);
+        assert_eq!(scalars, vec![129, 1]);
+
+        let offset = 1;
+        let (bit_table, length_table, scalars) =
+            create_blitzar_metadata_tables(&committable_columns, offset);
+
+        assert_eq!(bit_table, vec![8, 8]);
+        assert_eq!(length_table, vec![2, 2]);
+        assert_eq!(scalars, vec![0, 0, 129, 1]);
+
+        let offset = 2;
+        let (bit_table, length_table, scalars) =
+            create_blitzar_metadata_tables(&committable_columns, offset);
+
+        assert_eq!(bit_table, vec![8, 8]);
+        assert_eq!(length_table, vec![2, 2]);
+        assert_eq!(scalars, vec![129, 1, 0, 0]);
+
+        let offset = 3;
+        let (bit_table, length_table, scalars) =
+            create_blitzar_metadata_tables(&committable_columns, offset);
+
+        assert_eq!(bit_table, vec![8, 8]);
+        assert_eq!(length_table, vec![2, 2]);
+        assert_eq!(scalars, vec![0, 0, 129, 1]);
+
+        let offset = 4;
+        let (bit_table, length_table, scalars) =
+            create_blitzar_metadata_tables(&committable_columns, offset);
+
+        assert_eq!(bit_table, vec![8, 8]);
+        assert_eq!(length_table, vec![4, 4]);
+        assert_eq!(scalars, vec![129, 1, 0, 0, 0, 0, 0, 0]);
+
+        let offset = 5;
+        let (bit_table, length_table, scalars) =
+            create_blitzar_metadata_tables(&committable_columns, offset);
+
+        assert_eq!(bit_table, vec![8, 8]);
+        assert_eq!(length_table, vec![4, 4]);
+        assert_eq!(scalars, vec![0, 0, 129, 1, 0, 0, 0, 0]);
+
+        let offset = 10;
+        let (bit_table, length_table, scalars) =
+            create_blitzar_metadata_tables(&committable_columns, offset);
+
+        assert_eq!(bit_table, vec![8, 8]);
+        assert_eq!(length_table, vec![4, 4]);
+        assert_eq!(scalars, vec![0, 0, 0, 0, 129, 1, 0, 0]);
+
+        let offset = 16;
+        let (bit_table, length_table, scalars) =
+            create_blitzar_metadata_tables(&committable_columns, offset);
+
+        assert_eq!(bit_table, vec![8, 8]);
+        assert_eq!(length_table, vec![8, 8]);
+        assert_eq!(
+            scalars,
+            vec![129, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        );
+
+        let offset = 20;
+        let (bit_table, length_table, scalars) =
+            create_blitzar_metadata_tables(&committable_columns, offset);
+
+        assert_eq!(bit_table, vec![8, 8]);
+        assert_eq!(length_table, vec![8, 8]);
+        assert_eq!(
+            scalars,
+            vec![0, 0, 0, 0, 0, 0, 0, 0, 129, 1, 0, 0, 0, 0, 0, 0]
+        );
+
+        let offset = 50;
+        let (bit_table, length_table, scalars) =
+            create_blitzar_metadata_tables(&committable_columns, offset);
+
+        assert_eq!(bit_table, vec![8, 8]);
+        assert_eq!(length_table, vec![8, 8]);
+        assert_eq!(
+            scalars,
+            vec![0, 0, 0, 0, 129, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        );
+
+        let offset = 64;
+        let (bit_table, length_table, scalars) =
+            create_blitzar_metadata_tables(&committable_columns, offset);
+
+        assert_eq!(bit_table, vec![8, 8]);
+        assert_eq!(length_table, vec![16, 16]);
+        assert_eq!(
+            scalars,
+            vec![
+                129, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0
+            ]
+        );
+    }
+
+    #[test]
     fn we_can_populate_blitzar_metadata_tables_with_mixed_columns() {
         let committable_columns = [
             CommittableColumn::TinyInt(&[1]),
