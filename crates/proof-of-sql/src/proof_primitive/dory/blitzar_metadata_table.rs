@@ -156,7 +156,7 @@ pub fn create_blitzar_metadata_tables(
     };
 
     // We will ignore the rows that are zero from the offsets.
-    let offset_row = row_and_column_from_index(offset).0;
+    let (offset_row, _) = row_and_column_from_index(offset);
     let offset_height = max_height - offset_row;
 
     // Find the single packed byte size of all committable columns.

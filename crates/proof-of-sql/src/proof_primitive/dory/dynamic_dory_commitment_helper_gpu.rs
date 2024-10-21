@@ -33,7 +33,7 @@ pub(super) fn compute_dynamic_dory_commitments(
     setup: &ProverSetup,
 ) -> Vec<DynamicDoryCommitment> {
     let Gamma_2 = setup.Gamma_2.last().unwrap();
-    let gamma_2_offset = row_and_column_from_index(offset).0;
+    let (gamma_2_offset, _) = row_and_column_from_index(offset);
 
     // Get metadata tables for Blitzar's vlen_msm algorithm.
     let (blitzar_output_bit_table, blitzar_output_length_table, blitzar_scalars) =
