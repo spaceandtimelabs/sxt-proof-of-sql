@@ -1,12 +1,34 @@
 //! Module for parsing an `IntermediateDecimal` into a `Decimal75`.
-use crate::base::scalar::{Scalar, ScalarConversionError, ScalarExt};
-use alloc::{
-    format,
-    string::{String, ToString},
+use crate::base::{
+    math::BigDecimalExt,
+    scalar::{Scalar, ScalarConversionError},
 };
-use proof_of_sql_parser::intermediate_decimal::{IntermediateDecimal, IntermediateDecimalError};
+use alloc::string::{String, ToString};
+use bigdecimal::{BigDecimal, ParseBigDecimalError};
 use serde::{Deserialize, Deserializer, Serialize};
 use snafu::Snafu;
+
+/// Errors related to the processing of decimal values in proof-of-sql
+#[derive(Snafu, Debug, PartialEq)]
+pub enum IntermediateDecimalError {
+    /// Represents an error encountered during the parsing of a decimal string.
+    #[snafu(display("{error}"))]
+    ParseError {
+        /// The underlying error
+        error: ParseBigDecimalError,
+    },
+    /// Error occurs when this decimal cannot fit in a primitive.
+    #[snafu(display("Value out of range for target type"))]
+    OutOfRange,
+    /// Error occurs when this decimal cannot be losslessly cast into a primitive.
+    #[snafu(display("Fractional part of decimal is non-zero"))]
+    LossyCast,
+    /// Cannot cast this decimal to a big integer
+    #[snafu(display("Conversion to integer failed"))]
+    ConversionFailure,
+}
+
+impl Eq for IntermediateDecimalError {}
 
 /// Errors related to decimal operations.
 #[derive(Snafu, Debug, Eq, PartialEq)]
@@ -34,7 +56,7 @@ pub enum DecimalError {
     /// invalid scale values
     InvalidScale {
         /// The invalid scale value
-        scale: i16,
+        scale: String,
     },
 
     #[snafu(display("Unsupported operation: cannot round decimal: {error}"))]
@@ -74,9 +96,7 @@ impl Precision {
     pub fn new(value: u8) -> Result<Self, DecimalError> {
         if value > MAX_SUPPORTED_PRECISION || value == 0 {
             Err(DecimalError::InvalidPrecision {
-                error: format!(
-                    "Failed to parse precision. Value of {value} exceeds max supported precision of {MAX_SUPPORTED_PRECISION}"
-                ),
+                error: value.to_string(),
             })
         } else {
             Ok(Precision(value))
@@ -87,6 +107,19 @@ impl Precision {
     #[must_use]
     pub fn value(&self) -> u8 {
         self.0
+    }
+}
+
+impl TryFrom<u64> for Precision {
+    type Error = DecimalError;
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        Precision::new(
+            value
+                .try_into()
+                .map_err(|_| DecimalError::InvalidPrecision {
+                    error: value.to_string(),
+                })?,
+        )
     }
 }
 
@@ -101,89 +134,6 @@ impl<'de> Deserialize<'de> for Precision {
 
         // Use the Precision::new method to ensure the value is within the allowed range
         Precision::new(value).map_err(serde::de::Error::custom)
-    }
-}
-
-/// A decimal type that is parameterized by the scalar type
-#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize)]
-pub struct Decimal<S: Scalar> {
-    /// The raw value of the decimal as scalar
-    pub value: S,
-    /// The precision of the decimal
-    pub precision: Precision,
-    /// The scale of the decimal
-    pub scale: i8,
-}
-
-impl<S: Scalar> Decimal<S> {
-    /// Constructor for creating a Decimal instance
-    pub fn new(value: S, precision: Precision, scale: i8) -> Self {
-        Decimal {
-            value,
-            precision,
-            scale,
-        }
-    }
-
-    #[allow(clippy::missing_panics_doc)]
-    /// Scale the decimal to the new scale factor. Negative scaling and overflow error out.
-    #[allow(clippy::cast_sign_loss)]
-    pub fn with_precision_and_scale(
-        &self,
-        new_precision: Precision,
-        new_scale: i8,
-    ) -> DecimalResult<Decimal<S>> {
-        let scale_factor = new_scale - self.scale;
-        if scale_factor < 0 || new_precision.value() < self.precision.value() + scale_factor as u8 {
-            return Err(DecimalError::RoundingError {
-                error: "Scale factor must be non-negative".to_string(),
-            });
-        }
-        let scaled_value =
-            self.value * S::pow10(u8::try_from(scale_factor).expect("scale_factor is nonnegative"));
-        Ok(Decimal::new(scaled_value, new_precision, new_scale))
-    }
-
-    #[allow(clippy::missing_panics_doc)]
-    /// Get a decimal with given precision and scale from an i64
-    #[allow(clippy::cast_sign_loss)]
-    pub fn from_i64(value: i64, precision: Precision, scale: i8) -> DecimalResult<Self> {
-        const MINIMAL_PRECISION: u8 = 19;
-        let raw_precision = precision.value();
-        if raw_precision < MINIMAL_PRECISION {
-            return Err(DecimalError::RoundingError {
-                error: "Precision must be at least 19".to_string(),
-            });
-        }
-        if scale < 0 || raw_precision < MINIMAL_PRECISION + scale as u8 {
-            return Err(DecimalError::RoundingError {
-                error: "Can not scale down a decimal".to_string(),
-            });
-        }
-        let scaled_value =
-            S::from(&value) * S::pow10(u8::try_from(scale).expect("scale is nonnegative"));
-        Ok(Decimal::new(scaled_value, precision, scale))
-    }
-
-    #[allow(clippy::missing_panics_doc)]
-    /// Get a decimal with given precision and scale from an i128
-    #[allow(clippy::cast_sign_loss)]
-    pub fn from_i128(value: i128, precision: Precision, scale: i8) -> DecimalResult<Self> {
-        const MINIMAL_PRECISION: u8 = 39;
-        let raw_precision = precision.value();
-        if raw_precision < MINIMAL_PRECISION {
-            return Err(DecimalError::RoundingError {
-                error: "Precision must be at least 19".to_string(),
-            });
-        }
-        if scale < 0 || raw_precision < MINIMAL_PRECISION + scale as u8 {
-            return Err(DecimalError::RoundingError {
-                error: "Can not scale down a decimal".to_string(),
-            });
-        }
-        let scaled_value =
-            S::from(&value) * S::pow10(u8::try_from(scale).expect("scale is nonnegative"));
-        Ok(Decimal::new(scaled_value, precision, scale))
     }
 }
 
@@ -204,8 +154,8 @@ impl<S: Scalar> Decimal<S> {
 /// Returns `DecimalError::InvalidPrecision` error if the number of digits in
 /// the decimal exceeds the `target_precision` before or after adjusting for
 /// `target_scale`, or if the target precision is zero.
-pub(crate) fn try_into_to_scalar<S: Scalar>(
-    d: &IntermediateDecimal,
+pub(crate) fn try_convert_intermediate_decimal_to_scalar<S: Scalar>(
+    d: &BigDecimal,
     target_precision: Precision,
     target_scale: i8,
 ) -> DecimalResult<S> {
@@ -231,17 +181,19 @@ mod scale_adjust_test {
 
         let target_scale = 5;
 
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
-            &decimal,
-            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
-            target_scale
-        )
-        .is_err());
+        assert!(
+            try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
+                &decimal,
+                Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX)).unwrap(),
+                target_scale
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn we_can_match_exact_decimals_from_queries_to_db() {
-        let decimal: IntermediateDecimal = "123.45".parse().unwrap();
+        let decimal: BigDecimal = "123.45".parse().unwrap();
         let target_scale = 2;
         let target_precision = 20;
         let big_int =
@@ -255,7 +207,7 @@ mod scale_adjust_test {
         let decimal = "120.00".parse().unwrap();
         let target_scale = -1;
         let expected = [12, 0, 0, 0];
-        let result = try_into_to_scalar::<Curve25519Scalar>(
+        let result = try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
             &decimal,
             Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
             target_scale,
@@ -270,9 +222,9 @@ mod scale_adjust_test {
         let target_scale = -2;
         let expected_limbs = [123, 0, 0, 0];
 
-        let limbs = try_into_to_scalar::<Curve25519Scalar>(
+        let limbs = try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
+            Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX)).unwrap(),
             target_scale,
         )
         .unwrap();
@@ -285,9 +237,9 @@ mod scale_adjust_test {
         let decimal = "-123.45".parse().unwrap();
         let target_scale = 2;
         let expected_limbs = [12345, 0, 0, 0];
-        let limbs = try_into_to_scalar::<Curve25519Scalar>(
+        let limbs = try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
+            Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX)).unwrap(),
             target_scale,
         )
         .unwrap();
@@ -302,12 +254,14 @@ mod scale_adjust_test {
             .parse()
             .unwrap();
         let target_scale = 6; // now precision exceeds maximum
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
-            &decimal,
-            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
-            target_scale
-        )
-        .is_err());
+        assert!(
+            try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
+                &decimal,
+                Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX),).unwrap(),
+                target_scale
+            )
+            .is_err()
+        );
 
         // maximum decimal value we can support
         let decimal =
@@ -315,12 +269,14 @@ mod scale_adjust_test {
                 .parse()
                 .unwrap();
         let target_scale = 1;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
-            &decimal,
-            Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
-            target_scale
-        )
-        .is_ok());
+        assert!(
+            try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
+                &decimal,
+                Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
+                target_scale
+            )
+            .is_ok()
+        );
 
         // scaling larger than max will fail
         let decimal =
@@ -328,12 +284,14 @@ mod scale_adjust_test {
                 .parse()
                 .unwrap();
         let target_scale = 1;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
-            &decimal,
-            Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
-            target_scale
-        )
-        .is_err());
+        assert!(
+            try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
+                &decimal,
+                Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
+                target_scale
+            )
+            .is_err()
+        );
 
         // smallest possible decimal value we can support (either signed/unsigned)
         let decimal =
@@ -341,41 +299,49 @@ mod scale_adjust_test {
                 .parse()
                 .unwrap();
         let target_scale = MAX_SUPPORTED_PRECISION as i8;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
-            &decimal,
-            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
-            target_scale
-        )
-        .is_ok());
+        assert!(
+            try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
+                &decimal,
+                Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX),).unwrap(),
+                target_scale
+            )
+            .is_ok()
+        );
 
         // this is ok because it can be scaled to 75 precision
         let decimal = "0.1".parse().unwrap();
         let target_scale = MAX_SUPPORTED_PRECISION as i8;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
-            &decimal,
-            Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
-            target_scale
-        )
-        .is_ok());
+        assert!(
+            try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
+                &decimal,
+                Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
+                target_scale
+            )
+            .is_ok()
+        );
 
         // this exceeds max precision
         let decimal = "1.0".parse().unwrap();
         let target_scale = 75;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
-            &decimal,
-            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
-            target_scale
-        )
-        .is_err());
+        assert!(
+            try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
+                &decimal,
+                Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX),).unwrap(),
+                target_scale
+            )
+            .is_err()
+        );
 
         // but this is ok
         let decimal = "1.0".parse().unwrap();
         let target_scale = 74;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
-            &decimal,
-            Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
-            target_scale
-        )
-        .is_ok());
+        assert!(
+            try_convert_intermediate_decimal_to_scalar::<Curve25519Scalar>(
+                &decimal,
+                Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
+                target_scale
+            )
+            .is_ok()
+        );
     }
 }
