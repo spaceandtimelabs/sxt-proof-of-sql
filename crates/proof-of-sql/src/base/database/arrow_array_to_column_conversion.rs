@@ -57,16 +57,6 @@ pub enum ArrowArrayToColumnConversionError {
 
 /// This trait is used to provide utility functions to convert [`ArrayRef`]s into proof types (Column, Scalars, etc.)
 pub trait ArrayRefExt {
-    /// Convert an [`ArrayRef`] into a Proof of SQL Vec<Scalar>
-    ///
-    /// Note: this function must not be called from unsupported arrays or arrays with nulls.
-    /// It should only be used during testing.
-    #[cfg(any(test, feature = "test"))]
-    #[cfg(feature = "blitzar")]
-    fn to_curve25519_scalars(
-        &self,
-    ) -> Result<Vec<crate::base::scalar::Curve25519Scalar>, ArrowArrayToColumnConversionError>;
-
     /// Convert an [`ArrayRef`] into a Proof of SQL Column type
     ///
     /// Parameters:
@@ -89,102 +79,13 @@ pub trait ArrayRefExt {
 }
 
 impl ArrayRefExt for ArrayRef {
-    #[cfg(any(test, feature = "test"))]
-    #[cfg(feature = "blitzar")]
-    fn to_curve25519_scalars(
-        &self,
-    ) -> Result<Vec<crate::base::scalar::Curve25519Scalar>, ArrowArrayToColumnConversionError> {
-        if self.null_count() != 0 {
-            return Err(ArrowArrayToColumnConversionError::ArrayContainsNulls);
-        }
-
-        let result = match self.data_type() {
-            DataType::Boolean => self.as_any().downcast_ref::<BooleanArray>().map(|array| {
-                array
-                    .iter()
-                    .map(|v| {
-                        v.ok_or(ArrowArrayToColumnConversionError::ArrayContainsNulls)
-                            .map(Into::into)
-                    })
-                    .collect()
-            }),
-            DataType::Int16 => self
-                .as_any()
-                .downcast_ref::<Int16Array>()
-                .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-            DataType::Int32 => self
-                .as_any()
-                .downcast_ref::<Int32Array>()
-                .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-            DataType::Int64 => self
-                .as_any()
-                .downcast_ref::<Int64Array>()
-                .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-            DataType::Decimal128(38, 0) => self
-                .as_any()
-                .downcast_ref::<Decimal128Array>()
-                .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-            DataType::Decimal256(_, _) => {
-                self.as_any()
-                    .downcast_ref::<Decimal256Array>()
-                    .map(|array| {
-                        array
-                            .values()
-                            .iter()
-                            .map(|v| {
-                                convert_i256_to_scalar(v).ok_or(
-                                    ArrowArrayToColumnConversionError::DecimalConversionFailed {
-                                        number: *v,
-                                    },
-                                )
-                            })
-                            .collect()
-                    })
-            }
-            DataType::Utf8 => self.as_any().downcast_ref::<StringArray>().map(|array| {
-                array
-                    .iter()
-                    .map(|v| {
-                        v.ok_or(ArrowArrayToColumnConversionError::ArrayContainsNulls)
-                            .map(Into::into)
-                    })
-                    .collect()
-            }),
-            DataType::Timestamp(time_unit, _) => match time_unit {
-                ArrowTimeUnit::Second => self
-                    .as_any()
-                    .downcast_ref::<TimestampSecondArray>()
-                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-                ArrowTimeUnit::Millisecond => self
-                    .as_any()
-                    .downcast_ref::<TimestampMillisecondArray>()
-                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-                ArrowTimeUnit::Microsecond => self
-                    .as_any()
-                    .downcast_ref::<TimestampMicrosecondArray>()
-                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-                ArrowTimeUnit::Nanosecond => self
-                    .as_any()
-                    .downcast_ref::<TimestampNanosecondArray>()
-                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
-            },
-            _ => None,
-        };
-
-        result.unwrap_or_else(|| {
-            Err(ArrowArrayToColumnConversionError::UnsupportedType {
-                datatype: self.data_type().clone(),
-            })
-        })
-    }
-
     /// Converts the given `ArrowArray` into a [`Column`] data type based on its [`DataType`]. Returns an
     /// empty [`Column`] for any empty tange if it is in-bounds.
     ///
     /// # Parameters
     /// - `alloc`: Reference to a `Bump` allocator used for memory allocation during the conversion.
     /// - `range`: Reference to a `Range<usize>` specifying the slice of the array to convert.
-    /// - `precomputed_scals`: Optional reference to a slice of `Curve25519Scalar` values.
+    /// - `precomputed_scals`: Optional reference to a slice of `TestScalars` values.
     ///    `VarChar` columns store hashes to their values as scalars, which can be provided here.
     ///
     /// # Supported types
@@ -387,7 +288,7 @@ impl ArrayRefExt for ArrayRef {
 mod tests {
 
     use super::*;
-    use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
+    use crate::{base::scalar::test_scalar::TestScalar, proof_primitive::dory::DoryScalar};
     use alloc::sync::Arc;
     use arrow::array::Decimal256Builder;
     use core::str::FromStr;
@@ -401,7 +302,7 @@ mod tests {
             Some("Z"),
         ));
 
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(1..3), None);
         assert_eq!(
             result.unwrap(),
             Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[1..3])
@@ -451,7 +352,7 @@ mod tests {
             Some("Utc"),
         ));
 
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(3..5), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(3..5), None);
         assert_eq!(
             result,
             Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 5 })
@@ -489,10 +390,9 @@ mod tests {
     fn we_can_convert_utf8_array_normal_range() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(StringArray::from(vec!["hello", "world", "test"]));
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(1..3), None);
         let expected_vals = vec!["world", "test"];
-        let expected_scals: Vec<Curve25519Scalar> =
-            expected_vals.iter().map(|&v| v.into()).collect();
+        let expected_scals: Vec<TestScalar> = expected_vals.iter().map(|&v| v.into()).collect();
 
         assert_eq!(
             result.unwrap(),
@@ -512,7 +412,7 @@ mod tests {
     fn we_can_convert_utf8_array_with_nulls() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(StringArray::from(vec![Some("hello"), None, Some("test")]));
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(0..3), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
         assert!(matches!(
             result,
             Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
@@ -546,7 +446,7 @@ mod tests {
         builder.append_value(i256::from_str("4200000000000000000000000000000000000000").unwrap());
 
         let array: ArrayRef = Arc::new(builder.finish().with_precision_and_scale(76, 0).unwrap());
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(1..3), None);
         assert!(result.is_err());
     }
 
@@ -559,8 +459,8 @@ mod tests {
         builder.append_value(i256::from_str("4200000000000000000000000000000000000000").unwrap());
         let array: ArrayRef = Arc::new(builder.finish().with_precision_and_scale(75, 0).unwrap());
 
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
-        let expected_scalars: Vec<Curve25519Scalar> = vec![
+        let result = array.to_column::<TestScalar>(&alloc, &(1..3), None);
+        let expected_scalars: Vec<TestScalar> = vec![
             convert_i256_to_scalar(
                 &i256::from_str("-300000000000000000000000000000000000000").unwrap(),
             )
@@ -585,7 +485,7 @@ mod tests {
         builder.append_value(i256::from_str("4200000000000000000000000000000000000000").unwrap());
         let array: ArrayRef = Arc::new(builder.finish().with_precision_and_scale(75, 0).unwrap());
 
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(1..1), None);
         assert_eq!(
             result.unwrap(),
             Column::Decimal75(Precision::new(75).unwrap(), 0, &[])
@@ -617,7 +517,7 @@ mod tests {
         builder.append_value(i256::from_str("4200000000000000000000000000000000000000").unwrap());
         let array: ArrayRef = Arc::new(builder.finish().with_precision_and_scale(75, 0).unwrap());
 
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(0..3), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
         assert!(matches!(
             result,
             Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
@@ -648,7 +548,7 @@ mod tests {
                 .unwrap(),
         );
 
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(2..4), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(2..4), None);
         assert_eq!(
             result,
             Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 4 })
@@ -682,7 +582,7 @@ mod tests {
                 .unwrap(),
         );
 
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(1..3), None);
         assert_eq!(result.unwrap(), Column::Int128(&data[1..3]));
     }
 
@@ -706,7 +606,7 @@ mod tests {
             Some(false),
             Some(true),
         ]));
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(1..1), None);
         assert_eq!(result.unwrap(), Column::Boolean(&[]));
     }
 
@@ -731,7 +631,7 @@ mod tests {
     fn we_can_convert_boolean_array_with_nulls() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(BooleanArray::from(vec![Some(true), None, Some(true)]));
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(0..3), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
         assert!(matches!(
             result,
             Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
@@ -758,7 +658,7 @@ mod tests {
     fn we_can_convert_int8_array_empty_range() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int8Array::from(vec![1, -3, 42]));
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(1..1), None);
         assert_eq!(result.unwrap(), Column::TinyInt(&[]));
     }
 
@@ -766,7 +666,7 @@ mod tests {
     fn we_can_convert_int16_array_empty_range() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int16Array::from(vec![1, -3, 42]));
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(1..1), None);
         assert_eq!(result.unwrap(), Column::SmallInt(&[]));
     }
 
@@ -800,7 +700,7 @@ mod tests {
     fn we_can_convert_int8_array_with_nulls() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int8Array::from(vec![Some(1), None, Some(42)]));
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(0..3), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
         assert!(matches!(
             result,
             Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
@@ -811,7 +711,7 @@ mod tests {
     fn we_can_convert_int16_array_with_nulls() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int16Array::from(vec![Some(1), None, Some(42)]));
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(0..3), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
         assert!(matches!(
             result,
             Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
@@ -830,7 +730,7 @@ mod tests {
     fn we_can_convert_int32_array_empty_range() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int32Array::from(vec![1, -3, 42]));
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(1..1), None);
         assert_eq!(result.unwrap(), Column::Int(&[]));
     }
 
@@ -851,7 +751,7 @@ mod tests {
     fn we_can_convert_int32_array_with_nulls() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int32Array::from(vec![Some(1), None, Some(42)]));
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(0..3), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
         assert!(matches!(
             result,
             Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
@@ -903,7 +803,7 @@ mod tests {
         );
 
         let array1: ArrayRef = Arc::new(arrow::array::Int16Array::from(vec![1, -3]));
-        let result1 = array1.to_column::<Curve25519Scalar>(&alloc, &(5..5), None);
+        let result1 = array1.to_column::<TestScalar>(&alloc, &(5..5), None);
         assert_eq!(
             result1,
             Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 5 })
@@ -917,7 +817,7 @@ mod tests {
         );
 
         let array3: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
-        let result3 = array3.to_column::<Curve25519Scalar>(&alloc, &(5..5), None);
+        let result3 = array3.to_column::<TestScalar>(&alloc, &(5..5), None);
         assert_eq!(
             result3,
             Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 5 })
@@ -939,7 +839,7 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int8Array::from(vec![1, -3]));
         let result = array
-            .to_column::<Curve25519Scalar>(&alloc, &(2..2), None)
+            .to_column::<TestScalar>(&alloc, &(2..2), None)
             .unwrap();
         assert_eq!(result, Column::TinyInt(&[]));
     }
@@ -949,7 +849,7 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int16Array::from(vec![1, -3]));
         let result = array
-            .to_column::<Curve25519Scalar>(&alloc, &(2..2), None)
+            .to_column::<TestScalar>(&alloc, &(2..2), None)
             .unwrap();
         assert_eq!(result, Column::SmallInt(&[]));
     }
@@ -969,7 +869,7 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
         let result = array
-            .to_column::<Curve25519Scalar>(&alloc, &(2..2), None)
+            .to_column::<TestScalar>(&alloc, &(2..2), None)
             .unwrap();
         assert_eq!(result, Column::BigInt(&[]));
     }
@@ -999,7 +899,7 @@ mod tests {
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
             array
-                .to_column::<Curve25519Scalar>(&alloc, &(1..1), None)
+                .to_column::<TestScalar>(&alloc, &(1..1), None)
                 .unwrap(),
             Column::VarChar((&[], &[]))
         );
@@ -1022,7 +922,7 @@ mod tests {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data));
-        let result = array.to_column::<Curve25519Scalar>(&alloc, &(0..3), None);
+        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
         assert_eq!(
             result,
             Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 3 })
@@ -1043,7 +943,7 @@ mod tests {
         let array: ArrayRef = Arc::new(arrow::array::Int16Array::from(vec![1, -3]));
         assert_eq!(
             array
-                .to_column::<Curve25519Scalar>(&alloc, &(0..2), None)
+                .to_column::<TestScalar>(&alloc, &(0..2), None)
                 .unwrap(),
             Column::SmallInt(&[1, -3])
         );
@@ -1051,7 +951,7 @@ mod tests {
         let array: ArrayRef = Arc::new(arrow::array::Int32Array::from(vec![1, -3]));
         assert_eq!(
             array
-                .to_column::<Curve25519Scalar>(&alloc, &(0..2), None)
+                .to_column::<TestScalar>(&alloc, &(0..2), None)
                 .unwrap(),
             Column::Int(&[1, -3])
         );
@@ -1059,7 +959,7 @@ mod tests {
         let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
         assert_eq!(
             array
-                .to_column::<Curve25519Scalar>(&alloc, &(0..2), None)
+                .to_column::<TestScalar>(&alloc, &(0..2), None)
                 .unwrap(),
             Column::BigInt(&[1, -3])
         );
@@ -1086,7 +986,7 @@ mod tests {
         let array: ArrayRef = Arc::new(arrow::array::BooleanArray::from(data.clone()));
         assert_eq!(
             array
-                .to_column::<Curve25519Scalar>(&alloc, &(0..2), None)
+                .to_column::<TestScalar>(&alloc, &(0..2), None)
                 .unwrap(),
             Column::Boolean(&data[..])
         );
@@ -1102,7 +1002,7 @@ mod tests {
         ));
 
         let result = array
-            .to_column::<Curve25519Scalar>(&alloc, &(0..2), None)
+            .to_column::<TestScalar>(&alloc, &(0..2), None)
             .unwrap();
         assert_eq!(
             result,
@@ -1139,7 +1039,7 @@ mod tests {
         let array: ArrayRef = Arc::new(arrow::array::Int16Array::from(vec![0, 1, 545]));
         assert_eq!(
             array
-                .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
+                .to_column::<TestScalar>(&alloc, &(1..3), None)
                 .unwrap(),
             Column::SmallInt(&[1, 545])
         );
@@ -1147,7 +1047,7 @@ mod tests {
         let array: ArrayRef = Arc::new(arrow::array::Int32Array::from(vec![0, 1, 545]));
         assert_eq!(
             array
-                .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
+                .to_column::<TestScalar>(&alloc, &(1..3), None)
                 .unwrap(),
             Column::Int(&[1, 545])
         );
@@ -1155,7 +1055,7 @@ mod tests {
         let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![0, 1, 545]));
         assert_eq!(
             array
-                .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
+                .to_column::<TestScalar>(&alloc, &(1..3), None)
                 .unwrap(),
             Column::BigInt(&[1, 545])
         );
@@ -1174,7 +1074,7 @@ mod tests {
         // Test using a range smaller than the array size
         assert_eq!(
             array
-                .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
+                .to_column::<TestScalar>(&alloc, &(1..3), None)
                 .unwrap(),
             Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[1..3])
         );
@@ -1204,7 +1104,7 @@ mod tests {
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
             array
-                .to_column::<Curve25519Scalar>(&alloc, &(0..2), Some(&scals))
+                .to_column::<TestScalar>(&alloc, &(0..2), Some(&scals))
                 .unwrap(),
             Column::VarChar((&data[..], &scals[..]))
         );
@@ -1235,83 +1135,6 @@ mod tests {
         assert_eq!(
             result,
             Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
-        );
-    }
-
-    #[test]
-    fn we_can_convert_valid_boolean_array_refs_into_valid_vec_scalars() {
-        let data = vec![false, true];
-        let array: ArrayRef = Arc::new(arrow::array::BooleanArray::from(data.clone()));
-        assert_eq!(
-            array.to_curve25519_scalars(),
-            Ok(data
-                .iter()
-                .map(core::convert::Into::into)
-                .collect::<Vec<Curve25519Scalar>>())
-        );
-    }
-
-    #[test]
-    fn we_can_convert_valid_timestamp_array_refs_into_valid_vec_scalars() {
-        let data = vec![1_625_072_400, 1_625_076_000]; // Example Unix timestamps
-        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
-            data.clone().into(),
-            Some("Utc"),
-        ));
-
-        assert_eq!(
-            array.to_curve25519_scalars(),
-            Ok(data
-                .iter()
-                .map(|&v| Curve25519Scalar::from(v))
-                .collect::<Vec<Curve25519Scalar>>())
-        );
-    }
-
-    #[test]
-    fn we_can_convert_valid_integer_array_refs_into_valid_vec_scalars() {
-        let data = vec![1, -3];
-
-        let array: ArrayRef = Arc::new(Int16Array::from(data.clone()));
-        assert_eq!(
-            array.to_curve25519_scalars(),
-            Ok(data
-                .iter()
-                .map(core::convert::Into::into)
-                .collect::<Vec<Curve25519Scalar>>())
-        );
-
-        let data = vec![1, -3];
-        let array: ArrayRef = Arc::new(Int32Array::from(data.clone()));
-        assert_eq!(
-            array.to_curve25519_scalars(),
-            Ok(data
-                .iter()
-                .map(core::convert::Into::into)
-                .collect::<Vec<Curve25519Scalar>>())
-        );
-
-        let data = vec![1, -3];
-        let array: ArrayRef = Arc::new(Int64Array::from(data.clone()));
-        assert_eq!(
-            array.to_curve25519_scalars(),
-            Ok(data
-                .iter()
-                .map(core::convert::Into::into)
-                .collect::<Vec<Curve25519Scalar>>())
-        );
-    }
-
-    #[test]
-    fn we_can_convert_valid_string_array_refs_into_valid_vec_scalars() {
-        let data = vec!["ab", "-f34"];
-        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
-        assert_eq!(
-            array.to_curve25519_scalars(),
-            Ok(data
-                .iter()
-                .map(core::convert::Into::into)
-                .collect::<Vec<Curve25519Scalar>>())
         );
     }
 }
