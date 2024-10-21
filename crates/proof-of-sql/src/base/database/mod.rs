@@ -67,9 +67,7 @@ pub use owned_and_arrow_conversions::OwnedArrowConversionError;
 #[cfg(all(test, feature = "arrow"))]
 mod owned_and_arrow_conversions_test;
 
-#[cfg(any(test, feature = "test"))]
 mod test_accessor;
-#[cfg(any(test, feature = "test"))]
 pub use test_accessor::TestAccessor;
 #[cfg(test)]
 pub(crate) use test_accessor::UnimplementedTestAccessor;
@@ -79,9 +77,7 @@ mod test_schema_accessor;
 #[cfg(test)]
 pub(crate) use test_schema_accessor::TestSchemaAccessor;
 
-#[cfg(any(test, feature = "test"))]
 mod owned_table_test_accessor;
-#[cfg(any(test, feature = "test"))]
 pub use owned_table_test_accessor::OwnedTableTestAccessor;
 #[cfg(all(test, feature = "blitzar"))]
 mod owned_table_test_accessor_test;

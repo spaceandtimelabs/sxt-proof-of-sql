@@ -2,8 +2,8 @@
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::ColumnType,
-    math::decimal::{scale_scalar, DecimalError, Precision},
-    scalar::Scalar,
+    math::decimal::{DecimalError, Precision},
+    scalar::{Scalar, ScalarExt},
 };
 use alloc::{format, string::ToString, vec::Vec};
 use core::{cmp::Ordering, fmt::Debug};
@@ -115,7 +115,7 @@ pub fn try_multiply_column_types(
         let scale = left_scale.checked_add(right_scale).ok_or(
             ColumnOperationError::DecimalConversionError {
                 source: DecimalError::InvalidScale {
-                    scale: i16::from(left_scale) + i16::from(right_scale),
+                    scale: (i16::from(left_scale) + i16::from(right_scale)).to_string(),
                 },
             },
         )?;
@@ -160,7 +160,9 @@ pub fn try_divide_column_types(
     let precision_value: i16 = left_precision_value - left_scale + right_scale + raw_scale;
     let scale =
         i8::try_from(raw_scale).map_err(|_| ColumnOperationError::DecimalConversionError {
-            source: DecimalError::InvalidScale { scale: raw_scale },
+            source: DecimalError::InvalidScale {
+                scale: raw_scale.to_string(),
+            },
         })?;
     let precision = u8::try_from(precision_value)
         .map_err(|_| ColumnOperationError::DecimalConversionError {
@@ -548,7 +550,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool { Into::<S>::into(*l) * upscale_factor == *r })
@@ -569,7 +571,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool { Into::<S>::into(*l) == *r * upscale_factor })
@@ -624,7 +626,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool {
@@ -652,7 +654,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool {
@@ -709,7 +711,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool {
@@ -737,7 +739,7 @@ where
                 .collect::<Vec<_>>()
         } else {
             let upscale_factor =
-                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+                S::pow10(u8::try_from(upscale).expect("Upscale factor is nonnegative"));
             lhs.iter()
                 .zip(rhs.iter())
                 .map(|(l, r)| -> bool {
@@ -786,13 +788,15 @@ where
             .expect("numeric columns have scale");
     // One of left_scale and right_scale is 0 so we can avoid scaling when unnecessary
     let scalars: Vec<S> = if left_upscale > 0 {
-        let upscale_factor = scale_scalar(S::ONE, left_upscale)?;
+        let upscale_factor =
+            S::pow10(u8::try_from(left_upscale).expect("Upscale factor is nonnegative"));
         lhs.iter()
             .zip(rhs)
             .map(|(l, r)| S::from(*l) * upscale_factor + S::from(*r))
             .collect()
     } else if right_upscale > 0 {
-        let upscale_factor = scale_scalar(S::ONE, right_upscale)?;
+        let upscale_factor =
+            S::pow10(u8::try_from(right_upscale).expect("Upscale factor is nonnegative"));
         lhs.iter()
             .zip(rhs)
             .map(|(l, r)| S::from(*l) + upscale_factor * S::from(*r))
@@ -846,13 +850,15 @@ where
             .expect("numeric columns have scale");
     // One of left_scale and right_scale is 0 so we can avoid scaling when unnecessary
     let scalars: Vec<S> = if left_upscale > 0 {
-        let upscale_factor = scale_scalar(S::ONE, left_upscale)?;
+        let upscale_factor =
+            S::pow10(u8::try_from(left_upscale).expect("Upscale factor is nonnegative"));
         lhs.iter()
             .zip(rhs)
             .map(|(l, r)| S::from(*l) * upscale_factor - S::from(*r))
             .collect()
     } else if right_upscale > 0 {
-        let upscale_factor = scale_scalar(S::ONE, right_upscale)?;
+        let upscale_factor =
+            S::pow10(u8::try_from(right_upscale).expect("Upscale factor is nonnegative"));
         lhs.iter()
             .zip(rhs)
             .map(|(l, r)| S::from(*l) - upscale_factor * S::from(*r))
@@ -2016,6 +2022,7 @@ mod test {
         ));
     }
 
+    #[allow(clippy::too_many_lines)]
     #[test]
     fn we_can_try_add_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
@@ -2195,6 +2202,7 @@ mod test {
         ));
     }
 
+    #[allow(clippy::too_many_lines)]
     #[test]
     fn we_can_try_subtract_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
@@ -2355,6 +2363,7 @@ mod test {
         ));
     }
 
+    #[allow(clippy::too_many_lines)]
     #[test]
     fn we_can_try_multiply_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
@@ -2535,6 +2544,7 @@ mod test {
         ));
     }
 
+    #[allow(clippy::too_many_lines)]
     #[test]
     fn we_can_try_divide_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale

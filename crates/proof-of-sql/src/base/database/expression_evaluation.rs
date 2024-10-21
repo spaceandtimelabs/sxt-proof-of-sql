@@ -1,7 +1,10 @@
 use super::{ExpressionEvaluationError, ExpressionEvaluationResult};
 use crate::base::{
     database::{OwnedColumn, OwnedTable},
-    math::decimal::{try_into_to_scalar, Precision},
+    math::{
+        decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError, Precision},
+        BigDecimalExt,
+    },
     scalar::Scalar,
 };
 use alloc::{format, string::ToString, vec};
@@ -44,9 +47,14 @@ impl<S: Scalar> OwnedTable<S> {
             Literal::BigInt(i) => Ok(OwnedColumn::BigInt(vec![*i; len])),
             Literal::Int128(i) => Ok(OwnedColumn::Int128(vec![*i; len])),
             Literal::Decimal(d) => {
-                let scale = d.scale();
-                let precision = Precision::new(d.precision())?;
-                let scalar = try_into_to_scalar(d, precision, scale)?;
+                let raw_scale = d.scale();
+                let scale = raw_scale
+                    .try_into()
+                    .map_err(|_| DecimalError::InvalidScale {
+                        scale: raw_scale.to_string(),
+                    })?;
+                let precision = Precision::try_from(d.precision())?;
+                let scalar = try_convert_intermediate_decimal_to_scalar(d, precision, scale)?;
                 Ok(OwnedColumn::Decimal75(precision, scale, vec![scalar; len]))
             }
             Literal::VarChar(s) => Ok(OwnedColumn::VarChar(vec![s.clone(); len])),

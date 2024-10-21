@@ -5,8 +5,7 @@ use crate::{
             owned_table_utility::*, Column, LiteralValue, OwnedTable, OwnedTableTestAccessor,
             TestAccessor,
         },
-        math::decimal::scale_scalar,
-        scalar::{Curve25519Scalar, Scalar},
+        scalar::{Curve25519Scalar, Scalar, ScalarExt},
     },
     sql::{
         parse::ConversionError,
@@ -164,7 +163,7 @@ fn we_can_compare_columns_with_extreme_values() {
 
 #[test]
 fn we_can_compare_columns_with_small_decimal_values_without_scale() {
-    let scalar_pos = scale_scalar(Curve25519Scalar::ONE, 38).unwrap() - Curve25519Scalar::ONE;
+    let scalar_pos = Curve25519Scalar::pow10(38) - Curve25519Scalar::ONE;
     let scalar_neg = -scalar_pos;
     let data: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("a", [123, 25]),
@@ -192,7 +191,7 @@ fn we_can_compare_columns_with_small_decimal_values_without_scale() {
 
 #[test]
 fn we_can_compare_columns_with_small_decimal_values_with_scale() {
-    let scalar_pos = scale_scalar(Curve25519Scalar::ONE, 38).unwrap() - Curve25519Scalar::ONE;
+    let scalar_pos = Curve25519Scalar::pow10(38) - Curve25519Scalar::ONE;
     let scalar_neg = -scalar_pos;
     let data: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("a", [123, 25]),
@@ -222,7 +221,7 @@ fn we_can_compare_columns_with_small_decimal_values_with_scale() {
 
 #[test]
 fn we_can_compare_columns_with_small_decimal_values_with_differing_scale_gte() {
-    let scalar_pos = scale_scalar(Curve25519Scalar::ONE, 38).unwrap() - Curve25519Scalar::ONE;
+    let scalar_pos = Curve25519Scalar::pow10(38) - Curve25519Scalar::ONE;
     let scalar_neg = -scalar_pos;
     let data: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("a", [123, 25]),

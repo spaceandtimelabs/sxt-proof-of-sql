@@ -22,6 +22,7 @@ fn we_can_slice_an_owned_table_using_only_a_positive_limit_value() {
     assert_eq!(actual_table, expected_table);
 }
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 #[test]
 fn we_can_slice_an_owned_table_using_only_a_zero_limit_value() {
     let limit = 0;
@@ -38,6 +39,7 @@ fn we_can_slice_an_owned_table_using_only_a_zero_limit_value() {
     assert_eq!(actual_table, expected_table);
 }
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 #[test]
 fn we_can_slice_an_owned_table_using_only_a_positive_offset_value() {
     let offset = 3;
@@ -54,6 +56,11 @@ fn we_can_slice_an_owned_table_using_only_a_positive_offset_value() {
     assert_eq!(actual_table, expected_table);
 }
 
+#[allow(
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap
+)]
 #[test]
 fn we_can_slice_an_owned_table_using_only_a_negative_offset_value() {
     let offset = -2;
@@ -76,6 +83,11 @@ fn we_can_slice_an_owned_table_using_only_a_negative_offset_value() {
     assert_eq!(actual_table, expected_table);
 }
 
+#[allow(
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap
+)]
 #[test]
 fn we_can_slice_an_owned_table_using_both_limit_and_offset_values() {
     let offset = -2;
