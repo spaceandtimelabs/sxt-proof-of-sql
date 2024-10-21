@@ -1,0 +1,16 @@
+[package]
+name = "parquet-to-commitments"
+edition.workspace = true
+exclude.workspace = true
+repository.workspace = true
+version.workspace = true
+license-file.workspace = true
+
+[dependencies]
+proof-of-sql.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+glob = { version = "0.3.1" }
+
+[lints]
+workspace = true
