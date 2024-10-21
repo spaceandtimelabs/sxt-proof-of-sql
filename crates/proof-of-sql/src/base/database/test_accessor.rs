@@ -3,10 +3,11 @@ use super::{
     SchemaAccessor, TableRef,
 };
 use crate::base::{commitment::Commitment, scalar::Curve25519Scalar};
+use alloc::vec::Vec;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use proof_of_sql_parser::Identifier;
 
-/// A trait that defines the interface for a combined metadata, schema, commitment, and data accessor for unit testing purposes.
+/// A trait that defines the interface for a combined metadata, schema, commitment, and data accessor for unit testing or example purposes.
 pub trait TestAccessor<C: Commitment>:
     Clone
     + Default
