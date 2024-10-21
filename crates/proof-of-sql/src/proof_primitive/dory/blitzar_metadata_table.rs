@@ -80,15 +80,13 @@ pub fn signed_commits(
     if_rayon!(
         unsigned_sub_commits
             .into_par_iter()
-            .zip(min_sub_commits.into_par_iter())
-            .map(|(signed, offset)| (signed + offset).into())
-            .collect(),
+            .zip(min_sub_commits.into_par_iter()),
         unsigned_sub_commits
             .into_iter()
             .zip(min_sub_commits.into_iter())
-            .map(|(unsigned, min)| (unsigned + min).into())
-            .collect()
     )
+    .map(|(unsigned, min)| (unsigned + min).into())
+    .collect()
 }
 
 /// Copies the column data to the scalar row slice.
@@ -132,61 +130,6 @@ fn copy_column_data_to_slice(
             scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
         }
         CommittableColumn::RangeCheckWord(_) => todo!(),
-    }
-}
-
-/// Populates a slice of the scalar array with committable column data
-/// while adding the ones entry to handle signed data columns.
-///
-/// # Arguments
-///
-/// * `scalar_col` - The scalar column index.
-/// * `scalar_row` - The scalar row index.
-/// * `scalar_row_slice` - A mutable reference to the scalar row slice.
-/// * `offset` - The offset to the data.
-/// * `committable_columns` - A reference to the committable columns.
-/// * `cumulative_byte_length_table` - A reference to the cumulative byte length table.
-/// * `single_entry_in_blitzar_output_bit_table` - A reference to the single entry in the Blitzar output bit table.
-/// * `ones_columns_lengths` - A reference to the ones columns lengths.
-/// * `num_of_bytes_in_committable_columns` - The number of bytes in the committable columns.
-#[allow(clippy::too_many_arguments)]
-fn populate_scalar_array_with_column(
-    scalar_col: usize,
-    scalar_row: usize,
-    scalar_row_slice: &mut [u8],
-    offset: usize,
-    committable_columns: &[CommittableColumn],
-    cumulative_byte_length_table: &[usize],
-    single_entry_in_blitzar_output_bit_table: &[u32],
-    ones_columns_lengths: &[usize],
-    num_of_bytes_in_committable_columns: usize,
-) {
-    if let Some(index) = index_from_row_and_column(scalar_col, scalar_row)
-        .and_then(|committable_column_idx| committable_column_idx.checked_sub(offset))
-    {
-        for (i, committable_column) in committable_columns
-            .iter()
-            .enumerate()
-            .filter(|(_, committable_column)| index < committable_column.len())
-        {
-            let start = cumulative_byte_length_table
-                [i + scalar_col * single_entry_in_blitzar_output_bit_table.len()];
-            let end = start + (single_entry_in_blitzar_output_bit_table[i] / BYTE_SIZE) as usize;
-
-            copy_column_data_to_slice(committable_column, scalar_row_slice, start, end, index);
-        }
-
-        ones_columns_lengths
-            .iter()
-            .positions(|ones_columns_length| index < *ones_columns_length)
-            .for_each(|i| {
-                let ones_index = i
-                    + scalar_col
-                        * (num_of_bytes_in_committable_columns + ones_columns_lengths.len())
-                    + num_of_bytes_in_committable_columns;
-
-                scalar_row_slice[ones_index] = 1_u8;
-            });
     }
 }
 
@@ -276,43 +219,51 @@ pub fn create_blitzar_metadata_tables(
     let span = span!(Level::INFO, "pack_blitzar_scalars").entered();
     if !blitzar_scalars.is_empty() {
         if_rayon!(
-            blitzar_scalars
-                .par_chunks_exact_mut(num_scalar_columns)
-                .enumerate()
-                .for_each(|(scalar_row, scalar_row_slice)| {
-                    for scalar_col in 0..max_height {
-                        populate_scalar_array_with_column(
-                            scalar_col,
-                            scalar_row,
+            blitzar_scalars.par_chunks_exact_mut(num_scalar_columns),
+            blitzar_scalars.chunks_exact_mut(num_scalar_columns)
+        )
+        .enumerate()
+        .for_each(|(scalar_row, scalar_row_slice)| {
+            for scalar_col in 0..max_height {
+                // Find index in the committable columns. Note, the scalar is in
+                // column major order, that is why the (row, col) arguments are flipped.
+                if let Some(index) = index_from_row_and_column(scalar_col, scalar_row)
+                    .and_then(|committable_column_idx| committable_column_idx.checked_sub(offset))
+                {
+                    for (i, committable_column) in committable_columns
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, committable_column)| index < committable_column.len())
+                    {
+                        let start = cumulative_byte_length_table
+                            [i + scalar_col * single_entry_in_blitzar_output_bit_table.len()];
+                        let end = start
+                            + (single_entry_in_blitzar_output_bit_table[i] / BYTE_SIZE) as usize;
+
+                        copy_column_data_to_slice(
+                            committable_column,
                             scalar_row_slice,
-                            offset,
-                            committable_columns,
-                            &cumulative_byte_length_table,
-                            &single_entry_in_blitzar_output_bit_table,
-                            &ones_columns_lengths,
-                            num_of_bytes_in_committable_columns,
+                            start,
+                            end,
+                            index,
                         );
                     }
-                }),
-            blitzar_scalars
-                .chunks_exact_mut(num_scalar_columns)
-                .enumerate()
-                .for_each(|(scalar_row, scalar_row_slice)| {
-                    for scalar_col in 0..max_height {
-                        populate_scalar_array_with_column(
-                            scalar_col,
-                            scalar_row,
-                            scalar_row_slice,
-                            offset,
-                            committable_columns,
-                            &cumulative_byte_length_table,
-                            &single_entry_in_blitzar_output_bit_table,
-                            &ones_columns_lengths,
-                            num_of_bytes_in_committable_columns,
-                        );
-                    }
-                })
-        );
+
+                    ones_columns_lengths
+                        .iter()
+                        .positions(|ones_columns_length| index < *ones_columns_length)
+                        .for_each(|i| {
+                            let ones_index = i
+                                + scalar_col
+                                    * (num_of_bytes_in_committable_columns
+                                        + ones_columns_lengths.len())
+                                + num_of_bytes_in_committable_columns;
+
+                            scalar_row_slice[ones_index] = 1_u8;
+                        });
+                }
+            }
+        });
     }
     span.exit();
 
