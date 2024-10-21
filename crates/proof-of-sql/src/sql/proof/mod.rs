@@ -25,8 +25,6 @@ pub(crate) use provable_result_column::ProvableResultColumn;
 
 mod provable_query_result;
 pub use provable_query_result::ProvableQueryResult;
-#[cfg(all(test, feature = "arrow"))]
-mod provable_query_result_test;
 
 mod sumcheck_mle_evaluations;
 pub(crate) use sumcheck_mle_evaluations::SumcheckMleEvaluations;
@@ -70,3 +68,6 @@ pub(crate) use result_element_serialization::{
 
 mod first_round_builder;
 pub(crate) use first_round_builder::FirstRoundBuilder;
+
+#[cfg(all(test, feature = "arrow"))]
+mod provable_query_result_test;

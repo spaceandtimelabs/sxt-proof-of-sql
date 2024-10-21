@@ -1,5 +1,8 @@
 //! This module contains basic shared functionalities of the library.
 /// TODO: add docs
+#[cfg(feature = "arrow")]
+pub mod arrow;
+
 pub(crate) mod bit;
 pub mod commitment;
 pub mod database;

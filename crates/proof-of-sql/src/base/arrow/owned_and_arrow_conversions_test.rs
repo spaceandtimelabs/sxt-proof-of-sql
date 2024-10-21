@@ -1,7 +1,7 @@
-use super::{OwnedColumn, OwnedTable};
+use super::owned_and_arrow_conversions::OwnedArrowConversionError;
 use crate::{
     base::{
-        database::{owned_table_utility::*, OwnedArrowConversionError},
+        database::{owned_table_utility::*, OwnedColumn, OwnedTable},
         map::IndexMap,
         scalar::Curve25519Scalar,
     },
