@@ -98,7 +98,7 @@ pub fn read_parquet_file_to_commitment_as_blob(
     //aggregate_commitments_to_blob(unzipped.0, format!("{output_path_prefix}-dory-commitment"));
     aggregate_commitments_to_blob(
         commitments,
-        &format!("{output_path_prefix}-dynamic-dory-commitment"),
+        &format!("{output_path_prefix}-dory-commitment"),
     );
 }
 
@@ -410,26 +410,6 @@ mod tests {
         let mut bytes: Vec<u8> = Vec::new();
         blob_file.read_to_end(&mut bytes).unwrap();
         from_bytes(&bytes).unwrap()
-    }
-
-    fn calculate_dory_commitment(record_batch: &RecordBatch) -> TableCommitment<DoryCommitment> {
-        let setup_seed = "spaceandtime".to_string();
-        let mut rng = {
-            // Convert the seed string to bytes and create a seeded RNG
-            let seed_bytes = setup_seed
-                .bytes()
-                .chain(std::iter::repeat(0u8))
-                .take(32)
-                .collect::<Vec<_>>()
-                .try_into()
-                .expect("collection is guaranteed to contain 32 elements");
-            ChaCha20Rng::from_seed(seed_bytes) // Seed ChaChaRng
-        };
-        let public_parameters = PublicParameters::rand(4, &mut rng);
-        let prover_setup = ProverSetup::from(&public_parameters);
-        let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
-        TableCommitment::<DoryCommitment>::try_from_record_batch(record_batch, &dory_prover_setup)
-            .unwrap()
     }
 
     // fn calculate_dynamic_dory_commitment(
@@ -814,7 +794,7 @@ mod tests {
     }
 
     #[test]
-    fn we_can_fail_if_datatype_of_big_decimal_column_is_not_string(){
+    fn we_can_fail_if_datatype_of_big_decimal_column_is_not_string() {
         let err = panic::catch_unwind(|| {
             let string_array: ArrayRef = Arc::new(StringArray::from(vec![
                 None,
@@ -913,7 +893,11 @@ mod tests {
         );
         assert_eq!(
             read_commitment_from_blob::<DoryCommitment>(dory_commitment_path),
-            calculate_dory_commitment(&record_batch)
+            TableCommitment::<DoryCommitment>::try_from_record_batch(
+                &record_batch,
+                &dory_prover_setup
+            )
+            .unwrap()
         );
         delete_file_if_exists(parquet_path_1);
         delete_file_if_exists(parquet_path_2);
