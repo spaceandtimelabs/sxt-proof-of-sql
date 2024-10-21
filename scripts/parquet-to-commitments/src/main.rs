@@ -2,7 +2,7 @@
 //!
 //! Accepts two positional arguments:
 //! 1. the source, a path to the `v0/ETHEREUM/` directory
-//! 2. the output_prefix, used when writing commitments to files
+//! 2. the `output_prefix`, used when writing commitments to files
 
 use glob::glob;
 use proof_of_sql::{
@@ -22,13 +22,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// # Panics
 fn main() {
     let mut args = env::args().skip(1);
 
     let source: PathBuf = args.next().unwrap().parse().unwrap();
     let output_prefix = args.next().unwrap();
 
-    let mut sql = "".to_string();
+    let mut sql = String::new();
     File::open("/testnet-parquets/Etherium_ddl_snapshot.sql")
         .unwrap()
         .read_to_string(&mut sql)
@@ -96,7 +97,7 @@ fn main() {
             let full_output_prefix = format!("{output_prefix}-{namespace}-{table_name}");
             let result = panic::catch_unwind(|| {
                 read_parquet_file_to_commitment_as_blob(
-                    parquets_for_table,
+                    &parquets_for_table,
                     &full_output_prefix,
                     &dory_prover_setup,
                     big_decimal_commitments
@@ -109,7 +110,7 @@ fn main() {
                 );
             });
             if result.is_err() {
-                println!("Table failed: {}", table_name);
+                println!("Table failed: {table_name}");
             }
         });
 }
