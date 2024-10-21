@@ -2,8 +2,10 @@ use super::{
     blitzar_metadata_table::{create_blitzar_metadata_tables, signed_commits},
     pairings, DynamicDoryCommitment, G1Affine, ProverSetup,
 };
-use crate::base::{commitment::CommittableColumn, slice_ops::slice_cast};
+use crate::base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast};
 use blitzar::compute::ElementP2;
+#[cfg(feature = "rayon")]
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tracing::{span, Level};
 
 /// Computes the dynamic Dory commitment using the GPU implementation of the `vlen_msm` algorithm.
@@ -67,18 +69,33 @@ pub(super) fn compute_dynamic_dory_commitments(
             committable_columns.len()
         ])
         .unwrap_or_else(|| {
-            (0..committable_columns.len())
-                .map(|i| {
-                    let sub_slice = signed_sub_commits[i..]
-                        .iter()
-                        .step_by(committable_columns.len())
-                        .take(num_commits);
-                    DynamicDoryCommitment(pairings::multi_pairing(
-                        sub_slice,
-                        &Gamma_2[..num_commits],
-                    ))
-                })
-                .collect()
+            if_rayon!(
+                (0..committable_columns.len())
+                    .into_par_iter()
+                    .map(|i| {
+                        let sub_slice = signed_sub_commits[i..]
+                            .iter()
+                            .step_by(committable_columns.len())
+                            .take(num_commits);
+                        DynamicDoryCommitment(pairings::multi_pairing(
+                            sub_slice,
+                            &Gamma_2[..num_commits],
+                        ))
+                    })
+                    .collect(),
+                (0..committable_columns.len())
+                    .map(|i| {
+                        let sub_slice = signed_sub_commits[i..]
+                            .iter()
+                            .step_by(committable_columns.len())
+                            .take(num_commits);
+                        DynamicDoryCommitment(pairings::multi_pairing(
+                            sub_slice,
+                            &Gamma_2[..num_commits],
+                        ))
+                    })
+                    .collect()
+            )
         });
     span.exit();
 
