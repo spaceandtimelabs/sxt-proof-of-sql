@@ -38,7 +38,6 @@ impl PublicParameters {
     pub fn rand<R: CryptoRng + Rng + ?Sized>(max_nu: usize, rng: &mut R) -> Self {
         Self::rand_impl(max_nu, rng)
     }
-    #[cfg(any(test, feature = "test"))]
     /// Generate random public parameters for testing.
     pub fn test_rand<R: Rng + ?Sized>(max_nu: usize, rng: &mut R) -> Self {
         Self::rand_impl(max_nu, rng)
