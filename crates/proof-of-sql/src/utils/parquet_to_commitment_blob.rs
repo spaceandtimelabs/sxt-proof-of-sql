@@ -412,30 +412,6 @@ mod tests {
         from_bytes(&bytes).unwrap()
     }
 
-    // fn calculate_dynamic_dory_commitment(
-    //     record_batch: &RecordBatch,
-    // ) -> TableCommitment<DynamicDoryCommitment> {
-    //     let setup_seed = "spaceandtime".to_string();
-    //     let mut rng = {
-    //         // Convert the seed string to bytes and create a seeded RNG
-    //         let seed_bytes = setup_seed
-    //             .bytes()
-    //             .chain(std::iter::repeat(0u8))
-    //             .take(32)
-    //             .collect::<Vec<_>>()
-    //             .try_into()
-    //             .expect("collection is guaranteed to contain 32 elements");
-    //         ChaCha20Rng::from_seed(seed_bytes) // Seed ChaChaRng
-    //     };
-    //     let public_parameters = PublicParameters::rand(4, &mut rng);
-    //     let prover_setup = ProverSetup::from(&public_parameters);
-    //     TableCommitment::<DynamicDoryCommitment>::try_from_record_batch(
-    //         record_batch,
-    //         &&prover_setup,
-    //     )
-    //     .unwrap()
-    // }
-
     fn delete_file_if_exists(path: &str) {
         if Path::new(path).exists() {
             fs::remove_file(path).unwrap();
