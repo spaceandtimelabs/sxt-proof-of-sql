@@ -6,11 +6,12 @@ use crate::base::{
     commitment::{CommitmentEvaluationProof, VecCommitmentExt},
     map::IndexMap,
 };
+use alloc::{string::String, vec::Vec};
 use bumpalo::Bump;
 use proof_of_sql_parser::Identifier;
 
 /// A test accessor that uses [`OwnedTable`] as the underlying table type.
-/// Note: this is not optimized for performance, so should not be used for benchmarks.
+/// Note: this is intended for testing and examples. It is not optimized for performance, so should not be used for benchmarks or production use-cases.
 pub struct OwnedTableTestAccessor<'a, CP: CommitmentEvaluationProof> {
     tables: IndexMap<TableRef, (OwnedTable<CP::Scalar>, usize)>,
     alloc: Bump,
