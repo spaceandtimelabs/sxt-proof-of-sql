@@ -814,7 +814,26 @@ mod tests {
     }
 
     #[test]
-    fn we_can_fail_if_datatype_of_big_decimal_column_is_not_decimal_256() {}
+    fn we_can_fail_if_datatype_of_big_decimal_column_is_not_string(){
+        let err = panic::catch_unwind(|| {
+            let string_array: ArrayRef = Arc::new(StringArray::from(vec![
+                None,
+                Some("123"),
+                Some("345"),
+                None,
+                Some("567"),
+            ]));
+            let schema = Arc::new(Schema::new(vec![Arc::new(Field::new(
+                "nullable_big_decimal",
+                DataType::Int16,
+                true,
+            ))]));
+            let record_batch = RecordBatch::try_new(schema, vec![string_array]).unwrap();
+            let big_decimal_columns = vec![("nullable_big_decimal".to_string(), 25, 4)];
+            let _test = correct_utf8_fields(&record_batch, big_decimal_columns);
+        });
+        assert!(err.is_err());
+    }
 
     #[test]
     fn we_can_fail_if_big_decimal_column_is_not_castable() {
