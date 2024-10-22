@@ -198,7 +198,7 @@ pub fn create_blitzar_metadata_tables(
         / single_entry_in_blitzar_output_bit_table.len())
         .flat_map(|i| {
             itertools::repeat_n(
-                u32::try_from(full_width_of_row(i))
+                u32::try_from(full_width_of_row(i + offset_row))
                     .expect("row lengths should never exceed u32::MAX"),
                 single_entry_in_blitzar_output_bit_table.len(),
             )
@@ -228,10 +228,10 @@ pub fn create_blitzar_metadata_tables(
         )
         .enumerate()
         .for_each(|(scalar_row, scalar_row_slice)| {
-            for scalar_col in 0..max_height {
+            for scalar_col in 0..offset_height {
                 // Find index in the committable columns. Note, the scalar is in
                 // column major order, that is why the (row, col) arguments are flipped.
-                if let Some(index) = index_from_row_and_column(scalar_col, scalar_row)
+                if let Some(index) = index_from_row_and_column(scalar_col + offset_row, scalar_row)
                     .and_then(|committable_column_idx| committable_column_idx.checked_sub(offset))
                 {
                     for (i, committable_column) in committable_columns

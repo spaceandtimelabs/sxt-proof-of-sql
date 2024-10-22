@@ -80,7 +80,10 @@ pub(super) fn compute_dynamic_dory_commitments(
                     .iter()
                     .step_by(committable_columns.len())
                     .take(num_commits);
-                DynamicDoryCommitment(pairings::multi_pairing(sub_slice, &Gamma_2[..num_commits]))
+                DynamicDoryCommitment(pairings::multi_pairing(
+                    sub_slice,
+                    &Gamma_2[gamma_2_offset..gamma_2_offset + num_commits],
+                ))
             })
             .collect()
         });
