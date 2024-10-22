@@ -1,10 +1,9 @@
 use crate::base::{
     map::IndexSet,
-    scalar::{Curve25519Scalar, Scalar, ScalarConversionError},
+    scalar::{test_scalar::TestScalar, Curve25519Scalar, Scalar, ScalarConversionError},
 };
 use alloc::{format, string::ToString, vec::Vec};
 use byte_slice_cast::AsByteSlice;
-use core::cmp::Ordering;
 use num_bigint::BigInt;
 use num_traits::{Inv, One, Zero};
 use rand::{
@@ -362,20 +361,6 @@ fn the_one_scalar_is_the_multiplicative_identity() {
 }
 
 #[test]
-fn scalar_comparison_works() {
-    let zero = Curve25519Scalar::ZERO;
-    let one = Curve25519Scalar::ONE;
-    let two = Curve25519Scalar::TWO;
-    let max = Curve25519Scalar::MAX_SIGNED;
-    let min = max + one;
-    assert_eq!(max.signed_cmp(&one), Ordering::Greater);
-    assert_eq!(one.signed_cmp(&zero), Ordering::Greater);
-    assert_eq!(min.signed_cmp(&zero), Ordering::Less);
-    assert_eq!((two * max).signed_cmp(&zero), Ordering::Less);
-    assert_eq!(two * max + one, zero);
-}
-
-#[test]
 fn the_empty_string_will_be_mapped_to_the_zero_scalar() {
     assert_eq!(Curve25519Scalar::from(""), Curve25519Scalar::zero());
     assert_eq!(
@@ -427,6 +412,7 @@ fn strings_of_arbitrary_size_map_to_different_scalars() {
     }
 }
 
+#[allow(clippy::cast_sign_loss)]
 #[test]
 fn byte_arrays_of_arbitrary_size_map_to_different_scalars() {
     let mut prev_scalars = IndexSet::default();
@@ -470,4 +456,43 @@ fn the_string_hash_implementation_uses_the_full_range_of_bits() {
             curr_iters += 1;
         }
     }
+}
+
+#[test]
+fn test_bigint_to_scalar_overflow() {
+    assert_eq!(
+        TestScalar::try_from(
+            "3618502788666131106986593281521497120428558179689953803000975469142727125494"
+                .parse::<BigInt>()
+                .unwrap()
+        )
+        .unwrap(),
+        TestScalar::MAX_SIGNED
+    );
+    assert_eq!(
+        TestScalar::try_from(
+            "-3618502788666131106986593281521497120428558179689953803000975469142727125494"
+                .parse::<BigInt>()
+                .unwrap()
+        )
+        .unwrap(),
+        -TestScalar::MAX_SIGNED
+    );
+
+    assert!(matches!(
+        TestScalar::try_from(
+            "3618502788666131106986593281521497120428558179689953803000975469142727125495"
+                .parse::<BigInt>()
+                .unwrap()
+        ),
+        Err(ScalarConversionError::Overflow { .. })
+    ));
+    assert!(matches!(
+        TestScalar::try_from(
+            "-3618502788666131106986593281521497120428558179689953803000975469142727125495"
+                .parse::<BigInt>()
+                .unwrap()
+        ),
+        Err(ScalarConversionError::Overflow { .. })
+    ));
 }

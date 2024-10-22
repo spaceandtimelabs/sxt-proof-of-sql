@@ -254,7 +254,10 @@ mod tests {
         let dist = Uniform::new(1, usize::MAX);
 
         for _ in 0..100 {
-            let value = dist.sample(&mut rng) as i64;
+            let value = match dist.sample(&mut rng).try_into() {
+                Ok(val) => val,
+                Err(_) => i64::MAX,
+            };
 
             let mut out = vec![0_u8; value.required_bytes()];
             value.encode(&mut out[..]);
@@ -316,6 +319,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     #[test]
     fn arbitrary_encoded_buffers_are_correctly_decoded() {
         let mut rng = StdRng::from_seed([0u8; 32]);

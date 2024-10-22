@@ -76,7 +76,11 @@ where
 /// Let `d` be `evals.len() - 1` and let `f` be the polynomial such that `f(i) = evals[i]`.
 /// The output of this function is the vector of coefficients of `f`, with the leading coefficient first.
 /// That is, `f(x) = evals[j] * x^(d - j)`.
-#[allow(clippy::missing_panics_doc)]
+#[allow(
+    clippy::missing_panics_doc,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap
+)]
 // This function is guaranteed not to panic because:
 // - The product in `inv()` will never be zero, as the numbers being multiplied are all non-zero by construction.
 // - If there are no elements to reduce, `unwrap_or(vec![])` provides an empty vector as a safe fallback.
@@ -90,6 +94,7 @@ where
         + Inv<Output = Option<S>>
         + Product,
 {
+    assert!(i32::try_from(evals.len()).is_ok());
     let n = evals.len().max(1) - 1;
     evals
         .iter()

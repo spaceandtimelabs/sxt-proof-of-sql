@@ -9,10 +9,10 @@ use crate::{
         proof_exprs::{ColumnExpr, DynProofExpr, LiteralExpr},
     },
 };
+use bigdecimal::BigDecimal;
 use core::str::FromStr;
 use curve25519_dalek::RistrettoPoint;
 use proof_of_sql_parser::{
-    intermediate_decimal::IntermediateDecimal,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
     utility::*,
     Identifier, SelectStatement,
@@ -218,7 +218,7 @@ fn we_can_check_exact_scale_and_precision_eq() {
     // Decimal column with matching scale decimal literal
     let expr = equal(
         col("decimal_column"),
-        lit(IntermediateDecimal::try_from("123.45").unwrap()),
+        lit("123.45".parse::<BigDecimal>().unwrap()),
     );
     let builder = WhereExprBuilder::new(&column_mapping);
     let result = builder.build::<RistrettoPoint>(Some(expr));

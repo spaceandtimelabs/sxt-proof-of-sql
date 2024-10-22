@@ -14,6 +14,7 @@ use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
+#[allow(clippy::unnecessary_wraps)]
 fn unchecked_subtract_impl<'a, S: Scalar>(
     alloc: &'a Bump,
     lhs: &[S],
@@ -36,6 +37,7 @@ fn unchecked_subtract_impl<'a, S: Scalar>(
 )]
 /// Scale LHS and RHS to the same scale if at least one of them is decimal
 /// and take the difference. This function is used for comparisons.
+#[allow(clippy::cast_sign_loss)]
 pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     alloc: &'a Bump,
     lhs: Column<'a, S>,

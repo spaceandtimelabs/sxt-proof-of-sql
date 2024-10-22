@@ -48,7 +48,7 @@ impl Default for RandomTestAccessorDescriptor {
 /// - When calling `.unwrap()` on the result of `RecordBatch::try_new(schema, columns)`, which
 ///   will panic if the schema and columns do not align correctly or if there are any other
 ///   underlying errors.
-#[allow(dead_code)]
+#[allow(dead_code, clippy::too_many_lines)]
 pub fn make_random_test_accessor_data(
     rng: &mut StdRng,
     cols: &[(&str, ColumnType)],

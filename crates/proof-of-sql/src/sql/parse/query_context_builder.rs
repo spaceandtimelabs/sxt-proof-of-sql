@@ -4,7 +4,10 @@ use crate::base::{
         try_add_subtract_column_types, try_multiply_column_types, ColumnRef, ColumnType,
         SchemaAccessor, TableRef,
     },
-    math::decimal::Precision,
+    math::{
+        decimal::{DecimalError, Precision},
+        BigDecimalExt,
+    },
 };
 use alloc::{boxed::Box, string::ToString, vec::Vec};
 use proof_of_sql_parser::{
@@ -32,7 +35,7 @@ impl<'a> QueryContextBuilder<'a> {
     #[allow(clippy::vec_box, clippy::missing_panics_doc)]
     pub fn visit_table_expr(
         mut self,
-        table_expr: Vec<Box<TableExpression>>,
+        table_expr: &[Box<TableExpression>],
         default_schema: Identifier,
     ) -> Self {
         assert_eq!(table_expr.len(), 1);
@@ -95,6 +98,7 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     pub fn build(self) -> ConversionResult<QueryContext> {
         Ok(self.context)
     }
@@ -226,8 +230,14 @@ impl<'a> QueryContextBuilder<'a> {
             Literal::Int128(_) => Ok(ColumnType::Int128),
             Literal::VarChar(_) => Ok(ColumnType::VarChar),
             Literal::Decimal(d) => {
-                let precision = Precision::new(d.precision())?;
-                Ok(ColumnType::Decimal75(precision, d.scale()))
+                let precision = Precision::try_from(d.precision())?;
+                let scale = d.scale();
+                Ok(ColumnType::Decimal75(
+                    precision,
+                    scale.try_into().map_err(|_| DecimalError::InvalidScale {
+                        scale: scale.to_string(),
+                    })?,
+                ))
             }
             Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(its.timeunit(), its.timezone())),
         }
