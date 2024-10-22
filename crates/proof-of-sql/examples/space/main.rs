@@ -11,7 +11,7 @@
 use arrow::datatypes::SchemaRef;
 use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
-    base::database::{OwnedTable, OwnedTableTestAccessor},
+    base::database::{OwnedTable, OwnedTableTestAccessor, TestAccessor},
     proof_primitive::dory::{
         DynamicDoryCommitment, DynamicDoryEvaluationProof, ProverSetup, PublicParameters,
         VerifierSetup,
@@ -89,23 +89,34 @@ fn main() {
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
 
-    let filename = "./crates/proof-of-sql/examples/space/space_travellers.csv";
-    let space_travellers_batch = ReaderBuilder::new(SchemaRef::new(
-        infer_schema_from_files(&[filename.to_string()], b',', None, true).unwrap(),
-    ))
-    .with_header(true)
-    .build(File::open(filename).unwrap())
-    .unwrap()
-    .next()
-    .unwrap()
-    .unwrap();
+    let filenames = [
+        "./crates/proof-of-sql/examples/space/space_travellers.csv",
+        "./crates/proof-of-sql/examples/space/planets.csv",
+    ];
+    let [space_travellers_batch, planets_batch] = filenames.map(|filename| {
+        ReaderBuilder::new(SchemaRef::new(
+            infer_schema_from_files(&[filename.to_string()], b',', None, true).unwrap(),
+        ))
+        .with_header(true)
+        .build(File::open(filename).unwrap())
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+    });
 
     // Load the table into an "Accessor" so that the prover and verifier can access the data/commitments.
-    let accessor = OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_from_table(
+    let mut accessor =
+        OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
+    accessor.add_table(
         "space.travellers".parse().unwrap(),
         OwnedTable::try_from(space_travellers_batch).unwrap(),
         0,
-        &prover_setup,
+    );
+    accessor.add_table(
+        "space.planets".parse().unwrap(),
+        OwnedTable::try_from(planets_batch).unwrap(),
+        0,
     );
 
     prove_and_verify_query(
@@ -122,6 +133,18 @@ fn main() {
     );
     prove_and_verify_query(
         "SELECT Flight, COUNT(*) AS num_travellers FROM travellers WHERE Date > timestamp '2000-01-01T00:00:00Z' GROUP BY Flight ORDER BY num_travellers DESC LIMIT 5",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+    prove_and_verify_query(
+        "SELECT name FROM planets WHERE NOT dwarf",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+    prove_and_verify_query(
+        "SELECT name, density FROM planets ORDER BY density DESC LIMIT 3",
         &accessor,
         &prover_setup,
         &verifier_setup,
