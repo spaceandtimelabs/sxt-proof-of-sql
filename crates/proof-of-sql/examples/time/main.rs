@@ -50,8 +50,10 @@ fn main() {
             ),
             decimal75(
                 "time",
-                3,
-                2,
+                3, // precision - only 3 digits are needed
+                2, // scale - the decimal point has 2 digits to the right
+                // The `decimal75` utility method accepts "integers" as the data,
+                // since that is the underlying type
                 [958, 969, 969, 972, 974, 976, 976, 976, 977, 977],
             ),
         ]),
