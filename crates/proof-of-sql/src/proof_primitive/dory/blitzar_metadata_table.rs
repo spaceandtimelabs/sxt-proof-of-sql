@@ -1,5 +1,7 @@
 use super::{
-    dynamic_dory_structure::{full_width_of_row, index_from_row_and_column, matrix_size},
+    dynamic_dory_structure::{
+        full_width_of_row, index_from_row_and_column, matrix_size, row_and_column_from_index,
+    },
     G1Affine, F,
 };
 use crate::{
@@ -153,6 +155,10 @@ pub fn create_blitzar_metadata_tables(
         (0, 0)
     };
 
+    // We will ignore the rows that are zero from the offsets.
+    let (offset_row, _) = row_and_column_from_index(offset);
+    let offset_height = max_height - offset_row;
+
     // Find the single packed byte size of all committable columns.
     let num_of_bytes_in_committable_columns: usize = committable_columns
         .iter()
@@ -171,7 +177,7 @@ pub fn create_blitzar_metadata_tables(
         .iter()
         .copied()
         .cycle()
-        .take(single_entry_in_blitzar_output_bit_table.len() * max_height)
+        .take(single_entry_in_blitzar_output_bit_table.len() * offset_height)
         .collect();
 
     // Create the full length vector to be used by Blitzar's vlen_msm algorithm.
@@ -179,7 +185,7 @@ pub fn create_blitzar_metadata_tables(
         / single_entry_in_blitzar_output_bit_table.len())
         .flat_map(|i| {
             itertools::repeat_n(
-                full_width_of_row(i) as u32,
+                full_width_of_row(i + offset_row) as u32,
                 single_entry_in_blitzar_output_bit_table.len(),
             )
         })
@@ -196,7 +202,7 @@ pub fn create_blitzar_metadata_tables(
     // Create scalars array. Note, scalars need to be stored in a column-major order.
     let num_scalar_rows = max_width;
     let num_scalar_columns =
-        (num_of_bytes_in_committable_columns + ones_columns_lengths.len()) * max_height;
+        (num_of_bytes_in_committable_columns + ones_columns_lengths.len()) * offset_height;
     let mut blitzar_scalars = vec![0u8; num_scalar_rows * num_scalar_columns];
 
     // Populate the scalars array.
@@ -207,12 +213,14 @@ pub fn create_blitzar_metadata_tables(
             .enumerate()
             .for_each(|(scalar_row, scalar_row_slice)| {
                 // Iterate over the columns and populate the scalars array.
-                for scalar_col in 0..max_height {
+                for scalar_col in 0..offset_height {
                     // Find index in the committable columns. Note, the scalar is in
                     // column major order, that is why the (row, col) arguments are flipped.
-                    if let Some(index) = index_from_row_and_column(scalar_col, scalar_row).and_then(
-                        |committable_column_idx| committable_column_idx.checked_sub(offset),
-                    ) {
+                    if let Some(index) =
+                        index_from_row_and_column(scalar_col + offset_row, scalar_row).and_then(
+                            |committable_column_idx| committable_column_idx.checked_sub(offset),
+                        )
+                    {
                         for (i, committable_column) in committable_columns
                             .iter()
                             .enumerate()
@@ -264,58 +272,328 @@ mod tests {
     use crate::base::math::decimal::Precision;
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
-    #[test]
-    fn we_can_populate_blitzar_metadata_tables_with_empty_columns() {
-        let committable_columns = [CommittableColumn::BigInt(&[0; 0])];
-        let offset = 0;
+    fn assert_blitzar_metadata(
+        committable_columns: &[CommittableColumn],
+        offset: usize,
+        expected_bit_table: &[u32],
+        expected_length_table: &[u32],
+        expected_scalars: &[u8],
+    ) {
         let (bit_table, length_table, scalars) =
-            create_blitzar_metadata_tables(&committable_columns, offset);
+            create_blitzar_metadata_tables(committable_columns, offset);
 
-        assert!(bit_table.is_empty());
-        assert!(length_table.is_empty());
-        assert!(scalars.is_empty());
+        assert_eq!(
+            bit_table, expected_bit_table,
+            "Bit table mismatch for offset {offset}"
+        );
+        assert_eq!(
+            length_table, expected_length_table,
+            "Length table mismatch for offset {offset}"
+        );
+        assert_eq!(
+            scalars, expected_scalars,
+            "Scalars mismatch for offset {offset}"
+        );
     }
 
     #[test]
-    fn we_can_populate_blitzar_metadata_tables_with_empty_columns_and_an_offset() {
+    fn we_can_populate_blitzar_metadata_tables_with_empty_columns_and_offset_that_fills_row() {
         let committable_columns = [CommittableColumn::BigInt(&[0; 0])];
-        let offset = 1;
-        let (bit_table, length_table, scalars) =
-            create_blitzar_metadata_tables(&committable_columns, offset);
+        let offsets = vec![
+            0, 1, 2, 4, 8, 12, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128,
+        ];
+        for &offset in &offsets {
+            assert_blitzar_metadata(&committable_columns, offset, &[], &[], &[]);
+        }
+    }
 
-        assert_eq!(bit_table, vec![64, 8]);
-        assert_eq!(length_table, vec![1, 1]);
-        assert_eq!(scalars, vec![0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    #[test]
+    fn we_can_populate_blitzar_metadata_tables_with_empty_columns_and_offset_that_does_not_fill_row(
+    ) {
+        let committable_columns = [CommittableColumn::BigInt(&[0; 0])];
+
+        let offset = 3;
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &[64, 8],
+            &[2, 2],
+            &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        );
+
+        let offset = 5;
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &[64, 8],
+            &[4, 4],
+            &[
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0,
+            ],
+        );
+
+        let offset = 17;
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &[64, 8],
+            &[8, 8],
+            &[
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ],
+        );
+
+        let offset = 65;
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &[64, 8],
+            &[16, 16],
+            &[
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0,
+            ],
+        );
     }
 
     #[test]
     fn we_can_populate_blitzar_metadata_tables_with_simple_column() {
         let committable_columns = [CommittableColumn::BigInt(&[1])];
-        let offset = 0;
-        let (bit_table, length_table, scalars) =
-            create_blitzar_metadata_tables(&committable_columns, offset);
 
-        assert_eq!(bit_table, vec![64, 8]);
-        assert_eq!(length_table, vec![1, 1]);
-        assert_eq!(scalars, vec![1, 0, 0, 0, 0, 0, 0, 128, 1]);
+        let offset = 0;
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &[64, 8],
+            &[1, 1],
+            &[1, 0, 0, 0, 0, 0, 0, 128, 1],
+        );
     }
 
     #[test]
     fn we_can_populate_blitzar_metadata_tables_with_simple_column_and_offset() {
         let committable_columns = [CommittableColumn::BigInt(&[1])];
-        let offset = 1;
-        let (bit_table, length_table, scalars) =
-            create_blitzar_metadata_tables(&committable_columns, offset);
 
-        assert_eq!(bit_table, vec![64, 8, 64, 8]);
-        assert_eq!(length_table, vec![1, 1, 2, 2]);
-        assert_eq!(
-            scalars,
-            vec![
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-                0, 0, 0, 0, 0, 0, 128, 1
-            ]
+        let offset = 1;
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &[64, 8],
+            &[2, 2],
+            &[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 128, 1],
         );
+    }
+
+    #[test]
+    fn we_can_populate_blitzar_metadata_tables_with_simple_column_and_non_trivial_offsets() {
+        let committable_columns = [CommittableColumn::TinyInt(&[1])];
+
+        let expected_bit_table = vec![8, 8];
+
+        let offset = 0;
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &expected_bit_table,
+            &[1, 1],
+            &[129, 1],
+        );
+
+        let offset = 1;
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &expected_bit_table,
+            &[2, 2],
+            &[0, 0, 129, 1],
+        );
+
+        let offset = 2;
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &expected_bit_table,
+            &[2, 2],
+            &[129, 1, 0, 0],
+        );
+
+        let offset = 3;
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &expected_bit_table,
+            &[2, 2],
+            &[0, 0, 129, 1],
+        );
+    }
+
+    #[test]
+    fn we_can_populate_blitzar_metadata_tables_with_simple_column_and_offsets_with_4_columns() {
+        let committable_columns = [CommittableColumn::TinyInt(&[1])];
+
+        let expected_bit_table = vec![8, 8];
+        let expected_length_table = vec![4, 4];
+
+        let offsets = vec![4, 8, 12];
+        for &offset in &offsets {
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset,
+                &expected_bit_table,
+                &expected_length_table,
+                &[129, 1, 0, 0, 0, 0, 0, 0],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 1,
+                &expected_bit_table,
+                &expected_length_table,
+                &[0, 0, 129, 1, 0, 0, 0, 0],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 2,
+                &expected_bit_table,
+                &expected_length_table,
+                &[0, 0, 0, 0, 129, 1, 0, 0],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 3,
+                &expected_bit_table,
+                &expected_length_table,
+                &[0, 0, 0, 0, 0, 0, 129, 1],
+            );
+        }
+    }
+
+    #[test]
+    fn we_can_populate_blitzar_metadata_tables_with_simple_column_and_offsets_with_8_columns() {
+        let committable_columns = [CommittableColumn::TinyInt(&[1])];
+
+        let expected_bit_table = vec![8, 8];
+        let expected_length_table = vec![8, 8];
+
+        let offsets = vec![16, 24, 32, 40, 48, 56];
+        for &offset in &offsets {
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset,
+                &expected_bit_table,
+                &expected_length_table,
+                &[129, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 1,
+                &expected_bit_table,
+                &expected_length_table,
+                &[0, 0, 129, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 2,
+                &expected_bit_table,
+                &expected_length_table,
+                &[0, 0, 0, 0, 129, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 3,
+                &expected_bit_table,
+                &expected_length_table,
+                &[0, 0, 0, 0, 0, 0, 129, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 4,
+                &expected_bit_table,
+                &expected_length_table,
+                &[0, 0, 0, 0, 0, 0, 0, 0, 129, 1, 0, 0, 0, 0, 0, 0],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 5,
+                &expected_bit_table,
+                &expected_length_table,
+                &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 129, 1, 0, 0, 0, 0],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 6,
+                &expected_bit_table,
+                &expected_length_table,
+                &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 129, 1, 0, 0],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 7,
+                &expected_bit_table,
+                &expected_length_table,
+                &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 129, 1],
+            );
+        }
+    }
+
+    #[test]
+    fn we_can_populate_blitzar_metadata_tables_with_simple_column_and_offsets_with_16_columns() {
+        let committable_columns = [CommittableColumn::TinyInt(&[1])];
+
+        let expected_bit_table = vec![8, 8];
+        let expected_length_table = vec![16, 16];
+
+        let offsets = vec![64, 80, 96, 112];
+        for &offset in &offsets {
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset,
+                &expected_bit_table,
+                &expected_length_table,
+                &[
+                    129, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0,
+                ],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 8,
+                &expected_bit_table,
+                &expected_length_table,
+                &[
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 129, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0,
+                ],
+            );
+
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset + 15,
+                &expected_bit_table,
+                &expected_length_table,
+                &[
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 129, 1,
+                ],
+            );
+        }
     }
 
     #[test]
@@ -334,27 +612,102 @@ mod tests {
         ];
 
         let offset = 0;
-        let (bit_table, length_table, scalars) =
-            create_blitzar_metadata_tables(&committable_columns, offset);
-        assert_eq!(
-            bit_table,
-            vec![8, 16, 32, 64, 128, 256, 256, 256, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]
-        );
-
-        assert_eq!(
-            length_table,
-            vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        );
-        assert_eq!(
-            scalars,
-            vec![
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &[
+                8, 16, 32, 64, 128, 256, 256, 256, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            ],
+            &[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            &[
                 129, 2, 128, 3, 0, 0, 128, 4, 0, 0, 0, 0, 0, 0, 128, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 128, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 128,
-                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-            ]
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            ],
+        );
+    }
+
+    #[test]
+    fn we_can_populate_blitzar_metadata_tables_with_mixed_columns_and_partial_column_offset() {
+        let committable_columns = [
+            CommittableColumn::TinyInt(&[1]),
+            CommittableColumn::SmallInt(&[2]),
+            CommittableColumn::Int(&[3]),
+            CommittableColumn::BigInt(&[4]),
+            CommittableColumn::Int128(&[5]),
+            CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, vec![[6, 0, 0, 0]]),
+            CommittableColumn::Scalar(vec![[7, 0, 0, 0]]),
+            CommittableColumn::VarChar(vec![[8, 0, 0, 0]]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[9]),
+            CommittableColumn::Boolean(&[true]),
+        ];
+
+        let offsets = vec![1, 3];
+        for &offset in &offsets {
+            assert_blitzar_metadata(
+                &committable_columns,
+                offset,
+                &[
+                    8, 16, 32, 64, 128, 256, 256, 256, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                ],
+                &[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+                &[
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 129, 2, 128, 3, 0, 0, 128, 4,
+                    0, 0, 0, 0, 0, 0, 128, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 6, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 128, 1, 1,
+                    1, 1, 1, 1, 1, 1, 1, 1, 1,
+                ],
+            );
+        }
+    }
+
+    #[test]
+    fn we_can_populate_blitzar_metadata_tables_with_mixed_columns_and_full_column_offset() {
+        let committable_columns = [
+            CommittableColumn::TinyInt(&[1]),
+            CommittableColumn::SmallInt(&[2]),
+            CommittableColumn::Int(&[3]),
+            CommittableColumn::BigInt(&[4]),
+            CommittableColumn::Int128(&[5]),
+            CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, vec![[6, 0, 0, 0]]),
+            CommittableColumn::Scalar(vec![[7, 0, 0, 0]]),
+            CommittableColumn::VarChar(vec![[8, 0, 0, 0]]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[9]),
+            CommittableColumn::Boolean(&[true]),
+        ];
+
+        let offset = 2;
+        assert_blitzar_metadata(
+            &committable_columns,
+            offset,
+            &[
+                8, 16, 32, 64, 128, 256, 256, 256, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            ],
+            &[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+            &[
+                129, 2, 128, 3, 0, 0, 128, 4, 0, 0, 0, 0, 0, 0, 128, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 128, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 128,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ],
         );
     }
 }
