@@ -394,6 +394,7 @@ mod tests {
     #[test]
     fn we_can_populate_blitzar_metadata_tables_with_simple_column_and_non_trivial_offsets() {
         let committable_columns = [CommittableColumn::TinyInt(&[1])];
+
         let expected_bit_table = vec![8, 8];
 
         let offset = 0;
@@ -437,9 +438,10 @@ mod tests {
     fn we_can_populate_blitzar_metadata_tables_with_simple_column_and_offsets_with_4_columns() {
         let committable_columns = [CommittableColumn::TinyInt(&[1])];
 
-        let offsets = vec![4, 8, 12];
         let expected_bit_table = vec![8, 8];
         let expected_length_table = vec![4, 4];
+
+        let offsets = vec![4, 8, 12];
         for &offset in &offsets {
             assert_blitzar_metadata(
                 &committable_columns,
@@ -479,9 +481,10 @@ mod tests {
     fn we_can_populate_blitzar_metadata_tables_with_simple_column_and_offsets_with_8_columns() {
         let committable_columns = [CommittableColumn::TinyInt(&[1])];
 
-        let offsets = vec![16, 24, 32, 40, 48, 56];
         let expected_bit_table = vec![8, 8];
         let expected_length_table = vec![8, 8];
+
+        let offsets = vec![16, 24, 32, 40, 48, 56];
         for &offset in &offsets {
             assert_blitzar_metadata(
                 &committable_columns,
@@ -553,10 +556,10 @@ mod tests {
     fn we_can_populate_blitzar_metadata_tables_with_simple_column_and_offsets_with_16_columns() {
         let committable_columns = [CommittableColumn::TinyInt(&[1])];
 
-        let offsets = vec![64, 80, 96, 112];
         let expected_bit_table = vec![8, 8];
         let expected_length_table = vec![16, 16];
-
+        
+        let offsets = vec![64, 80, 96, 112];
         for &offset in &offsets {
             assert_blitzar_metadata(
                 &committable_columns,
