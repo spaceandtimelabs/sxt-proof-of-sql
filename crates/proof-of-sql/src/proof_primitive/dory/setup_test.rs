@@ -155,7 +155,6 @@ fn we_can_serialize_and_deserialize_verifier_setups() {
         let pp = PublicParameters::test_rand(nu, &mut rng);
         let setup = VerifierSetup::from(&pp);
         let serialized = postcard::to_allocvec(&setup).unwrap();
-        dbg!(serialized.len());
         let deserialized: VerifierSetup = postcard::from_bytes(&serialized).unwrap();
         assert_eq!(setup, deserialized);
     }
@@ -173,9 +172,7 @@ fn we_can_read_and_write_verifier_setups_with_various_sizes() {
 
         let setup_start = Instant::now();
         let v_setup = VerifierSetup::from(&pp);
-        let setup_elapsed = Instant::elapsed(&setup_start);
-
-        dbg!(setup_elapsed);
+        let _setup_elapsed = Instant::elapsed(&setup_start);
 
         v_setup.save_to_file(Path::new("setup.bin")).unwrap();
         let setup = VerifierSetup::load_from_file(Path::new("setup.bin"));
