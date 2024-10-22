@@ -558,7 +558,7 @@ mod tests {
 
         let expected_bit_table = vec![8, 8];
         let expected_length_table = vec![16, 16];
-        
+
         let offsets = vec![64, 80, 96, 112];
         for &offset in &offsets {
             assert_blitzar_metadata(
