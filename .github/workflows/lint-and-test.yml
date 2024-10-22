@@ -116,6 +116,8 @@ jobs:
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
       - name: Run posql_db example (Without Blitzar)
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh --no-default-features --features="rayon"
+      - name: Run time example
+        run: cargo run --example time
 
   clippy:
     name: Clippy
