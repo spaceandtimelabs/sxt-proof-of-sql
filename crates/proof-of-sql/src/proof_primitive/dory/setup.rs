@@ -35,7 +35,7 @@ pub struct ProverSetup<'a> {
     pub(super) max_nu: usize,
     /// The handle to the `blitzar` `Gamma_1` instances.
     #[cfg(feature = "blitzar")]
-    blitzar_handle:
+    pub blitzar_handle:
         blitzar::compute::MsmHandle<blitzar::compute::ElementP2<ark_bls12_381::g1::Config>>,
 }
 

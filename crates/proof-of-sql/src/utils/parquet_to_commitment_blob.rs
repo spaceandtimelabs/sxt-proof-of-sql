@@ -71,10 +71,11 @@ pub fn convert_historical_parquet_file_to_commitment_blob(
                         .remove_column(schema.index_of(PARQUET_FILE_PROOF_ORDER_COLUMN).unwrap());
 
                     // Replace appropriate string columns with decimal columns.
-                    let record_batch = convert_utf8_to_decimal_75_within_record_batch_as_appropriate(
-                        &record_batch,
-                        big_decimal_columns.to_vec(),
-                    );
+                    let record_batch =
+                        convert_utf8_to_decimal_75_within_record_batch_as_appropriate(
+                            &record_batch,
+                            big_decimal_columns.to_vec(),
+                        );
 
                     // Calculate and return TableCommitment
                     TableCommitment::<DoryCommitment>::try_from_record_batch_with_offset(
@@ -342,7 +343,7 @@ mod tests {
         // Write RecordBatches to parquet files
         create_mock_file_from_record_batch(parquet_path_1, &record_batch_1);
         create_mock_file_from_record_batch(parquet_path_2, &record_batch_2);
-        
+
         // ACT
         convert_historical_parquet_file_to_commitment_blob(
             &vec![parquet_path_1.into(), parquet_path_2.into()],
@@ -356,7 +357,8 @@ mod tests {
         // Identify expected commitments
         let expected_column = Int32Array::from(vec![2, 1, 3, 4]);
         let expected_record_batch =
-            RecordBatch::try_from_iter(vec![("column", Arc::new(expected_column) as ArrayRef)]).unwrap();
+            RecordBatch::try_from_iter(vec![("column", Arc::new(expected_column) as ArrayRef)])
+                .unwrap();
         let expected_commitment = TableCommitment::<DoryCommitment>::try_from_record_batch(
             &expected_record_batch,
             &dory_prover_setup,
