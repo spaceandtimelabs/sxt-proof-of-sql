@@ -2,8 +2,7 @@ use super::{G1Affine, G2Affine, PublicParameters, GT};
 use crate::base::impl_serde_for_ark_serde_unchecked;
 use alloc::vec::Vec;
 use ark_ec::pairing::{Pairing, PairingOutput};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_serialize::{Compress, Validate};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Compress, Validate};
 use itertools::MultiUnzip;
 use num_traits::One;
 #[cfg(feature = "std")]
@@ -255,7 +254,6 @@ impl VerifierSetup {
         }
     }
 
-    #[must_use]
     #[cfg(feature = "std")]
     /// Function to save `VerifierSetup` to a file in binary form
     pub fn save_to_file(&self, path: &Path) -> std::io::Result<()> {
@@ -275,7 +273,6 @@ impl VerifierSetup {
         Ok(())
     }
 
-    #[must_use]
     #[cfg(feature = "std")]
     /// Function to load `VerifierSetup` from a file in binary form
     pub fn load_from_file(path: &Path) -> std::io::Result<Self> {

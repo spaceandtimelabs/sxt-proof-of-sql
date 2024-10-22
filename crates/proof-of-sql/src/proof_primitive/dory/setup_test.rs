@@ -1,7 +1,6 @@
-use std::{fs, path::Path, time::Instant};
-
 use super::{test_rng, ProverSetup, PublicParameters, VerifierSetup};
 use ark_ec::pairing::Pairing;
+use std::{fs, path::Path, time::Instant};
 
 #[test]
 fn we_can_create_and_manually_check_a_small_prover_setup() {
@@ -166,10 +165,7 @@ fn we_can_measure_size_of_various_verifier_setups() {
         let v_setup = VerifierSetup::from(&pp);
         let setup_elapsed = Instant::elapsed(&setup_start);
 
-        println!(
-            "Created verifier setup with size {:?} in {:?}",
-            i, setup_elapsed
-        );
+        println!("Created verifier setup with size {i:?} in {setup_elapsed:?}");
 
         v_setup.save_to_file(Path::new("setup.bin")).unwrap();
         let setup = VerifierSetup::load_from_file(Path::new("setup.bin"));
