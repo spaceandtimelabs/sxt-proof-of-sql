@@ -21,7 +21,8 @@ pub enum SetExpression {
         /// Result expressions e.g. `a` and `b` in `SELECT a, b FROM table`
         result_exprs: Vec<SelectResultExpr>,
         /// Table expression e.g. `table` in `SELECT a, b FROM table`
-        from: Vec<Box<TableExpression>>,
+        //from: Vec<Box<TableExpression>>,
+        from:Box<TableExpressionwithjoin>,
         /// Filter expression e.g. `a > 5` in `SELECT a, b FROM table WHERE a > 5`
         /// If None, no filter is applied
         where_expr: Option<Box<Expression>>,
@@ -70,6 +71,13 @@ impl AliasedResultExpr {
 }
 
 /// Representations of base queries
+/// new :: 
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct TableExpressionwithjoin{
+    pub relation: Vec<Box<TableExpression>>,
+    pub joins: Option<Vec<JoinedSelectTable>>, 
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum TableExpression {
     /// The row set of a given table; possibly providing an alias
@@ -79,6 +87,36 @@ pub enum TableExpression {
         /// Namespace / schema for the table
         schema: Option<Identifier>,
     },
+}
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct JoinedSelectTable {
+    pub operator: JoinOperator,
+    pub table: TableExpression,
+    pub constraint: Option<JoinConstraint>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum JoinOperator {
+    TypedJoin{
+        natural:bool,
+        join_type:Option<JoinType>,
+    },
+    Comma,
+}
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum JoinType {
+    LeftOuter,
+    Left,
+    Inner,
+    Cross,
+    RightOuter,
+    Right,   
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum JoinConstraint {
+    On(Box<Expression>),
+    Using(Vec<Identifier>),
 }
 
 /// Binary operators for simple expressions

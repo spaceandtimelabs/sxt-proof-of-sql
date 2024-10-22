@@ -1,5 +1,5 @@
 use super::intermediate_ast::{OrderBy, SetExpression, Slice, TableExpression};
-use crate::{sql::SelectStatementParser, Identifier, ParseError, ParseResult, ResourceId};
+use crate::{intermediate_ast::TableExpressionwithjoin, sql::SelectStatementParser, Identifier, ParseError, ParseResult, ResourceId};
 use alloc::{boxed::Box, string::ToString, vec::Vec};
 use core::{fmt, str::FromStr};
 use serde::{Deserialize, Serialize};
@@ -52,7 +52,7 @@ impl SelectStatement {
                 from,
                 where_expr: _,
                 group_by: _,
-            } => convert_table_expr_to_resource_id_vector(&from[..], default_schema),
+            } => convert_table_expr_to_resource_id_vector(from, default_schema),
         }
     }
 }
@@ -75,13 +75,13 @@ impl FromStr for SelectStatement {
 /// - If `ResourceId::try_new` fails to create a valid `ResourceId`,
 ///   the `.unwrap()` call will cause a panic.
 fn convert_table_expr_to_resource_id_vector(
-    table_expressions: &[Box<TableExpression>],
+    table_expressions: &Box<TableExpressionwithjoin>,
     default_schema: Identifier,
 ) -> Vec<ResourceId> {
     let mut tables = Vec::new();
 
-    for table_expression in table_expressions {
-        let table_ref: &TableExpression = table_expression;
+    for table_expression in table_expressions.relation.clone(){
+        let table_ref: &TableExpression = &table_expression;
 
         match table_ref {
             TableExpression::Named { table, schema } => {

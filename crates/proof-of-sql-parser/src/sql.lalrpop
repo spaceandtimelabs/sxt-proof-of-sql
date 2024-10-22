@@ -149,9 +149,23 @@ QualifiedColumnIdentifier: identifier::Identifier = {
 // FromClause
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-FromClause: Vec<Box<intermediate_ast::TableExpression>> = {
-    "from" <table_ref: TableExpression> => vec![table_ref],
+FromClause: Box<intermediate_ast::TableExpressionwithjoin> = {
+    //"from" <table_ref: TableExpression> => vec![table_ref],
+    "from"<table_refs: TableExpressionwithjoin> => table_refs,
 };
+
+TableExpressionwithjoin: Box<intermediate_ast::TableExpressionwithjoin> = {
+    <table_ref: TableExpression> => Box::new(intermediate_ast::TableExpressionwithjoin{ relation:vec![table_ref], joins: None }),
+    <leftst : TableExpressionwithjoin><operator:JoinOperator><table_joined:TableExpression><constraint:JoinConstraint?> => {
+        let join = intermediate_ast::JoinedSelectTable {operator:operator,table:*table_joined,constraint:constraint};
+        let mut leftst = leftst;
+        match leftst.joins {
+            Some(ref mut joins) => joins.push(join),
+            None => {leftst.joins = Some(vec![join]);}
+        };
+        leftst
+    },
+}
 
 TableExpression: Box<intermediate_ast::TableExpression> = {
     <table: QualifiedTableIdentifier> => table,
@@ -167,6 +181,45 @@ QualifiedTableIdentifier: Box<intermediate_ast::TableExpression> = {
         Box::new(intermediate_ast::TableExpression::Named { table, schema }),
 };
 
+UsingList: Vec<identifier::Identifier> = {
+    <using: UsingCore> => vec![<>],
+
+    <using_list: UsingList> "," <using: UsingCore> => intermediate_ast::append(using_list, using),    
+};
+
+UsingCore: identifier::Identifier = {
+    <col_id: Identifier> => col_id,
+};
+
+JoinConstraint: intermediate_ast::JoinConstraint = {
+    "on" <expr: Expression> => intermediate_ast::JoinConstraint::On(<>),
+    "using" "(" <using_list:UsingList> ")" => intermediate_ast::JoinConstraint::Using(<>),
+};
+
+JoinOperator: intermediate_ast::JoinOperator = {
+    "," => intermediate_ast::JoinOperator::Comma,
+    <natural:"natural"?> <join_type:JoinType?> "join" => intermediate_ast::JoinOperator::TypedJoin {
+        natural: natural.is_some(), join_type: join_type
+    },
+};
+JoinType: intermediate_ast::JoinType = {
+    "left" <"outer"?> => {
+        if <>.is_some() {
+            intermediate_ast::JoinType::LeftOuter
+        } else {
+            intermediate_ast::JoinType::Left
+        }
+    },
+    "inner" => intermediate_ast::JoinType::Inner,
+    "cross" => intermediate_ast::JoinType::Cross,
+    "right" <"outer"?> => {
+        if <>.is_some() {
+            intermediate_ast::JoinType::RightOuter
+        } else {
+            intermediate_ast::JoinType::Right
+        }
+    },
+};
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // WhereClause
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -422,6 +475,7 @@ match {
     r"[fF][rR][oO][mM]" => "from",
     r"[nN][oO][tT]" => "not",
     r"[oO][rR]" => "or",
+    r"[oO][nN]" => "on",
     r"[sS][eE][lL][eE][cC][tT]" => "select",
     r"[wW][hH][eE][rR][eE]" => "where",
     r"[oO][rR][dD][eE][rR]" => "order",
@@ -437,6 +491,14 @@ match {
     r"[fF][aA][lL][sS][eE]" => "false",
     r"[tT][iI][mM][eE][sS][tT][aA][mM][pP]" => "timestamp",
     r"[tT][oO]_[tT][iI][mM][eE][sS][tT][aA][mM][pP]" => "to_timestamp",
+    r"[uU][sS][iI][nN][gG]" => "using",
+    r"[nN][aA][tT][uU][rR][aA][lL]" => "natural",
+    r"[iI][nN][nN][eE][rR]"=> "inner",
+    r"[lL][eE][fF][tT]" => "left",
+    r"[cC][rR][oO][sS][sS]" => "cross",
+    r"[oO][uU][tT][eE][rR]"=>"outer",
+    r"[jJ][oO][iI][nN]" => "join",
+    r"[rR][iI][gG][hH][tT]" => "right",
     
     "," => ",",
     "." => ".",

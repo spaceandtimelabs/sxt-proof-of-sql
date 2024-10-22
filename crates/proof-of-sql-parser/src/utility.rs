@@ -1,7 +1,6 @@
 use crate::{
     intermediate_ast::{
-        AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy,
-        OrderByDirection, SelectResultExpr, SetExpression, Slice, TableExpression, UnaryOperator,
+        AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, JoinedSelectTable, Literal, OrderBy, OrderByDirection, SelectResultExpr, SetExpression, Slice, TableExpression, TableExpressionwithjoin, UnaryOperator
     },
     Identifier, SelectStatement,
 };
@@ -122,11 +121,21 @@ pub fn div(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
 /// # Panics
 ///
 /// This function will panic if either the `name` or the `schema` (if provided) cannot be parsed as valid [Identifier]s.
+// #[must_use]
+// pub fn tab(schema: Option<&str>, name: &str) -> Box<TableExpression> {
+//     Box::new(TableExpression::Named {
+//         table: name.parse().unwrap(),
+//         schema: schema.map(|schema| schema.parse().unwrap()),
+//     })
+// }
 #[must_use]
-pub fn tab(schema: Option<&str>, name: &str) -> Box<TableExpression> {
-    Box::new(TableExpression::Named {
-        table: name.parse().unwrap(),
-        schema: schema.map(|schema| schema.parse().unwrap()),
+pub fn tab(schema:Option<&str>,name: &str,joins:Option<Vec<JoinedSelectTable>>) -> Box<TableExpressionwithjoin>{
+    Box::new(TableExpressionwithjoin{
+        relation: vec![Box::new(TableExpression::Named {
+                    table: name.parse().unwrap(),
+                    schema: schema.map(|schema| schema.parse().unwrap()),
+                })],
+                joins,
     })
 }
 
@@ -298,13 +307,14 @@ pub fn count_all_res(alias: &str) -> SelectResultExpr {
 #[must_use]
 pub fn query(
     result_exprs: Vec<SelectResultExpr>,
-    tab: Box<TableExpression>,
+    tab: Box<TableExpressionwithjoin>,
     where_expr: Box<Expression>,
     group_by: Vec<Identifier>,
 ) -> Box<SetExpression> {
     Box::new(SetExpression::Query {
         result_exprs,
-        from: vec![tab],
+        //from: vec![tab],
+        from:tab,
         where_expr: Some(where_expr),
         group_by,
     })
@@ -316,12 +326,13 @@ pub fn query(
 #[must_use]
 pub fn query_all(
     result_exprs: Vec<SelectResultExpr>,
-    tab: Box<TableExpression>,
+    tab: Box<TableExpressionwithjoin>,
     group_by: Vec<Identifier>,
 ) -> Box<SetExpression> {
     Box::new(SetExpression::Query {
         result_exprs,
-        from: vec![tab],
+        //from: vec![tab],
+        from:tab,
         where_expr: None,
         group_by,
     })

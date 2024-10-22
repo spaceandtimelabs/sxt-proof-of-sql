@@ -148,7 +148,7 @@ fn we_can_parse_a_query_with_constants() {
                     "decimal",
                 ),
             ],
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             vec![],
         ),
         vec![],
@@ -165,7 +165,7 @@ fn we_can_parse_a_query_with_a_column_equals_a_simple_bool() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("a"), lit(false)),
             vec![],
         ),
@@ -183,7 +183,7 @@ fn we_can_parse_a_query_with_a_column_equals_a_simple_integer() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("a"), lit(3)),
             vec![],
         ),
@@ -201,7 +201,7 @@ fn we_can_parse_a_query_with_a_column_equals_a_string() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("a"), lit("this_is_a_test")),
             vec![],
         ),
@@ -219,7 +219,7 @@ fn we_can_parse_a_query_with_a_column_equals_a_decimal() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(
                 col("a"),
                 lit(IntermediateDecimal::try_from("-0.32").unwrap()),
@@ -240,7 +240,7 @@ fn we_can_parse_a_query_with_two_result_columns() {
     let expected_ast = select(
         query(
             cols_res(&["a", "b"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             and(
                 and(
                     equal(col("c"), col("d") + lit(1)),
@@ -266,7 +266,7 @@ fn we_can_parse_a_query_using_select_star() {
     let expected_ast = select(
         query(
             vec![col_res_all()],
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("a"), lit(-1_i64) * col("b")),
             vec![],
         ),
@@ -284,7 +284,7 @@ fn we_can_parse_a_query_using_select_star_and_a_const() {
     let expected_ast = select(
         query(
             vec![col_res_all(), col_res(lit(4), "bigint")],
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("a"), col("b") + lit(3)),
             vec![],
         ),
@@ -308,7 +308,7 @@ fn we_can_parse_a_query_using_multiple_select_star_expressions() {
                 col_res(col("c"), "c"),
                 col_res_all(),
             ],
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("a") - col("b"), lit(3)),
             vec![],
         ),
@@ -326,7 +326,7 @@ fn we_can_parse_a_query_with_one_equals_filter_having_a_positive_literal() {
     let expected_ast = select(
         query(
             vec![col_res(col("a"), "a"), col_res(lit(true), "boolean")],
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("b"), lit(4)),
             vec![],
         ),
@@ -344,7 +344,7 @@ fn we_can_parse_a_query_with_one_equals_filter_having_a_negative_literal() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("b"), lit(-4)),
             vec![],
         ),
@@ -363,7 +363,7 @@ fn we_can_parse_a_query_with_one_not_equals_filter_expression() {
         let expected_ast = select(
             query(
                 cols_res(&["a"]),
-                tab(None, "sxt_tab"),
+                tab(None, "sxt_tab",None),
                 not(equal(col("b"), lit(-4))),
                 vec![],
             ),
@@ -382,7 +382,7 @@ fn we_can_parse_a_query_with_one_logical_not_filter_expression() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             not(equal(col("b"), col("d") + lit(3))),
             vec![],
         ),
@@ -400,7 +400,7 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             and(equal(col("b"), lit(3)), col("c")),
             vec![],
         ),
@@ -417,7 +417,7 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression_with_both_left_an
     let expected_ast = select(
         query(
             cols_res(&["bid_in_usd_over_1e2"]),
-            tab(Some("sxt"), "options_quote"),
+            tab(Some("sxt"), "options_quote",None),
             and(
                 equal(col("type"), lit("call")),
                 equal(col("security"), lit("eth")),
@@ -438,7 +438,7 @@ fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             or(
                 equal(col("b"), lit(3)),
                 equal(
@@ -462,7 +462,7 @@ fn we_can_parse_a_query_with_two_logical_and_not_filter_expressions() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             and(
                 equal(col("b"), lit(3)),
                 not(equal(col("c"), col("d") - lit(2))),
@@ -483,7 +483,7 @@ fn we_can_parse_a_query_with_three_logical_not_and_or_filter_expressions() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             not(and(
                 equal(col("b"), lit(3) * lit(7)),
                 or(
@@ -507,7 +507,7 @@ fn we_can_parse_a_query_with_the_minimum_i128_value_as_the_equal_filter_literal(
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("b"), lit(i128::MIN)),
             vec![],
         ),
@@ -522,7 +522,7 @@ fn we_can_parse_a_query_with_the_minimum_i128_value_as_the_equal_filter_literal(
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("b"), lit(i128::MIN)),
             vec![],
         ),
@@ -550,7 +550,7 @@ fn we_can_parse_a_query_with_the_maximum_i128_value_as_the_equal_filter_literal(
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("b"), lit(i128::MAX)),
             vec![],
         ),
@@ -568,7 +568,7 @@ fn we_can_parse_a_query_and_rename_a_result_column_using_the_as_keyword() {
     let expected_ast = select(
         query(
             vec![col_res(col("a"), "a_rename")],
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             equal(col("b"), lit(4) + col("d")),
             vec![],
         ),
@@ -586,7 +586,7 @@ fn we_can_parse_a_query_and_rename_a_result_column_without_using_the_as_keyword(
     let expected_ast = select(
         query(
             vec![col_res(col("a"), "a_rename")],
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             ge(col("b"), col("c") + lit(4)),
             vec![],
         ),
@@ -615,7 +615,7 @@ fn we_can_parse_logical_not_with_less_precedence_priority_than_equal_operator() 
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "sxt_tab"),
+            tab(None, "sxt_tab",None),
             not(equal(col("b"), col("d"))),
             vec![],
         ),
@@ -677,7 +677,7 @@ fn we_can_parse_a_query_with_one_schema_followed_by_a_table_name() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(Some("eth"), "sxt_tab"),
+            tab(Some("eth"), "sxt_tab",None),
             le(col("b"), lit(4)),
             vec![],
         ),
@@ -691,7 +691,7 @@ fn we_can_parse_a_query_with_one_schema_followed_by_a_table_name() {
 fn we_can_parse_a_query_without_a_filter() {
     let ast = "select a from tab".parse::<SelectStatement>().unwrap();
     let expected_ast = select(
-        query_all(cols_res(&["a"]), tab(None, "tab"), vec![]),
+        query_all(cols_res(&["a"]), tab(None, "tab",None), vec![]),
         vec![],
         None,
     );
@@ -699,7 +699,7 @@ fn we_can_parse_a_query_without_a_filter() {
 
     let ast = "select * from eth.tab".parse::<SelectStatement>().unwrap();
     let expected_ast = select(
-        query_all(vec![col_res_all()], tab(Some("eth"), "tab"), vec![]),
+        query_all(vec![col_res_all()], tab(Some("eth"), "tab",None), vec![]),
         vec![],
         None,
     );
@@ -712,7 +712,7 @@ fn we_can_parse_a_single_order_by_with_ascending_direction_as_default() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(cols_res(&["a"]), tab(None, "tab"), vec![]),
+        query_all(cols_res(&["a"]), tab(None, "tab",None), vec![]),
         order("x", Asc),
         None,
     );
@@ -727,7 +727,7 @@ fn we_can_parse_a_single_order_by_with_a_filter() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "tab"),
+            tab(None, "tab",None),
             equal(col("y"), lit(3)),
             vec![],
         ),
@@ -743,7 +743,7 @@ fn we_can_parse_a_single_order_by_in_the_ascending_direction() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(cols_res(&["a"]), tab(None, "tab"), vec![]),
+        query_all(cols_res(&["a"]), tab(None, "tab",None), vec![]),
         order("x", Asc),
         None,
     );
@@ -756,7 +756,7 @@ fn we_can_parse_a_single_order_by_in_the_descending_direction() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(cols_res(&["a"]), tab(None, "tab"), vec![]),
+        query_all(cols_res(&["a"]), tab(None, "tab",None), vec![]),
         order("x", Desc),
         None,
     );
@@ -769,7 +769,7 @@ fn we_can_parse_multiple_order_by() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(vec![col_res_all()], tab(None, "tab"), vec![]),
+        query_all(vec![col_res_all()], tab(None, "tab",None), vec![]),
         orders(&["x", "y", "z"], &[Desc, Asc, Asc]),
         None,
     );
@@ -787,7 +787,7 @@ fn we_cannot_parse_order_by_referencing_reserved_keywords_yet() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(vec![col_res(col("a"), "asc")], tab(None, "tab"), vec![]),
+        query_all(vec![col_res(col("a"), "asc")], tab(None, "tab",None), vec![]),
         orders(&["a"], &[Asc]),
         None,
     );
@@ -877,7 +877,7 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(cols_res(&["a"]), tab(None, "tab"), vec![]),
+        query_all(cols_res(&["a"]), tab(None, "tab",None), vec![]),
         vec![],
         slice(3, 0),
     );
@@ -897,7 +897,7 @@ fn we_can_parse_a_query_having_a_simple_offset_clause() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(cols_res(&["a"]), tab(None, "tab"), vec![]),
+        query_all(cols_res(&["a"]), tab(None, "tab",None), vec![]),
         vec![],
         slice(u64::MAX, 3),
     );
@@ -910,7 +910,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(cols_res(&["a"]), tab(None, "tab"), vec![]),
+        query_all(cols_res(&["a"]), tab(None, "tab",None), vec![]),
         vec![],
         slice(u64::MAX, -3),
     );
@@ -923,7 +923,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(cols_res(&["a"]), tab(None, "tab"), vec![]),
+        query_all(cols_res(&["a"]), tab(None, "tab",None), vec![]),
         vec![],
         slice(55, 3),
     );
@@ -933,7 +933,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(cols_res(&["a"]), tab(None, "tab"), vec![]),
+        query_all(cols_res(&["a"]), tab(None, "tab",None), vec![]),
         vec![],
         slice(55, 3),
     );
@@ -949,7 +949,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "tab"),
+            tab(None, "tab",None),
             equal(col("a"), lit(3)),
             vec![],
         ),
@@ -977,7 +977,7 @@ fn we_can_parse_a_query_with_filter_ge() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "tab"),
+            tab(None, "tab",None),
             ge(col("b"), lit(4)),
             vec![],
         ),
@@ -995,7 +995,7 @@ fn we_can_parse_a_query_with_filter_lt() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "tab"),
+            tab(None, "tab",None),
             not(ge(col("b"), lit(4))),
             vec![],
         ),
@@ -1013,7 +1013,7 @@ fn we_can_parse_a_query_with_filter_le() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "tab"),
+            tab(None, "tab",None),
             le(col("b"), lit(4)),
             vec![],
         ),
@@ -1031,7 +1031,7 @@ fn we_can_parse_a_query_with_filter_gt() {
     let expected_ast = select(
         query(
             cols_res(&["a"]),
-            tab(None, "tab"),
+            tab(None, "tab",None),
             not(le(col("b"), lit(4))),
             vec![],
         ),
@@ -1122,7 +1122,7 @@ fn we_can_parse_a_simple_group_by_clause() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(cols_res(&["a"]), tab(None, "tab"), group_by(&["a"])),
+        query_all(cols_res(&["a"]), tab(None, "tab",None), group_by(&["a"])),
         vec![],
         None,
     );
@@ -1136,7 +1136,7 @@ fn we_can_parse_a_simple_group_by_clause_with_multiple_columns() {
     let expected_ast = select(
         query_all(
             cols_res(&["a"]),
-            tab(None, "tab"),
+            tab(None, "tab",None),
             group_by(&["a", "b", "d"]),
         ),
         vec![],
@@ -1151,7 +1151,7 @@ fn we_can_parse_a_simple_group_by_clause_using_the_wildcard() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(vec![col_res_all()], tab(None, "tab"), group_by(&["a"])),
+        query_all(vec![col_res_all()], tab(None, "tab",None), group_by(&["a"])),
         vec![],
         None,
     );
@@ -1171,7 +1171,7 @@ fn we_can_parse_a_group_by_clause_containing_multiple_aggregations() {
                 count_res(col("a"), "__count__"),
                 count_all_res("count_all"),
             ],
-            tab(None, "tab"),
+            tab(None, "tab",None),
             group_by(&["a", "b"]),
         ),
         vec![],
@@ -1195,7 +1195,7 @@ fn we_can_parse_a_group_by_clause_containing_multiple_aggregations_where_clause_
                 count_res(col("a"), "__count__"),
                 count_all_res("count_all"),
             ],
-            tab(None, "tab"),
+            tab(None, "tab",None),
             equal(col("d"), lit(3)),
             group_by(&["a", "b"]),
         ),
@@ -1233,7 +1233,7 @@ fn we_can_parse_a_aggregations_without_group_by_although_it_is_semantically_inco
                 count_res(col("a"), "__count__"),
                 count_all_res("count_all"),
             ],
-            tab(None, "tab"),
+            tab(None, "tab",None),
             vec![],
         ),
         vec![],
@@ -1262,7 +1262,7 @@ fn we_can_parse_a_simple_add_mul_sub_arithmetic_expressions_in_the_result_expr()
                 col_res(lit(-77) - col("h"), "__expr__"),
                 col_res(col("a").sum() / col("b").sum(), "__expr__"),
             ],
-            tab(None, "tab"),
+            tab(None, "tab",None),
             vec![],
         ),
         vec![],
@@ -1283,7 +1283,7 @@ fn mul_and_div_operators_have_the_same_precedence_and_left_expressions_are_alway
                 col_res((col("a") * col("b")) / col("c"), "__expr__"),
                 col_res(col("a") * (col("b") / col("c")), "__expr__"),
             ],
-            tab(None, "tab"),
+            tab(None, "tab",None),
             vec![],
         ),
         vec![],
@@ -1298,7 +1298,7 @@ fn we_can_parse_a_single_literal_in_the_result_expr() {
     let expected_ast = select(
         query_all(
             vec![col_res(lit(-123), "__expr__")],
-            tab(None, "tab"),
+            tab(None, "tab",None),
             vec![],
         ),
         vec![],
@@ -1313,7 +1313,7 @@ fn we_can_parse_a_single_boolean_literal_in_the_result_expr() {
     let expected_ast = select(
         query_all(
             vec![col_res(lit(false), "__expr__")],
-            tab(None, "tab"),
+            tab(None, "tab",None),
             vec![],
         ),
         vec![],
@@ -1362,7 +1362,7 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
                     "d",
                 ),
             ],
-            tab(None, "tab"),
+            tab(None, "tab",None),
             vec![],
         ),
         vec![],
@@ -1379,7 +1379,7 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
     let expected_ast = select(
         query_all(
             vec![sum_res(lit(2) * col("f") + col("c"), "d")],
-            tab(None, "tab"),
+            tab(None, "tab",None),
             vec![],
         ),
         vec![],
@@ -1400,7 +1400,7 @@ fn we_can_parse_arithmetic_expression_within_aggregations_and_non_aggregations_i
                 sum_res(lit(2) * col("f") + col("c"), "d"),
                 col_res(col("g") - col("k"), "__expr__"),
             ],
-            tab(None, "tab"),
+            tab(None, "tab",None),
             group_by(&["g"]),
         ),
         vec![],
@@ -1423,7 +1423,7 @@ fn we_can_use_arithmetic_outside_aggregation_functions() {
                     "__expr__",
                 ),
             ],
-            tab(None, "employees"),
+            tab(None, "employees",None),
             group_by(&["f"]),
         ),
         vec![],
@@ -1440,7 +1440,7 @@ fn we_can_use_aggregation_inside_another_aggregation() {
     let expected_ast = select(
         query_all(
             vec![col_res((lit(2) * col("a")).max().sum(), "__sum__")],
-            tab(None, "tab"),
+            tab(None, "tab",None),
             vec![],
         ),
         vec![],
@@ -1448,3 +1448,21 @@ fn we_can_use_aggregation_inside_another_aggregation() {
     );
     assert_eq!(ast, expected_ast);
 }
+
+
+//join tests
+//need to test four typr join
+//inner join
+#[test]
+fn we_can_parse_a_inner_join_in_the_result_expr() {
+    let ast = "select * from table1 inner join table2 on table1.id = table2.id"
+    .parse::<SelectStatement>()
+    .unwrap();
+    // let expected_ast;
+    // assert_eq!(ast, expected_ast);
+}
+//left join
+
+//outer join
+
+//cross join

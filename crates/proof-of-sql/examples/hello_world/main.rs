@@ -1,6 +1,6 @@
 #![doc = include_str!("README.md")]
 use ark_std::test_rng;
-use blitzar::compute::init_backend;
+//use blitzar::compute::init_backend;
 use proof_of_sql::{
     base::database::{
         owned_table_utility::{bigint, owned_table, varchar},
@@ -42,7 +42,7 @@ fn end_timer(instant: Instant) {
 /// - Will panic if printing fails during error handling.
 fn main() {
     let timer = start_timer("Warming up GPU");
-    init_backend();
+    //init_backend();
     end_timer(timer);
     let timer = start_timer("Loading data");
     let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
