@@ -121,6 +121,7 @@ required-features = [ "arrow" ]
 
 [[example]]
 name = "census"
+required-features = [ "arrow" ]
 
 [[example]]
 name = "plastics"
