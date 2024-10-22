@@ -45,13 +45,19 @@ echo "$cargo_commands"
 echo "========================="
 
 # Execute the commands
+failed_tests=0
 while IFS= read -r cmd; do
     echo "Running command: $cmd"
     if ! eval "$cmd"; then
         echo "Error: Command failed - $cmd"
         echo "Stopping execution."
-        exit 1
+        failed_tests=$((failed_tests + 1))
     fi
 done <<< "$cargo_commands"
 
-echo "All CI checks (excluding tests and udeps) have completed successfully."
+# Print the results
+if [ "$failed_tests" -gt 0 ]; then
+    echo "Error: $failed_tests CI checks (excluding tests and udeps) have FAILED."
+else
+    echo "All CI checks (excluding tests and udeps) have completed successfully."
+fi

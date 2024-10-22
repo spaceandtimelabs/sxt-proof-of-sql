@@ -1,6 +1,9 @@
 use super::{Scalar, ScalarConversionError};
-use crate::base::math::decimal::MAX_SUPPORTED_PRECISION;
-use alloc::{format, string::String, vec::Vec};
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 use ark_ff::{BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use bytemuck::TransparentWrapper;
@@ -217,35 +220,29 @@ impl<T: MontConfig<4>> MontScalar<T> {
     }
 }
 
-impl<T: MontConfig<4>> TryFrom<BigInt> for MontScalar<T> {
+impl<T> TryFrom<BigInt> for MontScalar<T>
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
     type Error = ScalarConversionError;
 
     fn try_from(value: BigInt) -> Result<Self, Self::Error> {
-        // Obtain the absolute value to ignore the sign when counting digits
-        let value_abs = value.abs();
-
-        // Extract digits and check the number of digits directly
-        let (_, digits) = value_abs.to_u64_digits();
-
-        // Check if the number of digits exceeds the maximum precision allowed
-        if digits.len() > MAX_SUPPORTED_PRECISION.into() {
-            return Err(ScalarConversionError::Overflow{ error: format!(
-                "Attempted to parse a number with {} digits, which exceeds the max supported precision of {}",
-                digits.len(),
-                MAX_SUPPORTED_PRECISION
-            )});
+        if value.abs() > BigInt::from(<MontScalar<T>>::MAX_SIGNED) {
+            return Err(ScalarConversionError::Overflow {
+                error: "BigInt too large for Scalar".to_string(),
+            });
         }
 
-        // Continue with the previous logic
-        assert!(digits.len() <= 4); // This should not happen if the precision check is correct
-        let mut data = [0u64; 4];
-        data[..digits.len()].copy_from_slice(&digits);
-        let result = Self::from_bigint(data);
-        match value.sign() {
-            // Updated to use value.sign() for clarity
-            num_bigint::Sign::Minus => Ok(-result),
-            _ => Ok(result),
-        }
+        let (sign, digits) = value.to_u64_digits();
+        assert!(digits.len() <= 4); // This should not happen if the above check is correct
+        let mut limbs = [0u64; 4];
+        limbs[..digits.len()].copy_from_slice(&digits);
+        let result = Self::from(limbs);
+        Ok(match sign {
+            num_bigint::Sign::Minus => -result,
+            num_bigint::Sign::Plus | num_bigint::Sign::NoSign => result,
+        })
     }
 }
 impl<T: MontConfig<4>> From<[u64; 4]> for MontScalar<T> {
@@ -433,6 +430,7 @@ impl super::Scalar for Curve25519Scalar {
     const ZERO: Self = Self(ark_ff::MontFp!("0"));
     const ONE: Self = Self(ark_ff::MontFp!("1"));
     const TWO: Self = Self(ark_ff::MontFp!("2"));
+    const TEN: Self = Self(ark_ff::MontFp!("10"));
 }
 
 impl<T> TryFrom<MontScalar<T>> for bool
@@ -565,6 +563,8 @@ where
     MontScalar<T>: Scalar,
 {
     type Error = ScalarConversionError;
+
+    #[allow(clippy::cast_possible_wrap)]
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
         let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
             (-1, (-value).into())

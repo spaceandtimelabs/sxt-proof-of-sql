@@ -1,6 +1,6 @@
 use crate::base::{
     database::{ColumnOperationError, ColumnType},
-    math::decimal::DecimalError,
+    math::decimal::{DecimalError, IntermediateDecimalError},
 };
 use alloc::{
     boxed::Box,
@@ -8,10 +8,7 @@ use alloc::{
     string::{String, ToString},
 };
 use core::result::Result;
-use proof_of_sql_parser::{
-    intermediate_decimal::IntermediateDecimalError, posql_time::PoSQLTimestampError, Identifier,
-    ResourceId,
-};
+use proof_of_sql_parser::{posql_time::PoSQLTimestampError, Identifier, ResourceId};
 use snafu::Snafu;
 
 /// Errors from converting an intermediate AST into a provable AST.

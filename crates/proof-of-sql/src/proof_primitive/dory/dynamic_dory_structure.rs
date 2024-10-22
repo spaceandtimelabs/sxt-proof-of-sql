@@ -33,7 +33,6 @@
 /// Returns the full width of a row in the matrix.
 ///
 /// Note: when row = 1, this correctly returns 2, even though no data belongs at position 0.
-#[allow(dead_code)]
 pub(crate) const fn full_width_of_row(row: usize) -> usize {
     ((2 * row + 4) / 3).next_power_of_two()
 }
@@ -56,7 +55,6 @@ pub(crate) const fn row_and_column_from_index(index: usize) -> (usize, usize) {
 }
 
 /// Returns the index of data where the (row, column) belongs.
-#[allow(dead_code)]
 pub(crate) fn index_from_row_and_column(row: usize, column: usize) -> Option<usize> {
     let width_of_row = full_width_of_row(row);
     (column < width_of_row && (row, column) != (1, 0))
@@ -66,7 +64,6 @@ pub(crate) fn index_from_row_and_column(row: usize, column: usize) -> Option<usi
 /// Returns a matrix size, (height, width), that can hold the given number of data points being committed with respect to an offset.
 ///
 /// Note: when `data_len = 0` and `offset = 0`, this function returns an empty matrix with size (0, 0).
-#[allow(dead_code)]
 pub(crate) const fn matrix_size(data_len: usize, offset: usize) -> (usize, usize) {
     if data_len == 0 && offset == 0 {
         return (0, 0);

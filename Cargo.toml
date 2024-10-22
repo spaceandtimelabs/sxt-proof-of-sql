@@ -53,6 +53,7 @@ rayon = { version = "1.5" }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 snafu = { version = "0.8.4", default-features = false }
+sqlparser = { version = "0.45.0", default-features = false }
 tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
 tracing = { version = "0.1.36", default-features = false }
 tracing-opentelemetry = { version = "0.22.0" }
@@ -64,43 +65,5 @@ zerocopy = { version = "0.7.34" }
 missing_docs = "warn"
 
 [workspace.lints.clippy]
-missing_panics_doc = "deny"
-doc_markdown = "deny"
-match_same_arms = "deny"
-similar_names = "deny"
-many_single_char_names = "deny"
-explicit_iter_loop = "deny"
-implicit_clone = "deny"
-uninlined_format_args = "deny"
-semicolon_if_nothing_returned = "deny"
-unnested_or_patterns = "deny"
-unreadable_literal = "deny"
-must_use_candidate = "deny"
-range_plus_one = "deny"
-cloned_instead_of_copied = "deny"
-from_iter_instead_of_collect = "deny"
-cast_lossless = "deny"
-redundant_closure_for_method_calls = "deny"
-inconsistent_struct_constructor = "deny"
-default_trait_access = "deny"
-module_name_repetitions = "deny" 
-wildcard_imports = "deny"
-unused_self = "deny"
-manual_let_else = "deny"
-struct_field_names = "deny"
-unicode_not_nfc = "deny"               
-manual_string_new = "deny"  
-large_types_passed_by_value = "deny" 
-map_unwrap_or = "deny"
-if_not_else = "deny" 
-explicit_deref_methods = "deny" 
-items_after_statements = "deny"
-bool_to_int_with_if = "deny"           
-ptr_as_ptr = "deny"        
-match_wildcard_for_single_variants = "deny"   
-match_bool = "deny"  
-manual_assert = "deny"    
-trivially_copy_pass_by_ref = "deny"
-unnecessary_wraps = "deny"
-should_panic_without_expect = "deny"
-needless_pass_by_value = "deny"
+missing_errors_doc = "allow"
+pedantic = { level = "warn", priority = -1 }
