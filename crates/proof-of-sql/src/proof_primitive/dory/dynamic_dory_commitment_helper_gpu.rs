@@ -1,5 +1,6 @@
 use super::{
     blitzar_metadata_table::{create_blitzar_metadata_tables, signed_commits},
+    dynamic_dory_structure::row_and_column_from_index,
     pairings, DynamicDoryCommitment, G1Affine, ProverSetup,
 };
 use crate::base::{commitment::CommittableColumn, slice_ops::slice_cast};
@@ -32,6 +33,7 @@ pub(super) fn compute_dynamic_dory_commitments(
     setup: &ProverSetup,
 ) -> Vec<DynamicDoryCommitment> {
     let Gamma_2 = setup.Gamma_2.last().unwrap();
+    let (gamma_2_offset, _) = row_and_column_from_index(offset);
 
     // Get metadata tables for Blitzar's vlen_msm algorithm.
     let (blitzar_output_bit_table, blitzar_output_length_table, blitzar_scalars) =
@@ -75,7 +77,7 @@ pub(super) fn compute_dynamic_dory_commitments(
                         .take(num_commits);
                     DynamicDoryCommitment(pairings::multi_pairing(
                         sub_slice,
-                        &Gamma_2[..num_commits],
+                        &Gamma_2[gamma_2_offset..gamma_2_offset + num_commits],
                     ))
                 })
                 .collect()
