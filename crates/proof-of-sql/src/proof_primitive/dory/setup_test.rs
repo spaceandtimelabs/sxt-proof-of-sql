@@ -155,6 +155,10 @@ fn we_can_serialize_and_deserialize_verifier_setups() {
     }
 }
 
+/// generated setup of size 1 in 196.525603ms
+/// generated setup of size 2 in 280.311185ms
+/// generated setup of size 3 in 492.478225ms
+/// generated setup of size 4 in 727.455531ms
 #[test]
 fn we_can_measure_size_of_various_verifier_setups() {
     for i in 1..=4 {
