@@ -73,6 +73,41 @@ impl<'a> ProverSetup<'a> {
         }
     }
 
+    /// Create a new `ProverSetup` from the public parameters and blitzar handle
+    /// # Panics
+    /// Panics if the length of `Gamma_1` or `Gamma_2` is not equal to `2^max_nu`.
+    #[must_use]
+    #[cfg(feature = "blitzar")]
+    pub fn from_public_parameters_and_blitzar_handle(
+        public_parameters: &'a PublicParameters,
+        blitzar_handle: blitzar::compute::MsmHandle<
+            blitzar::compute::ElementP2<ark_bls12_381::g1::Config>,
+        >,
+    ) -> Self {
+        let Gamma_1: &'a [G1Affine] = &public_parameters.Gamma_1;
+        let Gamma_2: &'a [G2Affine] = &public_parameters.Gamma_2;
+        let H_1 = public_parameters.H_1;
+        let H_2 = public_parameters.H_2;
+        let Gamma_2_fin = public_parameters.Gamma_2_fin;
+        let max_nu = public_parameters.max_nu;
+        assert_eq!(Gamma_1.len(), 1 << max_nu);
+        assert_eq!(Gamma_2.len(), 1 << max_nu);
+
+        let (Gamma_1, Gamma_2): (Vec<_>, Vec<_>) = (0..=max_nu)
+            .map(|k| (&Gamma_1[..1 << k], &Gamma_2[..1 << k]))
+            .unzip();
+        ProverSetup {
+            Gamma_1,
+            Gamma_2,
+            H_1,
+            H_2,
+            Gamma_2_fin,
+            max_nu,
+            #[cfg(feature = "blitzar")]
+            blitzar_handle,
+        }
+    }
+
     #[cfg(feature = "blitzar")]
     #[tracing::instrument(name = "ProverSetup::blitzar_msm", level = "debug", skip_all)]
     pub(super) fn blitzar_msm(
