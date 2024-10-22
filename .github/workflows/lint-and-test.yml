@@ -112,6 +112,8 @@ jobs:
         run: cargo run --example hello_world --no-default-features --features="rayon test"
       - name: Run hello_world example (Without Blitzar and Without Rayon)
         run: cargo run --example hello_world --no-default-features --features="test"
+      - name: Run space example
+        run: cargo run --example space
       - name: Run posql_db example (With Blitzar)
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
       - name: Run posql_db example (Without Blitzar)
