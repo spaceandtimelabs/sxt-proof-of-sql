@@ -166,7 +166,7 @@ fn we_can_serialize_and_deserialize_verifier_setups() {
 // generated setup of size 3 in 492.478225ms
 // generated setup of size 4 in 727.455531ms
 #[test]
-fn we_can_measure_size_of_various_verifier_setups() {
+fn we_can_read_and_write_verifier_setups_with_various_sizes() {
     for i in 1..=4 {
         let mut rng = test_rng();
         let pp = PublicParameters::test_rand(i, &mut rng);
