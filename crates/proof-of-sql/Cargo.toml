@@ -90,6 +90,9 @@ required-features = ["test"]
 name = "posql_db"
 required-features = [ "arrow" ]
 
+[[example]]
+name = "time"
+
 [[bench]]
 name = "posql_benches"
 harness = false
