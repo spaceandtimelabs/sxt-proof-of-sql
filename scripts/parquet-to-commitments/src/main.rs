@@ -8,7 +8,7 @@ use glob::glob;
 use proof_of_sql::{
     proof_primitive::dory::{DoryProverPublicSetup, ProverSetup, PublicParameters},
     utils::{
-        parquet_to_commitment_blob::read_parquet_file_to_commitment_as_blob,
+        parquet_to_commitment_blob::convert_historical_parquet_file_to_commitment_blob,
         parse::find_bigdecimals,
     },
 };
@@ -96,7 +96,7 @@ fn main() {
 
             let full_output_prefix = format!("{output_prefix}-{namespace}-{table_name}");
             let result = panic::catch_unwind(|| {
-                read_parquet_file_to_commitment_as_blob(
+                convert_historical_parquet_file_to_commitment_blob(
                     &parquets_for_table,
                     &full_output_prefix,
                     &dory_prover_setup,
