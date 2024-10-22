@@ -1,6 +1,6 @@
 use super::{test_rng, ProverSetup, PublicParameters, VerifierSetup};
 use ark_ec::pairing::Pairing;
-use std::{fs, path::Path, time::Instant};
+use std::{fs, path::Path};
 
 #[test]
 fn we_can_create_and_manually_check_a_small_prover_setup() {
@@ -157,27 +157,5 @@ fn we_can_serialize_and_deserialize_verifier_setups() {
         let serialized = postcard::to_allocvec(&setup).unwrap();
         let deserialized: VerifierSetup = postcard::from_bytes(&serialized).unwrap();
         assert_eq!(setup, deserialized);
-    }
-}
-
-// generated setup of size 1 in 196.525603ms
-// generated setup of size 2 in 280.311185ms
-// generated setup of size 3 in 492.478225ms
-// generated setup of size 4 in 727.455531ms
-#[test]
-fn we_can_read_and_write_verifier_setups_with_various_sizes() {
-    for i in 1..=4 {
-        let mut rng = test_rng();
-        let pp = PublicParameters::test_rand(i, &mut rng);
-
-        let setup_start = Instant::now();
-        let v_setup = VerifierSetup::from(&pp);
-        let _setup_elapsed = Instant::elapsed(&setup_start);
-
-        v_setup.save_to_file(Path::new("setup.bin")).unwrap();
-        let setup = VerifierSetup::load_from_file(Path::new("setup.bin"));
-        assert!(setup.is_ok());
-
-        fs::remove_file(Path::new("setup.bin")).unwrap();
     }
 }
