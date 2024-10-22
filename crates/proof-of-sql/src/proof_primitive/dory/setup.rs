@@ -107,7 +107,9 @@ impl<'a> ProverSetup<'a> {
         }
     }
 
-    /// Gets the MSMHandle for this setup
+    /// Gets the `MSMHandle` for this setup
+    #[must_use]
+    #[cfg(feature = "blitzar")]
     pub fn get_handle(
         self,
     ) -> blitzar::compute::MsmHandle<blitzar::compute::ElementP2<ark_bls12_381::g1::Config>> {
