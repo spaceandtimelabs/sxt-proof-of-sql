@@ -113,10 +113,7 @@ impl DynProofExprBuilder<'_> {
                     try_convert_intermediate_decimal_to_scalar(d, precision, scale)?,
                 )))
             }
-            Literal::VarChar(s) => Ok(DynProofExpr::new_literal(LiteralValue::VarChar((
-                s.clone(),
-                s.into(),
-            )))),
+            Literal::VarChar(s) => Ok(DynProofExpr::new_literal(LiteralValue::VarChar(s.clone()))),
             Literal::Timestamp(its) => {
                 let timestamp = match its.timeunit() {
                     PoSQLTimeUnit::Nanosecond => {

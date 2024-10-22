@@ -113,10 +113,7 @@ pub fn const_int128<C: Commitment>(val: i128) -> DynProofExpr<C> {
 }
 
 pub fn const_varchar<C: Commitment>(val: &str) -> DynProofExpr<C> {
-    DynProofExpr::new_literal(LiteralValue::VarChar((
-        val.to_string(),
-        C::Scalar::from(val),
-    )))
+    DynProofExpr::new_literal(LiteralValue::VarChar(val.to_string()))
 }
 
 /// Create a constant scalar value. Used if we don't want to specify column types.

@@ -25,7 +25,7 @@ pub enum LiteralValue<S: Scalar> {
     /// String literals
     ///  - the first element maps to the str value.
     ///  - the second element maps to the str hash (see [`crate::base::scalar::Scalar`]).
-    VarChar((String, S)),
+    VarChar(String),
     /// i128 literals
     Int128(i128),
     /// Decimal literals with a max width of 252 bits
@@ -63,7 +63,8 @@ impl<S: Scalar> LiteralValue<S> {
             Self::SmallInt(i) => i.into(),
             Self::Int(i) => i.into(),
             Self::BigInt(i) => i.into(),
-            Self::VarChar((_, s)) | Self::Decimal75(_, _, s) => *s,
+            Self::VarChar(str) => str.into(),
+            Self::Decimal75(_, _, s) => *s,
             Self::Int128(i) => i.into(),
             Self::Scalar(scalar) => *scalar,
             Self::TimeStampTZ(_, _, time) => time.into(),

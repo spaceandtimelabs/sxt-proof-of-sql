@@ -132,9 +132,9 @@ impl<'a, S: Scalar> Column<'a, S> {
             LiteralValue::TimeStampTZ(tu, tz, value) => {
                 Column::TimestampTZ(*tu, *tz, alloc.alloc_slice_fill_copy(length, *value))
             }
-            LiteralValue::VarChar((string, scalar)) => Column::VarChar((
+            LiteralValue::VarChar(string) => Column::VarChar((
                 alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
-                alloc.alloc_slice_fill_copy(length, *scalar),
+                alloc.alloc_slice_fill_copy(length, S::from(string)),
             )),
         }
     }
