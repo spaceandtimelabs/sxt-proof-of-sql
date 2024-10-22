@@ -143,6 +143,11 @@ fn we_can_create_verifier_setups_with_various_sizes() {
     }
 }
 
+// nu size 1 = 3890 bytes
+// nu size 2 = 6770 bytes
+// nu size 3 = 9650 bytes
+// nu size 4 = 12530 bytes
+// nu size 5 = 15410 bytes
 #[test]
 fn we_can_serialize_and_deserialize_verifier_setups() {
     let mut rng = test_rng();
@@ -150,6 +155,7 @@ fn we_can_serialize_and_deserialize_verifier_setups() {
         let pp = PublicParameters::test_rand(nu, &mut rng);
         let setup = VerifierSetup::from(&pp);
         let serialized = postcard::to_allocvec(&setup).unwrap();
+        dbg!(serialized.len());
         let deserialized: VerifierSetup = postcard::from_bytes(&serialized).unwrap();
         assert_eq!(setup, deserialized);
     }
