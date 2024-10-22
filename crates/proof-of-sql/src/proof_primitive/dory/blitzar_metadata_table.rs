@@ -144,6 +144,10 @@ fn copy_column_data_to_slice(
 ///
 /// A tuple containing the output bit table, output length table,
 /// and scalars required to call Blitzar's `vlen_msm` function.
+///
+/// # Panics
+///
+/// Panics if the row of a column exceeds `u32::MAX`.
 #[tracing::instrument(name = "create_blitzar_metadata_tables", level = "debug", skip_all)]
 pub fn create_blitzar_metadata_tables(
     committable_columns: &[CommittableColumn],
@@ -194,11 +198,11 @@ pub fn create_blitzar_metadata_tables(
         / single_entry_in_blitzar_output_bit_table.len())
         .flat_map(|i| {
             itertools::repeat_n(
-                u32::try_from(full_width_of_row(i)),
+                u32::try_from(full_width_of_row(i))
+                    .expect("row lengths should never exceed u32::MAX"),
                 single_entry_in_blitzar_output_bit_table.len(),
             )
         })
-        .flatten()
         .collect();
 
     // Create a cumulative length table to be used when packing the scalar vector.
