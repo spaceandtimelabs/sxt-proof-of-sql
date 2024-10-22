@@ -1,3 +1,5 @@
+use std::{fs, path::Path, time::Instant};
+
 use super::{test_rng, ProverSetup, PublicParameters, VerifierSetup};
 use ark_ec::pairing::Pairing;
 
@@ -21,10 +23,16 @@ fn we_can_create_and_manually_check_a_small_prover_setup() {
 }
 
 #[test]
-fn we_can_create_and_manually_check_a_small_verifier_setup() {
+fn we_can_create_save_load_and_manually_check_a_small_verifier_setup() {
     let mut rng = test_rng();
     let pp = PublicParameters::test_rand(2, &mut rng);
-    let setup = VerifierSetup::from(&pp);
+    let v_setup = VerifierSetup::from(&pp);
+
+    v_setup.save_to_file(Path::new("setup.bin")).unwrap();
+    let setup = VerifierSetup::load_from_file(Path::new("setup.bin"));
+    assert!(setup.is_ok());
+
+    let setup = setup.unwrap();
     assert_eq!(setup.max_nu, 2);
     assert_eq!(setup.Delta_1L.len(), 3);
     assert_eq!(setup.Delta_1R.len(), 3);
@@ -81,6 +89,8 @@ fn we_can_create_and_manually_check_a_small_verifier_setup() {
     assert_eq!(setup.H_2, pp.H_2);
     assert_eq!(setup.H_T, Pairing::pairing(pp.H_1, pp.H_2));
     assert_eq!(setup.Gamma_2_fin, pp.Gamma_2_fin);
+
+    fs::remove_file(Path::new("setup.bin")).unwrap();
 }
 
 #[test]
@@ -143,5 +153,28 @@ fn we_can_serialize_and_deserialize_verifier_setups() {
         let serialized = postcard::to_allocvec(&setup).unwrap();
         let deserialized: VerifierSetup = postcard::from_bytes(&serialized).unwrap();
         assert_eq!(setup, deserialized);
+    }
+}
+
+#[test]
+fn we_can_measure_size_of_various_verifier_setups() {
+    for i in 1..=4 {
+        let mut rng = test_rng();
+        let pp = PublicParameters::test_rand(i, &mut rng);
+
+        let setup_start = Instant::now();
+        let v_setup = VerifierSetup::from(&pp);
+        let setup_elapsed = Instant::elapsed(&setup_start);
+
+        println!(
+            "Created verifier setup with size {:?} in {:?}",
+            i, setup_elapsed
+        );
+
+        v_setup.save_to_file(Path::new("setup.bin")).unwrap();
+        let setup = VerifierSetup::load_from_file(Path::new("setup.bin"));
+        assert!(setup.is_ok());
+
+        fs::remove_file(Path::new("setup.bin")).unwrap();
     }
 }

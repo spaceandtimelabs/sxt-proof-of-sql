@@ -3,8 +3,15 @@ use crate::base::impl_serde_for_ark_serde_unchecked;
 use alloc::vec::Vec;
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use ark_serialize::{Compress, Validate};
 use itertools::MultiUnzip;
 use num_traits::One;
+#[cfg(feature = "std")]
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter, Error, ErrorKind, Read, Write},
+    path::Path,
+};
 
 /// The transparent setup information that the prover must know to create a proof.
 /// This is public knowledge and must match with the verifier's setup information.
@@ -211,6 +218,44 @@ impl VerifierSetup {
             Gamma_2_fin,
             max_nu,
         }
+    }
+
+    #[must_use]
+    #[cfg(feature = "std")]
+    /// Function to save `VerifierSetup` to a file in binary form
+    pub fn save_to_file(&self, path: &Path) -> std::io::Result<()> {
+        // Create or open the file at the specified path
+
+        let file = File::create(path)?;
+        let mut writer = BufWriter::new(file);
+
+        // Serialize the PublicParameters struct into the file
+        let mut serialized_data = Vec::new();
+        self.serialize_with_mode(&mut serialized_data, Compress::No)
+            .map_err(|e| Error::new(ErrorKind::Other, format!("{e}")))?;
+
+        // Write serialized bytes to the file
+        writer.write_all(&serialized_data)?;
+        writer.flush()?;
+        Ok(())
+    }
+
+    #[must_use]
+    #[cfg(feature = "std")]
+    /// Function to load `VerifierSetup` from a file in binary form
+    pub fn load_from_file(path: &Path) -> std::io::Result<Self> {
+        // Open the file at the specified path
+
+        let file = File::open(path)?;
+        let mut reader = BufReader::new(file);
+
+        // Read the serialized data from the file
+        let mut serialized_data = Vec::new();
+        reader.read_to_end(&mut serialized_data)?;
+
+        // Deserialize the data into a PublicParameters instance
+        Self::deserialize_with_mode(&mut &serialized_data[..], Compress::No, Validate::Yes)
+            .map_err(|e| Error::new(ErrorKind::Other, format!("{e}")))
     }
 }
 
