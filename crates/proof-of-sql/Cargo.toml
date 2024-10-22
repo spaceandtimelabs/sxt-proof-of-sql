@@ -116,6 +116,9 @@ name = "brands"
 required-features = [ "arrow" ]
 
 [[example]]
+name = "census"
+
+[[example]]
 name = "plastics"
 required-features = [ "arrow" ]
 
