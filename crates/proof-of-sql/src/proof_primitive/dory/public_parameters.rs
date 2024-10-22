@@ -18,6 +18,7 @@ use std::{
 /// Note: even though `H_1` and `H_2` are marked as blue, they are still needed.
 ///
 /// Note: `Gamma_1_fin` is unused, so we leave it out.
+#[derive(Clone)]
 pub struct PublicParameters {
     /// This is the vector of G1 elements that are used in the Dory protocol. That is, `Γ_1,0` in the Dory paper.
     pub(super) Gamma_1: Vec<G1Affine>,
