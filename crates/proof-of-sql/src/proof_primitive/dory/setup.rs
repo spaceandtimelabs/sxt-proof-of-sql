@@ -286,7 +286,7 @@ impl VerifierSetup {
         reader.read_to_end(&mut serialized_data)?;
 
         // Deserialize the data into a PublicParameters instance
-        Self::deserialize_with_mode(&mut &serialized_data[..], Compress::No, Validate::Yes)
+        Self::deserialize_with_mode(&mut &serialized_data[..], Compress::No, Validate::No)
             .map_err(|e| Error::new(ErrorKind::Other, format!("{e}")))
     }
 }
