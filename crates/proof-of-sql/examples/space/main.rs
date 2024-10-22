@@ -120,4 +120,10 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+    prove_and_verify_query(
+        "SELECT Flight, COUNT(*) AS num_travellers FROM travellers WHERE Date > timestamp '2000-01-01T00:00:00Z' GROUP BY Flight ORDER BY num_travellers DESC LIMIT 5",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
