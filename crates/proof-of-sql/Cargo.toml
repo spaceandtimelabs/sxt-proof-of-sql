@@ -104,7 +104,7 @@ name = "wood_types"
 required-features = [ "arrow" ]
 
 [[example]]
-name = “movies"
+name = "movies"
 required-features = [ "arrow" ]
 
 [[bench]]
