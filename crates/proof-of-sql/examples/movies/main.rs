@@ -110,3 +110,12 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+    // Query 2: Find the top 5 highest-rated movies
+    prove_and_verify_query(
+        "SELECT title, rating FROM movies ORDER BY rating DESC LIMIT 5",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+}
