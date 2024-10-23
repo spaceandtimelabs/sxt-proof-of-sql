@@ -1,4 +1,3 @@
-
 //! This is a non-interactive example of using Proof of SQL with a movies dataset.
 //! To run this, use `cargo run --release --example movies`.
 //!
