@@ -1115,8 +1115,8 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
             "department_budget".parse().unwrap() => ColumnType::BigInt,
+            "salary".parse().unwrap() => ColumnType::BigInt,
             "tax".parse().unwrap() => ColumnType::BigInt,
         },
     );
@@ -1128,8 +1128,8 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
     let expected_query = QueryExpr::new(
         filter(
             vec![
-                col_expr_plan(t, "salary", &accessor),
                 col_expr_plan(t, "department_budget", &accessor),
+                col_expr_plan(t, "salary", &accessor),
                 col_expr_plan(t, "tax", &accessor),
             ],
             tab(t),
