@@ -111,6 +111,10 @@ required-features = [ "arrow" ]
 name = "books"
 required-features = [ "arrow" ]
 
+[[example]]
+name = "brands"
+required-features = [ "arrow" ]
+
 [[bench]]
 name = "posql_benches"
 harness = false
