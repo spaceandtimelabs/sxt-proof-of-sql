@@ -118,4 +118,10 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+    prove_and_verify_query(
+        "SELECT Geography, COUNT(*) AS num_geographies FROM income WHERE Households_Estimate_total > 2000000 GROUP BY Geography ORDER BY num_geographies DESC LIMIT 5",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
