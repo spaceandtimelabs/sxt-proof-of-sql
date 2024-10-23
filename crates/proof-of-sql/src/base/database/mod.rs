@@ -31,6 +31,9 @@ mod record_batch_utility;
 #[cfg(feature = "arrow")]
 pub use record_batch_utility::ToArrow;
 
+#[cfg(feature = "arrow")]
+pub mod arrow_schema_utility;
+
 #[cfg(all(test, feature = "arrow", feature = "test"))]
 mod test_accessor_utility;
 #[cfg(all(test, feature = "arrow", feature = "test"))]
