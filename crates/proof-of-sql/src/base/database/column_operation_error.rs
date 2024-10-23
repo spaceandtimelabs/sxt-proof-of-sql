@@ -1,4 +1,7 @@
-use crate::base::{database::ColumnType, math::decimal::DecimalError};
+use crate::base::{
+    database::ColumnType,
+    math::{DecimalError, InvalidPrecisionError},
+};
 use alloc::string::String;
 use core::result::Result;
 use proof_of_sql_parser::intermediate_ast::{BinaryOperator, UnaryOperator};
@@ -53,6 +56,12 @@ pub enum ColumnOperationError {
         /// The underlying source error
         source: DecimalError,
     },
+}
+
+impl From<InvalidPrecisionError> for ColumnOperationError {
+    fn from(value: InvalidPrecisionError) -> Self {
+        ColumnOperationError::from(Into::<DecimalError>::into(value))
+    }
 }
 
 /// Result type for column operations

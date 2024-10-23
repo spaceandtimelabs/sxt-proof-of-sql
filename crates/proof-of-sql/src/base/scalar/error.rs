@@ -1,7 +1,7 @@
 use alloc::string::String;
 use snafu::Snafu;
 
-#[derive(Snafu, Debug)]
+#[derive(Snafu, Debug, Eq, PartialEq)]
 /// These errors occur when a scalar conversion fails.
 pub enum ScalarConversionError {
     #[snafu(display("Overflow error: {error}"))]

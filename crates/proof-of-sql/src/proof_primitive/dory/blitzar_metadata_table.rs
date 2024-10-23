@@ -281,7 +281,7 @@ pub fn create_blitzar_metadata_tables(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::math::decimal::Precision;
+    use crate::base::math::Precision;
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     fn assert_blitzar_metadata(

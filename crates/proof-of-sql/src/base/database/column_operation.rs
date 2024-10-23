@@ -2,7 +2,7 @@
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::ColumnType,
-    math::decimal::{DecimalError, Precision},
+    math::{DecimalError, Precision},
     scalar::{Scalar, ScalarExt},
 };
 use alloc::{format, string::ToString, vec::Vec};
@@ -55,19 +55,7 @@ pub fn try_add_subtract_column_types(
             + (left_precision_value - i16::from(left_scale))
                 .max(right_precision_value - i16::from(right_scale))
             + 1_i16;
-        let precision = u8::try_from(precision_value)
-            .map_err(|_| ColumnOperationError::DecimalConversionError {
-                source: DecimalError::InvalidPrecision {
-                    error: precision_value.to_string(),
-                },
-            })
-            .and_then(|p| {
-                Precision::new(p).map_err(|_| ColumnOperationError::DecimalConversionError {
-                    source: DecimalError::InvalidPrecision {
-                        error: p.to_string(),
-                    },
-                })
-            })?;
+        let precision = Precision::try_from(precision_value)?;
         Ok(ColumnType::Decimal75(precision, scale))
     }
 }
@@ -101,15 +89,7 @@ pub fn try_multiply_column_types(
         let left_precision_value = lhs.precision_value().expect("Numeric types have precision");
         let right_precision_value = rhs.precision_value().expect("Numeric types have precision");
         let precision_value = left_precision_value + right_precision_value + 1;
-        let precision = Precision::new(precision_value).map_err(|_| {
-            ColumnOperationError::DecimalConversionError {
-                source: DecimalError::InvalidPrecision {
-                    error: format!(
-                        "Required precision {precision_value} is beyond what we can support"
-                    ),
-                },
-            }
-        })?;
+        let precision = Precision::new(precision_value)?;
         let left_scale = lhs.scale().expect("Numeric types have scale");
         let right_scale = rhs.scale().expect("Numeric types have scale");
         let scale = left_scale.checked_add(right_scale).ok_or(
@@ -164,19 +144,7 @@ pub fn try_divide_column_types(
                 scale: raw_scale.to_string(),
             },
         })?;
-    let precision = u8::try_from(precision_value)
-        .map_err(|_| ColumnOperationError::DecimalConversionError {
-            source: DecimalError::InvalidPrecision {
-                error: precision_value.to_string(),
-            },
-        })
-        .and_then(|p| {
-            Precision::new(p).map_err(|_| ColumnOperationError::DecimalConversionError {
-                source: DecimalError::InvalidPrecision {
-                    error: p.to_string(),
-                },
-            })
-        })?;
+    let precision = Precision::try_from(precision_value)?;
     Ok(ColumnType::Decimal75(precision, scale))
 }
 

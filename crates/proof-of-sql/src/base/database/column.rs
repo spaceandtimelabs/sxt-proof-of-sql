@@ -1,6 +1,6 @@
 use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
-    math::decimal::Precision,
+    math::Precision,
     scalar::{Scalar, ScalarExt},
     slice_ops::slice_cast_with,
 };
@@ -455,9 +455,10 @@ impl TryFrom<DataType> for ColumnType {
             DataType::Int32 => Ok(ColumnType::Int),
             DataType::Int64 => Ok(ColumnType::BigInt),
             DataType::Decimal128(38, 0) => Ok(ColumnType::Int128),
-            DataType::Decimal256(precision, scale) if precision <= 75 => {
-                Ok(ColumnType::Decimal75(Precision::new(precision)?, scale))
-            }
+            DataType::Decimal256(precision, scale) if precision <= 75 => Ok(ColumnType::Decimal75(
+                Precision::new(precision).map_err(|e| e.to_string())?,
+                scale,
+            )),
             DataType::Timestamp(time_unit, timezone_option) => {
                 let posql_time_unit = match time_unit {
                     ArrowTimeUnit::Second => PoSQLTimeUnit::Second,

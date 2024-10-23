@@ -1,6 +1,6 @@
 use crate::base::{
     database::{filter_util::*, Column},
-    math::decimal::Precision,
+    math::Precision,
     scalar::Curve25519Scalar,
 };
 use bumpalo::Bump;

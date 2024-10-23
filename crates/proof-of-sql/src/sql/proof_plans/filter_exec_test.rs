@@ -6,7 +6,7 @@ use crate::{
             OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
         },
         map::{IndexMap, IndexSet},
-        math::decimal::Precision,
+        math::Precision,
         scalar::Curve25519Scalar,
     },
     sql::{

@@ -2,7 +2,7 @@ use crate::{
     base::{
         database::{ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
         map::{indexmap, IndexMap},
-        math::decimal::Precision,
+        math::Precision,
     },
     sql::{
         parse::{ConversionError, QueryExpr, WhereExprBuilder},

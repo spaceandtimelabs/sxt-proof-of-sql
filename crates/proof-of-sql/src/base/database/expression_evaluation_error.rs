@@ -1,4 +1,7 @@
-use crate::base::{database::ColumnOperationError, math::decimal::DecimalError};
+use crate::base::{
+    database::ColumnOperationError,
+    math::{DecimalError, InvalidPrecisionError},
+};
 use alloc::string::String;
 use core::result::Result;
 use snafu::Snafu;
@@ -30,6 +33,12 @@ pub enum ExpressionEvaluationError {
         /// The underlying source error
         source: DecimalError,
     },
+}
+
+impl From<InvalidPrecisionError> for ExpressionEvaluationError {
+    fn from(value: InvalidPrecisionError) -> Self {
+        ExpressionEvaluationError::from(Into::<DecimalError>::into(value))
+    }
 }
 
 /// Result type for expression evaluation

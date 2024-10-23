@@ -1,7 +1,7 @@
 use super::{ProvableQueryResult, QueryError};
 use crate::base::{
     database::{Column, ColumnField, ColumnType},
-    math::decimal::Precision,
+    math::Precision,
     polynomial::compute_evaluation_vector,
     scalar::{Curve25519Scalar, Scalar},
 };

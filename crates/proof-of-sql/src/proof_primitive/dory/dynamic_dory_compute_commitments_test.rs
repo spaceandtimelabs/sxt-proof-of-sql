@@ -1,5 +1,5 @@
 use crate::{
-    base::{commitment::CommittableColumn, math::decimal::Precision},
+    base::{commitment::CommittableColumn, math::Precision},
     proof_primitive::dory::{
         compute_dynamic_dory_commitments, test_rng, ProverSetup, PublicParameters, F, GT,
     },

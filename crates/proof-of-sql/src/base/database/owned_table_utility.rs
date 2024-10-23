@@ -241,7 +241,7 @@ pub fn decimal75<S: Scalar>(
     (
         name.parse().unwrap(),
         OwnedColumn::Decimal75(
-            crate::base::math::decimal::Precision::new(precision).unwrap(),
+            crate::base::math::Precision::new(precision).unwrap(),
             scale,
             data.into_iter().map(Into::into).collect(),
         ),

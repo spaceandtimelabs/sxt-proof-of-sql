@@ -1,5 +1,5 @@
 use super::{fold_columns, fold_vals};
-use crate::base::{database::Column, math::decimal::Precision, scalar::Curve25519Scalar};
+use crate::base::{database::Column, math::Precision, scalar::Curve25519Scalar};
 use bumpalo::Bump;
 use num_traits::Zero;
 

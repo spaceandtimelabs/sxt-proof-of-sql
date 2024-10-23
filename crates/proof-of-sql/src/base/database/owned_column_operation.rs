@@ -1402,7 +1402,7 @@ impl<S: Scalar> Div for OwnedColumn<S> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::base::{math::decimal::Precision, scalar::Curve25519Scalar};
+    use crate::base::{math::Precision, scalar::Curve25519Scalar};
 
     #[test]
     fn we_cannot_do_binary_operation_on_columns_with_different_lengths() {

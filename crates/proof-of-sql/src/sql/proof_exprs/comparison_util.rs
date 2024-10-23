@@ -1,10 +1,5 @@
 use crate::{
-    base::{
-        database::Column,
-        if_rayon,
-        math::decimal::{DecimalError, Precision},
-        scalar::Scalar,
-    },
+    base::{database::Column, if_rayon, math::Precision, scalar::Scalar},
     sql::parse::{type_check_binary_operation, ConversionError, ConversionResult},
 };
 use alloc::string::ToString;
@@ -83,13 +78,7 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
             rhs_precision_value + (max_scale - rhs_scale) as u8,
         );
         // Check if the precision is valid
-        let _max_precision = Precision::new(max_precision_value).map_err(|_| {
-            ConversionError::DecimalConversionError {
-                source: DecimalError::InvalidPrecision {
-                    error: max_precision_value.to_string(),
-                },
-            }
-        })?;
+        let _max_precision = Precision::new(max_precision_value)?;
     }
     unchecked_subtract_impl(
         alloc,
