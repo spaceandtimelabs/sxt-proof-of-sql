@@ -115,4 +115,11 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+    prove_and_verify_query(
+        "SELECT name FROM launch_vehicles WHERE country = 'USA'",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
