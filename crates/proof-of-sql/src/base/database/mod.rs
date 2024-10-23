@@ -52,9 +52,7 @@ mod expression_evaluation_error;
 mod expression_evaluation_test;
 pub use expression_evaluation_error::{ExpressionEvaluationError, ExpressionEvaluationResult};
 
-#[cfg(any(test, feature = "test"))]
 mod test_accessor;
-#[cfg(any(test, feature = "test"))]
 pub use test_accessor::TestAccessor;
 #[cfg(test)]
 pub(crate) use test_accessor::UnimplementedTestAccessor;
@@ -64,9 +62,7 @@ mod test_schema_accessor;
 #[cfg(test)]
 pub(crate) use test_schema_accessor::TestSchemaAccessor;
 
-#[cfg(any(test, feature = "test"))]
 mod owned_table_test_accessor;
-#[cfg(any(test, feature = "test"))]
 pub use owned_table_test_accessor::OwnedTableTestAccessor;
 #[cfg(all(test, feature = "blitzar"))]
 mod owned_table_test_accessor_test;
