@@ -126,4 +126,12 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+    // Query 4: Find movies released in the 90s with a rating above 8.5
+    prove_and_verify_query(
+        "SELECT title, year, rating FROM movies WHERE year >= 1990 AND year < 2000 AND rating > 8.5 ORDER BY rating DESC",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
