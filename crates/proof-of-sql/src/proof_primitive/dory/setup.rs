@@ -2,9 +2,15 @@ use super::{G1Affine, G2Affine, PublicParameters, GT};
 use crate::base::impl_serde_for_ark_serde_unchecked;
 use alloc::vec::Vec;
 use ark_ec::pairing::{Pairing, PairingOutput};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Compress, Validate};
 use itertools::MultiUnzip;
 use num_traits::One;
+#[cfg(feature = "std")]
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter, Error, ErrorKind, Read, Write},
+    path::Path,
+};
 
 /// The transparent setup information that the prover must know to create a proof.
 /// This is public knowledge and must match with the verifier's setup information.
@@ -64,6 +70,50 @@ impl<'a> ProverSetup<'a> {
             #[cfg(feature = "blitzar")]
             blitzar_handle,
         }
+    }
+
+    /// Create a new `ProverSetup` from the public parameters and blitzar handle
+    /// # Panics
+    /// Panics if the length of `Gamma_1` or `Gamma_2` is not equal to `2^max_nu`.
+    #[must_use]
+    #[cfg(feature = "blitzar")]
+    pub fn from_public_parameters_and_blitzar_handle(
+        public_parameters: &'a PublicParameters,
+        blitzar_handle: blitzar::compute::MsmHandle<
+            blitzar::compute::ElementP2<ark_bls12_381::g1::Config>,
+        >,
+    ) -> Self {
+        let Gamma_1: &'a [G1Affine] = &public_parameters.Gamma_1;
+        let Gamma_2: &'a [G2Affine] = &public_parameters.Gamma_2;
+        let H_1 = public_parameters.H_1;
+        let H_2 = public_parameters.H_2;
+        let Gamma_2_fin = public_parameters.Gamma_2_fin;
+        let max_nu = public_parameters.max_nu;
+        assert_eq!(Gamma_1.len(), 1 << max_nu);
+        assert_eq!(Gamma_2.len(), 1 << max_nu);
+
+        let (Gamma_1, Gamma_2): (Vec<_>, Vec<_>) = (0..=max_nu)
+            .map(|k| (&Gamma_1[..1 << k], &Gamma_2[..1 << k]))
+            .unzip();
+        ProverSetup {
+            Gamma_1,
+            Gamma_2,
+            H_1,
+            H_2,
+            Gamma_2_fin,
+            max_nu,
+            #[cfg(feature = "blitzar")]
+            blitzar_handle,
+        }
+    }
+
+    /// Gets the `MSMHandle` for this setup
+    #[must_use]
+    #[cfg(feature = "blitzar")]
+    pub fn blitzar_handle(
+        self,
+    ) -> blitzar::compute::MsmHandle<blitzar::compute::ElementP2<ark_bls12_381::g1::Config>> {
+        self.blitzar_handle
     }
 
     #[cfg(feature = "blitzar")]
@@ -211,6 +261,42 @@ impl VerifierSetup {
             Gamma_2_fin,
             max_nu,
         }
+    }
+
+    #[cfg(feature = "std")]
+    /// Function to save `VerifierSetup` to a file in binary form
+    pub fn save_to_file(&self, path: &Path) -> std::io::Result<()> {
+        // Create or open the file at the specified path
+
+        let file = File::create(path)?;
+        let mut writer = BufWriter::new(file);
+
+        // Serialize the PublicParameters struct into the file
+        let mut serialized_data = Vec::new();
+        self.serialize_with_mode(&mut serialized_data, Compress::No)
+            .map_err(|e| Error::new(ErrorKind::Other, format!("{e}")))?;
+
+        // Write serialized bytes to the file
+        writer.write_all(&serialized_data)?;
+        writer.flush()?;
+        Ok(())
+    }
+
+    #[cfg(feature = "std")]
+    /// Function to load `VerifierSetup` from a file in binary form
+    pub fn load_from_file(path: &Path) -> std::io::Result<Self> {
+        // Open the file at the specified path
+
+        let file = File::open(path)?;
+        let mut reader = BufReader::new(file);
+
+        // Read the serialized data from the file
+        let mut serialized_data = Vec::new();
+        reader.read_to_end(&mut serialized_data)?;
+
+        // Deserialize the data into a PublicParameters instance
+        Self::deserialize_with_mode(&mut &serialized_data[..], Compress::No, Validate::No)
+            .map_err(|e| Error::new(ErrorKind::Other, format!("{e}")))
     }
 }
 
