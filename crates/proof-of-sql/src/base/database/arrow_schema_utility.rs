@@ -25,7 +25,7 @@ pub fn get_posql_compatible_schema(schema: &SchemaRef) -> SchemaRef {
         .map(|field| {
             let new_data_type = match field.data_type() {
                 DataType::Float16 | DataType::Float32 | DataType::Float64 => {
-                    DataType::Decimal256(75, 30)
+                    DataType::Decimal256(20, 10)
                 }
                 _ => field.data_type().clone(),
             };
