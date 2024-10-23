@@ -14,7 +14,7 @@ use proof_of_sql::{
         DynamicDoryCommitment, DynamicDoryEvaluationProof, ProverSetup, PublicParameters,
         VerifierSetup,
     },
-    sql::{parse::QueryExpr, proof::QueryProof},
+    sql::{parse::QueryExpr, postprocessing::apply_postprocessing_steps, proof::QueryProof},
 };
 use rand::{rngs::StdRng, SeedableRng};
 use std::{fs::File, time::Instant};
@@ -73,11 +73,12 @@ fn prove_and_verify_query(
             &verifier_setup,
         )
         .unwrap();
+    let result = apply_postprocessing_steps(result.table, query_plan.postprocessing());
     println!("Verified in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
     // Display the result
     println!("Query Result:");
-    println!("{:?}", result.table);
+    println!("{result:?}");
 }
 
 fn main() {
@@ -112,7 +113,7 @@ fn main() {
         &verifier_setup,
     );
     prove_and_verify_query(
-        "SELECT Geography, COUNT(*) AS num_geographies FROM income GROUP BY Geography",
+        "SELECT Geography, COUNT(*) AS num_geographies FROM income GROUP BY Geography ORDER BY num_geographies",
         &accessor,
         &prover_setup,
         &verifier_setup,
