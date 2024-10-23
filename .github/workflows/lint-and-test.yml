@@ -124,6 +124,8 @@ jobs:
         run: cargo run --example books
       - name: Run brands example
         run: cargo run --example brands
+      - name: Run cat breeds example
+        run: cargo run --example cat_breeds
       - name: Run posql_db example (With Blitzar)
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
       - name: Run posql_db example (Without Blitzar)
