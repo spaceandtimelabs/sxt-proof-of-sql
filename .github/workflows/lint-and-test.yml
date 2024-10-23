@@ -132,6 +132,8 @@ jobs:
         run: cargo run --example sushi
       - name: Run countries example
         run: cargo run --example countries
+      - name: Run rockets example
+        run: cargo run --example rockets
       - name: Run posql_db example (With Blitzar)
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
       - name: Run posql_db example (Without Blitzar)
