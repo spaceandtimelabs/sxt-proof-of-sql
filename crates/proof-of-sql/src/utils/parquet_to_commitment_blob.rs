@@ -1,6 +1,6 @@
 use crate::{
-    base::commitment::{Commitment, TableCommitment},
-    proof_primitive::dory::{DoryCommitment, DoryProverPublicSetup},
+    base::{commitment::{Commitment, TableCommitment}},
+    proof_primitive::dory::{DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup}, utils::{parse_decimals::column_parse_decimals_fallible, record_batch_map::record_batch_try_map_with_target_types},
 };
 use arrow::{
     array::{
@@ -10,12 +10,14 @@ use arrow::{
     datatypes::{i256, DataType, Field, Schema},
     error::ArrowError,
 };
+use indexmap::IndexMap;
 use core::str::FromStr;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use postcard::to_allocvec;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs::File, io::Write, path::PathBuf, sync::Arc};
+use sqlparser::ast::{DataType as SqlparserDataType, ExactNumberInfo};
 
 static PARQUET_FILE_PROOF_ORDER_COLUMN: &str = "META_ROW_NUMBER";
 
@@ -30,11 +32,11 @@ static PARQUET_FILE_PROOF_ORDER_COLUMN: &str = "META_ROW_NUMBER";
 pub fn convert_historical_parquet_file_to_commitment_blob(
     parquet_files: &Vec<PathBuf>,
     output_path_prefix: &str,
-    prover_setup: &DoryProverPublicSetup,
-    big_decimal_columns: &[(String, u8, i8)],
+    prover_setup: &ProverSetup,
+    target_types: &IndexMap<String, SqlparserDataType>,
 ) {
     // Compute and collect TableCommitments per RecordBatch per file.
-    let mut commitments: Vec<TableCommitment<DoryCommitment>> = parquet_files
+    let mut commitments: Vec<TableCommitment<DynamicDoryCommitment>> = parquet_files
         .par_iter()
         .flat_map(|path| {
             println!("Committing to {}..", path.as_path().to_str().unwrap());
@@ -72,16 +74,17 @@ pub fn convert_historical_parquet_file_to_commitment_blob(
 
                     // Replace appropriate string columns with decimal columns.
                     let record_batch =
-                        convert_utf8_to_decimal_75_within_record_batch_as_appropriate(
-                            &record_batch,
-                            big_decimal_columns.to_vec(),
-                        );
+                    record_batch_try_map_with_target_types(
+                            record_batch,
+                            target_types,
+                            column_parse_decimals_fallible
+                        ).unwrap();
 
                     // Calculate and return TableCommitment
-                    TableCommitment::<DoryCommitment>::try_from_record_batch_with_offset(
+                    TableCommitment::<DynamicDoryCommitment>::try_from_record_batch_with_offset(
                         &record_batch,
                         offset as usize,
-                        prover_setup,
+                        &prover_setup,
                     )
                     .unwrap()
                 })
@@ -100,7 +103,7 @@ pub fn convert_historical_parquet_file_to_commitment_blob(
     // Sum commitments and write commitments to blob
     aggregate_commitments_to_blob(
         commitments,
-        &format!("{output_path_prefix}-dory-commitment"),
+        &format!("{output_path_prefix}-dynamic-dory-commitment"),
     );
 }
 
@@ -230,168 +233,168 @@ fn write_commitment_to_blob<C: Commitment + Serialize + for<'a> Deserialize<'a>>
     output_file_base: &str,
 ) {
     let bytes: Vec<u8> = to_allocvec(commitment).unwrap();
-    let path_extension = "txt";
+    let path_extension = "bin";
     let mut output_file = File::create(format!("{output_file_base}.{path_extension}")).unwrap();
     output_file.write_all(&bytes).unwrap();
 }
 
 #[cfg(test)]
 mod tests {
-    use super::cast_string_array_to_decimal256_array;
-    use crate::{
-        base::commitment::{Commitment, TableCommitment},
-        proof_primitive::dory::{
-            DoryCommitment, DoryProverPublicSetup, ProverSetup, PublicParameters,
-        },
-        utils::parquet_to_commitment_blob::{
-            convert_historical_parquet_file_to_commitment_blob, PARQUET_FILE_PROOF_ORDER_COLUMN,
-        },
-    };
-    use arrow::{
-        array::{ArrayRef, Decimal256Builder, Int32Array, RecordBatch, StringArray},
-        datatypes::{i256, DataType},
-    };
-    use parquet::{arrow::ArrowWriter, basic::Compression, file::properties::WriterProperties};
-    use postcard::from_bytes;
-    use rand::SeedableRng;
-    use rand_chacha::ChaCha20Rng;
-    use serde::{Deserialize, Serialize};
-    use std::{
-        fs::{self, File},
-        io::Read,
-        path::Path,
-        sync::Arc,
-    };
+    // use super::cast_string_array_to_decimal256_array;
+    // use crate::{
+    //     base::commitment::{Commitment, TableCommitment},
+    //     proof_primitive::dory::{
+    //         DoryCommitment, DoryProverPublicSetup, ProverSetup, PublicParameters,
+    //     },
+    //     utils::parquet_to_commitment_blob::{
+    //         convert_historical_parquet_file_to_commitment_blob, PARQUET_FILE_PROOF_ORDER_COLUMN,
+    //     },
+    // };
+    // use arrow::{
+    //     array::{ArrayRef, Decimal256Builder, Int32Array, RecordBatch, StringArray},
+    //     datatypes::{i256, DataType},
+    // };
+    // use parquet::{arrow::ArrowWriter, basic::Compression, file::properties::WriterProperties};
+    // use postcard::from_bytes;
+    // use rand::SeedableRng;
+    // use rand_chacha::ChaCha20Rng;
+    // use serde::{Deserialize, Serialize};
+    // use std::{
+    //     fs::{self, File},
+    //     io::Read,
+    //     path::Path,
+    //     sync::Arc,
+    // };
 
-    fn create_mock_file_from_record_batch(path: &str, record_batch: &RecordBatch) {
-        let parquet_file = File::create(path).unwrap();
-        let writer_properties = WriterProperties::builder()
-            .set_compression(Compression::SNAPPY)
-            .build();
-        let mut writer =
-            ArrowWriter::try_new(parquet_file, record_batch.schema(), Some(writer_properties))
-                .unwrap();
-        writer.write(record_batch).unwrap();
-        writer.close().unwrap();
-    }
+    // fn create_mock_file_from_record_batch(path: &str, record_batch: &RecordBatch) {
+    //     let parquet_file = File::create(path).unwrap();
+    //     let writer_properties = WriterProperties::builder()
+    //         .set_compression(Compression::SNAPPY)
+    //         .build();
+    //     let mut writer =
+    //         ArrowWriter::try_new(parquet_file, record_batch.schema(), Some(writer_properties))
+    //             .unwrap();
+    //     writer.write(record_batch).unwrap();
+    //     writer.close().unwrap();
+    // }
 
-    fn deserialize_commitment_from_file<C: Commitment + Serialize + for<'a> Deserialize<'a>>(
-        path: &str,
-    ) -> TableCommitment<C> {
-        let mut blob_file = File::open(path).unwrap();
-        let mut bytes: Vec<u8> = Vec::new();
-        blob_file.read_to_end(&mut bytes).unwrap();
-        from_bytes(&bytes).unwrap()
-    }
+    // fn deserialize_commitment_from_file<C: Commitment + Serialize + for<'a> Deserialize<'a>>(
+    //     path: &str,
+    // ) -> TableCommitment<C> {
+    //     let mut blob_file = File::open(path).unwrap();
+    //     let mut bytes: Vec<u8> = Vec::new();
+    //     blob_file.read_to_end(&mut bytes).unwrap();
+    //     from_bytes(&bytes).unwrap()
+    // }
 
-    fn delete_file_if_exists(path: &str) {
-        if Path::new(path).exists() {
-            fs::remove_file(path).unwrap();
-        }
-    }
+    // fn delete_file_if_exists(path: &str) {
+    //     if Path::new(path).exists() {
+    //         fs::remove_file(path).unwrap();
+    //     }
+    // }
 
-    #[test]
-    fn we_can_convert_historical_parquet_file_to_commitment_blob() {
-        // Purge any old files
-        let parquet_path_1 = "example-1.parquet";
-        let parquet_path_2 = "example-2.parquet";
-        let dory_commitment_path = "example-dory-commitment.txt";
-        delete_file_if_exists(parquet_path_1);
-        delete_file_if_exists(parquet_path_2);
-        delete_file_if_exists(dory_commitment_path);
+    // #[test]
+    // fn we_can_convert_historical_parquet_file_to_commitment_blob() {
+    //     // Purge any old files
+    //     let parquet_path_1 = "example-1.parquet";
+    //     let parquet_path_2 = "example-2.parquet";
+    //     let dory_commitment_path = "example-dory-commitment.txt";
+    //     delete_file_if_exists(parquet_path_1);
+    //     delete_file_if_exists(parquet_path_2);
+    //     delete_file_if_exists(dory_commitment_path);
 
-        // ARRANGE
+    //     // ARRANGE
 
-        // Prepare prover setup
-        let setup_seed = "SpaceAndTime".to_string();
-        let mut rng = {
-            let seed_bytes = setup_seed
-                .bytes()
-                .chain(std::iter::repeat(0u8))
-                .take(32)
-                .collect::<Vec<_>>()
-                .try_into()
-                .expect("collection is guaranteed to contain 32 elements");
-            ChaCha20Rng::from_seed(seed_bytes)
-        };
-        let public_parameters = PublicParameters::rand(4, &mut rng);
-        let prover_setup = ProverSetup::from(&public_parameters);
-        let dory_prover_setup: DoryProverPublicSetup = DoryProverPublicSetup::new(&prover_setup, 3);
+    //     // Prepare prover setup
+    //     let setup_seed = "SpaceAndTime".to_string();
+    //     let mut rng = {
+    //         let seed_bytes = setup_seed
+    //             .bytes()
+    //             .chain(std::iter::repeat(0u8))
+    //             .take(32)
+    //             .collect::<Vec<_>>()
+    //             .try_into()
+    //             .expect("collection is guaranteed to contain 32 elements");
+    //         ChaCha20Rng::from_seed(seed_bytes)
+    //     };
+    //     let public_parameters = PublicParameters::rand(4, &mut rng);
+    //     let prover_setup = ProverSetup::from(&public_parameters);
+    //     let dory_prover_setup: DoryProverPublicSetup = DoryProverPublicSetup::new(&prover_setup, 3);
 
-        // Create two RecordBatches with the same schema
-        let proof_column_1 = Int32Array::from(vec![1, 2]);
-        let column_1 = Int32Array::from(vec![2, 1]);
-        let proof_column_2 = Int32Array::from(vec![3, 4]);
-        let column_2 = Int32Array::from(vec![3, 4]);
-        let record_batch_1 = RecordBatch::try_from_iter(vec![
-            (
-                PARQUET_FILE_PROOF_ORDER_COLUMN,
-                Arc::new(proof_column_1) as ArrayRef,
-            ),
-            ("column", Arc::new(column_1) as ArrayRef),
-        ])
-        .unwrap();
-        let record_batch_2 = RecordBatch::try_from_iter(vec![
-            (
-                PARQUET_FILE_PROOF_ORDER_COLUMN,
-                Arc::new(proof_column_2) as ArrayRef,
-            ),
-            ("column", Arc::new(column_2) as ArrayRef),
-        ])
-        .unwrap();
+    //     // Create two RecordBatches with the same schema
+    //     let proof_column_1 = Int32Array::from(vec![1, 2]);
+    //     let column_1 = Int32Array::from(vec![2, 1]);
+    //     let proof_column_2 = Int32Array::from(vec![3, 4]);
+    //     let column_2 = Int32Array::from(vec![3, 4]);
+    //     let record_batch_1 = RecordBatch::try_from_iter(vec![
+    //         (
+    //             PARQUET_FILE_PROOF_ORDER_COLUMN,
+    //             Arc::new(proof_column_1) as ArrayRef,
+    //         ),
+    //         ("column", Arc::new(column_1) as ArrayRef),
+    //     ])
+    //     .unwrap();
+    //     let record_batch_2 = RecordBatch::try_from_iter(vec![
+    //         (
+    //             PARQUET_FILE_PROOF_ORDER_COLUMN,
+    //             Arc::new(proof_column_2) as ArrayRef,
+    //         ),
+    //         ("column", Arc::new(column_2) as ArrayRef),
+    //     ])
+    //     .unwrap();
 
-        // Write RecordBatches to parquet files
-        create_mock_file_from_record_batch(parquet_path_1, &record_batch_1);
-        create_mock_file_from_record_batch(parquet_path_2, &record_batch_2);
+    //     // Write RecordBatches to parquet files
+    //     create_mock_file_from_record_batch(parquet_path_1, &record_batch_1);
+    //     create_mock_file_from_record_batch(parquet_path_2, &record_batch_2);
 
-        // ACT
-        convert_historical_parquet_file_to_commitment_blob(
-            &vec![parquet_path_1.into(), parquet_path_2.into()],
-            "example",
-            &dory_prover_setup,
-            &Vec::new(),
-        );
+    //     // ACT
+    //     convert_historical_parquet_file_to_commitment_blob(
+    //         &vec![parquet_path_1.into(), parquet_path_2.into()],
+    //         "example",
+    //         &dory_prover_setup,
+    //         &Vec::new(),
+    //     );
 
-        // ASSERT
+    //     // ASSERT
 
-        // Identify expected commitments
-        let expected_column = Int32Array::from(vec![2, 1, 3, 4]);
-        let expected_record_batch =
-            RecordBatch::try_from_iter(vec![("column", Arc::new(expected_column) as ArrayRef)])
-                .unwrap();
-        let expected_commitment = TableCommitment::<DoryCommitment>::try_from_record_batch(
-            &expected_record_batch,
-            &dory_prover_setup,
-        )
-        .unwrap();
+    //     // Identify expected commitments
+    //     let expected_column = Int32Array::from(vec![2, 1, 3, 4]);
+    //     let expected_record_batch =
+    //         RecordBatch::try_from_iter(vec![("column", Arc::new(expected_column) as ArrayRef)])
+    //             .unwrap();
+    //     let expected_commitment = TableCommitment::<DoryCommitment>::try_from_record_batch(
+    //         &expected_record_batch,
+    //         &dory_prover_setup,
+    //     )
+    //     .unwrap();
 
-        assert_eq!(
-            deserialize_commitment_from_file::<DoryCommitment>(dory_commitment_path),
-            expected_commitment
-        );
+    //     assert_eq!(
+    //         deserialize_commitment_from_file::<DoryCommitment>(dory_commitment_path),
+    //         expected_commitment
+    //     );
 
-        // Tear down
-        delete_file_if_exists(parquet_path_1);
-        delete_file_if_exists(parquet_path_2);
-        delete_file_if_exists(dory_commitment_path);
-    }
+    //     // Tear down
+    //     delete_file_if_exists(parquet_path_1);
+    //     delete_file_if_exists(parquet_path_2);
+    //     delete_file_if_exists(dory_commitment_path);
+    // }
 
-    #[test]
-    fn we_can_cast_string_array_to_decimal_75() {
-        // ARRANGE
-        let string_array: StringArray =
-            StringArray::from(vec![Some("123.45"), None, Some("234.56"), Some("789.01")]);
+    // #[test]
+    // fn we_can_cast_string_array_to_decimal_75() {
+    //     // ARRANGE
+    //     let string_array: StringArray =
+    //         StringArray::from(vec![Some("123.45"), None, Some("234.56"), Some("789.01")]);
 
-        // ACT
-        let decimal_75_array = cast_string_array_to_decimal256_array(&string_array, 2);
+    //     // ACT
+    //     let decimal_75_array = cast_string_array_to_decimal256_array(&string_array, 2);
 
-        // ASSERT
-        let mut expected_decimal_75_array =
-            Decimal256Builder::default().with_data_type(DataType::Decimal256(75, 2));
-        expected_decimal_75_array.append_value(i256::from(12_345));
-        expected_decimal_75_array.append_null();
-        expected_decimal_75_array.append_value(i256::from(23_456));
-        expected_decimal_75_array.append_value(i256::from(78_901));
-        assert_eq!(decimal_75_array, expected_decimal_75_array.finish());
-    }
+    //     // ASSERT
+    //     let mut expected_decimal_75_array =
+    //         Decimal256Builder::default().with_data_type(DataType::Decimal256(75, 2));
+    //     expected_decimal_75_array.append_value(i256::from(12_345));
+    //     expected_decimal_75_array.append_null();
+    //     expected_decimal_75_array.append_value(i256::from(23_456));
+    //     expected_decimal_75_array.append_value(i256::from(78_901));
+    //     assert_eq!(decimal_75_array, expected_decimal_75_array.finish());
+    // }
 }

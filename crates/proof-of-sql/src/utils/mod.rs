@@ -4,3 +4,5 @@
 pub mod parquet_to_commitment_blob;
 /// Parse DDLs and find bigdecimal columns
 pub mod parse;
+pub mod parse_decimals;
+pub mod record_batch_map;

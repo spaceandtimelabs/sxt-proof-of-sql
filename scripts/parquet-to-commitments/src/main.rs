@@ -31,11 +31,11 @@ fn main() {
     let output_prefix = args.next().unwrap();
 
     let mut sql = String::new();
-    File::open("/testnet-parquets/Etherium_ddl_snapshot.sql")
+    File::open("/testnet-data/ddl_ethereum.sql")
         .unwrap()
         .read_to_string(&mut sql)
         .unwrap();
-    let big_decimal_commitments = find_bigdecimals(&sql);
+    let target_types = find_bigdecimals(&sql);
 
     let table_identifiers: Vec<(String, String)> = read_dir(source.clone())
         .unwrap()
@@ -96,7 +96,6 @@ fn main() {
     println!("Generating prover setup");
     let prover_setup =
         ProverSetup::from_public_parameters_and_blitzar_handle(&public_parameters, blitzar_handle);
-    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 13);
 
     println!("Beginning parquet to commitments..");
     table_identifiers
@@ -115,14 +114,14 @@ fn main() {
                 convert_historical_parquet_file_to_commitment_blob(
                     &parquets_for_table,
                     &full_output_prefix,
-                    &dory_prover_setup,
-                    big_decimal_commitments
+                    &prover_setup,
+                    target_types
                         .iter()
                         .find(|(k, _)| {
                             k.to_lowercase() == format!("{namespace}.{table_name}").to_lowercase()
                         })
-                        .map(|(_, v)| v)
-                        .unwrap(),
+                        .unwrap()
+                        .1,
                 );
             });
             if result.is_err() {
