@@ -118,4 +118,12 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+    // Query 3: Calculate the average duration of movies by genre
+    prove_and_verify_query(
+        "SELECT genre, AVG(duration) AS avg_duration FROM movies GROUP BY genre ORDER BY avg_duration DESC",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
