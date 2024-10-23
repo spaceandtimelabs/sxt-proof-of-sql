@@ -1,0 +1,11 @@
+id,name,hardness,density,color,common_use
+1,Oak,7.0,0.75,Light brown,Furniture
+2,Pine,3.5,0.55,Pale yellow,Construction
+3,Maple,6.5,0.70,Cream,Flooring
+4,Cherry,5.5,0.65,Reddish-brown,Cabinetry
+5,Walnut,6.0,0.68,Dark brown,Gunstocks
+6,Mahogany,4.5,0.60,Reddish,Musical instruments
+7,Birch,5.0,0.62,White,Plywood
+8,Cedar,2.5,0.45,Reddish,Outdoor furniture
+9,Teak,7.5,0.80,Golden brown,Boat building
+10,Ebony,9.0,1.10,Black,Piano keys
