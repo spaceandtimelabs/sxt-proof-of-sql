@@ -1401,10 +1401,10 @@ fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
             "bonus".parse().unwrap() => ColumnType::BigInt,
-            "tax".parse().unwrap() => ColumnType::BigInt,
             "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "tax".parse().unwrap() => ColumnType::BigInt,
         },
     );
     let query_text = "select salary d1, max(tax), salary d2, sum(bonus) sum_bonus, count(name) count_s from sxt.employees group by salary, bonus, salary";
@@ -1415,7 +1415,7 @@ fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
 
     let expected_ast = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["salary", "bonus", "tax", "name"], &accessor),
+            cols_expr_plan(t, &["bonus", "name", "salary", "tax"], &accessor),
             tab(t),
             const_bool(true),
         ),
