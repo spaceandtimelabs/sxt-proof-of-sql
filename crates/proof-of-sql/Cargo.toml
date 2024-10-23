@@ -99,6 +99,10 @@ required-features = [ "arrow" ]
 name = "dog_breeds"
 required-features = [ "arrow" ]
 
+[[example]]
+name = "wood_types"
+required-features = [ "arrow" ]
+
 [[bench]]
 name = "posql_benches"
 harness = false
