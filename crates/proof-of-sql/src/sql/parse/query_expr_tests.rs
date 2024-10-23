@@ -1930,7 +1930,7 @@ fn count_aggregation_always_have_integer_type() {
 
     let expected_ast = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["tax", "salary", "name"], &accessor),
+            cols_expr_plan(t, &["name", "salary", "tax"], &accessor),
             tab(t),
             const_bool(true),
         ),
