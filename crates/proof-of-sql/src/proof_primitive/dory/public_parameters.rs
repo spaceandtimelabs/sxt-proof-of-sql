@@ -38,17 +38,16 @@ impl PublicParameters {
     pub fn rand<R: CryptoRng + Rng + ?Sized>(max_nu: usize, rng: &mut R) -> Self {
         Self::rand_impl(max_nu, rng)
     }
-    #[cfg(any(test, feature = "test"))]
     /// Generate random public parameters for testing.
     pub fn test_rand<R: Rng + ?Sized>(max_nu: usize, rng: &mut R) -> Self {
         Self::rand_impl(max_nu, rng)
     }
     fn rand_impl<R: Rng + ?Sized>(max_nu: usize, rng: &mut R) -> Self {
+        let (H_1, H_2) = (G1Affine::rand(rng), G2Affine::rand(rng));
+        let Gamma_2_fin = G2Affine::rand(rng);
         let (Gamma_1, Gamma_2) = iter::repeat_with(|| (G1Affine::rand(rng), G2Affine::rand(rng)))
             .take(1 << max_nu)
             .unzip();
-        let (H_1, H_2) = (G1Affine::rand(rng), G2Affine::rand(rng));
-        let Gamma_2_fin = G2Affine::rand(rng);
 
         Self {
             Gamma_1,

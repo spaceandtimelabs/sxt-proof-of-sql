@@ -1,0 +1,11 @@
+id,name,period,diet,length_meters,weight_tons
+1,Tyrannosaurus Rex,Cretaceous,Carnivore,12.3,7.0
+2,Stegosaurus,Jurassic,Herbivore,9.0,5.5
+3,Triceratops,Cretaceous,Herbivore,8.5,10.0
+4,Velociraptor,Cretaceous,Carnivore,1.8,0.015
+5,Brachiosaurus,Jurassic,Herbivore,26.0,50.0
+6,Ankylosaurus,Cretaceous,Herbivore,6.5,6.0
+7,Spinosaurus,Cretaceous,Carnivore,15.0,7.5
+8,Diplodocus,Jurassic,Herbivore,27.0,25.0
+9,Allosaurus,Jurassic,Carnivore,9.7,2.3
+10,Parasaurolophus,Cretaceous,Herbivore,10.0,3.5

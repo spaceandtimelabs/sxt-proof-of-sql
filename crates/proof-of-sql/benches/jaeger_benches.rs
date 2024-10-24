@@ -3,17 +3,16 @@
 //! ```bash
 //! docker run --rm -d --name jaeger -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one:latest
 //! cargo bench -p proof-of-sql --bench jaeger_benches InnerProductProof
-//! cargo bench -p proof-of-sql --bench jaeger_benches Dory --features="test"
+//! cargo bench -p proof-of-sql --bench jaeger_benches Dory
+//! cargo bench -p proof-of-sql --bench jaeger_benches DynamicDory
 //! ```
 //! Then, navigate to <http://localhost:16686> to view the traces.
 
-#[cfg(feature = "test")]
 use ark_std::test_rng;
 use blitzar::{compute::init_backend, proof::InnerProductProof};
-#[cfg(feature = "test")]
 use proof_of_sql::proof_primitive::dory::{
-    DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
-    PublicParameters, VerifierSetup,
+    DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
+    DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
 };
 mod scaffold;
 use crate::scaffold::querys::QUERIES;
@@ -51,7 +50,6 @@ fn main() {
                 }
             }
         }
-        #[cfg(feature = "test")]
         "Dory" => {
             // Run 3 times to ensure that warm-up of the GPU has occurred.
             let pp = PublicParameters::test_rand(10, &mut test_rng());
@@ -69,6 +67,25 @@ fn main() {
                         SIZE,
                         &prover_setup,
                         &verifier_setup,
+                    );
+                }
+            }
+        }
+        "DynamicDory" => {
+            // Run 3 times to ensure that warm-up of the GPU has occurred.
+            let public_parameters = PublicParameters::test_rand(11, &mut test_rng());
+            let prover_setup = ProverSetup::from(&public_parameters);
+            let verifier_setup = VerifierSetup::from(&public_parameters);
+
+            for _ in 0..3 {
+                for (title, query, columns) in QUERIES {
+                    jaeger_scaffold::<DynamicDoryEvaluationProof>(
+                        title,
+                        query,
+                        columns,
+                        SIZE,
+                        &&prover_setup,
+                        &&verifier_setup,
                     );
                 }
             }

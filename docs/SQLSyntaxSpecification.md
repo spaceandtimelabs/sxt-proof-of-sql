@@ -57,3 +57,8 @@ It is far more efficient for the verifier to compute the actual division, while 
     - OFFSET clause
 
 [^1]: Currently, we do not support any string operations beyond = and !=.
+
+## Reserved keywords
+
+The following keywords may not be used as aliases:
+- `count`
