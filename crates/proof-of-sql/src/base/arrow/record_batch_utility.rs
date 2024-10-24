@@ -169,7 +169,7 @@ macro_rules! record_batch {
             use arrow::datatypes::Field;
             use arrow::datatypes::Schema;
             use arrow::record_batch::RecordBatch;
-            use $crate::base::database::ToArrow;
+            use $crate::base::arrow::record_batch_utility::ToArrow;
 
             let schema = Arc::new(Schema::new(
                 vec![$(

@@ -5,6 +5,7 @@ mod commit_accessor;
 mod csv_accessor;
 /// TODO: add docs
 mod record_batch_accessor;
+
 use arrow::{
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
@@ -273,7 +274,7 @@ fn main() {
             end_timer(timer);
             println!(
                 "Verified Result: {:?}",
-                RecordBatch::try_from(query_result).unwrap()
+                RecordBatch::try_from(query_result.table).unwrap()
             );
         }
     }
