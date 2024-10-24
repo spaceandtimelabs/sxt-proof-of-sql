@@ -46,7 +46,7 @@ opentelemetry = { version = "0.23.0" }
 opentelemetry-jaeger = { version = "0.20.0" }
 parquet = { version = "51.0" }
 postcard = { version = "1.0" }
-proof-of-sql = { path = "crates/proof-of-sql" } # We automatically update this line during release. So do not modify it!
+proof-of-sql = { path = "crates/proof-of-sql", default-features=false } # We automatically update this line during release. So do not modify it!
 proof-of-sql-parser = { path = "crates/proof-of-sql-parser" } # We automatically update this line during release. So do not modify it!
 rand = { version = "0.8", default-features = false }
 rand_chacha = { version = "0.3.1" }

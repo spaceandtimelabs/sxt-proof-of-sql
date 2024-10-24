@@ -95,7 +95,6 @@ pub fn column_parse_decimals_fallible(
                     format_options: FormatOptions::new(),
                 },
             )?;
-
             Ok(cast_with_options(
                 &column,
                 &ArrowDataType::Decimal256(precision, scale),

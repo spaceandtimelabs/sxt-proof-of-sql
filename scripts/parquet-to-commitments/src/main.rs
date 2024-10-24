@@ -21,7 +21,7 @@ use std::{
     panic,
     path::{Path, PathBuf},
 };
-use blitzar::compute::MsmHandle;
+// use blitzar::compute::MsmHandle;
 
 /// # Panics
 fn main() {
@@ -81,21 +81,21 @@ fn main() {
 
     println!("Creating prover setup..");
 
-    let blitzar_handle_path = "blitzar-handle";
-    let blitzar_handle = if Path::new(blitzar_handle_path).exists() {
-        println!("Loading blitzar handle..");
-        MsmHandle::new_from_file(blitzar_handle_path)
-    } else {
-        println!("Generating blitzar handle..");
-        let prover_setup = ProverSetup::from(&public_parameters);
-        println!("Saving blitzar handle..");
-        prover_setup.blitzar_handle.write(blitzar_handle_path);
-        prover_setup.blitzar_handle
-    };
+    // let blitzar_handle_path = "blitzar-handle";
+    // let blitzar_handle = if Path::new(blitzar_handle_path).exists() {
+    //     println!("Loading blitzar handle..");
+    //     MsmHandle::new_from_file(blitzar_handle_path)
+    // } else {
+    //     println!("Generating blitzar handle..");
+    //     let prover_setup = ProverSetup::from(&public_parameters);
+    //     println!("Saving blitzar handle..");
+    //     prover_setup.blitzar_handle.write(blitzar_handle_path);
+    //     prover_setup.blitzar_handle
+    // };
 
     println!("Generating prover setup");
     let prover_setup =
-        ProverSetup::from_public_parameters_and_blitzar_handle(&public_parameters, blitzar_handle);
+        ProverSetup::from(&public_parameters);
 
     println!("Beginning parquet to commitments..");
     table_identifiers

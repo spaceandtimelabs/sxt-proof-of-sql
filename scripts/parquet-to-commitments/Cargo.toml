@@ -7,10 +7,10 @@ version.workspace = true
 license-file.workspace = true
 
 [dependencies]
-proof-of-sql.workspace = true
+proof-of-sql = {workspace = true, default-features=false, features=["arrow", "cpu-perf"]}
 rand.workspace = true
 rand_chacha.workspace = true
-blitzar.workspace = true
+#blitzar.workspace = true
 glob = { version = "0.3.1" }
 
 [lints]

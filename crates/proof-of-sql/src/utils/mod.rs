@@ -6,3 +6,4 @@ pub mod parquet_to_commitment_blob;
 pub mod parse;
 pub mod parse_decimals;
 pub mod record_batch_map;
+pub mod decimal_precision;

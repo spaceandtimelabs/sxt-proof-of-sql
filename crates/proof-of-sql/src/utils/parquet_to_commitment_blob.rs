@@ -1,6 +1,6 @@
 use crate::{
-    base::{commitment::{Commitment, TableCommitment}},
-    proof_primitive::dory::{DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup}, utils::{parse_decimals::column_parse_decimals_fallible, record_batch_map::record_batch_try_map_with_target_types},
+    base::commitment::{Commitment, TableCommitment},
+    proof_primitive::dory::{DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup}, utils::{decimal_precision::column_clamp_precision, parse_decimals::column_parse_decimals_fallible, record_batch_map::{record_batch_map, record_batch_try_map_with_target_types}},
 };
 use arrow::{
     array::{
@@ -8,7 +8,7 @@ use arrow::{
     },
     compute::{sort_to_indices, take},
     datatypes::{i256, DataType, Field, Schema},
-    error::ArrowError,
+    error::ArrowError, record_batch,
 };
 use indexmap::IndexMap;
 use core::str::FromStr;
@@ -79,6 +79,7 @@ pub fn convert_historical_parquet_file_to_commitment_blob(
                             target_types,
                             column_parse_decimals_fallible
                         ).unwrap();
+                    let record_batch = record_batch_map(record_batch, column_clamp_precision);
 
                     // Calculate and return TableCommitment
                     TableCommitment::<DynamicDoryCommitment>::try_from_record_batch_with_offset(

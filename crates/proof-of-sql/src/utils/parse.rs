@@ -19,7 +19,7 @@ pub fn find_bigdecimals(queries: &str) -> IndexMap<String, IndexMap<String, Data
     let dialect = GenericDialect {};
     let ast = Parser::parse_sql(&dialect, queries).expect("Failed to parse SQL");
     // Find all `CREATE TABLE` statements
-    ast.iter()
+    let target_types = ast.iter()
         .map(|statement| match statement {
             Statement::CreateTable { name, columns, .. } => {
                 // Find all `DECIMAL` columns where precision > 38
@@ -30,7 +30,8 @@ pub fn find_bigdecimals(queries: &str) -> IndexMap<String, IndexMap<String, Data
             }
             _ => unimplemented!(),
         })
-        .collect::<IndexMap<String, IndexMap<String, DataType, >>>()
+        .collect::<IndexMap<String, IndexMap<String, DataType, >>>();
+    target_types
 }
 
 #[cfg(test)]
