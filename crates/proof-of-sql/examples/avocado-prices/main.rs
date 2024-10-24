@@ -102,36 +102,16 @@ fn main() {
         &prover_setup,
     );
 
-    // Parse the query:
-    let query_plan = QueryExpr::<DynamicDoryCommitment>::try_new(
-        "SELECT * FROM prices".parse().unwrap(),
-        "avocado".parse().unwrap(),
+    prove_and_verify_query(
+        "SELECT COUNT(*) AS total FROM prices",
         &accessor,
-    )
-    .unwrap();
-
-    // Generate the proof and result:
-    print!("Generating proof...");
-    let (proof, provable_result) = QueryProof::<DynamicDoryEvaluationProof>::new(
-        query_plan.proof_expr(),
-        &accessor,
-        &&prover_setup,
+        &prover_setup,
+        &verifier_setup,
     );
-    println!("Done.");
-
-    // Verify the result with the proof:
-    print!("Verifying proof...");
-    let result = proof
-        .verify(
-            query_plan.proof_expr(),
-            &accessor,
-            &provable_result,
-            &&verifier_setup,
-        )
-        .unwrap();
-    println!("Verified.");
-
-    // Display the result
-    println!("Query Result:");
-    println!("{:?}", result.table);
+    prove_and_verify_query(
+        "SELECT Geography, COUNT(*) AS num_geographies FROM income GROUP BY Geography",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
