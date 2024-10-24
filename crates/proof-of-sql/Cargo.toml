@@ -103,6 +103,22 @@ required-features = [ "arrow" ]
 name = "wood_types"
 required-features = [ "arrow" ]
 
+[[example]]
+name = "dinosaurs"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "books"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "brands"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "plastics"
+required-features = [ "arrow" ]
+
 [[bench]]
 name = "posql_benches"
 harness = false

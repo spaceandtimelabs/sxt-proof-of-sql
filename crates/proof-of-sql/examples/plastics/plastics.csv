@@ -1,0 +1,19 @@
+Name,Code,Density,Biodegradable
+Polyethylene Terephthalate (PET),1,1.38,FALSE
+High-Density Polyethylene (HDPE),2,0.97,FALSE
+Polyvinyl Chloride (PVC),3,1.40,FALSE
+Low-Density Polyethylene (LDPE),4,0.92,FALSE
+Polypropylene (PP),5,0.90,FALSE
+Polystyrene (PS),6,1.05,FALSE
+Polylactic Acid (PLA),7,1.25,TRUE
+Polybutylene Adipate Terephthalate (PBAT),7,1.26,TRUE
+Polyhydroxyalkanoates (PHA),7,1.24,TRUE
+Polybutylene Succinate (PBS),7,1.26,TRUE
+Acrylic (PMMA),7,1.18,FALSE
+Polycarbonate (PC),7,1.20,FALSE
+Polyurethane (PU),7,1.05,FALSE
+Acrylonitrile Butadiene Styrene (ABS),7,1.04,FALSE
+Polyamide (Nylon),7,1.15,FALSE
+Polyethylene Furanoate (PEF),7,1.43,TRUE
+Thermoplastic Starch (TPS),7,1.35,TRUE
+Cellulose Acetate,7,1.30,TRUE
