@@ -124,6 +124,8 @@ jobs:
         run: cargo run --example books
       - name: Run brands example
         run: cargo run --example brands
+      - name: Run avocado-prices example
+        run: cargo run --example avocado-prices
       - name: Run plastics example
         run: cargo run --example plastics
       - name: Run posql_db example (With Blitzar)
