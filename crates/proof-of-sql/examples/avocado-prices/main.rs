@@ -115,4 +115,10 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+    prove_and_verify_query(
+        "SELECT Year, COUNT(*) AS total FROM prices WHERE Price > 100 GROUP BY Year ORDER BY total DESC LIMIT 5",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
