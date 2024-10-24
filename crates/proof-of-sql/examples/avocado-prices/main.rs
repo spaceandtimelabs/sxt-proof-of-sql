@@ -14,7 +14,7 @@ use proof_of_sql::{
     sql::{parse::QueryExpr, proof::QueryProof},
 };
 use rand::{rngs::StdRng, SeedableRng};
-use std::fs::File;
+use std::{fs::File, time::Instant};
 
 // We generate the public parameters and the setups used by the prover and verifier for the Dory PCS.
 // The `max_nu` should be set such that the maximum table size is less than `2^(2*max_nu-1)`.
@@ -29,6 +29,53 @@ use std::fs::File;
 const DORY_SETUP_MAX_NU: usize = 8;
 // This should be a "nothing-up-my-sleeve" phrase or number.
 const DORY_SEED: [u8; 32] = *b"len 32 rng seed - Space and Time";
+
+/// # Panics
+/// Will panic if the query does not parse or the proof fails to verify.
+fn prove_and_verify_query(
+    sql: &str,
+    accessor: &OwnedTableTestAccessor<DynamicDoryEvaluationProof>,
+    prover_setup: &ProverSetup,
+    verifier_setup: &VerifierSetup,
+) {
+    // Parse the query:
+    println!("Parsing the query: {sql}...");
+    let now = Instant::now();
+    let query_plan = QueryExpr::<DynamicDoryCommitment>::try_new(
+        sql.parse().unwrap(),
+        "avocado".parse().unwrap(),
+        accessor,
+    )
+    .unwrap();
+    println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
+
+    // Generate the proof and result:
+    print!("Generating proof...");
+    let now = Instant::now();
+    let (proof, provable_result) = QueryProof::<DynamicDoryEvaluationProof>::new(
+        query_plan.proof_expr(),
+        accessor,
+        &prover_setup,
+    );
+    println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
+
+    // Verify the result with the proof:
+    print!("Verifying proof...");
+    let now = Instant::now();
+    let result = proof
+        .verify(
+            query_plan.proof_expr(),
+            accessor,
+            &provable_result,
+            &verifier_setup,
+        )
+        .unwrap();
+    println!("Verified in {} ms.", now.elapsed().as_secs_f64() * 1000.);
+
+    // Display the result
+    println!("Query Result:");
+    println!("{:?}", result.table);
+}
 
 fn main() {
     let mut rng = StdRng::from_seed(DORY_SEED);
@@ -49,7 +96,7 @@ fn main() {
 
     // Load the table into an "Accessor" so that the prover and verifier can access the data/commitments.
     let accessor = OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_from_table(
-        "census.income".parse().unwrap(),
+        "avocado.prices".parse().unwrap(),
         OwnedTable::try_from(data_batch).unwrap(),
         0,
         &prover_setup,
@@ -57,8 +104,8 @@ fn main() {
 
     // Parse the query:
     let query_plan = QueryExpr::<DynamicDoryCommitment>::try_new(
-        "SELECT * FROM income".parse().unwrap(),
-        "census".parse().unwrap(),
+        "SELECT * FROM prices".parse().unwrap(),
+        "avocado".parse().unwrap(),
         &accessor,
     )
     .unwrap();
