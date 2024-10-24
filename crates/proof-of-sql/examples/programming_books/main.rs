@@ -1,8 +1,8 @@
 //! This is a non-interactive example of using Proof of SQL with an extended books dataset.
-//! To run this, use `cargo run --example books_extra`.
+//! To run this, use `cargo run --example programming_books`.
 //!
 //! NOTE: If this doesn't work because you do not have the appropriate GPU drivers installed,
-//! you can run `cargo run --example books_extra --no-default-features --features="arrow cpu-perf"` instead. It will be slower for proof generation.
+//! you can run `cargo run --example programming_books --no-default-features --features="arrow cpu-perf"` instead. It will be slower for proof generation.
 
 use arrow::datatypes::SchemaRef;
 use arrow_csv::{infer_schema_from_files, ReaderBuilder};
@@ -36,7 +36,7 @@ fn prove_and_verify_query(
     let now = Instant::now();
     let query_plan = QueryExpr::<DynamicDoryCommitment>::try_new(
         sql.parse().unwrap(),
-        "books_extra".parse().unwrap(),
+        "programming_books".parse().unwrap(),
         accessor,
     )
     .unwrap();
@@ -77,7 +77,7 @@ fn main() {
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
 
-    let filename = "./crates/proof-of-sql/examples/books_extra/books_extra.csv";
+    let filename = "./crates/proof-of-sql/examples/programming_books/programming_books.csv";
     let inferred_schema =
         SchemaRef::new(infer_schema_from_files(&[filename.to_string()], b',', None, true).unwrap());
     let posql_compatible_schema = get_posql_compatible_schema(&inferred_schema);
@@ -94,7 +94,7 @@ fn main() {
     let mut accessor =
         OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
     accessor.add_table(
-        "books_extra.books".parse().unwrap(),
+        "programming_books.books".parse().unwrap(),
         OwnedTable::try_from(books_extra_batch).unwrap(),
         0,
     );
