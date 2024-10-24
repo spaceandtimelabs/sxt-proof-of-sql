@@ -1,0 +1,463 @@
+use crate::intermediate_ast;
+use crate::select_statement;
+use crate::identifier;
+use lalrpop_util::ParseError::User;
+use crate::{intermediate_decimal::IntermediateDecimal, posql_time::PoSQLTimestamp};
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec;
+use alloc::vec::Vec;
+
+grammar;
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// We only need to support SELECT statements on this SQL parser.
+//
+// Besides, the grammar here is strictly following Postgres grammar rules defined here: 
+// https://www.postgresql.org/docs/current/sql-syntax-lexical.html
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub SelectStatement: select_statement::SelectStatement = {
+    <expr: SelectCore> <order_by: ("order" "by" <OrderByList>)?> <slice: SliceClause?> ";"? => 
+        select_statement::SelectStatement {
+            expr,
+            order_by: order_by.unwrap_or(vec![]),
+            slice,
+        },
+};
+
+SelectCore: Box<intermediate_ast::SetExpression> = {
+    "select" <result_exprs: SelectResultExprList> <from: FromClause> <where_expr: WhereClause?> <group_by: GroupByClause?> =>
+        Box::new(intermediate_ast::SetExpression::Query {
+            result_exprs, from, where_expr, group_by: group_by.unwrap_or(vec![])
+        }),
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Order By
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+OrderByList: Vec<intermediate_ast::OrderBy> = {
+    <order_by: OrderByCore> => vec![<>],
+
+    <order_by_list: OrderByList> "," <order_by: OrderByCore> => intermediate_ast::append(order_by_list, order_by),    
+};
+
+OrderByCore: intermediate_ast::OrderBy = {
+    <col_id: Identifier> "asc"? => intermediate_ast::OrderBy {
+            expr: col_id, direction: intermediate_ast::OrderByDirection::Asc,
+    },
+
+    <col_id: Identifier> "desc" => intermediate_ast::OrderBy {
+            expr: col_id, direction: intermediate_ast::OrderByDirection::Desc,
+    },
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Limit Clause
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+SliceClause: intermediate_ast::Slice = {
+    <limit: LimitClause> => intermediate_ast::Slice {
+        number_rows: limit,
+        offset_value: 0,
+    },
+    <offset: OffsetClause> => intermediate_ast::Slice {
+        number_rows: u64::MAX,
+        offset_value: offset,
+    },
+    <offset: OffsetClause> <number_rows: LimitClause> => intermediate_ast::Slice {
+        number_rows: number_rows,
+        offset_value: offset,
+    },
+    <number_rows: LimitClause> <offset: OffsetClause> => intermediate_ast::Slice {
+        number_rows: number_rows,
+        offset_value: offset,
+    },
+};
+
+LimitClause: u64 = {
+    "limit" "all" => u64::MAX,
+    "limit" <number_rows: UInt64NumericLiteral> => number_rows,
+};
+
+OffsetClause: i64 = {
+    "offset" <offset: Int64NumericLiteral> => offset,
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Group By
+////////////////////////////////////////////////////////////////////////////////////////////////
+GroupByClause: Vec<identifier::Identifier> = {
+    "group" "by" <group_by_list: GroupByList> => group_by_list, 
+};
+
+GroupByList: Vec<identifier::Identifier> = {
+    <group_by: GroupByCore> => vec![<>],
+
+    <group_by_list: GroupByList> "," <group_by: GroupByCore> => intermediate_ast::append(group_by_list, group_by),    
+};
+
+GroupByCore: identifier::Identifier = {
+    <col_id: Identifier> => col_id,
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Result Columns
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+SelectResultExprList: Vec<intermediate_ast::SelectResultExpr> = {
+    SelectResultExpr => vec![<>],
+
+    <columns: SelectResultExprList> "," <column: SelectResultExpr> => intermediate_ast::append(columns, column),
+};
+
+SelectResultExpr: intermediate_ast::SelectResultExpr = {
+    "*" => intermediate_ast::SelectResultExpr::ALL,
+
+    <expr: Expression> <alias: ("as"? <Identifier>)?> => intermediate_ast::SelectResultExpr::AliasedResultExpr(
+        intermediate_ast::AliasedResultExpr {
+                 expr: expr.clone(),
+                 alias: alias.unwrap_or({
+                    if let intermediate_ast::Expression::Column(identifier) = *expr {
+                        identifier.clone()
+                    } else if let intermediate_ast::Expression::Aggregation { op, expr: _ } = *expr {
+                        match op {
+                            intermediate_ast::AggregationOperator::Max => identifier::Identifier::new("__max__"),
+                            intermediate_ast::AggregationOperator::Min => identifier::Identifier::new("__min__"),
+                            intermediate_ast::AggregationOperator::Sum => identifier::Identifier::new("__sum__"),
+                            intermediate_ast::AggregationOperator::Count => identifier::Identifier::new("__count__"),
+                            _ => panic!("Aggregation operator not supported")
+                        }
+                    } else {
+                        identifier::Identifier::new("__expr__")
+                    }
+                 }),
+        }
+    ),
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// QualifiedColumnIdentifier (used by result column and where_expr columns)
+////////////////////////////////////////////////////////////////////////////////////////////////
+QualifiedColumnIdentifier: identifier::Identifier = {
+    #[precedence(level="1")]
+    Identifier,
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// FromClause
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+FromClause: Vec<Box<intermediate_ast::TableExpression>> = {
+    "from" <table_ref: TableExpression> => vec![table_ref],
+};
+
+TableExpression: Box<intermediate_ast::TableExpression> = {
+    <table: QualifiedTableIdentifier> => table,
+};
+
+QualifiedTableIdentifierParen: Box<intermediate_ast::TableExpression> = "(" <QualifiedTableIdentifier> ")";
+QualifiedTableIdentifier: Box<intermediate_ast::TableExpression> = {
+    #[precedence(level="0")]
+    QualifiedTableIdentifierParen,
+
+    #[precedence(level="1")]
+    <schema: (<Identifier> ".")?> <table: Identifier> =>
+        Box::new(intermediate_ast::TableExpression::Named { table, schema }),
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// WhereClause
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+WhereClause: Box<intermediate_ast::Expression> = {
+    "where" <expr: Expression> => expr,
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Expressions
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Note: we are adding a new `ExprParen` rule
+// solely for the purpose of overcoming LALRPOP restrictions.
+// For instance, see this thread:
+// [here](https://gitter.im/lalrpop/Lobby?at=6368164d9ee3ec22b4fa69cb)
+ExprParen: Box<intermediate_ast::Expression> = "(" <Expression> ")";
+// Operator precedence is defined according to postgres order [here](https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-PRECEDENCE)
+Expression: Box<intermediate_ast::Expression> = {
+    #[precedence(level="0")]
+    BasicExpression,
+
+    ExprParen,
+
+    // Since these always have parentheses, they are the highest precedence
+    <agg: AggregationExpression> => Box::new(intermediate_ast::Expression::Aggregation {
+            op: agg.0,
+            expr: agg.1,
+        }),
+
+    #[precedence(level="1")]
+    "-" "(" <expr: Expression> ")" => Box::new(intermediate_ast::Expression::Binary {
+        op: intermediate_ast::BinaryOperator::Multiply,
+        left: Box::new(intermediate_ast::Expression::Literal(intermediate_ast::Literal::BigInt(-1))),
+        right: expr
+    }),
+
+    // To account for non-associative division (e.g., 'a * b / c' equals 
+    // '(a * b) / c' but differs from 'a * (b / c)'), it's essential to
+    // enforce left associativity for the '*' and '/' arithmetic operators.
+    #[precedence(level="2")] #[assoc(side="left")]
+    <left: Expression> "*" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Multiply,
+            left,
+            right, 
+        }),
+
+    <left: Expression> "/" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Division,
+            left,
+            right, 
+        }),
+
+    #[precedence(level="3")] #[assoc(side="left")]
+    <left: Expression> "+" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Add,
+            left,
+            right, 
+        }),
+
+    <left: Expression> "-" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Subtract,
+            left,
+            right, 
+        }),
+
+    #[precedence(level="4")] #[assoc(side="left")]
+    <left: Expression> ">=" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::GreaterThanOrEqual,
+            left,
+            right, 
+        }),
+    
+    <left: Expression> "<=" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::LessThanOrEqual,
+            left,
+            right, 
+        }),
+
+    <left: Expression> ">" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Unary {
+            op: intermediate_ast::UnaryOperator::Not,
+            expr: Box::new(intermediate_ast::Expression::Binary {
+                op: intermediate_ast::BinaryOperator::LessThanOrEqual,
+                left,
+                right, 
+            }), 
+        }),
+    
+    <left: Expression> "<" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Unary {
+            op: intermediate_ast::UnaryOperator::Not,
+            expr: Box::new(intermediate_ast::Expression::Binary {
+                op: intermediate_ast::BinaryOperator::GreaterThanOrEqual,
+                left,
+                right, 
+            }), 
+        }),
+
+    <left: Expression> "=" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Equal,
+            left,
+            right, 
+        }),
+
+    <left: Expression> "!=" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Unary {
+            op: intermediate_ast::UnaryOperator::Not,
+            expr: Box::new(intermediate_ast::Expression::Binary {
+                op: intermediate_ast::BinaryOperator::Equal,
+                left,
+                right, 
+            }), 
+        }),
+
+    #[precedence(level="5")] #[assoc(side="right")]
+    "not" <expr: Expression> => Box::new(intermediate_ast::Expression::Unary {
+        op: intermediate_ast::UnaryOperator::Not, expr
+    }),
+
+    #[precedence(level="6")] #[assoc(side="left")]
+    <left: Expression> "and" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::And,
+            left,
+            right, 
+        }),
+
+    #[precedence(level="7")] #[assoc(side="left")]
+    <left: Expression> "or" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Or,
+            left,
+            right, 
+        }),
+};
+
+AggregationExpression: (intermediate_ast::AggregationOperator, Box<intermediate_ast::Expression>) = {
+    "max" "(" <expr: Expression> ")" => (intermediate_ast::AggregationOperator::Max, expr),
+    "min" "(" <expr: Expression> ")" => (intermediate_ast::AggregationOperator::Min, expr),
+    "sum" "(" <expr: Expression> ")" => (intermediate_ast::AggregationOperator::Sum, expr),
+    "count" "(" <expr: Expression> ")" => (intermediate_ast::AggregationOperator::Count, expr),
+    "count" "(" "*" ")" => (intermediate_ast::AggregationOperator::Count, Box::new(intermediate_ast::Expression::Wildcard)),
+};
+
+BasicExpression: Box<intermediate_ast::Expression> = {
+    #[precedence(level="0")]
+    <column: QualifiedColumnIdentifier> => Box::new(intermediate_ast::Expression::Column(column)),
+
+    <literal: LiteralValue> => Box::new(intermediate_ast::Expression::Literal(*literal)),
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Literals
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+LiteralValue: Box<intermediate_ast::Literal> = {
+    <value: BooleanLiteral> => Box::new(intermediate_ast::Literal::Boolean(value)),
+
+    <value: StringLiteral> => Box::new(intermediate_ast::Literal::VarChar(<>)),
+
+    <value: Int128UnaryNumericLiteral> => if <> <= i64::MAX.into() && <> >= i64::MIN.into() {
+        Box::new(intermediate_ast::Literal::BigInt(<> as i64))
+    } else {
+        Box::new(intermediate_ast::Literal::Int128(<>))
+    },
+
+    <value: DecimalNumericLiteral> => Box::new(intermediate_ast::Literal::Decimal(value)),
+
+    <value: TimestampLiteral> => Box::new(intermediate_ast::Literal::Timestamp(value)),
+
+    <value: UnixTimestampLiteral> => Box::new(intermediate_ast::Literal::Timestamp(value)),
+};
+
+Int128UnaryNumericLiteral: i128 = {
+    #[precedence(level="1")]
+    Int128NumericLiteral,
+
+    #[precedence(level="2")] #[assoc(side="right")]
+    "+" <expr: Int128UnaryNumericLiteral> => expr,
+    "-" <expr: Int128UnaryNumericLiteral> =>? expr.checked_neg().ok_or(User {error: "Integer overflow"}),
+};
+
+DecimalNumericLiteral: IntermediateDecimal = {
+    <lit:DECIMAL_LIT> =>? IntermediateDecimal::try_from(lit).map_err(|e| User {error: "decimal out of range"}),
+};
+
+Int128NumericLiteral: i128 = {
+    INTEGER_LIT =>? <>.parse::<i128>().map_err(|_| User {error: "i128 out of range"}),
+};
+
+Int64NumericLiteral: i64 = {
+    INTEGER_LIT =>? <>.parse::<i64>().map_err(|_| User {error: "i64 out of range"}),
+};
+
+UInt64NumericLiteral: u64 = {
+    INTEGER_LIT =>? <>.parse::<u64>().map_err(|_| User {error: "u64 out of range"}),
+};
+
+pub StringLiteral: String = {
+    STRING_LITERAL => <>[1..<>.len() - 1].replace("''", "'"),
+};
+
+pub BooleanLiteral: bool = {
+    "true" => true,
+    "false" => false,
+};
+
+TimestampLiteral: PoSQLTimestamp = {
+    "timestamp" <content: STRING_LITERAL> =>? {
+        PoSQLTimestamp::try_from(content.trim_matches('\'').trim())
+            .map_err(|_| User { error: "unable to parse timestamp from query" })
+    },
+};
+
+UnixTimestampLiteral: PoSQLTimestamp = {
+    // Handling the to_timestamp function with numeric input
+    "to_timestamp" "(" <epoch: Int64NumericLiteral> ")" =>? {
+        PoSQLTimestamp::to_timestamp(epoch).map_err(|_| User { error: "unable to parse timestamp from query" })
+    },
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Tokens
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub(crate) ResourceId: (identifier::Identifier, identifier::Identifier) = {
+    <schema: Identifier> "." <object_name: Identifier> => (schema, object_name)
+};
+
+pub(crate) Identifier: identifier::Identifier = ID =>? if <>.len() <= 64 {
+    Ok(identifier::Identifier::new(<>))
+} else {
+    Err(User {error: "Identifier is too long, must be 64 bytes or less (note this may be <64 characters in UTF8)"})
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Lexer specification, with the primary purpose of making language keywords case insensitive //
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+match {
+    r"[aA][lL][lL]" => "all",
+    r"[aA][sS][cC]" => "asc",
+    r"[dD][eE][sS][cC]" => "desc",
+    r"[aA][sS]" => "as",
+    r"[aA][nN][dD]" => "and",
+    r"[fF][rR][oO][mM]" => "from",
+    r"[nN][oO][tT]" => "not",
+    r"[oO][rR]" => "or",
+    r"[sS][eE][lL][eE][cC][tT]" => "select",
+    r"[wW][hH][eE][rR][eE]" => "where",
+    r"[oO][rR][dD][eE][rR]" => "order",
+    r"[bB][yY]" => "by",
+    r"[lL][iI][mM][iI][tT]" => "limit",
+    r"[oO][fF][fF][sS][eE][tT]" => "offset",
+    r"[gG][rR][oO][uU][pP]" => "group",
+    r"[mM][iI][nN]" => "min",
+    r"[mM][aA][xX]" => "max",
+    r"[cC][oO][uU][nN][tT]" => "count",
+    r"[sS][uU][mM]" => "sum",
+    r"[tT][rR][uU][eE]" => "true",
+    r"[fF][aA][lL][sS][eE]" => "false",
+    r"[tT][iI][mM][eE][sS][tT][aA][mM][pP]" => "timestamp",
+    r"[tT][oO]_[tT][iI][mM][eE][sS][tT][aA][mM][pP]" => "to_timestamp",
+    
+    "," => ",",
+    "." => ".",
+    "(" => "(",
+    ")" => ")",
+    "+" => "+",
+    "-" => "-",
+    "*" => "*",
+    "/" => "/",
+    "=" => "=",
+    r"(!=|<>)" => "!=",
+    ">=" => ">=",
+    "<=" => "<=",
+    ">" => ">",
+    "<" => "<",
+    ";" => ";",
+} else {
+    r"[A-Za-z_][A-Za-z0-9_]*" => ID,
+    // Decimal numbers with mandatory fractional part
+    r"[+-]?([0-9]*\.[0-9]+|[0-9]+\.[0-9]*)" => DECIMAL_LIT,
+    // Integer numbers (without a fractional part)
+    r"[+-]?[0-9]+" => INTEGER_LIT,
+    r"'(?s)(?:''|[^'])*'" => STRING_LITERAL,
+}
