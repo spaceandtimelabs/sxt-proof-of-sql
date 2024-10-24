@@ -121,6 +121,7 @@ required-features = [ "arrow" ]
 
 [[example]]
 name = "avocado-prices"
+required-features = [ "arrow" ]
 
 [[bench]]
 name = "posql_benches"
