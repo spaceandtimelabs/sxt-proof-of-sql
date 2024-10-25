@@ -54,3 +54,10 @@ fn prove_and_verify_query(
     println!("Query Result:");
     println!("{:?}", result.table);
 }
+
+fn main() {
+    let mut rng = StdRng::from_seed(DORY_SEED);
+    let public_parameters = PublicParameters::rand(DORY_SETUP_MAX_NU, &mut rng);
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+
