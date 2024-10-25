@@ -145,4 +145,11 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+	prove_and_verify_query(
+        "SELECT kindJa, pricePerPound FROM fish WHERE nameEn = 'Tuna' ORDER BY pricePerPound ASC",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
