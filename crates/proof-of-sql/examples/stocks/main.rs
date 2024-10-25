@@ -63,3 +63,31 @@ fn prove_and_verify_query(
     println!("Query Result:");
     println!("{result:?}");
 }
+
+fn main() {
+    let mut rng = StdRng::from_seed(DORY_SEED);
+    let public_parameters = PublicParameters::rand(DORY_SETUP_MAX_NU, &mut rng);
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+
+    let filename = "./crates/proof-of-sql/examples/stocks/stocks.csv";
+    let schema = get_posql_compatible_schema(&SchemaRef::new(
+        infer_schema_from_files(&[filename.to_string()], b',', None, true).unwrap(),
+    ));
+    let stocks_batch = ReaderBuilder::new(schema)
+        .with_header(true)
+        .build(File::open(filename).unwrap())
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap();
+
+    // Load the table into an "Accessor" so that the prover and verifier can access the data/commitments.
+    let mut accessor =
+        OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
+    accessor.add_table(
+        "stocks.stocks".parse().unwrap(),
+        OwnedTable::try_from(stocks_batch).unwrap(),
+        0,
+    );
+}
