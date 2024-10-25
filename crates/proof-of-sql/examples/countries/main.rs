@@ -115,4 +115,11 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+    prove_and_verify_query(
+        "SELECT country FROM countries WHERE continent = 'Asia'",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
