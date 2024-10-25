@@ -16,3 +16,11 @@ use std::{fs::File, time::Instant};
 
 const DORY_SETUP_MAX_NU: usize = 8;
 const DORY_SEED: [u8; 32] = *b"tech-gadget-prices-dataset-seed";
+fn prove_and_verify_query(
+    sql: &str,
+    accessor: &OwnedTableTestAccessor<DynamicDoryEvaluationProof>,
+    prover_setup: &ProverSetup,
+    verifier_setup: &VerifierSetup,
+) {
+    println!("Parsing the query: {sql}...");
+    let now = Instant::now();
