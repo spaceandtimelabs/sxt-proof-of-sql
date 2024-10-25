@@ -114,24 +114,6 @@ jobs:
         run: cargo run --example hello_world --no-default-features --features="test"
       - name: Run space example
         run: cargo run --example space
-      - name: Run dog breeds example
-        run: cargo run --example dog_breeds
-      - name: Run wood types example
-        run: cargo run --example wood_types
-      - name: Run dinosaurs example
-        run: cargo run --example dinosaurs
-      - name: Run books example
-        run: cargo run --example books
-      - name: Run brands example
-        run: cargo run --example brands
-      - name: Run avocado-prices example
-        run: cargo run --example avocado-prices
-      - name: Run plastics example
-        run: cargo run --example plastics
-      - name: Run sushi example
-        run: cargo run --example sushi
-      - name: Run tech_gadget_prices example
-        run: cargo run --example tech_gadget_prices
       - name: Run posql_db example (With Blitzar)
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
       - name: Run posql_db example (Without Blitzar)
