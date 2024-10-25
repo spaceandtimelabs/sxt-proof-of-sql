@@ -110,4 +110,27 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+	prove_and_verify_query(
+        "SELECT COUNT(*) FROM fish WHERE nameEn = 'Tuna'",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+	prove_and_verify_query(
+        "SELECT kindEn FROM fish WHERE kindJa = 'Otoro'",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+	prove_and_verify_query(
+        "SELECT kindEn FROM fish WHERE kindJa = 'Otoro'",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+	
+	
 }
