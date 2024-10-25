@@ -122,4 +122,11 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+    prove_and_verify_query(
+        "SELECT country FROM countries WHERE gdp > 500 AND gdp < 1500",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
