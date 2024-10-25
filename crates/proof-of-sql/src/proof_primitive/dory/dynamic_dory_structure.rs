@@ -40,7 +40,7 @@ pub(crate) const fn full_width_of_row(row: usize) -> usize {
 /// Returns the index that belongs in the first column in a particular row.
 ///
 /// Note: when row = 1, this correctly returns 0, even though no data belongs there.
-#[cfg(test)]
+#[cfg(any(test, not(feature = "blitzar")))]
 pub(crate) const fn row_start_index(row: usize) -> usize {
     let width_of_row = full_width_of_row(row);
     width_of_row * (row - width_of_row / 2)
