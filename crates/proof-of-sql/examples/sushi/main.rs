@@ -131,6 +131,13 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+	prove_and_verify_query(
+        "SELECT * FROM fish WHERE pricePerPound > 25 AND pricePerPound < 75",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 	
 	
 }
