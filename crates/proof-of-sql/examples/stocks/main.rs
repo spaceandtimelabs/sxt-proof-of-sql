@@ -26,5 +26,13 @@ fn prove_and_verify_query(
     prover_setup: &ProverSetup,
     verifier_setup: &VerifierSetup,
 ) {
-    // Placeholder for query processing
+    println!("Parsing the query: {sql}...");
+    let now = Instant::now();
+    let query_plan = QueryExpr::<DynamicDoryCommitment>::try_new(
+        sql.parse().unwrap(),
+        "stocks".parse().unwrap(),
+        accessor,
+    )
+    .unwrap();
+    println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 }
