@@ -15,7 +15,7 @@ use rand::{rngs::StdRng, SeedableRng};
 use std::{fs::File, time::Instant};
 
 const DORY_SETUP_MAX_NU: usize = 8;
-const DORY_SEED: [u8; 32] = *b"tech-gadget-prices-dataset-seed";
+const DORY_SEED: [u8; 32] = *b"tech-gadget-prices-dataset-seed!";
 fn prove_and_verify_query(
     sql: &str,
     accessor: &OwnedTableTestAccessor<DynamicDoryEvaluationProof>,
