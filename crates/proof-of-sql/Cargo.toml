@@ -119,6 +119,14 @@ required-features = [ "arrow" ]
 name = "plastics"
 required-features = [ "arrow" ]
 
+[[example]]
+name = "avocado-prices"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "sushi"
+required-features = [ "arrow" ]
+
 [[bench]]
 name = "posql_benches"
 harness = false
