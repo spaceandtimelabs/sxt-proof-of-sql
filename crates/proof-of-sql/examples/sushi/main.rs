@@ -138,6 +138,11 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
-	
-	
+
+	prove_and_verify_query(
+        "SELECT kindJa, COUNT(*) FROM fish GROUP BY kindJa",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
