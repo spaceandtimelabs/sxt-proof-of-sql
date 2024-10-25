@@ -107,7 +107,7 @@ fn main() {
 
     // Group sports by Team_Individual with counts 
     prove_and_verify_query(
-        "SELECT Team_Individual, COUNT(*) as count FROM sports GROUP BY Team_Individual ORDER BY count DESC",
+        "SELECT Team_Individual, COUNT(*) as counter FROM sports GROUP BY Team_Individual ORDER BY counter DESC",
         &accessor,
         &prover_setup,
         &verifier_setup,
@@ -131,7 +131,7 @@ fn main() {
 
     // Group by with multiple dimensions
     prove_and_verify_query(
-        "SELECT Outdoor_Indoor, Team_Individual, COUNT(*) as count FROM sports GROUP BY Outdoor_Indoor, Team_Individual ORDER BY count DESC",
+        "SELECT Outdoor_Indoor, Team_Individual, COUNT(*) as counter FROM sports GROUP BY Outdoor_Indoor, Team_Individual ORDER BY counter DESC",
         &accessor,
         &prover_setup,
         &verifier_setup,
