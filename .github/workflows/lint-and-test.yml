@@ -120,6 +120,18 @@ jobs:
         run: cargo run --example wood_types
       - name: Run sports example
         run: cargo run --example sports
+      - name: Run dinosaurs example
+        run: cargo run --example dinosaurs
+      - name: Run books example
+        run: cargo run --example books
+      - name: Run brands example
+        run: cargo run --example brands
+      - name: Run avocado-prices example
+        run: cargo run --example avocado-prices
+      - name: Run plastics example
+        run: cargo run --example plastics
+      - name: Run sushi example
+        run: cargo run --example sushi
       - name: Run posql_db example (With Blitzar)
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
       - name: Run posql_db example (Without Blitzar)
