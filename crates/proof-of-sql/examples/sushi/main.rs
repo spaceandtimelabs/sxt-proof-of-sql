@@ -103,4 +103,11 @@ fn main() {
 	// Load the table into an "Accessor" so that the prover and verifier can access the data/commitments.
     let mut accessor = OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
     accessor.add_table("sushi.fish".parse().unwrap(), OwnedTable::try_from(fish_batch).unwrap(), 0);
+
+	prove_and_verify_query(
+        "SELECT * FROM fish",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
