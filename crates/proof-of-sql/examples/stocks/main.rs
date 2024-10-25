@@ -35,4 +35,28 @@ fn prove_and_verify_query(
     )
     .unwrap();
     println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
+
+    // Generate the proof and result:
+    print!("Generating proof...");
+    let now = Instant::now();
+    let (proof, provable_result) = QueryProof::<DynamicDoryEvaluationProof>::new(
+        query_plan.proof_expr(),
+        accessor,
+        &prover_setup,
+    );
+    println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
+
+    // Verify the result with the proof:
+    print!("Verifying proof...");
+    let now = Instant::now();
+    let result = proof
+        .verify(
+            query_plan.proof_expr(),
+            accessor,
+            &provable_result,
+            &verifier_setup,
+        )
+        .unwrap();
+    let result = apply_postprocessing_steps(result.table, query_plan.postprocessing());
+    println!("Verified in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 }
