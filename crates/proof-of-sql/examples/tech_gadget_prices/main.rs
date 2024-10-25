@@ -71,3 +71,36 @@ fn main() {
     .next()
     .unwrap()
     .unwrap();
+
+    let accessor = OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_from_table(
+        "tech_gadget_prices.prices".parse().unwrap(),
+        OwnedTable::try_from(data_batch).unwrap(),
+        0,
+        &prover_setup,
+    );
+
+    prove_and_verify_query(
+        "SELECT COUNT(*) AS total FROM prices",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+    prove_and_verify_query(
+        "SELECT Brand, COUNT(*) AS total FROM prices GROUP BY Brand ORDER BY total",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+    prove_and_verify_query(
+        "SELECT Name, Price FROM prices WHERE Category = 'Smartphone' ORDER BY Price DESC LIMIT 3",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+    prove_and_verify_query(
+        "SELECT Name, ReleaseYear FROM prices WHERE Price > 500 ORDER BY ReleaseYear DESC",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+}
