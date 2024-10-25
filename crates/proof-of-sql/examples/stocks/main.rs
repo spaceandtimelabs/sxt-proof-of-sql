@@ -59,4 +59,7 @@ fn prove_and_verify_query(
         .unwrap();
     let result = apply_postprocessing_steps(result.table, query_plan.postprocessing());
     println!("Verified in {} ms.", now.elapsed().as_secs_f64() * 1000.);
+
+    println!("Query Result:");
+    println!("{result:?}");
 }
