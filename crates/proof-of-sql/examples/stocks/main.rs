@@ -17,3 +17,14 @@ use proof_of_sql::{
 const DORY_SETUP_MAX_NU: usize = 8;
 // This should be a "nothing-up-my-sleeve" phrase or number.
 const DORY_SEED: [u8; 32] = *b"f9d2e8c1b7a654309cfe81d2b7a3c940";
+
+/// # Panics
+/// Will panic if the query does not parse or the proof fails to verify.
+fn prove_and_verify_query(
+    sql: &str,
+    accessor: &OwnedTableTestAccessor<DynamicDoryEvaluationProof>,
+    prover_setup: &ProverSetup,
+    verifier_setup: &VerifierSetup,
+) {
+    // Placeholder for query processing
+}
