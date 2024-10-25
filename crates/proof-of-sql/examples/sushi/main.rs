@@ -4,36 +4,17 @@
 //! NOTE: If this doesn't work because you do not have the appropriate GPU drivers installed,
 //! you can run `cargo run --release --example space --no-default-features --features="arrow cpu-perf"` instead. It will be slower for proof generation.
 use arrow::datatypes::SchemaRef;
-use arrow_csv::{
-	infer_schema_from_files, 
-	ReaderBuilder
-};
-use std::{
-	fs::File,
-	time::Instant
-};
+use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
-    base::database::{
-		OwnedTable, 
-		OwnedTableTestAccessor,
-		TestAccessor
-	},
+    base::database::{OwnedTable, OwnedTableTestAccessor, TestAccessor},
     proof_primitive::dory::{
-        DynamicDoryCommitment, 
-		DynamicDoryEvaluationProof, 
-		ProverSetup, 
-		PublicParameters,
-        VerifierSetup
+        DynamicDoryCommitment, DynamicDoryEvaluationProof, ProverSetup, PublicParameters,
+        VerifierSetup,
     },
-    sql::{
-		parse::QueryExpr, 
-		proof::QueryProof
-	}
+    sql::{parse::QueryExpr, proof::QueryProof},
 };
-use rand::{
-	rngs::StdRng, 
-	SeedableRng
-};
+use rand::{rngs::StdRng, SeedableRng};
+use std::{fs::File, time::Instant};
 
 const DORY_SETUP_MAX_NU: usize = 8;
 const DORY_SEED: [u8; 32] = *b"sushi-is-the-best-food-available";
@@ -83,70 +64,75 @@ fn prove_and_verify_query(
 }
 
 fn main() {
-	let mut rng = StdRng::from_seed(DORY_SEED);
+    let mut rng = StdRng::from_seed(DORY_SEED);
     let public_parameters = PublicParameters::rand(DORY_SETUP_MAX_NU, &mut rng);
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
 
-	let filename = "./crates/proof-of-sql/examples/sushi/fish.csv";
+    let filename = "./crates/proof-of-sql/examples/sushi/fish.csv";
     let fish_batch = ReaderBuilder::new(SchemaRef::new(
         infer_schema_from_files(&[filename.to_string()], b',', None, true).unwrap(),
     ))
-		.with_header(true)
-		.build(File::open(filename).unwrap())
-		.unwrap()
-		.next()
-		.unwrap()
-		.unwrap();
+    .with_header(true)
+    .build(File::open(filename).unwrap())
+    .unwrap()
+    .next()
+    .unwrap()
+    .unwrap();
     println!("{fish_batch:?}");
 
-	// Load the table into an "Accessor" so that the prover and verifier can access the data/commitments.
-    let mut accessor = OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
-    accessor.add_table("sushi.fish".parse().unwrap(), OwnedTable::try_from(fish_batch).unwrap(), 0);
+    // Load the table into an "Accessor" so that the prover and verifier can access the data/commitments.
+    let mut accessor =
+        OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
+    accessor.add_table(
+        "sushi.fish".parse().unwrap(),
+        OwnedTable::try_from(fish_batch).unwrap(),
+        0,
+    );
 
-	prove_and_verify_query(
+    prove_and_verify_query(
         "SELECT * FROM fish",
         &accessor,
         &prover_setup,
         &verifier_setup,
     );
 
-	prove_and_verify_query(
+    prove_and_verify_query(
         "SELECT COUNT(*) FROM fish WHERE nameEn = 'Tuna'",
         &accessor,
         &prover_setup,
         &verifier_setup,
     );
 
-	prove_and_verify_query(
+    prove_and_verify_query(
         "SELECT kindEn FROM fish WHERE kindJa = 'Otoro'",
         &accessor,
         &prover_setup,
         &verifier_setup,
     );
 
-	prove_and_verify_query(
+    prove_and_verify_query(
         "SELECT kindEn FROM fish WHERE kindJa = 'Otoro'",
         &accessor,
         &prover_setup,
         &verifier_setup,
     );
 
-	prove_and_verify_query(
+    prove_and_verify_query(
         "SELECT * FROM fish WHERE pricePerPound > 25 AND pricePerPound < 75",
         &accessor,
         &prover_setup,
         &verifier_setup,
     );
 
-	prove_and_verify_query(
+    prove_and_verify_query(
         "SELECT kindJa, COUNT(*) FROM fish GROUP BY kindJa",
         &accessor,
         &prover_setup,
         &verifier_setup,
     );
 
-	prove_and_verify_query(
+    prove_and_verify_query(
         "SELECT kindJa, pricePerPound FROM fish WHERE nameEn = 'Tuna' ORDER BY pricePerPound ASC",
         &accessor,
         &prover_setup,
