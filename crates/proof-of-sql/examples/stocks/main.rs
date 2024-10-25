@@ -90,4 +90,12 @@ fn main() {
         OwnedTable::try_from(stocks_batch).unwrap(),
         0,
     );
+
+    // Query 1: Calculate total market cap and count of stocks
+    prove_and_verify_query(
+        "SELECT SUM(MarketCap) as total_market_cap, COUNT(*) as c FROM stocks",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
