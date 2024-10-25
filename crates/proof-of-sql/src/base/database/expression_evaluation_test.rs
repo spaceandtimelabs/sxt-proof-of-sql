@@ -4,7 +4,7 @@ use crate::base::{
         OwnedTable,
     },
     math::decimal::Precision,
-    scalar::Curve25519Scalar,
+    scalar::test_scalar::TestScalar,
 };
 use bigdecimal::BigDecimal;
 use proof_of_sql_parser::{
@@ -15,7 +15,7 @@ use proof_of_sql_parser::{
 
 #[test]
 fn we_can_evaluate_a_simple_literal() {
-    let table: OwnedTable<Curve25519Scalar> =
+    let table: OwnedTable<TestScalar> =
         owned_table([varchar("languages", ["en", "es", "pt", "fr", "ht"])]);
 
     // "Space and Time" in Hebrew
@@ -54,7 +54,7 @@ fn we_can_evaluate_a_simple_literal() {
 
 #[test]
 fn we_can_evaluate_a_simple_column() {
-    let table: OwnedTable<Curve25519Scalar> = owned_table([
+    let table: OwnedTable<TestScalar> = owned_table([
         bigint("bigints", [i64::MIN, -1, 0, 1, i64::MAX]),
         varchar("language", ["en", "es", "pt", "fr", "ht"]),
         varchar("john", ["John", "Juan", "João", "Jean", "Jean"]),
@@ -77,7 +77,7 @@ fn we_can_evaluate_a_simple_column() {
 
 #[test]
 fn we_can_not_evaluate_a_nonexisting_column() {
-    let table: OwnedTable<Curve25519Scalar> =
+    let table: OwnedTable<TestScalar> =
         owned_table([varchar("cats", ["Chloe", "Margaret", "Prudence", "Lucy"])]);
     // "not_a_column" is not a column in the table
     let expr = col("not_a_column");
@@ -89,7 +89,7 @@ fn we_can_not_evaluate_a_nonexisting_column() {
 
 #[test]
 fn we_can_evaluate_a_logical_expression() {
-    let table: OwnedTable<Curve25519Scalar> = owned_table([
+    let table: OwnedTable<TestScalar> = owned_table([
         varchar("en", ["Elizabeth", "John", "cat", "dog", "Munich"]),
         varchar("pl", ["Elżbieta", "Jan", "kot", "pies", "Monachium"]),
         varchar("cz", ["Alžběta", "Jan", "kočka", "pes", "Mnichov"]),
@@ -108,14 +108,14 @@ fn we_can_evaluate_a_logical_expression() {
     // Which Czech and Slovak words agree?
     let expr = equal(col("cz"), col("sk"));
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column: OwnedColumn<Curve25519Scalar> =
+    let expected_column: OwnedColumn<TestScalar> =
         OwnedColumn::Boolean(vec![false, false, false, true, false]);
     assert_eq!(actual_column, expected_column);
 
     // Find words shared among Slovak, Croatian and Slovenian
     let expr = and(equal(col("sk"), col("hr")), equal(col("hr"), col("sl")));
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column: OwnedColumn<Curve25519Scalar> =
+    let expected_column: OwnedColumn<TestScalar> =
         OwnedColumn::Boolean(vec![false, false, true, false, false]);
     assert_eq!(actual_column, expected_column);
 
@@ -125,7 +125,7 @@ fn we_can_evaluate_a_logical_expression() {
         not(equal(col("pl"), col("sl"))),
     );
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column: OwnedColumn<Curve25519Scalar> =
+    let expected_column: OwnedColumn<TestScalar> =
         OwnedColumn::Boolean(vec![false, true, false, false, false]);
     assert_eq!(actual_column, expected_column);
 
@@ -135,14 +135,14 @@ fn we_can_evaluate_a_logical_expression() {
         and(equal(col("hr"), col("sl")), equal(col("hr"), col("sk"))),
     );
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column: OwnedColumn<Curve25519Scalar> =
+    let expected_column: OwnedColumn<TestScalar> =
         OwnedColumn::Boolean(vec![true, true, true, false, true]);
     assert_eq!(actual_column, expected_column);
 }
 
 #[test]
 fn we_can_evaluate_an_arithmetic_expression() {
-    let table: OwnedTable<Curve25519Scalar> = owned_table([
+    let table: OwnedTable<TestScalar> = owned_table([
         smallint("smallints", [-2_i16, -1, 0, 1, 2]),
         int("ints", [-4_i32, -2, 0, 2, 4]),
         bigint("bigints", [-8_i64, -4, 0, 4, 8]),
@@ -191,7 +191,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
 
 #[test]
 fn we_cannot_evaluate_expressions_if_column_operation_errors_out() {
-    let table: OwnedTable<Curve25519Scalar> = owned_table([
+    let table: OwnedTable<TestScalar> = owned_table([
         bigint("bigints", [i64::MIN, -1, 0, 1, i64::MAX]),
         varchar("language", ["en", "es", "pt", "fr", "ht"]),
         varchar("sarah", ["Sarah", "Sara", "Sara", "Sarah", "Sarah"]),
