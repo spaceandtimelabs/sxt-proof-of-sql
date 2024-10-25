@@ -117,6 +117,16 @@ required-features = [ "arrow" ]
 
 [[example]]
 name = "cat_breeds"
+
+name = "plastics"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "avocado-prices"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "sushi"
 required-features = [ "arrow" ]
 
 [[bench]]
