@@ -105,9 +105,9 @@ fn main() {
         &verifier_setup,
     );
 
-    // Group sports by type with counts 
+    // Group sports by Team_Individual with counts 
     prove_and_verify_query(
-        "SELECT Type, COUNT(*) as count FROM sports GROUP BY Type ORDER BY count DESC",
+        "SELECT Team_Individual, COUNT(*) as count FROM sports GROUP BY Team_Individual ORDER BY count DESC",
         &accessor,
         &prover_setup,
         &verifier_setup,
@@ -115,7 +115,7 @@ fn main() {
 
     // Filter team sports and order by name
     prove_and_verify_query(
-        "SELECT \"Sport Name\" FROM sports WHERE \"Team or Individual\" = 'Team' ORDER BY \"Sport Name\"",
+        "SELECT Name FROM sports WHERE Team_Individual = 'Team' ORDER BY Name",
         &accessor,
         &prover_setup,
         &verifier_setup,
@@ -123,7 +123,7 @@ fn main() {
 
     // Filter by multiple conditions
     prove_and_verify_query(
-        "SELECT \"Sport Name\" FROM sports WHERE Type = 'Indoor' AND \"Team or Individual\" = 'Individual'",
+        "SELECT Name FROM sports WHERE Outdoor_Indoor = 'Indoor' AND Team_Individual = 'Individual'",
         &accessor,
         &prover_setup,
         &verifier_setup,
@@ -131,7 +131,7 @@ fn main() {
 
     // Group by with multiple dimensions
     prove_and_verify_query(
-        "SELECT Type, \"Team or Individual\", COUNT(*) as count FROM sports GROUP BY Type, \"Team or Individual\" ORDER BY count DESC",
+        "SELECT Outdoor_Indoor, Team_Individual, COUNT(*) as count FROM sports GROUP BY Outdoor_Indoor, Team_Individual ORDER BY count DESC",
         &accessor,
         &prover_setup,
         &verifier_setup,
