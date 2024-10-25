@@ -61,3 +61,13 @@ fn main() {
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
 
+    let filename = "./tech_gadget_prices/tech_gadget_prices.csv";
+    let data_batch = ReaderBuilder::new(SchemaRef::new(
+        infer_schema_from_files(&[filename.to_string()], b',', None, true).unwrap(),
+    ))
+    .with_header(true)
+    .build(File::open(filename).unwrap())
+    .unwrap()
+    .next()
+    .unwrap()
+    .unwrap();
