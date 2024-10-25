@@ -107,6 +107,7 @@ required-features = [ "arrow" ]
 name = "sports"
 required-features = [ "arrow" ]
 
+[[example]]
 name = "dinosaurs"
 required-features = [ "arrow" ]
 
