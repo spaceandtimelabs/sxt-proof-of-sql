@@ -105,7 +105,7 @@ fn main() {
         &verifier_setup,
     );
 
-    // Group sports by Team_Individual with counts 
+    // Group sports by Team_Individual with counts
     prove_and_verify_query(
         "SELECT Team_Individual, COUNT(*) as counter FROM sports GROUP BY Team_Individual ORDER BY counter DESC",
         &accessor,
