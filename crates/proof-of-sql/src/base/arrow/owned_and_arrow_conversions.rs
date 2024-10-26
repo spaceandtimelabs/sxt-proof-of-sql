@@ -12,11 +12,10 @@
 //! This is because there is no `Int128` type in Arrow.
 //! This does not check that the values are less than 39 digits.
 //! However, the actual arrow backing `i128` is the correct value.
-use super::scalar_and_i256_conversions::convert_scalar_to_i256;
 use crate::base::{
     database::{
-        scalar_and_i256_conversions::convert_i256_to_scalar, OwnedColumn, OwnedTable,
-        OwnedTableError,
+        scalar_and_i256_conversions::{convert_i256_to_scalar, convert_scalar_to_i256},
+        OwnedColumn, OwnedTable, OwnedTableError,
     },
     map::IndexMap,
     math::decimal::Precision,

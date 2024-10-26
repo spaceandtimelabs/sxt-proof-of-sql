@@ -19,6 +19,8 @@ mod literal_value;
 pub use literal_value::LiteralValue;
 
 mod table_ref;
+#[cfg(feature = "arrow")]
+pub use crate::base::arrow::owned_and_arrow_conversions::OwnedArrowConversionError;
 pub use table_ref::TableRef;
 
 #[cfg(feature = "arrow")]
@@ -57,13 +59,6 @@ mod expression_evaluation_error;
 #[cfg(test)]
 mod expression_evaluation_test;
 pub use expression_evaluation_error::{ExpressionEvaluationError, ExpressionEvaluationResult};
-
-#[cfg(feature = "arrow")]
-mod owned_and_arrow_conversions;
-#[cfg(feature = "arrow")]
-pub use owned_and_arrow_conversions::OwnedArrowConversionError;
-#[cfg(all(test, feature = "arrow"))]
-mod owned_and_arrow_conversions_test;
 
 mod test_accessor;
 pub use test_accessor::TestAccessor;
