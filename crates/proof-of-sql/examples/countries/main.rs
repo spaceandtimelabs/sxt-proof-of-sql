@@ -110,13 +110,6 @@ fn main() {
     );
 
     prove_and_verify_query(
-        "SELECT continent, MAX(gdp) as max_gdp, COUNT(*) as country_count FROM countries GROUP BY continent ORDER BY max_gdp DESC",
-        &accessor,
-        &prover_setup,
-        &verifier_setup,
-    );
-
-    prove_and_verify_query(
         "SELECT country FROM countries WHERE continent = 'Asia'",
         &accessor,
         &prover_setup,
