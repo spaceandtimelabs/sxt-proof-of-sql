@@ -10,6 +10,9 @@ pub mod owned_and_arrow_conversions;
 /// Tests for owned and Arrow conversions.
 mod owned_and_arrow_conversions_test;
 
+/// Module for converting record batches.
+pub mod record_batch_conversion;
+
 /// Module for record batch error definitions.
 pub mod record_batch_errors;
 
