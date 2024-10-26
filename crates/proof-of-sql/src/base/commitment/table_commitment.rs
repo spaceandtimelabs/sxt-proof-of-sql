@@ -3,8 +3,9 @@ use super::{
     ColumnCommitmentsMismatch, Commitment, DuplicateIdentifiers,
 };
 #[cfg(feature = "arrow")]
-use crate::base::arrow::arrow_array_to_column_conversion::{
-    ArrayRefExt, ArrowArrayToColumnConversionError,
+use crate::base::arrow::{
+    arrow_array_to_column_conversion::ArrayRefExt,
+    record_batch_errors::{AppendRecordBatchTableCommitmentError, RecordBatchToColumnsError},
 };
 use crate::base::{
     database::{Column, ColumnField, CommitmentAccessor, OwnedTable, TableRef},
@@ -15,7 +16,7 @@ use alloc::vec::Vec;
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use core::ops::Range;
-use proof_of_sql_parser::{Identifier, ParseError};
+use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
@@ -83,42 +84,6 @@ pub enum TableCommitmentArithmeticError {
         "cannot perform table commitment arithmetic for noncontiguous table commitments"
     ))]
     NonContiguous,
-}
-
-/// Errors that can occur when trying to create or extend a [`TableCommitment`] from a record batch.
-#[cfg(feature = "arrow")]
-#[derive(Debug, Snafu)]
-pub enum RecordBatchToColumnsError {
-    /// Error converting from arrow array
-    #[snafu(transparent)]
-    ArrowArrayToColumnConversionError {
-        /// The underlying source error
-        source: ArrowArrayToColumnConversionError,
-    },
-    #[snafu(transparent)]
-    /// This error occurs when convering from a record batch name to an identifier fails. (Which may be impossible.)
-    FieldParseFail {
-        /// The underlying source error
-        source: ParseError,
-    },
-}
-
-/// Errors that can occur when attempting to append a record batch to a [`TableCommitment`].
-#[cfg(feature = "arrow")]
-#[derive(Debug, Snafu)]
-pub enum AppendRecordBatchTableCommitmentError {
-    /// During commitment operation, metadata indicates that operand tables cannot be the same.
-    #[snafu(transparent)]
-    ColumnCommitmentsMismatch {
-        /// The underlying source error
-        source: ColumnCommitmentsMismatch,
-    },
-    /// Error converting from arrow array
-    #[snafu(transparent)]
-    ArrowBatchToColumnError {
-        /// The underlying source error
-        source: RecordBatchToColumnsError,
-    },
 }
 
 /// Commitment for an entire table, with column and table metadata.
