@@ -15,3 +15,6 @@ pub mod record_batch_utility;
 
 /// Module for scalar and i256 conversions.
 pub mod scalar_and_i256_conversions;
+
+/// Module for handling conversions between columns and Arrow arrays.
+pub mod column_arrow_conversions;
