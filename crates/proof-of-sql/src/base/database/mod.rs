@@ -34,11 +34,6 @@ pub use record_batch_utility::ToArrow;
 #[cfg(feature = "arrow")]
 pub mod arrow_schema_utility;
 
-#[cfg(all(test, feature = "arrow", feature = "test"))]
-mod test_accessor_utility;
-#[cfg(all(test, feature = "arrow", feature = "test"))]
-pub use test_accessor_utility::{make_random_test_accessor_data, RandomTestAccessorDescriptor};
-
 mod owned_column;
 pub(crate) use owned_column::compare_indexes_by_owned_columns_with_direction;
 pub use owned_column::OwnedColumn;
