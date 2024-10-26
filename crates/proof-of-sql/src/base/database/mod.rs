@@ -20,7 +20,9 @@ pub use literal_value::LiteralValue;
 
 mod table_ref;
 #[cfg(feature = "arrow")]
-pub use crate::base::arrow::owned_and_arrow_conversions::OwnedArrowConversionError;
+pub use crate::base::arrow::{
+    owned_and_arrow_conversions::OwnedArrowConversionError, scalar_and_i256_conversions,
+};
 pub use table_ref::TableRef;
 
 #[cfg(feature = "arrow")]
@@ -74,9 +76,6 @@ mod owned_table_test_accessor;
 pub use owned_table_test_accessor::OwnedTableTestAccessor;
 #[cfg(all(test, feature = "blitzar"))]
 mod owned_table_test_accessor_test;
-/// Contains traits for scalar <-> i256 conversions
-#[cfg(feature = "arrow")]
-pub mod scalar_and_i256_conversions;
 
 /// TODO: add docs
 pub(crate) mod filter_util;

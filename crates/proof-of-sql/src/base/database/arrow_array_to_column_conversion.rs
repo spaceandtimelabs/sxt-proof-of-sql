@@ -1,5 +1,7 @@
-use super::scalar_and_i256_conversions::convert_i256_to_scalar;
-use crate::base::{database::Column, math::decimal::Precision, scalar::Scalar};
+use crate::base::{
+    arrow::scalar_and_i256_conversions::convert_i256_to_scalar, database::Column,
+    math::decimal::Precision, scalar::Scalar,
+};
 use arrow::{
     array::{
         Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
