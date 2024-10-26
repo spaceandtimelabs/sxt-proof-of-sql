@@ -122,4 +122,11 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+    prove_and_verify_query(
+        "SELECT SUM(gdp) AS total_market_cap FROM countries WHERE country = 'China' OR country = 'India'",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
