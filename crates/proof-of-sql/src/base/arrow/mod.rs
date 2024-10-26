@@ -10,5 +10,8 @@ pub mod owned_and_arrow_conversions;
 /// Tests for owned and Arrow conversions.
 mod owned_and_arrow_conversions_test;
 
+/// Utility functions for record batches.
+pub mod record_batch_utility;
+
 /// Module for scalar and i256 conversions.
 pub mod scalar_and_i256_conversions;

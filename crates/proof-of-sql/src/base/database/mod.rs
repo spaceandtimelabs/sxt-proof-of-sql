@@ -23,14 +23,10 @@ mod table_ref;
 pub use crate::base::arrow::{
     arrow_array_to_column_conversion::{ArrayRefExt, ArrowArrayToColumnConversionError},
     owned_and_arrow_conversions::OwnedArrowConversionError,
+    record_batch_utility::ToArrow,
     scalar_and_i256_conversions,
 };
 pub use table_ref::TableRef;
-
-#[cfg(feature = "arrow")]
-mod record_batch_utility;
-#[cfg(feature = "arrow")]
-pub use record_batch_utility::ToArrow;
 
 #[cfg(feature = "arrow")]
 pub mod arrow_schema_utility;
