@@ -3,7 +3,9 @@ use super::{
     ColumnCommitmentsMismatch, Commitment, DuplicateIdentifiers,
 };
 #[cfg(feature = "arrow")]
-use crate::base::database::{ArrayRefExt, ArrowArrayToColumnConversionError};
+use crate::base::arrow::arrow_array_to_column_conversion::{
+    ArrayRefExt, ArrowArrayToColumnConversionError,
+};
 use crate::base::{
     database::{Column, ColumnField, CommitmentAccessor, OwnedTable, TableRef},
     scalar::Scalar,

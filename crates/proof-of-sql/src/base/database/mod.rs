@@ -21,14 +21,11 @@ pub use literal_value::LiteralValue;
 mod table_ref;
 #[cfg(feature = "arrow")]
 pub use crate::base::arrow::{
-    owned_and_arrow_conversions::OwnedArrowConversionError, scalar_and_i256_conversions,
+    arrow_array_to_column_conversion::{ArrayRefExt, ArrowArrayToColumnConversionError},
+    owned_and_arrow_conversions::OwnedArrowConversionError,
+    scalar_and_i256_conversions,
 };
 pub use table_ref::TableRef;
-
-#[cfg(feature = "arrow")]
-mod arrow_array_to_column_conversion;
-#[cfg(feature = "arrow")]
-pub use arrow_array_to_column_conversion::{ArrayRefExt, ArrowArrayToColumnConversionError};
 
 #[cfg(feature = "arrow")]
 mod record_batch_utility;

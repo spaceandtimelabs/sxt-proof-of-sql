@@ -1,5 +1,8 @@
 //! This module provides conversions and utilities for working with Arrow data structures.
 
+/// Module for handling conversion from Arrow arrays to columns.
+pub mod arrow_array_to_column_conversion;
+
 /// Module for converting between owned and Arrow data structures.
 pub mod owned_and_arrow_conversions;
 
