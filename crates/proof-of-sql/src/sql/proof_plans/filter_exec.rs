@@ -4,7 +4,7 @@ use crate::{
         commitment::Commitment,
         database::{
             filter_util::filter_columns, Column, ColumnField, ColumnRef, CommitmentAccessor,
-            DataAccessor, MetadataAccessor, OwnedTable,
+            DataAccessor, MetadataAccessor, OwnedTable, TableRef,
         },
         map::IndexSet,
         proof::ProofError,
@@ -138,6 +138,10 @@ where
         self.where_clause.get_column_references(&mut columns);
 
         columns
+    }
+
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        IndexSet::from_iter([self.table.table_ref])
     }
 }
 

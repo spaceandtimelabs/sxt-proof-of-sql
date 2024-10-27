@@ -8,7 +8,7 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, TestAccessor, UnimplementedTestAccessor,
+            MetadataAccessor, OwnedTable, TableRef, TestAccessor, UnimplementedTestAccessor,
         },
         map::IndexSet,
         proof::ProofError,
@@ -86,6 +86,10 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        unimplemented!("no real usage for this function yet")
+    }
+
+    fn get_table_references(&self) -> IndexSet<TableRef> {
         unimplemented!("no real usage for this function yet")
     }
 }

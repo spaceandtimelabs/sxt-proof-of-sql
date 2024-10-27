@@ -1,6 +1,10 @@
 use super::{FilterExec, GroupByExec, ProjectionExec};
 use crate::{
-    base::{commitment::Commitment, database::Column, map::IndexSet},
+    base::{
+        commitment::Commitment,
+        database::{Column, TableRef},
+        map::IndexSet,
+    },
     sql::proof::{ProofPlan, ProverEvaluate},
 };
 use alloc::vec::Vec;
@@ -87,6 +91,14 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
             DynProofPlan::Projection(expr) => expr.get_column_references(),
             DynProofPlan::GroupBy(expr) => expr.get_column_references(),
             DynProofPlan::Filter(expr) => expr.get_column_references(),
+        }
+    }
+
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        match self {
+            DynProofPlan::Projection(expr) => expr.get_table_references(),
+            DynProofPlan::GroupBy(expr) => expr.get_table_references(),
+            DynProofPlan::Filter(expr) => expr.get_table_references(),
         }
     }
 }
