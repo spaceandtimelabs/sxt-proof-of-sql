@@ -2,12 +2,20 @@ use super::{FilterExec, GroupByExec, ProjectionExec};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, TableRef},
+        database::{
+            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+            OwnedTable, TableRef,
+        },
         map::IndexSet,
+        proof::ProofError,
     },
-    sql::proof::{ProofPlan, ProverEvaluate},
+    sql::proof::{
+        CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
+        VerificationBuilder,
+    },
 };
 use alloc::vec::Vec;
+use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
 /// The query plan for proving a query
@@ -38,9 +46,9 @@ pub enum DynProofPlan<C: Commitment> {
 impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
     fn count(
         &self,
-        builder: &mut crate::sql::proof::CountBuilder,
-        accessor: &dyn crate::base::database::MetadataAccessor,
-    ) -> Result<(), crate::base::proof::ProofError> {
+        builder: &mut CountBuilder,
+        accessor: &dyn MetadataAccessor,
+    ) -> Result<(), ProofError> {
         match self {
             DynProofPlan::Projection(expr) => expr.count(builder, accessor),
             DynProofPlan::GroupBy(expr) => expr.count(builder, accessor),
@@ -48,7 +56,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         }
     }
 
-    fn get_length(&self, accessor: &dyn crate::base::database::MetadataAccessor) -> usize {
+    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
         match self {
             DynProofPlan::Projection(expr) => expr.get_length(accessor),
             DynProofPlan::GroupBy(expr) => expr.get_length(accessor),
@@ -56,7 +64,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         }
     }
 
-    fn get_offset(&self, accessor: &dyn crate::base::database::MetadataAccessor) -> usize {
+    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         match self {
             DynProofPlan::Projection(expr) => expr.get_offset(accessor),
             DynProofPlan::GroupBy(expr) => expr.get_offset(accessor),
@@ -67,10 +75,10 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
     #[tracing::instrument(name = "DynProofPlan::verifier_evaluate", level = "debug", skip_all)]
     fn verifier_evaluate(
         &self,
-        builder: &mut crate::sql::proof::VerificationBuilder<C>,
-        accessor: &dyn crate::base::database::CommitmentAccessor<C>,
-        result: Option<&crate::base::database::OwnedTable<C::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, crate::base::proof::ProofError> {
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
+        result: Option<&OwnedTable<C::Scalar>>,
+    ) -> Result<Vec<C::Scalar>, ProofError> {
         match self {
             DynProofPlan::Projection(expr) => expr.verifier_evaluate(builder, accessor, result),
             DynProofPlan::GroupBy(expr) => expr.verifier_evaluate(builder, accessor, result),
@@ -78,7 +86,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         }
     }
 
-    fn get_column_result_fields(&self) -> Vec<crate::base::database::ColumnField> {
+    fn get_column_result_fields(&self) -> Vec<ColumnField> {
         match self {
             DynProofPlan::Projection(expr) => expr.get_column_result_fields(),
             DynProofPlan::GroupBy(expr) => expr.get_column_result_fields(),
@@ -86,7 +94,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         }
     }
 
-    fn get_column_references(&self) -> IndexSet<crate::base::database::ColumnRef> {
+    fn get_column_references(&self) -> IndexSet<ColumnRef> {
         match self {
             DynProofPlan::Projection(expr) => expr.get_column_references(),
             DynProofPlan::GroupBy(expr) => expr.get_column_references(),
@@ -108,8 +116,8 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
     fn result_evaluate<'a>(
         &self,
         input_length: usize,
-        alloc: &'a bumpalo::Bump,
-        accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
         match self {
             DynProofPlan::Projection(expr) => expr.result_evaluate(input_length, alloc, accessor),
@@ -118,7 +126,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
         }
     }
 
-    fn first_round_evaluate(&self, builder: &mut crate::sql::proof::FirstRoundBuilder) {
+    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
         match self {
             DynProofPlan::Projection(expr) => expr.first_round_evaluate(builder),
             DynProofPlan::GroupBy(expr) => expr.first_round_evaluate(builder),
@@ -129,9 +137,9 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
     #[tracing::instrument(name = "DynProofPlan::final_round_evaluate", level = "debug", skip_all)]
     fn final_round_evaluate<'a>(
         &self,
-        builder: &mut crate::sql::proof::FinalRoundBuilder<'a, C::Scalar>,
-        alloc: &'a bumpalo::Bump,
-        accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
         match self {
             DynProofPlan::Projection(expr) => expr.final_round_evaluate(builder, alloc, accessor),
