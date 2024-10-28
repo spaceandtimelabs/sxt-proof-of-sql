@@ -130,12 +130,4 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
-
-    // Query 5: Calculate the average rating of books in each genre
-    prove_and_verify_query(
-        "SELECT genre, AVG(rating) AS average_rating FROM books GROUP BY genre ORDER BY average_rating DESC",
-        &accessor,
-        &prover_setup,
-        &verifier_setup,
-    );
 }
