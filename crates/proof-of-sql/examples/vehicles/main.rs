@@ -108,4 +108,12 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+    prove_and_verify_query(
+        "SELECT model FROM vehicles WHERE make = 'Ford'",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
 }
