@@ -25,14 +25,13 @@ fn we_can_generate_save_and_load_public_setups() {
     // Check the output to make sure the process ran successfully
     assert!(
         output.status.success(),
-        "Process failed to run: {:?}",
-        output
+        "Process failed to run: {output:?}"
     );
 
     // Check that both Prover and Verifier files exist in the temp directory
-    let blitzar_handle_path = format!("{}/blitzar_handle_nu_4.bin", temp_path);
-    let verifier_setup_path = format!("{}/verifier_setup_nu_4.bin", temp_path);
-    let public_parameters_path = format!("{}/public_parameters_nu_4.bin", temp_path);
+    let blitzar_handle_path = format!("{temp_path}/blitzar_handle_nu_4.bin");
+    let verifier_setup_path = format!("{temp_path}/verifier_setup_nu_4.bin");
+    let public_parameters_path = format!("{temp_path}/public_parameters_nu_4.bin");
 
     assert!(
         Path::new(&blitzar_handle_path).exists(),

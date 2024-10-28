@@ -8,16 +8,14 @@ use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 use proof_of_sql::proof_primitive::dory::{ProverSetup, PublicParameters, VerifierSetup};
 use rand_chacha::ChaCha20Rng;
-use sha2::Digest;
-use sha2::Sha256;
-use std::env;
-use std::fs::OpenOptions;
-use std::io;
-use std::io::Write;
-use std::process::Command;
+use sha2::{Digest, Sha256};
 use std::{
-    fs::{self, File},
+    env,
+    fs::{self, File, OpenOptions},
+    io,
+    io::Write,
     path::Path,
+    process::Command,
     time::{Duration, Instant},
 };
 
@@ -52,10 +50,9 @@ fn main() {
     // Confirm that it was set by reading it back
     match env::var("BLITZAR_PARTITION_WINDOW_WIDTH") {
         Ok(value) => println!(
-            "Environment variable BLITZAR_PARTITION_WINDOW_WIDTH set to {}",
-            value
+            "Environment variable BLITZAR_PARTITION_WINDOW_WIDTH set to {value}"
         ),
-        Err(e) => println!("Failed to set environment variable: {}", e),
+        Err(e) => println!("Failed to set environment variable: {e}"),
     }
 
     // Parse command-line arguments
@@ -82,8 +79,7 @@ fn main() {
     let mut rng = ChaCha20Rng::from_seed(seed_bytes);
 
     let spinner = spinner(format!(
-        "Generating a random public setup with seed {:?} please wait...",
-        SEED
+        "Generating a random public setup with seed {SEED:?} please wait..."
     ));
 
     // Use the `nu` value from the command-line argument
@@ -126,14 +122,14 @@ fn generate_prover_setup(public_parameters: &PublicParameters, nu: usize, target
 
     spinner.finish_with_message("Prover setup complete.");
     let duration = start_time.elapsed();
-    println!("Generated prover setup in {:.2?}", duration);
+    println!("Generated prover setup in {duration:.2?}");
 
-    let public_parameters_path = format!("{}/public_parameters_nu_{}.bin", target, nu);
+    let public_parameters_path = format!("{target}/public_parameters_nu_{nu}.bin");
     let result = public_parameters.save_to_file(Path::new(&public_parameters_path));
-    let file_path = format!("{}/blitzar_handle_nu_{}.bin", target, nu);
+    let file_path = format!("{target}/blitzar_handle_nu_{nu}.bin");
 
     match result {
-        Ok(_) => {
+        Ok(()) => {
             write_prover_blitzar_handle(setup, &file_path);
 
             // Compute and save SHA-256
@@ -166,13 +162,13 @@ fn generate_verifier_setup(public_parameters: &PublicParameters, nu: usize, targ
 
     spinner.finish_with_message("Verifier setup complete.");
     let duration = start_time.elapsed();
-    println!("Generated verifier setup in {:.2?}", duration);
+    println!("Generated verifier setup in {duration:.2?}");
 
-    let file_path = format!("{}/verifier_setup_nu_{}.bin", target, nu);
+    let file_path = format!("{target}/verifier_setup_nu_{nu}.bin");
     let result = write_verifier_setup(setup, &file_path);
 
     match result {
-        Ok(_) => {
+        Ok(()) => {
             println!("Verifier setup and parameters saved successfully.");
 
             // Compute and save SHA-256
@@ -196,7 +192,7 @@ fn compute_sha256(file_path: &str) -> Option<String> {
 
 // Function to save digests to digests.txt
 fn save_digests(digests: &[(String, String)], target: &str, nu: usize) {
-    let digests_path = format!("{}/digests_nu_{}.txt", target, nu);
+    let digests_path = format!("{target}/digests_nu_{nu}.txt");
 
     // Open file in append mode, creating it if it doesn't exist
     let mut file = OpenOptions::new()
@@ -206,9 +202,9 @@ fn save_digests(digests: &[(String, String)], target: &str, nu: usize) {
         .expect("Unable to open or create digests.txt");
 
     for (file_path, digest) in digests {
-        writeln!(file, "{}  {}", digest, file_path).expect("Unable to write digest to file");
+        writeln!(file, "{digest}  {file_path}").expect("Unable to write digest to file");
     }
-    println!("Digests saved to {}", digests_path);
+    println!("Digests saved to {digests_path}");
 }
 
 fn write_prover_blitzar_handle(setup: ProverSetup<'_>, file_path: &str) {
@@ -228,7 +224,7 @@ fn write_prover_blitzar_handle(setup: ProverSetup<'_>, file_path: &str) {
             .arg("-b")
             .arg("1800M")
             .arg(file_path)
-            .arg(&format!("{}.part.", file_path))
+            .arg(format!("{file_path}.part."))
             .output()
             .expect("Failed to execute split command");
 
