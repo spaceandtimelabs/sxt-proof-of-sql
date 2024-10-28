@@ -122,4 +122,12 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+    // Query 4: Find the top 5 authors with the most books
+    prove_and_verify_query(
+        "SELECT author, COUNT(*) AS book_count FROM books GROUP BY author ORDER BY book_count DESC LIMIT 5",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
