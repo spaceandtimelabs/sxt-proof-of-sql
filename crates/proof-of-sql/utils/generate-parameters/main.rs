@@ -49,9 +49,7 @@ fn main() {
 
     // Confirm that it was set by reading it back
     match env::var("BLITZAR_PARTITION_WINDOW_WIDTH") {
-        Ok(value) => println!(
-            "Environment variable BLITZAR_PARTITION_WINDOW_WIDTH set to {value}"
-        ),
+        Ok(value) => println!("Environment variable BLITZAR_PARTITION_WINDOW_WIDTH set to {value}"),
         Err(e) => println!("Failed to set environment variable: {e}"),
     }
 

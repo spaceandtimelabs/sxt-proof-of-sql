@@ -23,10 +23,7 @@ fn we_can_generate_save_and_load_public_setups() {
         .expect("Failed to execute command");
 
     // Check the output to make sure the process ran successfully
-    assert!(
-        output.status.success(),
-        "Process failed to run: {output:?}"
-    );
+    assert!(output.status.success(), "Process failed to run: {output:?}");
 
     // Check that both Prover and Verifier files exist in the temp directory
     let blitzar_handle_path = format!("{temp_path}/blitzar_handle_nu_4.bin");
