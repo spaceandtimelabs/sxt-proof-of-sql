@@ -58,10 +58,6 @@ You can also specify a value of nu if needed:
 cargo run --release -- --mode  pv --nu 4
 ```
 
-## <a name="contact"></a>📧 Contact
-
-For questions on this repository, please file an issue or reach out to the maintainers and we will reply in earnest.
-
 ## <a name="additional-resources"></a>📚 Additional Resources
 
 - [Dory: Efficient, Transparent arguments for Generalised Inner Products and Polynomial Commitments](https://eprint.iacr.org/2020/1274)
