@@ -116,4 +116,11 @@ fn main() {
         &verifier_setup,
     );
 
+    prove_and_verify_query(
+        "SELECT make,model FROM vehicles WHERE price > 30000 AND price < 50000",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
 }
