@@ -107,6 +107,42 @@ required-features = [ "arrow" ]
 name = "movies"
 required-features = [ "arrow" ]
 
+[[example]]
+name = "dinosaurs"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "books"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "programming_books"
+required-features = ["arrow"]
+
+[[example]]
+name = "brands"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "plastics"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "avocado-prices"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "sushi"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "countries"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "rockets"
+required-features = [ "arrow" ]
+
 [[bench]]
 name = "posql_benches"
 harness = false

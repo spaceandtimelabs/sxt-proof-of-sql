@@ -3,7 +3,7 @@ use crate::{
         commitment::Commitment,
         database::{
             Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
-            OwnedTable,
+            OwnedTable, TableRef,
         },
         map::IndexSet,
         proof::ProofError,
@@ -91,6 +91,10 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
             aliased_expr.expr.get_column_references(&mut columns);
         });
         columns
+    }
+
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        IndexSet::from_iter([self.table.table_ref])
     }
 }
 
