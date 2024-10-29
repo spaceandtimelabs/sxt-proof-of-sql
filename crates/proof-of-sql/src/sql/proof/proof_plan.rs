@@ -3,7 +3,7 @@ use crate::base::{
     commitment::Commitment,
     database::{
         Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
-        OwnedTable,
+        OwnedTable, TableRef,
     },
     map::IndexSet,
     proof::ProofError,
@@ -46,6 +46,9 @@ pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
 
     /// Return all the columns referenced in the Query
     fn get_column_references(&self) -> IndexSet<ColumnRef>;
+
+    /// Return all the tables referenced in the Query
+    fn get_table_references(&self) -> IndexSet<TableRef>;
 }
 
 pub trait ProverEvaluate<S: Scalar> {
