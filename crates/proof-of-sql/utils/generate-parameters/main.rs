@@ -62,7 +62,7 @@ fn main() {
 
     // Ensure the target directory exists
     match fs::create_dir_all(&args.target) {
-        Ok(_) => generate_parameters(args),
+        Ok(()) => generate_parameters(&args),
         Err(_) => eprint!(
             "Skipping generation, failed to write or create target directory: {}. Check path and try again.",
             args.target,
@@ -70,31 +70,24 @@ fn main() {
     };
 }
 
-fn generate_parameters(args: Args) {
+fn generate_parameters(args: &Args) {
     // Clear out the digests.txt file if it already exists
     let digests_path = format!("{}/digests_nu_{}.txt", args.target, args.nu);
     if Path::new(&digests_path).exists() {
-        fs::write(&digests_path, "").expect("Failed to clear digests.txt file");
+        match fs::write(&digests_path, "") {
+            Ok(()) => {}
+            Err(e) => eprintln!("Failed to clear digests.txt file: {e}"),
+        }
     }
 
-    // Convert the seed string to bytes and create a seeded RNG
-    let seed_bytes = args
-        .seed
-        .bytes()
-        .chain(std::iter::repeat(0u8))
-        .take(32)
-        .collect::<Vec<_>>()
-        .try_into()
-        .expect("collection is guaranteed to contain 32 elements");
-    let mut rng = ChaCha20Rng::from_seed(seed_bytes);
+    let mut rng = rng_from_seed(args);
 
     let spinner = spinner(format!(
         "Generating a random public setup with seed {SEED:?} please wait..."
     ));
 
-    // Use the `nu` value from the command-line argument
+    // Obtain public parameter from nu
     let public_parameters = PublicParameters::rand(args.nu, &mut rng);
-
     spinner.finish_with_message("Public parameter setup complete");
 
     match args.mode.as_str() {
@@ -118,7 +111,23 @@ fn generate_parameters(args: Args) {
     }
 }
 
-// Generates and writes the ProverSetup from initial public parameters
+/// # Panics
+/// expects that a [u8; 32] always contains 32 elements, guaranteed not to panic
+fn rng_from_seed(args: &Args) -> ChaCha20Rng {
+    // Convert the seed string to bytes and create a seeded RNG
+    let seed_bytes = args
+        .seed
+        .bytes()
+        .chain(std::iter::repeat(0u8))
+        .take(32)
+        .collect::<Vec<_>>()
+        .try_into()
+        .expect("collection is guaranteed to contain 32 elements");
+    ChaCha20Rng::from_seed(seed_bytes)
+}
+
+/// Generates and writes the ```ProverSetup``` from initial public parameters
+
 fn generate_prover_setup(public_parameters: &PublicParameters, nu: usize, target: &str) {
     let spinner = spinner(
         "Generating parameters for the SxT network. This may take a long time, please wait..."
@@ -135,10 +144,10 @@ fn generate_prover_setup(public_parameters: &PublicParameters, nu: usize, target
     println!("Generated prover setup in {duration:.2?}");
 
     let public_parameters_path = format!("{target}/public_parameters_nu_{nu}.bin");
-    let result = public_parameters.save_to_file(Path::new(&public_parameters_path));
+    let param_save_result = public_parameters.save_to_file(Path::new(&public_parameters_path));
     let file_path = format!("{target}/blitzar_handle_nu_{nu}.bin");
 
-    match result {
+    match param_save_result {
         Ok(()) => {
             write_prover_blitzar_handle(setup, &file_path);
 
@@ -154,7 +163,7 @@ fn generate_prover_setup(public_parameters: &PublicParameters, nu: usize, target
             }
             save_digests(&digests, target, nu); // Save digests to digests.txt
         }
-        Err(_) => println!("Failed to save parameters, aborting."),
+        Err(e) => eprintln!("Failed to save prover setup: {e}."),
     }
 }
 
@@ -179,7 +188,7 @@ fn generate_verifier_setup(public_parameters: &PublicParameters, nu: usize, targ
 
     match result {
         Ok(()) => {
-            println!("Verifier setup and parameters saved successfully.");
+            println!("Verifier setup saved successfully.");
 
             // Compute and save SHA-256
             let mut digests = Vec::new();
@@ -188,7 +197,7 @@ fn generate_verifier_setup(public_parameters: &PublicParameters, nu: usize, targ
             }
             save_digests(&digests, target, nu); // Save digests to digests.txt
         }
-        Err(_) => println!("Failed to save setup, aborting."),
+        Err(e) => eprintln!("Failed to save verifier setup: {e}."),
     }
 }
 
@@ -263,7 +272,7 @@ fn write_prover_blitzar_handle(setup: ProverSetup<'_>, file_path: &str) {
                     Ok(_) => {
                         println!("File successfully split into parts.");
                         fs::remove_file(file_path)
-                            .unwrap_or_else(|_| eprintln!("Error during file splitting"));
+                            .unwrap_or_else(|e| eprintln!("Error during file splitting: {e}"));
                     }
                     Err(e) => eprintln!("Error during file splitting: {e}"),
                 }
