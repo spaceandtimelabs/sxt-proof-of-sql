@@ -7,7 +7,7 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TestAccessor,
+            MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
             UnimplementedTestAccessor,
         },
         map::IndexSet,
@@ -107,6 +107,9 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        unimplemented!("no real usage for this function yet")
+    }
+    fn get_table_references(&self) -> IndexSet<TableRef> {
         unimplemented!("no real usage for this function yet")
     }
 }
@@ -276,6 +279,9 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        unimplemented!("no real usage for this function yet")
+    }
+    fn get_table_references(&self) -> IndexSet<TableRef> {
         unimplemented!("no real usage for this function yet")
     }
 }
@@ -481,6 +487,9 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         unimplemented!("no real usage for this function yet")
     }
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        unimplemented!("no real usage for this function yet")
+    }
 }
 
 fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_generators: usize) {
@@ -675,6 +684,9 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        unimplemented!("no real usage for this function yet")
+    }
+    fn get_table_references(&self) -> IndexSet<TableRef> {
         unimplemented!("no real usage for this function yet")
     }
 }

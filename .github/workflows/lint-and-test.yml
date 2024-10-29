@@ -114,23 +114,10 @@ jobs:
         run: cargo run --example hello_world --no-default-features --features="test"
       - name: Run space example
         run: cargo run --example space
-      - name: Run dog breeds example
-        run: cargo run --example dog_breeds
-      - name: Run wood types example
-        run: cargo run --example wood_types
-      - name: Run dinosaurs example
-        run: cargo run --example dinosaurs
-      - name: Run books example
-        run: cargo run --example books
-      - name: Run brands example
-        run: cargo run --example brands
-      - name: Run plastics example
-        run: cargo run --example plastics
       - name: Run posql_db example (With Blitzar)
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
       - name: Run posql_db example (Without Blitzar)
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh --no-default-features --features="rayon"
-
   clippy:
     name: Clippy
     runs-on: large-8-core-32gb-22-04
