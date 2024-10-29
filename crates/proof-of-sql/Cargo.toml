@@ -151,6 +151,10 @@ required-features = [ "arrow" ]
 name = "rockets"
 required-features = [ "arrow" ]
 
+[[example]]
+name = "albums"
+required-features = [ "arrow" ]
+
 [[bench]]
 name = "posql_benches"
 harness = false
