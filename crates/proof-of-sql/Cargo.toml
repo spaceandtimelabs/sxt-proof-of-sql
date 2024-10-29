@@ -91,6 +91,7 @@ workspace = true
 [[bin]]
 name = "generate-parameters"
 path = "utils/generate-parameters/main.rs"
+required-features = [ "std", "blitzar"]
 
 [[example]]
 name = "hello_world"

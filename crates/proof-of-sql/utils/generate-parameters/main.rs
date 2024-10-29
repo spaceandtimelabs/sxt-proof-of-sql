@@ -1,4 +1,4 @@
-//! doc comment
+//! A CLI utility to generate the public parameters for the prover and verifier
 
 #[cfg(test)]
 mod round_trip_test;
