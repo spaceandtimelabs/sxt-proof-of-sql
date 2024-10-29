@@ -2,6 +2,8 @@ use proof_of_sql::proof_primitive::dory::{ProverSetup, PublicParameters, Verifie
 use std::{path::Path, process::Command};
 use tempfile::tempdir;
 
+/// # Panics
+/// This test will panic if in a number of non-consequential, expected cases.
 #[test]
 fn we_can_generate_save_and_load_public_setups() {
     // Create a temporary directory for the test

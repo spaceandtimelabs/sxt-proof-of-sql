@@ -22,6 +22,8 @@ use std::{
 /// Transparent public randomness
 const SEED: &str = "SpaceAndTime";
 
+const BLITZAR_PARTITION_WINDOW_WIDTH: &str = "BLITZAR_PARTITION_WINDOW_WIDTH";
+
 // Command-line argument parser structure
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -45,20 +47,30 @@ struct Args {
 
 fn main() {
     // Set the BLITZAR_PARTITION_WINDOW_WIDTH environment variable
-    env::set_var("BLITZAR_PARTITION_WINDOW_WIDTH", "14");
+    env::set_var(BLITZAR_PARTITION_WINDOW_WIDTH, "14");
 
     // Confirm that it was set by reading it back
-    match env::var("BLITZAR_PARTITION_WINDOW_WIDTH") {
-        Ok(value) => println!("Environment variable BLITZAR_PARTITION_WINDOW_WIDTH set to {value}"),
-        Err(e) => println!("Failed to set environment variable: {e}"),
+    match env::var(BLITZAR_PARTITION_WINDOW_WIDTH) {
+        Ok(value) => {
+            println!("Environment variable {BLITZAR_PARTITION_WINDOW_WIDTH} set to {value}");
+        }
+        Err(e) => println!("Failed to set {BLITZAR_PARTITION_WINDOW_WIDTH}: {e}"),
     }
 
     // Parse command-line arguments
     let args = Args::parse();
 
     // Ensure the target directory exists
-    fs::create_dir_all(&args.target).expect("Failed to create target directory");
+    match fs::create_dir_all(&args.target) {
+        Ok(_) => generate_parameters(args),
+        Err(_) => eprint!(
+            "Skipping generation, failed to write or create target directory: {}. Check path and try again.",
+            args.target,
+        ),
+    };
+}
 
+fn generate_parameters(args: Args) {
     // Clear out the digests.txt file if it already exists
     let digests_path = format!("{}/digests_nu_{}.txt", args.target, args.nu);
     if Path::new(&digests_path).exists() {
@@ -163,7 +175,7 @@ fn generate_verifier_setup(public_parameters: &PublicParameters, nu: usize, targ
     println!("Generated verifier setup in {duration:.2?}");
 
     let file_path = format!("{target}/verifier_setup_nu_{nu}.bin");
-    let result = write_verifier_setup(setup, &file_path);
+    let result = write_verifier_setup(&setup, &file_path);
 
     match result {
         Ok(()) => {
@@ -188,21 +200,41 @@ fn compute_sha256(file_path: &str) -> Option<String> {
     Some(format!("{:x}", hasher.finalize()))
 }
 
-// Function to save digests to digests.txt
+/// Function to save digests to a file, or print to console if file saving fails
 fn save_digests(digests: &[(String, String)], target: &str, nu: usize) {
     let digests_path = format!("{target}/digests_nu_{nu}.txt");
 
-    // Open file in append mode, creating it if it doesn't exist
-    let mut file = OpenOptions::new()
+    // Attempt to open file in append mode, creating it if it doesn't exist
+    let mut file = if let Ok(f) = OpenOptions::new()
         .create(true)
         .append(true)
         .open(&digests_path)
-        .expect("Unable to open or create digests.txt");
+    {
+        Some(f)
+    } else {
+        println!("Failed to open or create file at {digests_path}. Printing digests to console.");
+        None
+    };
 
     for (file_path, digest) in digests {
-        writeln!(file, "{digest}  {file_path}").expect("Unable to write digest to file");
+        if let Some(f) = &mut file {
+            // Attempt to write to file, fall back to printing if it fails
+            if writeln!(f, "{digest}  {file_path}").is_err() {
+                println!(
+                    "Failed to write to {digests_path}. Printing remaining digests to console."
+                );
+                file = None; // Stop trying to write to the file
+            }
+        }
+
+        if file.is_none() {
+            println!("{digest}  {file_path}");
+        }
     }
-    println!("Digests saved to {digests_path}");
+
+    if file.is_some() {
+        println!("Digests saved to {digests_path}");
+    }
 }
 
 fn write_prover_blitzar_handle(setup: ProverSetup<'_>, file_path: &str) {
@@ -210,37 +242,38 @@ fn write_prover_blitzar_handle(setup: ProverSetup<'_>, file_path: &str) {
     blitzar_handle.write(file_path);
 
     // Check the file size to see if it exceeds 2 GB
-    let metadata = fs::metadata(file_path).expect("Unable to read file metadata");
-    let file_size = metadata.len();
+    let metadata_res = fs::metadata(file_path);
+    match metadata_res {
+        Ok(m) => {
+            let file_size = m.len();
 
-    if file_size > 2 * 1024 * 1024 * 1024 {
-        // 2 GB in bytes
-        println!("Handle size exceeds 2 GB, splitting into parts...");
+            if file_size > 2 * 1024 * 1024 * 1024 {
+                // 2 GB in bytes
+                println!("Handle size exceeds 2 GB, splitting into parts...");
 
-        // Run `split` command to divide the file into 1.8 GB parts
-        let split_output = Command::new("split")
-            .arg("-b")
-            .arg("1800M")
-            .arg(file_path)
-            .arg(format!("{file_path}.part."))
-            .output()
-            .expect("Failed to execute split command");
+                // Run `split` command to divide the file into 1.8 GB parts
+                let split_output = Command::new("split")
+                    .arg("-b")
+                    .arg("1800M")
+                    .arg(file_path)
+                    .arg(format!("{file_path}.part."))
+                    .output();
 
-        if split_output.status.success() {
-            println!("File successfully split into parts.");
-
-            // Remove the original file after splitting
-            fs::remove_file(file_path).expect("Failed to remove original blitzar handle file");
-        } else {
-            eprintln!(
-                "Error during file splitting: {}",
-                String::from_utf8_lossy(&split_output.stderr)
-            );
+                match split_output {
+                    Ok(_) => {
+                        println!("File successfully split into parts.");
+                        fs::remove_file(file_path)
+                            .unwrap_or_else(|_| eprintln!("Error during file splitting"));
+                    }
+                    Err(e) => eprintln!("Error during file splitting: {e}"),
+                }
+            }
         }
+        Err(e) => eprintln!("Failed to write blitzar_handle to file: {e}"),
     }
 }
 
-fn write_verifier_setup(setup: VerifierSetup, file_path: &str) -> std::io::Result<()> {
+fn write_verifier_setup(setup: &VerifierSetup, file_path: &str) -> std::io::Result<()> {
     setup.save_to_file(Path::new(file_path))
 }
 
@@ -250,7 +283,7 @@ fn spinner(message: String) -> ProgressBar {
     spinner.set_style(
         ProgressStyle::default_spinner()
             .template("{spinner:.green} {msg}")
-            .unwrap(),
+            .unwrap_or_else(|_| ProgressStyle::default_spinner()),
     );
     spinner.enable_steady_tick(Duration::from_millis(100));
     spinner.set_message(message);
