@@ -89,27 +89,31 @@ required-features = ["test"]
 
 [[example]]
 name = "posql_db"
-required-features = [ "arrow" ]
+required-features = ["arrow"]
 
 [[example]]
 name = "space"
-required-features = [ "arrow" ]
+required-features = ["arrow"]
 
 [[example]]
 name = "dog_breeds"
-required-features = [ "arrow" ]
+required-features = ["arrow"]
 
 [[example]]
 name = "wood_types"
+required-features = ["arrow"]
+
+[[example]]
+name = "movies"
 required-features = [ "arrow" ]
 
 [[example]]
 name = "dinosaurs"
-required-features = [ "arrow" ]
+required-features = ["arrow"]
 
 [[example]]
 name = "books"
-required-features = [ "arrow" ]
+required-features = ["arrow"]
 
 [[example]]
 name = "programming_books"
@@ -117,19 +121,23 @@ required-features = ["arrow"]
 
 [[example]]
 name = "brands"
-required-features = [ "arrow" ]
+required-features = ["arrow"]
 
 [[example]]
 name = "plastics"
-required-features = [ "arrow" ]
+required-features = ["arrow"]
 
 [[example]]
 name = "avocado-prices"
-required-features = [ "arrow" ]
+required-features = ["arrow"]
 
 [[example]]
 name = "sushi"
-required-features = [ "arrow" ]
+required-features = ["arrow"]
+
+[[example]]
+name = "stocks"
+required-features = ["arrow"]
 
 [[example]]
 name = "countries"
@@ -142,14 +150,14 @@ required-features = [ "arrow" ]
 [[bench]]
 name = "posql_benches"
 harness = false
-required-features = [ "blitzar" ]
+required-features = ["blitzar"]
 
 [[bench]]
 name = "bench_append_rows"
 harness = false
-required-features = [ "test" ]
+required-features = ["test"]
 
 [[bench]]
 name = "jaeger_benches"
 harness = false
-required-features = [ "blitzar" ]
+required-features = ["blitzar"]
