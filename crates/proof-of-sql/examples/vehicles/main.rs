@@ -123,4 +123,10 @@ fn main() {
         &verifier_setup,
     );
 
+    prove_and_verify_query(
+        "SELECT MAX(price) FROM vehicles",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
