@@ -122,6 +122,8 @@ jobs:
         run: cargo run --example dinosaurs
       - name: Run books example
         run: cargo run --example books
+      - name: Run programming books example
+        run: cargo run --example programming_books
       - name: Run brands example
         run: cargo run --example brands
       - name: Run avocado-prices example
