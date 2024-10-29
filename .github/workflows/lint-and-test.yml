@@ -106,7 +106,6 @@ jobs:
         run: |
             cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std" && \
             cargo test proof_primitive::dory::dynamic_dory_compute_commitments_test --no-default-features --features="std"
-
   clippy:
     name: Clippy
     runs-on: large-8-core-32gb-22-04

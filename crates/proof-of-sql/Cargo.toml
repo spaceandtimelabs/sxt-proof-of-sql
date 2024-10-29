@@ -112,6 +112,10 @@ name = "books"
 required-features = [ "arrow" ]
 
 [[example]]
+name = "programming_books"
+required-features = ["arrow"]
+
+[[example]]
 name = "brands"
 required-features = [ "arrow" ]
 
