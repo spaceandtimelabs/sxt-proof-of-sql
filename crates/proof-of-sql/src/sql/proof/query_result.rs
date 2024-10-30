@@ -3,8 +3,6 @@ use crate::base::{
     proof::ProofError,
     scalar::Scalar,
 };
-#[cfg(feature = "arrow")]
-use arrow::{error::ArrowError, record_batch::RecordBatch};
 use snafu::Snafu;
 
 /// Verifiable query errors
@@ -52,23 +50,6 @@ pub struct QueryData<S: Scalar> {
     /// Additionally, there is a 32-byte verification hash that is included with this table.
     /// This hash provides evidence that the verification has been run.
     pub verification_hash: [u8; 32],
-}
-
-impl<S: Scalar> QueryData<S> {
-    #[cfg(all(test, feature = "arrow"))]
-    #[must_use]
-    pub fn into_record_batch(self) -> RecordBatch {
-        self.try_into().unwrap()
-    }
-}
-
-#[cfg(feature = "arrow")]
-impl<S: Scalar> TryFrom<QueryData<S>> for RecordBatch {
-    type Error = ArrowError;
-
-    fn try_from(value: QueryData<S>) -> Result<Self, Self::Error> {
-        Self::try_from(value.table)
-    }
 }
 
 /// The result of a query -- either an error or a table.
