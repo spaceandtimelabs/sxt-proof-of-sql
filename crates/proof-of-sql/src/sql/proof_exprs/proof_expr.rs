@@ -23,10 +23,9 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync {
     /// Implementations must ensure that the returned slice has length `table_length`.
     fn result_evaluate<'a>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar>;
+    ) -> ColumnarValue<'a, C::Scalar>;
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
     /// of values
@@ -35,7 +34,7 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync {
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar>;
+    ) -> ColumnarValue<'a, C::Scalar>;
 
     /// Compute the evaluation of a multilinear extension from this expression
     /// at the random sumcheck point and adds components needed to verify the expression to

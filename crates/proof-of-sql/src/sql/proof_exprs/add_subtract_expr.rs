@@ -54,7 +54,6 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
 
     fn result_evaluate<'a>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
