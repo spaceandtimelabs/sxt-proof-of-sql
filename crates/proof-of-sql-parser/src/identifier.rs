@@ -2,6 +2,7 @@ use crate::{sql::IdentifierParser, ParseError, ParseResult};
 use alloc::{format, string::ToString};
 use arrayvec::ArrayString;
 use core::{cmp::Ordering, fmt, ops::Deref, str::FromStr};
+use sqlparser::ast::Ident;
 
 /// Top-level unique identifier.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Ord, PartialOrd, Copy)]
@@ -71,6 +72,18 @@ impl fmt::Display for Identifier {
     }
 }
 
+
+// TryFrom<Ident> for Identifier
+impl TryFrom<Ident> for Identifier {
+    type Error = ParseError;
+
+    fn try_from(ident: Ident) -> ParseResult<Self> {
+        // Convert Ident's value to Identifier
+        Identifier::try_new(ident.value) 
+    }
+}
+
+
 impl PartialEq<str> for Identifier {
     fn eq(&self, other: &str) -> bool {
         other.eq_ignore_ascii_case(&self.name)
@@ -96,6 +109,7 @@ impl AsRef<str> for Identifier {
         self.name.as_str()
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -277,5 +291,15 @@ mod tests {
     fn short_names_are_fine() {
         Identifier::new("t".repeat(64));
         Identifier::new("茶".repeat(21));
+    }
+
+    #[test]
+    fn try_from_ident() {
+        let ident = Ident::new("ValidIdentifier");
+        let identifier = Identifier::try_from(ident).unwrap();
+        assert_eq!(identifier.name(), "valididentifier");
+    
+        let invalid_ident = Ident::new("INVALID$IDENTIFIER");
+        assert!(Identifier::try_from(invalid_ident).is_err());
     }
 }
