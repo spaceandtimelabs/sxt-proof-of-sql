@@ -72,15 +72,17 @@ impl fmt::Display for Identifier {
     }
 }
 
+
 // TryFrom<Ident> for Identifier
 impl TryFrom<Ident> for Identifier {
     type Error = ParseError;
 
     fn try_from(ident: Ident) -> ParseResult<Self> {
         // Convert Ident's value to Identifier
-        Identifier::try_new(ident.value)
+        Identifier::try_new(ident.value) 
     }
 }
+
 
 impl PartialEq<str> for Identifier {
     fn eq(&self, other: &str) -> bool {
@@ -107,6 +109,7 @@ impl AsRef<str> for Identifier {
         self.name.as_str()
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -295,7 +298,7 @@ mod tests {
         let ident = Ident::new("ValidIdentifier");
         let identifier = Identifier::try_from(ident).unwrap();
         assert_eq!(identifier.name(), "valididentifier");
-
+    
         let invalid_ident = Ident::new("INVALID$IDENTIFIER");
         assert!(Identifier::try_from(invalid_ident).is_err());
     }

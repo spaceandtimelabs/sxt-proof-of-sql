@@ -144,11 +144,7 @@ name = "stocks"
 required-features = ["arrow"]
 
 [[example]]
-name = "countries"
-required-features = [ "arrow" ]
-
-[[example]]
-name = "rockets"
+name = "tech_gadget_prices"
 required-features = [ "arrow" ]
 
 [[example]]
@@ -157,6 +153,14 @@ required-features = [ "arrow" ]
 
 [[example]]
 name = "vehicles"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "countries"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "rockets"
 required-features = [ "arrow" ]
 
 [[bench]]
