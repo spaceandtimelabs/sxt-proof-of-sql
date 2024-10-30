@@ -9,7 +9,7 @@ use core::{
     fmt::{self, Display},
     str::FromStr,
 };
-use sqlparser::ast::{Ident, ObjectName};
+use sqlparser::ast::Ident;
 
 /// Unique resource identifier, like `schema.object_name`.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
@@ -112,18 +112,18 @@ impl FromStr for ResourceId {
 }
 impl_serde_from_str!(ResourceId);
 
-impl TryFrom<ObjectName> for ResourceId {
+impl TryFrom<Vec<Ident>> for ResourceId {
     type Error = ParseError;
 
-    fn try_from(object_name: ObjectName) -> ParseResult<Self> {
-        if object_name.0.len() != 2 {
+    fn try_from(identifiers: Vec<Ident>) -> ParseResult<Self> {
+        if identifiers.len() != 2 {
             return Err(ParseError::ResourceIdParseError {
                 error: "Expected exactly two identifiers for ResourceId".to_string(),
             });
         }
 
-        let schema = Identifier::try_from(object_name.0[0].clone())?;
-        let object_name = Identifier::try_from(object_name.0[1].clone())?;
+        let schema = Identifier::try_from(identifiers[0].clone())?;
+        let object_name = Identifier::try_from(identifiers[1].clone())?;
         Ok(ResourceId::new(schema, object_name))
     }
 }
@@ -253,16 +253,13 @@ mod tests {
     }
 
     #[test]
-    fn test_try_from_object_name() {
-        let object_name = ObjectName(alloc::vec![
-            Ident::new("schema_name"),
-            Ident::new("object_name")
-        ]);
-        let resource_id = ResourceId::try_from(object_name).unwrap();
+    fn test_try_from_vec_ident() {
+        let identifiers = alloc::vec![Ident::new("schema_name"), Ident::new("object_name")];
+        let resource_id = ResourceId::try_from(identifiers).unwrap();
         assert_eq!(resource_id.schema().name(), "schema_name");
         assert_eq!(resource_id.object_name().name(), "object_name");
 
-        let invalid_object_name = ObjectName(alloc::vec![Ident::new("invalid_schema")]);
-        assert!(ResourceId::try_from(invalid_object_name).is_err());
+        let invalid_identifiers = alloc::vec![Ident::new("only_one_ident")];
+        assert!(ResourceId::try_from(invalid_identifiers).is_err());
     }
 }
