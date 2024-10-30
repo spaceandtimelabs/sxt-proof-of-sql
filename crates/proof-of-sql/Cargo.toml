@@ -134,6 +134,10 @@ name = "brands"
 required-features = ["arrow"]
 
 [[example]]
+name = "census"
+required-features = [ "arrow" ]
+
+[[example]]
 name = "plastics"
 required-features = ["arrow"]
 
@@ -148,6 +152,18 @@ required-features = ["arrow"]
 [[example]]
 name = "stocks"
 required-features = ["arrow"]
+
+[[example]]
+name = "tech_gadget_prices"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "albums"
+required-features = [ "arrow" ]
+
+[[example]]
+name = "vehicles"
+required-features = [ "arrow" ]
 
 [[example]]
 name = "countries"
