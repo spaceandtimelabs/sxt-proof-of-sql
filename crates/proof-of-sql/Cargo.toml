@@ -104,10 +104,6 @@ name = "wood_types"
 required-features = ["arrow"]
 
 [[example]]
-name = "movies"
-required-features = [ "arrow" ]
-
-[[example]]
 name = "dinosaurs"
 required-features = ["arrow"]
 
@@ -159,9 +155,6 @@ required-features = [ "arrow" ]
 name = "vehicles"
 required-features = [ "arrow" ]
 
-[[example]]
-name = "movies"
-required-features = [ "arrow" ]
 
 [[bench]]
 name = "posql_benches"
