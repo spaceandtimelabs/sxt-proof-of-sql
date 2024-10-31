@@ -31,7 +31,7 @@ struct Args {
     nu: usize,
 
     /// Mode for generating parameters: "p" for Prover, "v" for Verifier, pv for both
-    #[arg(short, long, default_value_t = Mode::PV)]
+    #[arg(short, long, default_value = "pv")]
     mode: Mode,
 
     /// The initial randomness for the transparent setup
