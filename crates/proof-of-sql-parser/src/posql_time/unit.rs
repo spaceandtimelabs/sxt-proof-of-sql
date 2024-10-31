@@ -16,6 +16,17 @@ pub enum PoSQLTimeUnit {
     Nanosecond,
 }
 
+impl From<PoSQLTimeUnit> for i8 {
+    fn from(value: PoSQLTimeUnit) -> i8 {
+        match value {
+            PoSQLTimeUnit::Second => 0,
+            PoSQLTimeUnit::Millisecond => 3,
+            PoSQLTimeUnit::Microsecond => 6,
+            PoSQLTimeUnit::Nanosecond => 9,
+        }
+    }
+}
+
 impl TryFrom<&str> for PoSQLTimeUnit {
     type Error = PoSQLTimestampError;
     fn try_from(value: &str) -> Result<Self, PoSQLTimestampError> {
