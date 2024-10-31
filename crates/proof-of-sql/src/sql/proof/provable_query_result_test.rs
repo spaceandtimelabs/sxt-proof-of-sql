@@ -1,18 +1,12 @@
 use super::{ProvableQueryResult, QueryError};
 use crate::base::{
     database::{
-        owned_table_utility::{bigint, decimal75, int128, owned_table},
+        owned_table_utility::{bigint, decimal75, int128, owned_table, varchar},
         Column, ColumnField, ColumnType,
     },
     math::decimal::Precision,
     polynomial::compute_evaluation_vector,
     scalar::{Curve25519Scalar, Scalar},
-};
-use alloc::sync::Arc;
-use arrow::{
-    array::{Decimal128Array, Decimal256Array, Int64Array, StringArray},
-    datatypes::{i256, Field, Schema},
-    record_batch::RecordBatch,
 };
 use num_traits::Zero;
 
@@ -321,33 +315,14 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
-    let column_fields: Vec<Field> = column_fields
-        .iter()
-        .map(core::convert::Into::into)
-        .collect();
-    let schema = Arc::new(Schema::new(column_fields));
-    let expected_res = RecordBatch::try_new(
-        schema,
-        vec![
-            Arc::new(Int64Array::from(vec![6, i64::MAX])),
-            Arc::new(
-                Decimal128Array::from(vec![10, i128::MAX])
-                    .with_precision_and_scale(38, 0)
-                    .unwrap(),
-            ),
-            Arc::new(StringArray::from(vec!["abc", "de"])),
-            Arc::new(
-                Decimal256Array::from(vec![i256::from(10), Curve25519Scalar::MAX_SIGNED.into()])
-                    .with_precision_and_scale(75, 0)
-                    .unwrap(),
-            ),
-        ],
-    )
-    .unwrap();
+    let res = res
+        .to_owned_table::<Curve25519Scalar>(&column_fields)
+        .unwrap();
+    let expected_res = owned_table([
+        bigint("a1", [6, i64::MAX]),
+        int128("a2", [10, i128::MAX]),
+        varchar("a3", ["abc", "de"]),
+        decimal75("a4", 75, 0, [10.into(), Curve25519Scalar::MAX_SIGNED]),
+    ]);
     assert_eq!(res, expected_res);
 }
