@@ -41,11 +41,7 @@ pub enum QueryError {
 
 /// The verified results of a query along with metadata produced by verification
 pub struct QueryData<S: Scalar> {
-    /// We use Apache Arrow's [`RecordBatch`] to represent a table
-    /// result so as to allow for easy interoperability with
-    /// Apache Arrow Flight.
-    ///
-    /// See `<https://voltrondata.com/blog/apache-arrow-flight-primer/>`
+    /// The query result table
     pub table: OwnedTable<S>,
     /// Additionally, there is a 32-byte verification hash that is included with this table.
     /// This hash provides evidence that the verification has been run.

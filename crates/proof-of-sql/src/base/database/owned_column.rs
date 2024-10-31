@@ -1,7 +1,4 @@
-/// A column of data, with type included. This is simply a wrapper around `Vec<T>` for enumerated `T`.
-/// This is primarily used as an internal result that is used before
-/// converting to the final result in either Arrow format or JSON.
-/// This is the analog of an arrow Array.
+/// A column of data, with type included. This is primarily a wrapper around `Vec<T>` for enumerated `T`.
 use super::{Column, ColumnType, OwnedColumnError, OwnedColumnResult};
 use crate::base::{
     math::{

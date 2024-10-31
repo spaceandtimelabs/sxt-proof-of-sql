@@ -12,9 +12,6 @@ pub enum OwnedTableError {
 }
 /// A table of data, with schema included. This is simply a map from `Identifier` to `OwnedColumn`,
 /// where columns order matters.
-/// This is primarily used as an internal result that is used before
-/// converting to the final result in either Arrow format or JSON.
-/// This is the analog of an arrow [`RecordBatch`](arrow::record_batch::RecordBatch).
 #[derive(Debug, Clone, Eq)]
 pub struct OwnedTable<S: Scalar> {
     table: IndexMap<Identifier, OwnedColumn<S>>,
