@@ -54,19 +54,24 @@ fn main() {
         Ok(value) => {
             println!("Environment variable {BLITZAR_PARTITION_WINDOW_WIDTH} set to {value}");
         }
-        Err(e) => println!("Failed to set {BLITZAR_PARTITION_WINDOW_WIDTH}: {e}"),
+        Err(e) => {
+            eprintln!("Failed to set {BLITZAR_PARTITION_WINDOW_WIDTH}: {e}");
+            std::process::exit(-1)
+        }
     }
 
     // Parse command-line arguments
     let args = Args::parse();
 
     // Ensure the target directory exists
-    match fs::create_dir_all(&args.target) {
-        Ok(()) => generate_parameters(&args),
-        Err(_) => eprint!(
-            "Skipping generation, failed to write or create target directory: {}. Check path and try again.",
-            args.target,
-        ),
+    if let Ok(()) = fs::create_dir_all(&args.target) {
+        generate_parameters(&args);
+    } else {
+        eprintln!(
+        "Skipping generation, failed to write or create target directory: {}. Check path and try again.",
+        args.target,
+    );
+        std::process::exit(-1)
     };
 }
 
@@ -259,10 +264,10 @@ fn write_prover_blitzar_handle(setup: ProverSetup<'_>, file_path: &str) {
                 // 2 GB in bytes
                 println!("Handle size exceeds 2 GB, splitting into parts...");
 
-                // Run `split` command to divide the file into 1.8 GB parts
+                // Run `split` command to divide the file into 2.0 GB parts
                 let split_output = Command::new("split")
                     .arg("-b")
-                    .arg("1800M")
+                    .arg("2000M")
                     .arg(file_path)
                     .arg(format!("{file_path}.part."))
                     .output();
