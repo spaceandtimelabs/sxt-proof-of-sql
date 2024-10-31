@@ -3,11 +3,13 @@ use crate::{impl_serde_from_str, sql::ResourceIdParser, Identifier, ParseError, 
 use alloc::{
     format,
     string::{String, ToString},
+    vec::Vec,
 };
 use core::{
     fmt::{self, Display},
     str::FromStr,
 };
+use sqlparser::ast::Ident;
 
 /// Unique resource identifier, like `schema.object_name`.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
@@ -109,6 +111,22 @@ impl FromStr for ResourceId {
     }
 }
 impl_serde_from_str!(ResourceId);
+
+impl TryFrom<Vec<Ident>> for ResourceId {
+    type Error = ParseError;
+
+    fn try_from(identifiers: Vec<Ident>) -> ParseResult<Self> {
+        if identifiers.len() != 2 {
+            return Err(ParseError::ResourceIdParseError {
+                error: "Expected exactly two identifiers for ResourceId".to_string(),
+            });
+        }
+
+        let schema = Identifier::try_from(identifiers[0].clone())?;
+        let object_name = Identifier::try_from(identifiers[1].clone())?;
+        Ok(ResourceId::new(schema, object_name))
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -232,5 +250,16 @@ mod tests {
         let deserialized: Result<ResourceId, _> =
             serde_json::from_str(r#""good_identifier.bad!identifier"#);
         assert!(deserialized.is_err());
+    }
+
+    #[test]
+    fn test_try_from_vec_ident() {
+        let identifiers = alloc::vec![Ident::new("schema_name"), Ident::new("object_name")];
+        let resource_id = ResourceId::try_from(identifiers).unwrap();
+        assert_eq!(resource_id.schema().name(), "schema_name");
+        assert_eq!(resource_id.object_name().name(), "object_name");
+
+        let invalid_identifiers = alloc::vec![Ident::new("only_one_ident")];
+        assert!(ResourceId::try_from(invalid_identifiers).is_err());
     }
 }
