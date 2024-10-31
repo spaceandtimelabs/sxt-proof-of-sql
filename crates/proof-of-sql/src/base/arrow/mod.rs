@@ -24,3 +24,5 @@ pub mod scalar_and_i256_conversions;
 
 /// Module for handling conversions between columns and Arrow arrays.
 pub mod column_arrow_conversions;
+
+pub mod arrow_schema_utility;

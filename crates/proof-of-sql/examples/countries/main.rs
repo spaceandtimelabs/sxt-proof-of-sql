@@ -7,9 +7,9 @@
 use arrow::datatypes::SchemaRef;
 use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
-    base::database::{
-        arrow_schema_utility::get_posql_compatible_schema, OwnedTable, OwnedTableTestAccessor,
-        TestAccessor,
+    base::{
+        arrow::arrow_schema_utility::get_posql_compatible_schema,
+        database::{OwnedTable, OwnedTableTestAccessor, TestAccessor},
     },
     proof_primitive::dory::{
         DynamicDoryCommitment, DynamicDoryEvaluationProof, ProverSetup, PublicParameters,

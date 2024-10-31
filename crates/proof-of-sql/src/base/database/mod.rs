@@ -31,9 +31,6 @@ pub use crate::base::arrow::{
 };
 pub use table_ref::TableRef;
 
-#[cfg(feature = "arrow")]
-pub mod arrow_schema_utility;
-
 mod owned_column;
 pub(crate) use owned_column::compare_indexes_by_owned_columns_with_direction;
 pub use owned_column::OwnedColumn;
