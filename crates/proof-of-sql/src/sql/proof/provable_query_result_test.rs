@@ -1,6 +1,9 @@
 use super::{ProvableQueryResult, QueryError};
 use crate::base::{
-    database::{Column, ColumnField, ColumnType},
+    database::{
+        owned_table_utility::{bigint, owned_table},
+        Column, ColumnField, ColumnType,
+    },
     math::decimal::Precision,
     polynomial::compute_evaluation_vector,
     scalar::{Curve25519Scalar, Scalar},
@@ -18,18 +21,10 @@ fn we_can_convert_an_empty_provable_result_to_a_final_result() {
     let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[0_i64; 0])];
     let res = ProvableQueryResult::new(0, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
-    let column_fields: Vec<Field> = column_fields
-        .iter()
-        .map(core::convert::Into::into)
-        .collect();
-    let schema = Arc::new(Schema::new(column_fields));
-    let expected_res =
-        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(Vec::<i64>::new()))]).unwrap();
+    let res = res
+        .to_owned_table::<Curve25519Scalar>(&column_fields)
+        .unwrap();
+    let expected_res = owned_table([bigint("a1", [0; 0])]);
     assert_eq!(res, expected_res);
 }
 
