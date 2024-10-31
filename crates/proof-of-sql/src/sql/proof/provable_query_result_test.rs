@@ -253,18 +253,10 @@ fn we_can_convert_a_provable_result_to_a_final_result() {
     let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 12])];
     let res = ProvableQueryResult::new(2, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
-    let column_fields: Vec<Field> = column_fields
-        .iter()
-        .map(core::convert::Into::into)
-        .collect();
-    let schema = Arc::new(Schema::new(column_fields));
-    let expected_res =
-        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![10, 12]))]).unwrap();
+    let res = res
+        .to_owned_table::<Curve25519Scalar>(&column_fields)
+        .unwrap();
+    let expected_res = owned_table([bigint("a1", [10, 12])]);
     assert_eq!(res, expected_res);
 }
 
