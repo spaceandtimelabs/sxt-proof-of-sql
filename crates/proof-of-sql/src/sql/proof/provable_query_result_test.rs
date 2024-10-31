@@ -1,7 +1,7 @@
 use super::{ProvableQueryResult, QueryError};
 use crate::base::{
     database::{
-        owned_table_utility::{bigint, int128, owned_table},
+        owned_table_utility::{bigint, decimal75, int128, owned_table},
         Column, ColumnField, ColumnType,
     },
     math::decimal::Precision,
@@ -282,26 +282,15 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
         "a1".parse().unwrap(),
         ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
     )];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
-    let column_fields: Vec<Field> = column_fields
-        .iter()
-        .map(core::convert::Into::into)
-        .collect();
-    let schema = Arc::new(Schema::new(column_fields));
-
-    let expected_res = RecordBatch::try_new(
-        schema,
-        vec![Arc::new(
-            Decimal256Array::from([i256::from(10), Curve25519Scalar::MAX_SIGNED.into()].to_vec())
-                .with_precision_and_scale(75, 0)
-                .unwrap(),
-        )],
-    )
-    .unwrap();
+    let res = res
+        .to_owned_table::<Curve25519Scalar>(&column_fields)
+        .unwrap();
+    let expected_res = owned_table([decimal75(
+        "a1",
+        75,
+        0,
+        [10.into(), Curve25519Scalar::MAX_SIGNED],
+    )]);
     assert_eq!(res, expected_res);
 }
 
