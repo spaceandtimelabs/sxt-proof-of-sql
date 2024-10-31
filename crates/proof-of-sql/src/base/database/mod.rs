@@ -15,6 +15,9 @@ pub use column_operation::{
 mod column_operation_error;
 pub use column_operation_error::{ColumnOperationError, ColumnOperationResult};
 
+mod columnar_value;
+pub use columnar_value::ColumnarValue;
+
 mod literal_value;
 pub use literal_value::LiteralValue;
 
