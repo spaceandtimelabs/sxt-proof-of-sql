@@ -127,7 +127,6 @@ fn rng_from_seed(args: &Args) -> ChaCha20Rng {
 }
 
 /// Generates and writes the ```ProverSetup``` from initial public parameters
-
 fn generate_prover_setup(public_parameters: &PublicParameters, nu: usize, target: &str) {
     let spinner = spinner(
         "Generating parameters for the SxT network. This may take a long time, please wait..."
