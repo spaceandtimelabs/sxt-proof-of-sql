@@ -4,16 +4,15 @@
 mod round_trip_test;
 
 use ark_std::rand::SeedableRng;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use indicatif::{ProgressBar, ProgressStyle};
 use proof_of_sql::proof_primitive::dory::{ProverSetup, PublicParameters, VerifierSetup};
 use rand_chacha::ChaCha20Rng;
 use sha2::{Digest, Sha256};
 use std::{
-    env,
+    env, fmt,
     fs::{self, File, OpenOptions},
-    io,
-    io::Write,
+    io::{self, Write},
     path::Path,
     process::Command,
     time::{Duration, Instant},
@@ -24,7 +23,6 @@ const SEED: &str = "SpaceAndTime";
 
 const BLITZAR_PARTITION_WINDOW_WIDTH: &str = "BLITZAR_PARTITION_WINDOW_WIDTH";
 
-// Command-line argument parser structure
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -32,9 +30,9 @@ struct Args {
     #[arg(short, long, default_value_t = 8)]
     nu: usize,
 
-    /// Mode for generating parameters: "p" for Prover, "v" for Verifier
-    #[arg(short, long, default_value = "pv")]
-    mode: String,
+    /// Mode for generating parameters: "p" for Prover, "v" for Verifier, pv for both
+    #[arg(short, long, default_value_t = Mode::PV)]
+    mode: Mode,
 
     /// The initial randomness for the transparent setup
     #[arg(short, long, default_value = SEED)]
@@ -43,6 +41,29 @@ struct Args {
     /// The directory to store generated files and archives
     #[arg(short, long, default_value = "./output")]
     target: String,
+}
+
+// An enum representing possible modes of operation,
+// abbreviated to keep clap commands concise, instead
+// of requiring the user to type "ProverAndVerifier",
+// they type "pv"
+#[derive(Debug, Clone, ValueEnum)]
+enum Mode {
+    P,  //Prover
+    V,  //verifier
+    PV, //Both
+}
+
+// Implement Display for Mode
+impl fmt::Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mode_str = match self {
+            Mode::P => "P",
+            Mode::V => "V",
+            Mode::PV => "PV",
+        };
+        write!(f, "{mode_str}")
+    }
 }
 
 fn main() {
@@ -95,23 +116,20 @@ fn generate_parameters(args: &Args) {
     let public_parameters = PublicParameters::rand(args.nu, &mut rng);
     spinner.finish_with_message("Public parameter setup complete");
 
-    match args.mode.as_str() {
-        "pv" => {
+    match args.mode {
+        Mode::PV => {
             println!("Generating parameters for Prover...");
             generate_prover_setup(&public_parameters, args.nu, &args.target);
             println!("Generating parameters for Verifier...");
             generate_verifier_setup(&public_parameters, args.nu, &args.target);
         }
-        "p" => {
+        Mode::P => {
             println!("Generating parameters for Prover...");
             generate_prover_setup(&public_parameters, args.nu, &args.target);
         }
-        "v" => {
+        Mode::V => {
             println!("Generating parameters for Verifier...");
             generate_verifier_setup(&public_parameters, args.nu, &args.target);
-        }
-        _ => {
-            println!("Invalid mode! Please choose either 'p' for Prover or 'v' for Verifier.");
         }
     }
 }

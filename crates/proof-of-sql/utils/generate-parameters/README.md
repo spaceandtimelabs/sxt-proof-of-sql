@@ -40,23 +40,29 @@ cargo run --release
 
 This generates the setups for both the prover and verifer as two seperate tar.gz files with a default nu value of 14. It saves these parameters at the head of this repo as tar.gz archives.
 
-You can also just generate the prover setup only:
+1. **Run the Prover setup only**:
 
-```bash
-cargo run --release -- --mode  p
-```
+    ```bash
+    cargo run --release --bin generate-parameters -- --mode p
+    ```
 
-Or just the verifier:
+2. **Run the Verifier setup only**:
 
-```bash
-cargo run --release -- --mode  v
-```
+    ```bash
+    cargo run --release --bin generate-parameters -- --mode v
+    ```
 
-You can also specify a value of nu if needed:
+3. **Run both Prover and Verifier setups with a custom `nu` value**:
 
-```bash
-cargo run --release -- --mode  pv --nu 4
-```
+    ```bash
+    cargo run --release --bin generate-parameters -- --mode pv --nu 4
+    ```
+
+4. **Specify an output directory** (assuming the `--target` argument specifies the output directory):
+
+    ```bash
+    cargo run --release --bin generate-parameters -- --mode pv --target ./output
+    ```
 
 ## <a name="additional-resources"></a>📚 Additional Resources
 
