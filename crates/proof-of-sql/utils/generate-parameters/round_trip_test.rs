@@ -80,7 +80,9 @@ fn we_can_generate_save_and_load_public_setups() {
 
     // Compare expected digests to those read from digests.txt
     for (file_path, expected_digest) in &expected_digests {
-        let actual_digest = actual_digests.get(file_path).unwrap_or_else(|| panic!("Digest for {file_path} not found in digests.txt"));
+        let actual_digest = actual_digests
+            .get(file_path)
+            .unwrap_or_else(|| panic!("Digest for {file_path} not found in digests.txt"));
         assert_eq!(
             actual_digest, expected_digest,
             "Digest mismatch for {file_path}"
@@ -97,6 +99,8 @@ fn compute_sha256(file_path: &str) -> Option<String> {
 }
 
 /// Read digests from the digests file and return them as a `HashMap`.
+/// # Panics
+/// because it is a test and is allowed to panic
 fn read_digests_from_file(digests_path: &str) -> std::collections::HashMap<String, String> {
     let file = File::open(digests_path).expect("Failed to open digests file");
     let reader = io::BufReader::new(file);
