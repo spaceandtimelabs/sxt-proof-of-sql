@@ -1,7 +1,7 @@
 use super::{ProvableQueryResult, QueryError};
 use crate::base::{
     database::{
-        owned_table_utility::{bigint, owned_table},
+        owned_table_utility::{bigint, int128, owned_table},
         Column, ColumnField, ColumnType,
     },
     math::decimal::Precision,
@@ -265,25 +265,10 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
     let cols: [Column<Curve25519Scalar>; 1] = [Column::Int128(&[10, i128::MAX])];
     let res = ProvableQueryResult::new(2, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::Int128)];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
-    let column_fields: Vec<Field> = column_fields
-        .iter()
-        .map(core::convert::Into::into)
-        .collect();
-    let schema = Arc::new(Schema::new(column_fields));
-    let expected_res = RecordBatch::try_new(
-        schema,
-        vec![Arc::new(
-            Decimal128Array::from(vec![10, i128::MAX])
-                .with_precision_and_scale(38, 0)
-                .unwrap(),
-        )],
-    )
-    .unwrap();
+    let res = res
+        .to_owned_table::<Curve25519Scalar>(&column_fields)
+        .unwrap();
+    let expected_res = owned_table([int128("a1", [10, i128::MAX])]);
     assert_eq!(res, expected_res);
 }
 
