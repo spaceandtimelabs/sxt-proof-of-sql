@@ -15,29 +15,24 @@ pub use column_operation::{
 mod column_operation_error;
 pub use column_operation_error::{ColumnOperationError, ColumnOperationResult};
 
+mod columnar_value;
+pub use columnar_value::ColumnarValue;
+
 mod literal_value;
 pub use literal_value::LiteralValue;
 
 mod table_ref;
+#[cfg(feature = "arrow")]
+pub use crate::base::arrow::{
+    arrow_array_to_column_conversion::{ArrayRefExt, ArrowArrayToColumnConversionError},
+    owned_and_arrow_conversions::OwnedArrowConversionError,
+    record_batch_utility::ToArrow,
+    scalar_and_i256_conversions,
+};
 pub use table_ref::TableRef;
 
 #[cfg(feature = "arrow")]
-mod arrow_array_to_column_conversion;
-#[cfg(feature = "arrow")]
-pub use arrow_array_to_column_conversion::{ArrayRefExt, ArrowArrayToColumnConversionError};
-
-#[cfg(feature = "arrow")]
-mod record_batch_utility;
-#[cfg(feature = "arrow")]
-pub use record_batch_utility::ToArrow;
-
-#[cfg(feature = "arrow")]
 pub mod arrow_schema_utility;
-
-#[cfg(all(test, feature = "arrow", feature = "test"))]
-mod test_accessor_utility;
-#[cfg(all(test, feature = "arrow", feature = "test"))]
-pub use test_accessor_utility::{make_random_test_accessor_data, RandomTestAccessorDescriptor};
 
 mod owned_column;
 pub(crate) use owned_column::compare_indexes_by_owned_columns_with_direction;
@@ -63,13 +58,6 @@ mod expression_evaluation_error;
 mod expression_evaluation_test;
 pub use expression_evaluation_error::{ExpressionEvaluationError, ExpressionEvaluationResult};
 
-#[cfg(feature = "arrow")]
-mod owned_and_arrow_conversions;
-#[cfg(feature = "arrow")]
-pub use owned_and_arrow_conversions::OwnedArrowConversionError;
-#[cfg(all(test, feature = "arrow"))]
-mod owned_and_arrow_conversions_test;
-
 mod test_accessor;
 pub use test_accessor::TestAccessor;
 #[cfg(test)]
@@ -84,9 +72,6 @@ mod owned_table_test_accessor;
 pub use owned_table_test_accessor::OwnedTableTestAccessor;
 #[cfg(all(test, feature = "blitzar"))]
 mod owned_table_test_accessor_test;
-/// Contains traits for scalar <-> i256 conversions
-#[cfg(feature = "arrow")]
-pub mod scalar_and_i256_conversions;
 
 /// TODO: add docs
 pub(crate) mod filter_util;

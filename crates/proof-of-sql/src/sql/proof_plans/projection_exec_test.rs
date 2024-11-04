@@ -102,6 +102,10 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             ),
         ])
     );
+
+    let ref_tables = provable_ast.get_table_references();
+
+    assert_eq!(ref_tables, IndexSet::from_iter([table_ref]));
 }
 
 #[test]

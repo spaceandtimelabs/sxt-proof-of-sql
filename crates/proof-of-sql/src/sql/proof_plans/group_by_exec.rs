@@ -7,7 +7,7 @@ use crate::{
                 aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
             },
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable,
+            MetadataAccessor, OwnedTable, TableRef,
         },
         map::IndexSet,
         proof::ProofError,
@@ -201,6 +201,10 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
         self.where_clause.get_column_references(&mut columns);
 
         columns
+    }
+
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        IndexSet::from_iter([self.table.table_ref])
     }
 }
 
