@@ -236,8 +236,9 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
             CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
             CommittableColumn::RangeCheckWord(words) => Sequence::from(*words),
-            // FIXME: Is this the correct way to convert a FixedSizeBinary column to a Sequence?
-            CommittableColumn::FixedSizeBinary(_, bytes) => Sequence::from(*bytes),
+            CommittableColumn::FixedSizeBinary(byte_size, bytes) => {
+                Sequence::from_raw_parts_with_size(bytes, *byte_size as usize, false)
+            }
         }
     }
 }
@@ -1090,7 +1091,11 @@ mod tests {
         let committable_column = CommittableColumn::FixedSizeBinary(byte_width, &concatenated_data);
 
         let sequence_actual = Sequence::from(&committable_column);
-        let sequence_expected = Sequence::from(concatenated_data.as_slice());
+        let sequence_expected = Sequence::from_raw_parts_with_size(
+            concatenated_data.as_slice(),
+            byte_width as usize,
+            false,
+        );
         let mut commitment_buffer = [CompressedRistretto::default(); 2];
         compute_curve25519_commitments(
             &mut commitment_buffer,
