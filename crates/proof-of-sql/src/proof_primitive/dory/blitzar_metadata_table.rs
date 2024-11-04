@@ -17,7 +17,7 @@ use itertools::Itertools;
 #[cfg(feature = "rayon")]
 use rayon::{
     iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator},
-    prelude::ParallelSliceMut,
+    prelude::{ParallelSlice, ParallelSliceMut},
 };
 use tracing::{span, Level};
 
@@ -57,35 +57,25 @@ pub fn signed_commits(
     all_sub_commits: &Vec<G1Affine>,
     committable_columns: &[CommittableColumn],
 ) -> Vec<G1Affine> {
-    let mut unsigned_sub_commits: Vec<G1Affine> = Vec::new();
-    let mut min_sub_commits: Vec<G1Affine> = Vec::new();
-    let mut counter = 0;
-
-    // Every sub_commit has a corresponding offset sub_commit committable_columns.len() away.
-    // The commits and respective ones commits are interleaved in the all_sub_commits vector.
-    for commit in all_sub_commits {
-        if counter < committable_columns.len() {
-            unsigned_sub_commits.push(*commit);
-        } else {
-            let min =
-                min_as_f(committable_columns[counter - committable_columns.len()].column_type());
-            min_sub_commits.push(commit.mul(min).into_affine());
-        }
-        counter += 1;
-        if counter == 2 * committable_columns.len() {
-            counter = 0;
-        }
-    }
-
     if_rayon!(
-        unsigned_sub_commits
-            .into_par_iter()
-            .zip(min_sub_commits.into_par_iter()),
-        unsigned_sub_commits
-            .into_iter()
-            .zip(min_sub_commits.into_iter())
+        all_sub_commits.par_chunks_exact(committable_columns.len() * 2),
+        all_sub_commits.chunks_exact(committable_columns.len() * 2)
     )
-    .map(|(unsigned, min)| (unsigned + min).into())
+    .flat_map(|chunk| {
+        let (first_half, second_half) = chunk.split_at(committable_columns.len());
+
+        if_rayon!(
+            first_half.into_par_iter().zip(second_half.into_par_iter()),
+            first_half.iter().zip(second_half.iter())
+        )
+        .enumerate()
+        .map(|(i, (first, second))| {
+            let min = min_as_f(committable_columns[i].column_type());
+            let combined = *first + second.mul(min);
+            combined.into_affine()
+        })
+        .collect::<Vec<_>>()
+    })
     .collect()
 }
 
