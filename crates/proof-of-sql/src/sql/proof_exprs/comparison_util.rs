@@ -31,12 +31,12 @@ fn unchecked_subtract_impl<'a, S: Scalar>(
     Ok(result)
 }
 
-#[allow(
-    clippy::missing_panics_doc,
-    reason = "precision and scale are validated prior to calling this function, ensuring no panic occurs"
-)]
 /// Scale LHS and RHS to the same scale if at least one of them is decimal
 /// and take the difference. This function is used for comparisons.
+///
+/// # Panics
+/// This function will panic if `lhs` and `rhs` have [`ColumnType`]s that are not comparable
+/// or if we have precision overflow issues.
 #[allow(clippy::cast_sign_loss)]
 pub fn scale_and_subtract_literal<S: Scalar>(
     lhs: &LiteralValue<S>,
