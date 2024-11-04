@@ -25,6 +25,8 @@ FROM table
         * Varchar [^1]
     - Date / Time Types
         * Timestamp
+    - Binary Types
+        * FixedSizeBinary
 * Operators
     - Logical Operators
         * AND, OR

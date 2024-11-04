@@ -31,6 +31,7 @@ impl From<&ColumnType> for DataType {
                 };
                 DataType::Timestamp(arrow_timeunit, arrow_timezone)
             }
+            ColumnType::FixedSizeBinary(byte_width) => DataType::FixedSizeBinary(*byte_width),
         }
     }
 }
@@ -63,6 +64,7 @@ impl TryFrom<DataType> for ColumnType {
                 ))
             }
             DataType::Utf8 => Ok(ColumnType::VarChar),
+            DataType::FixedSizeBinary(byte_width) => Ok(ColumnType::FixedSizeBinary(byte_width)),
             _ => Err(format!("Unsupported arrow data type {data_type:?}")),
         }
     }

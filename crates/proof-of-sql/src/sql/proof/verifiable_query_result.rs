@@ -170,6 +170,9 @@ fn make_empty_query_result<S: Scalar>(result_fields: &[ColumnField]) -> QueryRes
                         ColumnType::Scalar => OwnedColumn::Scalar(vec![]),
                         ColumnType::VarChar => OwnedColumn::VarChar(vec![]),
                         ColumnType::TimestampTZ(tu, tz) => OwnedColumn::TimestampTZ(tu, tz, vec![]),
+                        ColumnType::FixedSizeBinary(byte_width) => {
+                            OwnedColumn::FixedSizeBinary(byte_width, vec![])
+                        }
                     },
                 )
             })

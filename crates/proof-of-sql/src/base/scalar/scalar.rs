@@ -49,6 +49,7 @@ pub trait Scalar:
     + core::ops::SubAssign
     + RefInto<[u64; 4]>
     + for<'a> core::convert::From<&'a String>
+    + for<'a> core::convert::From<&'a [u8]>
     + VarInt
     + core::convert::From<String>
     + core::convert::From<i128>
