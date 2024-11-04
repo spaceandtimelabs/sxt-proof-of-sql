@@ -10,7 +10,7 @@ use proof_of_sql::proof_primitive::dory::{ProverSetup, PublicParameters, Verifie
 use rand_chacha::ChaCha20Rng;
 use sha2::{Digest, Sha256};
 use std::{
-    env, fmt,
+    env,
     fs::{self, File, OpenOptions},
     io::{self, Write},
     path::Path,
@@ -31,7 +31,7 @@ struct Args {
     nu: usize,
 
     /// Mode for generating parameters: "p" for Prover, "v" for Verifier, pv for both
-    #[arg(short, long, default_value = "pv")]
+    #[arg(short, long, default_value = "all")]
     mode: Mode,
 
     /// The initial randomness for the transparent setup
@@ -49,21 +49,9 @@ struct Args {
 // they type "pv"
 #[derive(Debug, Clone, ValueEnum)]
 enum Mode {
-    P,  //Prover
-    V,  //verifier
-    PV, //Both
-}
-
-// Implement Display for Mode
-impl fmt::Display for Mode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mode_str = match self {
-            Mode::P => "P",
-            Mode::V => "V",
-            Mode::PV => "PV",
-        };
-        write!(f, "{mode_str}")
-    }
+    Prover,   //Prover
+    Verifier, //verifier
+    All,      //Both
 }
 
 fn main() {
@@ -117,17 +105,17 @@ fn generate_parameters(args: &Args) {
     spinner.finish_with_message("Public parameter setup complete");
 
     match args.mode {
-        Mode::PV => {
+        Mode::All => {
             println!("Generating parameters for Prover...");
             generate_prover_setup(&public_parameters, args.nu, &args.target);
             println!("Generating parameters for Verifier...");
             generate_verifier_setup(&public_parameters, args.nu, &args.target);
         }
-        Mode::P => {
+        Mode::Prover => {
             println!("Generating parameters for Prover...");
             generate_prover_setup(&public_parameters, args.nu, &args.target);
         }
-        Mode::V => {
+        Mode::Verifier => {
             println!("Generating parameters for Verifier...");
             generate_verifier_setup(&public_parameters, args.nu, &args.target);
         }

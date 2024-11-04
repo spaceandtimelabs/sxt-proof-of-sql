@@ -24,7 +24,7 @@ fn we_can_generate_save_and_load_public_setups() {
         .arg("--nu")
         .arg("4")
         .arg("--mode")
-        .arg("pv")
+        .arg("all")
         .arg("--target")
         .arg(temp_path)
         .output()
