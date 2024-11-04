@@ -20,10 +20,10 @@ This generates the setups for both the prover and verifer as two seperate tar.gz
 
 | Description     | Command | 
 | --------------- | --------------- | 
-| Run the Prover setup only     | ```cargo run --release --bin generate-parameters -- --mode p```     | 
-|Run the Verifier setup only    | ```cargo run --release --bin generate-parameters -- --mode v```    | 
-| Run both Prover and Verifier setups with a custom nu value   | ```cargo run --release --bin generate-parameters -- --mode pv --nu 4```    | 
-| Specify an output directory (with --target argument)    | ```cargo run --release --bin generate-parameters -- --mode pv --target ./output ```     | 
+| Run the Prover setup only     | ```cargo run --release --bin generate-parameters -- --mode prover```     | 
+|Run the Verifier setup only    | ```cargo run --release --bin generate-parameters -- --mode verifier```    | 
+| Run both Prover and Verifier setups with a custom nu value   | ```cargo run --release --bin generate-parameters -- --mode all --nu 4```    | 
+| Specify an output directory (with --target argument)    | ```cargo run --release --bin generate-parameters -- --mode all --target ./output ```     | 
 
 ## <a name="background"></a>📚 Background
 
