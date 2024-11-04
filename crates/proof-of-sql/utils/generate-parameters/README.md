@@ -4,33 +4,11 @@ A simple tool to generate the Space and Time public network parameters.
 
 ## 📑 Table of Contents
 
-- [🛠️ Installation](#installation)
+- [🚀 Quick Start](#quick-start)
 - [📚 Background](#background)
-- [🚀 Usage](#usage)
-- [📧 Contact](#contact)
 - [📚 Additional Resources](#additional-resources)
 
-## <a name="installation"></a>🛠️ Installation
-
-Install rust:
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-## <a name="background"></a>📚 Background
-
-### What are public parameters?
-
-There are a wide variety of zero-knowledge proof and argument systems, all offering different performance characterists. The classic example is the [Groth16](https://eprint.iacr.org/2016/260.pdf) argument, a commonly used proof system which establishes a trusted setup (known formally as a common reference string (CRS) or structured reference string (SRS)) to be shared among participants in the network. This setup is structured in such a way that allows arguments of valid computation to be produced with very small sizes. In the case of Groth16, this can be as low as a few group elements or a couple hundred bytes, which is the perfect size to store on a blockchain.
-
-The Space and Time network makes use of a few different argument systems. The Dory polynomial commitment scheme (PCS) is is a SNARK which requires a setup to be established between the proving and verifying parties. The Dory PCS is chosen because it is ammenable to forming proofs and arguments over matrices, which is perfect for the Proof-Of-SQL case, since databases and tables are essentially matrices. The Dory setup process is unique in that it is *transparent*, meaning there is no toxic waste or secret values to forget once the setup is complete. The setup is initialized with an arbitrary random string which establishes common parameters. We choose the random string "SpaceAndTime" for our setup. This string is a "[Nothing-up-my-sleeve number](https://en.wikipedia.org/wiki/Nothing-up-my-sleeve_number)", meaning it is easily auditable and has no hidden structure that can be exploited to generate false proofs or compromise the integrity of the system.
-
-The Space and Time implementation of the [Dory PCS](https://eprint.iacr.org/2020/1274) is non-zero knowledge and does not explicty blind the inputs used in the argument of correct sql execution. This yields a leaner implementation and slightly better performance. We may add zero-knowledge blinding in the future, but for now it is not necessary for Proof-Of-SQL to function correctly.
-
-This tool generates the public setups for either the prover or verifier. Both setups are parameterized over a value *nu*, which helps establish the maximum dimension of the table that can be argued against. The prover and the verifer both posses a slightly different setup. The verifier setup is relatively cheap to compute and scales linearly for large nu/table sizes. The prover setup is larger and has a higher cost to compute. We provide pre-computed setups that can easily be downloaded and used with the SxT network in order to skip the expensive generation process, but this repo contains a tool to generate the parameters at your option.
-
-## <a name="usage"></a>🚀 Usage
+## <a name="quick-start"></a>🚀 Quick Start
 
 Ensure that you have rust installed. Then, clone this repo and simply run the following:
 
@@ -46,6 +24,41 @@ This generates the setups for both the prover and verifer as two seperate tar.gz
 |Run the Verifier setup only    | ```cargo run --release --bin generate-parameters -- --mode v```    | 
 | Run both Prover and Verifier setups with a custom nu value   | ```cargo run --release --bin generate-parameters -- --mode pv --nu 4```    | 
 | Specify an output directory (with --target argument)    | ```cargo run --release --bin generate-parameters -- --mode pv --target ./output ```     | 
+
+## <a name="background"></a>📚 Background
+
+### What are public parameters?
+
+There are a wide variety of zero-knowledge proof and argument systems, all offering different performance characterists. The classic example is the [Groth16](https://eprint.iacr.org/2016/260.pdf) argument, a commonly used proof system which establishes a trusted setup (known formally as a common reference string (CRS) or structured reference string (SRS)) to be shared among participants in the network. This setup is structured in such a way that allows arguments of valid computation to be produced with very small sizes. In the case of Groth16, this can be as low as a few group elements or a couple hundred bytes, which is the perfect size to store on a blockchain.
+
+The Space and Time network makes use of a few different argument systems. The Dory polynomial commitment scheme (PCS) is is a SNARK which requires a setup to be established between the proving and verifying parties. The Dory PCS is chosen because it is ammenable to forming proofs and arguments over matrices, which is perfect for the Proof-Of-SQL case, since databases and tables are essentially matrices. The Dory setup process is unique in that it is *transparent*, meaning there is no toxic waste or secret values to forget once the setup is complete. The setup is initialized with an arbitrary random string which establishes common parameters. We choose the random string "SpaceAndTime" for our setup. This string is a "[Nothing-up-my-sleeve number](https://en.wikipedia.org/wiki/Nothing-up-my-sleeve_number)", meaning it is easily auditable and has no hidden structure that can be exploited to generate false proofs or compromise the integrity of the system.
+
+The Space and Time implementation of the [Dory PCS](https://eprint.iacr.org/2020/1274) is non-zero knowledge and does not explicty blind the inputs used in the argument of correct sql execution. This yields a leaner implementation and slightly better performance. We may add zero-knowledge blinding in the future, but for now it is not necessary for Proof-Of-SQL to function correctly.
+
+This tool generates the public setups for either the prover or verifier. Both setups are parameterized over a value *nu*, which helps establish the maximum dimension of the table that can be argued against. The prover and the verifer both posses a slightly different setup. The verifier setup is relatively cheap to compute and scales linearly for large nu/table sizes. The prover setup is larger and has a higher cost to compute. We provide pre-computed setups that can easily be downloaded and used with the SxT network in order to skip the expensive generation process, but this repo contains a tool to generate the parameters at your option.
+
+### Table Sizes
+
+The maximum table supported table size for parameters generated by this tool is determined by the value of max nu. For Dynamic Dory, that size is $2^{2 \nu - 1}$. This translates into the number of rows that the parameter can support below:
+
+| ν (nu) | Number of rows    |
+|--------|-------------------|
+|    8   | 33 thousand       |
+|    9   | 131 thousand      |
+|   10   | 524 thousand      |
+|   11   | 2.10 million      |
+|   12   | 8.39 million      |
+|   13   | 33.55 million     |
+|   14   | 134.22 million    |
+|   15   | 536.87 million    |
+|   16   | 2.15 billion      |
+|   17   | 8.59 billion      |
+|   18   | 34.36 billion     |
+|   19   | 137.44 billion    |
+|   20   | 549.76 billion    |
+
+
+NOTE: Setups using the same random string but different nu values remain compatible with each other up to the minimum value of nu shared between them. SxT as of this writing uses a nu value of 16. Setups with smaller values of nu should be compatible with this setup.
 
 
 ## <a name="additional-resources"></a>📚 Additional Resources
