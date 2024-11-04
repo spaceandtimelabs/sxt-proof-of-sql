@@ -48,10 +48,11 @@ impl<T: TranscriptCore> Transcript for T {
         &mut self,
         messages: impl IntoIterator<Item = &'a S>,
     ) {
-        self.extend_as_be::<[u64; 4]>(messages.into_iter().map(RefInto::ref_into));
+        self.extend_as_be::<[u64; 4]>(messages.into_iter().map(S::to_limbs));
     }
     fn scalar_challenge_as_be<S: Scalar>(&mut self) -> S {
-        receive_challenge_as_be::<[u64; 4]>(self).into()
+        let x = receive_challenge_as_be::<[u64; 4]>(self);
+        Scalar::from_limbs(x)
     }
     fn challenge_as_le(&mut self) -> [u8; 32] {
         self.raw_challenge()

@@ -46,6 +46,14 @@ impl Scalar for DoryScalar {
     const ONE: Self = Self(ark_ff::MontFp!("1"));
     const TWO: Self = Self(ark_ff::MontFp!("2"));
     const TEN: Self = Self(ark_ff::MontFp!("10"));
+
+    fn from_limbs(val: [u64; 4]) -> Self {
+        Self::from(val)
+    }
+
+    fn to_limbs(&self) -> [u64; 4] {
+        self.into()
+    }
 }
 
 #[derive(
