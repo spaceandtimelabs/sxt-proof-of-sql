@@ -30,10 +30,12 @@ blitzar = { workspace = true, optional = true }
 bumpalo = { workspace = true, features = ["collections"] }
 bytemuck = { workspace = true }
 byte-slice-cast = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
 curve25519-dalek = { workspace = true, features = ["serde"] }
 chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true }
 indexmap = { workspace = true, features = ["serde"] }
+indicatif = { workspace = true }
 itertools = { workspace = true }
 merlin = { workspace = true, optional = true }
 num-traits = { workspace = true }
@@ -41,9 +43,11 @@ num-bigint = { workspace = true, default-features = false }
 postcard = { workspace = true, features = ["alloc"] }
 proof-of-sql-parser = { workspace = true }
 rand = { workspace = true, default-features = false, optional = true }
+rand_chacha = { workspace = true}
 rayon = { workspace = true, optional = true }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 snafu = { workspace = true }
 sqlparser = { workspace = true }
 tiny-keccak = { workspace = true }
@@ -62,6 +66,7 @@ opentelemetry-jaeger = { workspace = true }
 rand = { workspace = true, default-features = false }
 rand_core = { workspace = true, default-features = false }
 serde_json = { workspace = true }
+tempfile = { workspace = true }
 tracing = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 tracing-subscriber = { workspace = true }
@@ -82,6 +87,11 @@ std = ["snafu/std"]
 
 [lints]
 workspace = true
+
+[[bin]]
+name = "generate-parameters"
+path = "utils/generate-parameters/main.rs"
+required-features = [ "std", "blitzar"]
 
 [[example]]
 name = "hello_world"

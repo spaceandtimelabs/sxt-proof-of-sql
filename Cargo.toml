@@ -36,6 +36,7 @@ curve25519-dalek = { version = "4", features = ["rand_core"] }
 derive_more = { version = "0.99" }
 flexbuffers = { version = "2.0.0" }
 indexmap = { version = "2.1", default-features = false }
+indicatif = "0.17.8"
 itertools = { version = "0.13.0", default-features = false, features = ["use_alloc"] }
 lalrpop = { version = "0.22.0" }
 lalrpop-util = { version = "0.22.0", default-features = false }
@@ -48,13 +49,16 @@ postcard = { version = "1.0" }
 proof-of-sql = { path = "crates/proof-of-sql" } # We automatically update this line during release. So do not modify it!
 proof-of-sql-parser = { path = "crates/proof-of-sql-parser" } # We automatically update this line during release. So do not modify it!
 rand = { version = "0.8", default-features = false }
+rand_chacha = { version = "0.3.1" }
 rand_core = { version = "0.6", default-features = false }
 rayon = { version = "1.5" }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
+sha2 = "0.10.8"
 snafu = { version = "0.8.4", default-features = false }
 sqlparser = { version = "0.45.0", default-features = false }
 tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
+tempfile = "3.13.0"
 tracing = { version = "0.1.36", default-features = false }
 tracing-opentelemetry = { version = "0.22.0" }
 tracing-subscriber = { version = "0.3.0" }

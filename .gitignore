@@ -64,3 +64,6 @@ metastore_db
 # forge test files
 out
 cache
+
+# any output files from generating public params
+output/
