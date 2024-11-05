@@ -8,8 +8,7 @@ use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
     base::database::{OwnedTable, OwnedTableTestAccessor, TestAccessor},
     proof_primitive::dory::{
-        DynamicDoryCommitment, DynamicDoryEvaluationProof, ProverSetup, PublicParameters,
-        VerifierSetup,
+        DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
     sql::{parse::QueryExpr, proof::QueryProof},
 };
@@ -30,12 +29,8 @@ fn prove_and_verify_query(
     // Parse the query:
     println!("Parsing the query: {sql}...");
     let now = Instant::now();
-    let query_plan = QueryExpr::<DynamicDoryCommitment>::try_new(
-        sql.parse().unwrap(),
-        "sushi".parse().unwrap(),
-        accessor,
-    )
-    .unwrap();
+    let query_plan =
+        QueryExpr::try_new(sql.parse().unwrap(), "sushi".parse().unwrap(), accessor).unwrap();
     println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
     // Generate the proof and result:
     print!("Generating proof...");

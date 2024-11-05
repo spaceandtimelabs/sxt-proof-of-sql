@@ -27,7 +27,7 @@ fn scaffold<'a, CP: CommitmentEvaluationProof>(
     alloc: &'a Bump,
     accessor: &mut BenchmarkAccessor<'a, CP::Commitment>,
     rng: &mut impl Rng,
-) -> (QueryExpr<CP::Commitment>, VerifiableQueryResult<CP>) {
+) -> (QueryExpr, VerifiableQueryResult<CP>) {
     accessor.insert_table(
         "bench.table".parse().unwrap(),
         &generate_random_columns(alloc, rng, columns, size),

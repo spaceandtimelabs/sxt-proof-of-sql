@@ -9,8 +9,7 @@ use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
     base::database::{OwnedTable, OwnedTableTestAccessor, TestAccessor},
     proof_primitive::dory::{
-        DynamicDoryCommitment, DynamicDoryEvaluationProof, ProverSetup, PublicParameters,
-        VerifierSetup,
+        DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
     sql::{parse::QueryExpr, postprocessing::apply_postprocessing_steps, proof::QueryProof},
 };
@@ -34,7 +33,7 @@ fn prove_and_verify_query(
     // Parse the query:
     println!("Parsing the query: {sql}...");
     let now = Instant::now();
-    let query_plan = QueryExpr::<DynamicDoryCommitment>::try_new(
+    let query_plan = QueryExpr::try_new(
         sql.parse().unwrap(),
         "dog_breeds".parse().unwrap(),
         accessor,

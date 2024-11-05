@@ -12,8 +12,7 @@ use proof_of_sql::{
         TestAccessor,
     },
     proof_primitive::dory::{
-        DynamicDoryCommitment, DynamicDoryEvaluationProof, ProverSetup, PublicParameters,
-        VerifierSetup,
+        DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
     sql::{parse::QueryExpr, postprocessing::apply_postprocessing_steps, proof::QueryProof},
 };
@@ -37,12 +36,8 @@ fn prove_and_verify_query(
     // Parse the query:
     println!("Parsing the query: {sql}...");
     let now = Instant::now();
-    let query_plan = QueryExpr::<DynamicDoryCommitment>::try_new(
-        sql.parse().unwrap(),
-        "brands".parse().unwrap(),
-        accessor,
-    )
-    .unwrap();
+    let query_plan =
+        QueryExpr::try_new(sql.parse().unwrap(), "brands".parse().unwrap(), accessor).unwrap();
     println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
     // Generate the proof and result:
