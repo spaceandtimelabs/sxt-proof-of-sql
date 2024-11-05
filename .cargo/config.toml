@@ -1,3 +1,7 @@
 [target.x86_64-unknown-linux-gnu]
 linker = "/usr/bin/clang" # used to decrease build time
 rustflags = ["-Clink-arg=-fuse-ld=lld"] # used to decrease link time
+
+[alias]
+f = "fmt --all -- --config imports_granularity=Crate,group_imports=One"
+cl = "clippy --all-targets --all-features"
