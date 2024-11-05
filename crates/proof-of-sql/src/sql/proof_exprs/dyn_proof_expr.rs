@@ -32,7 +32,7 @@ pub enum DynProofExpr<C: Commitment> {
     /// Provable logical NOT expression
     Not(NotExpr<C>),
     /// Provable CONST expression
-    Literal(LiteralExpr<C::Scalar>),
+    Literal(LiteralExpr),
     /// Provable AST expression for an equals expression
     Equals(EqualsExpr<C>),
     /// Provable AST expression for an inequality expression
@@ -67,7 +67,7 @@ impl<C: Commitment> DynProofExpr<C> {
         Ok(Self::Not(NotExpr::new(Box::new(expr))))
     }
     /// Create CONST expression
-    pub fn new_literal(value: LiteralValue<C::Scalar>) -> Self {
+    pub fn new_literal(value: LiteralValue) -> Self {
         Self::Literal(LiteralExpr::new(value))
     }
     /// Create a new equals expression

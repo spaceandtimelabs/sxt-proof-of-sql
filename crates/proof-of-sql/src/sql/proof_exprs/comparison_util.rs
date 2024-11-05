@@ -39,8 +39,8 @@ fn unchecked_subtract_impl<'a, S: Scalar>(
 /// or if we have precision overflow issues.
 #[allow(clippy::cast_sign_loss)]
 pub fn scale_and_subtract_literal<S: Scalar>(
-    lhs: &LiteralValue<S>,
-    rhs: &LiteralValue<S>,
+    lhs: &LiteralValue,
+    rhs: &LiteralValue,
     lhs_scale: i8,
     rhs_scale: i8,
     is_equal: bool,
@@ -85,12 +85,12 @@ pub fn scale_and_subtract_literal<S: Scalar>(
     match lhs_scale.cmp(&rhs_scale) {
         Ordering::Less => {
             let upscale_factor = S::pow10(rhs_upscale as u8);
-            Ok(lhs.to_scalar() * upscale_factor - rhs.to_scalar())
+            Ok(lhs.to_scalar::<S>() * upscale_factor - rhs.to_scalar())
         }
-        Ordering::Equal => Ok(lhs.to_scalar() - rhs.to_scalar()),
+        Ordering::Equal => Ok(lhs.to_scalar::<S>() - rhs.to_scalar()),
         Ordering::Greater => {
             let upscale_factor = S::pow10(lhs_upscale as u8);
-            Ok(lhs.to_scalar() - rhs.to_scalar() * upscale_factor)
+            Ok(lhs.to_scalar::<S>() - rhs.to_scalar::<S>() * upscale_factor)
         }
     }
 }
@@ -203,7 +203,7 @@ pub(crate) fn scale_and_subtract_columnar_value<'a, S: Scalar>(
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
             Ok(ColumnarValue::Literal(LiteralValue::Scalar(
-                scale_and_subtract_literal(&lhs, &rhs, lhs_scale, rhs_scale, is_equal)?.into(),
+                scale_and_subtract_literal::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_equal)?.into(),
             )))
         }
     }

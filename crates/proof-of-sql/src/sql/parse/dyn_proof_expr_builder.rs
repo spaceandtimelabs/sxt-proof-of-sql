@@ -5,7 +5,8 @@ use crate::{
         database::{ColumnRef, LiteralValue},
         map::IndexMap,
         math::{
-            decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError, Precision},
+            decimal::{DecimalError, Precision},
+            i256::I256,
             BigDecimalExt,
         },
     },
@@ -110,7 +111,9 @@ impl DynProofExprBuilder<'_> {
                 Ok(DynProofExpr::new_literal(LiteralValue::Decimal75(
                     precision,
                     scale,
-                    try_convert_intermediate_decimal_to_scalar(d, precision, scale)?,
+                    I256::from_num_bigint(
+                        &d.try_into_bigint_with_precision_and_scale(precision.value(), scale)?,
+                    ),
                 )))
             }
             Literal::VarChar(s) => Ok(DynProofExpr::new_literal(LiteralValue::VarChar(s.clone()))),

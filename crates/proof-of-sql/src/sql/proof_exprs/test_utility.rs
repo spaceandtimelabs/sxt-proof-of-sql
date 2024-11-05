@@ -2,7 +2,7 @@ use super::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr};
 use crate::base::{
     commitment::Commitment,
     database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
-    math::decimal::Precision,
+    math::{decimal::Precision, i256::I256},
 };
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 
@@ -124,7 +124,7 @@ pub fn const_scalar<C: Commitment, T: Into<C::Scalar>>(val: T) -> DynProofExpr<C
 /// # Panics
 /// Panics if:
 /// - `Precision::new(precision)` fails, meaning the provided precision is invalid.
-pub fn const_decimal75<C: Commitment, T: Into<C::Scalar>>(
+pub fn const_decimal75<C: Commitment, T: Into<I256>>(
     precision: u8,
     scale: i8,
     val: T,

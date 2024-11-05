@@ -36,6 +36,7 @@ impl<C: Commitment> fmt::Debug for QueryExpr<C> {
 
 impl<C: Commitment> QueryExpr<C> {
     /// Creates a new `QueryExpr` with the given `DynProofPlan` and `OwnedTablePostprocessing`.
+    #[must_use]
     pub fn new(proof_expr: DynProofPlan<C>, postprocessing: Vec<OwnedTablePostprocessing>) -> Self {
         Self {
             proof_expr,
@@ -159,11 +160,13 @@ impl<C: Commitment> QueryExpr<C> {
     }
 
     /// Immutable access to this query's provable filter expression.
+    #[must_use]
     pub fn proof_expr(&self) -> &DynProofPlan<C> {
         &self.proof_expr
     }
 
     /// Immutable access to this query's post-proof result transform expression.
+    #[must_use]
     pub fn postprocessing(&self) -> &[OwnedTablePostprocessing] {
         &self.postprocessing
     }

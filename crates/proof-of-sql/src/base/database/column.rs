@@ -100,7 +100,7 @@ impl<'a, S: Scalar> Column<'a, S> {
 
     /// Generate a constant column from a literal value with a given length
     pub fn from_literal_with_length(
-        literal: &LiteralValue<S>,
+        literal: &LiteralValue,
         length: usize,
         alloc: &'a Bump,
     ) -> Self {
@@ -127,7 +127,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             LiteralValue::Decimal75(precision, scale, value) => Column::Decimal75(
                 *precision,
                 *scale,
-                alloc.alloc_slice_fill_copy(length, *value),
+                alloc.alloc_slice_fill_copy(length, value.into_scalar()),
             ),
             LiteralValue::TimeStampTZ(tu, tz, value) => {
                 Column::TimestampTZ(*tu, *tz, alloc.alloc_slice_fill_copy(length, *value))

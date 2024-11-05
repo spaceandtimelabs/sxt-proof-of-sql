@@ -5,7 +5,6 @@ use crate::{
         database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, LiteralValue},
         map::IndexSet,
         proof::ProofError,
-        scalar::Scalar,
     },
     sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
@@ -24,18 +23,18 @@ use serde::{Deserialize, Serialize};
 /// such queries, it allows us to easily support projects with minimal code
 /// changes, and the performance is sufficient for present.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LiteralExpr<S: Scalar> {
-    value: LiteralValue<S>,
+pub struct LiteralExpr {
+    value: LiteralValue,
 }
 
-impl<S: Scalar> LiteralExpr<S> {
+impl LiteralExpr {
     /// Create literal expression
-    pub fn new(value: LiteralValue<S>) -> Self {
+    pub fn new(value: LiteralValue) -> Self {
         Self { value }
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for LiteralExpr<C::Scalar> {
+impl<C: Commitment> ProofExpr<C> for LiteralExpr {
     fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())
     }
