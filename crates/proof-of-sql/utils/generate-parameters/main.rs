@@ -65,7 +65,6 @@ fn main() {
         }
         Err(e) => {
             eprintln!("Failed to set {BLITZAR_PARTITION_WINDOW_WIDTH}: {e}");
-            std::process::exit(-1)
         }
     }
 
@@ -90,7 +89,10 @@ fn generate_parameters(args: &Args) {
     if Path::new(&digests_path).exists() {
         match fs::write(&digests_path, "") {
             Ok(()) => {}
-            Err(e) => eprintln!("Failed to clear digests.txt file: {e}"),
+            Err(e) => {
+                eprintln!("Failed to clear digests.txt file: {e}");
+                std::process::exit(-1)
+            }
         }
     }
 
@@ -173,7 +175,10 @@ fn generate_prover_setup(public_parameters: &PublicParameters, nu: usize, target
             }
             save_digests(&digests, target, nu); // Save digests to digests.txt
         }
-        Err(e) => eprintln!("Failed to save prover setup: {e}."),
+        Err(e) => {
+            eprintln!("Failed to save prover setup: {e}.");
+            std::process::exit(-1)
+        }
     }
 }
 
@@ -207,7 +212,10 @@ fn generate_verifier_setup(public_parameters: &PublicParameters, nu: usize, targ
             }
             save_digests(&digests, target, nu); // Save digests to digests.txt
         }
-        Err(e) => eprintln!("Failed to save verifier setup: {e}."),
+        Err(e) => {
+            eprintln!("Failed to save verifier setup: {e}.");
+            std::process::exit(-1)
+        }
     }
 }
 
@@ -281,14 +289,22 @@ fn write_prover_blitzar_handle(setup: ProverSetup<'_>, file_path: &str) {
                 match split_output {
                     Ok(_) => {
                         println!("File successfully split into parts.");
-                        fs::remove_file(file_path)
-                            .unwrap_or_else(|e| eprintln!("Error during file splitting: {e}"));
+                        fs::remove_file(file_path).unwrap_or_else(|e| {
+                            eprintln!("Error clearing large file during split: {e}");
+                            std::process::exit(-1)
+                        });
                     }
-                    Err(e) => eprintln!("Error during file splitting: {e}"),
+                    Err(e) => {
+                        eprintln!("Error during file splitting: {e}");
+                        std::process::exit(-1)
+                    }
                 }
             }
         }
-        Err(e) => eprintln!("Failed to write blitzar_handle to file: {e}"),
+        Err(e) => {
+            eprintln!("Failed to write blitzar_handle to file: {e}");
+            std::process::exit(-1)
+        }
     }
 }
 
