@@ -2,7 +2,10 @@ use super::ProofExpr;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{
+            Column, ColumnField, ColumnRef, ColumnType, ColumnarValue, CommitmentAccessor,
+            DataAccessor,
+        },
         map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
@@ -58,13 +61,11 @@ impl ProofExpr for ColumnExpr {
     /// add the result to the [`FirstRoundBuilder`](crate::sql::proof::FirstRoundBuilder)
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Column<'a, S> {
+    ) -> ColumnarValue<'a, S> {
         let column = accessor.get_column(self.column_ref);
-        assert_eq!(column.len(), table_length);
-        column
+        ColumnarValue::Column(column)
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the column expression and

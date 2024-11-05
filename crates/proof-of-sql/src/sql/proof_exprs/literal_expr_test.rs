@@ -2,7 +2,7 @@ use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
+        database::{owned_table_utility::*, ColumnarValue, LiteralValue, OwnedTableTestAccessor},
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
@@ -123,7 +123,7 @@ fn we_can_compute_the_correct_output_of_a_literal_expr_using_result_evaluate() {
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let literal_expr: DynProofExpr = const_bool(true);
     let alloc = Bump::new();
-    let res = literal_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = Column::Boolean(&[true, true, true, true]);
+    let res = literal_expr.result_evaluate(&alloc, &accessor);
+    let expected_res = ColumnarValue::Literal(LiteralValue::Boolean(true));
     assert_eq!(res, expected_res);
 }

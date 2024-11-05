@@ -2,8 +2,8 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, Column, LiteralValue, OwnedTable, OwnedTableTestAccessor,
-            TestAccessor,
+            owned_table_utility::*, Column, ColumnarValue, LiteralValue, OwnedTable,
+            OwnedTableTestAccessor, TestAccessor,
         },
         scalar::{Curve25519Scalar, Scalar, ScalarExt},
     },
@@ -568,8 +568,8 @@ fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evalu
     let rhs_expr = column(t, "b", &accessor);
     let lte_expr = lte(lhs_expr, rhs_expr);
     let alloc = Bump::new();
-    let res = lte_expr.result_evaluate(3, &alloc, &accessor);
-    let expected_res = Column::Boolean(&[true, false, true]);
+    let res = lte_expr.result_evaluate(&alloc, &accessor);
+    let expected_res = ColumnarValue::Column(Column::Boolean(&[true, false, true]));
     assert_eq!(res, expected_res);
 }
 
@@ -583,7 +583,7 @@ fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evalu
     let lit_expr = const_bigint(1);
     let gte_expr = gte(col_expr, lit_expr);
     let alloc = Bump::new();
-    let res = gte_expr.result_evaluate(3, &alloc, &accessor);
-    let expected_res = Column::Boolean(&[false, true, true]);
+    let res = gte_expr.result_evaluate(&alloc, &accessor);
+    let expected_res = ColumnarValue::Column(Column::Boolean(&[false, true, true]));
     assert_eq!(res, expected_res);
 }

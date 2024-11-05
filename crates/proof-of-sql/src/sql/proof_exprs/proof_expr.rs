@@ -1,7 +1,9 @@
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{
+            Column, ColumnRef, ColumnType, ColumnarValue, CommitmentAccessor, DataAccessor,
+        },
         map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
@@ -21,14 +23,12 @@ pub trait ProofExpr: Debug + Send + Sync {
     fn data_type(&self) -> ColumnType;
 
     /// This returns the result of evaluating the expression on the given table, and returns
-    /// a column of values. This result slice is guarenteed to have length `table_length`.
-    /// Implementations must ensure that the returned slice has length `table_length`.
+    /// a column of values.
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Column<'a, S>;
+    ) -> ColumnarValue<'a, S>;
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
     /// of values

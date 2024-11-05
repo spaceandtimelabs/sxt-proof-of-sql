@@ -1,8 +1,9 @@
 use crate::base::{
-    database::{Column, ColumnType, LiteralValue},
+    database::{Column, ColumnOperationError, ColumnOperationResult, ColumnType, LiteralValue},
     scalar::Scalar,
 };
 use bumpalo::Bump;
+use proof_of_sql_parser::intermediate_ast::{BinaryOperator, UnaryOperator};
 use snafu::Snafu;
 
 /// The result of evaluating an expression.
@@ -38,6 +39,15 @@ impl<'a, S: Scalar> ColumnarValue<'a, S> {
         }
     }
 
+    /// Get default length of the [`ColumnarValue`]
+    #[must_use]
+    pub fn default_length(&self) -> usize {
+        match self {
+            Self::Column(column) => column.len(),
+            Self::Literal(_) => 1,
+        }
+    }
+
     /// Converts the [`ColumnarValue`] to a [`Column`]
     pub fn into_column(
         &self,
@@ -58,6 +68,88 @@ impl<'a, S: Scalar> ColumnarValue<'a, S> {
             Self::Literal(literal) => {
                 Ok(Column::from_literal_with_length(literal, num_rows, alloc))
             }
+        }
+    }
+
+    /// Applies a unary operator to a [`ColumnarValue`].
+    pub(crate) fn apply_boolean_unary_operator(
+        &self,
+        op: UnaryOperator,
+        alloc: &'a Bump,
+    ) -> ColumnOperationResult<ColumnarValue<'a, S>> {
+        match (self, op) {
+            (ColumnarValue::Literal(LiteralValue::Boolean(value)), UnaryOperator::Not) => {
+                Ok(ColumnarValue::Literal(LiteralValue::Boolean(!value)))
+            }
+            (ColumnarValue::Column(Column::Boolean(column)), UnaryOperator::Not) => {
+                Ok(ColumnarValue::Column(Column::Boolean(
+                    alloc.alloc_slice_fill_with(column.len(), |i| !column[i]),
+                )))
+            }
+            _ => Err(ColumnOperationError::UnaryOperationInvalidColumnType {
+                operator: op,
+                operand_type: self.column_type(),
+            }),
+        }
+    }
+
+    /// Applies a binary operator to two [`ColumnarValue`]s.
+    pub(crate) fn apply_boolean_binary_operator(
+        &self,
+        rhs: &Self,
+        op: BinaryOperator,
+        alloc: &'a Bump,
+    ) -> ColumnOperationResult<ColumnarValue<'a, S>> {
+        let op_fn = match op {
+            BinaryOperator::And => |lhs, rhs| lhs && rhs,
+            BinaryOperator::Or => |lhs, rhs| lhs || rhs,
+            _ => {
+                return Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+                    operator: op,
+                    left_type: self.column_type(),
+                    right_type: rhs.column_type(),
+                })
+            }
+        };
+        match (self, rhs) {
+            (
+                ColumnarValue::Literal(LiteralValue::Boolean(lhs)),
+                ColumnarValue::Literal(LiteralValue::Boolean(rhs)),
+            ) => Ok(ColumnarValue::Literal(LiteralValue::Boolean(op_fn(
+                *lhs, *rhs,
+            )))),
+            (
+                ColumnarValue::Column(Column::Boolean(lhs)),
+                ColumnarValue::Literal(LiteralValue::Boolean(rhs)),
+            ) => Ok(ColumnarValue::Column(Column::Boolean(
+                alloc.alloc_slice_fill_with(lhs.len(), |i| op_fn(lhs[i], *rhs)),
+            ))),
+            (
+                ColumnarValue::Literal(LiteralValue::Boolean(lhs)),
+                ColumnarValue::Column(Column::Boolean(rhs)),
+            ) => Ok(ColumnarValue::Column(Column::Boolean(
+                alloc.alloc_slice_fill_with(rhs.len(), |i| op_fn(*lhs, rhs[i])),
+            ))),
+            (
+                ColumnarValue::Column(Column::Boolean(lhs)),
+                ColumnarValue::Column(Column::Boolean(rhs)),
+            ) => {
+                let len = lhs.len();
+                if len != rhs.len() {
+                    return Err(ColumnOperationError::DifferentColumnLength {
+                        len_a: len,
+                        len_b: rhs.len(),
+                    });
+                }
+                Ok(ColumnarValue::Column(Column::Boolean(
+                    alloc.alloc_slice_fill_with(len, |i| op_fn(lhs[i], rhs[i])),
+                )))
+            }
+            _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+                operator: op,
+                left_type: self.column_type(),
+                right_type: rhs.column_type(),
+            }),
         }
     }
 }

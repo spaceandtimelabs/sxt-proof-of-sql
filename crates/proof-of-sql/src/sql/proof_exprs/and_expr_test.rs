@@ -1,7 +1,7 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
+        database::{owned_table_utility::*, Column, ColumnarValue, OwnedTableTestAccessor},
         scalar::test_scalar::TestScalar,
     },
     sql::{
@@ -166,7 +166,7 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
         equal(column(t, "d", &accessor), const_varchar("t")),
     );
     let alloc = Bump::new();
-    let res = and_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = Column::Boolean(&[false, true, false, false]);
+    let res = and_expr.result_evaluate(&alloc, &accessor);
+    let expected_res = ColumnarValue::Column(Column::Boolean(&[false, true, false, false]));
     assert_eq!(res, expected_res);
 }

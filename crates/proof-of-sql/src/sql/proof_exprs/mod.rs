@@ -57,11 +57,12 @@ use not_expr::NotExpr;
 mod not_expr_test;
 
 mod comparison_util;
-pub(crate) use comparison_util::scale_and_subtract;
+pub(crate) use comparison_util::{scale_and_subtract, scale_and_subtract_columnar_value};
 
 mod numerical_util;
 pub(crate) use numerical_util::{
-    add_subtract_columns, multiply_columns, scale_and_add_subtract_eval,
+    add_subtract_columnar_values, add_subtract_columns, multiply_columnar_values, multiply_columns,
+    scale_and_add_subtract_eval,
 };
 
 mod equals_expr;

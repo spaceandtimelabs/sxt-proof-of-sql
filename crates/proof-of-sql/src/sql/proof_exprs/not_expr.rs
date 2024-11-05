@@ -2,7 +2,9 @@ use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{
+            Column, ColumnRef, ColumnType, ColumnarValue, CommitmentAccessor, DataAccessor,
+        },
         map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
@@ -11,6 +13,7 @@ use crate::{
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
+use proof_of_sql_parser::intermediate_ast::UnaryOperator;
 use serde::{Deserialize, Serialize};
 
 /// Provable logical NOT expression
@@ -38,13 +41,13 @@ impl ProofExpr for NotExpr {
     #[tracing::instrument(name = "NotExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Column<'a, S> {
-        let expr_column: Column<'a, S> = self.expr.result_evaluate(table_length, alloc, accessor);
-        let expr = expr_column.as_boolean().expect("expr is not boolean");
-        Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
+    ) -> ColumnarValue<'a, S> {
+        let expr_columnar_value: ColumnarValue<'a, S> = self.expr.result_evaluate(alloc, accessor);
+        expr_columnar_value
+            .apply_boolean_unary_operator(UnaryOperator::Not, alloc)
+            .expect("Failed to apply boolean unary operator")
     }
 
     #[tracing::instrument(name = "NotExpr::prover_evaluate", level = "debug", skip_all)]

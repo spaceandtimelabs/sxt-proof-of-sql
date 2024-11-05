@@ -1,7 +1,7 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
+        database::{owned_table_utility::*, Column, ColumnarValue, OwnedTableTestAccessor},
         scalar::{test_scalar::TestScalar, Curve25519Scalar},
     },
     sql::{
@@ -319,11 +319,11 @@ fn we_can_compute_the_correct_output_of_an_add_subtract_expr_using_result_evalua
         subtract(column(t, "a", &accessor), const_bigint(1)),
     );
     let alloc = Bump::new();
-    let res = add_subtract_expr.result_evaluate(4, &alloc, &accessor);
+    let res = add_subtract_expr.result_evaluate(&alloc, &accessor);
     let expected_res_scalar = [0, 2, 2, 4]
         .iter()
         .map(|v| Curve25519Scalar::from(*v))
         .collect::<Vec<_>>();
-    let expected_res = Column::Scalar(&expected_res_scalar);
+    let expected_res = ColumnarValue::Column(Column::Scalar(&expected_res_scalar));
     assert_eq!(res, expected_res);
 }

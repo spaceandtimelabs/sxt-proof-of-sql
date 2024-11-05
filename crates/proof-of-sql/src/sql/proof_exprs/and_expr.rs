@@ -2,7 +2,9 @@ use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{
+            Column, ColumnRef, ColumnType, ColumnarValue, CommitmentAccessor, DataAccessor,
+        },
         map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
@@ -11,6 +13,7 @@ use crate::{
 };
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
+use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 use serde::{Deserialize, Serialize};
 
 /// Provable logical AND expression
@@ -44,15 +47,14 @@ impl ProofExpr for AndExpr {
     #[tracing::instrument(name = "AndExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Column<'a, S> {
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(table_length, alloc, accessor);
-        let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
-        let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        Column::Boolean(alloc.alloc_slice_fill_with(table_length, |i| lhs[i] && rhs[i]))
+    ) -> ColumnarValue<'a, S> {
+        let lhs_columnar_value: ColumnarValue<'a, S> = self.lhs.result_evaluate(alloc, accessor);
+        let rhs_columnar_value: ColumnarValue<'a, S> = self.rhs.result_evaluate(alloc, accessor);
+        lhs_columnar_value
+            .apply_boolean_binary_operator(&rhs_columnar_value, BinaryOperator::And, alloc)
+            .expect("Failed to apply boolean binary operator")
     }
 
     #[tracing::instrument(name = "AndExpr::prover_evaluate", level = "debug", skip_all)]
@@ -77,8 +79,8 @@ impl ProofExpr for AndExpr {
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (S::one(), vec![Box::new(lhs_and_rhs)]),
-                (-S::one(), vec![Box::new(lhs), Box::new(rhs)]),
+                (S::ONE, vec![Box::new(lhs_and_rhs)]),
+                (-S::ONE, vec![Box::new(lhs), Box::new(rhs)]),
             ],
         );
         Column::Boolean(lhs_and_rhs)

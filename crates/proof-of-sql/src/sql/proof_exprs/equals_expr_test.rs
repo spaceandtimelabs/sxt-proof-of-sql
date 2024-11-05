@@ -1,7 +1,9 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTable, OwnedTableTestAccessor},
+        database::{
+            owned_table_utility::*, Column, ColumnarValue, OwnedTable, OwnedTableTestAccessor,
+        },
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::{
@@ -411,7 +413,7 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
         const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ZERO),
     );
     let alloc = Bump::new();
-    let res = equals_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = Column::Boolean(&[true, false, true, false]);
+    let res = equals_expr.result_evaluate(&alloc, &accessor);
+    let expected_res = ColumnarValue::Column(Column::Boolean(&[true, false, true, false]));
     assert_eq!(res, expected_res);
 }
