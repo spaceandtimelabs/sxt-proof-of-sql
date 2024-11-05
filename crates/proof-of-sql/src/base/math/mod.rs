@@ -3,6 +3,8 @@
 pub mod decimal;
 #[cfg(test)]
 mod decimal_tests;
+/// Module containing [I256] type.
+pub mod i256;
 mod log;
 pub(crate) use log::log2_up;
 /// TODO: add docs
