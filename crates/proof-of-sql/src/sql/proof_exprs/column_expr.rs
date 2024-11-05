@@ -5,29 +5,25 @@ use crate::{
         database::{Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         map::IndexSet,
         proof::ProofError,
+        scalar::Scalar,
     },
     sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
-use core::marker::PhantomData;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 /// Provable expression for a column
 ///
 /// Note: this is currently limited to named column expressions.
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct ColumnExpr<C: Commitment> {
+pub struct ColumnExpr {
     column_ref: ColumnRef,
-    _phantom_data: PhantomData<C>,
 }
 
-impl<C: Commitment> ColumnExpr<C> {
+impl ColumnExpr {
     /// Create a new column expression
     pub fn new(column_ref: ColumnRef) -> Self {
-        Self {
-            column_ref,
-            _phantom_data: PhantomData,
-        }
+        Self { column_ref }
     }
 
     /// Return the column referenced by this [`ColumnExpr`]
@@ -46,7 +42,7 @@ impl<C: Commitment> ColumnExpr<C> {
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
+impl ProofExpr for ColumnExpr {
     /// Count the number of proof terms needed by this expression
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_anchored_mles(1);
@@ -60,12 +56,12 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
 
     /// Evaluate the column expression and
     /// add the result to the [`FirstRoundBuilder`](crate::sql::proof::FirstRoundBuilder)
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         table_length: usize,
         _alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
         let column = accessor.get_column(self.column_ref);
         assert_eq!(column.len(), table_length);
         column
@@ -73,12 +69,12 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
 
     /// Given the selected rows (as a slice of booleans), evaluate the column expression and
     /// add the components needed to prove the result
-    fn prover_evaluate<'a>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         _alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
         let column = accessor.get_column(self.column_ref);
         builder.produce_anchored_mle(column);
         column
@@ -86,7 +82,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
 
     /// Evaluate the column expression at the sumcheck's random point,
     /// add components needed to verify this column expression
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,

@@ -5,7 +5,7 @@ use super::{
 use crate::{
     base::{
         bit::BitDistribution,
-        commitment::{Commitment, CommitmentEvaluationProof},
+        commitment::CommitmentEvaluationProof,
         database::{Column, CommitmentAccessor, DataAccessor},
         math::log2_up,
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
@@ -43,7 +43,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     /// Create a new `QueryProof`.
     #[tracing::instrument(name = "QueryProof::new", level = "debug", skip_all)]
     pub fn new(
-        expr: &(impl ProofPlan<CP::Commitment> + Serialize),
+        expr: &(impl ProofPlan + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> (Self, ProvableQueryResult) {
@@ -145,7 +145,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     /// Verify a `QueryProof`. Note: This does NOT transform the result!
     pub fn verify(
         &self,
-        expr: &(impl ProofPlan<CP::Commitment> + Serialize),
+        expr: &(impl ProofPlan + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         result: &ProvableQueryResult,
         setup: &CP::VerifierPublicSetup<'_>,
@@ -323,8 +323,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 /// This function returns a `merlin::Transcript`. The transcript is a record
 /// of all the operations and data involved in creating a proof.
 /// ```
-fn make_transcript<C: Commitment, T: Transcript>(
-    expr: &(impl ProofPlan<C> + Serialize),
+fn make_transcript<T: Transcript>(
+    expr: &(impl ProofPlan + Serialize),
     result: &ProvableQueryResult,
     table_length: usize,
     generator_offset: usize,

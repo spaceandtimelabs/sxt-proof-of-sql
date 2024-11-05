@@ -15,19 +15,19 @@ use serde::{Deserialize, Serialize};
 
 /// Provable logical OR expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct OrExpr<C: Commitment> {
-    lhs: Box<DynProofExpr<C>>,
-    rhs: Box<DynProofExpr<C>>,
+pub struct OrExpr {
+    lhs: Box<DynProofExpr>,
+    rhs: Box<DynProofExpr>,
 }
 
-impl<C: Commitment> OrExpr<C> {
+impl OrExpr {
     /// Create logical OR expression
-    pub fn new(lhs: Box<DynProofExpr<C>>, rhs: Box<DynProofExpr<C>>) -> Self {
+    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
         Self { lhs, rhs }
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
+impl ProofExpr for OrExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
@@ -40,36 +40,34 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
     }
 
     #[tracing::instrument(name = "OrExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> =
-            self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> =
-            self.rhs.result_evaluate(table_length, alloc, accessor);
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
+        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(table_length, alloc, accessor);
+        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(table_length, alloc, accessor);
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         Column::Boolean(result_evaluate_or(table_length, alloc, lhs, rhs))
     }
 
     #[tracing::instrument(name = "OrExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, accessor);
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, accessor);
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         Column::Boolean(prover_evaluate_or(builder, alloc, lhs, rhs))
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,

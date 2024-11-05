@@ -7,6 +7,7 @@ use crate::{
         },
         map::IndexSet,
         proof::ProofError,
+        scalar::Scalar,
     },
     sql::{
         proof::{
@@ -26,14 +27,14 @@ use serde::{Deserialize, Serialize};
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table>
 /// ```
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct ProjectionExec<C: Commitment> {
-    pub(super) aliased_results: Vec<AliasedDynProofExpr<C>>,
+pub struct ProjectionExec {
+    pub(super) aliased_results: Vec<AliasedDynProofExpr>,
     pub(super) table: TableExpr,
 }
 
-impl<C: Commitment> ProjectionExec<C> {
+impl ProjectionExec {
     /// Creates a new projection expression.
-    pub fn new(aliased_results: Vec<AliasedDynProofExpr<C>>, table: TableExpr) -> Self {
+    pub fn new(aliased_results: Vec<AliasedDynProofExpr>, table: TableExpr) -> Self {
         Self {
             aliased_results,
             table,
@@ -41,7 +42,7 @@ impl<C: Commitment> ProjectionExec<C> {
     }
 }
 
-impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
+impl ProofPlan for ProjectionExec {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -63,7 +64,7 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
     }
 
     #[allow(unused_variables)]
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
@@ -98,14 +99,14 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
     }
 }
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
+impl ProverEvaluate for ProjectionExec {
     #[tracing::instrument(name = "ProjectionExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         input_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<Column<'a, S>> {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
@@ -126,12 +127,12 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
         skip_all
     )]
     #[allow(unused_variables)]
-    fn final_round_evaluate<'a>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<Column<'a, S>> {
         // 1. Evaluate result expressions
         let res: Vec<_> = self
             .aliased_results

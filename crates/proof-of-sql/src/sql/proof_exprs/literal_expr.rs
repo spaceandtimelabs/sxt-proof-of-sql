@@ -5,6 +5,7 @@ use crate::{
         database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, LiteralValue},
         map::IndexSet,
         proof::ProofError,
+        scalar::Scalar,
     },
     sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
@@ -34,7 +35,7 @@ impl LiteralExpr {
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for LiteralExpr {
+impl ProofExpr for LiteralExpr {
     fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())
     }
@@ -44,27 +45,27 @@ impl<C: Commitment> ProofExpr<C> for LiteralExpr {
     }
 
     #[tracing::instrument(name = "LiteralExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
         Column::from_literal_with_length(&self.value, table_length, alloc)
     }
 
     #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
         let table_length = builder.table_length();
         Column::from_literal_with_length(&self.value, table_length, alloc)
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,

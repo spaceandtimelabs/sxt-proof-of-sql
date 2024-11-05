@@ -32,20 +32,20 @@ use serde::{Deserialize, Serialize};
 ///
 /// This differs from the [`FilterExec`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct OstensibleFilterExec<C: Commitment, H: ProverHonestyMarker> {
-    pub(super) aliased_results: Vec<AliasedDynProofExpr<C>>,
+pub struct OstensibleFilterExec<H: ProverHonestyMarker> {
+    pub(super) aliased_results: Vec<AliasedDynProofExpr>,
     pub(super) table: TableExpr,
     /// TODO: add docs
-    pub(crate) where_clause: DynProofExpr<C>,
+    pub(crate) where_clause: DynProofExpr,
     phantom: PhantomData<H>,
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
+impl<H: ProverHonestyMarker> OstensibleFilterExec<H> {
     /// Creates a new filter expression.
     pub fn new(
-        aliased_results: Vec<AliasedDynProofExpr<C>>,
+        aliased_results: Vec<AliasedDynProofExpr>,
         table: TableExpr,
-        where_clause: DynProofExpr<C>,
+        where_clause: DynProofExpr,
     ) -> Self {
         Self {
             aliased_results,
@@ -56,9 +56,9 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
     }
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> ProofPlan<C> for OstensibleFilterExec<C, H>
+impl<H: ProverHonestyMarker> ProofPlan for OstensibleFilterExec<H>
 where
-    OstensibleFilterExec<C, H>: ProverEvaluate<C::Scalar>,
+    OstensibleFilterExec<H>: ProverEvaluate,
 {
     fn count(
         &self,
@@ -86,7 +86,7 @@ where
     }
 
     #[allow(unused_variables)]
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
@@ -146,18 +146,18 @@ where
 }
 
 /// Alias for a filter expression with a honest prover.
-pub type FilterExec<C> = OstensibleFilterExec<C, HonestProver>;
+pub type FilterExec = OstensibleFilterExec<HonestProver>;
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
+impl ProverEvaluate for FilterExec {
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         input_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<Column<'a, S>> {
         // 1. selection
-        let selection_column: Column<'a, C::Scalar> =
+        let selection_column: Column<'a, S> =
             self.where_clause
                 .result_evaluate(input_length, alloc, accessor);
         let selection = selection_column
@@ -186,14 +186,14 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
 
     #[tracing::instrument(name = "FilterExec::final_round_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]
-    fn final_round_evaluate<'a>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<Column<'a, S>> {
         // 1. selection
-        let selection_column: Column<'a, C::Scalar> =
+        let selection_column: Column<'a, S> =
             self.where_clause.prover_evaluate(builder, alloc, accessor);
         let selection = selection_column
             .as_boolean()
@@ -215,7 +215,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
 
-        prove_filter::<C::Scalar>(
+        prove_filter::<S>(
             builder,
             alloc,
             alpha,

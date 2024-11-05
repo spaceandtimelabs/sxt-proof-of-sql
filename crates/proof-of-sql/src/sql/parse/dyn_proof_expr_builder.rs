@@ -1,7 +1,6 @@
 use super::ConversionError;
 use crate::{
     base::{
-        commitment::Commitment,
         database::{ColumnRef, LiteralValue},
         map::IndexMap,
         math::{
@@ -48,10 +47,7 @@ impl<'a> DynProofExprBuilder<'a> {
         }
     }
     /// Builds a `proofs::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression`
-    pub fn build<C: Commitment>(
-        &self,
-        expr: &Expression,
-    ) -> Result<DynProofExpr<C>, ConversionError> {
+    pub fn build(&self, expr: &Expression) -> Result<DynProofExpr, ConversionError> {
         self.visit_expr(expr)
     }
 }
@@ -59,10 +55,7 @@ impl<'a> DynProofExprBuilder<'a> {
 #[allow(clippy::match_wildcard_for_single_variants)]
 // Private interface
 impl DynProofExprBuilder<'_> {
-    fn visit_expr<C: Commitment>(
-        &self,
-        expr: &Expression,
-    ) -> Result<DynProofExpr<C>, ConversionError> {
+    fn visit_expr(&self, expr: &Expression) -> Result<DynProofExpr, ConversionError> {
         match expr {
             Expression::Column(identifier) => self.visit_column(*identifier),
             Expression::Literal(lit) => self.visit_literal(lit),
@@ -75,10 +68,7 @@ impl DynProofExprBuilder<'_> {
         }
     }
 
-    fn visit_column<C: Commitment>(
-        &self,
-        identifier: Identifier,
-    ) -> Result<DynProofExpr<C>, ConversionError> {
+    fn visit_column(&self, identifier: Identifier) -> Result<DynProofExpr, ConversionError> {
         Ok(DynProofExpr::Column(ColumnExpr::new(
             *self.column_mapping.get(&identifier).ok_or(
                 ConversionError::MissingColumnWithoutTable {
@@ -89,10 +79,7 @@ impl DynProofExprBuilder<'_> {
     }
 
     #[allow(clippy::unused_self)]
-    fn visit_literal<C: Commitment>(
-        &self,
-        lit: &Literal,
-    ) -> Result<DynProofExpr<C>, ConversionError> {
+    fn visit_literal(&self, lit: &Literal) -> Result<DynProofExpr, ConversionError> {
         match lit {
             Literal::Boolean(b) => Ok(DynProofExpr::new_literal(LiteralValue::Boolean(*b))),
             Literal::BigInt(i) => Ok(DynProofExpr::new_literal(LiteralValue::BigInt(*i))),
@@ -141,23 +128,23 @@ impl DynProofExprBuilder<'_> {
         }
     }
 
-    fn visit_unary_expr<C: Commitment>(
+    fn visit_unary_expr(
         &self,
         op: UnaryOperator,
         expr: &Expression,
-    ) -> Result<DynProofExpr<C>, ConversionError> {
+    ) -> Result<DynProofExpr, ConversionError> {
         let expr = self.visit_expr(expr);
         match op {
             UnaryOperator::Not => DynProofExpr::try_new_not(expr?),
         }
     }
 
-    fn visit_binary_expr<C: Commitment>(
+    fn visit_binary_expr(
         &self,
         op: BinaryOperator,
         left: &Expression,
         right: &Expression,
-    ) -> Result<DynProofExpr<C>, ConversionError> {
+    ) -> Result<DynProofExpr, ConversionError> {
         match op {
             BinaryOperator::And => {
                 let left = self.visit_expr(left);
@@ -205,11 +192,11 @@ impl DynProofExprBuilder<'_> {
         }
     }
 
-    fn visit_aggregate_expr<C: Commitment>(
+    fn visit_aggregate_expr(
         &self,
         op: AggregationOperator,
         expr: &Expression,
-    ) -> Result<DynProofExpr<C>, ConversionError> {
+    ) -> Result<DynProofExpr, ConversionError> {
         if self.in_agg_scope {
             return Err(ConversionError::InvalidExpression {
                 expression: "nested aggregations are invalid".to_string(),

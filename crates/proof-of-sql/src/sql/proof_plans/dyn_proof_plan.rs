@@ -8,6 +8,7 @@ use crate::{
         },
         map::IndexSet,
         proof::ProofError,
+        scalar::Scalar,
     },
     sql::proof::{
         CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
@@ -20,12 +21,12 @@ use serde::{Deserialize, Serialize};
 
 /// The query plan for proving a query
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub enum DynProofPlan<C: Commitment> {
+pub enum DynProofPlan {
     /// Provable expressions for queries of the form
     /// ```ignore
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table>
     /// ```
-    Projection(ProjectionExec<C>),
+    Projection(ProjectionExec),
     /// Provable expressions for queries of the form
     /// ```ignore
     ///     SELECT <group_by_expr1>, ..., <group_by_exprM>,
@@ -35,15 +36,15 @@ pub enum DynProofPlan<C: Commitment> {
     ///     WHERE <where_clause>
     ///     GROUP BY <group_by_expr1>, ..., <group_by_exprM>
     /// ```
-    GroupBy(GroupByExec<C>),
+    GroupBy(GroupByExec),
     /// Provable expressions for queries of the form, where the result is sent in a dense form
     /// ```ignore
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
     /// ```
-    Filter(FilterExec<C>),
+    Filter(FilterExec),
 }
 
-impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
+impl ProofPlan for DynProofPlan {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -73,7 +74,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
     }
 
     #[tracing::instrument(name = "DynProofPlan::verifier_evaluate", level = "debug", skip_all)]
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
@@ -111,14 +112,14 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
     }
 }
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
+impl ProverEvaluate for DynProofPlan {
     #[tracing::instrument(name = "DynProofPlan::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         input_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<Column<'a, S>> {
         match self {
             DynProofPlan::Projection(expr) => expr.result_evaluate(input_length, alloc, accessor),
             DynProofPlan::GroupBy(expr) => expr.result_evaluate(input_length, alloc, accessor),
@@ -135,12 +136,12 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
     }
 
     #[tracing::instrument(name = "DynProofPlan::final_round_evaluate", level = "debug", skip_all)]
-    fn final_round_evaluate<'a>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<Column<'a, S>> {
         match self {
             DynProofPlan::Projection(expr) => expr.final_round_evaluate(builder, alloc, accessor),
             DynProofPlan::GroupBy(expr) => expr.final_round_evaluate(builder, alloc, accessor),
