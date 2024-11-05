@@ -10,7 +10,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -179,7 +178,7 @@ fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let and_expr: DynProofExpr<RistrettoPoint> = or(
+    let and_expr: DynProofExpr = or(
         equal(column(t, "b", &accessor), const_int128(1)),
         equal(column(t, "d", &accessor), const_varchar("g")),
     );

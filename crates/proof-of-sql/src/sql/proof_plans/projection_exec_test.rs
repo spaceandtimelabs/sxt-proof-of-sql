@@ -19,7 +19,6 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
-use curve25519_dalek::RistrettoPoint;
 use proof_of_sql_parser::{Identifier, ResourceId};
 
 #[test]
@@ -27,7 +26,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let b = Identifier::try_new("b").unwrap();
-    let provable_ast = ProjectionExec::<RistrettoPoint>::new(
+    let provable_ast = ProjectionExec::new(
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
@@ -63,7 +62,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let f = Identifier::try_new("f").unwrap();
-    let provable_ast = ProjectionExec::<RistrettoPoint>::new(
+    let provable_ast = ProjectionExec::new(
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
@@ -166,7 +165,7 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr: DynProofPlan<RistrettoPoint> =
+    let expr: DynProofPlan =
         projection(cols_expr_plan(t, &["b", "c", "d", "e"], &accessor), tab(t));
     let alloc = Bump::new();
     let result_cols = expr.result_evaluate(0, &alloc, &accessor);
@@ -208,7 +207,7 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr: DynProofPlan<RistrettoPoint> = projection(cols_expr_plan(t, &[], &accessor), tab(t));
+    let expr: DynProofPlan = projection(cols_expr_plan(t, &[], &accessor), tab(t));
     let alloc = Bump::new();
     let result_cols = expr.result_evaluate(5, &alloc, &accessor);
     let output_length = result_cols.first().map_or(0, Column::len) as u64;
@@ -235,7 +234,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr: DynProofPlan<RistrettoPoint> = projection(
+    let expr: DynProofPlan = projection(
         vec![
             aliased_plan(add(column(t, "b", &accessor), const_bigint(1)), "b"),
             aliased_plan(

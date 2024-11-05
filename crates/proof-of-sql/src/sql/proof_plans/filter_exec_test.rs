@@ -19,7 +19,6 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
-use curve25519_dalek::RistrettoPoint;
 use proof_of_sql_parser::{Identifier, ResourceId};
 
 #[test]
@@ -27,7 +26,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let b = Identifier::try_new("b").unwrap();
-    let provable_ast = FilterExec::<RistrettoPoint>::new(
+    let provable_ast = FilterExec::new(
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
@@ -93,7 +92,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             ),
         ],
         TableExpr { table_ref },
-        not::<RistrettoPoint>(and(
+        not(and(
             or(
                 DynProofExpr::try_new_equals(
                     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
@@ -188,8 +187,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: DynProofExpr<RistrettoPoint> =
-        equal(column(t, "a", &accessor), const_int128(999));
+    let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(999));
     let expr = filter(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
@@ -235,8 +233,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: DynProofExpr<RistrettoPoint> =
-        equal(column(t, "a", &accessor), const_int128(999));
+    let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(999));
     let expr = filter(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
@@ -282,8 +279,7 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: DynProofExpr<RistrettoPoint> =
-        equal(column(t, "a", &accessor), const_int128(5));
+    let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(5));
     let expr = filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
     let result_cols = expr.result_evaluate(5, &alloc, &accessor);
@@ -311,8 +307,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: DynProofExpr<RistrettoPoint> =
-        equal(column(t, "a", &accessor), const_int128(5));
+    let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(5));
     let expr = filter(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
         tab(t),

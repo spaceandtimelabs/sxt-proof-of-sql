@@ -15,7 +15,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::{
@@ -300,7 +299,7 @@ fn we_cannot_compare_columns_filtering_on_extreme_decimal_values() {
     assert!(matches!(
         DynProofExpr::try_new_inequality(
             column(t, "e", &accessor),
-            const_scalar::<RistrettoPoint, Curve25519Scalar>(Curve25519Scalar::ONE),
+            const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ONE),
             false
         ),
         Err(ConversionError::DataTypeMismatch { .. })
@@ -565,7 +564,7 @@ fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evalu
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let lhs_expr: DynProofExpr<RistrettoPoint> = column(t, "a", &accessor);
+    let lhs_expr: DynProofExpr = column(t, "a", &accessor);
     let rhs_expr = column(t, "b", &accessor);
     let lte_expr = lte(lhs_expr, rhs_expr);
     let alloc = Bump::new();
@@ -580,7 +579,7 @@ fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evalu
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let col_expr: DynProofExpr<RistrettoPoint> = column(t, "a", &accessor);
+    let col_expr: DynProofExpr = column(t, "a", &accessor);
     let lit_expr = const_bigint(1);
     let gte_expr = gte(col_expr, lit_expr);
     let alloc = Bump::new();

@@ -1,10 +1,9 @@
 use super::{filter_exec::prove_filter, OstensibleFilterExec};
-use crate::base::database::owned_table_utility::*;
+use crate::base::{database::owned_table_utility::*, scalar::Scalar};
 use crate::{
     base::{
         database::{filter_util::*, Column, DataAccessor, OwnedTableTestAccessor, TestAccessor},
         proof::ProofError,
-        scalar::Curve25519Scalar,
     },
     sql::{
         proof::{
@@ -21,28 +20,26 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
-use num_traits::One;
 
 #[derive(Debug, PartialEq)]
 struct Dishonest;
 impl ProverHonestyMarker for Dishonest {}
-type DishonestFilterExec<C> = OstensibleFilterExec<C, Dishonest>;
+type DishonestFilterExec = OstensibleFilterExec<Dishonest>;
 
-impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
+impl ProverEvaluate for DishonestFilterExec {
     #[tracing::instrument(
         name = "DishonestFilterExec::result_evaluate",
         level = "debug",
         skip_all
     )]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         input_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) -> Vec<Column<'a, Curve25519Scalar>> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<Column<'a, S>> {
         // 1. selection
-        let selection_column: Column<'a, Curve25519Scalar> =
+        let selection_column: Column<'a, S> =
             self.where_clause
                 .result_evaluate(input_length, alloc, accessor);
         let selection = selection_column
@@ -74,14 +71,14 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
         skip_all
     )]
     #[allow(unused_variables)]
-    fn final_round_evaluate<'a>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, Curve25519Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) -> Vec<Column<'a, Curve25519Scalar>> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<Column<'a, S>> {
         // 1. selection
-        let selection_column: Column<'a, Curve25519Scalar> =
+        let selection_column: Column<'a, S> =
             self.where_clause.prover_evaluate(builder, alloc, accessor);
         let selection = selection_column
             .as_boolean()
@@ -118,16 +115,16 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
 }
 
 /// Tamper with the first element of the first column that is a Scalar. This could be changed for different types of tests.
-fn tamper_column<'a>(
+fn tamper_column<'a, S: Scalar>(
     alloc: &'a Bump,
-    mut columns: Vec<Column<'a, Curve25519Scalar>>,
-) -> Vec<Column<'a, Curve25519Scalar>> {
+    mut columns: Vec<Column<'a, S>>,
+) -> Vec<Column<'a, S>> {
     for column in &mut columns {
         if let Column::Scalar(tampered_column) = column {
             if !tampered_column.is_empty() {
                 let tampered_column = alloc.alloc_slice_copy(tampered_column);
                 // The following could be changed for different types of tests, but for the simplest one, we will simply increase the first element by 1.
-                tampered_column[0] += Curve25519Scalar::one();
+                tampered_column[0] += S::one();
                 *column = Column::Scalar(tampered_column);
                 break;
             }

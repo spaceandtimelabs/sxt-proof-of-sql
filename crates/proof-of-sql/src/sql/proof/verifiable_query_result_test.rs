@@ -24,8 +24,8 @@ pub(super) struct EmptyTestQueryExpr {
     pub(super) length: usize,
     pub(super) columns: usize,
 }
-impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
-    fn result_evaluate<'a>(
+impl ProverEvaluate for EmptyTestQueryExpr {
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         _input_length: usize,
         alloc: &'a Bump,
@@ -36,7 +36,7 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
         vec![Column::BigInt(res); self.columns]
     }
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
-    fn final_round_evaluate<'a>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -50,7 +50,7 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
         vec![Column::BigInt(res); self.columns]
     }
 }
-impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
+impl ProofPlan for EmptyTestQueryExpr {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -65,7 +65,7 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
     fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
         0
     }
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,
