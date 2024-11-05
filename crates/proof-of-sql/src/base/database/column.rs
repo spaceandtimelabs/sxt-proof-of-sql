@@ -122,7 +122,7 @@ impl<'a, S: Scalar> Column<'a, S> {
                 Column::Int128(alloc.alloc_slice_fill_copy(length, *value))
             }
             LiteralValue::Scalar(value) => {
-                Column::Scalar(alloc.alloc_slice_fill_copy(length, *value))
+                Column::Scalar(alloc.alloc_slice_fill_copy(length, (*value).into()))
             }
             LiteralValue::Decimal75(precision, scale, value) => Column::Decimal75(
                 *precision,

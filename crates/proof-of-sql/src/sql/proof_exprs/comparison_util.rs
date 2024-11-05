@@ -203,7 +203,7 @@ pub(crate) fn scale_and_subtract_columnar_value<'a, S: Scalar>(
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
             Ok(ColumnarValue::Literal(LiteralValue::Scalar(
-                scale_and_subtract_literal(&lhs, &rhs, lhs_scale, rhs_scale, is_equal)?,
+                scale_and_subtract_literal(&lhs, &rhs, lhs_scale, rhs_scale, is_equal)?.into(),
             )))
         }
     }

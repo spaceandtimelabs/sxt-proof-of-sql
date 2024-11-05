@@ -117,9 +117,8 @@ pub fn const_varchar<C: Commitment>(val: &str) -> DynProofExpr<C> {
 }
 
 /// Create a constant scalar value. Used if we don't want to specify column types.
-#[allow(dead_code)]
 pub fn const_scalar<C: Commitment, T: Into<C::Scalar>>(val: T) -> DynProofExpr<C> {
-    DynProofExpr::new_literal(LiteralValue::Scalar(val.into()))
+    DynProofExpr::new_literal(LiteralValue::Scalar(val.into().into()))
 }
 
 /// # Panics

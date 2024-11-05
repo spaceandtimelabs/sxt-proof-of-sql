@@ -31,8 +31,8 @@ pub enum LiteralValue<S: Scalar> {
     /// Decimal literals with a max width of 252 bits
     ///  - the backing store maps to the type [`crate::base::scalar::Curve25519Scalar`]
     Decimal75(Precision, i8, S),
-    /// Scalar literals
-    Scalar(S),
+    /// Scalar literals. The underlying `[u64; 4]` is the limbs of the canonical form of the literal
+    Scalar([u64; 4]),
     /// `TimeStamp` defined over a unit (s, ms, ns, etc) and timezone with backing store
     /// mapped to i64, which is time units since unix epoch
     TimeStampTZ(PoSQLTimeUnit, PoSQLTimeZone, i64),
@@ -66,7 +66,7 @@ impl<S: Scalar> LiteralValue<S> {
             Self::VarChar(str) => str.into(),
             Self::Decimal75(_, _, s) => *s,
             Self::Int128(i) => i.into(),
-            Self::Scalar(scalar) => *scalar,
+            Self::Scalar(limbs) => (*limbs).into(),
             Self::TimeStampTZ(_, _, time) => time.into(),
         }
     }
