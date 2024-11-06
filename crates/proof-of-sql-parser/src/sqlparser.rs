@@ -5,14 +5,14 @@ use crate::{
 use alloc::{string::ToString, vec};
 use sqlparser::ast::{Expr, Ident, ObjectName, Offset, OffsetRows, OrderByExpr, Value};
 
-/// Converts a [`Identifier`] from the PoSQL AST to an `Ident` for the SQLParser AST.
+/// Converts a [`Identifier`] from the `PoSQL` AST to an [`Ident`] for the `SQLParser` AST.
 impl From<Identifier> for Ident {
     fn from(id: Identifier) -> Self {
         Ident::new(id.as_str())
     }
 }
 
-/// Converts a [`ResourceId`] from the PoSQL AST to an [`ObjectName`] for the SQLParser AST.
+/// Converts a [`ResourceId`] from the `PoSQL` AST to an [`ObjectName`] for the `SQLParser` AST.
 impl From<ResourceId> for ObjectName {
     fn from(resource_id: ResourceId) -> Self {
         let schema_ident = Ident::new(resource_id.schema().as_str());
@@ -21,7 +21,7 @@ impl From<ResourceId> for ObjectName {
     }
 }
 
-/// Converts an [`IntermediateOrderBy`] from the intermediate AST to a [`OrderByExpr`] for the SQLParser AST.
+/// Converts an [`IntermediateOrderBy`] from the intermediate AST to a [`OrderByExpr`] for the `SQLParser` AST.
 impl From<IntermediateOrderBy> for OrderByExpr {
     fn from(intermediate_order_by: IntermediateOrderBy) -> Self {
         // Convert Identifier to Expr
@@ -41,7 +41,7 @@ impl From<IntermediateOrderBy> for OrderByExpr {
     }
 }
 
-/// Converts a [`Slice`] representing pagination into an [`Offset`] for the SQL parser.
+/// Converts a [`Slice`] representing pagination into an [`Offset`] for the `SQLParser`.
 impl From<Slice> for Offset {
     fn from(slice: Slice) -> Self {
         let value_expr = Expr::Value(Value::Number(slice.offset_value.to_string(), false));

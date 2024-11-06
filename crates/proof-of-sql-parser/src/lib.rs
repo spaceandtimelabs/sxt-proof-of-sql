@@ -16,6 +16,7 @@ mod intermediate_ast_tests;
 /// Shortcuts to construct intermediate AST nodes.
 pub mod utility;
 
+/// Adapts `PoSQL` parser to work with sqlparser AST types.
 pub mod sqlparser;
 
 /// TODO: add docs
