@@ -131,18 +131,30 @@ macro_rules! impl_from_for_mont_scalar_for_type_supported_by_from {
     };
 }
 
-/// Implement `From<&[u8]>` for `MontScalar`
 impl<T: MontConfig<4>> From<&[u8]> for MontScalar<T> {
+    /// Converts a byte slice to a `MontScalar`.
+    ///
+    /// - If the byte slice is empty, the result is the zero scalar.
+    /// - If the byte slice has length 31 or less, the bytes are directly converted to a scalar.
+    /// - If the byte slice has length 32 or larger, the bytes are hashed using `blake3` and the result is
+    ///   converted to a scalar.
     fn from(x: &[u8]) -> Self {
-        if x.is_empty() {
-            return Self::zero();
+        match x.len() {
+            0 => Self::zero(),
+            1..=31 => {
+                // Convert directly if 31 bytes or less
+                let mut bytes = [0u8; 32];
+                bytes[..x.len()].copy_from_slice(x);
+                Self::from_le_bytes_mod_order(&bytes)
+            }
+            _ => {
+                // Hash and convert if exactly 32 bytes
+                let hash = blake3::hash(x);
+                let mut bytes: [u8; 32] = hash.into();
+                bytes[31] &= 0b0000_1111_u8;
+                Self::from_le_bytes_mod_order(&bytes)
+            }
         }
-
-        let hash = blake3::hash(x);
-        let mut bytes: [u8; 32] = hash.into();
-        bytes[31] &= 0b0000_1111_u8;
-
-        Self::from_le_bytes_mod_order(&bytes)
     }
 }
 
@@ -151,7 +163,16 @@ macro_rules! impl_from_for_mont_scalar_for_string {
     ($tt:ty) => {
         impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {
             fn from(x: $tt) -> Self {
-                x.as_bytes().into()
+                let bytes = x.as_bytes();
+                if bytes.is_empty() {
+                    return Self::zero();
+                }
+
+                let hash = blake3::hash(bytes);
+                let mut bytes: [u8; 32] = hash.into();
+                bytes[31] &= 0b0000_1111_u8;
+
+                Self::from_le_bytes_mod_order(&bytes)
             }
         }
     };

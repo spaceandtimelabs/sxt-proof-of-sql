@@ -75,5 +75,16 @@ pub fn filter_column_by_index<'a, S: Scalar>(
             *tz,
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
         ),
+        Column::FixedSizeBinary(byte_width, col) => {
+            // We need to filter the bytes by the indexes
+            let mut filtered_bytes = Vec::with_capacity(indexes.len() * *byte_width as usize);
+            for &i in indexes {
+                let start = i * *byte_width as usize;
+                let end = start + *byte_width as usize;
+                filtered_bytes.extend_from_slice(&col[start..end]);
+            }
+            let allocated_bytes = alloc.alloc_slice_copy(&filtered_bytes);
+            Column::FixedSizeBinary(*byte_width, allocated_bytes)
+        }
     }
 }

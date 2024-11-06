@@ -38,7 +38,8 @@ pub const fn min_as_f(column_type: ColumnType) -> F {
         ColumnType::Decimal75(_, _)
         | ColumnType::Scalar
         | ColumnType::VarChar
-        | ColumnType::Boolean => MontFp!("0"),
+        | ColumnType::Boolean
+        | ColumnType::FixedSizeBinary(_) => MontFp!("0"),
     }
 }
 
@@ -119,6 +120,7 @@ fn copy_column_data_to_slice(
         | CommittableColumn::VarChar(column) => {
             scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
         }
+        CommittableColumn::FixedSizeBinary(_, _) => todo!(),
         CommittableColumn::RangeCheckWord(_) => todo!(),
     }
 }
