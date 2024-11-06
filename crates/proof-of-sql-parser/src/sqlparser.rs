@@ -5,14 +5,15 @@ use crate::{
         OrderBy as PoSqlOrderBy, OrderByDirection, SelectResultExpr, SetExpression,
         TableExpression, UnaryOperator as PoSqlUnaryOperator,
     },
+    posql_time::PoSQLTimeUnit,
     Identifier, ResourceId, SelectStatement,
 };
 use alloc::{boxed::Box, string::ToString, vec};
 use core::fmt::Display;
 use sqlparser::ast::{
-    BinaryOperator, Expr, Function, FunctionArg, FunctionArgExpr, GroupByExpr, Ident, ObjectName,
-    Offset, OffsetRows, OrderByExpr, Query, Select, SelectItem, SetExpr, TableFactor,
-    TableWithJoins, UnaryOperator, Value, WildcardAdditionalOptions,
+    BinaryOperator, DataType, Expr, Function, FunctionArg, FunctionArgExpr, GroupByExpr, Ident,
+    ObjectName, Offset, OffsetRows, OrderByExpr, Query, Select, SelectItem, SetExpr, TableFactor,
+    TableWithJoins, TimezoneInfo, UnaryOperator, Value, WildcardAdditionalOptions,
 };
 
 /// Convert a number into a [`Expr`].
@@ -62,15 +63,34 @@ impl From<TableExpression> for TableFactor {
     }
 }
 
-impl From<Literal> for Value {
+impl From<Literal> for Expr {
     fn from(literal: Literal) -> Self {
         match literal {
-            Literal::VarChar(s) => Value::SingleQuotedString(s),
-            Literal::BigInt(n) => Value::Number(n.to_string(), false),
-            Literal::Int128(n) => Value::Number(n.to_string(), false),
-            Literal::Decimal(n) => Value::Number(n.to_string(), false),
-            Literal::Boolean(b) => Value::Boolean(b),
-            Literal::Timestamp(_ts) => todo!(),
+            Literal::VarChar(s) => Expr::Value(Value::SingleQuotedString(s)),
+            Literal::BigInt(n) => Expr::Value(Value::Number(n.to_string(), false)),
+            Literal::Int128(n) => Expr::Value(Value::Number(n.to_string(), false)),
+            Literal::Decimal(n) => Expr::Value(Value::Number(n.to_string(), false)),
+            Literal::Boolean(b) => Expr::Value(Value::Boolean(b)),
+            Literal::Timestamp(timestamp) => {
+                let timeunit = timestamp.timeunit();
+                let raw_timestamp = match timeunit {
+                    PoSQLTimeUnit::Nanosecond => timestamp
+                        .timestamp()
+                        .timestamp_nanos_opt()
+                        .expect(
+                        "Valid nanosecond timestamps must be between 1677-09-21T00:12:43.145224192 
+                        and 2262-04-11T23:47:16.854775807.",
+                    ),
+                    PoSQLTimeUnit::Microsecond => timestamp.timestamp().timestamp_micros(),
+                    PoSQLTimeUnit::Millisecond => timestamp.timestamp().timestamp_millis(),
+                    PoSQLTimeUnit::Second => timestamp.timestamp().timestamp(),
+                };
+                // We currently exclusively store timestamps in UTC.
+                Expr::TypedString {
+                    data_type: DataType::Timestamp(Some(timeunit.into()), TimezoneInfo::None),
+                    value: raw_timestamp.to_string(),
+                }
+            }
         }
     }
 }
@@ -116,7 +136,7 @@ impl From<PoSqlOrderBy> for OrderByExpr {
 impl From<Expression> for Expr {
     fn from(expr: Expression) -> Self {
         match expr {
-            Expression::Literal(literal) => Expr::Value(literal.into()),
+            Expression::Literal(literal) => literal.into(),
             Expression::Column(identifier) => id(identifier),
             Expression::Unary { op, expr } => Expr::UnaryOp {
                 op: op.into(),
@@ -260,7 +280,7 @@ mod test {
             "select true as cons, a and b or c >= 4 as comp from tab where d = 'Space and Time';",
         );
         check_posql_intermediate_ast_to_sqlparser_equality(
-            "select cat as cat, true as cons, a and b or c >= 4 as comp from tab where d = 'Space and Time' group by cat;",
+            "select cat as cat, true as cons, max(meow) as max_meow from tab where d = 'Space and Time' group by cat;",
         );
         check_posql_intermediate_ast_to_sqlparser_equality(
             "select cat as cat, sum(a) as s, count(*) as rows from tab where d = 'Space and Time' group by cat;",
