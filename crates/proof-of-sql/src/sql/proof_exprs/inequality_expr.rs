@@ -10,6 +10,7 @@ use crate::{
         database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         map::IndexSet,
         proof::ProofError,
+        scalar::Scalar,
     },
     sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
@@ -19,17 +20,17 @@ use serde::{Deserialize, Serialize};
 
 /// Provable AST expression for an inequality expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct InequalityExpr<C: Commitment> {
-    lhs: Box<DynProofExpr<C>>,
-    rhs: Box<DynProofExpr<C>>,
+pub struct InequalityExpr {
+    lhs: Box<DynProofExpr>,
+    rhs: Box<DynProofExpr>,
     is_lte: bool,
     #[cfg(test)]
     pub(crate) treat_column_of_zeros_as_negative: bool,
 }
 
-impl<C: Commitment> InequalityExpr<C> {
+impl InequalityExpr {
     /// Create a new less than or equal expression
-    pub fn new(lhs: Box<DynProofExpr<C>>, rhs: Box<DynProofExpr<C>>, is_lte: bool) -> Self {
+    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>, is_lte: bool) -> Self {
         Self {
             lhs,
             rhs,
@@ -40,7 +41,7 @@ impl<C: Commitment> InequalityExpr<C> {
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
+impl ProofExpr for InequalityExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
@@ -55,12 +56,12 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
     }
 
     #[tracing::instrument(name = "InequalityExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
         let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
         let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
@@ -84,12 +85,12 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
     }
 
     #[tracing::instrument(name = "InequalityExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
         let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
         let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
@@ -118,7 +119,7 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
         Column::Boolean(prover_evaluate_or(builder, alloc, equals_zero, sign))
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,

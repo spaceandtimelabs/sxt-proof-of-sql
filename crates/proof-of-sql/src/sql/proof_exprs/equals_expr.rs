@@ -16,19 +16,19 @@ use serde::{Deserialize, Serialize};
 
 /// Provable AST expression for an equals expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct EqualsExpr<C: Commitment> {
-    lhs: Box<DynProofExpr<C>>,
-    rhs: Box<DynProofExpr<C>>,
+pub struct EqualsExpr {
+    lhs: Box<DynProofExpr>,
+    rhs: Box<DynProofExpr>,
 }
 
-impl<C: Commitment> EqualsExpr<C> {
+impl EqualsExpr {
     /// Create a new equals expression
-    pub fn new(lhs: Box<DynProofExpr<C>>, rhs: Box<DynProofExpr<C>>) -> Self {
+    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
         Self { lhs, rhs }
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
+impl ProofExpr for EqualsExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
@@ -41,12 +41,12 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
     }
 
     #[tracing::instrument(name = "EqualsExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
         let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
         let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
@@ -57,12 +57,12 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
     }
 
     #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
         let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
         let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
@@ -72,7 +72,7 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
         Column::Boolean(prover_evaluate_equals_zero(builder, alloc, res))
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,

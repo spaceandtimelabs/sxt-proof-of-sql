@@ -1,7 +1,6 @@
 use super::ConversionError;
 use crate::{
     base::{
-        commitment::naive_commitment::NaiveCommitment,
         database::{ColumnType, TableRef, TestSchemaAccessor},
         map::{indexmap, IndexMap, IndexSet},
     },
@@ -12,7 +11,6 @@ use crate::{
         proof_plans::{test_utility::*, DynProofPlan},
     },
 };
-use curve25519_dalek::RistrettoPoint;
 use itertools::Itertools;
 use proof_of_sql_parser::{
     intermediate_ast::OrderByDirection::*,
@@ -29,21 +27,14 @@ use proof_of_sql_parser::{
 /// Will panic if:
 /// - The `parse` method of `SelectStatementParser` fails, causing `unwrap()` to panic.
 /// - The `try_new` method of `QueryExpr` fails, causing `unwrap()` to panic.
-fn query_to_provable_ast(
-    table: TableRef,
-    query: &str,
-    accessor: &TestSchemaAccessor,
-) -> QueryExpr<RistrettoPoint> {
+fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestSchemaAccessor) -> QueryExpr {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
     QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).unwrap()
 }
 
 fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &TestSchemaAccessor) {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
-    assert!(
-        QueryExpr::<RistrettoPoint>::try_new(intermediate_ast, table.schema_id(), accessor)
-            .is_err()
-    );
+    assert!(QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).is_err());
 }
 
 #[cfg(test)]
@@ -1122,8 +1113,7 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
     );
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-    let query =
-        QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+    let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
     let expected_query = QueryExpr::new(
         filter(
@@ -1240,8 +1230,7 @@ fn we_can_have_aggregate_functions_without_a_group_by_clause() {
     );
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-    let ast =
-        QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+    let ast = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
     let expected_ast = QueryExpr::new(
         group_by(vec![], vec![], "__count__", tab(t), const_bool(true)),
@@ -1410,8 +1399,7 @@ fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
     let query_text = "select salary d1, max(tax), salary d2, sum(bonus) sum_bonus, count(name) count_s from sxt.employees group by salary, bonus, salary";
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-    let ast =
-        QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+    let ast = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
     let expected_ast = QueryExpr::new(
         filter(
@@ -1589,8 +1577,7 @@ fn we_cannot_use_non_grouped_columns_outside_agg() {
 
     for query_text in &identifier_not_in_agg_queries {
         let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-        let result =
-            QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
+        let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
 
         assert!(matches!(
             result,
@@ -1608,8 +1595,7 @@ fn we_cannot_use_non_grouped_columns_outside_agg() {
 
     for query_text in &invalid_group_by_queries {
         let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-        let result =
-            QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
+        let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
 
         assert!(matches!(
             result,
@@ -1641,8 +1627,7 @@ fn varchar_column_is_not_compatible_with_integer_column() {
 
     for query_text in &bigint_to_varchar_queries {
         let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-        let result =
-            QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
+        let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
 
         assert_eq!(
             result,
@@ -1655,8 +1640,7 @@ fn varchar_column_is_not_compatible_with_integer_column() {
 
     for query_text in &varchar_to_bigint_queries {
         let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-        let result =
-            QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
+        let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
 
         assert_eq!(
             result,
@@ -1681,7 +1665,7 @@ fn arithmetic_operations_are_not_allowed_with_varchar_column() {
 
     let query_text = "select name - position from sxt.employees";
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-    let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
+    let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
 
     assert_eq!(
         result,
@@ -1703,7 +1687,7 @@ fn varchar_column_is_not_allowed_within_numeric_aggregations() {
     );
     let sum_query = "select sum(name) from sxt.employees";
     let intermediate_ast = SelectStatementParser::new().parse(sum_query).unwrap();
-    let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
+    let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
 
     assert!(matches!(
         result,
@@ -1713,7 +1697,7 @@ fn varchar_column_is_not_allowed_within_numeric_aggregations() {
 
     let max_query = "select max(name) from sxt.employees";
     let intermediate_ast = SelectStatementParser::new().parse(max_query).unwrap();
-    let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
+    let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
 
     assert!(matches!(
         result,
@@ -1723,7 +1707,7 @@ fn varchar_column_is_not_allowed_within_numeric_aggregations() {
 
     let min_query = "select min(name) from sxt.employees";
     let intermediate_ast = SelectStatementParser::new().parse(min_query).unwrap();
-    let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
+    let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
 
     assert!(matches!(
         result,
@@ -1744,8 +1728,7 @@ fn group_by_with_bigint_column_is_valid() {
     let query_text = "select salary from sxt.employees group by salary";
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-    let query =
-        QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+    let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
     let expected_query = QueryExpr::new(
         filter(
@@ -1773,8 +1756,7 @@ fn group_by_with_decimal_column_is_valid() {
     let query_text = "select salary from sxt.employees group by salary";
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-    let query =
-        QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+    let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
     let expected_query = QueryExpr::new(
         filter(
@@ -1802,8 +1784,7 @@ fn group_by_with_varchar_column_is_valid() {
     let query_text = "select name from sxt.employees group by name";
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-    let query =
-        QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+    let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
     let expected_query = QueryExpr::new(
         filter(
@@ -1833,8 +1814,7 @@ fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
         "select 2 * salary + sum(salary) - tax from sxt.employees group by salary, tax";
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-    let query =
-        QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+    let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
     let expected_query = QueryExpr::new(
         filter(
@@ -1878,8 +1858,7 @@ fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
     let query_text = "select 7 + max(salary) as max_i, min(salary + 777 * bonus) * -5 as min_d from sxt.employees";
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-    let ast =
-        QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+    let ast = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
     let expected_ast = QueryExpr::new(
         filter(
@@ -1925,8 +1904,7 @@ fn count_aggregation_always_have_integer_type() {
         "select 7 + count(name) as cs, count(salary) * -5 as ci, count(tax) from sxt.employees";
 
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-    let ast =
-        QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+    let ast = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
     let expected_ast = QueryExpr::new(
         filter(
@@ -1994,8 +1972,7 @@ fn select_wildcard_is_valid_with_group_by_exprs() {
     );
 
     let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
-    let ast =
-        QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+    let ast = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
     let expected_ast = QueryExpr::new(
         filter(
@@ -2029,8 +2006,7 @@ fn nested_aggregations_are_not_supported() {
         );
 
         let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
-        let result =
-            QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
+        let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
 
         assert_eq!(
             result,
@@ -2092,9 +2068,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
         );
 
         let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
-        let query =
-            QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor)
-                .unwrap();
+        let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
 
         let expected_query = QueryExpr::new(
             filter(perm_col_plans, tab(t), const_bool(true)),
@@ -2108,7 +2082,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
 }
 
 /// Creates a new [`QueryExpr`], with the given select statement and a sample schema accessor.
-fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
+fn query_expr_for_test_table(sql_text: &str) -> QueryExpr {
     let schema_accessor = schema_accessor_from_table_ref_with_schema(
         "test.table".parse().unwrap(),
         indexmap! {
@@ -2123,10 +2097,9 @@ fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
 }
 
 /// Serializes and deserializes [`QueryExpr`] with flexbuffers and asserts that it remains the same.
-fn assert_query_expr_serializes_to_and_from_flex_buffers(query_expr: &QueryExpr<RistrettoPoint>) {
+fn assert_query_expr_serializes_to_and_from_flex_buffers(query_expr: &QueryExpr) {
     let serialized = flexbuffers::to_vec(query_expr).unwrap();
-    let deserialized: QueryExpr<RistrettoPoint> =
-        flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    let deserialized: QueryExpr = flexbuffers::from_slice(serialized.as_slice()).unwrap();
     assert_eq!(deserialized, *query_expr);
 }
 
@@ -2170,9 +2143,8 @@ fn we_can_serialize_list_of_filters_from_query_expr() {
     let query_expr = query_expr_for_test_table("select * from table");
     let filter_execs = vec![query_expr.proof_expr()];
     let serialized = flexbuffers::to_vec(&filter_execs).unwrap();
-    let deserialized: Vec<DynProofPlan<RistrettoPoint>> =
-        flexbuffers::from_slice(serialized.as_slice()).unwrap();
-    let deserialized_as_ref: Vec<&DynProofPlan<RistrettoPoint>> = deserialized.iter().collect();
+    let deserialized: Vec<DynProofPlan> = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    let deserialized_as_ref: Vec<&DynProofPlan> = deserialized.iter().collect();
     assert_eq!(filter_execs.len(), deserialized_as_ref.len());
     assert_eq!(filter_execs[0], deserialized_as_ref[0]);
 }

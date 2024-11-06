@@ -80,7 +80,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
     pub fn new(
-        expr: &(impl ProofPlan<CP::Commitment> + Serialize),
+        expr: &(impl ProofPlan + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> Self {
@@ -116,7 +116,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     ///   - `self.provable_result.as_ref().unwrap()` is called but `self.provable_result` is `None`.
     pub fn verify(
         &self,
-        expr: &(impl ProofPlan<CP::Commitment> + Serialize),
+        expr: &(impl ProofPlan + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {

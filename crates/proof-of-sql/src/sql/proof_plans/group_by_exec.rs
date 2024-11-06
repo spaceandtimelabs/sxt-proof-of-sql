@@ -41,22 +41,22 @@ use serde::{Deserialize, Serialize};
 ///
 /// Note: if `group_by_exprs` is empty, then the query is equivalent to removing the `GROUP BY` clause.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct GroupByExec<C: Commitment> {
-    pub(super) group_by_exprs: Vec<ColumnExpr<C>>,
-    pub(super) sum_expr: Vec<AliasedDynProofExpr<C>>,
+pub struct GroupByExec {
+    pub(super) group_by_exprs: Vec<ColumnExpr>,
+    pub(super) sum_expr: Vec<AliasedDynProofExpr>,
     pub(super) count_alias: Identifier,
     pub(super) table: TableExpr,
-    pub(super) where_clause: DynProofExpr<C>,
+    pub(super) where_clause: DynProofExpr,
 }
 
-impl<C: Commitment> GroupByExec<C> {
+impl GroupByExec {
     /// Creates a new `group_by` expression.
     pub fn new(
-        group_by_exprs: Vec<ColumnExpr<C>>,
-        sum_expr: Vec<AliasedDynProofExpr<C>>,
+        group_by_exprs: Vec<ColumnExpr>,
+        sum_expr: Vec<AliasedDynProofExpr>,
         count_alias: Identifier,
         table: TableExpr,
-        where_clause: DynProofExpr<C>,
+        where_clause: DynProofExpr,
     ) -> Self {
         Self {
             group_by_exprs,
@@ -68,7 +68,7 @@ impl<C: Commitment> GroupByExec<C> {
     }
 }
 
-impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
+impl ProofPlan for GroupByExec {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -101,7 +101,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
     }
 
     #[allow(unused_variables)]
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
@@ -208,16 +208,16 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
     }
 }
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
+impl ProverEvaluate for GroupByExec {
     #[tracing::instrument(name = "GroupByExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         input_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<Column<'a, S>> {
         // 1. selection
-        let selection_column: Column<'a, C::Scalar> =
+        let selection_column: Column<'a, S> =
             self.where_clause
                 .result_evaluate(input_length, alloc, accessor);
 
@@ -262,14 +262,14 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
 
     #[tracing::instrument(name = "GroupByExec::final_round_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]
-    fn final_round_evaluate<'a>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<Column<'a, S>> {
         // 1. selection
-        let selection_column: Column<'a, C::Scalar> =
+        let selection_column: Column<'a, S> =
             self.where_clause.prover_evaluate(builder, alloc, accessor);
         let selection = selection_column
             .as_boolean()

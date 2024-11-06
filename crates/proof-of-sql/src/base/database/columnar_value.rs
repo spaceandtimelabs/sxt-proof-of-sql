@@ -13,7 +13,7 @@ pub enum ColumnarValue<'a, S: Scalar> {
     /// A [ `ColumnarValue::Column` ] is a list of values.
     Column(Column<'a, S>),
     /// A [ `ColumnarValue::Literal` ] is a single value with indeterminate size.
-    Literal(LiteralValue<S>),
+    Literal(LiteralValue),
 }
 
 /// Errors from operations on [`ColumnarValue`]s.
@@ -30,6 +30,7 @@ pub enum ColumnarValueError {
 
 impl<'a, S: Scalar> ColumnarValue<'a, S> {
     /// Provides the column type associated with the column
+    #[must_use]
     pub fn column_type(&self) -> ColumnType {
         match self {
             Self::Column(column) => column.column_type(),
@@ -72,7 +73,7 @@ mod tests {
         let column = ColumnarValue::Column(Column::<TestScalar>::Int(&[1, 2, 3]));
         assert_eq!(column.column_type(), ColumnType::Int);
 
-        let column = ColumnarValue::Literal(LiteralValue::<TestScalar>::Boolean(true));
+        let column = ColumnarValue::<TestScalar>::Literal(LiteralValue::Boolean(true));
         assert_eq!(column.column_type(), ColumnType::Boolean);
     }
 
@@ -84,12 +85,12 @@ mod tests {
         let column = columnar_value.into_column(3, &bump).unwrap();
         assert_eq!(column, Column::Int(&[1, 2, 3]));
 
-        let columnar_value = ColumnarValue::Literal(LiteralValue::<TestScalar>::Boolean(false));
+        let columnar_value = ColumnarValue::<TestScalar>::Literal(LiteralValue::Boolean(false));
         let column = columnar_value.into_column(5, &bump).unwrap();
         assert_eq!(column, Column::Boolean(&[false; 5]));
 
         // Check whether it works if `num_rows` is 0
-        let columnar_value = ColumnarValue::Literal(LiteralValue::<TestScalar>::TinyInt(2));
+        let columnar_value = ColumnarValue::<TestScalar>::Literal(LiteralValue::TinyInt(2));
         let column = columnar_value.into_column(0, &bump).unwrap();
         assert_eq!(column, Column::TinyInt(&[]));
 

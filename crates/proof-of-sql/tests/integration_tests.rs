@@ -1,7 +1,6 @@
 #![cfg(feature = "test")]
 #![cfg_attr(test, allow(clippy::missing_panics_doc))]
 use ark_std::test_rng;
-use curve25519_dalek::RistrettoPoint;
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::commitment::InnerProductProof;
 use proof_of_sql::{
@@ -10,7 +9,7 @@ use proof_of_sql::{
         scalar::Curve25519Scalar,
     },
     proof_primitive::dory::{
-        DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
+        DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
     sql::{
@@ -298,7 +297,7 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
         owned_table([bigint("a", [1, 2, 3]), bigint("b", [4, 1, 2])]),
         0,
     );
-    let query = QueryExpr::<RistrettoPoint>::try_new(
+    let query = QueryExpr::try_new(
         "SELECT * FROM table WHERE b >= a + 1".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
@@ -330,7 +329,7 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
         owned_table([bigint("a", [1, -1, 3]), bigint("b", [0, 0, 2])]),
         0,
     );
-    let query = QueryExpr::<DoryCommitment>::try_new(
+    let query = QueryExpr::try_new(
         "SELECT * FROM table WHERE b > 1 - a;".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
@@ -431,7 +430,7 @@ fn decimal_type_issues_should_cause_provable_ast_to_fail() {
     let large_decimal = format!("0.{}", "1".repeat(75));
     let query_string = format!("SELECT d0 + {large_decimal} as res FROM table;");
     assert!(matches!(
-        QueryExpr::<RistrettoPoint>::try_new(
+        QueryExpr::try_new(
             query_string.parse().unwrap(),
             "sxt".parse().unwrap(),
             &accessor,

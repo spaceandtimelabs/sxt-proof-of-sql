@@ -1,6 +1,6 @@
 use super::{EnrichedExpr, FilterExecBuilder, QueryContextBuilder};
 use crate::{
-    base::{commitment::Commitment, database::SchemaAccessor},
+    base::database::SchemaAccessor,
     sql::{
         parse::ConversionResult,
         postprocessing::{
@@ -17,14 +17,14 @@ use serde::{Deserialize, Serialize};
 #[derive(PartialEq, Serialize, Deserialize)]
 /// A `QueryExpr` represents a Proof of SQL query that can be executed against a database.
 /// It consists of a `DynProofPlan` for provable components and a vector of `OwnedTablePostprocessing` for the rest.
-pub struct QueryExpr<C: Commitment> {
-    proof_expr: DynProofPlan<C>,
+pub struct QueryExpr {
+    proof_expr: DynProofPlan,
     postprocessing: Vec<OwnedTablePostprocessing>,
 }
 
 // Implements fmt::Debug to aid in debugging QueryExpr.
 // Prints filter and postprocessing fields in a readable format.
-impl<C: Commitment> fmt::Debug for QueryExpr<C> {
+impl fmt::Debug for QueryExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -34,9 +34,10 @@ impl<C: Commitment> fmt::Debug for QueryExpr<C> {
     }
 }
 
-impl<C: Commitment> QueryExpr<C> {
+impl QueryExpr {
     /// Creates a new `QueryExpr` with the given `DynProofPlan` and `OwnedTablePostprocessing`.
-    pub fn new(proof_expr: DynProofPlan<C>, postprocessing: Vec<OwnedTablePostprocessing>) -> Self {
+    #[must_use]
+    pub fn new(proof_expr: DynProofPlan, postprocessing: Vec<OwnedTablePostprocessing>) -> Self {
         Self {
             proof_expr,
             postprocessing,
@@ -81,7 +82,7 @@ impl<C: Commitment> QueryExpr<C> {
             ));
         }
         if context.has_agg() {
-            if let Some(group_by_expr) = Option::<GroupByExec<C>>::try_from(&context)? {
+            if let Some(group_by_expr) = Option::<GroupByExec>::try_from(&context)? {
                 Ok(Self {
                     proof_expr: DynProofPlan::GroupBy(group_by_expr),
                     postprocessing,
@@ -159,11 +160,13 @@ impl<C: Commitment> QueryExpr<C> {
     }
 
     /// Immutable access to this query's provable filter expression.
-    pub fn proof_expr(&self) -> &DynProofPlan<C> {
+    #[must_use]
+    pub fn proof_expr(&self) -> &DynProofPlan {
         &self.proof_expr
     }
 
     /// Immutable access to this query's post-proof result transform expression.
+    #[must_use]
     pub fn postprocessing(&self) -> &[OwnedTablePostprocessing] {
         &self.postprocessing
     }

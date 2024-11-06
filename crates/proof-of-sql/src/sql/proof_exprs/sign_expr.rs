@@ -243,7 +243,7 @@ fn prove_bit_decomposition<'a, S: Scalar>(
 ///
 /// This function checks the consistency of the bit evaluations with the expression evaluation.
 fn verify_bit_decomposition<C: Commitment>(
-    builder: &mut VerificationBuilder<'_, C>,
+    builder: &mut VerificationBuilder<C>,
     expr_eval: C::Scalar,
     bit_evals: &[C::Scalar],
     dist: &BitDistribution,

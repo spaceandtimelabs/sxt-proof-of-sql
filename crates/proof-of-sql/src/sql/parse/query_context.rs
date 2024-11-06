@@ -1,6 +1,5 @@
 use crate::{
     base::{
-        commitment::Commitment,
         database::{ColumnRef, LiteralValue, TableRef},
         map::{IndexMap, IndexSet},
     },
@@ -227,10 +226,10 @@ impl QueryContext {
 ///
 /// We use Some if the query is provable and None if it is not
 /// We error out if the query is wrong
-impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
+impl TryFrom<&QueryContext> for Option<GroupByExec> {
     type Error = ConversionError;
 
-    fn try_from(value: &QueryContext) -> Result<Option<GroupByExec<C>>, Self::Error> {
+    fn try_from(value: &QueryContext) -> Result<Option<GroupByExec>, Self::Error> {
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
             .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
@@ -243,7 +242,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
         let group_by_exprs = value
             .group_by_exprs
             .iter()
-            .map(|expr| -> Result<ColumnExpr<C>, ConversionError> {
+            .map(|expr| -> Result<ColumnExpr, ConversionError> {
                 value
                     .column_mapping
                     .get(expr)
@@ -251,9 +250,9 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
                         identifier: Box::new(*expr),
                         resource_id: Box::new(resource_id),
                     })
-                    .map(|column_ref| ColumnExpr::<C>::new(*column_ref))
+                    .map(|column_ref| ColumnExpr::new(*column_ref))
             })
-            .collect::<Result<Vec<ColumnExpr<C>>, ConversionError>>()?;
+            .collect::<Result<Vec<ColumnExpr>, ConversionError>>()?;
         // For a query to be provable the result columns must be of one of three kinds below:
         // 1. Group by columns (it is mandatory to have all of them in the correct order)
         // 2. Sum(expr) expressions (it is optional to have any)
@@ -300,7 +299,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
                     None
                 }
             })
-            .collect::<Option<Vec<AliasedDynProofExpr<C>>>>();
+            .collect::<Option<Vec<AliasedDynProofExpr>>>();
 
         // Check count(*)
         let count_column = &value.res_aliased_exprs[num_result_columns - 1];

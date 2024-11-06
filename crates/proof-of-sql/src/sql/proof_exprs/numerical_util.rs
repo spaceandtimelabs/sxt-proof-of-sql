@@ -8,8 +8,8 @@ use core::cmp::Ordering;
 #[allow(clippy::cast_sign_loss)]
 /// Add or subtract two literals together.
 pub(crate) fn add_subtract_literals<S: Scalar>(
-    lhs: &LiteralValue<S>,
-    rhs: &LiteralValue<S>,
+    lhs: &LiteralValue,
+    rhs: &LiteralValue,
     lhs_scale: i8,
     rhs_scale: i8,
     is_subtract: bool,
@@ -17,12 +17,12 @@ pub(crate) fn add_subtract_literals<S: Scalar>(
     let (lhs_scaled, rhs_scaled) = match lhs_scale.cmp(&rhs_scale) {
         Ordering::Less => {
             let scaling_factor = S::pow10((rhs_scale - lhs_scale) as u8);
-            (lhs.to_scalar() * scaling_factor, rhs.to_scalar())
+            (lhs.to_scalar::<S>() * scaling_factor, rhs.to_scalar())
         }
         Ordering::Equal => (lhs.to_scalar(), rhs.to_scalar()),
         Ordering::Greater => {
             let scaling_factor = S::pow10((lhs_scale - rhs_scale) as u8);
-            (lhs.to_scalar(), rhs.to_scalar() * scaling_factor)
+            (lhs.to_scalar(), rhs.to_scalar::<S>() * scaling_factor)
         }
     };
     if is_subtract {
@@ -106,13 +106,9 @@ pub(crate) fn add_subtract_columnar_values<'a, S: Scalar>(
             )))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
-            ColumnarValue::Literal(LiteralValue::Scalar(add_subtract_literals(
-                &lhs,
-                &rhs,
-                lhs_scale,
-                rhs_scale,
-                is_subtract,
-            )))
+            ColumnarValue::Literal(LiteralValue::Scalar(
+                add_subtract_literals::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_subtract).into(),
+            ))
         }
     }
 }
@@ -150,7 +146,7 @@ pub(crate) fn multiply_columnar_values<'a, S: Scalar>(
             ColumnarValue::Column(Column::Scalar(multiply_columns(lhs, rhs, alloc)))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            let lhs_scalar = lhs.to_scalar();
+            let lhs_scalar = lhs.to_scalar::<S>();
             let result =
                 alloc.alloc_slice_fill_with(rhs.len(), |i| lhs_scalar * rhs.scalar_at(i).unwrap());
             ColumnarValue::Column(Column::Scalar(result))
@@ -162,8 +158,8 @@ pub(crate) fn multiply_columnar_values<'a, S: Scalar>(
             ColumnarValue::Column(Column::Scalar(result))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
-            let result = lhs.to_scalar() * rhs.to_scalar();
-            ColumnarValue::Literal(LiteralValue::Scalar(result))
+            let result = lhs.to_scalar::<S>() * rhs.to_scalar();
+            ColumnarValue::Literal(LiteralValue::Scalar(result.into()))
         }
     }
 }

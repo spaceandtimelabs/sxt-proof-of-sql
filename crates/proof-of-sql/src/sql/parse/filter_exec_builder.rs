@@ -1,7 +1,6 @@
 use super::{where_expr_builder::WhereExprBuilder, ConversionError, EnrichedExpr};
 use crate::{
     base::{
-        commitment::Commitment,
         database::{ColumnRef, LiteralValue, TableRef},
         map::IndexMap,
     },
@@ -14,15 +13,15 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use itertools::Itertools;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 
-pub struct FilterExecBuilder<C: Commitment> {
+pub struct FilterExecBuilder {
     table_expr: Option<TableExpr>,
-    where_expr: Option<DynProofExpr<C>>,
-    filter_result_expr_list: Vec<AliasedDynProofExpr<C>>,
+    where_expr: Option<DynProofExpr>,
+    filter_result_expr_list: Vec<AliasedDynProofExpr>,
     column_mapping: IndexMap<Identifier, ColumnRef>,
 }
 
 // Public interface
-impl<C: Commitment> FilterExecBuilder<C> {
+impl FilterExecBuilder {
     pub fn new(column_mapping: IndexMap<Identifier, ColumnRef>) -> Self {
         Self {
             table_expr: None,
@@ -49,7 +48,7 @@ impl<C: Commitment> FilterExecBuilder<C> {
     ///
     /// Will panic if:
     /// - `self.column_mapping.get(alias)` returns `None`, which can occur if the alias is not found in the column mapping.
-    pub fn add_result_columns(mut self, columns: &[EnrichedExpr<C>]) -> Self {
+    pub fn add_result_columns(mut self, columns: &[EnrichedExpr]) -> Self {
         // If a column is provable, add it to the filter result expression list
         // If at least one column is non-provable, add all columns from the column mapping to the filter result expression list
         let mut has_nonprovable_column = false;
@@ -78,7 +77,7 @@ impl<C: Commitment> FilterExecBuilder<C> {
     }
 
     #[allow(clippy::missing_panics_doc)]
-    pub fn build(self) -> FilterExec<C> {
+    pub fn build(self) -> FilterExec {
         FilterExec::new(
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),

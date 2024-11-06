@@ -40,8 +40,8 @@ impl Default for TrivialTestProofPlan {
         }
     }
 }
-impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
-    fn result_evaluate<'a>(
+impl ProverEvaluate for TrivialTestProofPlan {
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         _input_length: usize,
         alloc: &'a Bump,
@@ -53,7 +53,7 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
-    fn final_round_evaluate<'a>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -68,7 +68,7 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
         vec![Column::BigInt(col)]
     }
 }
-impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
+impl ProofPlan for TrivialTestProofPlan {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -86,7 +86,7 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
     fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
         self.offset
     }
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,
@@ -200,8 +200,8 @@ impl Default for SquareTestProofPlan {
         }
     }
 }
-impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
-    fn result_evaluate<'a>(
+impl ProverEvaluate for SquareTestProofPlan {
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         _table_length: usize,
         alloc: &'a Bump,
@@ -213,7 +213,7 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
-    fn final_round_evaluate<'a>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -237,7 +237,7 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
         vec![Column::BigInt(res)]
     }
 }
-impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
+impl ProofPlan for SquareTestProofPlan {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -255,7 +255,7 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset("sxt.test".parse().unwrap())
     }
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
@@ -385,8 +385,8 @@ impl Default for DoubleSquareTestProofPlan {
         }
     }
 }
-impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
-    fn result_evaluate<'a>(
+impl ProverEvaluate for DoubleSquareTestProofPlan {
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         _input_length: usize,
         alloc: &'a Bump,
@@ -398,7 +398,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
-    fn final_round_evaluate<'a>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -435,7 +435,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
         vec![Column::BigInt(res)]
     }
 }
-impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
+impl ProofPlan for DoubleSquareTestProofPlan {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -453,7 +453,7 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset("sxt.test".parse().unwrap())
     }
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
@@ -600,8 +600,8 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
 
 #[derive(Debug, Serialize)]
 struct ChallengeTestProofPlan {}
-impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
-    fn result_evaluate<'a>(
+impl ProverEvaluate for ChallengeTestProofPlan {
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         _input_length: usize,
         _alloc: &'a Bump,
@@ -614,7 +614,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         builder.request_post_result_challenges(2);
     }
 
-    fn final_round_evaluate<'a>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -640,7 +640,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         vec![Column::BigInt(&[9, 25])]
     }
 }
-impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
+impl ProofPlan for ChallengeTestProofPlan {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -659,7 +659,7 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset("sxt.test".parse().unwrap())
     }
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,

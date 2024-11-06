@@ -8,6 +8,7 @@ use crate::{
         },
         map::IndexSet,
         proof::ProofError,
+        scalar::Scalar,
     },
     sql::{
         proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
@@ -16,24 +17,23 @@ use crate::{
 };
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
-use num_traits::One;
 use serde::{Deserialize, Serialize};
 
 /// Provable numerical * expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct MultiplyExpr<C: Commitment> {
-    lhs: Box<DynProofExpr<C>>,
-    rhs: Box<DynProofExpr<C>>,
+pub struct MultiplyExpr {
+    lhs: Box<DynProofExpr>,
+    rhs: Box<DynProofExpr>,
 }
 
-impl<C: Commitment> MultiplyExpr<C> {
+impl MultiplyExpr {
     /// Create numerical `*` expression
-    pub fn new(lhs: Box<DynProofExpr<C>>, rhs: Box<DynProofExpr<C>>) -> Self {
+    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
         Self { lhs, rhs }
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for MultiplyExpr<C> {
+impl ProofExpr for MultiplyExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
@@ -48,16 +48,14 @@ impl<C: Commitment> ProofExpr<C> for MultiplyExpr<C> {
             .expect("Failed to multiply column types")
     }
 
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> =
-            self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> =
-            self.rhs.result_evaluate(table_length, alloc, accessor);
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
+        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(table_length, alloc, accessor);
+        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(table_length, alloc, accessor);
         let scalars = multiply_columns(&lhs_column, &rhs_column, alloc);
         Column::Scalar(scalars)
     }
@@ -67,34 +65,31 @@ impl<C: Commitment> ProofExpr<C> for MultiplyExpr<C> {
         level = "info",
         skip_all
     )]
-    fn prover_evaluate<'a>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, accessor);
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, accessor);
 
         // lhs_times_rhs
-        let lhs_times_rhs: &'a [C::Scalar] = multiply_columns(&lhs_column, &rhs_column, alloc);
+        let lhs_times_rhs: &'a [S] = multiply_columns(&lhs_column, &rhs_column, alloc);
         builder.produce_intermediate_mle(lhs_times_rhs);
 
         // subpolynomial: lhs_times_rhs - lhs * rhs
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (C::Scalar::one(), vec![Box::new(lhs_times_rhs)]),
-                (
-                    -C::Scalar::one(),
-                    vec![Box::new(lhs_column), Box::new(rhs_column)],
-                ),
+                (S::one(), vec![Box::new(lhs_times_rhs)]),
+                (-S::one(), vec![Box::new(lhs_column), Box::new(rhs_column)]),
             ],
         );
         Column::Scalar(lhs_times_rhs)
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,

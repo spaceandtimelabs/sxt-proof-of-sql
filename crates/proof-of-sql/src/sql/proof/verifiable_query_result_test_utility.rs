@@ -26,7 +26,7 @@ use serde::Serialize;
 /// - `fake_accessor.update_offset` fails, causing a panic if it is designed to do so in the implementation.
 pub fn exercise_verification(
     res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
+    expr: &(impl ProofPlan + Serialize),
     accessor: &impl TestAccessor<RistrettoPoint>,
     table_ref: TableRef,
 ) {
@@ -87,7 +87,7 @@ pub fn exercise_verification(
 
 fn tamper_no_result(
     res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
+    expr: &(impl ProofPlan + Serialize),
     accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     // add a result
@@ -110,7 +110,7 @@ fn tamper_no_result(
 
 fn tamper_empty_result(
     res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
+    expr: &(impl ProofPlan + Serialize),
     accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     // try to add a result
@@ -129,7 +129,7 @@ fn tamper_empty_result(
 ///   verification did not fail as expected after tampering.
 fn tamper_result(
     res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
+    expr: &(impl ProofPlan + Serialize),
     accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     if res.provable_result.is_none() {

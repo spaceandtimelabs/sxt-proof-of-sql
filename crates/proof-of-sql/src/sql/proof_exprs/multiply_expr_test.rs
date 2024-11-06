@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
-        scalar::Curve25519Scalar,
+        scalar::{test_scalar::TestScalar, Curve25519Scalar},
     },
     sql::{
         parse::ConversionError,
@@ -12,7 +12,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -75,10 +74,7 @@ fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     assert!(matches!(
-        DynProofExpr::try_new_multiply(
-            column(t, "a", &accessor),
-            const_bigint::<RistrettoPoint>(1)
-        ),
+        DynProofExpr::try_new_multiply(column(t, "a", &accessor), const_bigint(1)),
         Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
@@ -93,7 +89,7 @@ fn result_expr_can_overflow() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: DynProofPlan<RistrettoPoint> = filter(
+    let ast: DynProofPlan = filter(
         vec![aliased_plan(
             multiply(column(t, "a", &accessor), column(t, "b", &accessor)),
             "c",
@@ -118,7 +114,7 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: DynProofPlan<RistrettoPoint> = filter(
+    let ast: DynProofPlan = filter(
         vec![aliased_plan(
             multiply(column(t, "a", &accessor), column(t, "b", &accessor)),
             "c",
@@ -143,7 +139,7 @@ fn overflow_in_where_clause_doesnt_error_out() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: DynProofPlan<RistrettoPoint> = filter(
+    let ast: DynProofPlan = filter(
         cols_expr_plan(t, &["a", "b"], &accessor),
         tab(t),
         gte(
@@ -168,7 +164,7 @@ fn result_expr_can_overflow_more() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: DynProofPlan<RistrettoPoint> = filter(
+    let ast: DynProofPlan = filter(
         vec![aliased_plan(
             multiply(column(t, "a", &accessor), column(t, "b", &accessor)),
             "c",
@@ -206,7 +202,7 @@ fn where_clause_can_wrap_around() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: DynProofPlan<RistrettoPoint> = filter(
+    let ast: DynProofPlan = filter(
         cols_expr_plan(t, &["a", "b", "c", "d", "e", "res"], &accessor),
         tab(t),
         equal(
@@ -290,9 +286,12 @@ fn test_random_tables_with_given_offset(offset: usize) {
             and(
                 equal(
                     column(t, "b", &accessor),
-                    const_scalar(filter_val1.as_str()),
+                    const_scalar::<TestScalar, _>(filter_val1.as_str()),
                 ),
-                equal(column(t, "c", &accessor), const_scalar(filter_val2)),
+                equal(
+                    column(t, "c", &accessor),
+                    const_scalar::<TestScalar, _>(filter_val2),
+                ),
             ),
         );
         let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
@@ -341,7 +340,7 @@ fn we_can_compute_the_correct_output_of_a_multiply_expr_using_result_evaluate() 
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let arithmetic_expr: DynProofExpr<RistrettoPoint> = multiply(
+    let arithmetic_expr: DynProofExpr = multiply(
         column(t, "b", &accessor),
         subtract(column(t, "a", &accessor), const_decimal75(2, 1, 15)),
     );

@@ -6,8 +6,8 @@ use proof_of_sql::base::commitment::InnerProductProof;
 use proof_of_sql::{
     base::database::{owned_table_utility::*, OwnedTableTestAccessor, TestAccessor},
     proof_primitive::dory::{
-        DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
-        ProverSetup, PublicParameters, VerifierSetup,
+        DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
+        PublicParameters, VerifierSetup,
     },
     sql::{
         parse::QueryExpr,
@@ -436,7 +436,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
         ]),
         0,
     );
-    let query = QueryExpr::<DoryCommitment>::try_new(
+    let query = QueryExpr::try_new(
         "select *, a <= b as res from TABLE where a <= b"
             .parse()
             .unwrap(),

@@ -11,7 +11,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -407,9 +406,9 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let equals_expr: DynProofExpr<RistrettoPoint> = equal(
+    let equals_expr: DynProofExpr = equal(
         column(t, "e", &accessor),
-        const_scalar(Curve25519Scalar::ZERO),
+        const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ZERO),
     );
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(4, &alloc, &accessor);
