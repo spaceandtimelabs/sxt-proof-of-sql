@@ -2,7 +2,6 @@ use crate::{sql::IdentifierParser, ParseError, ParseResult};
 use alloc::{format, string::ToString};
 use arrayvec::ArrayString;
 use core::{cmp::Ordering, fmt, ops::Deref, str::FromStr};
-use sqlparser::ast::Ident;
 
 /// Top-level unique identifier.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Ord, PartialOrd, Copy)]
@@ -69,16 +68,6 @@ crate::impl_serde_from_str!(Identifier);
 impl fmt::Display for Identifier {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         self.name.fmt(f)
-    }
-}
-
-// TryFrom<Ident> for Identifier
-impl TryFrom<Ident> for Identifier {
-    type Error = ParseError;
-
-    fn try_from(ident: Ident) -> ParseResult<Self> {
-        // Convert Ident's value to Identifier
-        Identifier::try_new(ident.value)
     }
 }
 
@@ -288,15 +277,5 @@ mod tests {
     fn short_names_are_fine() {
         Identifier::new("t".repeat(64));
         Identifier::new("茶".repeat(21));
-    }
-
-    #[test]
-    fn try_from_ident() {
-        let ident = Ident::new("ValidIdentifier");
-        let identifier = Identifier::try_from(ident).unwrap();
-        assert_eq!(identifier.name(), "valididentifier");
-
-        let invalid_ident = Ident::new("INVALID$IDENTIFIER");
-        assert!(Identifier::try_from(invalid_ident).is_err());
     }
 }
