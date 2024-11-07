@@ -73,22 +73,10 @@ impl From<Literal> for Expr {
             Literal::Boolean(b) => Expr::Value(Value::Boolean(b)),
             Literal::Timestamp(timestamp) => {
                 let timeunit = timestamp.timeunit();
-                let raw_timestamp = match timeunit {
-                    PoSQLTimeUnit::Nanosecond => timestamp
-                        .timestamp()
-                        .timestamp_nanos_opt()
-                        .expect(
-                        "Valid nanosecond timestamps must be between 1677-09-21T00:12:43.145224192 
-                        and 2262-04-11T23:47:16.854775807.",
-                    ),
-                    PoSQLTimeUnit::Microsecond => timestamp.timestamp().timestamp_micros(),
-                    PoSQLTimeUnit::Millisecond => timestamp.timestamp().timestamp_millis(),
-                    PoSQLTimeUnit::Second => timestamp.timestamp().timestamp(),
-                };
                 // We currently exclusively store timestamps in UTC.
                 Expr::TypedString {
                     data_type: DataType::Timestamp(Some(timeunit.into()), TimezoneInfo::None),
-                    value: raw_timestamp.to_string(),
+                    value: timestamp.timestamp().to_string(),
                 }
             }
         }
@@ -250,17 +238,42 @@ mod test {
     use super::*;
     use sqlparser::{ast::Statement, dialect::PostgreSqlDialect, parser::Parser};
 
-    /// Check that the intermediate AST can be converted to the SQL parser AST which should functionally match
-    /// the direct conversion from the SQL string.
-    /// Note that the `PoSQL` parser has some quirks:
-    /// - If LIMIT is specified, OFFSET must also be specified so we have to append `OFFSET 0`.
-    /// - Explicit aliases are mandatory for all columns.
-    fn check_posql_intermediate_ast_to_sqlparser_equality(sql: &str) {
+    // Check that the intermediate AST can be converted to the SQL parser AST which should functionally match
+    // the direct conversion from the SQL string.
+    // Note that the `PoSQL` parser has some quirks:
+    // - If LIMIT is specified, OFFSET must also be specified so we have to append `OFFSET 0`.
+    // - Explicit aliases are mandatory for all columns.
+    // In this case we will provide an equivalent query
+    // for sqlparser that clearly demonstrates the same functionality.
+    fn check_posql_intermediate_ast_to_sqlparser_equivalence(posql_sql: &str, sqlparser_sql: &str) {
         let dialect = PostgreSqlDialect {};
-        let posql_ast = sql.parse::<SelectStatement>().unwrap();
+        let posql_ast = posql_sql.parse::<SelectStatement>().unwrap();
         let converted_sqlparser_ast = &Statement::Query(Box::new(Query::from(posql_ast)));
-        let direct_sqlparser_ast = &Parser::parse_sql(&dialect, sql).unwrap()[0];
+        let direct_sqlparser_ast = &Parser::parse_sql(&dialect, sqlparser_sql).unwrap()[0];
         assert_eq!(converted_sqlparser_ast, direct_sqlparser_ast);
+    }
+
+    #[test]
+    fn we_can_convert_posql_intermediate_ast_to_sqlparser_with_slight_modification() {
+        check_posql_intermediate_ast_to_sqlparser_equivalence(
+            "select a, b from t limit 10;",
+            "select a as a, b as b from t limit 10 offset 0;",
+        );
+        check_posql_intermediate_ast_to_sqlparser_equivalence(
+            "select timestamp '2024-11-07T04:55:12+00:00' as time from t;",
+            "select timestamp(0) '2024-11-07 04:55:12 UTC' as time from t;",
+        );
+        check_posql_intermediate_ast_to_sqlparser_equivalence(
+            "select timestamp '2024-11-07T04:55:12.345+03:00' as time from t;",
+            "select timestamp(3) '2024-11-07 01:55:12.345 UTC' as time from t;",
+        );
+    }
+
+    // Check that PoSQL intermediate AST can be converted to SQL parser AST and that the two are equal.
+    // Note that this is a stricter test than the previous one so when quirks are present in the PoSQL AST
+    // We will have to use the `check_posql_intermediate_ast_to_sqlparser_equivalence` function.
+    fn check_posql_intermediate_ast_to_sqlparser_equality(sql: &str) {
+        check_posql_intermediate_ast_to_sqlparser_equivalence(sql, sql);
     }
 
     #[test]
