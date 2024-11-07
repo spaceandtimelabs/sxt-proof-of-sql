@@ -44,6 +44,65 @@ where
     l.checked_div(r).ok_or(ColumnOperationError::DivisionByZero)
 }
 
+// Generic binary operations on slices
+/// Apply a binary operator to two slices of the same length.
+pub(crate) fn slice_binary_op<S, T, U, F>(lhs: &[S], rhs: &[T], op: F) -> Vec<U>
+where
+    F: Fn(&S, &T) -> U,
+{
+    lhs.iter()
+        .zip(rhs.iter())
+        .map(|(l, r)| -> U { op(l, r) })
+        .collect::<Vec<_>>()
+}
+
+/// Apply a binary operator to two slices of the same length returning results.
+pub(crate) fn try_slice_binary_op<S, T, U, F>(lhs: &[S], rhs: &[T], op: F) -> ColumnOperationResult<Vec<U>>
+where
+    F: Fn(&S, &T) -> ColumnOperationResult<U>,
+{
+    lhs.iter()
+        .zip(rhs.iter())
+        .map(|(l, r)| -> ColumnOperationResult<U> { op(l, r) })
+        .collect::<ColumnOperationResult<Vec<U>>>()
+}
+
+/// Apply a binary operator to two slices of the same length with left upcasting.
+pub(crate) fn slice_binary_op_left_upcast<S, T, U, F>(lhs: &[S], rhs: &[T], op: F) -> Vec<U>
+where
+    S: Copy + Into<T>,
+    F: Fn(&T, &T) -> U,
+{
+    slice_binary_op(lhs, rhs, |l, r| -> U { op(&Into::<T>::into(*l), r) })   
+}
+
+/// Apply a binary operator to two slices of the same length with left upcasting returning results.
+pub(crate) fn try_slice_binary_op_left_upcast<S, T, U, F>(lhs: &[S], rhs: &[T], op: F) -> ColumnOperationResult<Vec<U>>
+where
+    S: Copy + Into<T>,
+    F: Fn(&T, &T) -> ColumnOperationResult<U>,
+{
+    try_slice_binary_op(lhs, rhs, |l, r| -> ColumnOperationResult<U> { op(&Into::<T>::into(*l), r) })   
+}
+
+/// Apply a binary operator to two slices of the same length with right upcasting.
+pub(crate) fn slice_binary_op_right_upcast<S, T, U, F>(lhs: &[S], rhs: &[T], op: F) -> Vec<U>
+where
+    T: Copy + Into<S>,
+    F: Fn(&S, &S) -> U,
+{
+    slice_binary_op(lhs, rhs, |l, r| -> U { op(l, &Into::<S>::into(*r)) })   
+}
+
+/// Apply a binary operator to two slices of the same length with right upcasting returning results.
+pub(crate) fn try_slice_binary_op_right_upcast<S, T, U, F>(lhs: &[S], rhs: &[T], op: F) -> ColumnOperationResult<Vec<U>>
+where
+    T: Copy + Into<S>,
+    F: Fn(&S, &S) -> ColumnOperationResult<U>,
+{
+    try_slice_binary_op(lhs, rhs, |l, r| -> ColumnOperationResult<U> { op(l, &Into::<S>::into(*r)) })   
+}
+
 // Unary operations
 
 /// Negate a slice of boolean values.
