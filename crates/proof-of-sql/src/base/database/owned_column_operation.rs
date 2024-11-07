@@ -1,7 +1,7 @@
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::{
-        column_operation::{
+        slice_operation::{
             eq_decimal_columns, ge_decimal_columns, le_decimal_columns, slice_and, slice_eq,
             slice_eq_with_casting, slice_ge, slice_ge_with_casting, slice_le,
             slice_le_with_casting, slice_not, slice_or, try_add_decimal_columns, try_add_slices,
