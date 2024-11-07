@@ -1,4 +1,4 @@
-use super::{FilterExec, GroupByExec, ProjectionExec};
+use super::{EmptyExec, FilterExec, GroupByExec, ProjectionExec};
 use crate::{
     base::{
         commitment::Commitment,
@@ -23,6 +23,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[enum_dispatch::enum_dispatch]
 pub enum DynProofPlan {
+    /// Source [`ProofPlan`] for (sub)queries without table source such as `SELECT "No table here" as msg;`
+    Empty(EmptyExec),
     /// Provable expressions for queries of the form
     /// ```ignore
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table>
