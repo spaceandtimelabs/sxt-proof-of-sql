@@ -19,11 +19,11 @@ use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 pub fn try_add_subtract_column_types(
     lhs: ColumnType,
     rhs: ColumnType,
-    operator: BinaryOperator,
+    _operator: BinaryOperator,
 ) -> ColumnOperationResult<ColumnType> {
     if !lhs.is_numeric() || !rhs.is_numeric() {
         return Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-            operator,
+            operator: "+/-".to_string(),
             left_type: lhs,
             right_type: rhs,
         });
@@ -77,7 +77,7 @@ pub fn try_multiply_column_types(
 ) -> ColumnOperationResult<ColumnType> {
     if !lhs.is_numeric() || !rhs.is_numeric() {
         return Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-            operator: BinaryOperator::Multiply,
+            operator: "*".to_string(),
             left_type: lhs,
             right_type: rhs,
         });
@@ -132,7 +132,7 @@ pub fn try_divide_column_types(
         || rhs == ColumnType::Scalar
     {
         return Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-            operator: BinaryOperator::Division,
+            operator: "/".to_string(),
             left_type: lhs,
             right_type: rhs,
         });
