@@ -5,7 +5,6 @@ use crate::{
         OrderBy as PoSqlOrderBy, OrderByDirection, SelectResultExpr, SetExpression,
         TableExpression, UnaryOperator as PoSqlUnaryOperator,
     },
-    posql_time::PoSQLTimeUnit,
     Identifier, ResourceId, SelectStatement,
 };
 use alloc::{boxed::Box, string::ToString, vec};
@@ -72,10 +71,12 @@ impl From<Literal> for Expr {
             Literal::Decimal(n) => Expr::Value(Value::Number(n.to_string(), false)),
             Literal::Boolean(b) => Expr::Value(Value::Boolean(b)),
             Literal::Timestamp(timestamp) => {
-                let timeunit = timestamp.timeunit();
                 // We currently exclusively store timestamps in UTC.
                 Expr::TypedString {
-                    data_type: DataType::Timestamp(Some(timeunit.into()), TimezoneInfo::None),
+                    data_type: DataType::Timestamp(
+                        Some(timestamp.timeunit().into()),
+                        TimezoneInfo::None,
+                    ),
                     value: timestamp.timestamp().to_string(),
                 }
             }
