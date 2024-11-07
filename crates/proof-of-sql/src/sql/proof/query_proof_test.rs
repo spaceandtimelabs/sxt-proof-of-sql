@@ -69,11 +69,7 @@ impl ProverEvaluate for TrivialTestProofPlan {
     }
 }
 impl ProofPlan for TrivialTestProofPlan {
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_degree(2);
         builder.count_intermediate_mles(1);
         builder.count_subpolynomials(1);
@@ -238,11 +234,7 @@ impl ProverEvaluate for SquareTestProofPlan {
     }
 }
 impl ProofPlan for SquareTestProofPlan {
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_degree(3);
         builder.count_intermediate_mles(1);
         builder.count_subpolynomials(1);
@@ -436,11 +428,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
     }
 }
 impl ProofPlan for DoubleSquareTestProofPlan {
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_degree(3);
         builder.count_intermediate_mles(2);
         builder.count_subpolynomials(2);
@@ -641,11 +629,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
     }
 }
 impl ProofPlan for ChallengeTestProofPlan {
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_degree(3);
         builder.count_intermediate_mles(1);
         builder.count_subpolynomials(1);
