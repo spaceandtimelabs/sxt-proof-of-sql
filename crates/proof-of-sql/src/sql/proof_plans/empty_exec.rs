@@ -38,11 +38,7 @@ impl EmptyExec {
 }
 
 impl ProofPlan for EmptyExec {
-    fn count(
-        &self,
-        _builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
+    fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())
     }
 

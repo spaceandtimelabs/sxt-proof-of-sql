@@ -51,11 +51,7 @@ impl ProverEvaluate for EmptyTestQueryExpr {
     }
 }
 impl ProofPlan for EmptyTestQueryExpr {
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_intermediate_mles(self.columns);
         Ok(())
     }

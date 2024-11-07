@@ -60,11 +60,7 @@ impl<H: ProverHonestyMarker> ProofPlan for OstensibleFilterExec<H>
 where
     OstensibleFilterExec<H>: ProverEvaluate,
 {
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.where_clause.count(builder)?;
         for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
