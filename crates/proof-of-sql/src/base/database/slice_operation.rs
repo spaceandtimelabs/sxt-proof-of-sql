@@ -3,6 +3,19 @@ use alloc::{format, vec::Vec};
 use core::fmt::Debug;
 use num_traits::ops::checked::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 
+/// Reverse a binary operator. That is, $a *_{op} b = b * a$.
+///
+/// With this function we don't need to consider the case of applying
+/// a binary operator to a single value and a slice, because we can
+/// always use `reverse_op` to reverse the order of the arguments.
+pub(crate) fn reverse_op<F, T>(op: F) -> impl Fn(&T, &T) -> T
+where
+    F: Fn(&T, &T) -> T,
+    T: Copy,
+{
+    move |l, r| op(r, l)
+}
+
 /// Function for checked addition with overflow error handling
 pub(super) fn try_add<T>(l: &T, r: &T) -> ColumnOperationResult<T>
 where
@@ -42,6 +55,78 @@ where
     T: CheckedDiv<Output = T> + Debug,
 {
     l.checked_div(r).ok_or(ColumnOperationError::DivisionByZero)
+}
+
+// Generic binary operations on slice and a single value
+
+/// Apply a binary operator to a slice and a single value.
+pub(crate) fn slice_lit_binary_op<S, T, U, F>(lhs: &[S], rhs: &T, op: F) -> Vec<U>
+where
+    F: Fn(&S, &T) -> U,
+{
+    lhs.iter().map(|l| -> U { op(l, rhs) }).collect::<Vec<_>>()
+}
+
+/// Apply a binary operator to a slice and a single value returning results.
+pub(crate) fn try_slice_lit_binary_op<S, T, U, F>(
+    lhs: &[S],
+    rhs: &T,
+    op: F,
+) -> ColumnOperationResult<Vec<U>>
+where
+    F: Fn(&S, &T) -> ColumnOperationResult<U>,
+{
+    lhs.iter()
+        .map(|l| op(l, rhs))
+        .collect::<ColumnOperationResult<Vec<_>>>()
+}
+
+/// Apply a binary operator to a slice and a single value, upcasting the slice.
+pub(crate) fn slice_lit_binary_op_left_upcast<S, T, U, F>(lhs: &[S], rhs: &T, op: F) -> Vec<U>
+where
+    S: Copy + Into<T>,
+    T: Copy,
+    F: Fn(&T, &T) -> U,
+{
+    slice_lit_binary_op(lhs, rhs, |l, r| op(&Into::<T>::into(*l), r))
+}
+
+/// Apply a binary operator to a slice and a single value with left upcasting returning results.
+pub(crate) fn try_slice_lit_binary_op_left_upcast<S, T, U, F>(
+    lhs: &[S],
+    rhs: &T,
+    op: F,
+) -> ColumnOperationResult<Vec<U>>
+where
+    S: Copy + Into<T>,
+    T: Copy,
+    F: Fn(&T, &T) -> ColumnOperationResult<U>,
+{
+    try_slice_lit_binary_op(lhs, rhs, |l, r| op(&Into::<T>::into(*l), r))
+}
+
+/// Apply a binary operator to a slice and a single value, upcasting the single value.
+pub(crate) fn slice_lit_binary_op_right_upcast<S, T, U, F>(lhs: &[S], rhs: &T, op: F) -> Vec<U>
+where
+    S: Copy,
+    T: Copy + Into<S>,
+    F: Fn(&S, &S) -> U,
+{
+    slice_lit_binary_op(lhs, rhs, |l, r| op(l, &Into::<S>::into(*r)))
+}
+
+/// Apply a binary operator to a slice and a single value with right upcasting returning results.
+pub(crate) fn try_slice_lit_binary_op_right_upcast<S, T, U, F>(
+    lhs: &[S],
+    rhs: &T,
+    op: F,
+) -> ColumnOperationResult<Vec<U>>
+where
+    S: Copy,
+    T: Copy + Into<S>,
+    F: Fn(&S, &S) -> ColumnOperationResult<U>,
+{
+    try_slice_lit_binary_op(lhs, rhs, |l, r| op(l, &Into::<S>::into(*r)))
 }
 
 // Generic binary operations on slices
