@@ -34,6 +34,7 @@ clap = { workspace = true, features = ["derive"] }
 curve25519-dalek = { workspace = true, features = ["serde"] }
 chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true }
+enum_dispatch = { workspace = true }
 indexmap = { workspace = true, features = ["serde"] }
 indicatif = { workspace = true }
 itertools = { workspace = true }
