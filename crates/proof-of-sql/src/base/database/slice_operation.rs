@@ -4,7 +4,7 @@ use core::fmt::Debug;
 use num_traits::ops::checked::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 
 /// Function for checked addition with overflow error handling
-fn try_add<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+pub(crate) fn try_add<T>(l: &T, r: &T) -> ColumnOperationResult<T>
 where
     T: CheckedAdd<Output = T> + Debug,
 {
@@ -15,7 +15,7 @@ where
 }
 
 /// Function for checked subtraction with overflow error handling
-fn try_sub<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+pub(crate) fn try_sub<T>(l: &T, r: &T) -> ColumnOperationResult<T>
 where
     T: CheckedSub<Output = T> + Debug,
 {
@@ -26,7 +26,7 @@ where
 }
 
 /// Function for checked multiplication with overflow error handling
-fn try_mul<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+pub(crate) fn try_mul<T>(l: &T, r: &T) -> ColumnOperationResult<T>
 where
     T: CheckedMul<Output = T> + Debug,
 {
@@ -37,7 +37,7 @@ where
 }
 
 /// Function for checked division with division by zero error handling
-fn try_div<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+pub(crate) fn try_div<T>(l: &T, r: &T) -> ColumnOperationResult<T>
 where
     T: CheckedDiv<Output = T> + Debug,
 {
