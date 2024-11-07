@@ -16,6 +16,7 @@ use crate::base::{
     },
     scalar::Scalar,
 };
+use alloc::string::ToString;
 use core::ops::{Add, Div, Mul, Sub};
 
 impl<S: Scalar> OwnedColumn<S> {

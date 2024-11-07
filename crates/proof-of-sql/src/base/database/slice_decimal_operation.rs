@@ -13,7 +13,6 @@ use alloc::vec::Vec;
 use core::{cmp::Ordering, fmt::Debug};
 use num_bigint::BigInt;
 use num_traits::Zero;
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 /// Check whether a numerical slice is equal to a decimal one.
 ///
 /// Note that we do not check for length equality here.
@@ -273,8 +272,7 @@ where
     T0: Copy,
     T1: Copy,
 {
-    let new_column_type =
-        try_add_subtract_column_types(left_column_type, right_column_type, BinaryOperator::Add)?;
+    let new_column_type = try_add_subtract_column_types(left_column_type, right_column_type)?;
     let new_precision_value = new_column_type
         .precision_value()
         .expect("numeric columns have precision");
@@ -332,11 +330,7 @@ where
     T0: Copy,
     T1: Copy,
 {
-    let new_column_type = try_add_subtract_column_types(
-        left_column_type,
-        right_column_type,
-        BinaryOperator::Subtract,
-    )?;
+    let new_column_type = try_add_subtract_column_types(left_column_type, right_column_type)?;
     let new_precision_value = new_column_type
         .precision_value()
         .expect("numeric columns have precision");
