@@ -14,6 +14,7 @@ use bumpalo::Bump;
 use core::fmt::Debug;
 
 /// Provable nodes in the provable AST.
+#[enum_dispatch::enum_dispatch(DynProofPlan)]
 pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
     /// Count terms used within the Query's proof
     fn count(
@@ -51,6 +52,7 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
     fn get_table_references(&self) -> IndexSet<TableRef>;
 }
 
+#[enum_dispatch::enum_dispatch(DynProofPlan)]
 pub trait ProverEvaluate {
     /// Evaluate the query and modify `FirstRoundBuilder` to track the result of the query.
     fn result_evaluate<'a, S: Scalar>(

@@ -34,6 +34,7 @@ criterion = { version = "0.5.1" }
 chrono = { version = "0.4.38", default-features = false }
 curve25519-dalek = { version = "4", features = ["rand_core"] }
 derive_more = { version = "0.99" }
+enum_dispatch = { version = "0.3.13" }
 flexbuffers = { version = "2.0.0" }
 indexmap = { version = "2.1", default-features = false }
 indicatif = "0.17.8"
