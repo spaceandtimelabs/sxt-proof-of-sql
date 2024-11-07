@@ -3,6 +3,47 @@ use alloc::{format, vec::Vec};
 use core::fmt::Debug;
 use num_traits::ops::checked::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 
+/// Function for checked addition with overflow error handling
+fn try_add<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+where
+    T: CheckedAdd<Output = T> + Debug,
+{
+    l.checked_add(r)
+        .ok_or(ColumnOperationError::IntegerOverflow {
+            error: format!("Overflow in integer addition {l:?} + {r:?}"),
+        })
+}
+
+/// Function for checked subtraction with overflow error handling
+fn try_sub<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+where
+    T: CheckedSub<Output = T> + Debug,
+{
+    l.checked_sub(r)
+        .ok_or(ColumnOperationError::IntegerOverflow {
+            error: format!("Overflow in integer subtraction {l:?} - {r:?}"),
+        })
+}
+
+/// Function for checked multiplication with overflow error handling
+fn try_mul<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+where
+    T: CheckedMul<Output = T> + Debug,
+{
+    l.checked_mul(r)
+        .ok_or(ColumnOperationError::IntegerOverflow {
+            error: format!("Overflow in integer multiplication {l:?} * {r:?}"),
+        })
+}
+
+/// Function for checked division with division by zero error handling
+fn try_div<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+where
+    T: CheckedDiv<Output = T> + Debug,
+{
+    l.checked_div(r).ok_or(ColumnOperationError::DivisionByZero)
+}
+
 // Unary operations
 
 /// Negate a slice of boolean values.
