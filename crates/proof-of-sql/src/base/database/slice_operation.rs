@@ -116,20 +116,14 @@ pub(super) fn slice_not(input: &[bool]) -> Vec<bool> {
 ///
 /// We do not check for length equality here.
 pub(super) fn slice_and(lhs: &[bool], rhs: &[bool]) -> Vec<bool> {
-    lhs.iter()
-        .zip(rhs.iter())
-        .map(|(l, r)| -> bool { *l && *r })
-        .collect::<Vec<_>>()
+    slice_binary_op(lhs, rhs, |l, r| -> bool { *l && *r })
 }
 
 /// Element-wise OR on two boolean slices of the same length.
 ///
 /// We do not check for length equality here.
 pub(super) fn slice_or(lhs: &[bool], rhs: &[bool]) -> Vec<bool> {
-    lhs.iter()
-        .zip(rhs.iter())
-        .map(|(l, r)| -> bool { *l || *r })
-        .collect::<Vec<_>>()
+    slice_binary_op(lhs, rhs, |l, r| -> bool { *l || *r })
 }
 
 /// Try to check whether two slices of the same length are equal element-wise.
@@ -139,10 +133,7 @@ pub(super) fn slice_eq<T>(lhs: &[T], rhs: &[T]) -> Vec<bool>
 where
     T: PartialEq + Debug,
 {
-    lhs.iter()
-        .zip(rhs.iter())
-        .map(|(l, r)| -> bool { *l == *r })
-        .collect::<Vec<_>>()
+    slice_binary_op(lhs, rhs, PartialEq::eq)
 }
 
 /// Try to check whether a slice is less than or equal to another element-wise.
@@ -152,10 +143,7 @@ pub(super) fn slice_le<T>(lhs: &[T], rhs: &[T]) -> Vec<bool>
 where
     T: PartialOrd + Debug,
 {
-    lhs.iter()
-        .zip(rhs.iter())
-        .map(|(l, r)| -> bool { *l <= *r })
-        .collect::<Vec<_>>()
+    slice_binary_op(lhs, rhs, PartialOrd::le)
 }
 
 /// Try to check whether a slice is greater than or equal to another element-wise.
@@ -165,10 +153,7 @@ pub(super) fn slice_ge<T>(lhs: &[T], rhs: &[T]) -> Vec<bool>
 where
     T: PartialOrd + Debug,
 {
-    lhs.iter()
-        .zip(rhs.iter())
-        .map(|(l, r)| -> bool { *l >= *r })
-        .collect::<Vec<_>>()
+    slice_binary_op(lhs, rhs, PartialOrd::ge)
 }
 
 /// Try to add two slices of the same length.
@@ -178,15 +163,7 @@ pub(super) fn try_add_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationResult<V
 where
     T: CheckedAdd<Output = T> + Debug,
 {
-    lhs.iter()
-        .zip(rhs.iter())
-        .map(|(l, r)| -> ColumnOperationResult<T> {
-            l.checked_add(r)
-                .ok_or(ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer addition {l:?} + {r:?}"),
-                })
-        })
-        .collect::<ColumnOperationResult<Vec<T>>>()
+    try_slice_binary_op(lhs, rhs, try_add)
 }
 
 /// Subtract one slice from another of the same length.
@@ -196,15 +173,7 @@ pub(super) fn try_subtract_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationRes
 where
     T: CheckedSub<Output = T> + Debug,
 {
-    lhs.iter()
-        .zip(rhs.iter())
-        .map(|(l, r)| -> ColumnOperationResult<T> {
-            l.checked_sub(r)
-                .ok_or(ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer subtraction {l:?} - {r:?}"),
-                })
-        })
-        .collect::<ColumnOperationResult<Vec<T>>>()
+    try_slice_binary_op(lhs, rhs, try_sub)
 }
 
 /// Multiply two slices of the same length.
@@ -214,15 +183,7 @@ pub(super) fn try_multiply_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationRes
 where
     T: CheckedMul<Output = T> + Debug,
 {
-    lhs.iter()
-        .zip(rhs.iter())
-        .map(|(l, r)| -> ColumnOperationResult<T> {
-            l.checked_mul(r)
-                .ok_or(ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer multiplication {l:?} * {r:?}"),
-                })
-        })
-        .collect::<ColumnOperationResult<Vec<T>>>()
+    try_slice_binary_op(lhs, rhs, try_mul)
 }
 
 /// Divide one slice by another of the same length.
@@ -232,12 +193,7 @@ pub(super) fn try_divide_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationResul
 where
     T: CheckedDiv<Output = T> + Debug,
 {
-    lhs.iter()
-        .zip(rhs.iter())
-        .map(|(l, r)| -> ColumnOperationResult<T> {
-            l.checked_div(r).ok_or(ColumnOperationError::DivisionByZero)
-        })
-        .collect::<ColumnOperationResult<Vec<T>>>()
+    try_slice_binary_op(lhs, rhs, try_div)
 }
 
 // Casting required for binary operations on different types
