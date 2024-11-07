@@ -7,6 +7,7 @@ pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAcc
 mod column;
 pub use column::{Column, ColumnField, ColumnRef, ColumnType};
 
+#[allow(dead_code)]
 mod slice_operation;
 
 mod slice_decimal_operation;
