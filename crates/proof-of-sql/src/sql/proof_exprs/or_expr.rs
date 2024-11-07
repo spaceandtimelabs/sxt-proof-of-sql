@@ -13,7 +13,6 @@ use crate::{
 };
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 use serde::{Deserialize, Serialize};
 
 /// Provable logical OR expression
@@ -51,7 +50,7 @@ impl ProofExpr for OrExpr {
         let lhs_columnar_value: ColumnarValue<'a, S> = self.lhs.result_evaluate(alloc, accessor);
         let rhs_columnar_value: ColumnarValue<'a, S> = self.rhs.result_evaluate(alloc, accessor);
         lhs_columnar_value
-            .apply_boolean_binary_operator(&rhs_columnar_value, BinaryOperator::Or, alloc)
+            .apply_boolean_binary_operator(&rhs_columnar_value, |l, r| *l || *r, alloc)
             .expect("Failed to apply boolean binary operator")
     }
 

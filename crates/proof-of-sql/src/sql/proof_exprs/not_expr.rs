@@ -13,7 +13,6 @@ use crate::{
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
-use proof_of_sql_parser::intermediate_ast::UnaryOperator;
 use serde::{Deserialize, Serialize};
 
 /// Provable logical NOT expression
@@ -46,7 +45,7 @@ impl ProofExpr for NotExpr {
     ) -> ColumnarValue<'a, S> {
         let expr_columnar_value: ColumnarValue<'a, S> = self.expr.result_evaluate(alloc, accessor);
         expr_columnar_value
-            .apply_boolean_unary_operator(UnaryOperator::Not, alloc)
+            .apply_boolean_unary_operator(|l| !*l, alloc)
             .expect("Failed to apply boolean unary operator")
     }
 
