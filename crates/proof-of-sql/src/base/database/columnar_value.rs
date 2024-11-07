@@ -39,15 +39,6 @@ impl<'a, S: Scalar> ColumnarValue<'a, S> {
         }
     }
 
-    /// Get default length of the [`ColumnarValue`]
-    #[must_use]
-    pub fn default_length(&self) -> usize {
-        match self {
-            Self::Column(column) => column.len(),
-            Self::Literal(_) => 1,
-        }
-    }
-
     /// Converts the [`ColumnarValue`] to a [`Column`]
     pub fn into_column(
         &self,
