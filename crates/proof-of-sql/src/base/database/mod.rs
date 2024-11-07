@@ -7,8 +7,12 @@ pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAcc
 mod column;
 pub use column::{Column, ColumnField, ColumnRef, ColumnType};
 
-mod column_operation;
-pub use column_operation::{
+mod slice_operation;
+
+mod slice_decimal_operation;
+
+mod column_type_operation;
+pub use column_type_operation::{
     try_add_subtract_column_types, try_divide_column_types, try_multiply_column_types,
 };
 

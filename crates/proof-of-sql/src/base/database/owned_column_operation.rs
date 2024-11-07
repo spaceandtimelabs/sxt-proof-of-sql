@@ -1,15 +1,16 @@
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::{
-        column_operation::{
-            eq_decimal_columns, ge_decimal_columns, le_decimal_columns, slice_and, slice_eq,
-            slice_eq_with_casting, slice_ge, slice_ge_with_casting, slice_le,
-            slice_le_with_casting, slice_not, slice_or, try_add_decimal_columns, try_add_slices,
-            try_add_slices_with_casting, try_divide_decimal_columns, try_divide_slices,
-            try_divide_slices_left_upcast, try_divide_slices_right_upcast,
-            try_multiply_decimal_columns, try_multiply_slices, try_multiply_slices_with_casting,
-            try_subtract_decimal_columns, try_subtract_slices, try_subtract_slices_left_upcast,
-            try_subtract_slices_right_upcast,
+        slice_decimal_operation::{
+            eq_decimal_columns, ge_decimal_columns, le_decimal_columns, try_add_decimal_columns,
+            try_divide_decimal_columns, try_multiply_decimal_columns, try_subtract_decimal_columns,
+        },
+        slice_operation::{
+            slice_and, slice_eq, slice_eq_with_casting, slice_ge, slice_ge_with_casting, slice_le,
+            slice_le_with_casting, slice_not, slice_or, try_add_slices,
+            try_add_slices_with_casting, try_divide_slices, try_divide_slices_left_upcast,
+            try_divide_slices_right_upcast, try_multiply_slices, try_multiply_slices_with_casting,
+            try_subtract_slices, try_subtract_slices_left_upcast, try_subtract_slices_right_upcast,
         },
         OwnedColumn,
     },
