@@ -1,7 +1,6 @@
 use crate::base::{database::ColumnType, math::decimal::DecimalError};
 use alloc::string::String;
 use core::result::Result;
-use proof_of_sql_parser::intermediate_ast::{BinaryOperator, UnaryOperator};
 use snafu::Snafu;
 
 /// Errors from operations on columns.
@@ -19,8 +18,8 @@ pub enum ColumnOperationError {
     /// Incorrect `ColumnType` in binary operations
     #[snafu(display("{operator:?}(lhs: {left_type:?}, rhs: {right_type:?}) is not supported"))]
     BinaryOperationInvalidColumnType {
-        /// `BinaryOperator` that caused the error
-        operator: BinaryOperator,
+        /// Binary operator that caused the error
+        operator: String,
         /// `ColumnType` of left operand
         left_type: ColumnType,
         /// `ColumnType` of right operand
@@ -30,8 +29,8 @@ pub enum ColumnOperationError {
     /// Incorrect `ColumnType` in unary operations
     #[snafu(display("{operator:?}(operand: {operand_type:?}) is not supported"))]
     UnaryOperationInvalidColumnType {
-        /// `UnaryOperator` that caused the error
-        operator: UnaryOperator,
+        /// Unary operator that caused the error
+        operator: String,
         /// `ColumnType` of the operand
         operand_type: ColumnType,
     },
