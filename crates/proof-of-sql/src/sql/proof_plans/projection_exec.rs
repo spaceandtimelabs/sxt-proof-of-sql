@@ -43,11 +43,7 @@ impl ProjectionExec {
 }
 
 impl ProofPlan for ProjectionExec {
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
             builder.count_intermediate_mles(1);

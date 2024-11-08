@@ -17,11 +17,7 @@ use core::fmt::Debug;
 #[enum_dispatch::enum_dispatch(DynProofPlan)]
 pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
     /// Count terms used within the Query's proof
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError>;
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError>;
 
     /// The length of the input table
     fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize;

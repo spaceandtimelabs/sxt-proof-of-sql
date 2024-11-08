@@ -168,7 +168,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // count terms
         let counts = {
             let mut builder = CountBuilder::new(&self.bit_distributions);
-            expr.count(&mut builder, accessor)?;
+            expr.count(&mut builder)?;
             builder.counts()
         }?;
 
