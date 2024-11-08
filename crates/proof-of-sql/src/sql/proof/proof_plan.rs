@@ -46,6 +46,21 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
 
     /// Return all the tables referenced in the Query
     fn get_table_references(&self) -> IndexSet<TableRef>;
+
+    /// Return the row number range of tables referenced in the Query
+    ///
+    /// Basically we are looking for the smallest offset and the largest offset + length
+    /// so that we have an index range of the table rows that the query is referencing.
+    fn get_index_range(&self, accessor: &dyn MetadataAccessor) -> (usize, usize) {
+        self.get_table_references().iter().fold(
+            (usize::MAX, 0),
+            |(min, max): (usize, usize), table_ref| {
+                let length = accessor.get_length(*table_ref);
+                let offset = accessor.get_offset(*table_ref);
+                (min.min(offset), max.max(offset + length))
+            },
+        )
+    }
 }
 
 #[enum_dispatch::enum_dispatch(DynProofPlan)]

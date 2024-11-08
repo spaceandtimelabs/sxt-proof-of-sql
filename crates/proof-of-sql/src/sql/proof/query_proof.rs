@@ -47,15 +47,15 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> (Self, ProvableQueryResult) {
-        let table_length = expr.get_length(accessor);
-        let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
-        let generator_offset = expr.get_offset(accessor);
+        let (min_row_num, max_row_num) = expr.get_index_range(accessor);
+        let range_length = max_row_num - min_row_num;
+        let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
         assert!(num_sumcheck_variables > 0);
 
         let alloc = Bump::new();
 
         // Evaluate query result
-        let result_cols = expr.result_evaluate(table_length, &alloc, accessor);
+        let result_cols = expr.result_evaluate(range_length, &alloc, accessor);
         let output_length = result_cols.first().map_or(0, Column::len);
         let provable_result = ProvableQueryResult::new(output_length as u64, &result_cols);
 
@@ -65,7 +65,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript =
-            make_transcript(expr, &provable_result, table_length, generator_offset);
+            make_transcript(expr, &provable_result, range_length, min_row_num);
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -78,14 +78,13 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .collect();
 
         let mut builder =
-            FinalRoundBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
+            FinalRoundBuilder::new(range_length, num_sumcheck_variables, post_result_challenges);
         expr.final_round_evaluate(&mut builder, &alloc, accessor);
 
         let num_sumcheck_variables = builder.num_sumcheck_variables();
-        let table_length = builder.table_length();
 
         // commit to any intermediate MLEs
-        let commitments = builder.commit_intermediate_mles(generator_offset, setup);
+        let commitments = builder.commit_intermediate_mles(min_row_num, setup);
 
         // add the commitments and bit distributions to the proof
         extend_transcript(&mut transcript, &commitments, builder.bit_distributions());
@@ -98,7 +97,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .collect();
         let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(
             &random_scalars,
-            table_length,
+            range_length,
             num_sumcheck_variables,
         ));
 
@@ -107,7 +106,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let sumcheck_proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
 
         // evaluate the MLEs used in sumcheck except for the result columns
-        let mut evaluation_vec = vec![Zero::zero(); table_length];
+        let mut evaluation_vec = vec![Zero::zero(); range_length];
         compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
         let pcs_proof_evaluations = builder.evaluate_pcs_proof_mles(&evaluation_vec);
 
@@ -127,7 +126,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &mut transcript,
             &folded_mle,
             &evaluation_point,
-            generator_offset as u64,
+            min_row_num as u64,
             setup,
         );
 
@@ -150,11 +149,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         result: &ProvableQueryResult,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
-        let input_length = expr.get_length(accessor);
-        let output_length = result.table_length();
-        let generator_offset = expr.get_offset(accessor);
-        let num_sumcheck_variables = cmp::max(log2_up(input_length), 1);
+        let (min_row_num, max_row_num) = expr.get_index_range(accessor);
+        let range_length = max_row_num - min_row_num;
+        let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
         assert!(num_sumcheck_variables > 0);
+
+        let output_length = result.table_length();
 
         // validate bit decompositions
         for dist in &self.bit_distributions {
@@ -181,7 +181,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript =
-            make_transcript(expr, result, input_length, generator_offset);
+            make_transcript(expr, result, range_length, min_row_num);
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -203,7 +203,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(num_random_scalars)
                 .collect();
         let sumcheck_random_scalars =
-            SumcheckRandomScalars::new(&random_scalars, input_length, num_sumcheck_variables);
+            SumcheckRandomScalars::new(&random_scalars, range_length, num_sumcheck_variables);
 
         // verify sumcheck up to the evaluation check
         let poly_info = CompositePolynomialInfo {
@@ -232,14 +232,14 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
-            input_length,
+            range_length,
             output_length,
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations,
         );
         let mut builder = VerificationBuilder::new(
-            generator_offset,
+            min_row_num,
             sumcheck_evaluations,
             &self.bit_distributions,
             &self.commitments,
@@ -279,8 +279,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 builder.inner_product_multipliers(),
                 &product,
                 &subclaim.evaluation_point,
-                generator_offset as u64,
-                input_length,
+                min_row_num as u64,
+                range_length,
                 setup,
             )
             .map_err(|_e| ProofError::VerificationError {
@@ -315,9 +315,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 /// * `result` - A reference to a `ProvableQueryResult`, which is the result
 ///   of a query that needs to be proven.
 ///
-/// * `table_length` - The length of the table used in the proof, as a `usize`.
+/// * `range_length` - The length of the range of the generator used in the proof, as a `usize`.
 ///
-/// * `generator_offset` - The offset of the generator used in the proof, as a `usize`.
+/// * `min_row_num` - The smallest offset of the generator used in the proof, as a `usize`.
 ///
 /// # Returns
 /// This function returns a `merlin::Transcript`. The transcript is a record
@@ -326,14 +326,14 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 fn make_transcript<T: Transcript>(
     expr: &(impl ProofPlan + Serialize),
     result: &ProvableQueryResult,
-    table_length: usize,
-    generator_offset: usize,
+    range_length: usize,
+    min_row_num: usize,
 ) -> T {
     let mut transcript = T::new();
     transcript.extend_serialize_as_le(result);
     transcript.extend_serialize_as_le(expr);
-    transcript.extend_serialize_as_le(&table_length);
-    transcript.extend_serialize_as_le(&generator_offset);
+    transcript.extend_serialize_as_le(&range_length);
+    transcript.extend_serialize_as_le(&min_row_num);
     transcript
 }
 
