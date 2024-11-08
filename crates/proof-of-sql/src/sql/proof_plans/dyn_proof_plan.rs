@@ -2,10 +2,8 @@ use super::{EmptyExec, FilterExec, GroupByExec, ProjectionExec};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{
-            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, OwnedTable, TableRef,
-        },
-        map::IndexSet,
+        database::{Column, ColumnField, ColumnRef, DataAccessor, OwnedTable, TableRef},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },

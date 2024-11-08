@@ -1,8 +1,8 @@
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
-        map::IndexSet,
+        database::{Column, ColumnRef, ColumnType, DataAccessor},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -45,7 +45,7 @@ pub trait ProofExpr: Debug + Send + Sync {
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
+        accessor: &IndexMap<ColumnRef, C::Scalar>,
     ) -> Result<C::Scalar, ProofError>;
 
     /// Insert in the [`IndexSet`] `columns` all the column

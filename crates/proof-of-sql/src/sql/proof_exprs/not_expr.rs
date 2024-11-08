@@ -2,8 +2,8 @@ use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
-        map::IndexSet,
+        database::{Column, ColumnRef, ColumnType, DataAccessor},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -62,7 +62,7 @@ impl ProofExpr for NotExpr {
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
+        accessor: &IndexMap<ColumnRef, C::Scalar>,
     ) -> Result<C::Scalar, ProofError> {
         let eval = self.expr.verifier_evaluate(builder, accessor)?;
         Ok(builder.mle_evaluations.input_one_evaluation - eval)

@@ -6,10 +6,9 @@ use crate::{
             group_by_util::{
                 aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
             },
-            Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            OwnedTable, TableRef,
+            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, TableRef,
         },
-        map::IndexSet,
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
@@ -92,7 +91,7 @@ impl ProofPlan for GroupByExec {
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
+        accessor: &IndexMap<ColumnRef, C::Scalar>,
         result: Option<&OwnedTable<C::Scalar>>,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         // 1. selection

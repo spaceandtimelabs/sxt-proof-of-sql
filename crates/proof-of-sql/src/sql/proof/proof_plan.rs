@@ -1,10 +1,8 @@
 use super::{CountBuilder, FinalRoundBuilder, FirstRoundBuilder, VerificationBuilder};
 use crate::base::{
     commitment::Commitment,
-    database::{
-        Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, OwnedTable, TableRef,
-    },
-    map::IndexSet,
+    database::{Column, ColumnField, ColumnRef, DataAccessor, OwnedTable, TableRef},
+    map::{IndexMap, IndexSet},
     proof::ProofError,
     scalar::Scalar,
 };
@@ -22,7 +20,7 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
+        accessor: &IndexMap<ColumnRef, C::Scalar>,
         result: Option<&OwnedTable<C::Scalar>>,
     ) -> Result<Vec<C::Scalar>, ProofError>;
 

@@ -3,10 +3,10 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            filter_util::filter_columns, Column, ColumnField, ColumnRef, CommitmentAccessor,
-            DataAccessor, OwnedTable, TableRef,
+            filter_util::filter_columns, Column, ColumnField, ColumnRef, DataAccessor, OwnedTable,
+            TableRef,
         },
-        map::IndexSet,
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
@@ -77,7 +77,7 @@ where
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
+        accessor: &IndexMap<ColumnRef, C::Scalar>,
         _result: Option<&OwnedTable<C::Scalar>>,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         // 1. selection

@@ -2,8 +2,8 @@ use super::ProofExpr;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, LiteralValue},
-        map::IndexSet,
+        database::{Column, ColumnRef, ColumnType, DataAccessor, LiteralValue},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -68,7 +68,7 @@ impl ProofExpr for LiteralExpr {
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
-        _accessor: &dyn CommitmentAccessor<C>,
+        _accessor: &IndexMap<ColumnRef, C::Scalar>,
     ) -> Result<C::Scalar, ProofError> {
         let mut commitment = builder.mle_evaluations.input_one_evaluation;
         commitment *= self.value.to_scalar();

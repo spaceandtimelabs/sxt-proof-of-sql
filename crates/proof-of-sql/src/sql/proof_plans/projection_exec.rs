@@ -1,10 +1,8 @@
 use crate::{
     base::{
         commitment::Commitment,
-        database::{
-            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, OwnedTable, TableRef,
-        },
-        map::IndexSet,
+        database::{Column, ColumnField, ColumnRef, DataAccessor, OwnedTable, TableRef},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -54,7 +52,7 @@ impl ProofPlan for ProjectionExec {
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
+        accessor: &IndexMap<ColumnRef, C::Scalar>,
         _result: Option<&OwnedTable<C::Scalar>>,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         self.aliased_results

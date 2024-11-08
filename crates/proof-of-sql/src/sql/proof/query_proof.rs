@@ -7,6 +7,7 @@ use crate::{
         bit::BitDistribution,
         commitment::CommitmentEvaluationProof,
         database::{Column, CommitmentAccessor, DataAccessor, MetadataAccessor, TableRef},
+        map::IndexMap,
         math::log2_up,
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
         proof::{Keccak256Transcript, ProofError, Transcript},
@@ -99,6 +100,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let mut builder =
             FinalRoundBuilder::new(range_length, num_sumcheck_variables, post_result_challenges);
+
+        expr.get_column_references().into_iter().for_each(|col| {
+            builder.produce_anchored_mle(accessor.get_column(col));
+        });
+
         expr.final_round_evaluate(&mut builder, &alloc, accessor);
 
         let num_sumcheck_variables = builder.num_sumcheck_variables();
@@ -185,12 +191,13 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             }
         }
 
+        let column_references = expr.get_column_references();
         // count terms
-        let counts = {
-            let mut builder = CountBuilder::new(&self.bit_distributions);
-            expr.count(&mut builder)?;
-            builder.counts()
-        }?;
+
+        let mut builder = CountBuilder::new(&self.bit_distributions);
+        builder.count_anchored_mles(column_references.len());
+        expr.count(&mut builder)?;
+        let counts = builder.counts()?;
 
         // verify sizes
         if !self.validate_sizes(&counts) {
@@ -268,8 +275,22 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             post_result_challenges,
         );
         let owned_table_result = result.to_owned_table(&column_result_fields[..])?;
-        let verifier_evaluations =
-            expr.verifier_evaluate(&mut builder, accessor, Some(&owned_table_result))?;
+
+        let evaluation_accessor: IndexMap<_, _> = column_references
+            .into_iter()
+            .map(|col| {
+                (
+                    col,
+                    builder.consume_anchored_mle(accessor.get_commitment(col)),
+                )
+            })
+            .collect();
+
+        let verifier_evaluations = expr.verifier_evaluate(
+            &mut builder,
+            &evaluation_accessor,
+            Some(&owned_table_result),
+        )?;
         // compute the evaluation of the result MLEs
         let result_evaluations = result.evaluate(
             &subclaim.evaluation_point,

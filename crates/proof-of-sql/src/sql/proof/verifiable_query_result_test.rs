@@ -7,10 +7,10 @@ use crate::{
         commitment::{Commitment, InnerProductProof},
         database::{
             owned_table_utility::{bigint, owned_table},
-            Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            OwnedTable, OwnedTableTestAccessor, TableRef,
+            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable,
+            OwnedTableTestAccessor, TableRef,
         },
-        map::{indexset, IndexSet},
+        map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -59,7 +59,7 @@ impl ProofPlan for EmptyTestQueryExpr {
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
-        _accessor: &dyn CommitmentAccessor<C>,
+        _accessor: &IndexMap<ColumnRef, C::Scalar>,
         _result: Option<&OwnedTable<<C as Commitment>::Scalar>>,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         let _ = std::iter::repeat_with(|| {
@@ -77,7 +77,7 @@ impl ProofPlan for EmptyTestQueryExpr {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        unimplemented!("no real usage for this function yet")
+        indexset! {}
     }
 
     fn get_table_references(&self) -> IndexSet<TableRef> {
