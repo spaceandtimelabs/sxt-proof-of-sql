@@ -83,7 +83,7 @@ impl ProofPlan for TrivialTestProofPlan {
     ) -> Result<Vec<S>, ProofError> {
         assert_eq!(builder.consume_intermediate_mle(), S::ZERO);
         builder.produce_sumcheck_subpolynomial_evaluation(
-            &SumcheckSubpolynomialType::ZeroSum,
+            SumcheckSubpolynomialType::ZeroSum,
             S::from(self.evaluation),
         );
         Ok(vec![S::ZERO])
@@ -268,7 +268,7 @@ impl ProofPlan for SquareTestProofPlan {
                 .unwrap();
         let res_eval = builder.consume_intermediate_mle();
         builder.produce_sumcheck_subpolynomial_evaluation(
-            &SumcheckSubpolynomialType::Identity,
+            SumcheckSubpolynomialType::Identity,
             res_eval - x_eval * x_eval,
         );
         Ok(vec![res_eval])
@@ -461,13 +461,13 @@ impl ProofPlan for DoubleSquareTestProofPlan {
 
         // poly1
         builder.produce_sumcheck_subpolynomial_evaluation(
-            &SumcheckSubpolynomialType::Identity,
+            SumcheckSubpolynomialType::Identity,
             z_eval - x_eval * x_eval,
         );
 
         // poly2
         builder.produce_sumcheck_subpolynomial_evaluation(
-            &SumcheckSubpolynomialType::Identity,
+            SumcheckSubpolynomialType::Identity,
             res_eval - z_eval * z_eval,
         );
         Ok(vec![res_eval])
@@ -659,7 +659,7 @@ impl ProofPlan for ChallengeTestProofPlan {
             .unwrap();
         let res_eval = builder.consume_intermediate_mle();
         builder.produce_sumcheck_subpolynomial_evaluation(
-            &SumcheckSubpolynomialType::Identity,
+            SumcheckSubpolynomialType::Identity,
             alpha * res_eval - alpha * x_eval * x_eval,
         );
         Ok(vec![res_eval])
