@@ -19,20 +19,13 @@ pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Optio
             "first round should be prover first."
         );
 
-        prover_state.randomness.push(*r);
-
         // fix argument
-        let r_as_field = prover_state.randomness[prover_state.round - 1];
         if_rayon!(
             prover_state.flattened_ml_extensions.par_iter_mut(),
             prover_state.flattened_ml_extensions.iter_mut()
         )
         .for_each(|multiplicand| {
-            in_place_fix_variable(
-                multiplicand,
-                r_as_field,
-                prover_state.num_vars - prover_state.round,
-            );
+            in_place_fix_variable(multiplicand, *r, prover_state.num_vars - prover_state.round);
         });
     } else if prover_state.round > 0 {
         panic!("verifier message is empty");

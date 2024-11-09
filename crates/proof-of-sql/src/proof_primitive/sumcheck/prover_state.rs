@@ -8,8 +8,6 @@ use crate::base::scalar::Scalar;
 use alloc::vec::Vec;
 
 pub struct ProverState<S: Scalar> {
-    /// sampled randomness given by the verifier
-    pub randomness: Vec<S>,
     /// Stores the list of products that is meant to be added together. Each multiplicand is represented by
     /// the index in `flattened_ml_extensions`
     pub list_of_products: Vec<(S, Vec<usize>)>,
@@ -36,7 +34,6 @@ impl<S: Scalar> ProverState<S> {
             .collect();
 
         ProverState {
-            randomness: Vec::with_capacity(polynomial.num_variables),
             list_of_products: polynomial.products.clone(),
             flattened_ml_extensions,
             num_vars: polynomial.num_variables,
