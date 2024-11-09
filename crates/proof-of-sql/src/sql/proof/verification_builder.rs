@@ -7,12 +7,10 @@ use num_traits::Zero;
 pub struct VerificationBuilder<'a, C: Commitment> {
     pub mle_evaluations: SumcheckMleEvaluations<'a, C::Scalar>,
     generator_offset: usize,
-    intermediate_commitments: &'a [C],
     subpolynomial_multipliers: &'a [C::Scalar],
     inner_product_multipliers: &'a [C::Scalar],
     sumcheck_evaluation: C::Scalar,
     bit_distributions: &'a [BitDistribution],
-    pcs_proof_commitments: Vec<C>,
     folded_pcs_proof_evaluation: C::Scalar,
     consumed_pcs_proof_mles: usize,
     consumed_intermediate_mles: usize,
@@ -36,7 +34,6 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
         generator_offset: usize,
         mle_evaluations: SumcheckMleEvaluations<'a, C::Scalar>,
         bit_distributions: &'a [BitDistribution],
-        intermediate_commitments: &'a [C],
         subpolynomial_multipliers: &'a [C::Scalar],
         inner_product_multipliers: &'a [C::Scalar],
         post_result_challenges: Vec<C::Scalar>,
@@ -49,11 +46,9 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
             mle_evaluations,
             generator_offset,
             bit_distributions,
-            intermediate_commitments,
             subpolynomial_multipliers,
             inner_product_multipliers,
             sumcheck_evaluation: C::Scalar::zero(),
-            pcs_proof_commitments: Vec::with_capacity(inner_product_multipliers.len()),
             folded_pcs_proof_evaluation: C::Scalar::zero(),
             consumed_pcs_proof_mles: 0,
             consumed_intermediate_mles: 0,
@@ -73,10 +68,9 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment
-    pub fn consume_anchored_mle(&mut self, commitment: C) -> C::Scalar {
+    pub fn consume_anchored_mle(&mut self) -> C::Scalar {
         let index = self.consumed_pcs_proof_mles;
         let multiplier = self.inner_product_multipliers[index];
-        self.pcs_proof_commitments.push(commitment);
         self.consumed_pcs_proof_mles += 1;
         let res = self.mle_evaluations.pcs_proof_evaluations[index];
         self.folded_pcs_proof_evaluation += multiplier * res;
@@ -95,9 +89,8 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     ///
     /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
     pub fn consume_intermediate_mle(&mut self) -> C::Scalar {
-        let commitment = self.intermediate_commitments[self.consumed_intermediate_mles].clone();
         self.consumed_intermediate_mles += 1;
-        self.consume_anchored_mle(commitment)
+        self.consume_anchored_mle()
     }
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
@@ -128,17 +121,6 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
 
     #[allow(
         clippy::missing_panics_doc,
-        reason = "Panic conditions are straightforward as they rely on the completion assertion."
-    )]
-    /// Get the commitments of pre-result MLE vectors used in a verifiable query's
-    /// bulletproof
-    pub fn pcs_proof_commitments(&self) -> &[C] {
-        assert!(self.completed());
-        &self.pcs_proof_commitments
-    }
-
-    #[allow(
-        clippy::missing_panics_doc,
         reason = "Panic conditions are self-evident from the completed assertion."
     )]
     /// Get folding factors for the pre-result commitments
@@ -162,7 +144,6 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     fn completed(&self) -> bool {
         self.bit_distributions.is_empty()
             && self.produced_subpolynomials == self.subpolynomial_multipliers.len()
-            && self.consumed_intermediate_mles == self.intermediate_commitments.len()
             && self.consumed_pcs_proof_mles == self.mle_evaluations.pcs_proof_evaluations.len()
             && self.post_result_challenges.is_empty()
     }

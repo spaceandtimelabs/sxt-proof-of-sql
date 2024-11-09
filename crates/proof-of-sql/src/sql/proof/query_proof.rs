@@ -265,25 +265,24 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations,
         );
-        let mut builder = VerificationBuilder::new(
+        let mut builder = VerificationBuilder::<'_, CP::Commitment>::new(
             min_row_num,
             sumcheck_evaluations,
             &self.bit_distributions,
-            &self.commitments,
             sumcheck_random_scalars.subpolynomial_multipliers,
             &evaluation_random_scalars,
             post_result_challenges,
         );
         let owned_table_result = result.to_owned_table(&column_result_fields[..])?;
 
+        let pcs_proof_commitments: Vec<_> = column_references
+            .iter()
+            .map(|col| accessor.get_commitment(*col))
+            .chain(self.commitments.iter().cloned())
+            .collect();
         let evaluation_accessor: IndexMap<_, _> = column_references
             .into_iter()
-            .map(|col| {
-                (
-                    col,
-                    builder.consume_anchored_mle(accessor.get_commitment(col)),
-                )
-            })
+            .map(|col| (col, builder.consume_anchored_mle()))
             .collect();
 
         let verifier_evaluations = expr.verifier_evaluate(
@@ -316,7 +315,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         self.evaluation_proof
             .verify_batched_proof(
                 &mut transcript,
-                builder.pcs_proof_commitments(),
+                &pcs_proof_commitments,
                 builder.inner_product_multipliers(),
                 &product,
                 &subclaim.evaluation_point,
