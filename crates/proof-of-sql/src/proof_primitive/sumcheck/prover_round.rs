@@ -19,10 +19,8 @@ pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Optio
             "first round should be prover first."
         );
 
-        prover_state.randomness.push(*r);
-
         // fix argument
-        let r_as_field = prover_state.randomness[prover_state.round - 1];
+        let r_as_field = *r;
         if_rayon!(
             prover_state.flattened_ml_extensions.par_iter_mut(),
             prover_state.flattened_ml_extensions.iter_mut()
