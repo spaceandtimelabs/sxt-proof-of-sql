@@ -1,7 +1,6 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        commitment::Commitment,
         database::{try_multiply_column_types, Column, ColumnRef, ColumnType, DataAccessor},
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -86,11 +85,11 @@ impl ProofExpr for MultiplyExpr {
         Column::Scalar(lhs_times_rhs)
     }
 
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &IndexMap<ColumnRef, C::Scalar>,
-    ) -> Result<C::Scalar, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError> {
         let lhs = self.lhs.verifier_evaluate(builder, accessor)?;
         let rhs = self.rhs.verifier_evaluate(builder, accessor)?;
 

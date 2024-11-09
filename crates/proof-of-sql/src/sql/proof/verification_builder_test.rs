@@ -1,6 +1,5 @@
 use super::{SumcheckMleEvaluations, VerificationBuilder};
 use crate::{base::scalar::Curve25519Scalar, sql::proof::SumcheckSubpolynomialType};
-use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::Zero;
 
 #[test]
@@ -10,7 +9,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
         num_sumcheck_variables: 1,
         ..Default::default()
     };
-    let builder = VerificationBuilder::<RistrettoPoint>::new(
+    let builder = VerificationBuilder::<Curve25519Scalar>::new(
         0,
         mle_evaluations,
         &[][..],
@@ -33,7 +32,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
     ];
-    let mut builder = VerificationBuilder::<RistrettoPoint>::new(
+    let mut builder = VerificationBuilder::new(
         0,
         mle_evaluations,
         &[][..],
@@ -70,7 +69,7 @@ fn we_build_up_the_folded_pcs_proof_commitment() {
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
     ];
-    let mut builder = VerificationBuilder::<RistrettoPoint>::new(
+    let mut builder = VerificationBuilder::new(
         0,
         mle_evaluations,
         &[][..],
@@ -97,7 +96,7 @@ fn we_build_up_the_folded_pcs_proof_commitment() {
 
 #[test]
 fn we_can_consume_post_result_challenges_in_proof_builder() {
-    let mut builder = VerificationBuilder::<RistrettoPoint>::new(
+    let mut builder = VerificationBuilder::new(
         0,
         SumcheckMleEvaluations::default(),
         &[][..],

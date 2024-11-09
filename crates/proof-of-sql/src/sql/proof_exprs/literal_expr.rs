@@ -1,7 +1,6 @@
 use super::ProofExpr;
 use crate::{
     base::{
-        commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, DataAccessor, LiteralValue},
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -65,11 +64,11 @@ impl ProofExpr for LiteralExpr {
         Column::from_literal_with_length(&self.value, table_length, alloc)
     }
 
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        _accessor: &IndexMap<ColumnRef, C::Scalar>,
-    ) -> Result<C::Scalar, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        _accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError> {
         let mut commitment = builder.mle_evaluations.input_one_evaluation;
         commitment *= self.value.to_scalar();
         Ok(commitment)

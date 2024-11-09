@@ -1,6 +1,5 @@
 use crate::{
     base::{
-        commitment::Commitment,
         database::{Column, ColumnField, ColumnRef, DataAccessor, OwnedTable, TableRef},
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -40,12 +39,12 @@ impl ProofPlan for EmptyExec {
     }
 
     #[allow(unused_variables)]
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        _builder: &mut VerificationBuilder<C>,
-        _accessor: &IndexMap<ColumnRef, C::Scalar>,
-        _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
+        _builder: &mut VerificationBuilder<S>,
+        _accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
         Ok(Vec::new())
     }
 

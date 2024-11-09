@@ -3,7 +3,7 @@ use super::{
 };
 use crate::{
     base::{
-        commitment::{Commitment, InnerProductProof},
+        commitment::InnerProductProof,
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable,
@@ -75,18 +75,18 @@ impl ProofPlan for TrivialTestProofPlan {
         builder.count_anchored_mles(self.anchored_mle_count);
         Ok(())
     }
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        _accessor: &IndexMap<ColumnRef, C::Scalar>,
-        _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
-        assert_eq!(builder.consume_intermediate_mle(), C::Scalar::ZERO);
+        builder: &mut VerificationBuilder<S>,
+        _accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
+        assert_eq!(builder.consume_intermediate_mle(), S::ZERO);
         builder.produce_sumcheck_subpolynomial_evaluation(
             &SumcheckSubpolynomialType::ZeroSum,
-            C::Scalar::from(self.evaluation),
+            S::from(self.evaluation),
         );
-        Ok(vec![C::Scalar::ZERO])
+        Ok(vec![S::ZERO])
     }
     ///
     /// # Panics
@@ -252,13 +252,13 @@ impl ProofPlan for SquareTestProofPlan {
         builder.count_subpolynomials(1);
         Ok(())
     }
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &IndexMap<ColumnRef, C::Scalar>,
-        _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
-        let x_eval = C::Scalar::from(self.anchored_commit_multiplier)
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
+        let x_eval = S::from(self.anchored_commit_multiplier)
             * *accessor
                 .get(&ColumnRef::new(
                     "sxt.test".parse().unwrap(),
@@ -443,12 +443,12 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         builder.count_subpolynomials(2);
         Ok(())
     }
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &IndexMap<ColumnRef, C::Scalar>,
-        _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
         let x_eval = *accessor
             .get(&ColumnRef::new(
                 "sxt.test".parse().unwrap(),
@@ -642,12 +642,12 @@ impl ProofPlan for ChallengeTestProofPlan {
         builder.count_post_result_challenges(2);
         Ok(())
     }
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &IndexMap<ColumnRef, C::Scalar>,
-        _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();
         let x_eval = *accessor

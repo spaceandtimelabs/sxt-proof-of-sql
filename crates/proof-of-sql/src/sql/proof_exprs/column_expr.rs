@@ -1,7 +1,6 @@
 use super::ProofExpr;
 use crate::{
     base::{
-        commitment::Commitment,
         database::{Column, ColumnField, ColumnRef, ColumnType, DataAccessor},
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -79,11 +78,11 @@ impl ProofExpr for ColumnExpr {
 
     /// Evaluate the column expression at the sumcheck's random point,
     /// add components needed to verify this column expression
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        _builder: &mut VerificationBuilder<C>,
-        accessor: &IndexMap<ColumnRef, C::Scalar>,
-    ) -> Result<C::Scalar, ProofError> {
+        _builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError> {
         Ok(*accessor
             .get(&self.column_ref)
             .ok_or(ProofError::VerificationError {

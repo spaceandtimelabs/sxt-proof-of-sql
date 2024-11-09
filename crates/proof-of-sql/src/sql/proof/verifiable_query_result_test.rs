@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     base::{
-        commitment::{Commitment, InnerProductProof},
+        commitment::InnerProductProof,
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable,
@@ -56,18 +56,18 @@ impl ProofPlan for EmptyTestQueryExpr {
         Ok(())
     }
 
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        _accessor: &IndexMap<ColumnRef, C::Scalar>,
-        _result: Option<&OwnedTable<<C as Commitment>::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        _accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
         let _ = std::iter::repeat_with(|| {
-            assert_eq!(builder.consume_intermediate_mle(), C::Scalar::ZERO);
+            assert_eq!(builder.consume_intermediate_mle(), S::ZERO);
         })
         .take(self.columns)
         .collect::<Vec<_>>();
-        Ok(vec![C::Scalar::ZERO])
+        Ok(vec![S::ZERO])
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

@@ -4,7 +4,6 @@ use super::{
 };
 use crate::{
     base::{
-        commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, DataAccessor, LiteralValue},
         map::{IndexMap, IndexSet},
         proof::ProofError,

@@ -7,7 +7,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::RistrettoPoint;
 use num_traits::Zero;
 
 #[test]
@@ -66,7 +65,7 @@ fn we_can_verify_a_constant_decomposition() {
     );
     let one_eval = sumcheck_evaluations.input_one_evaluation;
 
-    let mut builder: VerificationBuilder<RistrettoPoint> =
+    let mut builder =
         VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], Vec::new());
     let data_eval = (&data).evaluate_at_point(&evaluation_point);
     let eval = verifier_evaluate_sign(&mut builder, data_eval, one_eval).unwrap();
@@ -90,7 +89,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     );
     let one_eval = sumcheck_evaluations.input_one_evaluation;
 
-    let mut builder: VerificationBuilder<RistrettoPoint> =
+    let mut builder =
         VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], Vec::new());
     let data_eval = Curve25519Scalar::from(2) * (&data).evaluate_at_point(&evaluation_point);
     assert!(verifier_evaluate_sign(&mut builder, data_eval, one_eval).is_err());

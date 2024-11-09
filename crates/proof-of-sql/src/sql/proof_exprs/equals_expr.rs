@@ -1,7 +1,6 @@
 use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, DataAccessor},
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -72,11 +71,11 @@ impl ProofExpr for EqualsExpr {
         Column::Boolean(prover_evaluate_equals_zero(builder, alloc, res))
     }
 
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &IndexMap<ColumnRef, C::Scalar>,
-    ) -> Result<C::Scalar, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError> {
         let lhs_eval = self.lhs.verifier_evaluate(builder, accessor)?;
         let rhs_eval = self.rhs.verifier_evaluate(builder, accessor)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
@@ -145,10 +144,10 @@ pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
     selection
 }
 
-pub fn verifier_evaluate_equals_zero<C: Commitment>(
-    builder: &mut VerificationBuilder<C>,
-    lhs_eval: C::Scalar,
-) -> C::Scalar {
+pub fn verifier_evaluate_equals_zero<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    lhs_eval: S,
+) -> S {
     // consume mle evaluations
     let lhs_pseudo_inv_eval = builder.consume_intermediate_mle();
     let selection_not_eval = builder.consume_intermediate_mle();

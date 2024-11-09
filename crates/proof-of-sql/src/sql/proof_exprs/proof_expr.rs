@@ -1,6 +1,5 @@
 use crate::{
     base::{
-        commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, DataAccessor},
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -41,12 +40,12 @@ pub trait ProofExpr: Debug + Send + Sync {
 
     /// Compute the evaluation of a multilinear extension from this expression
     /// at the random sumcheck point and adds components needed to verify the expression to
-    /// [`VerificationBuilder<C>`]
-    fn verifier_evaluate<C: Commitment>(
+    /// [`VerificationBuilder<S>`]
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &IndexMap<ColumnRef, C::Scalar>,
-    ) -> Result<C::Scalar, ProofError>;
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError>;
 
     /// Insert in the [`IndexSet`] `columns` all the column
     /// references in the `BoolExpr` or forwards the call to some

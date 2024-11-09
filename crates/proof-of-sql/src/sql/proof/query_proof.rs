@@ -265,7 +265,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations,
         );
-        let mut builder = VerificationBuilder::<'_, CP::Commitment>::new(
+        let mut builder = VerificationBuilder::new(
             min_row_num,
             sumcheck_evaluations,
             &self.bit_distributions,
