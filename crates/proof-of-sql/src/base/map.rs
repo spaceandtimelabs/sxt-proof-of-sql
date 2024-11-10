@@ -22,7 +22,6 @@ macro_rules! indexmap_macro {
 }
 
 /// Create an [`IndexSet`][self::IndexSet] from a list of values
-#[cfg(test)]
 macro_rules! indexset_macro {
     ($($value:expr,)+) => { $crate::base::map::indexset!($($value),+) };
     ($($value:expr),*) => {
@@ -39,5 +38,4 @@ macro_rules! indexset_macro {
 }
 
 pub(crate) use indexmap_macro as indexmap;
-#[cfg(test)]
 pub(crate) use indexset_macro as indexset;

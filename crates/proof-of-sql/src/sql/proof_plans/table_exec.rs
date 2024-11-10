@@ -5,7 +5,7 @@ use crate::{
             Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
             OwnedTable, TableRef,
         },
-        map::IndexSet,
+        map::{IndexSet, indexset},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -55,7 +55,6 @@ impl ProofPlan for TableExec {
     fn count(
         &self,
         _builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
         Ok(())
     }
@@ -92,7 +91,7 @@ impl ProofPlan for TableExec {
     }
 
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        core::iter::once(self.table_ref).collect()
+        indexset! {self.table_ref}
     }
 }
 
@@ -118,9 +117,24 @@ impl ProverEvaluate for TableExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let table = self.get_table(accessor);
-        table.clone().into_iter().for_each(|column| {
+        table.iter().for_each(|column| {
             builder.produce_intermediate_mle(column.as_scalar(alloc));
         });
         table
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn we_can_create_a_table_exec() {
+        let table_ref = TableRef::new("namespace.table_name".parse().unwrap());
+        let schema = vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt)];
+        let table_exec = TableExec::new(table_ref, schema);
+        assert_eq!(table_exec.table_ref, table_ref);
+        assert_eq!(table_exec.schema, schema);
+    }
+    
 }
