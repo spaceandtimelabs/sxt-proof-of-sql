@@ -2,7 +2,10 @@ use super::ProofExpr;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, LiteralValue},
+        database::{
+            Column, ColumnRef, ColumnType, ColumnarValue, CommitmentAccessor, DataAccessor,
+            LiteralValue,
+        },
         map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
@@ -47,11 +50,10 @@ impl ProofExpr for LiteralExpr {
     #[tracing::instrument(name = "LiteralExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
-        alloc: &'a Bump,
+        _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Column<'a, S> {
-        Column::from_literal_with_length(&self.value, table_length, alloc)
+    ) -> ColumnarValue<'a, S> {
+        ColumnarValue::Literal(self.value.clone())
     }
 
     #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]

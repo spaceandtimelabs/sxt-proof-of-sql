@@ -55,7 +55,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let alloc = Bump::new();
 
         // Evaluate query result
-        let result_cols = expr.result_evaluate(table_length, &alloc, accessor);
+        let result_cols = expr.result_evaluate(&alloc, accessor);
         let output_length = result_cols.first().map_or(0, Column::len);
         let provable_result = ProvableQueryResult::new(output_length as u64, &result_cols);
 

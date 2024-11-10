@@ -34,14 +34,16 @@ impl ProverEvaluate for DishonestFilterExec {
     )]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
+        let input_length = accessor.get_length(self.table.table_ref);
         // 1. selection
-        let selection_column: Column<'a, S> =
-            self.where_clause
-                .result_evaluate(input_length, alloc, accessor);
+        let selection_column: Column<'a, S> = self
+            .where_clause
+            .result_evaluate(alloc, accessor)
+            .into_column(input_length, alloc)
+            .expect("Failed to convert columnar value to column");
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -52,7 +54,9 @@ impl ProverEvaluate for DishonestFilterExec {
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .result_evaluate(input_length, alloc, accessor)
+                    .result_evaluate(alloc, accessor)
+                    .into_column(input_length, alloc)
+                    .expect("Failed to convert columnar value to column")
             })
             .collect();
         // Compute filtered_columns

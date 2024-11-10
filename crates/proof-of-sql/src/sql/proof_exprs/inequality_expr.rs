@@ -1,13 +1,17 @@
 use super::{
     count_equals_zero, count_or, count_sign, prover_evaluate_equals_zero, prover_evaluate_or,
     prover_evaluate_sign, result_evaluate_equals_zero, result_evaluate_or, result_evaluate_sign,
-    scale_and_add_subtract_eval, scale_and_subtract, verifier_evaluate_equals_zero,
-    verifier_evaluate_or, verifier_evaluate_sign, DynProofExpr, ProofExpr,
+    scale_and_add_subtract_eval, scale_and_subtract, scale_and_subtract_columnar_value,
+    verifier_evaluate_equals_zero, verifier_evaluate_or, verifier_evaluate_sign, DynProofExpr,
+    ProofExpr,
 };
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{
+            Column, ColumnRef, ColumnType, ColumnarValue, CommitmentAccessor, DataAccessor,
+            LiteralValue,
+        },
         map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
@@ -58,30 +62,55 @@ impl ProofExpr for InequalityExpr {
     #[tracing::instrument(name = "InequalityExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Column<'a, S> {
-        let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
+    ) -> ColumnarValue<'a, S> {
+        let lhs_columnar_value = self.lhs.result_evaluate(alloc, accessor);
+        let rhs_columnar_value = self.rhs.result_evaluate(alloc, accessor);
+        // If both sides are literals we should return a literal.
+        // Otherwise we return a column.
+        let is_literal = matches!(
+            (&lhs_columnar_value, &rhs_columnar_value),
+            (&ColumnarValue::Literal(_), &ColumnarValue::Literal(_))
+        );
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let diff = if self.is_lte {
-            scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, false)
-                .expect("Failed to scale and subtract")
+            scale_and_subtract_columnar_value(
+                alloc,
+                lhs_columnar_value,
+                rhs_columnar_value,
+                lhs_scale,
+                rhs_scale,
+                false,
+            )
+            .expect("Failed to scale and subtract")
         } else {
-            scale_and_subtract(alloc, rhs_column, lhs_column, rhs_scale, lhs_scale, false)
-                .expect("Failed to scale and subtract")
+            scale_and_subtract_columnar_value(
+                alloc,
+                rhs_columnar_value,
+                lhs_columnar_value,
+                rhs_scale,
+                lhs_scale,
+                false,
+            )
+            .expect("Failed to scale and subtract")
         };
+        let diff_len = diff.len();
 
         // diff == 0
-        let equals_zero = result_evaluate_equals_zero(table_length, alloc, diff);
+        let equals_zero = result_evaluate_equals_zero(diff_len, alloc, diff);
 
         // sign(diff) == -1
-        let sign = result_evaluate_sign(table_length, alloc, diff);
+        let sign = result_evaluate_sign(diff_len, alloc, diff);
 
         // (diff == 0) || (sign(diff) == -1)
-        Column::Boolean(result_evaluate_or(table_length, alloc, equals_zero, sign))
+        let raw_result = result_evaluate_or(diff_len, alloc, equals_zero, sign);
+        if is_literal {
+            ColumnarValue::Literal(LiteralValue::Boolean(raw_result[0]))
+        } else {
+            ColumnarValue::Column(Column::Boolean(raw_result))
+        }
     }
 
     #[tracing::instrument(name = "InequalityExpr::prover_evaluate", level = "debug", skip_all)]

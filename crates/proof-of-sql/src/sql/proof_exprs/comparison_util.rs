@@ -174,37 +174,31 @@ pub(crate) fn scale_and_subtract_columnar_value<'a, S: Scalar>(
     lhs_scale: i8,
     rhs_scale: i8,
     is_equal: bool,
-) -> ConversionResult<ColumnarValue<'a, S>> {
+) -> ConversionResult<&'a [S]> {
     match (lhs, rhs) {
         (ColumnarValue::Column(lhs), ColumnarValue::Column(rhs)) => {
-            Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(
-                alloc, lhs, rhs, lhs_scale, rhs_scale, is_equal,
-            )?)))
+            scale_and_subtract(alloc, lhs, rhs, lhs_scale, rhs_scale, is_equal)
         }
-        (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(
-                alloc,
-                Column::from_literal_with_length(&lhs, rhs.len(), alloc),
-                rhs,
-                lhs_scale,
-                rhs_scale,
-                is_equal,
-            )?)))
-        }
-        (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
-            Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(
-                alloc,
-                lhs,
-                Column::from_literal_with_length(&rhs, lhs.len(), alloc),
-                lhs_scale,
-                rhs_scale,
-                is_equal,
-            )?)))
-        }
+        (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => scale_and_subtract(
+            alloc,
+            Column::from_literal_with_length(&lhs, rhs.len(), alloc),
+            rhs,
+            lhs_scale,
+            rhs_scale,
+            is_equal,
+        ),
+        (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => scale_and_subtract(
+            alloc,
+            lhs,
+            Column::from_literal_with_length(&rhs, lhs.len(), alloc),
+            lhs_scale,
+            rhs_scale,
+            is_equal,
+        ),
         (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
-            Ok(ColumnarValue::Literal(LiteralValue::Scalar(
-                scale_and_subtract_literal::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_equal)?.into(),
-            )))
+            let result =
+                scale_and_subtract_literal::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_equal)?;
+            Ok(alloc.alloc_slice_fill_with(1, |_| result))
         }
     }
 }

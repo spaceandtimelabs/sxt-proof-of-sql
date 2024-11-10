@@ -3,8 +3,8 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            try_multiply_column_types, Column, ColumnRef, ColumnType, CommitmentAccessor,
-            DataAccessor,
+            try_multiply_column_types, Column, ColumnRef, ColumnType, ColumnarValue,
+            CommitmentAccessor, DataAccessor,
         },
         map::IndexSet,
         proof::ProofError,
@@ -12,7 +12,7 @@ use crate::{
     },
     sql::{
         proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
-        proof_exprs::multiply_columns,
+        proof_exprs::{multiply_columnar_values, multiply_columns},
     },
 };
 use alloc::{boxed::Box, vec};
@@ -50,14 +50,12 @@ impl ProofExpr for MultiplyExpr {
 
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Column<'a, S> {
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(table_length, alloc, accessor);
-        let scalars = multiply_columns(&lhs_column, &rhs_column, alloc);
-        Column::Scalar(scalars)
+    ) -> ColumnarValue<'a, S> {
+        let lhs_columnar_value: ColumnarValue<'a, S> = self.lhs.result_evaluate(alloc, accessor);
+        let rhs_columnar_value: ColumnarValue<'a, S> = self.rhs.result_evaluate(alloc, accessor);
+        multiply_columnar_values(&lhs_columnar_value, &rhs_columnar_value, alloc)
     }
 
     #[tracing::instrument(

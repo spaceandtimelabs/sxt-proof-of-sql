@@ -43,7 +43,6 @@ impl Default for TrivialTestProofPlan {
 impl ProverEvaluate for TrivialTestProofPlan {
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        _input_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -199,7 +198,6 @@ impl Default for SquareTestProofPlan {
 impl ProverEvaluate for SquareTestProofPlan {
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        _table_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -380,7 +378,6 @@ impl Default for DoubleSquareTestProofPlan {
 impl ProverEvaluate for DoubleSquareTestProofPlan {
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        _input_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -591,7 +588,6 @@ struct ChallengeTestProofPlan {}
 impl ProverEvaluate for ChallengeTestProofPlan {
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        _input_length: usize,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {

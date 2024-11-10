@@ -1,10 +1,13 @@
-use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
+use super::{
+    add_subtract_columnar_values, add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr,
+    ProofExpr,
+};
 use crate::{
     base::{
         commitment::Commitment,
         database::{
-            try_add_subtract_column_types, Column, ColumnRef, ColumnType, CommitmentAccessor,
-            DataAccessor,
+            try_add_subtract_column_types, Column, ColumnRef, ColumnType, ColumnarValue,
+            CommitmentAccessor, DataAccessor,
         },
         map::IndexSet,
         proof::ProofError,
@@ -14,7 +17,6 @@ use crate::{
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 use serde::{Deserialize, Serialize};
 
 /// Provable numerical `+` / `-` expression
@@ -44,31 +46,25 @@ impl ProofExpr for AddSubtractExpr {
     }
 
     fn data_type(&self) -> ColumnType {
-        let operator = if self.is_subtract {
-            BinaryOperator::Subtract
-        } else {
-            BinaryOperator::Add
-        };
-        try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type(), operator)
+        try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type())
             .expect("Failed to add/subtract column types")
     }
 
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Column<'a, S> {
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(table_length, alloc, accessor);
-        Column::Scalar(add_subtract_columns(
-            lhs_column,
-            rhs_column,
+    ) -> ColumnarValue<'a, S> {
+        let lhs: ColumnarValue<'a, S> = self.lhs.result_evaluate(alloc, accessor);
+        let rhs: ColumnarValue<'a, S> = self.rhs.result_evaluate(alloc, accessor);
+        add_subtract_columnar_values(
+            lhs,
+            rhs,
             self.lhs.data_type().scale().unwrap_or(0),
             self.rhs.data_type().scale().unwrap_or(0),
             alloc,
             self.is_subtract,
-        ))
+        )
     }
 
     #[tracing::instrument(

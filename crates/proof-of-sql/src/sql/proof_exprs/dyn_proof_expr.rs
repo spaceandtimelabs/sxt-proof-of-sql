@@ -5,7 +5,10 @@ use super::{
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, LiteralValue},
+        database::{
+            Column, ColumnRef, ColumnType, ColumnarValue, CommitmentAccessor, DataAccessor,
+            LiteralValue,
+        },
         map::IndexSet,
         proof::ProofError,
         scalar::Scalar,

@@ -53,7 +53,6 @@ pub trait ProverEvaluate {
     /// Evaluate the query and modify `FirstRoundBuilder` to track the result of the query.
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>>;
