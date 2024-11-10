@@ -6,7 +6,7 @@ use crate::{
     base::{
         bit::BitDistribution,
         commitment::CommitmentEvaluationProof,
-        database::{Column, CommitmentAccessor, DataAccessor},
+        database::{Column, CommitmentAccessor, DataAccessor, MetadataAccessor, TableRef},
         math::log2_up,
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
         proof::{Keccak256Transcript, ProofError, Transcript},
@@ -19,6 +19,26 @@ use bumpalo::Bump;
 use core::cmp;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
+
+/// Return the row number range of tables referenced in the Query
+///
+/// Basically we are looking for the smallest offset and the largest offset + length
+/// so that we have an index range of the table rows that the query is referencing.
+fn get_index_range(
+    accessor: &dyn MetadataAccessor,
+    table_refs: impl IntoIterator<Item = TableRef>,
+) -> (usize, usize) {
+    table_refs
+        .into_iter()
+        .map(|table_ref| {
+            let length = accessor.get_length(table_ref);
+            let offset = accessor.get_offset(table_ref);
+            (offset, offset + length)
+        })
+        .reduce(|(min_start, max_end), (start, end)| (min_start.min(start), max_end.max(end)))
+        // Only applies to `EmptyExec` where there are no tables
+        .unwrap_or((0, 1))
+}
 
 /// The proof for a query.
 ///
@@ -47,7 +67,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> (Self, ProvableQueryResult) {
-        let (min_row_num, max_row_num) = expr.get_index_range(accessor);
+        let (min_row_num, max_row_num) = get_index_range(accessor, expr.get_table_references());
         let range_length = max_row_num - min_row_num;
         let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
         assert!(num_sumcheck_variables > 0);
@@ -149,7 +169,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         result: &ProvableQueryResult,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
-        let (min_row_num, max_row_num) = expr.get_index_range(accessor);
+        let (min_row_num, max_row_num) = get_index_range(accessor, expr.get_table_references());
         let range_length = max_row_num - min_row_num;
         let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
         assert!(num_sumcheck_variables > 0);
