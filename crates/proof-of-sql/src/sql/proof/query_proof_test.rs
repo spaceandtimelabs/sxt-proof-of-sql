@@ -7,7 +7,7 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TableRef,
+            OwnedTable, OwnedTableTestAccessor, TableRef,
         },
         map::{indexset, IndexSet},
         proof::ProofError,
@@ -74,12 +74,6 @@ impl ProofPlan for TrivialTestProofPlan {
         builder.count_subpolynomials(1);
         builder.count_anchored_mles(self.anchored_mle_count);
         Ok(())
-    }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        self.length
-    }
-    fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        self.offset
     }
     fn verifier_evaluate<C: Commitment>(
         &self,
@@ -260,12 +254,6 @@ impl ProofPlan for SquareTestProofPlan {
         builder.count_subpolynomials(1);
         builder.count_anchored_mles(1);
         Ok(())
-    }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset("sxt.test".parse().unwrap())
     }
     fn verifier_evaluate<C: Commitment>(
         &self,
@@ -454,12 +442,6 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         builder.count_subpolynomials(2);
         builder.count_anchored_mles(1);
         Ok(())
-    }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset("sxt.test".parse().unwrap())
     }
     fn verifier_evaluate<C: Commitment>(
         &self,
@@ -656,12 +638,6 @@ impl ProofPlan for ChallengeTestProofPlan {
         builder.count_anchored_mles(1);
         builder.count_post_result_challenges(2);
         Ok(())
-    }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset("sxt.test".parse().unwrap())
     }
     fn verifier_evaluate<C: Commitment>(
         &self,

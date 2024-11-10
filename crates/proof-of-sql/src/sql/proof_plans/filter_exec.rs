@@ -4,7 +4,7 @@ use crate::{
         commitment::Commitment,
         database::{
             filter_util::filter_columns, Column, ColumnField, ColumnRef, CommitmentAccessor,
-            DataAccessor, MetadataAccessor, OwnedTable, TableRef,
+            DataAccessor, OwnedTable, TableRef,
         },
         map::IndexSet,
         proof::ProofError,
@@ -71,14 +71,6 @@ where
         builder.count_degree(3);
         builder.count_post_result_challenges(2);
         Ok(())
-    }
-
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
-    }
-
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset(self.table.table_ref)
     }
 
     #[allow(unused_variables)]

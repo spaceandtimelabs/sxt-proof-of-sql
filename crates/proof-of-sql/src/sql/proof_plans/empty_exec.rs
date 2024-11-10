@@ -2,8 +2,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
-            OwnedTable, TableRef,
+            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, OwnedTable, TableRef,
         },
         map::IndexSet,
         proof::ProofError,
@@ -40,14 +39,6 @@ impl EmptyExec {
 impl ProofPlan for EmptyExec {
     fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())
-    }
-
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        0
-    }
-
-    fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        0
     }
 
     #[allow(unused_variables)]

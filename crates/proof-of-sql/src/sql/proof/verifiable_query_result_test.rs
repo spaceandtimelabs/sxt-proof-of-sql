@@ -8,7 +8,7 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TableRef,
+            OwnedTable, OwnedTableTestAccessor, TableRef,
         },
         map::{indexset, IndexSet},
         proof::ProofError,
@@ -55,12 +55,7 @@ impl ProofPlan for EmptyTestQueryExpr {
         builder.count_intermediate_mles(self.columns);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        self.length
-    }
-    fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        0
-    }
+
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
