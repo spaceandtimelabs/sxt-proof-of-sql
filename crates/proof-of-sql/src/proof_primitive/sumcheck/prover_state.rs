@@ -41,4 +41,22 @@ impl<S: Scalar> ProverState<S> {
             round: 0,
         }
     }
+    pub fn new(
+        list_of_products: Vec<(S, Vec<usize>)>,
+        flattened_ml_extensions: Vec<Vec<S>>,
+        num_vars: usize,
+    ) -> Self {
+        let max_multiplicands = list_of_products
+            .iter()
+            .map(|(_, product)| product.len())
+            .max()
+            .unwrap_or(0);
+        ProverState {
+            list_of_products,
+            flattened_ml_extensions,
+            num_vars,
+            max_multiplicands,
+            round: 0,
+        }
+    }
 }
