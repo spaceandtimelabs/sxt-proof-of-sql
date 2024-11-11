@@ -14,11 +14,10 @@ use crate::base::{
     math::decimal::Precision,
     scalar::Scalar,
 };
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 use core::fmt::Debug;
 use num_bigint::BigInt;
 use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 
 pub trait ArithmeticOp {
     fn op<T>(l: &T, r: &T) -> ColumnOperationResult<T>
@@ -186,7 +185,7 @@ pub trait ArithmeticOp {
                 Ok(OwnedColumn::Decimal75(new_precision, new_scale, new_values))
             }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-                operator: BinaryOperator::Add,
+                operator: "ArithmeticOp".to_string(),
                 left_type: lhs.column_type(),
                 right_type: rhs.column_type(),
             }),

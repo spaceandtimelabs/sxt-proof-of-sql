@@ -9,9 +9,12 @@ use crate::base::{
     },
     scalar::Scalar,
 };
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::{cmp::Ord, fmt::Debug};
 use num_traits::Zero;
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 
 pub trait ComparisonOp {
     fn op<T>(l: &T, r: &T) -> bool
@@ -223,9 +226,12 @@ pub trait ComparisonOp {
                 rhs.column_type(),
             )),
 
+            (OwnedColumn::Boolean(lhs), OwnedColumn::Boolean(rhs)) => {
+                Ok(slice_binary_op(lhs, rhs, Self::op))
+            }
             (OwnedColumn::VarChar(lhs), OwnedColumn::VarChar(rhs)) => Self::string_op(lhs, rhs),
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-                operator: BinaryOperator::Add,
+                operator: "ComparisonOp".to_string(),
                 left_type: lhs.column_type(),
                 right_type: rhs.column_type(),
             }),
@@ -311,7 +317,7 @@ impl ComparisonOp for GreaterThanOrEqualOp {
 
     fn string_op(_lhs: &[String], _rhs: &[String]) -> ColumnOperationResult<Vec<bool>> {
         Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-            operator: BinaryOperator::Add,
+            operator: ">=".to_string(),
             left_type: ColumnType::VarChar,
             right_type: ColumnType::VarChar,
         })
@@ -355,7 +361,7 @@ impl ComparisonOp for LessThanOrEqualOp {
 
     fn string_op(_lhs: &[String], _rhs: &[String]) -> ColumnOperationResult<Vec<bool>> {
         Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-            operator: BinaryOperator::Add,
+            operator: "<=".to_string(),
             left_type: ColumnType::VarChar,
             right_type: ColumnType::VarChar,
         })
