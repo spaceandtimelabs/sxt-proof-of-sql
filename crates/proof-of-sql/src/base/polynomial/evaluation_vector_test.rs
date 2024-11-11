@@ -1,6 +1,6 @@
 use super::compute_evaluation_vector;
 use crate::base::{scalar::test_scalar::TestScalar, slice_ops};
-use ark_poly::MultilinearExtension;
+use ark_poly::Polynomial;
 use num_traits::{One, Zero};
 
 #[test]
@@ -90,6 +90,6 @@ fn we_get_the_same_result_using_evaluation_vector_as_direct_evaluation() {
         3,
         &TestScalar::unwrap_slice(&xs),
     );
-    let expected_eval = TestScalar::new(poly.evaluate(&TestScalar::unwrap_slice(&point)).unwrap());
+    let expected_eval = TestScalar::new(poly.evaluate(&TestScalar::unwrap_slice(&point)));
     assert_eq!(eval, expected_eval);
 }

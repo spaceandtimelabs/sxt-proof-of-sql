@@ -11,7 +11,7 @@ use crate::{
     },
 };
 use alloc::{vec, vec::Vec};
-use ark_ff::Field;
+use ark_ff::{AdditiveGroup, Field};
 #[cfg(feature = "blitzar")]
 use blitzar::compute::ElementP2;
 #[cfg(feature = "blitzar")]
