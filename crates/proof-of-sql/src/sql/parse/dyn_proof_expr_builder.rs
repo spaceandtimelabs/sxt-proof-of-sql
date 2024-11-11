@@ -19,10 +19,11 @@ use crate::{
 };
 use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
 use proof_of_sql_parser::{
-    intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal, UnaryOperator},
+    intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal},
     posql_time::{PoSQLTimeUnit, PoSQLTimestampError},
     Identifier,
 };
+use sqlparser::ast::UnaryOperator;
 
 /// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
 /// a `proof_of_sql_parser::intermediate_ast::Expression`.
@@ -60,7 +61,7 @@ impl DynProofExprBuilder<'_> {
             Expression::Column(identifier) => self.visit_column(*identifier),
             Expression::Literal(lit) => self.visit_literal(lit),
             Expression::Binary { op, left, right } => self.visit_binary_expr(*op, left, right),
-            Expression::Unary { op, expr } => self.visit_unary_expr(*op, expr),
+            Expression::Unary { op, expr } => self.visit_unary_expr((*op).into(), expr),
             Expression::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
             _ => Err(ConversionError::Unprovable {
                 error: format!("Expression {expr:?} is not supported yet"),
@@ -136,6 +137,10 @@ impl DynProofExprBuilder<'_> {
         let expr = self.visit_expr(expr);
         match op {
             UnaryOperator::Not => DynProofExpr::try_new_not(expr?),
+            // Handle unsupported operators
+            _ => Err(ConversionError::UnsupportedOperation {
+                message: format!("{op:?}"),
+            }),
         }
     }
 
