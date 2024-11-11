@@ -1,9 +1,10 @@
 use super::{SumcheckRandomScalars, SumcheckSubpolynomial, SumcheckSubpolynomialType};
 use crate::{
-    base::{polynomial::MultilinearExtension, scalar::Scalar},
+    base::{map::IndexMap, polynomial::MultilinearExtension, scalar::Scalar},
     proof_primitive::sumcheck::ProverState,
 };
 use alloc::vec::Vec;
+use core::ffi::c_void;
 use itertools::Itertools;
 
 #[tracing::instrument(
@@ -57,6 +58,7 @@ struct FlattenedMLEBuilder<'a, S: Scalar> {
     all_ml_extensions: Vec<&'a dyn MultilinearExtension<S>>,
     entrywise_multipliers: Option<Vec<S>>,
     num_vars: usize,
+    lookup: IndexMap<(*const c_void, usize), usize>,
 }
 impl<'a, S: Scalar> FlattenedMLEBuilder<'a, S> {
     fn new(entrywise_multipliers: Option<Vec<S>>, num_vars: usize) -> Self {
@@ -65,12 +67,15 @@ impl<'a, S: Scalar> FlattenedMLEBuilder<'a, S> {
             all_ml_extensions: Vec::new(),
             entrywise_multipliers,
             num_vars,
+            lookup: IndexMap::default(),
         }
     }
     fn position_or_insert(&mut self, multiplicand: &'a dyn MultilinearExtension<S>) -> usize {
-        self.all_ml_extensions.push(multiplicand);
-        self.multiplicand_count += 1;
-        self.multiplicand_count - 1
+        *self.lookup.entry(multiplicand.id()).or_insert_with(|| {
+            self.all_ml_extensions.push(multiplicand);
+            self.multiplicand_count += 1;
+            self.multiplicand_count - 1
+        })
     }
     #[tracing::instrument(
         name = "FlattenedMLEBuilder::flattened_ml_extensions",
@@ -131,9 +136,9 @@ mod tests {
             prover_state.list_of_products,
             vec![
                 (TestScalar::from(101 * 202), vec![1, 0]),
-                (TestScalar::from(102 * 202), vec![2, 3, 0]),
-                (TestScalar::from(103 * 203), vec![4]),
-                (TestScalar::from(104 * 203), vec![5, 6])
+                (TestScalar::from(102 * 202), vec![2, 1, 0]),
+                (TestScalar::from(103 * 203), vec![1]),
+                (TestScalar::from(104 * 203), vec![2, 1])
             ]
         );
         assert_eq!(
@@ -142,10 +147,6 @@ mod tests {
                 vec![TestScalar::from(1 - 201), TestScalar::from(201)],
                 vec![TestScalar::from(1), TestScalar::from(2)],
                 vec![TestScalar::from(3), TestScalar::from(4)],
-                vec![TestScalar::from(1), TestScalar::from(2)],
-                vec![TestScalar::from(1), TestScalar::from(2)],
-                vec![TestScalar::from(3), TestScalar::from(4)],
-                vec![TestScalar::from(1), TestScalar::from(2)],
             ]
         );
         assert_eq!(prover_state.num_vars, 1);
@@ -221,14 +222,14 @@ mod tests {
                 (TestScalar::from(102 * 204), vec![0]),
                 (TestScalar::from(103 * 204), vec![1, 0]),
                 (TestScalar::from(104 * 204), vec![2, 0]),
-                (TestScalar::from(105 * 205), vec![3, 4, 0]),
-                (TestScalar::from(106 * 205), vec![5, 6, 7, 0]),
+                (TestScalar::from(105 * 205), vec![2, 3, 0]),
+                (TestScalar::from(106 * 205), vec![1, 2, 4, 0]),
                 (TestScalar::from(107 * 206), vec![]),
                 (TestScalar::from(108 * 206), vec![]),
-                (TestScalar::from(109 * 206), vec![8]),
-                (TestScalar::from(110 * 206), vec![9]),
-                (TestScalar::from(111 * 207), vec![10, 11]),
-                (TestScalar::from(112 * 207), vec![12, 13, 14])
+                (TestScalar::from(109 * 206), vec![3]),
+                (TestScalar::from(110 * 206), vec![4]),
+                (TestScalar::from(111 * 207), vec![1, 2]),
+                (TestScalar::from(112 * 207), vec![3, 2, 4])
             ]
         );
         assert_eq!(
@@ -246,17 +247,7 @@ mod tests {
                 ],
                 vec![0, 0, 0, 0, 0, 0, 0, 0],
                 vec![1, 0, 0, 0, 0, 0, 0, 0],
-                vec![1, 0, 0, 0, 0, 0, 0, 0],
                 vec![2, 3, 0, 0, 0, 0, 0, 0],
-                vec![0, 0, 0, 0, 0, 0, 0, 0],
-                vec![1, 0, 0, 0, 0, 0, 0, 0],
-                vec![4, 5, 6, 7, 8, 0, 0, 0],
-                vec![2, 3, 0, 0, 0, 0, 0, 0],
-                vec![4, 5, 6, 7, 8, 0, 0, 0],
-                vec![0, 0, 0, 0, 0, 0, 0, 0],
-                vec![1, 0, 0, 0, 0, 0, 0, 0],
-                vec![2, 3, 0, 0, 0, 0, 0, 0],
-                vec![1, 0, 0, 0, 0, 0, 0, 0],
                 vec![4, 5, 6, 7, 8, 0, 0, 0],
             ]
             .into_iter()
