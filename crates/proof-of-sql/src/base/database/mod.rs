@@ -95,6 +95,11 @@ pub use owned_table_test_accessor::OwnedTableTestAccessor;
 #[cfg(all(test, feature = "blitzar"))]
 mod owned_table_test_accessor_test;
 
+mod table_test_accessor;
+pub use table_test_accessor::TableTestAccessor;
+#[cfg(all(test, feature = "blitzar"))]
+mod table_test_accessor_test;
+
 /// TODO: add docs
 pub(crate) mod filter_util;
 #[cfg(test)]
