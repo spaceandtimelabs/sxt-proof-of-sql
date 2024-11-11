@@ -1,15 +1,17 @@
 use super::{SumcheckRandomScalars, SumcheckSubpolynomial, SumcheckSubpolynomialType};
 use crate::{
-    base::{polynomial::MultilinearExtension, scalar::Scalar},
+    base::{map::IndexMap, polynomial::MultilinearExtension, scalar::Scalar},
     proof_primitive::sumcheck::ProverState,
 };
 use alloc::vec::Vec;
+use core::ffi::c_void;
 
 struct FlattenedMLEBuilder<'a, S: Scalar> {
     multiplicand_count: usize,
     all_ml_extensions: Vec<&'a dyn MultilinearExtension<S>>,
     entrywise_multipliers: Option<Vec<S>>,
     num_vars: usize,
+    lookup: IndexMap<*const c_void, usize>,
 }
 impl<'a, S: Scalar> FlattenedMLEBuilder<'a, S> {
     fn new(entrywise_multipliers: Option<Vec<S>>, num_vars: usize) -> Self {
@@ -18,12 +20,15 @@ impl<'a, S: Scalar> FlattenedMLEBuilder<'a, S> {
             all_ml_extensions: Vec::new(),
             entrywise_multipliers,
             num_vars,
+            lookup: IndexMap::default(),
         }
     }
     fn position_or_insert(&mut self, multiplicand: &'a dyn MultilinearExtension<S>) -> usize {
-        self.all_ml_extensions.push(multiplicand);
-        self.multiplicand_count += 1;
-        self.multiplicand_count - 1
+        *self.lookup.entry(multiplicand.id()).or_insert_with(|| {
+            self.all_ml_extensions.push(multiplicand);
+            self.multiplicand_count += 1;
+            self.multiplicand_count - 1
+        })
     }
     #[tracing::instrument(
         name = "FlattenedMLEBuilder::flattened_ml_extensions",
