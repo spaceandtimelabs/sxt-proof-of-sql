@@ -64,6 +64,14 @@ pub(crate) use owned_table::OwnedTableError;
 mod owned_table_test;
 pub mod owned_table_utility;
 
+mod table;
+pub use table::Table;
+#[cfg(test)]
+pub(crate) use table::TableError;
+#[cfg(test)]
+mod table_test;
+pub mod table_utility;
+
 /// TODO: add docs
 pub(crate) mod expression_evaluation;
 mod expression_evaluation_error;
