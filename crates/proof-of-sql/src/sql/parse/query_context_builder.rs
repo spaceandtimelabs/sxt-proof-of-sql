@@ -305,12 +305,9 @@ pub(crate) fn type_check_binary_operation(
                         | (ColumnType::TimestampTZ(_, _), ColumnType::TimestampTZ(_, _))
                 )
         }
-        BinaryOperator::Add => {
-            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Add).is_ok()
-        }
+        BinaryOperator::Add => try_add_subtract_column_types(*left_dtype, *right_dtype).is_ok(),
         BinaryOperator::Subtract => {
-            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Subtract)
-                .is_ok()
+            try_add_subtract_column_types(*left_dtype, *right_dtype).is_ok()
         }
         BinaryOperator::Multiply => try_multiply_column_types(*left_dtype, *right_dtype).is_ok(),
         BinaryOperator::Division => left_dtype.is_numeric() && right_dtype.is_numeric(),
