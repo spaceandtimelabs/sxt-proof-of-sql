@@ -3,8 +3,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
-            OwnedTable, TableRef,
+            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, OwnedTable, TableRef,
         },
         map::IndexSet,
         proof::ProofError,

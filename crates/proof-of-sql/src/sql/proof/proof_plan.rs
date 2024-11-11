@@ -2,8 +2,7 @@ use super::{CountBuilder, FinalRoundBuilder, FirstRoundBuilder, VerificationBuil
 use crate::base::{
     commitment::Commitment,
     database::{
-        Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
-        OwnedTable, TableRef,
+        Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, OwnedTable, TableRef,
     },
     map::IndexSet,
     proof::ProofError,
@@ -18,14 +17,6 @@ use core::fmt::Debug;
 pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
     /// Count terms used within the Query's proof
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError>;
-
-    /// Check if the input table is empty
-    fn is_empty(&self, accessor: &dyn MetadataAccessor) -> bool {
-        let table_refs = self.get_table_references();
-        table_refs
-            .iter()
-            .all(|table_ref| accessor.get_length(*table_ref) == 0)
-    }
 
     /// Form components needed to verify and proof store into `VerificationBuilder`
     fn verifier_evaluate<C: Commitment>(
