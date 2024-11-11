@@ -4,7 +4,10 @@ use super::{
 };
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
-    database::{Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
+    database::{
+        owned_table_utility::*, Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef,
+        TestAccessor,
+    },
     scalar::Curve25519Scalar,
 };
 use blitzar::proof::InnerProductProof;
@@ -102,7 +105,13 @@ fn tamper_no_result(
         length: 1,
         ..Default::default()
     };
-    let accessor_p = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let column = vec![1_i64; 1];
+    let accessor_p = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("bogus_col", column)]),
+        0,
+        (),
+    );
     let (proof, _result) = QueryProof::new(&expr_p, &accessor_p, &());
     res_p.proof = Some(proof);
     assert!(res_p.verify(expr, accessor, &()).is_err());

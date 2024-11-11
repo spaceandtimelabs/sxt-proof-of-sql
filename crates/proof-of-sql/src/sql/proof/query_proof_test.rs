@@ -7,10 +7,9 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
-            UnimplementedTestAccessor,
+            OwnedTable, OwnedTableTestAccessor, TableRef,
         },
-        map::IndexSet,
+        map::{indexset, IndexSet},
         proof::ProofError,
         scalar::{Curve25519Scalar, Scalar},
     },
@@ -59,7 +58,7 @@ impl ProverEvaluate for TrivialTestProofPlan {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        let col = alloc.alloc_slice_fill_copy(builder.table_length(), self.column_fill_value);
+        let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
         builder.produce_intermediate_mle(col as &[_]);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
@@ -75,12 +74,6 @@ impl ProofPlan for TrivialTestProofPlan {
         builder.count_subpolynomials(1);
         builder.count_anchored_mles(self.anchored_mle_count);
         Ok(())
-    }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        self.length
-    }
-    fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        self.offset
     }
     fn verifier_evaluate<C: Commitment>(
         &self,
@@ -106,7 +99,7 @@ impl ProofPlan for TrivialTestProofPlan {
         unimplemented!("no real usage for this function yet")
     }
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        unimplemented!("no real usage for this function yet")
+        indexset! {TableRef::new("sxt.test".parse().unwrap())}
     }
 }
 
@@ -116,7 +109,13 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         offset: offset_generators,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let column: Vec<i64> = vec![0_i64; n];
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", column)]),
+        offset_generators,
+        (),
+    );
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     let QueryData {
         verification_hash,
@@ -149,7 +148,12 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         column_fill_value: 123,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [123_i64; 2])]),
+        0,
+        (),
+    );
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
@@ -162,7 +166,12 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         evaluation: 123,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [123_i64; 2])]),
+        0,
+        (),
+    );
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
@@ -175,7 +184,12 @@ fn verify_fails_if_counts_dont_match() {
         anchored_mle_count: 1,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [0_i64; 2])]),
+        0,
+        (),
+    );
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
@@ -241,12 +255,6 @@ impl ProofPlan for SquareTestProofPlan {
         builder.count_anchored_mles(1);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset("sxt.test".parse().unwrap())
-    }
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
@@ -274,7 +282,7 @@ impl ProofPlan for SquareTestProofPlan {
         unimplemented!("no real usage for this function yet")
     }
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        unimplemented!("no real usage for this function yet")
+        indexset! {TableRef::new("sxt.test".parse().unwrap())}
     }
 }
 
@@ -435,12 +443,6 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         builder.count_anchored_mles(1);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset("sxt.test".parse().unwrap())
-    }
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
@@ -476,7 +478,7 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         unimplemented!("no real usage for this function yet")
     }
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        unimplemented!("no real usage for this function yet")
+        indexset! {TableRef::new("sxt.test".parse().unwrap())}
     }
 }
 
@@ -637,12 +639,6 @@ impl ProofPlan for ChallengeTestProofPlan {
         builder.count_post_result_challenges(2);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset("sxt.test".parse().unwrap())
-    }
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
@@ -671,7 +667,7 @@ impl ProofPlan for ChallengeTestProofPlan {
         unimplemented!("no real usage for this function yet")
     }
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        unimplemented!("no real usage for this function yet")
+        indexset! {TableRef::new("sxt.test".parse().unwrap())}
     }
 }
 

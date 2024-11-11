@@ -7,7 +7,7 @@ use crate::{
                 aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
             },
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, TableRef,
+            OwnedTable, TableRef,
         },
         map::IndexSet,
         proof::ProofError,
@@ -86,14 +86,6 @@ impl ProofPlan for GroupByExec {
         builder.count_degree(3);
         builder.count_post_result_challenges(2);
         Ok(())
-    }
-
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
-    }
-
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset(self.table.table_ref)
     }
 
     #[allow(unused_variables)]

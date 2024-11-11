@@ -8,9 +8,9 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, TableRef, TestAccessor, UnimplementedTestAccessor,
+            OwnedTable, OwnedTableTestAccessor, TableRef,
         },
-        map::IndexSet,
+        map::{indexset, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -55,12 +55,7 @@ impl ProofPlan for EmptyTestQueryExpr {
         builder.count_intermediate_mles(self.columns);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        self.length
-    }
-    fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        0
-    }
+
     fn verifier_evaluate<C: Commitment>(
         &self,
         builder: &mut VerificationBuilder<C>,
@@ -86,7 +81,7 @@ impl ProofPlan for EmptyTestQueryExpr {
     }
 
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        unimplemented!("no real usage for this function yet")
+        indexset! {TableRef::new("sxt.test".parse().unwrap())}
     }
 }
 
@@ -96,7 +91,13 @@ fn we_can_verify_queries_on_an_empty_table() {
         columns: 1,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let column: Vec<i64> = vec![0_i64; 0];
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", column)]),
+        0,
+        (),
+    );
     let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     let QueryData {
         verification_hash: _,
@@ -112,7 +113,13 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
         columns: 1,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let column: Vec<i64> = vec![0_i64; 0];
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", column)]),
+        0,
+        (),
+    );
     let res = VerifiableQueryResult::<InnerProductProof> {
         provable_result: Some(ProvableQueryResult::default()),
         proof: None,

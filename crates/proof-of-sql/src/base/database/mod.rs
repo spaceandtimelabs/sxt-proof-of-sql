@@ -66,6 +66,7 @@ pub use expression_evaluation_error::{ExpressionEvaluationError, ExpressionEvalu
 mod test_accessor;
 pub use test_accessor::TestAccessor;
 #[cfg(test)]
+#[allow(unused_imports)]
 pub(crate) use test_accessor::UnimplementedTestAccessor;
 
 #[cfg(test)]

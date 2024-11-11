@@ -19,15 +19,12 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
     /// Count terms used within the Query's proof
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError>;
 
-    /// The length of the input table
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize;
-
-    /// The offset of the query, that is, how many rows to skip before starting to read the input table
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize;
-
     /// Check if the input table is empty
     fn is_empty(&self, accessor: &dyn MetadataAccessor) -> bool {
-        self.get_length(accessor) == 0
+        let table_refs = self.get_table_references();
+        table_refs
+            .iter()
+            .all(|table_ref| accessor.get_length(*table_ref) == 0)
     }
 
     /// Form components needed to verify and proof store into `VerificationBuilder`
