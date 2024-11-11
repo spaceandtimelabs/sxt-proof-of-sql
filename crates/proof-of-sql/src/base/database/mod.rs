@@ -20,6 +20,11 @@ pub use column_type_operation::{
 mod column_arithmetic_operation;
 pub(super) use column_arithmetic_operation::{AddOp, ArithmeticOp, DivOp, MulOp, SubOp};
 
+mod column_comparison_operation;
+pub(super) use column_comparison_operation::{
+    ComparisonOp, EqualOp, GreaterThanOrEqualOp, LessThanOrEqualOp,
+};
+
 mod column_operation_error;
 pub use column_operation_error::{ColumnOperationError, ColumnOperationResult};
 
