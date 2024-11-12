@@ -2,7 +2,7 @@
 //! vector used in a Vector-Matrix-Vector product in the dynamic dory scheme.
 
 use super::F;
-use ark_ff::Field;
+use ark_ff::{AdditiveGroup, Field};
 
 #[allow(dead_code)]
 /// This method produces evaluation vectors from a point. This is a helper method for generating a Vector-Matrix-Vector product in the dynamic dory scheme.
