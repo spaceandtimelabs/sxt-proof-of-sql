@@ -365,6 +365,7 @@ pub fn prove_group_by<'a, S: Scalar>(
     (g_out, sum_out, count_out): (&[Column<S>], &[&'a [S]], &'a [i64]),
 ) {
     let n = builder.table_length();
+    let ones = alloc.alloc_slice_fill_copy(n, 1u8);
     let m_out = count_out.len();
 
     // g_in_fold = alpha + sum beta^j * g_in[j]
@@ -426,7 +427,7 @@ pub fn prove_group_by<'a, S: Scalar>(
                 S::one(),
                 vec![Box::new(g_in_star as &[_]), Box::new(g_in_fold as &[_])],
             ),
-            (-S::one(), vec![]),
+            (-S::one(), vec![Box::new(ones as &[_])]),
         ],
     );
 
@@ -441,7 +442,7 @@ pub fn prove_group_by<'a, S: Scalar>(
                     Box::new(g_out_bar_fold as &[_]),
                 ],
             ),
-            (-S::one(), vec![]),
+            (-S::one(), vec![Box::new(ones as &[_])]),
         ],
     );
 }
