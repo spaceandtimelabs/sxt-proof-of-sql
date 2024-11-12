@@ -7,11 +7,6 @@ pub(crate) use final_round_builder::FinalRoundBuilder;
 #[cfg(all(test, feature = "blitzar"))]
 mod final_round_builder_test;
 
-mod composite_polynomial_builder;
-pub(crate) use composite_polynomial_builder::CompositePolynomialBuilder;
-#[cfg(test)]
-mod composite_polynomial_builder_test;
-
 mod proof_counts;
 pub(crate) use proof_counts::ProofCounts;
 

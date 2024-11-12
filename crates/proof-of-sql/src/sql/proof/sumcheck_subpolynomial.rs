@@ -1,4 +1,3 @@
-use super::CompositePolynomialBuilder;
 use crate::base::{polynomial::MultilinearExtension, scalar::Scalar};
 use alloc::{boxed::Box, vec::Vec};
 
@@ -59,22 +58,5 @@ impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
         self.terms.iter().map(move |(coeff, multiplicands)| {
             (self.subpolynomial_type, multiplier * *coeff, multiplicands)
         })
-    }
-
-    /// Combine the subpolynomial into a combined composite polynomial
-    pub fn compose(
-        &self,
-        composite_polynomial: &mut CompositePolynomialBuilder<S>,
-        group_multiplier: S,
-    ) {
-        for (mult, term) in &self.terms {
-            match self.subpolynomial_type {
-                SumcheckSubpolynomialType::Identity => {
-                    composite_polynomial.produce_fr_multiplicand(&(*mult * group_multiplier), term);
-                }
-                SumcheckSubpolynomialType::ZeroSum => composite_polynomial
-                    .produce_zerosum_multiplicand(&(*mult * group_multiplier), term),
-            }
-        }
     }
 }
