@@ -21,16 +21,16 @@ fn we_can_query_the_length_of_a_table() {
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
     let data1 = table([
-        bigint("a", [1, 2, 3], &alloc),
-        bigint("b", [4, 5, 6], &alloc),
+        borrowed_bigint("a", [1, 2, 3], &alloc),
+        borrowed_bigint("b", [4, 5, 6], &alloc),
     ]);
     accessor.add_table(table_ref_1, data1, 0_usize);
 
     assert_eq!(accessor.get_length(table_ref_1), 3);
 
     let data2 = table([
-        bigint("a", [1, 2, 3, 4], &alloc),
-        bigint("b", [4, 5, 6, 5], &alloc),
+        borrowed_bigint("a", [1, 2, 3, 4], &alloc),
+        borrowed_bigint("b", [4, 5, 6, 5], &alloc),
     ]);
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -46,8 +46,8 @@ fn we_can_access_the_columns_of_a_table() {
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
     let data1 = table([
-        bigint("a", [1, 2, 3], &alloc),
-        bigint("b", [4, 5, 6], &alloc),
+        borrowed_bigint("a", [1, 2, 3], &alloc),
+        borrowed_bigint("b", [4, 5, 6], &alloc),
     ]);
     accessor.add_table(table_ref_1, data1, 0_usize);
 
@@ -58,13 +58,13 @@ fn we_can_access_the_columns_of_a_table() {
     };
 
     let data2 = table([
-        bigint("a", [1, 2, 3, 4], &alloc),
-        bigint("b", [4, 5, 6, 5], &alloc),
-        int128("c128", [1, 2, 3, 4], &alloc),
-        varchar("varchar", ["a", "bc", "d", "e"], &alloc),
-        scalar("scalar", [1, 2, 3, 4], &alloc),
-        boolean("boolean", [true, false, true, false], &alloc),
-        timestamptz(
+        borrowed_bigint("a", [1, 2, 3, 4], &alloc),
+        borrowed_bigint("b", [4, 5, 6, 5], &alloc),
+        borrowed_int128("c128", [1, 2, 3, 4], &alloc),
+        borrowed_varchar("varchar", ["a", "bc", "d", "e"], &alloc),
+        borrowed_scalar("scalar", [1, 2, 3, 4], &alloc),
+        borrowed_boolean("boolean", [true, false, true, false], &alloc),
+        borrowed_timestamptz(
             "time",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
@@ -145,8 +145,8 @@ fn we_can_access_the_commitments_of_table_columns() {
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
     let data1 = table([
-        bigint("a", [1, 2, 3], &alloc),
-        bigint("b", [4, 5, 6], &alloc),
+        borrowed_bigint("a", [1, 2, 3], &alloc),
+        borrowed_bigint("b", [4, 5, 6], &alloc),
     ]);
     accessor.add_table(table_ref_1, data1, 0_usize);
 
@@ -161,8 +161,8 @@ fn we_can_access_the_commitments_of_table_columns() {
     );
 
     let data2 = table([
-        bigint("a", [1, 2, 3, 4], &alloc),
-        bigint("b", [4, 5, 6, 5], &alloc),
+        borrowed_bigint("a", [1, 2, 3, 4], &alloc),
+        borrowed_bigint("b", [4, 5, 6, 5], &alloc),
     ]);
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -195,8 +195,8 @@ fn we_can_access_the_type_of_table_columns() {
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
     let data1 = table([
-        bigint("a", [1, 2, 3], &alloc),
-        bigint("b", [4, 5, 6], &alloc),
+        borrowed_bigint("a", [1, 2, 3], &alloc),
+        borrowed_bigint("b", [4, 5, 6], &alloc),
     ]);
     accessor.add_table(table_ref_1, data1, 0_usize);
 
@@ -212,8 +212,8 @@ fn we_can_access_the_type_of_table_columns() {
         .is_none());
 
     let data2 = table([
-        bigint("a", [1, 2, 3, 4], &alloc),
-        bigint("b", [4, 5, 6, 5], &alloc),
+        borrowed_bigint("a", [1, 2, 3, 4], &alloc),
+        borrowed_bigint("b", [4, 5, 6, 5], &alloc),
     ]);
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -242,8 +242,8 @@ fn we_can_access_schema_and_column_names() {
     let table_ref_1 = "sxt.test".parse().unwrap();
 
     let data1 = table([
-        bigint("a", [1, 2, 3], &alloc),
-        varchar("b", ["x", "y", "z"], &alloc),
+        borrowed_bigint("a", [1, 2, 3], &alloc),
+        borrowed_varchar("b", ["x", "y", "z"], &alloc),
     ]);
     accessor.add_table(table_ref_1, data1, 0_usize);
 
@@ -264,8 +264,8 @@ fn we_can_correctly_update_offsets() {
     let table_ref = "sxt.test".parse().unwrap();
 
     let data = table([
-        bigint("a", [1, 2, 3], &alloc),
-        bigint("b", [123, 5, 123], &alloc),
+        borrowed_bigint("a", [1, 2, 3], &alloc),
+        borrowed_bigint("b", [123, 5, 123], &alloc),
     ]);
     accessor1.add_table(table_ref, data.clone(), 0_usize);
 

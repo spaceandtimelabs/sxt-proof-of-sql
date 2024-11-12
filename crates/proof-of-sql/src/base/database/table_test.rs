@@ -21,11 +21,11 @@ fn we_can_create_a_table_with_no_columns() {
 fn we_can_create_an_empty_table() {
     let alloc = Bump::new();
     let borrowed_table = table::<DoryScalar>([
-        bigint("bigint", [0; 0], &alloc),
-        int128("decimal", [0; 0], &alloc),
-        varchar("varchar", ["0"; 0], &alloc),
-        scalar("scalar", [0; 0], &alloc),
-        boolean("boolean", [true; 0], &alloc),
+        borrowed_bigint("bigint", [0; 0], &alloc),
+        borrowed_int128("decimal", [0; 0], &alloc),
+        borrowed_varchar("varchar", ["0"; 0], &alloc),
+        borrowed_scalar("scalar", [0; 0], &alloc),
+        borrowed_boolean("boolean", [true; 0], &alloc),
     ]);
     let mut table = IndexMap::default();
     table.insert(Identifier::try_new("bigint").unwrap(), Column::BigInt(&[]));
@@ -47,28 +47,28 @@ fn we_can_create_a_table_with_data() {
     let alloc = Bump::new();
 
     let borrowed_table = table::<DoryScalar>([
-        bigint(
+        borrowed_bigint(
             "bigint",
             [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
             &alloc,
         ),
-        int128(
+        borrowed_int128(
             "decimal",
             [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX],
             &alloc,
         ),
-        varchar(
+        borrowed_varchar(
             "varchar",
             ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
             &alloc,
         ),
-        scalar("scalar", [0, 1, 2, 3, 4, 5, 6, 7, 8], &alloc),
-        boolean(
+        borrowed_scalar("scalar", [0, 1, 2, 3, 4, 5, 6, 7, 8], &alloc),
+        borrowed_boolean(
             "boolean",
             [true, false, true, false, true, false, true, false, true],
             &alloc,
         ),
-        timestamptz(
+        borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
@@ -131,11 +131,11 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
     let alloc = Bump::new();
 
     let table_a: Table<'_, TestScalar> = table([
-        bigint("a", [0; 0], &alloc),
-        int128("b", [0; 0], &alloc),
-        varchar("c", ["0"; 0], &alloc),
-        boolean("d", [false; 0], &alloc),
-        timestamptz(
+        borrowed_bigint("a", [0; 0], &alloc),
+        borrowed_int128("b", [0; 0], &alloc),
+        borrowed_varchar("c", ["0"; 0], &alloc),
+        borrowed_boolean("d", [false; 0], &alloc),
+        borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
@@ -145,11 +145,11 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
     ]);
 
     let table_b: Table<'_, TestScalar> = table([
-        boolean("d", [false; 0], &alloc),
-        int128("b", [0; 0], &alloc),
-        bigint("a", [0; 0], &alloc),
-        varchar("c", ["0"; 0], &alloc),
-        timestamptz(
+        borrowed_boolean("d", [false; 0], &alloc),
+        borrowed_int128("b", [0; 0], &alloc),
+        borrowed_bigint("a", [0; 0], &alloc),
+        borrowed_varchar("c", ["0"; 0], &alloc),
+        borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
@@ -166,11 +166,11 @@ fn we_get_inequality_between_tables_with_differing_data() {
     let alloc = Bump::new();
 
     let table_a: Table<'_, DoryScalar> = table([
-        bigint("a", [0], &alloc),
-        int128("b", [0], &alloc),
-        varchar("c", ["0"], &alloc),
-        boolean("d", [true], &alloc),
-        timestamptz(
+        borrowed_bigint("a", [0], &alloc),
+        borrowed_int128("b", [0], &alloc),
+        borrowed_varchar("c", ["0"], &alloc),
+        borrowed_boolean("d", [true], &alloc),
+        borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
@@ -180,11 +180,11 @@ fn we_get_inequality_between_tables_with_differing_data() {
     ]);
 
     let table_b: Table<'_, DoryScalar> = table([
-        bigint("a", [1], &alloc),
-        int128("b", [0], &alloc),
-        varchar("c", ["0"], &alloc),
-        boolean("d", [true], &alloc),
-        timestamptz(
+        borrowed_bigint("a", [1], &alloc),
+        borrowed_int128("b", [0], &alloc),
+        borrowed_varchar("c", ["0"], &alloc),
+        borrowed_boolean("d", [true], &alloc),
+        borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,

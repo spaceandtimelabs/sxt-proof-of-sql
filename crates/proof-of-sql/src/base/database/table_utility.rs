@@ -7,12 +7,12 @@
 //! use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 //! let alloc = Bump::new();
 //! let result = table::<Curve25519Scalar>([
-//!     bigint("a", [1, 2, 3], &alloc),
-//!     boolean("b", [true, false, true], &alloc),
-//!     int128("c", [1, 2, 3], &alloc),
-//!     scalar("d", [1, 2, 3], &alloc),
-//!     varchar("e", ["a", "b", "c"], &alloc),
-//!     decimal75("f", 12, 1, [1, 2, 3], &alloc),
+//!     borrowed_bigint("a", [1, 2, 3], &alloc),
+//!     borrowed_boolean("b", [true, false, true], &alloc),
+//!     borrowed_int128("c", [1, 2, 3], &alloc),
+//!     borrowed_scalar("d", [1, 2, 3], &alloc),
+//!     borrowed_varchar("e", ["a", "b", "c"], &alloc),
+//!     borrowed_decimal75("f", 12, 1, [1, 2, 3], &alloc),
 //! ]);
 //! ```
 use super::{Column, Table};
@@ -36,12 +36,12 @@ use proof_of_sql_parser::{
 /// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     bigint("a", [1, 2, 3], &alloc),
-///     boolean("b", [true, false, true], &alloc),
-///     int128("c", [1, 2, 3], &alloc),
-///     scalar("d", [1, 2, 3], &alloc),
-///     varchar("e", ["a", "b", "c"], &alloc),
-///     decimal75("f", 12, 1, [1, 2, 3], &alloc),
+///     borrowed_bigint("a", [1, 2, 3], &alloc),
+///     borrowed_boolean("b", [true, false, true], &alloc),
+///     borrowed_int128("c", [1, 2, 3], &alloc),
+///     borrowed_scalar("d", [1, 2, 3], &alloc),
+///     borrowed_varchar("e", ["a", "b", "c"], &alloc),
+///     borrowed_decimal75("f", 12, 1, [1, 2, 3], &alloc),
 /// ]);
 /// ```
 ///
@@ -61,12 +61,12 @@ pub fn table<'a, S: Scalar>(
 /// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     tinyint("a", [1_i8, 2, 3], &alloc),
+///     borrowed_tinyint("a", [1_i8, 2, 3], &alloc),
 /// ]);
 ///```
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
-pub fn tinyint<S: Scalar>(
+pub fn borrowed_tinyint<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i8>>,
     alloc: &Bump,
@@ -85,13 +85,13 @@ pub fn tinyint<S: Scalar>(
 /// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     smallint("a", [1_i16, 2, 3], &alloc),
+///     borrowed_smallint("a", [1_i16, 2, 3], &alloc),
 /// ]);
 /// ```
 ///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
-pub fn smallint<S: Scalar>(
+pub fn borrowed_smallint<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i16>>,
     alloc: &Bump,
@@ -110,13 +110,13 @@ pub fn smallint<S: Scalar>(
 /// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     int("a", [1, 2, 3], &alloc),
+///     borrowed_int("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
 ///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
-pub fn int<S: Scalar>(
+pub fn borrowed_int<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i32>>,
     alloc: &Bump,
@@ -135,14 +135,14 @@ pub fn int<S: Scalar>(
 /// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     bigint("a", [1, 2, 3], &alloc),
+///     borrowed_bigint("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
 ///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 #[allow(clippy::missing_panics_doc)]
-pub fn bigint<S: Scalar>(
+pub fn borrowed_bigint<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i64>>,
     alloc: &Bump,
@@ -161,13 +161,13 @@ pub fn bigint<S: Scalar>(
 /// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     boolean("a", [true, false, true], &alloc),
+///     borrowed_boolean("a", [true, false, true], &alloc),
 /// ]);
 /// ```
 ///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
-pub fn boolean<S: Scalar>(
+pub fn borrowed_boolean<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<bool>>,
     alloc: &Bump,
@@ -186,13 +186,13 @@ pub fn boolean<S: Scalar>(
 /// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     int128("a", [1, 2, 3], &alloc),
+///     borrowed_int128("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
 ///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
-pub fn int128<S: Scalar>(
+pub fn borrowed_int128<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i128>>,
     alloc: &Bump,
@@ -211,13 +211,13 @@ pub fn int128<S: Scalar>(
 /// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     scalar("a", [1, 2, 3], &alloc),
+///     borrowed_scalar("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
 ///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
-pub fn scalar<S: Scalar>(
+pub fn borrowed_scalar<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<S>>,
     alloc: &Bump,
@@ -235,13 +235,13 @@ pub fn scalar<S: Scalar>(
 /// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     varchar("a", ["a", "b", "c"], &alloc),
+///     borrowed_varchar("a", ["a", "b", "c"], &alloc),
 /// ]);
 /// ```
 ///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
-pub fn varchar<'a, S: Scalar>(
+pub fn borrowed_varchar<'a, S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<String>>,
     alloc: &'a Bump,
@@ -254,7 +254,7 @@ pub fn varchar<'a, S: Scalar>(
         })
         .collect();
     let alloc_strings = alloc.alloc_slice_clone(&strings);
-    let scalars: Vec<S> = strings.into_iter().map(Into::into).collect();
+    let scalars: Vec<S> = strings.iter().map(|s| (*s).into()).collect();
     let alloc_scalars = alloc.alloc_slice_copy(&scalars);
     (
         name.parse().unwrap(),
@@ -270,14 +270,14 @@ pub fn varchar<'a, S: Scalar>(
 /// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     decimal75("a", 12, 1, [1, 2, 3], &alloc),
+///     borrowed_decimal75("a", 12, 1, [1, 2, 3], &alloc),
 /// ]);
 /// ```
 ///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 /// - Panics if creating the `Precision` from the specified precision value fails.
-pub fn decimal75<S: Scalar>(
+pub fn borrowed_decimal75<S: Scalar>(
     name: impl Deref<Target = str>,
     precision: u8,
     scale: i8,
@@ -317,13 +317,13 @@ pub fn decimal75<S: Scalar>(
 ///
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600], &alloc),
+///     borrowed_timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600], &alloc),
 /// ]);
 /// ```
 ///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
-pub fn timestamptz<S: Scalar>(
+pub fn borrowed_timestamptz<S: Scalar>(
     name: impl Deref<Target = str>,
     time_unit: PoSQLTimeUnit,
     timezone: PoSQLTimeZone,
