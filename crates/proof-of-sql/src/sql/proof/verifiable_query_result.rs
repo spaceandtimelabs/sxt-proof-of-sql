@@ -90,8 +90,8 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         // handle the empty case
         let table_refs = expr.get_table_references();
         if table_refs
-            .iter()
-            .all(|table_ref| accessor.get_length(*table_ref) == 0)
+            .into_iter()
+            .all(|table_ref| accessor.get_length(table_ref) == 0)
         {
             return VerifiableQueryResult {
                 provable_result: None,
@@ -130,8 +130,8 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         // handle the empty case
         let table_refs = expr.get_table_references();
         if table_refs
-            .iter()
-            .all(|table_ref| accessor.get_length(*table_ref) == 0)
+            .into_iter()
+            .all(|table_ref| accessor.get_length(table_ref) == 0)
         {
             if self.provable_result.is_some() || self.proof.is_some() {
                 return Err(ProofError::VerificationError {
