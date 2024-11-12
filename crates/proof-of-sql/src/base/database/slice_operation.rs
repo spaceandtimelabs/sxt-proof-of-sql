@@ -4,7 +4,7 @@ use core::fmt::Debug;
 use num_traits::ops::checked::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 
 /// Function for checked addition with overflow error handling
-fn try_add<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+pub(super) fn try_add<T>(l: &T, r: &T) -> ColumnOperationResult<T>
 where
     T: CheckedAdd<Output = T> + Debug,
 {
@@ -15,7 +15,7 @@ where
 }
 
 /// Function for checked subtraction with overflow error handling
-fn try_sub<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+pub(super) fn try_sub<T>(l: &T, r: &T) -> ColumnOperationResult<T>
 where
     T: CheckedSub<Output = T> + Debug,
 {
@@ -26,7 +26,7 @@ where
 }
 
 /// Function for checked multiplication with overflow error handling
-fn try_mul<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+pub(super) fn try_mul<T>(l: &T, r: &T) -> ColumnOperationResult<T>
 where
     T: CheckedMul<Output = T> + Debug,
 {
@@ -37,7 +37,7 @@ where
 }
 
 /// Function for checked division with division by zero error handling
-fn try_div<T>(l: &T, r: &T) -> ColumnOperationResult<T>
+pub(super) fn try_div<T>(l: &T, r: &T) -> ColumnOperationResult<T>
 where
     T: CheckedDiv<Output = T> + Debug,
 {
@@ -142,201 +142,10 @@ pub(super) fn slice_or(lhs: &[bool], rhs: &[bool]) -> Vec<bool> {
     slice_binary_op(lhs, rhs, |l, r| -> bool { *l || *r })
 }
 
-/// Try to check whether two slices of the same length are equal element-wise.
-///
-/// We do not check for length equality here.
-pub(super) fn slice_eq<T>(lhs: &[T], rhs: &[T]) -> Vec<bool>
-where
-    T: PartialEq + Debug,
-{
-    slice_binary_op(lhs, rhs, PartialEq::eq)
-}
-
-/// Try to check whether a slice is less than or equal to another element-wise.
-///
-/// We do not check for length equality here.
-pub(super) fn slice_le<T>(lhs: &[T], rhs: &[T]) -> Vec<bool>
-where
-    T: PartialOrd + Debug,
-{
-    slice_binary_op(lhs, rhs, PartialOrd::le)
-}
-
-/// Try to check whether a slice is greater than or equal to another element-wise.
-///
-/// We do not check for length equality here.
-pub(super) fn slice_ge<T>(lhs: &[T], rhs: &[T]) -> Vec<bool>
-where
-    T: PartialOrd + Debug,
-{
-    slice_binary_op(lhs, rhs, PartialOrd::ge)
-}
-
-/// Try to add two slices of the same length.
-///
-/// We do not check for length equality here. However, we do check for integer overflow.
-pub(super) fn try_add_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationResult<Vec<T>>
-where
-    T: CheckedAdd<Output = T> + Debug,
-{
-    try_slice_binary_op(lhs, rhs, try_add)
-}
-
-/// Subtract one slice from another of the same length.
-///
-/// We do not check for length equality here. However, we do check for integer overflow.
-pub(super) fn try_subtract_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationResult<Vec<T>>
-where
-    T: CheckedSub<Output = T> + Debug,
-{
-    try_slice_binary_op(lhs, rhs, try_sub)
-}
-
-/// Multiply two slices of the same length.
-///
-/// We do not check for length equality here. However, we do check for integer overflow.
-pub(super) fn try_multiply_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationResult<Vec<T>>
-where
-    T: CheckedMul<Output = T> + Debug,
-{
-    try_slice_binary_op(lhs, rhs, try_mul)
-}
-
-/// Divide one slice by another of the same length.
-///
-/// We do not check for length equality here. However, we do check for division by 0.
-pub(super) fn try_divide_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationResult<Vec<T>>
-where
-    T: CheckedDiv<Output = T> + Debug,
-{
-    try_slice_binary_op(lhs, rhs, try_div)
-}
-
-// Casting required for binary operations on different types
-
-/// Check whether two slices of the same length are equal element-wise.
-///
-/// Note that we cast elements of the left slice to the type of the right slice.
-/// Also note that we do not check for length equality here.
-pub(super) fn slice_eq_with_casting<S, T>(lhs: &[S], rhs: &[T]) -> Vec<bool>
-where
-    S: Copy + Debug + Into<T>,
-    T: PartialEq + Copy + Debug,
-{
-    slice_binary_op_left_upcast(lhs, rhs, PartialEq::eq)
-}
-
-/// Check whether a slice is less than or equal to another element-wise.
-///
-/// Note that we cast elements of the left slice to the type of the right slice.
-/// Also note that we do not check for length equality here.
-pub(super) fn slice_le_with_casting<S, T>(lhs: &[S], rhs: &[T]) -> Vec<bool>
-where
-    S: Copy + Debug + Into<T>,
-    T: PartialOrd + Copy + Debug,
-{
-    slice_binary_op_left_upcast(lhs, rhs, PartialOrd::le)
-}
-
-/// Check whether a slice is greater than or equal to another element-wise.
-///
-/// Note that we cast elements of the left slice to the type of the right slice.
-/// Also note that we do not check for length equality here.
-pub(super) fn slice_ge_with_casting<S, T>(lhs: &[S], rhs: &[T]) -> Vec<bool>
-where
-    S: Copy + Debug + Into<T>,
-    T: PartialOrd + Copy + Debug,
-{
-    slice_binary_op_left_upcast(lhs, rhs, PartialOrd::ge)
-}
-
-/// Add two slices of the same length, casting the left slice to the type of the right slice.
-///
-/// We do not check for length equality here. However, we do check for integer overflow.
-pub(super) fn try_add_slices_with_casting<S, T>(
-    lhs: &[S],
-    rhs: &[T],
-) -> ColumnOperationResult<Vec<T>>
-where
-    S: Copy + Debug + Into<T>,
-    T: CheckedAdd<Output = T> + Copy + Debug,
-{
-    try_slice_binary_op_left_upcast(lhs, rhs, try_add)
-}
-
-/// Subtract one slice from another of the same length, casting the left slice to the type of the right slice.
-///
-/// We do not check for length equality here
-pub(super) fn try_subtract_slices_left_upcast<S, T>(
-    lhs: &[S],
-    rhs: &[T],
-) -> ColumnOperationResult<Vec<T>>
-where
-    S: Copy + Debug + Into<T>,
-    T: CheckedSub<Output = T> + Copy + Debug,
-{
-    try_slice_binary_op_left_upcast(lhs, rhs, try_sub)
-}
-
-/// Subtract one slice from another of the same length, casting the right slice to the type of the left slice.
-///
-/// We do not check for length equality here
-pub(super) fn try_subtract_slices_right_upcast<S, T>(
-    lhs: &[T],
-    rhs: &[S],
-) -> ColumnOperationResult<Vec<T>>
-where
-    S: Copy + Debug + Into<T>,
-    T: CheckedSub<Output = T> + Copy + Debug,
-{
-    try_slice_binary_op_right_upcast(lhs, rhs, try_sub)
-}
-
-/// Multiply two slices of the same length, casting the left slice to the type of the right slice.
-///
-/// We do not check for length equality here. However, we do check for integer overflow.
-pub(super) fn try_multiply_slices_with_casting<S, T>(
-    lhs: &[S],
-    rhs: &[T],
-) -> ColumnOperationResult<Vec<T>>
-where
-    S: Copy + Debug + Into<T>,
-    T: CheckedMul<Output = T> + Copy + Debug,
-{
-    try_slice_binary_op_left_upcast(lhs, rhs, try_mul)
-}
-
-/// Divide one slice by another of the same length, casting the left slice to the type of the right slice.
-///
-/// We do not check for length equality here
-pub(super) fn try_divide_slices_left_upcast<S, T>(
-    lhs: &[S],
-    rhs: &[T],
-) -> ColumnOperationResult<Vec<T>>
-where
-    S: Copy + Debug + Into<T>,
-    T: CheckedDiv<Output = T> + Copy + Debug,
-{
-    try_slice_binary_op_left_upcast(lhs, rhs, try_div)
-}
-
-/// Divide one slice by another of the same length, casting the right slice to the type of the left slice.
-///
-/// We do not check for length equality here
-pub(super) fn try_divide_slices_right_upcast<S, T>(
-    lhs: &[T],
-    rhs: &[S],
-) -> ColumnOperationResult<Vec<T>>
-where
-    S: Copy + Debug + Into<T>,
-    T: CheckedDiv<Output = T> + Copy + Debug,
-{
-    try_slice_binary_op_right_upcast(lhs, rhs, try_div)
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use core::cmp::{PartialEq, PartialOrd};
 
     // NOT
     #[test]
@@ -372,14 +181,14 @@ mod test {
     fn we_can_eq_slices() {
         let lhs = [1_i16, 2, 3];
         let rhs = [1_i16, 3, 3];
-        let actual = slice_eq(&lhs, &rhs);
+        let actual = slice_binary_op(&lhs, &rhs, PartialEq::eq);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
 
         // Try strings
         let lhs = ["Chloe".to_string(), "Margaret".to_string()];
         let rhs = ["Chloe".to_string(), "Chloe".to_string()];
-        let actual = slice_eq(&lhs, &rhs);
+        let actual = slice_binary_op(&lhs, &rhs, PartialEq::eq);
         let expected = vec![true, false];
         assert_eq!(expected, actual);
     }
@@ -388,7 +197,7 @@ mod test {
     fn we_can_eq_slices_with_cast() {
         let lhs = [1_i16, 2, 3];
         let rhs = [1_i32, 3, 3];
-        let actual = slice_eq_with_casting(&lhs, &rhs);
+        let actual = slice_binary_op_left_upcast(&lhs, &rhs, PartialEq::eq);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
     }
@@ -398,7 +207,7 @@ mod test {
     fn we_can_le_slices() {
         let lhs = [1_i32, 2, 3];
         let rhs = [1_i32, 3, 2];
-        let actual = slice_le(&lhs, &rhs);
+        let actual = slice_binary_op(&lhs, &rhs, PartialOrd::le);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
     }
@@ -407,7 +216,7 @@ mod test {
     fn we_can_le_slices_with_cast() {
         let lhs = [1_i16, 2, 3];
         let rhs = [1_i64, 3, 2];
-        let actual = slice_le_with_casting(&lhs, &rhs);
+        let actual = slice_binary_op_left_upcast(&lhs, &rhs, PartialOrd::le);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
     }
@@ -417,7 +226,7 @@ mod test {
     fn we_can_ge_slices() {
         let lhs = [1_i128, 2, 3];
         let rhs = [1_i128, 3, 2];
-        let actual = slice_ge(&lhs, &rhs);
+        let actual = slice_binary_op(&lhs, &rhs, PartialOrd::ge);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
     }
@@ -426,7 +235,7 @@ mod test {
     fn we_can_ge_slices_with_cast() {
         let lhs = [1_i16, 2, 3];
         let rhs = [1_i64, 3, 2];
-        let actual = slice_ge_with_casting(&lhs, &rhs);
+        let actual = slice_binary_op_left_upcast(&lhs, &rhs, PartialOrd::ge);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
     }
@@ -436,7 +245,7 @@ mod test {
     fn we_can_try_add_slices() {
         let lhs = [1_i16, 2, 3];
         let rhs = [4_i16, -5, 6];
-        let actual = try_add_slices(&lhs, &rhs).unwrap();
+        let actual = try_slice_binary_op(&lhs, &rhs, try_add).unwrap();
         let expected = vec![5_i16, -3, 9];
         assert_eq!(expected, actual);
     }
@@ -446,7 +255,7 @@ mod test {
         let lhs = [i16::MAX, 1];
         let rhs = [1_i16, 1];
         assert!(matches!(
-            try_add_slices(&lhs, &rhs),
+            try_slice_binary_op(&lhs, &rhs, try_add),
             Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
@@ -455,7 +264,7 @@ mod test {
     fn we_can_try_add_slices_with_cast() {
         let lhs = [1_i16, 2, 3];
         let rhs = [4_i32, -5, 6];
-        let actual = try_add_slices_with_casting(&lhs, &rhs).unwrap();
+        let actual = try_slice_binary_op_left_upcast(&lhs, &rhs, try_add).unwrap();
         let expected = vec![5_i32, -3, 9];
         assert_eq!(expected, actual);
     }
@@ -465,7 +274,7 @@ mod test {
         let lhs = [-1_i16, 1];
         let rhs = [i32::MIN, 1];
         assert!(matches!(
-            try_add_slices_with_casting(&lhs, &rhs),
+            try_slice_binary_op_left_upcast(&lhs, &rhs, try_add),
             Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
@@ -475,7 +284,7 @@ mod test {
     fn we_can_try_subtract_slices() {
         let lhs = [1_i16, 2, 3];
         let rhs = [4_i16, -5, 6];
-        let actual = try_subtract_slices(&lhs, &rhs).unwrap();
+        let actual = try_slice_binary_op(&lhs, &rhs, try_sub).unwrap();
         let expected = vec![-3_i16, 7, -3];
         assert_eq!(expected, actual);
     }
@@ -485,7 +294,7 @@ mod test {
         let lhs = [i128::MIN, 1];
         let rhs = [1_i128, 1];
         assert!(matches!(
-            try_subtract_slices(&lhs, &rhs),
+            try_slice_binary_op(&lhs, &rhs, try_sub),
             Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
@@ -494,7 +303,7 @@ mod test {
     fn we_can_try_subtract_slices_left_upcast() {
         let lhs = [1_i16, 2, 3];
         let rhs = [4_i32, -5, 6];
-        let actual = try_subtract_slices_left_upcast(&lhs, &rhs).unwrap();
+        let actual = try_slice_binary_op_left_upcast(&lhs, &rhs, try_sub).unwrap();
         let expected = vec![-3_i32, 7, -3];
         assert_eq!(expected, actual);
     }
@@ -504,7 +313,7 @@ mod test {
         let lhs = [0_i16, 1];
         let rhs = [i32::MIN, 1];
         assert!(matches!(
-            try_subtract_slices_left_upcast(&lhs, &rhs),
+            try_slice_binary_op_left_upcast(&lhs, &rhs, try_sub),
             Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
@@ -513,7 +322,7 @@ mod test {
     fn we_can_try_subtract_slices_right_upcast() {
         let lhs = [1_i32, 2, 3];
         let rhs = [4_i16, -5, 6];
-        let actual = try_subtract_slices_right_upcast(&lhs, &rhs).unwrap();
+        let actual = try_slice_binary_op_right_upcast(&lhs, &rhs, try_sub).unwrap();
         let expected = vec![-3_i32, 7, -3];
         assert_eq!(expected, actual);
     }
@@ -523,7 +332,7 @@ mod test {
         let lhs = [i32::MIN, 1];
         let rhs = [1_i16, 1];
         assert!(matches!(
-            try_subtract_slices_right_upcast(&lhs, &rhs),
+            try_slice_binary_op_right_upcast(&lhs, &rhs, try_sub),
             Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
@@ -533,7 +342,7 @@ mod test {
     fn we_can_try_multiply_slices() {
         let lhs = [1_i16, 2, 3];
         let rhs = [4_i16, -5, 6];
-        let actual = try_multiply_slices(&lhs, &rhs).unwrap();
+        let actual = try_slice_binary_op(&lhs, &rhs, try_mul).unwrap();
         let expected = vec![4_i16, -10, 18];
         assert_eq!(expected, actual);
     }
@@ -543,7 +352,7 @@ mod test {
         let lhs = [i32::MAX, 2];
         let rhs = [2, 2];
         assert!(matches!(
-            try_multiply_slices(&lhs, &rhs),
+            try_slice_binary_op(&lhs, &rhs, try_mul),
             Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
@@ -552,7 +361,7 @@ mod test {
     fn we_can_try_multiply_slices_with_cast() {
         let lhs = [1_i16, 2, 3];
         let rhs = [4_i32, -5, 6];
-        let actual = try_multiply_slices_with_casting(&lhs, &rhs).unwrap();
+        let actual = try_slice_binary_op_left_upcast(&lhs, &rhs, try_mul).unwrap();
         let expected = vec![4_i32, -10, 18];
         assert_eq!(expected, actual);
     }
@@ -562,7 +371,7 @@ mod test {
         let lhs = [2_i16, 2];
         let rhs = [i32::MAX, 2];
         assert!(matches!(
-            try_multiply_slices_with_casting(&lhs, &rhs),
+            try_slice_binary_op_left_upcast(&lhs, &rhs, try_mul),
             Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
@@ -572,7 +381,7 @@ mod test {
     fn we_can_try_divide_slices() {
         let lhs = [5_i16, -5, -7, 9];
         let rhs = [-3_i16, 3, -4, 5];
-        let actual = try_divide_slices(&lhs, &rhs).unwrap();
+        let actual = try_slice_binary_op(&lhs, &rhs, try_div).unwrap();
         let expected = vec![-1_i16, -1, 1, 1];
         assert_eq!(expected, actual);
     }
@@ -582,7 +391,7 @@ mod test {
         let lhs = [1_i32, 2, 3];
         let rhs = [0_i32, -5, 6];
         assert!(matches!(
-            try_divide_slices(&lhs, &rhs),
+            try_slice_binary_op(&lhs, &rhs, try_div),
             Err(ColumnOperationError::DivisionByZero)
         ));
     }
@@ -591,7 +400,7 @@ mod test {
     fn we_can_try_divide_slices_left_upcast() {
         let lhs = [5_i16, -4, -9, 9];
         let rhs = [-3_i32, 3, -4, 5];
-        let actual = try_divide_slices_left_upcast(&lhs, &rhs).unwrap();
+        let actual = try_slice_binary_op_left_upcast(&lhs, &rhs, try_div).unwrap();
         let expected = vec![-1_i32, -1, 2, 1];
         assert_eq!(expected, actual);
     }
@@ -601,7 +410,7 @@ mod test {
         let lhs = [1_i16, 2];
         let rhs = [0_i32, 2];
         assert!(matches!(
-            try_divide_slices_left_upcast(&lhs, &rhs),
+            try_slice_binary_op_left_upcast(&lhs, &rhs, try_div),
             Err(ColumnOperationError::DivisionByZero)
         ));
     }
@@ -610,7 +419,7 @@ mod test {
     fn we_can_try_divide_slices_right_upcast() {
         let lhs = [15_i128, -82, -7, 9];
         let rhs = [-3_i32, 3, -4, 5];
-        let actual = try_divide_slices_right_upcast(&lhs, &rhs).unwrap();
+        let actual = try_slice_binary_op_right_upcast(&lhs, &rhs, try_div).unwrap();
         let expected = vec![-5_i128, -27, 1, 1];
         assert_eq!(expected, actual);
     }
@@ -620,7 +429,7 @@ mod test {
         let lhs = [1_i32, 2];
         let rhs = [0_i16, 2];
         assert!(matches!(
-            try_divide_slices_right_upcast(&lhs, &rhs),
+            try_slice_binary_op_right_upcast(&lhs, &rhs, try_div),
             Err(ColumnOperationError::DivisionByZero)
         ));
     }
