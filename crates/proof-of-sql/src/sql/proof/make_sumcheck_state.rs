@@ -1,4 +1,7 @@
-use super::{SumcheckRandomScalars, SumcheckSubpolynomial, SumcheckSubpolynomialType};
+use super::{
+    sumcheck_term_optimizer::SumcheckTermOptimizer, SumcheckRandomScalars, SumcheckSubpolynomial,
+    SumcheckSubpolynomialType,
+};
 use crate::{
     base::{map::IndexMap, polynomial::MultilinearExtension, scalar::Scalar},
     proof_primitive::sumcheck::ProverState,
@@ -6,6 +9,7 @@ use crate::{
 use alloc::vec::Vec;
 use core::ffi::c_void;
 use itertools::Itertools;
+use tracing::Level;
 
 #[tracing::instrument(
     name = "query_proof::make_sumcheck_prover_state",
@@ -25,11 +29,19 @@ pub fn make_sumcheck_prover_state<S: Scalar>(
         .iter()
         .zip(subpolynomials)
         .flat_map(|(multiplier, terms)| terms.iter_mul_by(*multiplier));
+
+    // Optimization should be very fast. We put this span to double check this. There is almost no copying being done.
+    let span = tracing::span!(Level::DEBUG, "optimize sumcheck terms").entered();
+    let optimizer = SumcheckTermOptimizer::new(all_terms, 1 << num_vars);
+    let optimized_terms = optimizer.terms();
+    let optimized_term_iter = optimized_terms.into_iter();
+    span.exit();
+
     let mut builder = FlattenedMLEBuilder::new(
         needs_entrywise_multipliers.then(|| scalars.compute_entrywise_multipliers()),
         num_vars,
     );
-    let list_of_products = all_terms
+    let list_of_products = optimized_term_iter
         .map(|(ty, coeff, term)| {
             (
                 coeff,
@@ -135,10 +147,10 @@ mod tests {
         assert_eq!(
             prover_state.list_of_products,
             vec![
-                (TestScalar::from(101 * 202), vec![1, 0]),
-                (TestScalar::from(102 * 202), vec![2, 1, 0]),
                 (TestScalar::from(103 * 203), vec![1]),
-                (TestScalar::from(104 * 203), vec![2, 1])
+                (TestScalar::from(104 * 203), vec![2, 1]),
+                (TestScalar::from(101 * 202), vec![1, 0]),
+                (TestScalar::from(102 * 202), vec![2, 1, 0])
             ]
         );
         assert_eq!(
@@ -218,18 +230,12 @@ mod tests {
         assert_eq!(
             prover_state.list_of_products,
             vec![
-                (TestScalar::from(101 * 204), vec![0]),
-                (TestScalar::from(102 * 204), vec![0]),
-                (TestScalar::from(103 * 204), vec![1, 0]),
-                (TestScalar::from(104 * 204), vec![2, 0]),
+                (TestScalar::from(111 * 207), vec![1, 2]),
+                (TestScalar::from(112 * 207), vec![3, 2, 4]),
                 (TestScalar::from(105 * 205), vec![2, 3, 0]),
                 (TestScalar::from(106 * 205), vec![1, 2, 4, 0]),
-                (TestScalar::from(107 * 206), vec![]),
-                (TestScalar::from(108 * 206), vec![]),
-                (TestScalar::from(109 * 206), vec![3]),
-                (TestScalar::from(110 * 206), vec![4]),
-                (TestScalar::from(111 * 207), vec![1, 2]),
-                (TestScalar::from(112 * 207), vec![3, 2, 4])
+                (TestScalar::from(1), vec![5]),
+                (TestScalar::from(1), vec![6, 0]),
             ]
         );
         assert_eq!(
@@ -249,6 +255,26 @@ mod tests {
                 vec![1, 0, 0, 0, 0, 0, 0, 0],
                 vec![2, 3, 0, 0, 0, 0, 0, 0],
                 vec![4, 5, 6, 7, 8, 0, 0, 0],
+                vec![
+                    107 * 206 + 108 * 206 + 109 * 206 * 2 + 110 * 206 * 4,
+                    107 * 206 + 108 * 206 + 109 * 206 * 3 + 110 * 206 * 5,
+                    107 * 206 + 108 * 206 + 110 * 206 * 6,
+                    107 * 206 + 108 * 206 + 110 * 206 * 7,
+                    107 * 206 + 108 * 206 + 110 * 206 * 8,
+                    107 * 206 + 108 * 206,
+                    107 * 206 + 108 * 206,
+                    107 * 206 + 108 * 206
+                ],
+                vec![
+                    101 * 204 + 102 * 204 + 104 * 204,
+                    101 * 204 + 102 * 204,
+                    101 * 204 + 102 * 204,
+                    101 * 204 + 102 * 204,
+                    101 * 204 + 102 * 204,
+                    101 * 204 + 102 * 204,
+                    101 * 204 + 102 * 204,
+                    101 * 204 + 102 * 204
+                ],
             ]
             .into_iter()
             .map(|v| v.into_iter().map(TestScalar::from).collect_vec())
