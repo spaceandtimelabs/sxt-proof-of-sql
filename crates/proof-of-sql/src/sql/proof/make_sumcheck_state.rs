@@ -42,11 +42,11 @@ impl<'a, S: Scalar> FlattenedMLEBuilder<'a, S> {
     fn flattened_ml_extensions(self) -> Vec<Vec<S>> {
         self.entrywise_multipliers
             .into_iter()
-            .map(|mle| (&mle).to_sumcheck_term(self.num_vars).as_ref().clone())
+            .map(|mle| (&mle).to_sumcheck_term(self.num_vars))
             .chain(
                 self.all_ml_extensions
                     .iter()
-                    .map(|mle| mle.to_sumcheck_term(self.num_vars).as_ref().clone()),
+                    .map(|mle| mle.to_sumcheck_term(self.num_vars)),
             )
             .collect()
     }
