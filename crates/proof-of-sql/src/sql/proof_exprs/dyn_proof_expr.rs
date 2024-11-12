@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, DataAccessor, LiteralValue},
+        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,

@@ -1,7 +1,7 @@
 use super::ProofExpr;
 use crate::{
     base::{
-        database::{Column, ColumnField, ColumnRef, ColumnType, DataAccessor},
+        database::{Column, ColumnField, ColumnRef, ColumnType, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -39,6 +39,18 @@ impl ColumnExpr {
     pub fn column_id(&self) -> Identifier {
         self.column_ref.column_id()
     }
+
+    /// Get the column
+    /// # Panics
+    ///
+    /// Will panic if the column is not found. Shouldn't happen in practice since
+    /// code in `sql/parse` should have already checked that the column exists.
+    pub fn get_column<'a, S: Scalar>(&self, table: &Table<'a, S>) -> Column<'a, S> {
+        *table
+            .inner_table()
+            .get(&self.column_ref.column_id())
+            .expect("Column not found")
+    }
 }
 
 impl ProofExpr for ColumnExpr {
@@ -56,13 +68,10 @@ impl ProofExpr for ColumnExpr {
     /// add the result to the [`FirstRoundBuilder`](crate::sql::proof::FirstRoundBuilder)
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         _alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        let column = accessor.get_column(self.column_ref);
-        assert_eq!(column.len(), table_length);
-        column
+        self.get_column(table)
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the column expression and
@@ -71,9 +80,9 @@ impl ProofExpr for ColumnExpr {
         &self,
         _builder: &mut FinalRoundBuilder<'a, S>,
         _alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        accessor.get_column(self.column_ref)
+        self.get_column(table)
     }
 
     /// Evaluate the column expression at the sumcheck's random point,

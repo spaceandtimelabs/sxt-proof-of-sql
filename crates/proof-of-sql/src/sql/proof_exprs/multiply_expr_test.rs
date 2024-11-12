@@ -1,7 +1,10 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
+        database::{
+            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor,
+            TableTestAccessor,
+        },
         scalar::{test_scalar::TestScalar, Curve25519Scalar},
     },
     sql::{
@@ -332,20 +335,20 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 // b * (a - 1.5)
 #[test]
 fn we_can_compute_the_correct_output_of_a_multiply_expr_using_result_evaluate() {
-    let data = owned_table([
-        smallint("a", [1_i16, 2, 3, 4]),
-        int("b", [0_i32, 1, 5, 1]),
-        varchar("d", ["ab", "t", "efg", "g"]),
-        bigint("c", [0_i64, 2, 2, 0]),
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_smallint("a", [1_i16, 2, 3, 4], &alloc),
+        borrowed_int("b", [0_i32, 1, 5, 1], &alloc),
+        borrowed_varchar("d", ["ab", "t", "efg", "g"], &alloc),
+        borrowed_bigint("c", [0_i64, 2, 2, 0], &alloc),
     ]);
     let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(t, data.clone(), 0, ());
     let arithmetic_expr: DynProofExpr = multiply(
         column(t, "b", &accessor),
         subtract(column(t, "a", &accessor), const_decimal75(2, 1, 15)),
     );
-    let alloc = Bump::new();
-    let res = arithmetic_expr.result_evaluate(4, &alloc, &accessor);
+    let res = arithmetic_expr.result_evaluate(&alloc, &data);
     let expected_res_scalar = [0, 5, 75, 25]
         .iter()
         .map(|v| Curve25519Scalar::from(*v))

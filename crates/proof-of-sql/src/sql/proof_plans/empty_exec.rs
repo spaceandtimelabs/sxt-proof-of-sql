@@ -65,7 +65,6 @@ impl ProverEvaluate for EmptyExec {
     #[tracing::instrument(name = "EmptyExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        _input_length: usize,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {

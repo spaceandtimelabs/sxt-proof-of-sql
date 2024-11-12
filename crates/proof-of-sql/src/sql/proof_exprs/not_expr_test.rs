@@ -1,7 +1,10 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},
+        database::{
+            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor,
+            TableTestAccessor, TestAccessor,
+        },
         scalar::test_scalar::TestScalar,
     },
     sql::{
@@ -109,17 +112,17 @@ fn we_can_query_random_tables_with_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
-    let data = owned_table([
-        bigint("a", [123, 456]),
-        bigint("b", [0, 1]),
-        varchar("d", ["alfa", "gama"]),
-    ]);
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    let t = "sxt.t".parse().unwrap();
-    accessor.add_table(t, data, 0);
-    let not_expr: DynProofExpr = not(equal(column(t, "b", &accessor), const_int128(1)));
     let alloc = Bump::new();
-    let res = not_expr.result_evaluate(2, &alloc, &accessor);
+    let data = table([
+        borrowed_bigint("a", [123, 456], &alloc),
+        borrowed_bigint("b", [0, 1], &alloc),
+        borrowed_varchar("d", ["alfa", "gama"], &alloc),
+    ]);
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let t = "sxt.t".parse().unwrap();
+    accessor.add_table(t, data.clone(), 0);
+    let not_expr: DynProofExpr = not(equal(column(t, "b", &accessor), const_int128(1)));
+    let res = not_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[true, false]);
     assert_eq!(res, expected_res);
 }

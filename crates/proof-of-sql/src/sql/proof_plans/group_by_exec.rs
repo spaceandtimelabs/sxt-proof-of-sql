@@ -5,7 +5,7 @@ use crate::{
             group_by_util::{
                 aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
             },
-            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, TableRef,
+            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, Table, TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -198,14 +198,27 @@ impl ProverEvaluate for GroupByExec {
     #[tracing::instrument(name = "GroupByExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
+        let column_refs = self.get_column_references();
+        let used_table = if column_refs.is_empty() {
+            //TODO: Currently we have to have non-empty column references to have a non-empty table
+            // to evaluate `ProofExpr`s on. Once we restrict [`DataAccessor`] to [`TableExec`]
+            // and use input `DynProofPlan`s we should no longer need this.
+            let input_length = accessor.get_length(self.table.table_ref);
+            let bogus_vec = vec![true; input_length];
+            let bogus_col = Column::Boolean(alloc.alloc_slice_copy(&bogus_vec));
+            Table::<'a, S>::try_from_iter(core::iter::once(("bogus".parse().unwrap(), bogus_col)))
+        } else {
+            Table::<'a, S>::try_from_iter(column_refs.iter().map(|column_ref| {
+                let column = accessor.get_column(*column_ref);
+                (column_ref.column_id(), column)
+            }))
+        }
+        .expect("Failed to create table from column references");
         // 1. selection
-        let selection_column: Column<'a, S> =
-            self.where_clause
-                .result_evaluate(input_length, alloc, accessor);
+        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, &used_table);
 
         let selection = selection_column
             .as_boolean()
@@ -215,16 +228,12 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.result_evaluate(input_length, alloc, accessor))
+            .map(|expr| expr.result_evaluate(alloc, &used_table))
             .collect::<Vec<_>>();
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| {
-                aliased_expr
-                    .expr
-                    .result_evaluate(input_length, alloc, accessor)
-            })
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, &used_table))
             .collect::<Vec<_>>();
         // Compute filtered_columns
         let AggregatedColumns {
@@ -254,9 +263,26 @@ impl ProverEvaluate for GroupByExec {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
+        let column_refs = self.get_column_references();
+        let used_table = if column_refs.is_empty() {
+            //TODO: Currently we have to have non-empty column references to have a non-empty table
+            // to evaluate `ProofExpr`s on. Once we restrict [`DataAccessor`] to [`TableExec`]
+            // and use input `DynProofPlan`s we should no longer need this.
+            let input_length = accessor.get_length(self.table.table_ref);
+            let bogus_vec = vec![true; input_length];
+            let bogus_col = Column::Boolean(alloc.alloc_slice_copy(&bogus_vec));
+            Table::<'a, S>::try_from_iter(core::iter::once(("bogus".parse().unwrap(), bogus_col)))
+        } else {
+            Table::<'a, S>::try_from_iter(column_refs.iter().map(|column_ref| {
+                let column = accessor.get_column(*column_ref);
+                (column_ref.column_id(), column)
+            }))
+        }
+        .expect("Failed to create table from column references");
         // 1. selection
         let selection_column: Column<'a, S> =
-            self.where_clause.prover_evaluate(builder, alloc, accessor);
+            self.where_clause
+                .prover_evaluate(builder, alloc, &used_table);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -265,12 +291,16 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.prover_evaluate(builder, alloc, accessor))
+            .map(|expr| expr.prover_evaluate(builder, alloc, &used_table))
             .collect::<Vec<_>>();
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(builder, alloc, &used_table)
+            })
             .collect::<Vec<_>>();
         // 3. Compute filtered_columns
         let AggregatedColumns {

@@ -2,8 +2,8 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, Column, LiteralValue, OwnedTable, OwnedTableTestAccessor,
-            TestAccessor,
+            owned_table_utility::*, table_utility::*, Column, LiteralValue, OwnedTable,
+            OwnedTableTestAccessor, TableTestAccessor, TestAccessor,
         },
         scalar::{Curve25519Scalar, Scalar, ScalarExt},
     },
@@ -560,30 +560,36 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evaluate() {
-    let data = owned_table([bigint("a", [-1, 9, 1]), bigint("b", [1, 2, 3])]);
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [-1, 9, 1], &alloc),
+        borrowed_bigint("b", [1, 2, 3], &alloc),
+    ]);
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t, data.clone(), 0);
     let lhs_expr: DynProofExpr = column(t, "a", &accessor);
     let rhs_expr = column(t, "b", &accessor);
     let lte_expr = lte(lhs_expr, rhs_expr);
-    let alloc = Bump::new();
-    let res = lte_expr.result_evaluate(3, &alloc, &accessor);
+    let res = lte_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[true, false, true]);
     assert_eq!(res, expected_res);
 }
 
 #[test]
 fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evaluate() {
-    let data = owned_table([bigint("a", [-1, 9, 1]), bigint("b", [1, 2, 3])]);
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [-1, 9, 1], &alloc),
+        borrowed_bigint("b", [1, 2, 3], &alloc),
+    ]);
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t, data.clone(), 0);
     let col_expr: DynProofExpr = column(t, "a", &accessor);
     let lit_expr = const_bigint(1);
     let gte_expr = gte(col_expr, lit_expr);
-    let alloc = Bump::new();
-    let res = gte_expr.result_evaluate(3, &alloc, &accessor);
+    let res = gte_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[false, true, true]);
     assert_eq!(res, expected_res);
 }

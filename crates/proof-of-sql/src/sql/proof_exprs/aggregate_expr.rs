@@ -1,7 +1,7 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -45,11 +45,10 @@ impl ProofExpr for AggregateExpr {
     #[tracing::instrument(name = "AggregateExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        self.expr.result_evaluate(table_length, alloc, accessor)
+        self.expr.result_evaluate(alloc, table)
     }
 
     #[tracing::instrument(name = "AggregateExpr::prover_evaluate", level = "debug", skip_all)]
@@ -57,9 +56,9 @@ impl ProofExpr for AggregateExpr {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        self.expr.prover_evaluate(builder, alloc, accessor)
+        self.expr.prover_evaluate(builder, alloc, table)
     }
 
     fn verifier_evaluate<S: Scalar>(

@@ -1,7 +1,7 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -37,11 +37,10 @@ impl ProofExpr for NotExpr {
     #[tracing::instrument(name = "NotExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        let expr_column: Column<'a, S> = self.expr.result_evaluate(table_length, alloc, accessor);
+        let expr_column: Column<'a, S> = self.expr.result_evaluate(alloc, table);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
     }
@@ -51,9 +50,9 @@ impl ProofExpr for NotExpr {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        let expr_column: Column<'a, S> = self.expr.prover_evaluate(builder, alloc, accessor);
+        let expr_column: Column<'a, S> = self.expr.prover_evaluate(builder, alloc, table);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
     }
