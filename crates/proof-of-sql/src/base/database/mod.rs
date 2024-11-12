@@ -64,6 +64,14 @@ pub(crate) use owned_table::OwnedTableError;
 mod owned_table_test;
 pub mod owned_table_utility;
 
+mod table;
+pub use table::Table;
+#[cfg(test)]
+pub(crate) use table::TableError;
+#[cfg(test)]
+mod table_test;
+pub mod table_utility;
+
 /// TODO: add docs
 pub(crate) mod expression_evaluation;
 mod expression_evaluation_error;
@@ -86,6 +94,11 @@ mod owned_table_test_accessor;
 pub use owned_table_test_accessor::OwnedTableTestAccessor;
 #[cfg(all(test, feature = "blitzar"))]
 mod owned_table_test_accessor_test;
+
+mod table_test_accessor;
+pub use table_test_accessor::TableTestAccessor;
+#[cfg(all(test, feature = "blitzar"))]
+mod table_test_accessor_test;
 
 /// TODO: add docs
 pub(crate) mod filter_util;
