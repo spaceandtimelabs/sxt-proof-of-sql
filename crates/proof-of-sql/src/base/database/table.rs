@@ -43,14 +43,10 @@ impl<'a, S: Scalar> Table<'a, S> {
     pub fn num_columns(&self) -> usize {
         self.table.len()
     }
-    /// Number of rows in the table.
+    /// Number of rows in the table. For an empty table, this will return `None`.
     #[must_use]
-    pub fn num_rows(&self) -> usize {
-        if self.table.is_empty() {
-            0
-        } else {
-            self.table[0].len()
-        }
+    pub fn num_rows(&self) -> Option<usize> {
+        (!self.table.is_empty()).then(|| self.table[0].len())
     }
     /// Whether the table has no columns.
     #[must_use]

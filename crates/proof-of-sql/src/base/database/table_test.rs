@@ -1,10 +1,7 @@
-use crate::{
-    base::{
-        database::{table_utility::*, Column, Table, TableError},
-        map::IndexMap,
-        scalar::test_scalar::TestScalar,
-    },
-    proof_primitive::dory::DoryScalar,
+use crate::base::{
+    database::{table_utility::*, Column, Table, TableError},
+    map::IndexMap,
+    scalar::test_scalar::TestScalar,
 };
 use bumpalo::Bump;
 use proof_of_sql_parser::{
@@ -16,11 +13,12 @@ use proof_of_sql_parser::{
 fn we_can_create_a_table_with_no_columns() {
     let table = Table::<TestScalar>::try_new(IndexMap::default()).unwrap();
     assert_eq!(table.num_columns(), 0);
+    assert_eq!(table.num_rows(), None);
 }
 #[test]
 fn we_can_create_an_empty_table() {
     let alloc = Bump::new();
-    let borrowed_table = table::<DoryScalar>([
+    let borrowed_table = table::<TestScalar>([
         borrowed_bigint("bigint", [0; 0], &alloc),
         borrowed_int128("decimal", [0; 0], &alloc),
         borrowed_varchar("varchar", ["0"; 0], &alloc),
@@ -46,7 +44,7 @@ fn we_can_create_an_empty_table() {
 fn we_can_create_a_table_with_data() {
     let alloc = Bump::new();
 
-    let borrowed_table = table::<DoryScalar>([
+    let borrowed_table = table::<TestScalar>([
         borrowed_bigint(
             "bigint",
             [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
@@ -102,14 +100,14 @@ fn we_can_create_a_table_with_data() {
         .map(|&s| alloc.alloc_str(s) as &str)
         .collect();
     let varchar_str_slice = alloc.alloc_slice_clone(&varchar_data);
-    let varchar_scalars: Vec<DoryScalar> = varchar_data.iter().map(Into::into).collect();
+    let varchar_scalars: Vec<TestScalar> = varchar_data.iter().map(Into::into).collect();
     let varchar_scalars_slice = alloc.alloc_slice_clone(&varchar_scalars);
     expected_table.insert(
         Identifier::try_new("varchar").unwrap(),
         Column::VarChar((varchar_str_slice, varchar_scalars_slice)),
     );
 
-    let scalar_data: Vec<DoryScalar> = (0..=8).map(DoryScalar::from).collect();
+    let scalar_data: Vec<TestScalar> = (0..=8).map(TestScalar::from).collect();
     let scalar_slice = alloc.alloc_slice_copy(&scalar_data);
     expected_table.insert(
         Identifier::try_new("scalar").unwrap(),
@@ -165,7 +163,7 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
 fn we_get_inequality_between_tables_with_differing_data() {
     let alloc = Bump::new();
 
-    let table_a: Table<'_, DoryScalar> = table([
+    let table_a: Table<'_, TestScalar> = table([
         borrowed_bigint("a", [0], &alloc),
         borrowed_int128("b", [0], &alloc),
         borrowed_varchar("c", ["0"], &alloc),
@@ -179,7 +177,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
         ),
     ]);
 
-    let table_b: Table<'_, DoryScalar> = table([
+    let table_b: Table<'_, TestScalar> = table([
         borrowed_bigint("a", [1], &alloc),
         borrowed_int128("b", [0], &alloc),
         borrowed_varchar("c", ["0"], &alloc),

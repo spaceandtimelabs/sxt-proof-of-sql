@@ -141,7 +141,6 @@ pub fn borrowed_int<S: Scalar>(
 ///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
-#[allow(clippy::missing_panics_doc)]
 pub fn borrowed_bigint<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i64>>,
