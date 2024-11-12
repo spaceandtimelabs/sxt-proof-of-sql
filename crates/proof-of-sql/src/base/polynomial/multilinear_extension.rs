@@ -1,5 +1,5 @@
 use crate::base::{database::Column, if_rayon, scalar::Scalar, slice_ops};
-use alloc::{rc::Rc, vec::Vec};
+use alloc::vec::Vec;
 use core::ffi::c_void;
 use num_traits::Zero;
 #[cfg(feature = "rayon")]
@@ -15,7 +15,7 @@ pub trait MultilinearExtension<S: Scalar> {
     fn mul_add(&self, res: &mut [S], multiplier: &S);
 
     /// convert the MLE to a form that can be used in sumcheck
-    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<S>>;
+    fn to_sumcheck_term(&self, num_vars: usize) -> Vec<S>;
 
     /// pointer to identify the slice forming the MLE
     fn id(&self) -> *const c_void;
@@ -42,18 +42,17 @@ where
         slice_ops::mul_add_assign(res, *multiplier, &slice_ops::slice_cast(self));
     }
 
-    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<S>> {
+    fn to_sumcheck_term(&self, num_vars: usize) -> Vec<S> {
         let values = self;
         let n = 1 << num_vars;
         assert!(n >= values.len());
-        let scalars = if_rayon!(values.par_iter(), values.iter())
+        if_rayon!(values.par_iter(), values.iter())
             .map(Into::into)
             .chain(if_rayon!(
                 rayon::iter::repeatn(Zero::zero(), n - values.len()),
                 itertools::repeat_n(Zero::zero(), n - values.len())
             ))
-            .collect();
-        Rc::new(scalars)
+            .collect()
     }
 
     fn id(&self) -> *const c_void {
@@ -72,7 +71,7 @@ macro_rules! slice_like_mle_impl {
             (&self[..]).mul_add(res, multiplier)
         }
 
-        fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<S>> {
+        fn to_sumcheck_term(&self, num_vars: usize) -> Vec<S> {
             (&self[..]).to_sumcheck_term(num_vars)
         }
 
@@ -125,7 +124,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
         }
     }
 
-    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<S>> {
+    fn to_sumcheck_term(&self, num_vars: usize) -> Vec<S> {
         match self {
             Column::Boolean(c) => c.to_sumcheck_term(num_vars),
             Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
@@ -163,7 +162,7 @@ impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
         (&self).mul_add(res, multiplier);
     }
 
-    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<S>> {
+    fn to_sumcheck_term(&self, num_vars: usize) -> Vec<S> {
         (&self).to_sumcheck_term(num_vars)
     }
 
