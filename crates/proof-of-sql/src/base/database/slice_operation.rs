@@ -3,6 +3,18 @@ use alloc::{format, vec::Vec};
 use core::fmt::Debug;
 use num_traits::ops::checked::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 
+/// Reverse a binary operator. That is, $a *_{op} b = b * a$.
+///
+/// With this function we don't need to consider the case of applying
+/// a binary operator to a single value and a slice, because we can
+/// always use `reverse_op` to reverse the order of the arguments.
+pub(crate) fn reverse_op<S, T, U, F>(op: F) -> impl Fn(&T, &S) -> U
+where
+    F: Fn(&S, &T) -> U,
+{
+    move |l, r| op(r, l)
+}
+
 /// Function for checked addition with overflow error handling
 pub(super) fn try_add<T>(l: &T, r: &T) -> ColumnOperationResult<T>
 where
@@ -42,6 +54,78 @@ where
     T: CheckedDiv<Output = T> + Debug,
 {
     l.checked_div(r).ok_or(ColumnOperationError::DivisionByZero)
+}
+
+// Generic binary operations on slice and a single value
+
+/// Apply a binary operator to a slice and a single value.
+pub(crate) fn slice_lit_binary_op<S, T, U, F>(lhs: &[S], rhs: &T, op: F) -> Vec<U>
+where
+    F: Fn(&S, &T) -> U,
+{
+    lhs.iter().map(|l| -> U { op(l, rhs) }).collect::<Vec<_>>()
+}
+
+/// Apply a binary operator to a slice and a single value returning results.
+pub(crate) fn try_slice_lit_binary_op<S, T, U, F>(
+    lhs: &[S],
+    rhs: &T,
+    op: F,
+) -> ColumnOperationResult<Vec<U>>
+where
+    F: Fn(&S, &T) -> ColumnOperationResult<U>,
+{
+    lhs.iter()
+        .map(|l| op(l, rhs))
+        .collect::<ColumnOperationResult<Vec<_>>>()
+}
+
+/// Apply a binary operator to a slice and a single value, upcasting the slice.
+pub(crate) fn slice_lit_binary_op_left_upcast<S, T, U, F>(lhs: &[S], rhs: &T, op: F) -> Vec<U>
+where
+    S: Copy + Into<T>,
+    T: Copy,
+    F: Fn(&T, &T) -> U,
+{
+    slice_lit_binary_op(lhs, rhs, |l, r| op(&Into::<T>::into(*l), r))
+}
+
+/// Apply a binary operator to a slice and a single value with left upcasting returning results.
+pub(crate) fn try_slice_lit_binary_op_left_upcast<S, T, U, F>(
+    lhs: &[S],
+    rhs: &T,
+    op: F,
+) -> ColumnOperationResult<Vec<U>>
+where
+    S: Copy + Into<T>,
+    T: Copy,
+    F: Fn(&T, &T) -> ColumnOperationResult<U>,
+{
+    try_slice_lit_binary_op(lhs, rhs, |l, r| op(&Into::<T>::into(*l), r))
+}
+
+/// Apply a binary operator to a slice and a single value, upcasting the single value.
+pub(crate) fn slice_lit_binary_op_right_upcast<S, T, U, F>(lhs: &[S], rhs: &T, op: F) -> Vec<U>
+where
+    S: Copy,
+    T: Copy + Into<S>,
+    F: Fn(&S, &S) -> U,
+{
+    slice_lit_binary_op(lhs, rhs, |l, r| op(l, &Into::<S>::into(*r)))
+}
+
+/// Apply a binary operator to a slice and a single value with right upcasting returning results.
+pub(crate) fn try_slice_lit_binary_op_right_upcast<S, T, U, F>(
+    lhs: &[S],
+    rhs: &T,
+    op: F,
+) -> ColumnOperationResult<Vec<U>>
+where
+    S: Copy,
+    T: Copy + Into<S>,
+    F: Fn(&S, &S) -> ColumnOperationResult<U>,
+{
+    try_slice_lit_binary_op(lhs, rhs, |l, r| op(l, &Into::<S>::into(*r)))
 }
 
 // Generic binary operations on slices
@@ -146,6 +230,81 @@ pub(super) fn slice_or(lhs: &[bool], rhs: &[bool]) -> Vec<bool> {
 mod test {
     use super::*;
     use core::cmp::{PartialEq, PartialOrd};
+    // Reverse
+    #[test]
+    fn we_can_reverse_binary_operator() {
+        let op = |l: &i32, r: &i32| l - r;
+        let actual = reverse_op(op)(&5, &4);
+        let expected = -1;
+        assert_eq!(expected, actual);
+    }
+
+    // Slice-lit binary operations
+    #[test]
+    fn we_can_do_binary_op_on_a_single_value_and_a_slice() {
+        // No casting
+        let slice = [1_i16, 2, 3];
+        let actual = slice_lit_binary_op(&slice, &3, PartialEq::eq);
+        let expected = vec![false, false, true];
+        assert_eq!(expected, actual);
+
+        // Left upcast
+        let slice = [1_i16, 2, 3];
+        let actual = slice_lit_binary_op_left_upcast(&slice, &2_i32, PartialOrd::ge);
+        let expected = vec![false, true, true];
+        assert_eq!(expected, actual);
+
+        // Right upcast
+        let slice = [1_i32, 2, 3];
+        let actual = slice_lit_binary_op_right_upcast(&slice, &2_i16, PartialOrd::le);
+        let expected = vec![true, true, false];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_do_fallible_binary_op_on_a_single_value_and_a_slice() {
+        // No casting
+        let slice = [1_i16, 2, 3];
+        let actual = try_slice_lit_binary_op(&slice, &4, try_add).unwrap();
+        let expected = vec![5_i16, 6, 7];
+        assert_eq!(expected, actual);
+
+        // Left upcast
+        let slice = [1_i16, 2, 3];
+        let actual = try_slice_lit_binary_op_left_upcast(&slice, &4_i32, try_sub).unwrap();
+        let expected = vec![-3_i32, -2, -1];
+        assert_eq!(expected, actual);
+
+        // Right upcast
+        let slice = [1_i32, 2, 3];
+        let actual = try_slice_lit_binary_op_right_upcast(&slice, &4_i16, try_mul).unwrap();
+        let expected = vec![4_i32, 8, 12];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_cannot_do_fallable_binary_op_on_a_single_value_and_a_slice_if_error_anywhere() {
+        // No casting
+        let slice = [1, i16::MAX, 1];
+        assert!(matches!(
+            try_slice_lit_binary_op(&slice, &0, try_div),
+            Err(ColumnOperationError::DivisionByZero)
+        ));
+
+        // Left upcast
+        let slice = [1_i16, 2];
+        assert!(matches!(
+            try_slice_lit_binary_op_left_upcast(&slice, &i32::MAX, try_add),
+            Err(ColumnOperationError::IntegerOverflow { .. })
+        ));
+
+        // Right upcast
+        let slice = [i64::MAX, 2];
+        assert!(matches!(
+            try_slice_lit_binary_op_right_upcast(&slice, &2, try_mul),
+            Err(ColumnOperationError::IntegerOverflow { .. })
+        ));
+    }
 
     // NOT
     #[test]
