@@ -1,10 +1,14 @@
-use super::{SumcheckRandomScalars, SumcheckSubpolynomial, SumcheckSubpolynomialType};
+use super::{
+    sumcheck_term_optimizer::SumcheckTermOptimizer, SumcheckRandomScalars, SumcheckSubpolynomial,
+    SumcheckSubpolynomialType,
+};
 use crate::{
     base::{map::IndexMap, polynomial::MultilinearExtension, scalar::Scalar},
     proof_primitive::sumcheck::ProverState,
 };
 use alloc::vec::Vec;
 use core::ffi::c_void;
+use tracing::Level;
 
 struct FlattenedMLEBuilder<'a, S: Scalar> {
     multiplicand_count: usize,
@@ -68,11 +72,19 @@ pub fn make_sumcheck_prover_state<S: Scalar>(
         .iter()
         .zip(subpolynomials)
         .flat_map(|(multiplier, terms)| terms.iter_mul_by(*multiplier));
+
+    // Optimization should be very fast. We put this span to double check this. There is almost no copying being done.
+    let span = tracing::span!(Level::DEBUG, "optimize sumcheck terms").entered();
+    let optimizer = SumcheckTermOptimizer::new(all_terms, scalars.table_length);
+    let optimized_terms = optimizer.terms();
+    let optimized_term_iter = optimized_terms.into_iter();
+    span.exit();
+
     let mut builder = FlattenedMLEBuilder::new(
         needs_entrywise_multipliers.then(|| scalars.compute_entrywise_multipliers()),
         num_vars,
     );
-    let list_of_products = all_terms
+    let list_of_products = optimized_term_iter
         .map(|(ty, coeff, term)| {
             (
                 coeff,
