@@ -112,7 +112,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
     let column: Vec<i64> = vec![0_i64; n];
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
         "sxt.test".parse().unwrap(),
-        owned_table([bigint("a1", column)]),
+        owned_table([bigint("a1", column.clone())]),
         offset_generators,
         (),
     );
@@ -122,8 +122,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         table,
     } = proof.verify(&expr, &accessor, &result, &()).unwrap();
     assert_ne!(verification_hash, [0; 32]);
-    let expected_col = vec![0_i64; n];
-    let expected_result = owned_table([bigint("a1", expected_col)]);
+    let expected_result = owned_table([bigint("a1", column)]);
     assert_eq!(table, expected_result);
 }
 

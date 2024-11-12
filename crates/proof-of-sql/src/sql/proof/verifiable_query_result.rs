@@ -88,7 +88,11 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         // have been rejected at the parsing stage.
 
         // handle the empty case
-        if expr.is_empty(accessor) {
+        let table_refs = expr.get_table_references();
+        if table_refs
+            .into_iter()
+            .all(|table_ref| accessor.get_length(table_ref) == 0)
+        {
             return VerifiableQueryResult {
                 provable_result: None,
                 proof: None,
@@ -124,7 +128,11 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         // have been rejected at the parsing stage.
 
         // handle the empty case
-        if expr.is_empty(accessor) {
+        let table_refs = expr.get_table_references();
+        if table_refs
+            .into_iter()
+            .all(|table_ref| accessor.get_length(table_ref) == 0)
+        {
             if self.provable_result.is_some() || self.proof.is_some() {
                 return Err(ProofError::VerificationError {
                     error: "zero sumcheck variables but non-empty result",
