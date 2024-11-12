@@ -59,7 +59,6 @@ zerocopy = { workspace = true }
 alloy-sol-types = { workspace = true }
 arrow-csv = { workspace = true }
 blitzar = { workspace = true }
-clap = { workspace = true, features = ["derive"] }
 criterion = { workspace = true, features = ["html_reports"] }
 merlin = { workspace = true }
 opentelemetry = { workspace = true }
@@ -92,6 +91,11 @@ workspace = true
 [[bin]]
 name = "generate-parameters"
 path = "utils/generate-parameters/main.rs"
+required-features = [ "std", "blitzar"]
+
+[[bin]]
+name = "commitment-utility"
+path = "utils/commitment-utility/main.rs"
 required-features = [ "std", "blitzar"]
 
 [[example]]

@@ -19,6 +19,8 @@ fn we_can_generate_save_and_load_public_setups() {
     // Run the binary with nu = 4, mode = "pv", and target as the temp directory
     let output = Command::new("cargo")
         .arg("run")
+        .arg("--bin")
+        .arg("generate-parameters")
         .arg("--release")
         .arg("--")
         .arg("--nu")
