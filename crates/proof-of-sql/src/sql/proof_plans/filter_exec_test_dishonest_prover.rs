@@ -3,7 +3,7 @@ use crate::{
     base::{
         database::{
             filter_util::*, owned_table_utility::*, Column, DataAccessor, OwnedTableTestAccessor,
-            Table, TestAccessor,
+            TestAccessor,
         },
         proof::ProofError,
         scalar::Scalar,
@@ -39,8 +39,7 @@ impl ProverEvaluate for DishonestFilterExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let column_refs = self.get_column_references();
-        let used_table =
-            Table::<'a, S>::from_columns(&column_refs, self.table.table_ref, accessor, alloc);
+        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. selection
         let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, &used_table);
         let selection = selection_column
@@ -75,8 +74,7 @@ impl ProverEvaluate for DishonestFilterExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let column_refs = self.get_column_references();
-        let used_table =
-            Table::<'a, S>::from_columns(&column_refs, self.table.table_ref, accessor, alloc);
+        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. selection
         let selection_column: Column<'a, S> =
             self.where_clause

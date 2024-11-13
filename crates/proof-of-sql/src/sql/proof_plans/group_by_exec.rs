@@ -5,7 +5,7 @@ use crate::{
             group_by_util::{
                 aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
             },
-            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, Table, TableRef,
+            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -202,8 +202,7 @@ impl ProverEvaluate for GroupByExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let column_refs = self.get_column_references();
-        let used_table =
-            Table::<'a, S>::from_columns(&column_refs, self.table.table_ref, accessor, alloc);
+        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. selection
         let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, &used_table);
 
@@ -251,8 +250,7 @@ impl ProverEvaluate for GroupByExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let column_refs = self.get_column_references();
-        let used_table =
-            Table::<'a, S>::from_columns(&column_refs, self.table.table_ref, accessor, alloc);
+        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. selection
         let selection_column: Column<'a, S> =
             self.where_clause

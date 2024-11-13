@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{Column, ColumnField, ColumnRef, DataAccessor, OwnedTable, Table, TableRef},
+        database::{Column, ColumnField, ColumnRef, DataAccessor, OwnedTable, TableRef},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -91,8 +91,7 @@ impl ProverEvaluate for ProjectionExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let column_refs = self.get_column_references();
-        let used_table =
-            Table::<'a, S>::from_columns(&column_refs, self.table.table_ref, accessor, alloc);
+        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         let columns: Vec<_> = self
             .aliased_results
             .iter()
@@ -116,8 +115,7 @@ impl ProverEvaluate for ProjectionExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let column_refs = self.get_column_references();
-        let used_table =
-            Table::<'a, S>::from_columns(&column_refs, self.table.table_ref, accessor, alloc);
+        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. Evaluate result expressions
         let res: Vec<_> = self
             .aliased_results
