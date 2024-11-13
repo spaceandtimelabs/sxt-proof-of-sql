@@ -33,6 +33,10 @@ impl TableExec {
     }
 
     /// Returns the entire table.
+    ///
+    /// # Panics
+    /// Panics if columns from the accessor have different lengths.
+    /// In practice, this should never happen.
     fn get_table<'a, S: Scalar>(&self, accessor: &'a dyn DataAccessor<S>) -> Table<'a, S> {
         Table::<'a, S>::try_from_iter(self.schema.iter().map(|field| {
             (

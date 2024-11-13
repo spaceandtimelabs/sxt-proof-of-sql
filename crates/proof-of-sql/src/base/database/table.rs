@@ -120,6 +120,10 @@ impl<'a, S: Scalar> Table<'a, S> {
     pub fn column_names(&self) -> impl Iterator<Item = &Identifier> {
         self.table.keys()
     }
+    /// Returns the columns of this table as an Iterator
+    pub fn columns(&self) -> impl Iterator<Item = &Column<'a, S>> {
+        self.table.values()
+    }
 }
 
 // Note: we modify the default PartialEq for IndexMap to also check for column ordering.

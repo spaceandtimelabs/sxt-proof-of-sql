@@ -195,11 +195,6 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
     );
     let alloc = Bump::new();
     let result_table = expr.result_evaluate(&alloc, &accessor);
-    let result_cols = result_table
-        .inner_table()
-        .values()
-        .cloned()
-        .collect::<Vec<_>>();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -211,10 +206,9 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols)
-            .to_owned_table(fields)
-            .unwrap();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::new_from_table(&result_table)
+        .to_owned_table(fields)
+        .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [0; 0]),
         int128("c", [0; 0]),
@@ -245,11 +239,6 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
     );
     let alloc = Bump::new();
     let result_table = expr.result_evaluate(&alloc, &accessor);
-    let result_cols = result_table
-        .inner_table()
-        .values()
-        .cloned()
-        .collect::<Vec<_>>();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -261,10 +250,9 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols)
-            .to_owned_table(fields)
-            .unwrap();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::new_from_table(&result_table)
+        .to_owned_table(fields)
+        .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [0; 0]),
         int128("c", [0; 0]),
@@ -291,18 +279,12 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
     let expr = filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
     let result_table = expr.result_evaluate(&alloc, &accessor);
-    let result_cols = result_table
-        .inner_table()
-        .values()
-        .cloned()
-        .collect::<Vec<_>>();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols)
-            .to_owned_table(fields)
-            .unwrap();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::new_from_table(&result_table)
+        .to_owned_table(fields)
+        .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
     assert_eq!(res, expected);
 }
@@ -327,11 +309,6 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
     );
     let alloc = Bump::new();
     let result_table = expr.result_evaluate(&alloc, &accessor);
-    let result_cols = result_table
-        .inner_table()
-        .values()
-        .cloned()
-        .collect::<Vec<_>>();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -343,10 +320,9 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols)
-            .to_owned_table(fields)
-            .unwrap();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::new_from_table(&result_table)
+        .to_owned_table(fields)
+        .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [3, 5]),
         int128("c", [3, 5]),

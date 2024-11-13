@@ -1,6 +1,6 @@
 use super::{decode_and_convert, decode_multiple_elements, ProvableResultColumn, QueryError};
 use crate::base::{
-    database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable},
+    database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable, Table},
     polynomial::compute_evaluation_vector,
     scalar::Scalar,
 };
@@ -53,6 +53,13 @@ impl ProvableQueryResult {
             table_length,
             data,
         }
+    }
+
+    /// Form intermediate query result from a table
+    #[must_use]
+    pub fn new_from_table<S: Scalar>(table: &Table<S>) -> Self {
+        let columns = table.columns().copied().collect::<Vec<_>>();
+        Self::new(table.num_rows() as u64, &columns)
     }
 
     /// Form intermediate query result from index rows and result columns

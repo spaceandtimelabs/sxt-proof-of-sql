@@ -77,13 +77,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // Evaluate query result
         let result_table = expr.result_evaluate(&alloc, accessor);
-        let result_cols = result_table
-            .inner_table()
-            .values()
-            .cloned()
-            .collect::<Vec<_>>();
-        let provable_result =
-            ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols);
+        let provable_result = ProvableQueryResult::new_from_table(&result_table);
 
         // Prover First Round
         let mut first_round_builder = FirstRoundBuilder::new();
