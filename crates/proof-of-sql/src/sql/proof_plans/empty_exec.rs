@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{Column, ColumnField, ColumnRef, DataAccessor, OwnedTable, TableRef},
+        database::{ColumnField, ColumnRef, DataAccessor, OwnedTable, Table, TableRef},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -67,8 +67,8 @@ impl ProverEvaluate for EmptyExec {
         &self,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
-        Vec::new()
+    ) -> Table<'a, S> {
+        Table::<'a, S>::try_new(IndexMap::default()).unwrap()
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -80,7 +80,7 @@ impl ProverEvaluate for EmptyExec {
         _builder: &mut FinalRoundBuilder<'a, S>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
-        Vec::new()
+    ) -> Table<'a, S> {
+        Table::<'a, S>::try_new(IndexMap::default()).unwrap()
     }
 }

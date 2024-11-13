@@ -7,9 +7,9 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable,
-            OwnedTableTestAccessor, TableRef,
+            OwnedTableTestAccessor, Table, TableRef,
         },
-        map::{indexset, IndexMap, IndexSet},
+        map::{indexmap, indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::{Curve25519Scalar, Scalar},
     },
@@ -44,9 +44,12 @@ impl ProverEvaluate for TrivialTestProofPlan {
         &self,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
-        vec![Column::BigInt(col)]
+        Table::<'a, S>::try_new(indexmap! {
+            "a1".parse().unwrap() => Column::BigInt(col),
+        })
+        .unwrap()
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -56,14 +59,17 @@ impl ProverEvaluate for TrivialTestProofPlan {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
         builder.produce_intermediate_mle(col as &[_]);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![(S::ONE, vec![Box::new(col as &[_])])],
         );
-        vec![Column::BigInt(col)]
+        Table::<'a, S>::try_new(indexmap! {
+            "a1".parse().unwrap() => Column::BigInt(col),
+        })
+        .unwrap()
     }
 }
 impl ProofPlan for TrivialTestProofPlan {
@@ -213,9 +219,12 @@ impl ProverEvaluate for SquareTestProofPlan {
         &self,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
-        vec![Column::BigInt(res)]
+        Table::<'a, S>::try_new(indexmap! {
+            "a1".parse().unwrap() => Column::BigInt(res),
+        })
+        .unwrap()
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -225,7 +234,7 @@ impl ProverEvaluate for SquareTestProofPlan {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
@@ -240,7 +249,10 @@ impl ProverEvaluate for SquareTestProofPlan {
                 (-S::ONE, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        vec![Column::BigInt(res)]
+        Table::<'a, S>::try_new(indexmap! {
+            "a1".parse().unwrap() => Column::BigInt(&[9, 25]),
+        })
+        .unwrap()
     }
 }
 impl ProofPlan for SquareTestProofPlan {
@@ -390,9 +402,12 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         &self,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
-        vec![Column::BigInt(res)]
+        Table::<'a, S>::try_new(indexmap! {
+            "a1".parse().unwrap() => Column::BigInt(res),
+        })
+        .unwrap()
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -402,7 +417,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
@@ -430,7 +445,10 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
             ],
         );
         builder.produce_intermediate_mle(res);
-        vec![Column::BigInt(res)]
+        Table::<'a, S>::try_new(indexmap! {
+            "a1".parse().unwrap() => Column::BigInt(res),
+        })
+        .unwrap()
     }
 }
 impl ProofPlan for DoubleSquareTestProofPlan {
@@ -597,8 +615,11 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         &self,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
-        vec![Column::BigInt(&[9, 25])]
+    ) -> Table<'a, S> {
+        Table::<'a, S>::try_new(indexmap! {
+            "a1".parse().unwrap() => Column::BigInt(&[9, 25]),
+        })
+        .unwrap()
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -610,7 +631,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
@@ -627,7 +648,10 @@ impl ProverEvaluate for ChallengeTestProofPlan {
                 (-alpha, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        vec![Column::BigInt(&[9, 25])]
+        Table::<'a, S>::try_new(indexmap! {
+            "a1".parse().unwrap() => Column::BigInt(&[9, 25]),
+        })
+        .unwrap()
     }
 }
 impl ProofPlan for ChallengeTestProofPlan {

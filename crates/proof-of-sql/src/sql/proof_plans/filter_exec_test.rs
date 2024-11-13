@@ -2,8 +2,8 @@ use super::{test_utility::*, FilterExec};
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, Column, ColumnField, ColumnRef, ColumnType, LiteralValue,
-            OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
+            owned_table_utility::*, ColumnField, ColumnRef, ColumnType, LiteralValue, OwnedTable,
+            OwnedTableTestAccessor, TableRef, TestAccessor,
         },
         map::{IndexMap, IndexSet},
         math::decimal::Precision,
@@ -194,8 +194,12 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
         where_clause,
     );
     let alloc = Bump::new();
-    let result_cols = expr.result_evaluate(&alloc, &accessor);
-    let output_length = result_cols.first().map_or(0, Column::len) as u64;
+    let result_table = expr.result_evaluate(&alloc, &accessor);
+    let result_cols = result_table
+        .inner_table()
+        .values()
+        .cloned()
+        .collect::<Vec<_>>();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -208,7 +212,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(output_length as u64, &result_cols)
+        ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -240,8 +244,12 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
         where_clause,
     );
     let alloc = Bump::new();
-    let result_cols = expr.result_evaluate(&alloc, &accessor);
-    let output_length = result_cols.first().map_or(0, Column::len) as u64;
+    let result_table = expr.result_evaluate(&alloc, &accessor);
+    let result_cols = result_table
+        .inner_table()
+        .values()
+        .cloned()
+        .collect::<Vec<_>>();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -254,7 +262,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(output_length as u64, &result_cols)
+        ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -282,13 +290,17 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
     let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(5));
     let expr = filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
-    let result_cols = expr.result_evaluate(&alloc, &accessor);
-    let output_length = result_cols.first().map_or(0, Column::len) as u64;
+    let result_table = expr.result_evaluate(&alloc, &accessor);
+    let result_cols = result_table
+        .inner_table()
+        .values()
+        .cloned()
+        .collect::<Vec<_>>();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(output_length as u64, &result_cols)
+        ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
@@ -314,8 +326,12 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
         where_clause,
     );
     let alloc = Bump::new();
-    let result_cols = expr.result_evaluate(&alloc, &accessor);
-    let output_length = result_cols.first().map_or(0, Column::len) as u64;
+    let result_table = expr.result_evaluate(&alloc, &accessor);
+    let result_cols = result_table
+        .inner_table()
+        .values()
+        .cloned()
+        .collect::<Vec<_>>();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -328,7 +344,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(output_length as u64, &result_cols)
+        ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([

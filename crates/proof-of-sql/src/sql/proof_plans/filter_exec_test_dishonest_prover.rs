@@ -37,7 +37,7 @@ impl ProverEvaluate for DishonestFilterExec {
         &self,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let column_refs = self.get_column_references();
         let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. selection
@@ -54,7 +54,13 @@ impl ProverEvaluate for DishonestFilterExec {
         // Compute filtered_columns
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
-        filtered_columns
+        Table::<'a, S>::try_from_iter(
+            self.aliased_results
+                .iter()
+                .map(|expr| expr.alias)
+                .zip(filtered_columns),
+        )
+        .expect("Failed to create table from iterator")
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -72,7 +78,7 @@ impl ProverEvaluate for DishonestFilterExec {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let column_refs = self.get_column_references();
         let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. selection
@@ -113,7 +119,13 @@ impl ProverEvaluate for DishonestFilterExec {
             &filtered_columns,
             result_len,
         );
-        filtered_columns
+        Table::<'a, S>::try_from_iter(
+            self.aliased_results
+                .iter()
+                .map(|expr| expr.alias)
+                .zip(filtered_columns),
+        )
+        .expect("Failed to create table from iterator")
     }
 }
 

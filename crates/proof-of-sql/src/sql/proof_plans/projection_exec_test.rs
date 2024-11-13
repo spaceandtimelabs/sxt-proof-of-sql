@@ -2,7 +2,7 @@ use super::{test_utility::*, DynProofPlan, ProjectionExec};
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, Column, ColumnField, ColumnRef, ColumnType, OwnedTable,
+            owned_table_utility::*, ColumnField, ColumnRef, ColumnType, OwnedTable,
             OwnedTableTestAccessor, TableRef, TestAccessor,
         },
         map::{IndexMap, IndexSet},
@@ -168,8 +168,12 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
     let expr: DynProofPlan =
         projection(cols_expr_plan(t, &["b", "c", "d", "e"], &accessor), tab(t));
     let alloc = Bump::new();
-    let result_cols = expr.result_evaluate(&alloc, &accessor);
-    let output_length = result_cols.first().map_or(0, Column::len) as u64;
+    let result_table = expr.result_evaluate(&alloc, &accessor);
+    let result_cols = result_table
+        .inner_table()
+        .values()
+        .cloned()
+        .collect::<Vec<_>>();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -182,7 +186,7 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(output_length as u64, &result_cols)
+        ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -209,13 +213,17 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
     accessor.add_table(t, data, 0);
     let expr: DynProofPlan = projection(cols_expr_plan(t, &[], &accessor), tab(t));
     let alloc = Bump::new();
-    let result_cols = expr.result_evaluate(&alloc, &accessor);
-    let output_length = result_cols.first().map_or(0, Column::len) as u64;
+    let result_table = expr.result_evaluate(&alloc, &accessor);
+    let result_cols = result_table
+        .inner_table()
+        .values()
+        .cloned()
+        .collect::<Vec<_>>();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(output_length as u64, &result_cols)
+        ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
@@ -247,8 +255,12 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
         tab(t),
     );
     let alloc = Bump::new();
-    let result_cols = expr.result_evaluate(&alloc, &accessor);
-    let output_length = result_cols.first().map_or(0, Column::len) as u64;
+    let result_table = expr.result_evaluate(&alloc, &accessor);
+    let result_cols = result_table
+        .inner_table()
+        .values()
+        .cloned()
+        .collect::<Vec<_>>();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -261,7 +273,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(output_length as u64, &result_cols)
+        ProvableQueryResult::new(result_table.num_rows() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([

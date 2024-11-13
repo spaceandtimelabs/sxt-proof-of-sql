@@ -8,7 +8,7 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable,
-            OwnedTableTestAccessor, TableRef,
+            OwnedTableTestAccessor, Table, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
@@ -29,10 +29,13 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         &self,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let zeros = vec![0; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
-        vec![Column::BigInt(res); self.columns]
+        Table::<'a, S>::try_from_iter(
+            (1..=self.columns).map(|i| (format!("a{i}").parse().unwrap(), Column::BigInt(res))),
+        )
+        .unwrap()
     }
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
     fn final_round_evaluate<'a, S: Scalar>(
@@ -40,13 +43,16 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let zeros = vec![0; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
         let _ = std::iter::repeat_with(|| builder.produce_intermediate_mle(res))
             .take(self.columns)
             .collect::<Vec<_>>();
-        vec![Column::BigInt(res); self.columns]
+        Table::<'a, S>::try_from_iter(
+            (1..=self.columns).map(|i| (format!("a{i}").parse().unwrap(), Column::BigInt(res))),
+        )
+        .unwrap()
     }
 }
 impl ProofPlan for EmptyTestQueryExpr {

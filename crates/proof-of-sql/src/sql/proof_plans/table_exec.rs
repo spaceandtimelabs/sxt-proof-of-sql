@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{Column, ColumnField, ColumnRef, DataAccessor, OwnedTable, TableRef},
+        database::{ColumnField, ColumnRef, DataAccessor, OwnedTable, Table, TableRef},
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -33,17 +33,18 @@ impl TableExec {
     }
 
     /// Returns the entire table.
-    fn get_table<'a, S: Scalar>(&self, accessor: &'a dyn DataAccessor<S>) -> Vec<Column<'a, S>> {
-        self.schema
-            .iter()
-            .map(|field| {
+    fn get_table<'a, S: Scalar>(&self, accessor: &'a dyn DataAccessor<S>) -> Table<'a, S> {
+        Table::<'a, S>::try_from_iter(self.schema.iter().map(|field| {
+            (
+                field.name(),
                 accessor.get_column(ColumnRef::new(
                     self.table_ref,
                     field.name(),
                     field.data_type(),
-                ))
-            })
-            .collect()
+                )),
+            )
+        }))
+        .expect("Failed to create table from column references")
     }
 }
 
@@ -87,7 +88,7 @@ impl ProverEvaluate for TableExec {
         &self,
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         self.get_table(accessor)
     }
 
@@ -100,9 +101,9 @@ impl ProverEvaluate for TableExec {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let table = self.get_table(accessor);
-        for column in &table {
+        for column in table.inner_table().values() {
             builder.produce_intermediate_mle(column.as_scalar(alloc));
         }
         table
