@@ -1,8 +1,6 @@
 use super::{SumcheckMleEvaluations, VerificationBuilder};
 use crate::{base::scalar::Curve25519Scalar, sql::proof::SumcheckSubpolynomialType};
-use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::Zero;
-use rand_core::OsRng;
 
 #[test]
 fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
@@ -11,17 +9,15 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
         num_sumcheck_variables: 1,
         ..Default::default()
     };
-    let builder = VerificationBuilder::<RistrettoPoint>::new(
+    let builder = VerificationBuilder::<Curve25519Scalar>::new(
         0,
         mle_evaluations,
-        &[][..],
         &[][..],
         &[][..],
         &[][..],
         Vec::new(),
     );
     assert_eq!(builder.sumcheck_evaluation(), Curve25519Scalar::zero());
-    assert_eq!(builder.pcs_proof_commitments(), &[]);
     assert_eq!(builder.inner_product_multipliers(), &[]);
 }
 
@@ -36,10 +32,9 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
     ];
-    let mut builder = VerificationBuilder::<RistrettoPoint>::new(
+    let mut builder = VerificationBuilder::new(
         0,
         mle_evaluations,
-        &[][..],
         &[][..],
         &subpolynomial_multipliers,
         &[][..],
@@ -70,10 +65,6 @@ fn we_build_up_the_folded_pcs_proof_commitment() {
         pcs_proof_evaluations: &pcs_proof_evaluations,
         ..Default::default()
     };
-    let mut rng = OsRng;
-    let commit1 = RistrettoPoint::random(&mut rng);
-    let commit2 = RistrettoPoint::random(&mut rng);
-    let intermediate_commitments = [commit2];
     let inner_product_multipliers = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
@@ -82,16 +73,14 @@ fn we_build_up_the_folded_pcs_proof_commitment() {
         0,
         mle_evaluations,
         &[][..],
-        &intermediate_commitments,
         &[][..],
         &inner_product_multipliers,
         Vec::new(),
     );
-    let eval = builder.consume_anchored_mle(commit1);
+    let eval = builder.consume_anchored_mle();
     assert_eq!(eval, Curve25519Scalar::from(123u64));
     let eval = builder.consume_intermediate_mle();
     assert_eq!(eval, Curve25519Scalar::from(456u64));
-    assert_eq!(builder.pcs_proof_commitments(), &[commit1, commit2]);
     assert_eq!(
         builder.inner_product_multipliers(),
         &[inner_product_multipliers[0], inner_product_multipliers[1]]
@@ -107,10 +96,9 @@ fn we_build_up_the_folded_pcs_proof_commitment() {
 
 #[test]
 fn we_can_consume_post_result_challenges_in_proof_builder() {
-    let mut builder = VerificationBuilder::<RistrettoPoint>::new(
+    let mut builder = VerificationBuilder::new(
         0,
         SumcheckMleEvaluations::default(),
-        &[][..],
         &[][..],
         &[][..],
         &[][..],

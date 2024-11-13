@@ -28,6 +28,7 @@ macro_rules! indexset_macro {
     ($($value:expr),*) => {
         {
             const CAP: usize = <[()]>::len(&[$({ stringify!($value); }),*]);
+            #[allow(unused_mut)]
             let mut set = $crate::base::map::IndexSet::with_capacity_and_hasher(CAP, <_>::default());
             $(
                 set.insert($value);

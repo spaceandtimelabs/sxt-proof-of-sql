@@ -5,7 +5,6 @@ use super::{
 use crate::{
     base::{
         bit::{compute_varying_bit_matrix, BitDistribution},
-        commitment::Commitment,
         proof::ProofError,
         scalar::Scalar,
     },
@@ -124,11 +123,11 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
 /// Panics if `bit_evals.last()` is `None`.
 ///
 /// See [`prover_evaluate_sign`].
-pub fn verifier_evaluate_sign<C: Commitment>(
-    builder: &mut VerificationBuilder<C>,
-    eval: C::Scalar,
-    one_eval: C::Scalar,
-) -> Result<C::Scalar, ProofError> {
+pub fn verifier_evaluate_sign<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    eval: S,
+    one_eval: S,
+) -> Result<S, ProofError> {
     // bit_distribution
     let dist = builder.consume_bit_distribution();
     let num_varying_bits = dist.num_varying_bits();
@@ -189,10 +188,7 @@ fn prove_bits_are_binary<'a, S: Scalar>(
     }
 }
 
-fn verify_bits_are_binary<C: Commitment>(
-    builder: &mut VerificationBuilder<C>,
-    bit_evals: &[C::Scalar],
-) {
+fn verify_bits_are_binary<S: Scalar>(builder: &mut VerificationBuilder<S>, bit_evals: &[S]) {
     for bit_eval in bit_evals {
         builder.produce_sumcheck_subpolynomial_evaluation(
             &SumcheckSubpolynomialType::Identity,
@@ -242,22 +238,22 @@ fn prove_bit_decomposition<'a, S: Scalar>(
 /// Panics if `bit_evals.last()` returns `None`.
 ///
 /// This function checks the consistency of the bit evaluations with the expression evaluation.
-fn verify_bit_decomposition<C: Commitment>(
-    builder: &mut VerificationBuilder<C>,
-    expr_eval: C::Scalar,
-    bit_evals: &[C::Scalar],
+fn verify_bit_decomposition<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    expr_eval: S,
+    bit_evals: &[S],
     dist: &BitDistribution,
 ) {
     let mut eval = expr_eval;
     let sign_eval = bit_evals.last().unwrap();
-    let sign_eval = builder.mle_evaluations.input_one_evaluation - C::Scalar::TWO * *sign_eval;
+    let sign_eval = builder.mle_evaluations.input_one_evaluation - S::TWO * *sign_eval;
     let mut vary_index = 0;
-    eval -= sign_eval * C::Scalar::from(dist.constant_part());
+    eval -= sign_eval * S::from(dist.constant_part());
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
         let mut mult = [0u64; 4];
         mult[int_index] = 1u64 << bit_index;
         let bit_eval = bit_evals[vary_index];
-        eval -= C::Scalar::from(mult) * sign_eval * bit_eval;
+        eval -= S::from(mult) * sign_eval * bit_eval;
         vary_index += 1;
     });
     builder.produce_sumcheck_subpolynomial_evaluation(&SumcheckSubpolynomialType::Identity, eval);

@@ -4,13 +4,13 @@ use super::{
 };
 use crate::{
     base::{
-        commitment::{Commitment, InnerProductProof},
+        commitment::InnerProductProof,
         database::{
             owned_table_utility::{bigint, owned_table},
-            Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            OwnedTable, OwnedTableTestAccessor, TableRef,
+            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable,
+            OwnedTableTestAccessor, TableRef,
         },
-        map::{indexset, IndexSet},
+        map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -56,18 +56,18 @@ impl ProofPlan for EmptyTestQueryExpr {
         Ok(())
     }
 
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        _accessor: &dyn CommitmentAccessor<C>,
-        _result: Option<&OwnedTable<<C as Commitment>::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        _accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
         let _ = std::iter::repeat_with(|| {
-            assert_eq!(builder.consume_intermediate_mle(), C::Scalar::ZERO);
+            assert_eq!(builder.consume_intermediate_mle(), S::ZERO);
         })
         .take(self.columns)
         .collect::<Vec<_>>();
-        Ok(vec![C::Scalar::ZERO])
+        Ok(vec![S::ZERO])
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -77,7 +77,7 @@ impl ProofPlan for EmptyTestQueryExpr {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        unimplemented!("no real usage for this function yet")
+        indexset! {}
     }
 
     fn get_table_references(&self) -> IndexSet<TableRef> {

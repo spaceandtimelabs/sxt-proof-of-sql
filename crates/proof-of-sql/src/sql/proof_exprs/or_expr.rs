@@ -1,9 +1,8 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
-        map::IndexSet,
+        database::{Column, ColumnRef, ColumnType, DataAccessor},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -67,11 +66,11 @@ impl ProofExpr for OrExpr {
         Column::Boolean(prover_evaluate_or(builder, alloc, lhs, rhs))
     }
 
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-    ) -> Result<C::Scalar, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError> {
         let lhs = self.lhs.verifier_evaluate(builder, accessor)?;
         let rhs = self.rhs.verifier_evaluate(builder, accessor)?;
 
@@ -129,11 +128,11 @@ pub fn prover_evaluate_or<'a, S: Scalar>(
     alloc.alloc_slice_fill_with(n, |i| lhs[i] || rhs[i])
 }
 
-pub fn verifier_evaluate_or<C: Commitment>(
-    builder: &mut VerificationBuilder<C>,
-    lhs: &C::Scalar,
-    rhs: &C::Scalar,
-) -> C::Scalar {
+pub fn verifier_evaluate_or<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    lhs: &S,
+    rhs: &S,
+) -> S {
     // lhs_and_rhs
     let lhs_and_rhs = builder.consume_intermediate_mle();
 

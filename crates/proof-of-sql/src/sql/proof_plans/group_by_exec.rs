@@ -1,15 +1,13 @@
 use super::{fold_columns, fold_vals};
 use crate::{
     base::{
-        commitment::Commitment,
         database::{
             group_by_util::{
                 aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
             },
-            Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            OwnedTable, TableRef,
+            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, TableRef,
         },
-        map::IndexSet,
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
@@ -89,12 +87,12 @@ impl ProofPlan for GroupByExec {
     }
 
     #[allow(unused_variables)]
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-        result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+        result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
         // 1. selection
         let where_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         // 2. columns
@@ -312,12 +310,12 @@ impl ProverEvaluate for GroupByExec {
 }
 
 #[allow(clippy::unnecessary_wraps)]
-fn verify_group_by<C: Commitment>(
-    builder: &mut VerificationBuilder<C>,
-    alpha: C::Scalar,
-    beta: C::Scalar,
-    (g_in_evals, sum_in_evals, sel_in_eval): (Vec<C::Scalar>, Vec<C::Scalar>, C::Scalar),
-    (g_out_evals, sum_out_evals, count_out_eval): (Vec<C::Scalar>, Vec<C::Scalar>, C::Scalar),
+fn verify_group_by<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    alpha: S,
+    beta: S,
+    (g_in_evals, sum_in_evals, sel_in_eval): (Vec<S>, Vec<S>, S),
+    (g_out_evals, sum_out_evals, count_out_eval): (Vec<S>, Vec<S>, S),
 ) -> Result<(), ProofError> {
     let one_eval = builder.mle_evaluations.input_one_evaluation;
 

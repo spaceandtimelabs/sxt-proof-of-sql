@@ -1,12 +1,11 @@
 use super::{fold_columns, fold_vals};
 use crate::{
     base::{
-        commitment::Commitment,
         database::{
-            filter_util::filter_columns, Column, ColumnField, ColumnRef, CommitmentAccessor,
-            DataAccessor, OwnedTable, TableRef,
+            filter_util::filter_columns, Column, ColumnField, ColumnRef, DataAccessor, OwnedTable,
+            TableRef,
         },
-        map::IndexSet,
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
@@ -74,12 +73,12 @@ where
     }
 
     #[allow(unused_variables)]
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-        _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
         // 1. selection
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         // 2. columns
@@ -218,13 +217,13 @@ impl ProverEvaluate for FilterExec {
 }
 
 #[allow(clippy::unnecessary_wraps)]
-fn verify_filter<C: Commitment>(
-    builder: &mut VerificationBuilder<C>,
-    alpha: C::Scalar,
-    beta: C::Scalar,
-    c_evals: &[C::Scalar],
-    s_eval: C::Scalar,
-    d_evals: &[C::Scalar],
+fn verify_filter<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    alpha: S,
+    beta: S,
+    c_evals: &[S],
+    s_eval: S,
+    d_evals: &[S],
 ) -> Result<(), ProofError> {
     let one_eval = builder.mle_evaluations.input_one_evaluation;
     let chi_eval = builder.mle_evaluations.output_one_evaluation;

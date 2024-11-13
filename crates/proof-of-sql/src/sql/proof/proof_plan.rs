@@ -1,10 +1,7 @@
 use super::{CountBuilder, FinalRoundBuilder, FirstRoundBuilder, VerificationBuilder};
 use crate::base::{
-    commitment::Commitment,
-    database::{
-        Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, OwnedTable, TableRef,
-    },
-    map::IndexSet,
+    database::{Column, ColumnField, ColumnRef, DataAccessor, OwnedTable, TableRef},
+    map::{IndexMap, IndexSet},
     proof::ProofError,
     scalar::Scalar,
 };
@@ -19,12 +16,12 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError>;
 
     /// Form components needed to verify and proof store into `VerificationBuilder`
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-        result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError>;
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+        result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError>;
 
     /// Return all the result column fields
     fn get_column_result_fields(&self) -> Vec<ColumnField>;

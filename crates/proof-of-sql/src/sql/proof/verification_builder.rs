@@ -1,19 +1,16 @@
 use super::{SumcheckMleEvaluations, SumcheckSubpolynomialType};
-use crate::base::{bit::BitDistribution, commitment::Commitment};
+use crate::base::{bit::BitDistribution, scalar::Scalar};
 use alloc::vec::Vec;
-use num_traits::Zero;
 
 /// Track components used to verify a query's proof
-pub struct VerificationBuilder<'a, C: Commitment> {
-    pub mle_evaluations: SumcheckMleEvaluations<'a, C::Scalar>,
+pub struct VerificationBuilder<'a, S: Scalar> {
+    pub mle_evaluations: SumcheckMleEvaluations<'a, S>,
     generator_offset: usize,
-    intermediate_commitments: &'a [C],
-    subpolynomial_multipliers: &'a [C::Scalar],
-    inner_product_multipliers: &'a [C::Scalar],
-    sumcheck_evaluation: C::Scalar,
+    subpolynomial_multipliers: &'a [S],
+    inner_product_multipliers: &'a [S],
+    sumcheck_evaluation: S,
     bit_distributions: &'a [BitDistribution],
-    pcs_proof_commitments: Vec<C>,
-    folded_pcs_proof_evaluation: C::Scalar,
+    folded_pcs_proof_evaluation: S,
     consumed_pcs_proof_mles: usize,
     consumed_intermediate_mles: usize,
     produced_subpolynomials: usize,
@@ -24,22 +21,21 @@ pub struct VerificationBuilder<'a, C: Commitment> {
     ///
     /// Note: this vector is treated as a stack and the first
     /// challenge is the last entry in the vector.
-    post_result_challenges: Vec<C::Scalar>,
+    post_result_challenges: Vec<S>,
 }
 
-impl<'a, C: Commitment> VerificationBuilder<'a, C> {
+impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     #[allow(
         clippy::missing_panics_doc,
         reason = "The only possible panic is from the assertion comparing lengths, which is clear from context."
     )]
     pub fn new(
         generator_offset: usize,
-        mle_evaluations: SumcheckMleEvaluations<'a, C::Scalar>,
+        mle_evaluations: SumcheckMleEvaluations<'a, S>,
         bit_distributions: &'a [BitDistribution],
-        intermediate_commitments: &'a [C],
-        subpolynomial_multipliers: &'a [C::Scalar],
-        inner_product_multipliers: &'a [C::Scalar],
-        post_result_challenges: Vec<C::Scalar>,
+        subpolynomial_multipliers: &'a [S],
+        inner_product_multipliers: &'a [S],
+        post_result_challenges: Vec<S>,
     ) -> Self {
         assert_eq!(
             inner_product_multipliers.len(),
@@ -49,12 +45,10 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
             mle_evaluations,
             generator_offset,
             bit_distributions,
-            intermediate_commitments,
             subpolynomial_multipliers,
             inner_product_multipliers,
-            sumcheck_evaluation: C::Scalar::zero(),
-            pcs_proof_commitments: Vec::with_capacity(inner_product_multipliers.len()),
-            folded_pcs_proof_evaluation: C::Scalar::zero(),
+            sumcheck_evaluation: S::zero(),
+            folded_pcs_proof_evaluation: S::zero(),
             consumed_pcs_proof_mles: 0,
             consumed_intermediate_mles: 0,
             produced_subpolynomials: 0,
@@ -73,10 +67,9 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment
-    pub fn consume_anchored_mle(&mut self, commitment: C) -> C::Scalar {
+    pub fn consume_anchored_mle(&mut self) -> S {
         let index = self.consumed_pcs_proof_mles;
         let multiplier = self.inner_product_multipliers[index];
-        self.pcs_proof_commitments.push(commitment);
         self.consumed_pcs_proof_mles += 1;
         let res = self.mle_evaluations.pcs_proof_evaluations[index];
         self.folded_pcs_proof_evaluation += multiplier * res;
@@ -94,17 +87,16 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     /// Consume the evaluation of an intermediate MLE used in sumcheck
     ///
     /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
-    pub fn consume_intermediate_mle(&mut self) -> C::Scalar {
-        let commitment = self.intermediate_commitments[self.consumed_intermediate_mles].clone();
+    pub fn consume_intermediate_mle(&mut self) -> S {
         self.consumed_intermediate_mles += 1;
-        self.consume_anchored_mle(commitment)
+        self.consume_anchored_mle()
     }
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
     pub fn produce_sumcheck_subpolynomial_evaluation(
         &mut self,
         subpolynomial_type: &SumcheckSubpolynomialType,
-        eval: C::Scalar,
+        eval: S,
     ) {
         self.sumcheck_evaluation += self.subpolynomial_multipliers[self.produced_subpolynomials]
             * match subpolynomial_type {
@@ -121,20 +113,9 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
         reason = "The panic condition is clear due to the assertion that checks if the computation is completed."
     )]
     /// Get the evaluation of the sumcheck polynomial at its randomly selected point
-    pub fn sumcheck_evaluation(&self) -> C::Scalar {
+    pub fn sumcheck_evaluation(&self) -> S {
         assert!(self.completed());
         self.sumcheck_evaluation
-    }
-
-    #[allow(
-        clippy::missing_panics_doc,
-        reason = "Panic conditions are straightforward as they rely on the completion assertion."
-    )]
-    /// Get the commitments of pre-result MLE vectors used in a verifiable query's
-    /// bulletproof
-    pub fn pcs_proof_commitments(&self) -> &[C] {
-        assert!(self.completed());
-        &self.pcs_proof_commitments
     }
 
     #[allow(
@@ -142,7 +123,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
         reason = "Panic conditions are self-evident from the completed assertion."
     )]
     /// Get folding factors for the pre-result commitments
-    pub fn inner_product_multipliers(&self) -> &[C::Scalar] {
+    pub fn inner_product_multipliers(&self) -> &[S] {
         assert!(self.completed());
         self.inner_product_multipliers
     }
@@ -153,7 +134,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     )]
     /// Get the evaluation of the folded pre-result MLE vectors used in a verifiable query's
     /// bulletproof
-    pub fn folded_pcs_proof_evaluation(&self) -> C::Scalar {
+    pub fn folded_pcs_proof_evaluation(&self) -> S {
         assert!(self.completed());
         self.folded_pcs_proof_evaluation
     }
@@ -162,7 +143,6 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     fn completed(&self) -> bool {
         self.bit_distributions.is_empty()
             && self.produced_subpolynomials == self.subpolynomial_multipliers.len()
-            && self.consumed_intermediate_mles == self.intermediate_commitments.len()
             && self.consumed_pcs_proof_mles == self.mle_evaluations.pcs_proof_evaluations.len()
             && self.post_result_challenges.is_empty()
     }
@@ -180,7 +160,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     /// # Panics
     /// This function will panic if `post_result_challenges` is empty,
     /// as it attempts to pop an element from the vector and unwraps the result.
-    pub fn consume_post_result_challenge(&mut self) -> C::Scalar {
+    pub fn consume_post_result_challenge(&mut self) -> S {
         self.post_result_challenges.pop().unwrap()
     }
 }

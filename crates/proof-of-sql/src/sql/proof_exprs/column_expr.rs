@@ -1,9 +1,8 @@
 use super::ProofExpr;
 use crate::{
     base::{
-        commitment::Commitment,
-        database::{Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
-        map::IndexSet,
+        database::{Column, ColumnField, ColumnRef, ColumnType, DataAccessor},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -44,8 +43,7 @@ impl ColumnExpr {
 
 impl ProofExpr for ColumnExpr {
     /// Count the number of proof terms needed by this expression
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_anchored_mles(1);
+    fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())
     }
 
@@ -71,24 +69,25 @@ impl ProofExpr for ColumnExpr {
     /// add the components needed to prove the result
     fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, S>,
+        _builder: &mut FinalRoundBuilder<'a, S>,
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Column<'a, S> {
-        let column = accessor.get_column(self.column_ref);
-        builder.produce_anchored_mle(column);
-        column
+        accessor.get_column(self.column_ref)
     }
 
     /// Evaluate the column expression at the sumcheck's random point,
     /// add components needed to verify this column expression
-    fn verifier_evaluate<C: Commitment>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-    ) -> Result<C::Scalar, ProofError> {
-        let col_commit = accessor.get_commitment(self.column_ref);
-        Ok(builder.consume_anchored_mle(col_commit))
+        _builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError> {
+        Ok(*accessor
+            .get(&self.column_ref)
+            .ok_or(ProofError::VerificationError {
+                error: "Column Not Found",
+            })?)
     }
 
     /// Insert in the [`IndexSet`] `columns` all the column
