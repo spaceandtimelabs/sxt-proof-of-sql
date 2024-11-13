@@ -52,7 +52,7 @@ impl ProofExpr for EqualsExpr {
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
         Column::Boolean(result_evaluate_equals_zero(
-            table.num_rows().unwrap_or(0),
+            table.num_rows(),
             alloc,
             res,
         ))

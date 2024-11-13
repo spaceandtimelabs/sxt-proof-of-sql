@@ -49,7 +49,7 @@ impl ProofExpr for LiteralExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        Column::from_literal_with_length(&self.value, table.num_rows().unwrap_or(0), alloc)
+        Column::from_literal_with_length(&self.value, table.num_rows(), alloc)
     }
 
     #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]
@@ -59,7 +59,7 @@ impl ProofExpr for LiteralExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        Column::from_literal_with_length(&self.value, table.num_rows().unwrap_or(0), alloc)
+        Column::from_literal_with_length(&self.value, table.num_rows(), alloc)
     }
 
     fn verifier_evaluate<S: Scalar>(

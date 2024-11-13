@@ -64,7 +64,7 @@ impl ProofExpr for InequalityExpr {
         let rhs_column = self.rhs.result_evaluate(alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let table_length = table.num_rows().unwrap_or(0);
+        let table_length = table.num_rows();
         let diff = if self.is_lte {
             scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, false)
                 .expect("Failed to scale and subtract")

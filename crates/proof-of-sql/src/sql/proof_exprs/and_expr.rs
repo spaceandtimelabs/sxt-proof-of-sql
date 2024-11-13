@@ -51,7 +51,7 @@ impl ProofExpr for AndExpr {
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         Column::Boolean(
-            alloc.alloc_slice_fill_with(table.num_rows().unwrap_or(0), |i| lhs[i] && rhs[i]),
+            alloc.alloc_slice_fill_with(table.num_rows(), |i| lhs[i] && rhs[i]),
         )
     }
 

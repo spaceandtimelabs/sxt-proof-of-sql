@@ -18,18 +18,19 @@ pub enum TableError {
 #[derive(Debug, Clone, Eq)]
 pub struct Table<'a, S: Scalar> {
     table: IndexMap<Identifier, Column<'a, S>>,
+    num_rows: usize,
 }
 impl<'a, S: Scalar> Table<'a, S> {
     /// Creates a new [`Table`].
     pub fn try_new(table: IndexMap<Identifier, Column<'a, S>>) -> Result<Self, TableError> {
         if table.is_empty() {
-            return Ok(Self { table });
+            return Ok(Self { table, num_rows: 0 });
         }
         let num_rows = table[0].len();
         if table.values().any(|column| column.len() != num_rows) {
             Err(TableError::ColumnLengthMismatch)
         } else {
-            Ok(Self { table })
+            Ok(Self { table, num_rows })
         }
     }
     /// Creates a new [`Table`].
@@ -43,10 +44,10 @@ impl<'a, S: Scalar> Table<'a, S> {
     pub fn num_columns(&self) -> usize {
         self.table.len()
     }
-    /// Number of rows in the table. For an empty table, this will return `None`.
+    /// Number of rows in the table.
     #[must_use]
-    pub fn num_rows(&self) -> Option<usize> {
-        (!self.table.is_empty()).then(|| self.table[0].len())
+    pub fn num_rows(&self) -> usize {
+        self.num_rows
     }
     /// Whether the table has no columns.
     #[must_use]

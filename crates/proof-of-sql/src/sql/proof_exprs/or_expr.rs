@@ -49,7 +49,7 @@ impl ProofExpr for OrExpr {
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         Column::Boolean(result_evaluate_or(
-            table.num_rows().unwrap_or(0),
+            table.num_rows(),
             alloc,
             lhs,
             rhs,

@@ -45,7 +45,7 @@ impl ColumnExpr {
     ///
     /// Will panic if the column is not found. Shouldn't happen in practice since
     /// code in `sql/parse` should have already checked that the column exists.
-    pub fn get_column<'a, S: Scalar>(&self, table: &Table<'a, S>) -> Column<'a, S> {
+    pub fn fetch_column<'a, S: Scalar>(&self, table: &Table<'a, S>) -> Column<'a, S> {
         *table
             .inner_table()
             .get(&self.column_ref.column_id())
@@ -71,7 +71,7 @@ impl ProofExpr for ColumnExpr {
         _alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        self.get_column(table)
+        self.fetch_column(table)
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the column expression and
@@ -82,7 +82,7 @@ impl ProofExpr for ColumnExpr {
         _alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        self.get_column(table)
+        self.fetch_column(table)
     }
 
     /// Evaluate the column expression at the sumcheck's random point,

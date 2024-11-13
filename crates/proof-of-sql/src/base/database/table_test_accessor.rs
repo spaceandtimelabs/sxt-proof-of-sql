@@ -116,7 +116,6 @@ impl<CP: CommitmentEvaluationProof> MetadataAccessor for TableTestAccessor<'_, C
             .unwrap()
             .0
             .num_rows()
-            .unwrap_or(0)
     }
     ///
     /// # Panics
