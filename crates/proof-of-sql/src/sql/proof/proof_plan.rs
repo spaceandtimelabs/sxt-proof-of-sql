@@ -1,6 +1,6 @@
 use super::{CountBuilder, FinalRoundBuilder, FirstRoundBuilder, VerificationBuilder};
 use crate::base::{
-    database::{ColumnField, ColumnRef, DataAccessor, OwnedTable, Table, TableRef},
+    database::{ColumnField, ColumnRef, OwnedTable, Table, TableRef},
     map::{IndexMap, IndexSet},
     proof::ProofError,
     scalar::Scalar,
@@ -39,7 +39,7 @@ pub trait ProverEvaluate {
     fn result_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S>;
 
     /// Evaluate the query and modify `FirstRoundBuilder` to form the query's proof.
@@ -55,7 +55,7 @@ pub trait ProverEvaluate {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S>;
 }
 

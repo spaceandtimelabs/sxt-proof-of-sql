@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, DataAccessor, OwnedTable, Table, TableRef},
+        database::{ColumnField, ColumnRef, OwnedTable, Table, TableRef},
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -75,9 +75,12 @@ impl ProverEvaluate for TableExec {
     fn result_evaluate<'a, S: Scalar>(
         &self,
         _alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        accessor.get_table(self.table_ref, &self.get_column_references())
+        table_map
+            .get(&self.table_ref)
+            .expect("Table not found")
+            .clone()
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -88,9 +91,12 @@ impl ProverEvaluate for TableExec {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let table = accessor.get_table(self.table_ref, &self.get_column_references());
+        let table = table_map
+            .get(&self.table_ref)
+            .expect("Table not found")
+            .clone();
         for column in table.columns() {
             builder.produce_intermediate_mle(column.as_scalar(alloc));
         }

@@ -6,8 +6,10 @@ use crate::{
     base::{
         bit::BitDistribution,
         commitment::CommitmentEvaluationProof,
-        database::{CommitmentAccessor, DataAccessor, MetadataAccessor, TableRef},
-        map::IndexMap,
+        database::{
+            ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor, Table, TableRef,
+        },
+        map::{IndexMap, IndexSet},
         math::log2_up,
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
         proof::{Keccak256Transcript, ProofError, Transcript},
@@ -75,8 +77,22 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let alloc = Bump::new();
 
+        let total_col_refs = expr.get_column_references();
+        let table_map: IndexMap<TableRef, Table<CP::Scalar>> = expr
+            .get_table_references()
+            .into_iter()
+            .map(|table_ref| {
+                let col_refs: IndexSet<ColumnRef> = total_col_refs
+                    .iter()
+                    .filter(|col_ref| col_ref.table_ref() == table_ref)
+                    .copied()
+                    .collect();
+                (table_ref, accessor.get_table(table_ref, &col_refs))
+            })
+            .collect();
+
         // Evaluate query result
-        let provable_result = expr.result_evaluate(&alloc, accessor).into();
+        let provable_result = expr.result_evaluate(&alloc, &table_map).into();
 
         // Prover First Round
         let mut first_round_builder = FirstRoundBuilder::new();
@@ -99,11 +115,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let mut builder =
             FinalRoundBuilder::new(range_length, num_sumcheck_variables, post_result_challenges);
 
-        expr.get_column_references().into_iter().for_each(|col| {
-            builder.produce_anchored_mle(accessor.get_column(col));
-        });
+        for col_ref in total_col_refs {
+            builder.produce_anchored_mle(accessor.get_column(col_ref));
+        }
 
-        expr.final_round_evaluate(&mut builder, &alloc, accessor);
+        expr.final_round_evaluate(&mut builder, &alloc, &table_map);
 
         let num_sumcheck_variables = builder.num_sumcheck_variables();
 
