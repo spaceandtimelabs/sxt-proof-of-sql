@@ -13,7 +13,7 @@ use proof_of_sql_parser::{
 fn we_can_create_a_table_with_no_columns() {
     let table = Table::<TestScalar>::try_new(IndexMap::default()).unwrap();
     assert_eq!(table.num_columns(), 0);
-    assert_eq!(table.num_rows(), None);
+    assert_eq!(table.num_rows(), 1);
 }
 #[test]
 fn we_can_create_an_empty_table() {

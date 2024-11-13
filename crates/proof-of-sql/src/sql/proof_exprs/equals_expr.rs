@@ -51,11 +51,7 @@ impl ProofExpr for EqualsExpr {
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        Column::Boolean(result_evaluate_equals_zero(
-            table.num_rows(),
-            alloc,
-            res,
-        ))
+        Column::Boolean(result_evaluate_equals_zero(table.num_rows(), alloc, res))
     }
 
     #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]

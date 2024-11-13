@@ -1,5 +1,10 @@
-use super::Column;
-use crate::base::{map::IndexMap, scalar::Scalar};
+use super::{Column, ColumnRef, DataAccessor, TableRef};
+use crate::base::{
+    map::{IndexMap, IndexSet},
+    scalar::Scalar,
+};
+use alloc::vec;
+use bumpalo::Bump;
 use proof_of_sql_parser::Identifier;
 use snafu::Snafu;
 
@@ -24,7 +29,8 @@ impl<'a, S: Scalar> Table<'a, S> {
     /// Creates a new [`Table`].
     pub fn try_new(table: IndexMap<Identifier, Column<'a, S>>) -> Result<Self, TableError> {
         if table.is_empty() {
-            return Ok(Self { table, num_rows: 0 });
+            // `EmptyExec` should have one row for queries such as `SELECT 1`.
+            return Ok(Self { table, num_rows: 1 });
         }
         let num_rows = table[0].len();
         if table.values().any(|column| column.len() != num_rows) {
@@ -38,6 +44,34 @@ impl<'a, S: Scalar> Table<'a, S> {
         iter: T,
     ) -> Result<Self, TableError> {
         Self::try_new(IndexMap::from_iter(iter))
+    }
+    /// Creates a new [`Table`] from a [`DataAccessor`], [`TableRef`] and [`ColumnRef`]s.
+    ///
+    /// Columns are retrieved from the [`DataAccessor`] using the provided [`ColumnRef`]s.
+    /// # Panics
+    /// Missing columns or column length mismatches can occur if the accessor doesn't
+    /// contain the necessary columns. In practice, this should not happen.
+    pub(crate) fn from_columns(
+        column_refs: &IndexSet<ColumnRef>,
+        table_ref: TableRef,
+        accessor: &'a dyn DataAccessor<S>,
+        alloc: &'a Bump,
+    ) -> Self {
+        if column_refs.is_empty() {
+            // TODO: Currently we have to have non-empty column references to have a non-empty table
+            // to evaluate `ProofExpr`s on. Once we restrict [`DataAccessor`] to [`TableExec`]
+            // and use input `DynProofPlan`s we should no longer need this.
+            let input_length = accessor.get_length(table_ref);
+            let bogus_vec = vec![true; input_length];
+            let bogus_col = Column::Boolean(alloc.alloc_slice_copy(&bogus_vec));
+            Table::<'a, S>::try_from_iter(core::iter::once(("bogus".parse().unwrap(), bogus_col)))
+        } else {
+            Table::<'a, S>::try_from_iter(column_refs.into_iter().map(|column_ref| {
+                let column = accessor.get_column(*column_ref);
+                (column_ref.column_id(), column)
+            }))
+        }
+        .expect("Failed to create table from column references")
     }
     /// Number of columns in the table.
     #[must_use]

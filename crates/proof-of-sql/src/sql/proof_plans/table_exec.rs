@@ -85,7 +85,6 @@ impl ProverEvaluate for TableExec {
     #[tracing::instrument(name = "TableExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        _input_length: usize,
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {

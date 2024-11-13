@@ -39,11 +39,8 @@ impl ProverEvaluate for DishonestFilterExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let column_refs = self.get_column_references();
-        let used_table = Table::<'a, S>::try_from_iter(column_refs.iter().map(|column_ref| {
-            let column = accessor.get_column(*column_ref);
-            (column_ref.column_id(), column)
-        }))
-        .expect("Failed to create table from column references");
+        let used_table =
+            Table::<'a, S>::from_columns(&column_refs, self.table.table_ref, accessor, alloc);
         // 1. selection
         let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, &used_table);
         let selection = selection_column
@@ -78,11 +75,8 @@ impl ProverEvaluate for DishonestFilterExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let column_refs = self.get_column_references();
-        let used_table = Table::<'a, S>::try_from_iter(column_refs.iter().map(|column_ref| {
-            let column = accessor.get_column(*column_ref);
-            (column_ref.column_id(), column)
-        }))
-        .expect("Failed to create table from column references");
+        let used_table =
+            Table::<'a, S>::from_columns(&column_refs, self.table.table_ref, accessor, alloc);
         // 1. selection
         let selection_column: Column<'a, S> =
             self.where_clause

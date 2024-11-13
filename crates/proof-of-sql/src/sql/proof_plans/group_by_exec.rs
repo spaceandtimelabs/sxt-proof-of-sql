@@ -202,21 +202,8 @@ impl ProverEvaluate for GroupByExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let column_refs = self.get_column_references();
-        let used_table = if column_refs.is_empty() {
-            //TODO: Currently we have to have non-empty column references to have a non-empty table
-            // to evaluate `ProofExpr`s on. Once we restrict [`DataAccessor`] to [`TableExec`]
-            // and use input `DynProofPlan`s we should no longer need this.
-            let input_length = accessor.get_length(self.table.table_ref);
-            let bogus_vec = vec![true; input_length];
-            let bogus_col = Column::Boolean(alloc.alloc_slice_copy(&bogus_vec));
-            Table::<'a, S>::try_from_iter(core::iter::once(("bogus".parse().unwrap(), bogus_col)))
-        } else {
-            Table::<'a, S>::try_from_iter(column_refs.iter().map(|column_ref| {
-                let column = accessor.get_column(*column_ref);
-                (column_ref.column_id(), column)
-            }))
-        }
-        .expect("Failed to create table from column references");
+        let used_table =
+            Table::<'a, S>::from_columns(&column_refs, self.table.table_ref, accessor, alloc);
         // 1. selection
         let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, &used_table);
 
@@ -264,21 +251,8 @@ impl ProverEvaluate for GroupByExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let column_refs = self.get_column_references();
-        let used_table = if column_refs.is_empty() {
-            //TODO: Currently we have to have non-empty column references to have a non-empty table
-            // to evaluate `ProofExpr`s on. Once we restrict [`DataAccessor`] to [`TableExec`]
-            // and use input `DynProofPlan`s we should no longer need this.
-            let input_length = accessor.get_length(self.table.table_ref);
-            let bogus_vec = vec![true; input_length];
-            let bogus_col = Column::Boolean(alloc.alloc_slice_copy(&bogus_vec));
-            Table::<'a, S>::try_from_iter(core::iter::once(("bogus".parse().unwrap(), bogus_col)))
-        } else {
-            Table::<'a, S>::try_from_iter(column_refs.iter().map(|column_ref| {
-                let column = accessor.get_column(*column_ref);
-                (column_ref.column_id(), column)
-            }))
-        }
-        .expect("Failed to create table from column references");
+        let used_table =
+            Table::<'a, S>::from_columns(&column_refs, self.table.table_ref, accessor, alloc);
         // 1. selection
         let selection_column: Column<'a, S> =
             self.where_clause
