@@ -1,5 +1,12 @@
-use super::{DynProofPlan, FilterExec, GroupByExec, ProjectionExec};
-use crate::sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr};
+use super::{DynProofPlan, FilterExec, GroupByExec, ProjectionExec, TableExec};
+use crate::{
+    base::database::{ColumnField, TableRef},
+    sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
+};
+
+pub fn table_exec(table_ref: TableRef, schema: Vec<ColumnField>) -> DynProofPlan {
+    DynProofPlan::Table(TableExec::new(table_ref, schema))
+}
 
 pub fn projection(results: Vec<AliasedDynProofExpr>, table: TableExpr) -> DynProofPlan {
     DynProofPlan::Projection(ProjectionExec::new(results, table))

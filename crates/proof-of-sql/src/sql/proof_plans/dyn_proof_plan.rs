@@ -1,4 +1,4 @@
-use super::{EmptyExec, FilterExec, GroupByExec, ProjectionExec};
+use super::{EmptyExec, FilterExec, GroupByExec, ProjectionExec, TableExec};
 use crate::{
     base::{
         database::{Column, ColumnField, ColumnRef, DataAccessor, OwnedTable, TableRef},
@@ -21,6 +21,8 @@ use serde::{Deserialize, Serialize};
 pub enum DynProofPlan {
     /// Source [`ProofPlan`] for (sub)queries without table source such as `SELECT "No table here" as msg;`
     Empty(EmptyExec),
+    /// Source [`ProofPlan`] for (sub)queries with table source such as `SELECT col from tab;`
+    Table(TableExec),
     /// Provable expressions for queries of the form
     /// ```ignore
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table>
