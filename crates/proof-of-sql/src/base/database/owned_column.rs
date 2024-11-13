@@ -19,8 +19,9 @@ use proof_of_sql_parser::{
     intermediate_ast::OrderByDirection,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Clone, Eq)]
+#[derive(Debug, PartialEq, Clone, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 /// Supported types for [`OwnedColumn`]
 pub enum OwnedColumn<S: Scalar> {

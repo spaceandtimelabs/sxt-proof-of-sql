@@ -1,6 +1,7 @@
 use super::OwnedColumn;
 use crate::base::{map::IndexMap, scalar::Scalar};
 use proof_of_sql_parser::Identifier;
+use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
 /// An error that occurs when working with tables.
@@ -15,7 +16,7 @@ pub enum OwnedTableError {
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow [`RecordBatch`](arrow::record_batch::RecordBatch).
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Clone, Eq, Serialize, Deserialize)]
 pub struct OwnedTable<S: Scalar> {
     table: IndexMap<Identifier, OwnedColumn<S>>,
 }
