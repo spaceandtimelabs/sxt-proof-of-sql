@@ -7,8 +7,8 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             table_utility::*,
-            ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, OwnedTableTestAccessor,
-            Table, TableRef,
+            ColumnField, ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, Table,
+            TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
@@ -17,6 +17,7 @@ use crate::{
     sql::proof::{FirstRoundBuilder, QueryData, SumcheckSubpolynomialType},
 };
 use bumpalo::Bump;
+use proof_of_sql_parser::Identifier;
 use serde::Serialize;
 
 /// Type to allow us to prove and verify an artificial polynomial where we prove
@@ -44,7 +45,7 @@ impl ProverEvaluate for TrivialTestProofPlan {
     fn result_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
+        _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         let col = vec![self.column_fill_value; self.length];
         table([borrowed_bigint("a1", col, alloc)])
@@ -56,7 +57,7 @@ impl ProverEvaluate for TrivialTestProofPlan {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
+        _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
         builder.produce_intermediate_mle(col as &[_]);
@@ -217,7 +218,7 @@ impl ProverEvaluate for SquareTestProofPlan {
     fn result_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
+        _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         table([borrowed_bigint("a1", self.res, alloc)])
     }
@@ -228,13 +229,14 @@ impl ProverEvaluate for SquareTestProofPlan {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let x = accessor.get_column(ColumnRef::new(
-            "sxt.test".parse().unwrap(),
-            "x".parse().unwrap(),
-            ColumnType::BigInt,
-        ));
+        let x = *table_map
+            .get(&TableRef::new("sxt.test".parse().unwrap()))
+            .unwrap()
+            .inner_table()
+            .get(&"x".parse::<Identifier>().unwrap())
+            .unwrap();
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         builder.produce_intermediate_mle(res);
         builder.produce_sumcheck_subpolynomial(
@@ -393,7 +395,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
     fn result_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
+        _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         table([borrowed_bigint("a1", self.res, alloc)])
     }
@@ -404,13 +406,14 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let x = accessor.get_column(ColumnRef::new(
-            "sxt.test".parse().unwrap(),
-            "x".parse().unwrap(),
-            ColumnType::BigInt,
-        ));
+        let x = *table_map
+            .get(&TableRef::new("sxt.test".parse().unwrap()))
+            .unwrap()
+            .inner_table()
+            .get(&"x".parse::<Identifier>().unwrap())
+            .unwrap();
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         let z: &[_] = alloc.alloc_slice_copy(&self.z);
         builder.produce_intermediate_mle(z);
@@ -599,7 +602,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
     fn result_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
+        _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         table([borrowed_bigint("a1", [9, 25], alloc)])
     }
@@ -612,13 +615,14 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let x = accessor.get_column(ColumnRef::new(
-            "sxt.test".parse().unwrap(),
-            "x".parse().unwrap(),
-            ColumnType::BigInt,
-        ));
+        let x = *table_map
+            .get(&TableRef::new("sxt.test".parse().unwrap()))
+            .unwrap()
+            .inner_table()
+            .get(&"x".parse::<Identifier>().unwrap())
+            .unwrap();
         let res: &[_] = alloc.alloc_slice_copy(&[9, 25]);
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();

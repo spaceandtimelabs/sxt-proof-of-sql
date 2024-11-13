@@ -1,8 +1,6 @@
 use crate::{
     base::{
-        database::{
-            ColumnField, ColumnRef, DataAccessor, OwnedTable, Table, TableOptions, TableRef,
-        },
+        database::{ColumnField, ColumnRef, OwnedTable, Table, TableOptions, TableRef},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -90,18 +88,19 @@ impl ProverEvaluate for ProjectionExec {
     fn result_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let column_refs = self.get_column_references();
-        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
+        let table = table_map
+            .get(&self.table.table_ref)
+            .expect("Table not found");
         Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias,
-                    aliased_expr.expr.result_evaluate(alloc, &used_table),
+                    aliased_expr.expr.result_evaluate(alloc, table),
                 )
             }),
-            TableOptions::new(Some(accessor.get_length(self.table.table_ref))),
+            TableOptions::new(Some(table.num_rows())),
         )
         .expect("Failed to create table from iterator")
     }
@@ -118,21 +117,20 @@ impl ProverEvaluate for ProjectionExec {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let column_refs = self.get_column_references();
-        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
+        let table = table_map
+            .get(&self.table.table_ref)
+            .expect("Table not found");
         // 1. Evaluate result expressions
         let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias,
-                    aliased_expr
-                        .expr
-                        .prover_evaluate(builder, alloc, &used_table),
+                    aliased_expr.expr.prover_evaluate(builder, alloc, table),
                 )
             }),
-            TableOptions::new(Some(accessor.get_length(self.table.table_ref))),
+            TableOptions::new(Some(table.num_rows())),
         )
         .expect("Failed to create table from iterator");
         // 2. Produce MLEs

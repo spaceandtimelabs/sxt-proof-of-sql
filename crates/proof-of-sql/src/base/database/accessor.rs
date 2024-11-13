@@ -90,7 +90,7 @@ pub trait DataAccessor<S: Scalar>: MetadataAccessor {
     /// Creates a new [`Table`] from a [`TableRef`] and [`ColumnRef`]s.
     ///
     /// Columns are retrieved from the [`DataAccessor`] using the provided [`TableRef`] and [`ColumnRef`]s.
-    /// The only reason why [`table_ref` is needed is because `column_refs` can be empty.
+    /// The only reason why [`table_ref`] is needed is because [`column_refs`] can be empty.
     /// # Panics
     /// Column length mismatches can occur in theory. In practice, this should not happen.
     fn get_table(&self, table_ref: TableRef, column_refs: &IndexSet<ColumnRef>) -> Table<S> {

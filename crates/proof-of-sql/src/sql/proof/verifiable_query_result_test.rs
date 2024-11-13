@@ -8,8 +8,8 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             table_utility::*,
-            ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, OwnedTableTestAccessor,
-            Table, TableRef,
+            ColumnField, ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, Table,
+            TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
@@ -29,7 +29,7 @@ impl ProverEvaluate for EmptyTestQueryExpr {
     fn result_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
+        _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         let zeros = vec![0_i64; self.length];
         table_with_row_count(
@@ -42,7 +42,7 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
+        _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         let zeros = vec![0_i64; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
