@@ -76,8 +76,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let alloc = Bump::new();
 
         // Evaluate query result
-        let result_table = expr.result_evaluate(&alloc, accessor);
-        let provable_result = ProvableQueryResult::new_from_table(&result_table);
+        let provable_result = expr.result_evaluate(&alloc, accessor).into();
 
         // Prover First Round
         let mut first_round_builder = FirstRoundBuilder::new();

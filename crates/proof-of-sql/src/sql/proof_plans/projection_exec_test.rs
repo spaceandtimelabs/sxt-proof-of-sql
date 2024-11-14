@@ -168,7 +168,6 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
     let expr: DynProofPlan =
         projection(cols_expr_plan(t, &["b", "c", "d", "e"], &accessor), tab(t));
     let alloc = Bump::new();
-    let result_table = expr.result_evaluate(&alloc, &accessor);
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -180,9 +179,10 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::new_from_table(&result_table)
-        .to_owned_table(fields)
-        .unwrap();
+    let res: OwnedTable<Curve25519Scalar> =
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &accessor))
+            .to_owned_table(fields)
+            .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [0; 0]),
         int128("c", [0; 0]),
@@ -207,13 +207,13 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
     accessor.add_table(t, data, 0);
     let expr: DynProofPlan = projection(cols_expr_plan(t, &[], &accessor), tab(t));
     let alloc = Bump::new();
-    let result_table = expr.result_evaluate(&alloc, &accessor);
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[];
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::new_from_table(&result_table)
-        .to_owned_table(fields)
-        .unwrap();
+    let res: OwnedTable<Curve25519Scalar> =
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &accessor))
+            .to_owned_table(fields)
+            .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
     assert_eq!(res, expected);
 }
@@ -243,7 +243,6 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
         tab(t),
     );
     let alloc = Bump::new();
-    let result_table = expr.result_evaluate(&alloc, &accessor);
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -255,9 +254,10 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::new_from_table(&result_table)
-        .to_owned_table(fields)
-        .unwrap();
+    let res: OwnedTable<Curve25519Scalar> =
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &accessor))
+            .to_owned_table(fields)
+            .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [2, 3, 4, 5, 6]),
         int128("prod", [1, 4, 9, 16, 25]),

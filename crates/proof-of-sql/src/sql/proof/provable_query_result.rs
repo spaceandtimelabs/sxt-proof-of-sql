@@ -55,13 +55,6 @@ impl ProvableQueryResult {
         }
     }
 
-    /// Form intermediate query result from a table
-    #[must_use]
-    pub fn new_from_table<S: Scalar>(table: &Table<S>) -> Self {
-        let columns = table.columns().copied().collect::<Vec<_>>();
-        Self::new(table.num_rows() as u64, &columns)
-    }
-
     /// Form intermediate query result from index rows and result columns
     /// # Panics
     ///
@@ -224,5 +217,17 @@ impl ProvableQueryResult {
         assert_eq!(owned_table.num_columns(), self.num_columns());
 
         Ok(owned_table)
+    }
+}
+
+impl<S: Scalar> From<Table<'_, S>> for ProvableQueryResult {
+    fn from(table: Table<S>) -> Self {
+        let num_rows = table.num_rows();
+        let columns = table
+            .into_inner()
+            .into_iter()
+            .map(|(_, col)| col)
+            .collect::<Vec<_>>();
+        Self::new(num_rows as u64, &columns)
     }
 }
