@@ -5,7 +5,7 @@ use crate::{
             group_by_util::{
                 aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
             },
-            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, TableRef,
+            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, Table, TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -309,7 +309,7 @@ impl ProverEvaluate for GroupByExec {
         )
         .expect("Failed to create table from column references");
         // 5. Produce MLEs
-        for column in columns.into_iter() {
+        for column in columns {
             builder.produce_intermediate_mle(column);
         }
         // 6. Prove group by

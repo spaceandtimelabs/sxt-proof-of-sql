@@ -1,6 +1,8 @@
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, DataAccessor, OwnedTable, Table, TableRef},
+        database::{
+            ColumnField, ColumnRef, DataAccessor, OwnedTable, Table, TableOptions, TableRef,
+        },
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -91,25 +93,17 @@ impl ProverEvaluate for ProjectionExec {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Table<'a, S> {
         let column_refs = self.get_column_references();
-<<<<<<< HEAD
         let used_table = accessor.get_table(self.table.table_ref, &column_refs);
-        let columns: Vec<_> = self
-            .aliased_results
-            .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, &used_table))
-            .collect();
-        columns
-=======
-        let used_table =
-            Table::<'a, S>::from_columns(&column_refs, self.table.table_ref, accessor, alloc);
-        Table::<'a, S>::try_from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            (
-                aliased_expr.alias,
-                aliased_expr.expr.result_evaluate(alloc, &used_table),
-            )
-        }))
+        Table::<'a, S>::try_from_iter_with_options(
+            self.aliased_results.iter().map(|aliased_expr| {
+                (
+                    aliased_expr.alias,
+                    aliased_expr.expr.result_evaluate(alloc, &used_table),
+                )
+            }),
+            TableOptions::new(Some(accessor.get_length(self.table.table_ref))),
+        )
         .expect("Failed to create table from iterator")
->>>>>>> 531ba7cc (refactor!: let `ProofPlan::result_evaluate` and `final_round_evaluate` return `Table`)
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -129,12 +123,17 @@ impl ProverEvaluate for ProjectionExec {
         let column_refs = self.get_column_references();
         let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. Evaluate result expressions
-        let res = Table::<'a, S>::try_from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            (
-                aliased_expr.alias,
-                aliased_expr.expr.result_evaluate(alloc, &used_table),
-            )
-        }))
+        let res = Table::<'a, S>::try_from_iter_with_options(
+            self.aliased_results.iter().map(|aliased_expr| {
+                (
+                    aliased_expr.alias,
+                    aliased_expr
+                        .expr
+                        .prover_evaluate(builder, alloc, &used_table),
+                )
+            }),
+            TableOptions::new(Some(accessor.get_length(self.table.table_ref))),
+        )
         .expect("Failed to create table from iterator");
         // 2. Produce MLEs
         res.inner_table().values().for_each(|column| {

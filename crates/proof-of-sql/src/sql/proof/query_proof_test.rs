@@ -6,10 +6,11 @@ use crate::{
         commitment::InnerProductProof,
         database::{
             owned_table_utility::{bigint, owned_table},
-            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable,
-            OwnedTableTestAccessor, Table, TableRef,
+            table_utility::*,
+            ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, OwnedTableTestAccessor,
+            Table, TableRef,
         },
-        map::{indexmap, indexset, IndexMap, IndexSet},
+        map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::{Curve25519Scalar, Scalar},
     },
@@ -45,11 +46,8 @@ impl ProverEvaluate for TrivialTestProofPlan {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Table<'a, S> {
-        let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
-        Table::<'a, S>::try_new(indexmap! {
-            "a1".parse().unwrap() => Column::BigInt(col),
-        })
-        .unwrap()
+        let col = vec![self.column_fill_value; self.length];
+        table([borrowed_bigint("a1", col, alloc)])
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -66,10 +64,11 @@ impl ProverEvaluate for TrivialTestProofPlan {
             SumcheckSubpolynomialType::Identity,
             vec![(S::ONE, vec![Box::new(col as &[_])])],
         );
-        Table::<'a, S>::try_new(indexmap! {
-            "a1".parse().unwrap() => Column::BigInt(col),
-        })
-        .unwrap()
+        table([borrowed_bigint(
+            "a1",
+            vec![self.column_fill_value; self.length],
+            alloc,
+        )])
     }
 }
 impl ProofPlan for TrivialTestProofPlan {
@@ -220,11 +219,7 @@ impl ProverEvaluate for SquareTestProofPlan {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Table<'a, S> {
-        let res: &[_] = alloc.alloc_slice_copy(&self.res);
-        Table::<'a, S>::try_new(indexmap! {
-            "a1".parse().unwrap() => Column::BigInt(res),
-        })
-        .unwrap()
+        table([borrowed_bigint("a1", self.res, alloc)])
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -249,10 +244,7 @@ impl ProverEvaluate for SquareTestProofPlan {
                 (-S::ONE, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        Table::<'a, S>::try_new(indexmap! {
-            "a1".parse().unwrap() => Column::BigInt(&[9, 25]),
-        })
-        .unwrap()
+        table([borrowed_bigint("a1", self.res, alloc)])
     }
 }
 impl ProofPlan for SquareTestProofPlan {
@@ -403,11 +395,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Table<'a, S> {
-        let res: &[_] = alloc.alloc_slice_copy(&self.res);
-        Table::<'a, S>::try_new(indexmap! {
-            "a1".parse().unwrap() => Column::BigInt(res),
-        })
-        .unwrap()
+        table([borrowed_bigint("a1", self.res, alloc)])
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -445,10 +433,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
             ],
         );
         builder.produce_intermediate_mle(res);
-        Table::<'a, S>::try_new(indexmap! {
-            "a1".parse().unwrap() => Column::BigInt(res),
-        })
-        .unwrap()
+        table([borrowed_bigint("a1", self.res, alloc)])
     }
 }
 impl ProofPlan for DoubleSquareTestProofPlan {
@@ -613,13 +598,10 @@ struct ChallengeTestProofPlan {}
 impl ProverEvaluate for ChallengeTestProofPlan {
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        _alloc: &'a Bump,
+        alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Table<'a, S> {
-        Table::<'a, S>::try_new(indexmap! {
-            "a1".parse().unwrap() => Column::BigInt(&[9, 25]),
-        })
-        .unwrap()
+        table([borrowed_bigint("a1", [9, 25], alloc)])
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -648,10 +630,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
                 (-alpha, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        Table::<'a, S>::try_new(indexmap! {
-            "a1".parse().unwrap() => Column::BigInt(&[9, 25]),
-        })
-        .unwrap()
+        table([borrowed_bigint("a1", [9, 25], alloc)])
     }
 }
 impl ProofPlan for ChallengeTestProofPlan {

@@ -15,7 +15,7 @@
 //!     borrowed_decimal75("f", 12, 1, [1, 2, 3], &alloc),
 //! ]);
 //! ```
-use super::{Column, Table};
+use super::{Column, Table, TableOptions};
 use crate::base::scalar::Scalar;
 use alloc::{string::String, vec::Vec};
 use bumpalo::Bump;
@@ -27,7 +27,8 @@ use proof_of_sql_parser::{
 
 /// Creates an [`Table`] from a list of `(Identifier, Column)` pairs.
 /// This is a convenience wrapper around [`Table::try_from_iter`] primarily for use in tests and
-/// intended to be used along with the other methods in this module (e.g. [bigint], [boolean], etc).
+/// intended to be used along with the other methods in this module (e.g. [`borrowed_bigint`],
+/// [`borrowed_boolean`], etc).
 /// The function will panic under a variety of conditions. See [`Table::try_from_iter`] for more details.
 ///
 /// # Example
@@ -51,6 +52,19 @@ pub fn table<'a, S: Scalar>(
     iter: impl IntoIterator<Item = (Identifier, Column<'a, S>)>,
 ) -> Table<'a, S> {
     Table::try_from_iter(iter).unwrap()
+}
+
+/// Creates an [`Table`] from a list of `(Identifier, Column)` pairs with a specified row count.
+/// The main reason for this function is to allow for creating tables that may potentially have
+/// no columns, but still have a specified row count.
+///
+/// # Panics
+/// - Panics if the given row count doesn't match the number of rows in any of the columns.
+pub fn table_with_row_count<'a, S: Scalar>(
+    iter: impl IntoIterator<Item = (Identifier, Column<'a, S>)>,
+    row_count: usize,
+) -> Table<'a, S> {
+    Table::try_from_iter_with_options(iter, TableOptions::new(Some(row_count))).unwrap()
 }
 
 /// Creates a (Identifier, `Column`) pair for a tinyint column.
