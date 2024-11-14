@@ -7,8 +7,9 @@ use crate::{
         commitment::InnerProductProof,
         database::{
             owned_table_utility::{bigint, owned_table},
-            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable,
-            OwnedTableTestAccessor, TableRef,
+            table_utility::*,
+            ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, OwnedTableTestAccessor,
+            Table, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
@@ -29,10 +30,12 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         &self,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
-        let zeros = vec![0; self.length];
-        let res: &[_] = alloc.alloc_slice_copy(&zeros);
-        vec![Column::BigInt(res); self.columns]
+    ) -> Table<'a, S> {
+        let zeros = vec![0_i64; self.length];
+        table_with_row_count(
+            (1..=self.columns).map(|i| borrowed_bigint(format!("a{i}"), zeros.clone(), alloc)),
+            self.length,
+        )
     }
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
     fn final_round_evaluate<'a, S: Scalar>(
@@ -40,13 +43,16 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
-        let zeros = vec![0; self.length];
+    ) -> Table<'a, S> {
+        let zeros = vec![0_i64; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
         let _ = std::iter::repeat_with(|| builder.produce_intermediate_mle(res))
             .take(self.columns)
             .collect::<Vec<_>>();
-        vec![Column::BigInt(res); self.columns]
+        table_with_row_count(
+            (1..=self.columns).map(|i| borrowed_bigint(format!("a{i}"), zeros.clone(), alloc)),
+            self.length,
+        )
     }
 }
 impl ProofPlan for EmptyTestQueryExpr {

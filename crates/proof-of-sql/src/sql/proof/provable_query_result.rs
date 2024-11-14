@@ -1,6 +1,6 @@
 use super::{decode_and_convert, decode_multiple_elements, ProvableResultColumn, QueryError};
 use crate::base::{
-    database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable},
+    database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable, Table},
     polynomial::compute_evaluation_vector,
     scalar::Scalar,
 };
@@ -217,5 +217,17 @@ impl ProvableQueryResult {
         assert_eq!(owned_table.num_columns(), self.num_columns());
 
         Ok(owned_table)
+    }
+}
+
+impl<S: Scalar> From<Table<'_, S>> for ProvableQueryResult {
+    fn from(table: Table<S>) -> Self {
+        let num_rows = table.num_rows();
+        let columns = table
+            .into_inner()
+            .into_iter()
+            .map(|(_, col)| col)
+            .collect::<Vec<_>>();
+        Self::new(num_rows as u64, &columns)
     }
 }

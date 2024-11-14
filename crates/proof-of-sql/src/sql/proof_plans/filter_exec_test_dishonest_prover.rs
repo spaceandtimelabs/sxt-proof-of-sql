@@ -3,7 +3,7 @@ use crate::{
     base::{
         database::{
             filter_util::*, owned_table_utility::*, Column, DataAccessor, OwnedTableTestAccessor,
-            TestAccessor,
+            Table, TableOptions, TestAccessor,
         },
         proof::ProofError,
         scalar::Scalar,
@@ -37,7 +37,7 @@ impl ProverEvaluate for DishonestFilterExec {
         &self,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let column_refs = self.get_column_references();
         let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. selection
@@ -45,6 +45,7 @@ impl ProverEvaluate for DishonestFilterExec {
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
+        let output_length = selection.iter().filter(|b| **b).count();
         // 2. columns
         let columns: Vec<_> = self
             .aliased_results
@@ -54,7 +55,14 @@ impl ProverEvaluate for DishonestFilterExec {
         // Compute filtered_columns
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
-        filtered_columns
+        Table::<'a, S>::try_from_iter_with_options(
+            self.aliased_results
+                .iter()
+                .map(|expr| expr.alias)
+                .zip(filtered_columns),
+            TableOptions::new(Some(output_length)),
+        )
+        .expect("Failed to create table from iterator")
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -72,7 +80,7 @@ impl ProverEvaluate for DishonestFilterExec {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let column_refs = self.get_column_references();
         let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. selection
@@ -82,6 +90,7 @@ impl ProverEvaluate for DishonestFilterExec {
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
+        let output_length = selection.iter().filter(|b| **b).count();
         // 2. columns
         let columns: Vec<_> = self
             .aliased_results
@@ -113,7 +122,14 @@ impl ProverEvaluate for DishonestFilterExec {
             &filtered_columns,
             result_len,
         );
-        filtered_columns
+        Table::<'a, S>::try_from_iter_with_options(
+            self.aliased_results
+                .iter()
+                .map(|expr| expr.alias)
+                .zip(filtered_columns),
+            TableOptions::new(Some(output_length)),
+        )
+        .expect("Failed to create table from iterator")
     }
 }
 

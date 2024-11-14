@@ -5,7 +5,7 @@ use crate::{
             group_by_util::{
                 aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
             },
-            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, TableRef,
+            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, Table, TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -200,7 +200,7 @@ impl ProverEvaluate for GroupByExec {
         &self,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let column_refs = self.get_column_references();
         let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. selection
@@ -230,11 +230,18 @@ impl ProverEvaluate for GroupByExec {
         } = aggregate_columns(alloc, &group_by_columns, &sum_columns, &[], &[], selection)
             .expect("columns should be aggregatable");
         let sum_result_columns_iter = sum_result_columns.iter().map(|col| Column::Scalar(col));
-        group_by_result_columns
-            .into_iter()
-            .chain(sum_result_columns_iter)
-            .chain(iter::once(Column::BigInt(count_column)))
-            .collect::<Vec<_>>()
+        Table::<'a, S>::try_from_iter(
+            self.get_column_result_fields()
+                .into_iter()
+                .map(|field| field.name())
+                .zip(
+                    group_by_result_columns
+                        .into_iter()
+                        .chain(sum_result_columns_iter)
+                        .chain(iter::once(Column::BigInt(count_column))),
+                ),
+        )
+        .expect("Failed to create table from column references")
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -248,7 +255,7 @@ impl ProverEvaluate for GroupByExec {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let column_refs = self.get_column_references();
         let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. selection
@@ -288,16 +295,22 @@ impl ProverEvaluate for GroupByExec {
 
         // 4. Tally results
         let sum_result_columns_iter = sum_result_columns.iter().map(|col| Column::Scalar(col));
-        let res = group_by_result_columns
+        let columns = group_by_result_columns
             .clone()
             .into_iter()
             .chain(sum_result_columns_iter)
-            .chain(core::iter::once(Column::BigInt(count_column)))
-            .collect::<Vec<_>>();
+            .chain(iter::once(Column::BigInt(count_column)));
+        let res = Table::<'a, S>::try_from_iter(
+            self.get_column_result_fields()
+                .into_iter()
+                .map(|field| field.name())
+                .zip(columns.clone()),
+        )
+        .expect("Failed to create table from column references");
         // 5. Produce MLEs
-        res.iter().copied().for_each(|column| {
+        for column in columns {
             builder.produce_intermediate_mle(column);
-        });
+        }
         // 6. Prove group by
         prove_group_by(
             builder,

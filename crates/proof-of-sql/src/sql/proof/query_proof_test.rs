@@ -6,8 +6,9 @@ use crate::{
         commitment::InnerProductProof,
         database::{
             owned_table_utility::{bigint, owned_table},
-            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable,
-            OwnedTableTestAccessor, TableRef,
+            table_utility::*,
+            ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, OwnedTableTestAccessor,
+            Table, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
@@ -44,9 +45,9 @@ impl ProverEvaluate for TrivialTestProofPlan {
         &self,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
-        let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
-        vec![Column::BigInt(col)]
+    ) -> Table<'a, S> {
+        let col = vec![self.column_fill_value; self.length];
+        table([borrowed_bigint("a1", col, alloc)])
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -56,14 +57,18 @@ impl ProverEvaluate for TrivialTestProofPlan {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
         builder.produce_intermediate_mle(col as &[_]);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![(S::ONE, vec![Box::new(col as &[_])])],
         );
-        vec![Column::BigInt(col)]
+        table([borrowed_bigint(
+            "a1",
+            vec![self.column_fill_value; self.length],
+            alloc,
+        )])
     }
 }
 impl ProofPlan for TrivialTestProofPlan {
@@ -213,9 +218,8 @@ impl ProverEvaluate for SquareTestProofPlan {
         &self,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
-        let res: &[_] = alloc.alloc_slice_copy(&self.res);
-        vec![Column::BigInt(res)]
+    ) -> Table<'a, S> {
+        table([borrowed_bigint("a1", self.res, alloc)])
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -225,7 +229,7 @@ impl ProverEvaluate for SquareTestProofPlan {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
@@ -240,7 +244,7 @@ impl ProverEvaluate for SquareTestProofPlan {
                 (-S::ONE, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        vec![Column::BigInt(res)]
+        table([borrowed_bigint("a1", self.res, alloc)])
     }
 }
 impl ProofPlan for SquareTestProofPlan {
@@ -390,9 +394,8 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         &self,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
-        let res: &[_] = alloc.alloc_slice_copy(&self.res);
-        vec![Column::BigInt(res)]
+    ) -> Table<'a, S> {
+        table([borrowed_bigint("a1", self.res, alloc)])
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -402,7 +405,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
@@ -430,7 +433,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
             ],
         );
         builder.produce_intermediate_mle(res);
-        vec![Column::BigInt(res)]
+        table([borrowed_bigint("a1", self.res, alloc)])
     }
 }
 impl ProofPlan for DoubleSquareTestProofPlan {
@@ -595,10 +598,10 @@ struct ChallengeTestProofPlan {}
 impl ProverEvaluate for ChallengeTestProofPlan {
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        _alloc: &'a Bump,
+        alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
-        vec![Column::BigInt(&[9, 25])]
+    ) -> Table<'a, S> {
+        table([borrowed_bigint("a1", [9, 25], alloc)])
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -610,7 +613,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
+    ) -> Table<'a, S> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
@@ -627,7 +630,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
                 (-alpha, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        vec![Column::BigInt(&[9, 25])]
+        table([borrowed_bigint("a1", [9, 25], alloc)])
     }
 }
 impl ProofPlan for ChallengeTestProofPlan {

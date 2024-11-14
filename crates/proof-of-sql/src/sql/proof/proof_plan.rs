@@ -1,6 +1,6 @@
 use super::{CountBuilder, FinalRoundBuilder, FirstRoundBuilder, VerificationBuilder};
 use crate::base::{
-    database::{Column, ColumnField, ColumnRef, DataAccessor, OwnedTable, TableRef},
+    database::{ColumnField, ColumnRef, DataAccessor, OwnedTable, Table, TableRef},
     map::{IndexMap, IndexSet},
     proof::ProofError,
     scalar::Scalar,
@@ -40,7 +40,7 @@ pub trait ProverEvaluate {
         &self,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>>;
+    ) -> Table<'a, S>;
 
     /// Evaluate the query and modify `FirstRoundBuilder` to form the query's proof.
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder);
@@ -56,7 +56,7 @@ pub trait ProverEvaluate {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>>;
+    ) -> Table<'a, S>;
 }
 
 /// Marker used as a trait bound for generic [`ProofPlan`] types to indicate the honesty of their implementation.

@@ -6,7 +6,7 @@ use crate::{
     base::{
         bit::BitDistribution,
         commitment::CommitmentEvaluationProof,
-        database::{Column, CommitmentAccessor, DataAccessor, MetadataAccessor, TableRef},
+        database::{CommitmentAccessor, DataAccessor, MetadataAccessor, TableRef},
         map::IndexMap,
         math::log2_up,
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
@@ -76,9 +76,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let alloc = Bump::new();
 
         // Evaluate query result
-        let result_cols = expr.result_evaluate(&alloc, accessor);
-        let output_length = result_cols.first().map_or(0, Column::len);
-        let provable_result = ProvableQueryResult::new(output_length as u64, &result_cols);
+        let provable_result = expr.result_evaluate(&alloc, accessor).into();
 
         // Prover First Round
         let mut first_round_builder = FirstRoundBuilder::new();
