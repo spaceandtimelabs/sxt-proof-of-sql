@@ -31,25 +31,6 @@ impl TableExec {
     pub fn new(table_ref: TableRef, schema: Vec<ColumnField>) -> Self {
         Self { table_ref, schema }
     }
-
-    /// Returns the entire table.
-    ///
-    /// # Panics
-    /// Panics if columns from the accessor have different lengths.
-    /// In practice, this should never happen.
-    fn get_table<'a, S: Scalar>(&self, accessor: &'a dyn DataAccessor<S>) -> Table<'a, S> {
-        Table::<'a, S>::try_from_iter(self.schema.iter().map(|field| {
-            (
-                field.name(),
-                accessor.get_column(ColumnRef::new(
-                    self.table_ref,
-                    field.name(),
-                    field.data_type(),
-                )),
-            )
-        }))
-        .expect("Failed to create table from column references")
-    }
 }
 
 impl ProofPlan for TableExec {
@@ -93,7 +74,7 @@ impl ProverEvaluate for TableExec {
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Table<'a, S> {
-        self.get_table(accessor)
+        accessor.get_table(self.table_ref, &self.get_column_references())
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -106,8 +87,8 @@ impl ProverEvaluate for TableExec {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Table<'a, S> {
-        let table = self.get_table(accessor);
-        for column in table.inner_table().values() {
+        let table = accessor.get_table(self.table_ref, &self.get_column_references());
+        for column in table.columns() {
             builder.produce_intermediate_mle(column.as_scalar(alloc));
         }
         table

@@ -299,13 +299,12 @@ impl ProverEvaluate for GroupByExec {
             .clone()
             .into_iter()
             .chain(sum_result_columns_iter)
-            .chain(iter::once(Column::BigInt(count_column)))
-            .collect::<Vec<_>>();
+            .chain(iter::once(Column::BigInt(count_column)));
         let res = Table::<'a, S>::try_from_iter(
             self.get_column_result_fields()
                 .into_iter()
                 .map(|field| field.name())
-                .zip(columns.clone().into_iter()),
+                .zip(columns.clone()),
         )
         .expect("Failed to create table from column references");
         // 5. Produce MLEs
