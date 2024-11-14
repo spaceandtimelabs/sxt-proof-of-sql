@@ -35,10 +35,9 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
 
 #[enum_dispatch::enum_dispatch(DynProofPlan)]
 pub trait ProverEvaluate {
-    /// Evaluate the query and modify `FirstRoundBuilder` to track the result of the query.
+    /// Evaluate the query and return the result.
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>>;

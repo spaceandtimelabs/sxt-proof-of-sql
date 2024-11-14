@@ -1,7 +1,7 @@
 use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{try_add_subtract_column_types, Column, ColumnRef, ColumnType, DataAccessor},
+        database::{try_add_subtract_column_types, Column, ColumnRef, ColumnType, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -45,12 +45,11 @@ impl ProofExpr for AddSubtractExpr {
 
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(table_length, alloc, accessor);
+        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table);
+        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table);
         Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,
@@ -70,10 +69,10 @@ impl ProofExpr for AddSubtractExpr {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, accessor);
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
         Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,

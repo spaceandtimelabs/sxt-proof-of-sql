@@ -1,7 +1,7 @@
 use super::ProofExpr;
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, DataAccessor, LiteralValue},
+        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -46,22 +46,20 @@ impl ProofExpr for LiteralExpr {
     #[tracing::instrument(name = "LiteralExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        Column::from_literal_with_length(&self.value, table_length, alloc)
+        Column::from_literal_with_length(&self.value, table.num_rows(), alloc)
     }
 
     #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, S>,
+        _builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        let table_length = builder.table_length();
-        Column::from_literal_with_length(&self.value, table_length, alloc)
+        Column::from_literal_with_length(&self.value, table.num_rows(), alloc)
     }
 
     fn verifier_evaluate<S: Scalar>(

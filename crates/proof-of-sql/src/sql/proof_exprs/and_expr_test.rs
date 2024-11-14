@@ -1,7 +1,10 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
+        database::{
+            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor,
+            TableTestAccessor,
+        },
         scalar::test_scalar::TestScalar,
     },
     sql::{
@@ -153,20 +156,20 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
-    let data = owned_table([
-        bigint("a", [1, 2, 3, 4]),
-        bigint("b", [0, 1, 0, 1]),
-        varchar("d", ["ab", "t", "efg", "g"]),
-        bigint("c", [0, 2, 2, 0]),
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [1, 2, 3, 4], &alloc),
+        borrowed_bigint("b", [0, 1, 0, 1], &alloc),
+        borrowed_varchar("d", ["ab", "t", "efg", "g"], &alloc),
+        borrowed_bigint("c", [0, 2, 2, 0], &alloc),
     ]);
     let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(t, data.clone(), 0, ());
     let and_expr: DynProofExpr = and(
         equal(column(t, "b", &accessor), const_int128(1)),
         equal(column(t, "d", &accessor), const_varchar("t")),
     );
-    let alloc = Bump::new();
-    let res = and_expr.result_evaluate(4, &alloc, &accessor);
+    let res = and_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[false, true, false, false]);
     assert_eq!(res, expected_res);
 }

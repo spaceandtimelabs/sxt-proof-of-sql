@@ -1,7 +1,7 @@
 use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -42,17 +42,16 @@ impl ProofExpr for EqualsExpr {
     #[tracing::instrument(name = "EqualsExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
+        let lhs_column = self.lhs.result_evaluate(alloc, table);
+        let rhs_column = self.rhs.result_evaluate(alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        Column::Boolean(result_evaluate_equals_zero(table_length, alloc, res))
+        Column::Boolean(result_evaluate_equals_zero(table.num_rows(), alloc, res))
     }
 
     #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
@@ -60,10 +59,10 @@ impl ProofExpr for EqualsExpr {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
+        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table);
+        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)

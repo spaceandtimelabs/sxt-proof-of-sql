@@ -87,18 +87,15 @@ impl ProverEvaluate for ProjectionExec {
     #[tracing::instrument(name = "ProjectionExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
+        let column_refs = self.get_column_references();
+        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| {
-                aliased_expr
-                    .expr
-                    .result_evaluate(input_length, alloc, accessor)
-            })
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, &used_table))
             .collect();
         columns
     }
@@ -117,11 +114,17 @@ impl ProverEvaluate for ProjectionExec {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
+        let column_refs = self.get_column_references();
+        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
         // 1. Evaluate result expressions
         let res: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(builder, alloc, &used_table)
+            })
             .collect();
         // 2. Produce MLEs
         res.clone().into_iter().for_each(|column| {

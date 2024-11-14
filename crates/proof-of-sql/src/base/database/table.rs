@@ -3,12 +3,36 @@ use crate::base::{map::IndexMap, scalar::Scalar};
 use proof_of_sql_parser::Identifier;
 use snafu::Snafu;
 
+/// Options for creating a table.
+/// Inspired by [`RecordBatchOptions`](https://docs.rs/arrow/latest/arrow/record_batch/struct.RecordBatchOptions.html)
+#[derive(Debug, Default, Clone, Copy)]
+pub struct TableOptions {
+    /// The number of rows in the table. Mostly useful for tables without columns.
+    pub row_count: Option<usize>,
+}
+
+impl TableOptions {
+    /// Creates a new [`TableOptions`].
+    #[must_use]
+    pub fn new(row_count: Option<usize>) -> Self {
+        Self { row_count }
+    }
+}
+
 /// An error that occurs when working with tables.
 #[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum TableError {
     /// The columns have different lengths.
     #[snafu(display("Columns have different lengths"))]
     ColumnLengthMismatch,
+
+    /// At least one column has length different from the provided row count.
+    #[snafu(display("Column has length different from the provided row count"))]
+    ColumnLengthMismatchWithSpecifiedRowCount,
+
+    /// The table is empty and there is no specified row count.
+    #[snafu(display("Table is empty and no row count is specified"))]
+    EmptyTableWithoutSpecifiedRowCount,
 }
 /// A table of data, with schema included. This is simply a map from `Identifier` to `Column`,
 /// where columns order matters.
@@ -18,35 +42,64 @@ pub enum TableError {
 #[derive(Debug, Clone, Eq)]
 pub struct Table<'a, S: Scalar> {
     table: IndexMap<Identifier, Column<'a, S>>,
+    row_count: usize,
 }
 impl<'a, S: Scalar> Table<'a, S> {
-    /// Creates a new [`Table`].
+    /// Creates a new [`Table`] with the given columns and default [`TableOptions`].
     pub fn try_new(table: IndexMap<Identifier, Column<'a, S>>) -> Result<Self, TableError> {
-        if table.is_empty() {
-            return Ok(Self { table });
-        }
-        let num_rows = table[0].len();
-        if table.values().any(|column| column.len() != num_rows) {
-            Err(TableError::ColumnLengthMismatch)
-        } else {
-            Ok(Self { table })
+        Self::try_new_with_options(table, TableOptions::default())
+    }
+
+    /// Creates a new [`Table`] with the given columns and with [`TableOptions`].
+    pub fn try_new_with_options(
+        table: IndexMap<Identifier, Column<'a, S>>,
+        options: TableOptions,
+    ) -> Result<Self, TableError> {
+        match (table.is_empty(), options.row_count) {
+            (true, None) => Err(TableError::EmptyTableWithoutSpecifiedRowCount),
+            (true, Some(row_count)) => Ok(Self { table, row_count }),
+            (false, None) => {
+                let row_count = table[0].len();
+                if table.values().any(|column| column.len() != row_count) {
+                    Err(TableError::ColumnLengthMismatch)
+                } else {
+                    Ok(Self { table, row_count })
+                }
+            }
+            (false, Some(row_count)) => {
+                if table.values().any(|column| column.len() != row_count) {
+                    Err(TableError::ColumnLengthMismatchWithSpecifiedRowCount)
+                } else {
+                    Ok(Self { table, row_count })
+                }
+            }
         }
     }
-    /// Creates a new [`Table`].
+
+    /// Creates a new [`Table`] from an iterator of `(Identifier, Column)` pairs with default [`TableOptions`].
     pub fn try_from_iter<T: IntoIterator<Item = (Identifier, Column<'a, S>)>>(
         iter: T,
     ) -> Result<Self, TableError> {
-        Self::try_new(IndexMap::from_iter(iter))
+        Self::try_from_iter_with_options(iter, TableOptions::default())
     }
+
+    /// Creates a new [`Table`] from an iterator of `(Identifier, Column)` pairs with [`TableOptions`].
+    pub fn try_from_iter_with_options<T: IntoIterator<Item = (Identifier, Column<'a, S>)>>(
+        iter: T,
+        options: TableOptions,
+    ) -> Result<Self, TableError> {
+        Self::try_new_with_options(IndexMap::from_iter(iter), options)
+    }
+
     /// Number of columns in the table.
     #[must_use]
     pub fn num_columns(&self) -> usize {
         self.table.len()
     }
-    /// Number of rows in the table. For an empty table, this will return `None`.
+    /// Number of rows in the table.
     #[must_use]
-    pub fn num_rows(&self) -> Option<usize> {
-        (!self.table.is_empty()).then(|| self.table[0].len())
+    pub fn num_rows(&self) -> usize {
+        self.row_count
     }
     /// Whether the table has no columns.
     #[must_use]

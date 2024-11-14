@@ -1,6 +1,6 @@
 use crate::base::{
-    database::{table_utility::*, Column, Table, TableError},
-    map::IndexMap,
+    database::{table_utility::*, Column, Table, TableError, TableOptions},
+    map::{indexmap, IndexMap},
     scalar::test_scalar::TestScalar,
 };
 use bumpalo::Bump;
@@ -10,13 +10,104 @@ use proof_of_sql_parser::{
 };
 
 #[test]
-fn we_can_create_a_table_with_no_columns() {
-    let table = Table::<TestScalar>::try_new(IndexMap::default()).unwrap();
+fn we_can_create_a_table_with_no_columns_specifying_row_count() {
+    let table =
+        Table::<TestScalar>::try_new_with_options(IndexMap::default(), TableOptions::new(Some(1)))
+            .unwrap();
     assert_eq!(table.num_columns(), 0);
-    assert_eq!(table.num_rows(), None);
+    assert_eq!(table.num_rows(), 1);
+
+    let table =
+        Table::<TestScalar>::try_new_with_options(IndexMap::default(), TableOptions::new(Some(0)))
+            .unwrap();
+    assert_eq!(table.num_columns(), 0);
+    assert_eq!(table.num_rows(), 0);
 }
+
 #[test]
-fn we_can_create_an_empty_table() {
+fn we_can_create_a_table_with_default_options() {
+    let table = Table::<TestScalar>::try_new(indexmap! {
+        "a".parse().unwrap() => Column::BigInt(&[0, 1]),
+        "b".parse().unwrap() => Column::Int128(&[0, 1]),
+    })
+    .unwrap();
+    assert_eq!(table.num_columns(), 2);
+    assert_eq!(table.num_rows(), 2);
+
+    let table = Table::<TestScalar>::try_new(indexmap! {
+        "a".parse().unwrap() => Column::BigInt(&[]),
+        "b".parse().unwrap() => Column::Int128(&[]),
+    })
+    .unwrap();
+    assert_eq!(table.num_columns(), 2);
+    assert_eq!(table.num_rows(), 0);
+}
+
+#[test]
+fn we_can_create_a_table_with_specified_row_count() {
+    let table = Table::<TestScalar>::try_new_with_options(
+        indexmap! {
+            "a".parse().unwrap() => Column::BigInt(&[0, 1]),
+            "b".parse().unwrap() => Column::Int128(&[0, 1]),
+        },
+        TableOptions::new(Some(2)),
+    )
+    .unwrap();
+    assert_eq!(table.num_columns(), 2);
+    assert_eq!(table.num_rows(), 2);
+
+    let table = Table::<TestScalar>::try_new_with_options(
+        indexmap! {
+            "a".parse().unwrap() => Column::BigInt(&[]),
+            "b".parse().unwrap() => Column::Int128(&[]),
+        },
+        TableOptions::new(Some(0)),
+    )
+    .unwrap();
+    assert_eq!(table.num_columns(), 2);
+    assert_eq!(table.num_rows(), 0);
+}
+
+#[test]
+fn we_cannot_create_a_table_with_differing_column_lengths() {
+    assert!(matches!(
+        Table::<TestScalar>::try_from_iter([
+            ("a".parse().unwrap(), Column::BigInt(&[0])),
+            ("b".parse().unwrap(), Column::BigInt(&[])),
+        ]),
+        Err(TableError::ColumnLengthMismatch)
+    ));
+}
+
+#[test]
+fn we_cannot_create_a_table_with_column_length_different_from_specified_row_count() {
+    assert!(matches!(
+        Table::<TestScalar>::try_from_iter_with_options(
+            [
+                ("a".parse().unwrap(), Column::BigInt(&[0])),
+                ("b".parse().unwrap(), Column::BigInt(&[1])),
+            ],
+            TableOptions::new(Some(0))
+        ),
+        Err(TableError::ColumnLengthMismatchWithSpecifiedRowCount)
+    ));
+}
+
+#[test]
+fn we_cannot_create_a_table_with_no_columns_without_specified_row_count() {
+    assert!(matches!(
+        Table::<TestScalar>::try_from_iter_with_options([], TableOptions::new(None)),
+        Err(TableError::EmptyTableWithoutSpecifiedRowCount)
+    ));
+
+    assert!(matches!(
+        Table::<TestScalar>::try_new(IndexMap::default()),
+        Err(TableError::EmptyTableWithoutSpecifiedRowCount)
+    ));
+}
+
+#[test]
+fn we_can_create_an_empty_table_with_some_columns() {
     let alloc = Bump::new();
     let borrowed_table = table::<TestScalar>([
         borrowed_bigint("bigint", [0; 0], &alloc),
@@ -192,15 +283,4 @@ fn we_get_inequality_between_tables_with_differing_data() {
     ]);
 
     assert_ne!(table_a, table_b);
-}
-
-#[test]
-fn we_cannot_create_a_table_with_differing_column_lengths() {
-    assert!(matches!(
-        Table::<TestScalar>::try_from_iter([
-            ("a".parse().unwrap(), Column::BigInt(&[0])),
-            ("b".parse().unwrap(), Column::BigInt(&[])),
-        ]),
-        Err(TableError::ColumnLengthMismatch)
-    ));
 }

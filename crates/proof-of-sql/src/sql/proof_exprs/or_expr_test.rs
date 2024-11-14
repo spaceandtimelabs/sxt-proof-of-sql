@@ -1,7 +1,10 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},
+        database::{
+            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor,
+            TableTestAccessor, TestAccessor,
+        },
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
@@ -169,21 +172,21 @@ fn we_can_query_random_tables_with_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
-    let data = owned_table([
-        bigint("a", [1, 2, 3, 4]),
-        bigint("b", [0, 1, 0, 1]),
-        bigint("c", [0, 2, 2, 0]),
-        varchar("d", ["ab", "t", "g", "efg"]),
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [1, 2, 3, 4], &alloc),
+        borrowed_bigint("b", [0, 1, 0, 1], &alloc),
+        borrowed_bigint("c", [0, 2, 2, 0], &alloc),
+        borrowed_varchar("d", ["ab", "t", "g", "efg"], &alloc),
     ]);
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t, data.clone(), 0);
     let and_expr: DynProofExpr = or(
         equal(column(t, "b", &accessor), const_int128(1)),
         equal(column(t, "d", &accessor), const_varchar("g")),
     );
-    let alloc = Bump::new();
-    let res = and_expr.result_evaluate(4, &alloc, &accessor);
+    let res = and_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[false, true, true, true]);
     assert_eq!(res, expected_res);
 }

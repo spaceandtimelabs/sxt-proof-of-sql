@@ -1,7 +1,7 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{try_multiply_column_types, Column, ColumnRef, ColumnType, DataAccessor},
+        database::{try_multiply_column_types, Column, ColumnRef, ColumnType, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -46,12 +46,11 @@ impl ProofExpr for MultiplyExpr {
 
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(table_length, alloc, accessor);
+        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table);
+        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table);
         let scalars = multiply_columns(&lhs_column, &rhs_column, alloc);
         Column::Scalar(scalars)
     }
@@ -65,10 +64,10 @@ impl ProofExpr for MultiplyExpr {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, accessor);
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
 
         // lhs_times_rhs
         let lhs_times_rhs: &'a [S] = multiply_columns(&lhs_column, &rhs_column, alloc);

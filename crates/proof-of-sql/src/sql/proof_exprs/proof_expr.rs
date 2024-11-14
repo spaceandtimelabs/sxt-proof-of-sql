@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -24,9 +24,8 @@ pub trait ProofExpr: Debug + Send + Sync {
     /// Implementations must ensure that the returned slice has length `table_length`.
     fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S>;
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
@@ -35,7 +34,7 @@ pub trait ProofExpr: Debug + Send + Sync {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table: &Table<'a, S>,
     ) -> Column<'a, S>;
 
     /// Compute the evaluation of a multilinear extension from this expression

@@ -111,12 +111,7 @@ impl<CP: CommitmentEvaluationProof> MetadataAccessor for TableTestAccessor<'_, C
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn get_length(&self, table_ref: TableRef) -> usize {
-        self.tables
-            .get(&table_ref)
-            .unwrap()
-            .0
-            .num_rows()
-            .unwrap_or(0)
+        self.tables.get(&table_ref).unwrap().0.num_rows()
     }
     ///
     /// # Panics
