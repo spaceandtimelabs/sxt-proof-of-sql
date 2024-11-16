@@ -14,3 +14,15 @@ where
         .map(|(&a, &b)| a * b)
         .sum()
 }
+
+pub fn inner_product_ref_cast<F, T>(a: &[F], b: &[T]) -> T
+where
+    for<'a> &'a F: Into<T>,
+    F: Send + Sync,
+    T: Sync + Send + Mul<Output = T> + Sum + Copy,
+{
+    if_rayon!(a.par_iter().with_min_len(super::MIN_RAYON_LEN), a.iter())
+        .zip(b)
+        .map(|(a, b)| a.into() * *b)
+        .sum()
+}

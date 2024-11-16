@@ -1,5 +1,6 @@
 use super::OwnedColumn;
-use crate::base::{map::IndexMap, scalar::Scalar};
+use crate::base::{map::IndexMap, polynomial::compute_evaluation_vector, scalar::Scalar};
+use alloc::{vec, vec::Vec};
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
@@ -71,6 +72,15 @@ impl<S: Scalar> OwnedTable<S> {
     /// Returns the columns of this table as an Iterator
     pub fn column_names(&self) -> impl Iterator<Item = &Identifier> {
         self.table.keys()
+    }
+
+    pub(crate) fn mle_evaluations(&self, evaluation_point: &[S]) -> Vec<S> {
+        let mut evaluation_vector = vec![S::ZERO; self.num_rows()];
+        compute_evaluation_vector(&mut evaluation_vector, evaluation_point);
+        self.table
+            .values()
+            .map(|column| column.inner_product(&evaluation_vector))
+            .collect()
     }
 }
 

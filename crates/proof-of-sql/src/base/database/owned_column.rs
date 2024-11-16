@@ -9,6 +9,7 @@ use crate::base::{
         permutation::{Permutation, PermutationError},
     },
     scalar::Scalar,
+    slice_ops::inner_product_ref_cast,
 };
 use alloc::{
     string::{String, ToString},
@@ -48,6 +49,24 @@ pub enum OwnedColumn<S: Scalar> {
 }
 
 impl<S: Scalar> OwnedColumn<S> {
+    /// Compute the inner product of the column with a vector of scalars.
+    pub(crate) fn inner_product(&self, vec: &[S]) -> S {
+        match self {
+            OwnedColumn::Boolean(col) => inner_product_ref_cast(col, vec),
+            OwnedColumn::TinyInt(col) => inner_product_ref_cast(col, vec),
+            OwnedColumn::SmallInt(col) => inner_product_ref_cast(col, vec),
+            OwnedColumn::Int(col) => inner_product_ref_cast(col, vec),
+            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => {
+                inner_product_ref_cast(col, vec)
+            }
+            OwnedColumn::VarChar(col) => inner_product_ref_cast(col, vec),
+            OwnedColumn::Int128(col) => inner_product_ref_cast(col, vec),
+            OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => {
+                inner_product_ref_cast(col, vec)
+            }
+        }
+    }
+
     /// Returns the length of the column.
     #[must_use]
     pub fn len(&self) -> usize {
