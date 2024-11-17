@@ -173,12 +173,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         result: &ProvableQueryResult,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
+        let owned_table_result = result.to_owned_table(&expr.get_column_result_fields())?;
+
         let (min_row_num, max_row_num) = get_index_range(accessor, expr.get_table_references());
         let range_length = max_row_num - min_row_num;
         let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
         assert!(num_sumcheck_variables > 0);
-
-        let output_length = result.table_length();
 
         // validate bit decompositions
         for dist in &self.bit_distributions {
@@ -253,12 +253,10 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(self.pcs_proof_evaluations.len())
                 .collect();
 
-        let column_result_fields = expr.get_column_result_fields();
-
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
             range_length,
-            output_length,
+            owned_table_result.num_rows(),
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations,
@@ -271,7 +269,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &evaluation_random_scalars,
             post_result_challenges,
         );
-        let owned_table_result = result.to_owned_table(&column_result_fields[..])?;
 
         let pcs_proof_commitments: Vec<_> = column_references
             .iter()
@@ -289,11 +286,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             Some(&owned_table_result),
         )?;
         // compute the evaluation of the result MLEs
-        let result_evaluations = result.evaluate(
-            &subclaim.evaluation_point,
-            output_length,
-            &column_result_fields[..],
-        )?;
+        let result_evaluations = owned_table_result.mle_evaluations(&subclaim.evaluation_point);
         // check the evaluation of the result MLEs
         if verifier_evaluations != result_evaluations {
             Err(ProofError::VerificationError {
