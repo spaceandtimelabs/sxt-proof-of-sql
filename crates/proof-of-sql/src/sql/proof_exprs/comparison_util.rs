@@ -10,9 +10,9 @@ use crate::{
 use alloc::string::ToString;
 use bumpalo::Bump;
 use core::cmp::{max, Ordering};
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
+use sqlparser::ast::BinaryOperator;
 
 #[allow(clippy::unnecessary_wraps)]
 fn unchecked_subtract_impl<'a, S: Scalar>(
@@ -48,11 +48,11 @@ pub fn scale_and_subtract_literal<S: Scalar>(
     let lhs_type = lhs.column_type();
     let rhs_type = rhs.column_type();
     let operator = if is_equal {
-        BinaryOperator::Equal
+        BinaryOperator::Eq
     } else {
-        BinaryOperator::LessThanOrEqual
+        BinaryOperator::LtEq
     };
-    if !type_check_binary_operation(&lhs_type, &rhs_type, operator) {
+    if !type_check_binary_operation(&lhs_type, &rhs_type, &operator) {
         return Err(ConversionError::DataTypeMismatch {
             left_type: lhs_type.to_string(),
             right_type: rhs_type.to_string(),
@@ -121,11 +121,11 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     let lhs_type = lhs.column_type();
     let rhs_type = rhs.column_type();
     let operator = if is_equal {
-        BinaryOperator::Equal
+        BinaryOperator::Eq
     } else {
-        BinaryOperator::LessThanOrEqual
+        BinaryOperator::LtEq
     };
-    if !type_check_binary_operation(&lhs_type, &rhs_type, operator) {
+    if !type_check_binary_operation(&lhs_type, &rhs_type, &operator) {
         return Err(ConversionError::DataTypeMismatch {
             left_type: lhs_type.to_string(),
             right_type: rhs_type.to_string(),

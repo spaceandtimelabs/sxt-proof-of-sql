@@ -19,11 +19,11 @@ use crate::{
 };
 use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
 use proof_of_sql_parser::{
-    intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal},
+    intermediate_ast::{AggregationOperator, Expression, Literal},
     posql_time::{PoSQLTimeUnit, PoSQLTimestampError},
     Identifier,
 };
-use sqlparser::ast::UnaryOperator;
+use sqlparser::ast::{BinaryOperator, UnaryOperator};
 
 /// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
 /// a `proof_of_sql_parser::intermediate_ast::Expression`.
@@ -60,7 +60,9 @@ impl DynProofExprBuilder<'_> {
         match expr {
             Expression::Column(identifier) => self.visit_column(*identifier),
             Expression::Literal(lit) => self.visit_literal(lit),
-            Expression::Binary { op, left, right } => self.visit_binary_expr(*op, left, right),
+            Expression::Binary { op, left, right } => {
+                self.visit_binary_expr(&(*op).into(), left, right)
+            }
             Expression::Unary { op, expr } => self.visit_unary_expr((*op).into(), expr),
             Expression::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
             _ => Err(ConversionError::Unprovable {
@@ -146,7 +148,7 @@ impl DynProofExprBuilder<'_> {
 
     fn visit_binary_expr(
         &self,
-        op: BinaryOperator,
+        op: &BinaryOperator,
         left: &Expression,
         right: &Expression,
     ) -> Result<DynProofExpr, ConversionError> {
@@ -161,27 +163,27 @@ impl DynProofExprBuilder<'_> {
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_or(left?, right?)
             }
-            BinaryOperator::Equal => {
+            BinaryOperator::Eq => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_equals(left?, right?)
             }
-            BinaryOperator::GreaterThanOrEqual => {
+            BinaryOperator::GtEq => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_inequality(left?, right?, false)
             }
-            BinaryOperator::LessThanOrEqual => {
+            BinaryOperator::LtEq => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_inequality(left?, right?, true)
             }
-            BinaryOperator::Add => {
+            BinaryOperator::Plus => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_add(left?, right?)
             }
-            BinaryOperator::Subtract => {
+            BinaryOperator::Minus => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_subtract(left?, right?)
@@ -191,9 +193,15 @@ impl DynProofExprBuilder<'_> {
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_multiply(left?, right?)
             }
-            BinaryOperator::Division => Err(ConversionError::Unprovable {
+            BinaryOperator::Divide => Err(ConversionError::Unprovable {
                 error: format!("Binary operator {op:?} is not supported at this location"),
             }),
+            _ => {
+                // Handle unsupported binary operations
+                Err(ConversionError::UnsupportedOperation {
+                    message: format!("{op:?}"),
+                })
+            }
         }
     }
 

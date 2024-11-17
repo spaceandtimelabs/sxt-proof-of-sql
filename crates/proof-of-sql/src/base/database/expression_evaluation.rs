@@ -9,10 +9,10 @@ use crate::base::{
 };
 use alloc::{format, string::ToString, vec};
 use proof_of_sql_parser::{
-    intermediate_ast::{BinaryOperator, Expression, Literal},
+    intermediate_ast::{Expression, Literal},
     Identifier,
 };
-use sqlparser::ast::UnaryOperator;
+use sqlparser::ast::{BinaryOperator, UnaryOperator};
 
 impl<S: Scalar> OwnedTable<S> {
     /// Evaluate an expression on the table.
@@ -20,7 +20,9 @@ impl<S: Scalar> OwnedTable<S> {
         match expr {
             Expression::Column(identifier) => self.evaluate_column(identifier),
             Expression::Literal(lit) => self.evaluate_literal(lit),
-            Expression::Binary { op, left, right } => self.evaluate_binary_expr(*op, left, right),
+            Expression::Binary { op, left, right } => {
+                self.evaluate_binary_expr(&(*op).into(), left, right)
+            }
             Expression::Unary { op, expr } => self.evaluate_unary_expr((*op).into(), expr),
             _ => Err(ExpressionEvaluationError::Unsupported {
                 expression: format!("Expression {expr:?} is not supported yet"),
@@ -84,7 +86,7 @@ impl<S: Scalar> OwnedTable<S> {
 
     fn evaluate_binary_expr(
         &self,
-        op: BinaryOperator,
+        op: &BinaryOperator,
         left: &Expression,
         right: &Expression,
     ) -> ExpressionEvaluationResult<OwnedColumn<S>> {
@@ -93,13 +95,16 @@ impl<S: Scalar> OwnedTable<S> {
         match op {
             BinaryOperator::And => Ok(left.element_wise_and(&right)?),
             BinaryOperator::Or => Ok(left.element_wise_or(&right)?),
-            BinaryOperator::Equal => Ok(left.element_wise_eq(&right)?),
-            BinaryOperator::GreaterThanOrEqual => Ok(left.element_wise_ge(&right)?),
-            BinaryOperator::LessThanOrEqual => Ok(left.element_wise_le(&right)?),
-            BinaryOperator::Add => Ok(left.element_wise_add(&right)?),
-            BinaryOperator::Subtract => Ok(left.element_wise_sub(&right)?),
+            BinaryOperator::Eq => Ok(left.element_wise_eq(&right)?),
+            BinaryOperator::GtEq => Ok(left.element_wise_ge(&right)?),
+            BinaryOperator::LtEq => Ok(left.element_wise_le(&right)?),
+            BinaryOperator::Plus => Ok(left.element_wise_add(&right)?),
+            BinaryOperator::Minus => Ok(left.element_wise_sub(&right)?),
             BinaryOperator::Multiply => Ok(left.element_wise_mul(&right)?),
-            BinaryOperator::Division => Ok(left.element_wise_div(&right)?),
+            BinaryOperator::Divide => Ok(left.element_wise_div(&right)?),
+            _ => Err(ExpressionEvaluationError::Unsupported {
+                expression: format!("Binary operator '{op}' is not supported."),
+            }),
         }
     }
 }
