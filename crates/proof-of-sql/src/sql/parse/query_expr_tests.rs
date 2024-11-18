@@ -19,8 +19,8 @@ use proof_of_sql_parser::{
         add as padd, aliased_expr, col, count, count_all, lit, max, min, mul as pmul, sub as psub,
         sum,
     },
-    Identifier,
 };
+use sqlparser::ast::Ident as Identifier;
 
 /// # Panics
 ///
@@ -51,7 +51,7 @@ fn we_can_convert_an_ast_with_one_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
@@ -72,7 +72,7 @@ fn we_can_convert_an_ast_with_one_column_and_i128_data() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::Int128,
+            "a".into() => ColumnType::Int128,
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
@@ -93,7 +93,7 @@ fn we_can_convert_an_ast_with_one_column_and_a_filter_by_a_string_literal() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::VarChar,
+            "a".into() => ColumnType::VarChar,
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 'abc'", &accessor);
@@ -114,8 +114,8 @@ fn we_cannot_convert_an_ast_with_duplicate_aliases() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
         },
     );
     invalid_query_to_provable_ast(
@@ -138,7 +138,7 @@ fn we_dont_have_duplicate_filter_result_expressions() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -163,9 +163,9 @@ fn we_can_convert_an_ast_with_two_columns() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+            "c".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select a,  b from sxt_tab where c = 123", &accessor);
@@ -186,9 +186,9 @@ fn we_can_convert_an_ast_with_two_columns_and_arithmetic() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+            "c".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -219,8 +219,8 @@ fn we_can_parse_all_result_columns_with_select_star() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3", &accessor);
@@ -241,8 +241,8 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b = +4", &accessor);
@@ -263,8 +263,8 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b <> +4", &accessor);
@@ -285,8 +285,8 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b <= -4", &accessor);
@@ -307,9 +307,9 @@ fn we_can_convert_an_ast_with_cond_and() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
+            "c".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -337,9 +337,9 @@ fn we_can_convert_an_ast_with_cond_or() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+            "c".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -370,9 +370,9 @@ fn we_can_convert_an_ast_with_conds_or_not() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+            "c".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -400,10 +400,10 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "c".parse().unwrap() => ColumnType::BigInt,
-            "f".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+            "c".into() => ColumnType::BigInt,
+            "f".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -443,7 +443,7 @@ fn we_can_convert_an_ast_with_the_min_i128_filter_value_and_const() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -471,7 +471,7 @@ fn we_can_convert_an_ast_with_the_max_i128_filter_value_and_const() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -499,8 +499,8 @@ fn we_can_convert_an_ast_using_an_aliased_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -531,7 +531,7 @@ fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
         },
     );
     invalid_query_to_provable_ast(t, "select * from sxt_tab where a = 3", &accessor);
@@ -543,7 +543,7 @@ fn we_cannot_convert_an_ast_with_a_column_type_different_than_equal_literal() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::VarChar,
+            "b".into() => ColumnType::VarChar,
         },
     );
     invalid_query_to_provable_ast(t, "select * from sxt_tab where b = 123", &accessor);
@@ -555,7 +555,7 @@ fn we_can_convert_an_ast_with_a_schema() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select a from eth.sxt_tab where a = 3", &accessor);
@@ -576,7 +576,7 @@ fn we_can_convert_an_ast_without_any_filter() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let expected_ast = QueryExpr::new(
@@ -609,8 +609,8 @@ fn we_can_parse_order_by_with_a_single_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3 order by b", &accessor);
@@ -631,8 +631,8 @@ fn we_can_parse_order_by_with_multiple_columns() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -661,8 +661,8 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "name".into() => ColumnType::VarChar,
         },
     );
     let ast = query_to_provable_ast(
@@ -690,7 +690,7 @@ fn we_cannot_parse_order_by_referencing_a_column_name_instead_of_an_alias() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
         },
     );
     invalid_query_to_provable_ast(
@@ -706,8 +706,8 @@ fn we_cannot_parse_order_by_referencing_invalid_aliased_expressions() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     // Note: While this operation is acceptable with PostgreSQL, we do not currently support it.
@@ -723,8 +723,8 @@ fn we_cannot_parse_order_by_referencing_an_alias_name_associated_with_two_differ
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "name".into() => ColumnType::VarChar,
         },
     );
     invalid_query_to_provable_ast(
@@ -762,8 +762,8 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "name".into() => ColumnType::VarChar,
         },
     );
     for order_by in ["s", "d"] {
@@ -798,7 +798,7 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 3", &accessor);
@@ -819,7 +819,7 @@ fn slice_is_still_applied_when_limit_is_u64_max_and_offset_is_zero() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 0", &accessor);
@@ -840,7 +840,7 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 7", &accessor);
@@ -861,7 +861,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset -7", &accessor);
@@ -882,7 +882,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
+            "a".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 55 offset 3", &accessor);
@@ -907,8 +907,8 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "boolean".parse().unwrap() => ColumnType::Boolean,
+            "a".into() => ColumnType::BigInt,
+            "boolean".into() => ColumnType::Boolean,
         },
     );
     let ast = query_to_provable_ast(
@@ -945,8 +945,8 @@ fn we_can_do_provable_group_by() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -973,8 +973,8 @@ fn we_can_do_provable_group_by_without_sum() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -1001,9 +1001,9 @@ fn we_can_do_provable_group_by_with_two_group_by_columns() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "state".parse().unwrap() => ColumnType::VarChar,
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "state".into() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -1030,9 +1030,9 @@ fn we_can_do_provable_group_by_with_two_sums_and_filter() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "tax".parse().unwrap() => ColumnType::BigInt,
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "tax".into() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -1065,8 +1065,8 @@ fn we_can_group_by_without_using_aggregate_functions() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -1106,9 +1106,9 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "department_budget".parse().unwrap() => ColumnType::BigInt,
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "tax".parse().unwrap() => ColumnType::BigInt,
+            "department_budget".into() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
+            "tax".into() => ColumnType::BigInt,
         },
     );
 
@@ -1146,8 +1146,8 @@ fn we_cannot_parse_non_aggregated_or_non_group_by_columns_in_the_select_clause()
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
         },
     );
     invalid_query_to_provable_ast(
@@ -1163,8 +1163,8 @@ fn alias_references_are_not_allowed_in_the_group_by() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
         },
     );
     invalid_query_to_provable_ast(
@@ -1185,8 +1185,8 @@ fn order_by_cannot_reference_an_invalid_group_by_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
         },
     );
     invalid_query_to_provable_ast(
@@ -1207,8 +1207,8 @@ fn group_by_column_cannot_be_a_column_result_alias() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
         },
     );
     invalid_query_to_provable_ast(
@@ -1225,7 +1225,7 @@ fn we_can_have_aggregate_functions_without_a_group_by_clause() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "name".into() => ColumnType::VarChar,
         },
     );
 
@@ -1245,9 +1245,9 @@ fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_ex
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
+            "bonus".into() => ColumnType::VarChar,
         },
     );
     let ast = query_to_provable_ast(
@@ -1275,9 +1275,9 @@ fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
+            "bonus".into() => ColumnType::VarChar,
         },
     );
     let ast = query_to_provable_ast(
@@ -1309,9 +1309,9 @@ fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
+            "bonus".into() => ColumnType::VarChar,
         },
     );
     let ast = query_to_provable_ast(
@@ -1339,9 +1339,9 @@ fn aggregate_result_columns_cannot_reference_invalid_columns() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
+            "bonus".into() => ColumnType::VarChar,
         },
     );
     invalid_query_to_provable_ast(
@@ -1357,9 +1357,9 @@ fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_wi
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
+            "bonus".into() => ColumnType::VarChar,
         },
     );
     let ast = query_to_provable_ast(
@@ -1390,10 +1390,10 @@ fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "bonus".parse().unwrap() => ColumnType::BigInt,
-            "name".parse().unwrap() => ColumnType::VarChar,
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "tax".parse().unwrap() => ColumnType::BigInt,
+            "bonus".into() => ColumnType::BigInt,
+            "name".into() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "tax".into() => ColumnType::BigInt,
         },
     );
     let query_text = "select salary d1, max(tax), salary d2, sum(bonus) sum_bonus, count(name) count_s from sxt.employees group by salary, bonus, salary";
@@ -1427,10 +1427,10 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "a".parse().unwrap() => ColumnType::BigInt,
-            "f".parse().unwrap() => ColumnType::Int128,
-            "b".parse().unwrap() => ColumnType::BigInt,
-            "h".parse().unwrap() => ColumnType::Int128,
+            "a".into() => ColumnType::BigInt,
+            "f".into() => ColumnType::Int128,
+            "b".into() => ColumnType::BigInt,
+            "h".into() => ColumnType::Int128,
         },
     );
     // TODO: add `a / b as a_div_b` result expr once polars properly
@@ -1472,10 +1472,10 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "c".parse().unwrap() => ColumnType::BigInt,
-            "f".parse().unwrap() => ColumnType::BigInt,
-            "g".parse().unwrap() => ColumnType::BigInt,
-            "h".parse().unwrap() => ColumnType::BigInt,
+            "c".into() => ColumnType::BigInt,
+            "f".into() => ColumnType::BigInt,
+            "g".into() => ColumnType::BigInt,
+            "h".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -1527,10 +1527,10 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "c".parse().unwrap() => ColumnType::BigInt,
-            "f".parse().unwrap() => ColumnType::BigInt,
-            "g".parse().unwrap() => ColumnType::BigInt,
-            "k".parse().unwrap() => ColumnType::BigInt,
+            "c".into() => ColumnType::BigInt,
+            "f".into() => ColumnType::BigInt,
+            "g".into() => ColumnType::BigInt,
+            "k".into() => ColumnType::BigInt,
         },
     );
     let ast = query_to_provable_ast(
@@ -1564,8 +1564,8 @@ fn we_cannot_use_non_grouped_columns_outside_agg() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "name".into() => ColumnType::VarChar,
         },
     );
     let identifier_not_in_agg_queries = vec![
@@ -1610,8 +1610,8 @@ fn varchar_column_is_not_compatible_with_integer_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "name".into() => ColumnType::VarChar,
         },
     );
 
@@ -1658,8 +1658,8 @@ fn arithmetic_operations_are_not_allowed_with_varchar_column() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "name".parse().unwrap() => ColumnType::VarChar,
-            "position".parse().unwrap() => ColumnType::VarChar,
+            "name".into() => ColumnType::VarChar,
+            "position".into() => ColumnType::VarChar,
         },
     );
 
@@ -1682,7 +1682,7 @@ fn varchar_column_is_not_allowed_within_numeric_aggregations() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "name".into() => ColumnType::VarChar,
         },
     );
     let sum_query = "select sum(name) from sxt.employees";
@@ -1722,7 +1722,7 @@ fn group_by_with_bigint_column_is_valid() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
         },
     );
     let query_text = "select salary from sxt.employees group by salary";
@@ -1750,7 +1750,7 @@ fn group_by_with_decimal_column_is_valid() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::Int128,
+            "salary".into() => ColumnType::Int128,
         },
     );
     let query_text = "select salary from sxt.employees group by salary";
@@ -1778,7 +1778,7 @@ fn group_by_with_varchar_column_is_valid() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "name".into() => ColumnType::VarChar,
         },
     );
     let query_text = "select name from sxt.employees group by name";
@@ -1806,8 +1806,8 @@ fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "tax".parse().unwrap() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
+            "tax".into() => ColumnType::BigInt,
         },
     );
     let query_text =
@@ -1851,8 +1851,8 @@ fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "bonus".parse().unwrap() => ColumnType::Int128,
+            "salary".into() => ColumnType::BigInt,
+            "bonus".into() => ColumnType::Int128,
         },
     );
     let query_text = "select 7 + max(salary) as max_i, min(salary + 777 * bonus) * -5 as min_d from sxt.employees";
@@ -1895,9 +1895,9 @@ fn count_aggregation_always_have_integer_type() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "name".parse().unwrap() => ColumnType::VarChar,
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "tax".parse().unwrap() => ColumnType::Int128,
+            "name".into() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "tax".into() => ColumnType::Int128,
         },
     );
     let query_text =
@@ -1953,15 +1953,15 @@ fn select_wildcard_is_valid_with_group_by_exprs() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "employee_name".parse().unwrap() => ColumnType::VarChar,
-            "base_salary".parse().unwrap() => ColumnType::BigInt,
-            "annual_bonus".parse().unwrap() => ColumnType::Int128,
-            "manager_name".parse().unwrap() => ColumnType::VarChar,
-            "manager_salary".parse().unwrap() => ColumnType::BigInt,
-            "manager_bonus".parse().unwrap() => ColumnType::Int128,
-            "department_name".parse().unwrap() => ColumnType::VarChar,
-            "department_budget".parse().unwrap() => ColumnType::BigInt,
-            "department_headcount".parse().unwrap() => ColumnType::Int128,
+            "employee_name".into() => ColumnType::VarChar,
+            "base_salary".into() => ColumnType::BigInt,
+            "annual_bonus".into() => ColumnType::Int128,
+            "manager_name".into() => ColumnType::VarChar,
+            "manager_salary".into() => ColumnType::BigInt,
+            "manager_bonus".into() => ColumnType::Int128,
+            "department_name".into() => ColumnType::VarChar,
+            "department_budget".into() => ColumnType::BigInt,
+            "department_headcount".into() => ColumnType::Int128,
         },
     );
 
@@ -1995,7 +1995,7 @@ fn nested_aggregations_are_not_supported() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
+            "salary".into() => ColumnType::BigInt,
         },
     );
 
@@ -2024,10 +2024,10 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
         indexmap! {
-            "salary".parse().unwrap() => ColumnType::BigInt,
-            "department".parse().unwrap() => ColumnType::BigInt,
-            "tax".parse().unwrap() => ColumnType::BigInt,
-            "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".into() => ColumnType::BigInt,
+            "department".into() => ColumnType::BigInt,
+            "tax".into() => ColumnType::BigInt,
+            "name".into() => ColumnType::VarChar,
         },
     );
     let base_cols: [&str; N] = ["salary", "department", "tax", "name"]; // sorted because of `select: [cols = ... ]`
@@ -2086,12 +2086,12 @@ fn query_expr_for_test_table(sql_text: &str) -> QueryExpr {
     let schema_accessor = schema_accessor_from_table_ref_with_schema(
         "test.table".parse().unwrap(),
         indexmap! {
-            "bigint_column".parse().unwrap() => ColumnType::BigInt,
-            "varchar_column".parse().unwrap() => ColumnType::VarChar,
-            "int128_column".parse().unwrap() => ColumnType::Int128,
+            "bigint_column".into() => ColumnType::BigInt,
+            "varchar_column".into() => ColumnType::VarChar,
+            "int128_column".into() => ColumnType::Int128,
         },
     );
-    let default_schema = "test".parse().unwrap();
+    let default_schema = "test".into();
     let select_statement = SelectStatementParser::new().parse(sql_text).unwrap();
     QueryExpr::try_new(select_statement, default_schema, &schema_accessor).unwrap()
 }

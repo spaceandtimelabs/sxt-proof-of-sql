@@ -19,19 +19,20 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
-use proof_of_sql_parser::{Identifier, ResourceId};
+use proof_of_sql_parser::ResourceId;
+use sqlparser::ast::Ident as Identifier;
 
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
-    let a = Identifier::try_new("a").unwrap();
-    let b = Identifier::try_new("b").unwrap();
+    let a = Identifier::new("a");
+    let b = Identifier::new("b");
     let provable_ast = FilterExec::new(
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
-                    a,
+                    &a,
                     ColumnType::BigInt,
                 ))),
                 "a",
@@ -39,7 +40,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
-                    b,
+                    &b,
                     ColumnType::BigInt,
                 ))),
                 "b",
@@ -49,7 +50,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
         DynProofExpr::try_new_equals(
             DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                 table_ref,
-                Identifier::try_new("c").unwrap(),
+                &Identifier::new("c"),
                 ColumnType::BigInt,
             ))),
             DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(123))),
@@ -61,8 +62,8 @@ fn we_can_correctly_fetch_the_query_result_schema() {
     assert_eq!(
         column_fields,
         vec![
-            ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
-            ColumnField::new("b".parse().unwrap(), ColumnType::BigInt)
+            ColumnField::new(&"a".into(), ColumnType::BigInt),
+            ColumnField::new(&"b".into(), ColumnType::BigInt)
         ]
     );
 }
@@ -70,14 +71,14 @@ fn we_can_correctly_fetch_the_query_result_schema() {
 #[test]
 fn we_can_correctly_fetch_all_the_referenced_columns() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
-    let a = Identifier::try_new("a").unwrap();
-    let f = Identifier::try_new("f").unwrap();
+    let a = Identifier::new("a");
+    let f = Identifier::new("f");
     let provable_ast = FilterExec::new(
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
-                    a,
+                    &a,
                     ColumnType::BigInt,
                 ))),
                 "a",
@@ -85,7 +86,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
-                    f,
+                    &f,
                     ColumnType::BigInt,
                 ))),
                 "f",
@@ -97,7 +98,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 DynProofExpr::try_new_equals(
                     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                         table_ref,
-                        Identifier::try_new("f").unwrap(),
+                        &Identifier::new("f"),
                         ColumnType::BigInt,
                     ))),
                     DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(45))),
@@ -106,7 +107,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 DynProofExpr::try_new_equals(
                     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                         table_ref,
-                        Identifier::try_new("c").unwrap(),
+                        &Identifier::new("c"),
                         ColumnType::BigInt,
                     ))),
                     DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(-2))),
@@ -116,7 +117,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             DynProofExpr::try_new_equals(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
-                    Identifier::try_new("b").unwrap(),
+                    &Identifier::new("b"),
                     ColumnType::BigInt,
                 ))),
                 DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(3))),
@@ -130,26 +131,10 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
     assert_eq!(
         ref_columns,
         IndexSet::from_iter([
-            ColumnRef::new(
-                table_ref,
-                Identifier::try_new("a").unwrap(),
-                ColumnType::BigInt
-            ),
-            ColumnRef::new(
-                table_ref,
-                Identifier::try_new("f").unwrap(),
-                ColumnType::BigInt
-            ),
-            ColumnRef::new(
-                table_ref,
-                Identifier::try_new("c").unwrap(),
-                ColumnType::BigInt
-            ),
-            ColumnRef::new(
-                table_ref,
-                Identifier::try_new("b").unwrap(),
-                ColumnType::BigInt
-            )
+            ColumnRef::new(table_ref, &Identifier::new("a"), ColumnType::BigInt),
+            ColumnRef::new(table_ref, &Identifier::new("f"), ColumnType::BigInt),
+            ColumnRef::new(table_ref, &Identifier::new("c"), ColumnType::BigInt),
+            ColumnRef::new(table_ref, &Identifier::new("b"), ColumnType::BigInt)
         ])
     );
 
@@ -197,11 +182,11 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
-        ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
-        ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
-        ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+        ColumnField::new(&"b".into(), ColumnType::BigInt),
+        ColumnField::new(&"c".into(), ColumnType::Int128),
+        ColumnField::new(&"d".into(), ColumnType::VarChar),
         ColumnField::new(
-            "e".parse().unwrap(),
+            &"e".into(),
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
@@ -241,11 +226,11 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
-        ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
-        ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
-        ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+        ColumnField::new(&"b".into(), ColumnType::BigInt),
+        ColumnField::new(&"c".into(), ColumnType::Int128),
+        ColumnField::new(&"d".into(), ColumnType::VarChar),
         ColumnField::new(
-            "e".parse().unwrap(),
+            &"e".into(),
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
@@ -311,11 +296,11 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
-        ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
-        ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
-        ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+        ColumnField::new(&"b".into(), ColumnType::BigInt),
+        ColumnField::new(&"c".into(), ColumnType::Int128),
+        ColumnField::new(&"d".into(), ColumnType::VarChar),
         ColumnField::new(
-            "e".parse().unwrap(),
+            &"e".into(),
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];

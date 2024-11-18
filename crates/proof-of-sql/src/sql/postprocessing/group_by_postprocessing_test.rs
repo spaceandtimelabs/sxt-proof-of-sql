@@ -15,7 +15,8 @@ use proof_of_sql_parser::{intermediate_ast::AggregationOperator, utility::*};
 fn we_cannot_have_invalid_group_bys() {
     // Column in result but not in group by or aggregation
     let expr = add(sum(col("a")), col("b")); // b is not in group by or aggregation
-    let res = GroupByPostprocessing::try_new(vec![ident("a")], vec![aliased_expr(expr, "res")]);
+    let res =
+        GroupByPostprocessing::try_new(vec![ident("a").into()], vec![aliased_expr(expr, "res")]);
     assert!(matches!(
         res,
         Err(PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. })
@@ -23,7 +24,8 @@ fn we_cannot_have_invalid_group_bys() {
 
     // Nested aggregation
     let expr = sum(max(col("a"))); // Nested aggregation
-    let res = GroupByPostprocessing::try_new(vec![ident("a")], vec![aliased_expr(expr, "res")]);
+    let res =
+        GroupByPostprocessing::try_new(vec![ident("a").into()], vec![aliased_expr(expr, "res")]);
     assert!(matches!(
         res,
         Err(PostprocessingError::NestedAggregationInGroupByClause { .. })
@@ -33,15 +35,15 @@ fn we_cannot_have_invalid_group_bys() {
 #[test]
 fn we_can_make_group_by_postprocessing() {
     // SELECT SUM(a) + 2 as c0, SUM(b + a) as c1 FROM tab GROUP BY a, b
-    let res = GroupByPostprocessing::try_new(
-        vec![ident("a"), ident("b")],
+    let res: GroupByPostprocessing = GroupByPostprocessing::try_new(
+        vec![ident("a").into(), ident("b").into()],
         vec![
             aliased_expr(add(sum(col("a")), lit(2)), "c0"),
             aliased_expr(sum(add(col("b"), col("a"))), "c1"),
         ],
     )
     .unwrap();
-    assert_eq!(res.group_by(), &[ident("a"), ident("b")]);
+    assert_eq!(res.group_by(), &[ident("a").into(), ident("b").into()]);
     assert_eq!(
         res.remainder_exprs(),
         &[
@@ -52,11 +54,15 @@ fn we_can_make_group_by_postprocessing() {
     assert_eq!(
         res.aggregation_exprs(),
         &[
-            (AggregationOperator::Sum, *col("a"), ident("__col_agg_0")),
+            (
+                AggregationOperator::Sum,
+                *col("a"),
+                ident("__col_agg_0").into()
+            ),
             (
                 AggregationOperator::Sum,
                 *add(col("b"), col("a")),
-                ident("__col_agg_1")
+                ident("__col_agg_1").into()
             ),
         ]
     );

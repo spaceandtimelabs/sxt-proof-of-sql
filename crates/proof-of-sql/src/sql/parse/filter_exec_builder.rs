@@ -11,7 +11,8 @@ use crate::{
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use itertools::Itertools;
-use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
+use proof_of_sql_parser::intermediate_ast::Expression;
+use sqlparser::ast::Ident as Identifier;
 
 pub struct FilterExecBuilder {
     table_expr: Option<TableExpr>,
@@ -56,7 +57,7 @@ impl FilterExecBuilder {
             if let Some(plan) = &enriched_expr.dyn_proof_expr {
                 self.filter_result_expr_list.push(AliasedDynProofExpr {
                     expr: plan.clone(),
-                    alias: enriched_expr.residue_expression.alias,
+                    alias: enriched_expr.residue_expression.alias.into(),
                 });
             } else {
                 has_nonprovable_column = true;
@@ -68,8 +69,8 @@ impl FilterExecBuilder {
             for alias in self.column_mapping.keys().sorted() {
                 let column_ref = self.column_mapping.get(alias).unwrap();
                 self.filter_result_expr_list.push(AliasedDynProofExpr {
-                    expr: DynProofExpr::new_column(*column_ref),
-                    alias: *alias,
+                    expr: DynProofExpr::new_column(column_ref.clone()),
+                    alias: alias.clone(),
                 });
             }
         }

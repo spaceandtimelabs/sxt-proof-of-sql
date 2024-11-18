@@ -17,7 +17,7 @@ use num_traits::Zero;
 fn we_can_convert_an_empty_provable_result_to_a_final_result() {
     let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[0_i64; 0])];
     let res = ProvableQueryResult::new(0, &cols);
-    let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
+    let column_fields = vec![ColumnField::new(&"a1".into(), ColumnType::BigInt)];
     let res = RecordBatch::try_from(
         res.to_owned_table::<Curve25519Scalar>(&column_fields)
             .unwrap(),
@@ -44,8 +44,7 @@ fn we_can_evaluate_result_columns_as_mles() {
     let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
 
-    let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
+    let column_fields = vec![ColumnField::new(&"a".into(), ColumnType::BigInt); cols.len()];
     let evals = res
         .evaluate(&evaluation_point, 2, &column_fields[..])
         .unwrap();
@@ -62,8 +61,7 @@ fn we_can_evaluate_result_columns_with_no_rows() {
     let evaluation_point = [];
     let mut evaluation_vec = [Curve25519Scalar::ZERO; 0];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
-    let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
+    let column_fields = vec![ColumnField::new(&"a".into(), ColumnType::BigInt); cols.len()];
     let evals = res
         .evaluate(&evaluation_point, 0, &column_fields[..])
         .unwrap();
@@ -81,8 +79,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles() {
     ];
     let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
-    let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
+    let column_fields = vec![ColumnField::new(&"a".into(), ColumnType::BigInt); cols.len()];
     let evals = res
         .evaluate(&evaluation_point, 2, &column_fields[..])
         .unwrap();
@@ -105,8 +102,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
     ];
     let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
-    let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::Int128); cols.len()];
+    let column_fields = vec![ColumnField::new(&"a".into(), ColumnType::Int128); cols.len()];
     let evals = res
         .evaluate(&evaluation_point, 2, &column_fields[..])
         .unwrap();
@@ -138,8 +134,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_scalar_columns() {
     ];
     let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
-    let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::Scalar); cols.len()];
+    let column_fields = vec![ColumnField::new(&"a".into(), ColumnType::Scalar); cols.len()];
     let evals = res
         .evaluate(&evaluation_point, 2, &column_fields[..])
         .unwrap();
@@ -163,8 +158,8 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
     let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields = [
-        ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
-        ColumnField::new("a".parse().unwrap(), ColumnType::Int128),
+        ColumnField::new(&"a".into(), ColumnType::BigInt),
+        ColumnField::new(&"a".into(), ColumnType::Int128),
     ];
     let evals = res
         .evaluate(&evaluation_point, 2, &column_fields[..])
@@ -189,8 +184,7 @@ fn evaluation_fails_if_extra_data_is_included() {
     ];
     let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
-    let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
+    let column_fields = vec![ColumnField::new(&"a".into(), ColumnType::BigInt); cols.len()];
     assert!(matches!(
         res.evaluate(&evaluation_point, 2, &column_fields[..]),
         Err(QueryError::MiscellaneousEvaluationError)
@@ -207,8 +201,7 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
     ];
     let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
-    let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns()];
+    let column_fields = vec![ColumnField::new(&"a".into(), ColumnType::BigInt); res.num_columns()];
     assert!(matches!(
         res.evaluate(&evaluation_point, 2, &column_fields[..]),
         Err(QueryError::Overflow)
@@ -226,8 +219,7 @@ fn evaluation_fails_if_integer_overflow_happens() {
     ];
     let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
-    let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::Int); res.num_columns()];
+    let column_fields = vec![ColumnField::new(&"a".into(), ColumnType::Int); res.num_columns()];
     assert!(matches!(
         res.evaluate(&evaluation_point, 2, &column_fields[..]),
         Err(QueryError::Overflow)
@@ -245,8 +237,7 @@ fn evaluation_fails_if_data_is_missing() {
     ];
     let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
-    let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns()];
+    let column_fields = vec![ColumnField::new(&"a".into(), ColumnType::BigInt); res.num_columns()];
     assert!(matches!(
         res.evaluate(&evaluation_point, 2, &column_fields[..]),
         Err(QueryError::Overflow)
@@ -257,7 +248,7 @@ fn evaluation_fails_if_data_is_missing() {
 fn we_can_convert_a_provable_result_to_a_final_result() {
     let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 12])];
     let res = ProvableQueryResult::new(2, &cols);
-    let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
+    let column_fields = vec![ColumnField::new(&"a1".into(), ColumnType::BigInt)];
     let res = RecordBatch::try_from(
         res.to_owned_table::<Curve25519Scalar>(&column_fields)
             .unwrap(),
@@ -277,7 +268,7 @@ fn we_can_convert_a_provable_result_to_a_final_result() {
 fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
     let cols: [Column<Curve25519Scalar>; 1] = [Column::Int128(&[10, i128::MAX])];
     let res = ProvableQueryResult::new(2, &cols);
-    let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::Int128)];
+    let column_fields = vec![ColumnField::new(&"a1".into(), ColumnType::Int128)];
     let res = RecordBatch::try_from(
         res.to_owned_table::<Curve25519Scalar>(&column_fields)
             .unwrap(),
@@ -307,7 +298,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
     let cols: [Column<Curve25519Scalar>; 1] = [Column::Scalar(&values)];
     let res = ProvableQueryResult::new(2, &cols);
     let column_fields = vec![ColumnField::new(
-        "a1".parse().unwrap(),
+        &"a1".into(),
         ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
     )];
     let res = RecordBatch::try_from(
@@ -352,11 +343,11 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     ];
     let res = ProvableQueryResult::new(2, &cols);
     let column_fields = vec![
-        ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt),
-        ColumnField::new("a2".parse().unwrap(), ColumnType::Int128),
-        ColumnField::new("a3".parse().unwrap(), ColumnType::VarChar),
+        ColumnField::new(&"a1".into(), ColumnType::BigInt),
+        ColumnField::new(&"a2".into(), ColumnType::Int128),
+        ColumnField::new(&"a3".into(), ColumnType::VarChar),
         ColumnField::new(
-            "a4".parse().unwrap(),
+            &"a4".into(),
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];

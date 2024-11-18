@@ -68,7 +68,9 @@ impl ProofPlan for ProjectionExec {
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         self.aliased_results
             .iter()
-            .map(|aliased_expr| ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type()))
+            .map(|aliased_expr| {
+                ColumnField::new(&aliased_expr.alias, aliased_expr.expr.data_type())
+            })
             .collect()
     }
 
@@ -97,7 +99,7 @@ impl ProverEvaluate for ProjectionExec {
         Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results.iter().map(|aliased_expr| {
                 (
-                    aliased_expr.alias,
+                    aliased_expr.alias.clone(),
                     aliased_expr.expr.result_evaluate(alloc, &used_table),
                 )
             }),
@@ -126,7 +128,7 @@ impl ProverEvaluate for ProjectionExec {
         let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results.iter().map(|aliased_expr| {
                 (
-                    aliased_expr.alias,
+                    aliased_expr.alias.clone(),
                     aliased_expr
                         .expr
                         .prover_evaluate(builder, alloc, &used_table),

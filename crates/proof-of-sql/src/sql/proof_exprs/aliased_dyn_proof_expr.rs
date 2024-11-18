@@ -1,6 +1,6 @@
 use super::DynProofExpr;
-use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident as Identifier;
 
 /// A `DynProofExpr` with an alias.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

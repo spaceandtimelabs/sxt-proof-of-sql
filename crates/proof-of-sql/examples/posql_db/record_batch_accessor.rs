@@ -8,7 +8,7 @@ use proof_of_sql::base::{
     },
     scalar::Scalar,
 };
-use proof_of_sql_parser::Identifier;
+use sqlparser::ast::Ident as Identifier;
 
 #[derive(Default)]
 /// An implementation of a data accessor that uses a record batch as the underlying data source.
@@ -58,7 +58,7 @@ impl MetadataAccessor for RecordBatchAccessor {
     }
 }
 impl SchemaAccessor for RecordBatchAccessor {
-    fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType> {
+    fn lookup_column(&self, table_ref: TableRef, column_id: &Identifier) -> Option<ColumnType> {
         self.tables
             .get(&table_ref)
             .expect("Table not found.")

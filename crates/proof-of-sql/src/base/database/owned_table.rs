@@ -1,9 +1,9 @@
 use super::OwnedColumn;
 use crate::base::{map::IndexMap, polynomial::compute_evaluation_vector, scalar::Scalar};
 use alloc::{vec, vec::Vec};
-use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
+use sqlparser::ast::Ident as Identifier;
 
 /// An error that occurs when working with tables.
 #[derive(Snafu, Debug, PartialEq, Eq)]
@@ -35,7 +35,7 @@ impl<S: Scalar> OwnedTable<S> {
         }
     }
     /// Creates a new [`OwnedTable`].
-    pub fn try_from_iter<T: IntoIterator<Item = (Identifier, OwnedColumn<S>)>>(
+    pub fn try_from_iter<T: IntoIterator<Item = (&Identifier, OwnedColumn<S>)>>(
         iter: T,
     ) -> Result<Self, OwnedTableError> {
         Self::try_new(IndexMap::from_iter(iter))
@@ -101,8 +101,6 @@ impl<S: Scalar> PartialEq for OwnedTable<S> {
 impl<S: Scalar> core::ops::Index<&str> for OwnedTable<S> {
     type Output = OwnedColumn<S>;
     fn index(&self, index: &str) -> &Self::Output {
-        self.table
-            .get(&index.parse::<Identifier>().unwrap())
-            .unwrap()
+        self.table.get(&Identifier::new(index)).unwrap()
     }
 }

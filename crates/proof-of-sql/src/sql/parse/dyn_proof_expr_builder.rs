@@ -21,9 +21,8 @@ use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, Expression, Literal},
     posql_time::{PoSQLTimeUnit, PoSQLTimestampError},
-    Identifier,
 };
-use sqlparser::ast::{BinaryOperator, UnaryOperator};
+use sqlparser::ast::{BinaryOperator, Ident as Identifier, UnaryOperator};
 
 /// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
 /// a `proof_of_sql_parser::intermediate_ast::Expression`.
@@ -58,7 +57,7 @@ impl<'a> DynProofExprBuilder<'a> {
 impl DynProofExprBuilder<'_> {
     fn visit_expr(&self, expr: &Expression) -> Result<DynProofExpr, ConversionError> {
         match expr {
-            Expression::Column(identifier) => self.visit_column(*identifier),
+            Expression::Column(identifier) => self.visit_column((*identifier).into()),
             Expression::Literal(lit) => self.visit_literal(lit),
             Expression::Binary { op, left, right } => {
                 self.visit_binary_expr(&(*op).into(), left, right)
@@ -73,11 +72,12 @@ impl DynProofExprBuilder<'_> {
 
     fn visit_column(&self, identifier: Identifier) -> Result<DynProofExpr, ConversionError> {
         Ok(DynProofExpr::Column(ColumnExpr::new(
-            *self.column_mapping.get(&identifier).ok_or(
-                ConversionError::MissingColumnWithoutTable {
+            self.column_mapping
+                .get(&identifier)
+                .ok_or(ConversionError::MissingColumnWithoutTable {
                     identifier: Box::new(identifier),
-                },
-            )?,
+                })?
+                .clone(),
         )))
     }
 

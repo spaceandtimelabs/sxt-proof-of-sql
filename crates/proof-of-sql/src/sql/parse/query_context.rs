@@ -230,7 +230,7 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
     type Error = ConversionError;
 
     fn try_from(value: &QueryContext) -> Result<Option<GroupByExec>, Self::Error> {
-        let where_clause = WhereExprBuilder::new(&value.column_mapping)
+        let where_clause = WhereExprBuilder::new((&value.column_mapping))
             .build(value.where_expr.clone())?
             .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
         let table = value.table.map(|table_ref| TableExpr { table_ref }).ok_or(
@@ -247,7 +247,7 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
                     .column_mapping
                     .get(expr)
                     .ok_or(ConversionError::MissingColumn {
-                        identifier: Box::new(*expr),
+                        identifier: Box::new((*expr).into()),
                         resource_id: Box::new(resource_id),
                     })
                     .map(|column_ref| ColumnExpr::new(*column_ref))
@@ -288,11 +288,11 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
                 } = (*res.expr).clone()
                 {
                     let res_dyn_proof_expr =
-                        DynProofExprBuilder::new(&value.column_mapping).build(&res.expr);
+                        DynProofExprBuilder::new((&value.column_mapping).into()).build(&res.expr);
                     res_dyn_proof_expr
                         .ok()
                         .map(|dyn_proof_expr| AliasedDynProofExpr {
-                            alias: res.alias,
+                            alias: res.alias.into(),
                             expr: dyn_proof_expr,
                         })
                 } else {
@@ -317,7 +317,7 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
         Ok(Some(GroupByExec::new(
             group_by_exprs,
             sum_expr.expect("the none case was just checked"),
-            count_column.alias,
+            count_column.alias.into(),
             table,
             where_clause,
         )))

@@ -260,13 +260,13 @@ impl<'a> QueryContextBuilder<'a> {
         let column_type = self.schema_accessor.lookup_column(*table_ref, column_name);
 
         let column_type = column_type.ok_or_else(|| ConversionError::MissingColumn {
-            identifier: Box::new(column_name),
+            identifier: Box::new(column_name.into()),
             resource_id: Box::new(table_ref.resource_id()),
         })?;
 
-        let column = ColumnRef::new(*table_ref, column_name, column_type);
+        let column = ColumnRef::new(*table_ref, &column_name.into(), column_type);
 
-        self.context.push_column_ref(column_name, column);
+        self.context.push_column_ref(column_name.into(), column);
 
         Ok(column_type)
     }

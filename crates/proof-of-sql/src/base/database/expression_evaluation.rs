@@ -18,7 +18,7 @@ impl<S: Scalar> OwnedTable<S> {
     /// Evaluate an expression on the table.
     pub fn evaluate(&self, expr: &Expression) -> ExpressionEvaluationResult<OwnedColumn<S>> {
         match expr {
-            Expression::Column(identifier) => self.evaluate_column(identifier),
+            Expression::Column(identifier) => self.evaluate_column(&identifier),
             Expression::Literal(lit) => self.evaluate_literal(lit),
             Expression::Binary { op, left, right } => {
                 self.evaluate_binary_expr(&(*op).into(), left, right)

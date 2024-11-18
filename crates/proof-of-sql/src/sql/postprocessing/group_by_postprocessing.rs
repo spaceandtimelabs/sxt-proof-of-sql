@@ -139,7 +139,7 @@ fn check_and_get_aggregation_and_remainder(
             .unwrap();
         Err(
             PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause {
-                column: *diff,
+                column: (*diff).into(),
             },
         )
     }
@@ -221,7 +221,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             .group_by_identifiers
             .iter()
             .map(|id| {
-                let column = owned_table.inner_table().get(id).ok_or(
+                let column = owned_table.inner_table().get((id).into()).ok_or(
                     PostprocessingError::ColumnNotFound {
                         column: id.to_string(),
                     },
@@ -320,7 +320,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         // If there are no columns at all we need to have the count column so that we can handle
         // queries such as `SELECT 1 FROM table`
         let target_table = if new_owned_table.is_empty() {
-            OwnedTable::try_new(indexmap! {"__count__".parse().unwrap() => count_column})?
+            OwnedTable::try_new(indexmap! {"__count__".into() => count_column})?
         } else {
             new_owned_table
         };

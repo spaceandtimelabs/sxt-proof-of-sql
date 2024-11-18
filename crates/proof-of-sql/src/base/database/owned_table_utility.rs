@@ -17,10 +17,8 @@ use super::{OwnedColumn, OwnedTable};
 use crate::base::scalar::Scalar;
 use alloc::string::String;
 use core::ops::Deref;
-use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    Identifier,
-};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use sqlparser::ast::Ident as Identifier;
 
 /// Creates an [`OwnedTable`] from a list of `(Identifier, OwnedColumn)` pairs.
 /// This is a convenience wrapper around [`OwnedTable::try_from_iter`] primarily for use in tests and
@@ -64,7 +62,7 @@ pub fn tinyint<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<i8>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        Identifier::from(name.deref()),
         OwnedColumn::TinyInt(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -85,7 +83,7 @@ pub fn smallint<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<i16>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        Identifier::from(name.deref()),
         OwnedColumn::SmallInt(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -106,7 +104,7 @@ pub fn int<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<i32>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        Identifier::from(name.deref()),
         OwnedColumn::Int(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -126,7 +124,7 @@ pub fn bigint<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<i64>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        Identifier::from(name.deref()),
         OwnedColumn::BigInt(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -148,7 +146,7 @@ pub fn boolean<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<bool>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        Identifier::from(name.deref()),
         OwnedColumn::Boolean(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -170,7 +168,7 @@ pub fn int128<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<i128>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        Identifier::from(name.deref()),
         OwnedColumn::Int128(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -192,7 +190,7 @@ pub fn scalar<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<S>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        Identifier::from(name.deref()),
         OwnedColumn::Scalar(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -214,7 +212,7 @@ pub fn varchar<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<String>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        Identifier::from(name.deref()),
         OwnedColumn::VarChar(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -239,7 +237,7 @@ pub fn decimal75<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<S>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        Identifier::from(name.deref()),
         OwnedColumn::Decimal75(
             crate::base::math::decimal::Precision::new(precision).unwrap(),
             scale,
@@ -279,7 +277,7 @@ pub fn timestamptz<S: Scalar>(
     data: impl IntoIterator<Item = i64>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        Identifier::from(name.deref()),
         OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
     )
 }

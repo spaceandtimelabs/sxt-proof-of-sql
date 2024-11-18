@@ -96,15 +96,15 @@ impl SchemaAccessor for CsvDataAccessor {
     fn lookup_column(
         &self,
         table_ref: TableRef,
-        column_id: proof_of_sql_parser::Identifier,
+        column_id: sqlparser::ast::Ident,
     ) -> Option<proof_of_sql::base::database::ColumnType> {
-        self.inner.lookup_column(table_ref, column_id)
+        self.inner.lookup_column(table_ref, &column_id)
     }
     fn lookup_schema(
         &self,
         table_ref: TableRef,
     ) -> Vec<(
-        proof_of_sql_parser::Identifier,
+        sqlparser::ast::Ident,
         proof_of_sql::base::database::ColumnType,
     )> {
         self.inner.lookup_schema(table_ref)

@@ -1,7 +1,7 @@
 use super::Column;
 use crate::base::{map::IndexMap, scalar::Scalar};
-use proof_of_sql_parser::Identifier;
 use snafu::Snafu;
+use sqlparser::ast::Ident as Identifier;
 
 /// Options for creating a table.
 /// Inspired by [`RecordBatchOptions`](https://docs.rs/arrow/latest/arrow/record_batch/struct.RecordBatchOptions.html)

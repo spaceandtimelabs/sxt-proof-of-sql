@@ -141,8 +141,8 @@ fn we_can_form_the_provable_query_result() {
     let res = ProvableQueryResult::new(2, &[col1, col2]);
 
     let column_fields = vec![
-        ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
-        ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
+        ColumnField::new(&"a".into(), ColumnType::BigInt),
+        ColumnField::new(&"b".into(), ColumnType::BigInt),
     ];
     let res = RecordBatch::try_from(
         res.to_owned_table::<Curve25519Scalar>(&column_fields)

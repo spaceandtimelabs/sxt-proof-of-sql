@@ -33,7 +33,7 @@ pub fn group_by(
     DynProofPlan::GroupBy(GroupByExec::new(
         group_by_exprs,
         sum_expr,
-        count_alias.parse().unwrap(),
+        count_alias.into(),
         table,
         where_clause,
     ))

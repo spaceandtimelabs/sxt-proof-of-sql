@@ -11,11 +11,9 @@ use core::{
     fmt::{Display, Formatter},
     mem::size_of,
 };
-use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    Identifier,
-};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident as Identifier;
 
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -437,7 +435,7 @@ impl Display for ColumnType {
 }
 
 /// Reference of a SQL column
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub struct ColumnRef {
     column_id: Identifier,
     table_ref: TableRef,
@@ -447,9 +445,9 @@ pub struct ColumnRef {
 impl ColumnRef {
     /// Create a new `ColumnRef` from a table, column identifier and column type
     #[must_use]
-    pub fn new(table_ref: TableRef, column_id: Identifier, column_type: ColumnType) -> Self {
+    pub fn new(table_ref: TableRef, column_id: &Identifier, column_type: ColumnType) -> Self {
         Self {
-            column_id,
+            column_id: column_id.clone(),
             table_ref,
             column_type,
         }
@@ -463,8 +461,8 @@ impl ColumnRef {
 
     /// Returns the column identifier of this column
     #[must_use]
-    pub fn column_id(&self) -> Identifier {
-        self.column_id
+    pub fn column_id(&self) -> &Identifier {
+        &self.column_id
     }
 
     /// Returns the column type of this column
@@ -478,7 +476,7 @@ impl ColumnRef {
 /// of a column in a table. Namely: it's name and type.
 ///
 /// This is the analog of a `Field` in Apache Arrow.
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub struct ColumnField {
     name: Identifier,
     data_type: ColumnType,
@@ -487,14 +485,17 @@ pub struct ColumnField {
 impl ColumnField {
     /// Create a new `ColumnField` from a name and a type
     #[must_use]
-    pub fn new(name: Identifier, data_type: ColumnType) -> ColumnField {
-        ColumnField { name, data_type }
+    pub fn new(name: &Identifier, data_type: ColumnType) -> ColumnField {
+        ColumnField {
+            name: name.clone(),
+            data_type,
+        }
     }
 
     /// Returns the name of the column
     #[must_use]
-    pub fn name(&self) -> Identifier {
-        self.name
+    pub fn name(&self) -> &Identifier {
+        &self.name
     }
 
     /// Returns the type of the column

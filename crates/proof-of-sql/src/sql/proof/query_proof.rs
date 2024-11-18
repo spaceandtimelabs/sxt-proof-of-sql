@@ -272,7 +272,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let pcs_proof_commitments: Vec<_> = column_references
             .iter()
-            .map(|col| accessor.get_commitment(*col))
+            .map(|col| accessor.get_commitment(col.clone()))
             .chain(self.commitments.iter().cloned())
             .collect();
         let evaluation_accessor: IndexMap<_, _> = column_references

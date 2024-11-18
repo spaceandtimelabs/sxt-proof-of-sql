@@ -9,8 +9,8 @@ use crate::{
     sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
-use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident as Identifier;
 /// Provable expression for a column
 ///
 /// Note: this is currently limited to named column expressions.
@@ -27,16 +27,16 @@ impl ColumnExpr {
 
     /// Return the column referenced by this [`ColumnExpr`]
     pub fn get_column_reference(&self) -> ColumnRef {
-        self.column_ref
+        self.column_ref.clone()
     }
 
     /// Wrap the column output name and its type within the [`ColumnField`]
     pub fn get_column_field(&self) -> ColumnField {
-        ColumnField::new(self.column_ref.column_id(), *self.column_ref.column_type())
+        ColumnField::new(&self.column_ref.column_id(), *self.column_ref.column_type())
     }
 
     /// Get the column identifier
-    pub fn column_id(&self) -> Identifier {
+    pub fn column_id(&self) -> &Identifier {
         self.column_ref.column_id()
     }
 
@@ -103,6 +103,6 @@ impl ProofExpr for ColumnExpr {
     /// references in the `BoolExpr` or forwards the call to some
     /// subsequent `bool_expr`
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
-        columns.insert(self.column_ref);
+        columns.insert(self.column_ref.clone());
     }
 }

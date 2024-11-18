@@ -77,7 +77,7 @@ impl ProofPlan for EmptyTestQueryExpr {
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         (1..=self.columns)
-            .map(|i| ColumnField::new(format!("a{i}").parse().unwrap(), ColumnType::BigInt))
+            .map(|i| ColumnField::new(&(format!("a{i}").as_str().into()), ColumnType::BigInt))
             .collect()
     }
 

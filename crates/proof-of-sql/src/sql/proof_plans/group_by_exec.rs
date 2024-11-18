@@ -24,8 +24,8 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use core::{iter, iter::repeat_with};
 use num_traits::One;
-use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident as Identifier;
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -165,10 +165,10 @@ impl ProofPlan for GroupByExec {
             .iter()
             .map(|col| col.get_column_field())
             .chain(self.sum_expr.iter().map(|aliased_expr| {
-                ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type())
+                ColumnField::new(&aliased_expr.alias, aliased_expr.expr.data_type())
             }))
             .chain(iter::once(ColumnField::new(
-                self.count_alias,
+                &self.count_alias,
                 ColumnType::BigInt,
             )))
             .collect()

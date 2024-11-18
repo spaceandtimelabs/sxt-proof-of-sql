@@ -95,7 +95,7 @@ impl QueryExpr {
                         dyn_proof_expr: None,
                     })
                     .collect::<Vec<_>>();
-                let filter = FilterExecBuilder::new(context.get_column_mapping())
+                let filter = FilterExecBuilder::new((context.get_column_mapping()))
                     .add_table_expr(*context.get_table_ref())
                     .add_where_expr(context.get_where_expr().clone())?
                     .add_result_columns(&raw_enriched_exprs)
@@ -131,13 +131,13 @@ impl QueryExpr {
             let column_mapping = context.get_column_mapping();
             let enriched_exprs = result_aliased_exprs
                 .iter()
-                .map(|aliased_expr| EnrichedExpr::new(aliased_expr.clone(), &column_mapping))
+                .map(|aliased_expr| EnrichedExpr::new(aliased_expr.clone(), (&column_mapping)))
                 .collect::<Vec<_>>();
             let select_exprs = enriched_exprs
                 .iter()
                 .map(|enriched_expr| enriched_expr.residue_expression.clone())
                 .collect::<Vec<_>>();
-            let filter = FilterExecBuilder::new(context.get_column_mapping())
+            let filter = FilterExecBuilder::new((context.get_column_mapping()))
                 .add_table_expr(*context.get_table_ref())
                 .add_where_expr(context.get_where_expr().clone())?
                 .add_result_columns(&enriched_exprs)

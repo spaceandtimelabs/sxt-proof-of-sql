@@ -4,8 +4,8 @@ use super::{
 };
 use crate::base::{database::ColumnField, map::IndexMap};
 use alloc::string::{String, ToString};
-use proof_of_sql_parser::Identifier;
 use snafu::Snafu;
+use sqlparser::ast::Ident as Identifier;
 
 /// Mapping of column identifiers to column metadata used to associate metadata with commitments.
 pub type ColumnCommitmentMetadataMap = IndexMap<Identifier, ColumnCommitmentMetadata>;
@@ -66,7 +66,7 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
             .iter()
             .map(|f| {
                 (
-                    f.name(),
+                    f.name().clone(),
                     ColumnCommitmentMetadata::from_column_type_with_max_bounds(f.data_type()),
                 )
             })
@@ -82,7 +82,10 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
         columns
             .into_iter()
             .map(|(identifier, column)| {
-                (*identifier, ColumnCommitmentMetadata::from_column(column))
+                (
+                    identifier.clone(),
+                    ColumnCommitmentMetadata::from_column(column),
+                )
             })
             .collect()
     }
@@ -176,7 +179,7 @@ mod tests {
         assert_eq!(metadata_map.len(), 4);
 
         let (index_0, metadata_0) = metadata_map.get_index(0).unwrap();
-        assert_eq!(index_0, "bigint_column");
+        assert_eq!(index_0.value.as_str(), "bigint_column");
         assert_eq!(metadata_0.column_type(), &ColumnType::BigInt);
         if let ColumnBounds::BigInt(Bounds::Sharp(bounds)) = metadata_0.bounds() {
             assert_eq!(bounds.min(), &-5);
@@ -186,7 +189,7 @@ mod tests {
         }
 
         let (index_1, metadata_1) = metadata_map.get_index(1).unwrap();
-        assert_eq!(index_1, "int128_column");
+        assert_eq!(index_1.value.as_str(), "int128_column");
         assert_eq!(metadata_1.column_type(), &ColumnType::Int128);
         if let ColumnBounds::Int128(Bounds::Sharp(bounds)) = metadata_1.bounds() {
             assert_eq!(bounds.min(), &100);
@@ -196,12 +199,12 @@ mod tests {
         }
 
         let (index_2, metadata_2) = metadata_map.get_index(2).unwrap();
-        assert_eq!(index_2, "varchar_column");
+        assert_eq!(index_2.value.as_str(), "varchar_column");
         assert_eq!(metadata_2.column_type(), &ColumnType::VarChar);
         assert_eq!(metadata_2.bounds(), &ColumnBounds::NoOrder);
 
         let (index_3, metadata_3) = metadata_map.get_index(3).unwrap();
-        assert_eq!(index_3, "scalar_column");
+        assert_eq!(index_3.value.as_str(), "scalar_column");
         assert_eq!(metadata_3.column_type(), &ColumnType::Scalar);
         assert_eq!(metadata_3.bounds(), &ColumnBounds::NoOrder);
     }
@@ -258,7 +261,7 @@ mod tests {
 
         // Check metatadata for ordered columns is mostly the same (now bounded)
         let (index_0, metadata_0) = b_difference_a.get_index(0).unwrap();
-        assert_eq!(index_0, "bigint_column");
+        assert_eq!(index_0.value.as_str(), "bigint_column");
         assert_eq!(metadata_0.column_type(), &ColumnType::BigInt);
         if let ColumnBounds::BigInt(Bounds::Bounded(bounds)) = metadata_0.bounds() {
             assert_eq!(bounds.min(), &-5);
@@ -268,7 +271,7 @@ mod tests {
         }
 
         let (index_1, metadata_1) = b_difference_a.get_index(1).unwrap();
-        assert_eq!(index_1, "int128_column");
+        assert_eq!(index_1.value.as_str(), "int128_column");
         assert_eq!(metadata_1.column_type(), &ColumnType::Int128);
         if let ColumnBounds::Int128(Bounds::Bounded(bounds)) = metadata_1.bounds() {
             assert_eq!(bounds.min(), &100);

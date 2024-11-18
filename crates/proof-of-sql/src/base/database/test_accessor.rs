@@ -1,7 +1,12 @@
-use super::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef};
-use crate::base::commitment::Commitment;
+use super::{
+    Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+    SchemaAccessor, TableRef,
+};
+use crate::base::{commitment::Commitment, scalar::Curve25519Scalar};
 use alloc::vec::Vec;
-
+use curve25519_dalek::ristretto::RistrettoPoint;
+use proof_of_sql_parser::Identifier as PosqlIdentifier;
+use sqlparser::ast::Ident as Identifier;
 /// A trait that defines the interface for a combined metadata, schema, commitment, and data accessor for unit testing or example purposes.
 pub trait TestAccessor<C: Commitment>:
     Clone
@@ -25,4 +30,59 @@ pub trait TestAccessor<C: Commitment>:
 
     /// Update the table offset alongside its column commitments
     fn update_offset(&mut self, table_ref: TableRef, new_offset: usize);
+}
+
+#[derive(Clone, Default)]
+/// A test accessor that leaves all of the required methods except `new` `unimplemented!()`.
+pub struct UnimplementedTestAccessor;
+impl TestAccessor<RistrettoPoint> for UnimplementedTestAccessor {
+    type Table = ();
+
+    fn new_empty() -> Self {
+        UnimplementedTestAccessor
+    }
+
+    fn add_table(&mut self, _table_ref: TableRef, _data: (), _table_offset: usize) {
+        unimplemented!()
+    }
+
+    fn get_column_names(&self, _table_ref: TableRef) -> Vec<&str> {
+        unimplemented!()
+    }
+
+    fn update_offset(&mut self, _table_ref: TableRef, _new_offset: usize) {
+        unimplemented!()
+    }
+}
+impl DataAccessor<Curve25519Scalar> for UnimplementedTestAccessor {
+    fn get_column(&self, _column: ColumnRef) -> Column<Curve25519Scalar> {
+        unimplemented!()
+    }
+}
+impl CommitmentAccessor<RistrettoPoint> for UnimplementedTestAccessor {
+    fn get_commitment(&self, _column: ColumnRef) -> RistrettoPoint {
+        unimplemented!()
+    }
+}
+impl MetadataAccessor for UnimplementedTestAccessor {
+    fn get_length(&self, _table_ref: TableRef) -> usize {
+        unimplemented!()
+    }
+
+    fn get_offset(&self, _table_ref: TableRef) -> usize {
+        unimplemented!()
+    }
+}
+impl SchemaAccessor for UnimplementedTestAccessor {
+    fn lookup_column(
+        &self,
+        _table_ref: TableRef,
+        _column_id: PosqlIdentifier,
+    ) -> Option<ColumnType> {
+        unimplemented!()
+    }
+
+    fn lookup_schema(&self, _table_ref: TableRef) -> Vec<(PosqlIdentifier, ColumnType)> {
+        unimplemented!()
+    }
 }

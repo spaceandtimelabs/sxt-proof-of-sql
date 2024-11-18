@@ -164,7 +164,7 @@ fn make_empty_query_result<S: Scalar>(result_fields: &[ColumnField]) -> QueryRes
             .iter()
             .map(|field| {
                 (
-                    field.name(),
+                    field.name().clone(),
                     match field.data_type() {
                         ColumnType::Boolean => OwnedColumn::Boolean(vec![]),
                         ColumnType::TinyInt => OwnedColumn::TinyInt(vec![]),

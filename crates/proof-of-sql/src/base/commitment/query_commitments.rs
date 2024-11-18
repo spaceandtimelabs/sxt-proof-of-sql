@@ -7,7 +7,7 @@ use crate::base::{
     map::IndexMap,
 };
 use alloc::vec::Vec;
-use proof_of_sql_parser::Identifier;
+use sqlparser::ast::Ident as Identifier;
 
 /// The commitments for all of the tables in a query.
 ///
@@ -55,7 +55,7 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
                         &accessor
                             .lookup_schema(table_ref)
                             .iter()
-                            .filter_map(|c| columns.iter().find(|x| x.name() == c.0).copied())
+                            .filter_map(|c| columns.iter().find(|x| x.name() == c.0))
                             .collect::<Vec<_>>(),
                         accessor,
                     ),
@@ -97,7 +97,7 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
     fn lookup_column(
         &self,
         table_ref: crate::base::database::TableRef,
-        column_id: Identifier,
+        column_id: &Identifier,
     ) -> Option<ColumnType> {
         let table_commitment = self.get(&table_ref)?;
 
@@ -113,14 +113,14 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
     fn lookup_schema(
         &self,
         table_ref: crate::base::database::TableRef,
-    ) -> Vec<(Identifier, ColumnType)> {
+    ) -> Vec<(&Identifier, ColumnType)> {
         let table_commitment = self.get(&table_ref).unwrap();
 
         table_commitment
             .column_commitments()
             .column_metadata()
             .iter()
-            .map(|(identifier, column_metadata)| (*identifier, *column_metadata.column_type()))
+            .map(|(identifier, column_metadata)| (identifier, *column_metadata.column_type()))
             .collect()
     }
 }
@@ -169,7 +169,7 @@ mod tests {
 
         let no_rows_commitment = TableCommitment::try_from_columns_with_offset(
             [(
-                &"column_c".parse().unwrap(),
+                &"column_c".into(),
                 &OwnedColumn::<TestScalar>::BigInt(vec![]),
             )],
             3,
@@ -201,14 +201,18 @@ mod tests {
     #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_commitment_of_a_column() {
-        let column_a_id: Identifier = "column_a".parse().unwrap();
-        let column_b_id: Identifier = "column_b".parse().unwrap();
+        let column_a_id: Identifier = "column_a".into();
+        let column_b_id: Identifier = "column_b".into();
 
         let table_a: OwnedTable<TestScalar> = owned_table([
-            bigint(column_a_id, [1, 2, 3, 4]),
-            varchar(column_b_id, ["Lorem", "ipsum", "dolor", "sit"]),
+            bigint(column_a_id.value.as_str(), [1, 2, 3, 4]),
+            varchar(
+                column_b_id.value.as_str(),
+                ["Lorem", "ipsum", "dolor", "sit"],
+            ),
         ]);
-        let table_b: OwnedTable<TestScalar> = owned_table([scalar(column_a_id, [1, 2])]);
+        let table_b: OwnedTable<TestScalar> =
+            owned_table([scalar(column_a_id.value.as_str(), [1, 2])]);
 
         let table_a_commitment =
             TableCommitment::<NaiveCommitment>::from_owned_table_with_offset(&table_a, 2, &());
@@ -225,7 +229,7 @@ mod tests {
         assert_eq!(
             query_commitments.get_commitment(ColumnRef::new(
                 table_a_id,
-                column_a_id,
+                &column_a_id,
                 ColumnType::BigInt
             )),
             table_a_commitment.column_commitments().commitments()[0]
@@ -233,7 +237,7 @@ mod tests {
         assert_eq!(
             query_commitments.get_commitment(ColumnRef::new(
                 table_a_id,
-                column_b_id,
+                &column_b_id,
                 ColumnType::VarChar
             )),
             table_a_commitment.column_commitments().commitments()[1]
@@ -241,7 +245,7 @@ mod tests {
         assert_eq!(
             query_commitments.get_commitment(ColumnRef::new(
                 table_b_id,
-                column_a_id,
+                &column_a_id,
                 ColumnType::Scalar
             )),
             table_b_commitment.column_commitments().commitments()[0]
@@ -251,14 +255,18 @@ mod tests {
     #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_schema_of_tables() {
-        let column_a_id: Identifier = "column_a".parse().unwrap();
-        let column_b_id: Identifier = "column_b".parse().unwrap();
+        let column_a_id: Identifier = "column_a".into();
+        let column_b_id: Identifier = "column_b".into();
 
         let table_a: OwnedTable<TestScalar> = owned_table([
-            bigint(column_a_id, [1, 2, 3, 4]),
-            varchar(column_b_id, ["Lorem", "ipsum", "dolor", "sit"]),
+            bigint(column_a_id.value.as_str(), [1, 2, 3, 4]),
+            varchar(
+                column_b_id.value.as_str(),
+                ["Lorem", "ipsum", "dolor", "sit"],
+            ),
         ]);
-        let table_b: OwnedTable<TestScalar> = owned_table([scalar(column_a_id, [1, 2])]);
+        let table_b: OwnedTable<TestScalar> =
+            owned_table([scalar(column_a_id.value.as_str(), [1, 2])]);
 
         let table_a_commitment =
             TableCommitment::<NaiveCommitment>::from_owned_table_with_offset(&table_a, 2, &());
@@ -283,41 +291,41 @@ mod tests {
 
         assert_eq!(
             query_commitments
-                .lookup_column(table_a_id, column_a_id)
+                .lookup_column(table_a_id, &column_a_id)
                 .unwrap(),
             ColumnType::BigInt
         );
         assert_eq!(
             query_commitments
-                .lookup_column(table_a_id, column_b_id)
+                .lookup_column(table_a_id, &column_b_id)
                 .unwrap(),
             ColumnType::VarChar
         );
         assert_eq!(
             query_commitments.lookup_schema(table_a_id),
             vec![
-                (column_a_id, ColumnType::BigInt),
-                (column_b_id, ColumnType::VarChar)
+                (&column_a_id, ColumnType::BigInt),
+                (&column_b_id, ColumnType::VarChar)
             ]
         );
 
         assert_eq!(
             query_commitments
-                .lookup_column(table_b_id, column_a_id)
+                .lookup_column(table_b_id, &column_a_id)
                 .unwrap(),
             ColumnType::Scalar
         );
         assert_eq!(
-            query_commitments.lookup_column(table_b_id, column_b_id),
+            query_commitments.lookup_column(table_b_id, &column_b_id),
             None
         );
         assert_eq!(
             query_commitments.lookup_schema(table_b_id),
-            vec![(column_a_id, ColumnType::Scalar),]
+            vec![(&column_a_id, ColumnType::Scalar),]
         );
 
         assert_eq!(
-            query_commitments.lookup_column(no_columns_id, column_a_id),
+            query_commitments.lookup_column(no_columns_id, &column_a_id),
             None
         );
         assert_eq!(query_commitments.lookup_schema(no_columns_id), vec![]);
@@ -330,14 +338,20 @@ mod tests {
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 3);
 
-        let column_a_id: Identifier = "column_a".parse().unwrap();
-        let column_b_id: Identifier = "column_b".parse().unwrap();
+        let column_a_id: Identifier = "column_a".into();
+        let column_b_id: Identifier = "column_b".into();
 
         let table_a = owned_table([
-            bigint(column_a_id, [1, 2, 3, 4]),
-            varchar(column_b_id, ["Lorem", "ipsum", "dolor", "sit"]),
+            bigint(column_a_id.value.as_str(), [1, 2, 3, 4]),
+            varchar(
+                column_b_id.value.as_str(),
+                ["Lorem", "ipsum", "dolor", "sit"],
+            ),
         ]);
-        let table_b = owned_table([scalar(column_a_id, [1, 2]), int128(column_b_id, [1, 2])]);
+        let table_b = owned_table([
+            scalar(column_a_id.value.as_str(), [1, 2]),
+            int128(column_b_id.value.as_str(), [1, 2]),
+        ]);
 
         let mut table_a_commitment =
             TableCommitment::from_owned_table_with_offset(&table_a, 0, &setup);
@@ -371,10 +385,10 @@ mod tests {
 
         let query_commitments = QueryCommitments::<DoryCommitment>::from_accessor_with_max_bounds(
             [
-                ColumnRef::new(table_a_id, column_a_id, ColumnType::BigInt),
-                ColumnRef::new(table_b_id, column_a_id, ColumnType::Scalar),
-                ColumnRef::new(table_a_id, column_b_id, ColumnType::VarChar),
-                ColumnRef::new(table_b_id, column_b_id, ColumnType::Int128),
+                ColumnRef::new(table_a_id, &column_a_id, ColumnType::BigInt),
+                ColumnRef::new(table_b_id, &column_a_id, ColumnType::Scalar),
+                ColumnRef::new(table_a_id, &column_b_id, ColumnType::VarChar),
+                ColumnRef::new(table_b_id, &column_b_id, ColumnType::Int128),
             ],
             &accessor,
         );

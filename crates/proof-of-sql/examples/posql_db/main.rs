@@ -25,7 +25,8 @@ use proof_of_sql::{
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
-use proof_of_sql_parser::{Identifier, SelectStatement};
+use proof_of_sql_parser::SelectStatement;
+use sqlparser::ast::Ident as Identifier;
 use std::{
     fs,
     io::{prelude::Write, stdout},

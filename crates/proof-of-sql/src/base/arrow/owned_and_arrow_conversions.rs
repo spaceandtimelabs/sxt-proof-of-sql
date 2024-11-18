@@ -32,9 +32,10 @@ use arrow::{
 };
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
-    Identifier, ParseError,
+    ParseError,
 };
 use snafu::Snafu;
+use sqlparser::ast::Ident as Identifier;
 
 #[derive(Snafu, Debug)]
 #[non_exhaustive]
@@ -119,12 +120,9 @@ impl<S: Scalar> TryFrom<OwnedTable<S>> for RecordBatch {
         if value.is_empty() {
             Ok(RecordBatch::new_empty(SchemaRef::new(Schema::empty())))
         } else {
-            RecordBatch::try_from_iter(
-                value
-                    .into_inner()
-                    .into_iter()
-                    .map(|(identifier, owned_column)| (identifier, ArrayRef::from(owned_column))),
-            )
+            RecordBatch::try_from_iter(value.into_inner().into_iter().map(
+                |(identifier, owned_column)| (identifier.to_string(), ArrayRef::from(owned_column)),
+            ))
         }
     }
 }
@@ -300,7 +298,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
             .zip(value.columns())
             .map(|(field, array_ref)| {
                 let owned_column = OwnedColumn::try_from(array_ref)?;
-                let identifier = Identifier::try_new(field.name())?; //This may always succeed.
+                let identifier = Identifier::new(field.name()); //This may always succeed.
                 Ok((identifier, owned_column))
             })
             .collect();

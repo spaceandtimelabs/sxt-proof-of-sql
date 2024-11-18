@@ -1,6 +1,6 @@
 use alloc::string::String;
-use proof_of_sql_parser::Identifier;
 use snafu::Snafu;
+use sqlparser::ast::Ident as Identifier;
 
 /// Errors in postprocessing
 #[derive(Snafu, Debug, PartialEq, Eq)]

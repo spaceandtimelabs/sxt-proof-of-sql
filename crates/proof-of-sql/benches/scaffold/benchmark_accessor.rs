@@ -6,15 +6,15 @@ use proof_of_sql::base::{
         SchemaAccessor, TableRef,
     },
 };
-use proof_of_sql_parser::Identifier;
+use sqlparser::ast::Ident;
 
 #[derive(Default)]
 pub struct BenchmarkAccessor<'a, C: Commitment> {
     columns: IndexMap<ColumnRef, Column<'a, C::Scalar>>,
     lengths: IndexMap<TableRef, usize>,
     commitments: IndexMap<ColumnRef, C>,
-    column_types: IndexMap<(TableRef, Identifier), ColumnType>,
-    table_schemas: IndexMap<TableRef, Vec<(Identifier, ColumnType)>>,
+    column_types: IndexMap<(TableRef, Ident), ColumnType>,
+    table_schemas: IndexMap<TableRef, Vec<(Ident, ColumnType)>>,
 }
 
 impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
@@ -24,7 +24,7 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
     pub fn insert_table(
         &mut self,
         table_ref: TableRef,
-        columns: &[(Identifier, Column<'a, C::Scalar>)],
+        columns: &[(Ident, Column<'a, C::Scalar>)],
         setup: &C::PublicSetup<'_>,
     ) {
         self.table_schemas.insert(
@@ -45,11 +45,11 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
         let mut length = None;
         for (column, commitment) in columns.iter().zip(commitments) {
             self.columns.insert(
-                ColumnRef::new(table_ref, column.0, column.1.column_type()),
+                ColumnRef::new(table_ref, &column.0, column.1.column_type()),
                 column.1,
             );
             self.commitments.insert(
-                ColumnRef::new(table_ref, column.0, column.1.column_type()),
+                ColumnRef::new(table_ref, &column.0, column.1.column_type()),
                 commitment,
             );
             self.column_types
@@ -93,13 +93,13 @@ impl<C: Commitment> CommitmentAccessor<C> for BenchmarkAccessor<'_, C> {
     }
 }
 impl<C: Commitment> SchemaAccessor for BenchmarkAccessor<'_, C> {
-    fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType> {
+    fn lookup_column(&self, table_ref: TableRef, column_id: Ident) -> Option<ColumnType> {
         self.column_types.get(&(table_ref, column_id)).copied()
     }
     /// # Panics
     ///
     /// Will panic if the table reference does not exist in the table schemas map.
-    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
+    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Ident, ColumnType)> {
         self.table_schemas.get(&table_ref).unwrap().clone()
     }
 }

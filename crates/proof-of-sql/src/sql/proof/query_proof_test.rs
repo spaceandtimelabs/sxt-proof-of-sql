@@ -97,7 +97,7 @@ impl ProofPlan for TrivialTestProofPlan {
     ///
     /// This method will panic if the `ColumnField` cannot be created from the provided column name (e.g., if the name parsing fails).
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
+        vec![ColumnField::new(&"a1".into(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {}
@@ -232,7 +232,7 @@ impl ProverEvaluate for SquareTestProofPlan {
     ) -> Table<'a, S> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
-            "x".parse().unwrap(),
+            &"x".into(),
             ColumnType::BigInt,
         ));
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
@@ -264,7 +264,7 @@ impl ProofPlan for SquareTestProofPlan {
             * *accessor
                 .get(&ColumnRef::new(
                     "sxt.test".parse().unwrap(),
-                    "x".parse().unwrap(),
+                    &"x".into(),
                     ColumnType::BigInt,
                 ))
                 .unwrap();
@@ -276,7 +276,7 @@ impl ProofPlan for SquareTestProofPlan {
         Ok(vec![res_eval])
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
+        vec![ColumnField::new(&"a1".into(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {ColumnRef::new(
@@ -408,7 +408,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
     ) -> Table<'a, S> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
-            "x".parse().unwrap(),
+            &"x".into(),
             ColumnType::BigInt,
         ));
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
@@ -473,7 +473,7 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         Ok(vec![res_eval])
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
+        vec![ColumnField::new(&"a1".into(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {ColumnRef::new(
@@ -616,7 +616,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
     ) -> Table<'a, S> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
-            "x".parse().unwrap(),
+            &"x".into(),
             ColumnType::BigInt,
         ));
         let res: &[_] = alloc.alloc_slice_copy(&[9, 25]);
@@ -664,7 +664,7 @@ impl ProofPlan for ChallengeTestProofPlan {
         Ok(vec![res_eval])
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
+        vec![ColumnField::new(&"a1".into(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {ColumnRef::new(

@@ -12,7 +12,7 @@ use crate::base::{
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
-use proof_of_sql_parser::Identifier;
+use sqlparser::ast::Ident as Identifier;
 
 /// This function will return an error if:
 /// - The field name cannot be parsed into an [`Identifier`].
@@ -27,7 +27,7 @@ pub fn batch_to_columns<'a, S: Scalar + 'a>(
         .into_iter()
         .zip(batch.columns())
         .map(|(field, array)| {
-            let identifier: Identifier = field.name().parse()?;
+            let identifier: Identifier = Identifier::new(field.name().to_string());
             let column: Column<S> = array.to_column(alloc, &(0..array.len()), None)?;
             Ok((identifier, column))
         })
@@ -115,12 +115,9 @@ mod tests {
         let b_scals = ["1".into(), "2".into(), "3".into()];
 
         let columns = [
+            (&"a".into(), &Column::<Curve25519Scalar>::BigInt(&[1, 2, 3])),
             (
-                &"a".parse().unwrap(),
-                &Column::<Curve25519Scalar>::BigInt(&[1, 2, 3]),
-            ),
-            (
-                &"b".parse().unwrap(),
+                &"b".into(),
                 &Column::<Curve25519Scalar>::VarChar((&["1", "2", "3"], &b_scals)),
             ),
         ];
@@ -142,12 +139,9 @@ mod tests {
         let b_scals2 = ["4".into(), "5".into(), "6".into()];
 
         let columns2 = [
+            (&"a".into(), &Column::<Curve25519Scalar>::BigInt(&[4, 5, 6])),
             (
-                &"a".parse().unwrap(),
-                &Column::<Curve25519Scalar>::BigInt(&[4, 5, 6]),
-            ),
-            (
-                &"b".parse().unwrap(),
+                &"b".into(),
                 &Column::<Curve25519Scalar>::VarChar((&["4", "5", "6"], &b_scals2)),
             ),
         ];

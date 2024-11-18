@@ -3,8 +3,8 @@ use proof_of_sql::base::{
     database::{Column, ColumnType},
     scalar::Scalar,
 };
-use proof_of_sql_parser::Identifier;
 use rand::Rng;
+use sqlparser::ast::Ident as Identifier;
 
 pub type OptionalRandBound = Option<fn(usize) -> i64>;
 /// # Panics

@@ -8,8 +8,9 @@ use alloc::{
     string::{String, ToString},
 };
 use core::result::Result;
-use proof_of_sql_parser::{posql_time::PoSQLTimestampError, Identifier, ResourceId};
+use proof_of_sql_parser::{posql_time::PoSQLTimestampError, ResourceId};
 use snafu::Snafu;
+use sqlparser::ast::Ident as Identifier;
 
 /// Errors from converting an intermediate AST into a provable AST.
 #[derive(Snafu, Debug, PartialEq, Eq)]
