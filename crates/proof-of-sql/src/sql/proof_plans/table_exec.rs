@@ -12,11 +12,11 @@ use crate::{
 };
 use alloc::vec::Vec;
 use bumpalo::Bump;
-use core::iter::repeat_with;
 use serde::{Deserialize, Serialize};
 
 /// Source [`ProofPlan`] for (sub)queries with table source such as `SELECT col from tab;`
 /// Inspired by `DataFusion` data source [`ExecutionPlan`]s such as [`ArrowExec`] and [`CsvExec`].
+/// Note that we only need to load the columns we use.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct TableExec {
     /// Table reference
@@ -34,8 +34,7 @@ impl TableExec {
 }
 
 impl ProofPlan for TableExec {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_intermediate_mles(self.schema.len());
+    fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())
     }
 
@@ -43,11 +42,16 @@ impl ProofPlan for TableExec {
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,
-        _accessor: &IndexMap<ColumnRef, S>,
+        accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
     ) -> Result<Vec<S>, ProofError> {
-        Ok(repeat_with(|| builder.consume_intermediate_mle())
-            .take(self.schema.len())
+        Ok(self
+            .schema
+            .iter()
+            .map(|field| {
+                let column_ref = ColumnRef::new(self.table_ref, field.name(), field.data_type());
+                *accessor.get(&column_ref).expect("Column does not exist")
+            })
             .collect::<Vec<_>>())
     }
 
@@ -90,13 +94,9 @@ impl ProverEvaluate for TableExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let table = table_map
+        table_map
             .get(&self.table_ref)
             .expect("Table not found")
-            .clone();
-        for column in table.columns() {
-            builder.produce_intermediate_mle(column.as_scalar(alloc));
-        }
-        table
+            .clone()
     }
 }
