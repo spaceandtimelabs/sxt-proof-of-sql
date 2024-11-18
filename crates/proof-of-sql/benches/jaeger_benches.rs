@@ -1,7 +1,7 @@
 //! Benchmarking/Tracing using Jaeger.
 //! To run, execute the following commands:
 //! ```bash
-//! docker run --rm -d --name jaeger -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one:latest
+//! docker run --rm -d --name jaeger -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one:1.62.0
 //! cargo bench -p proof-of-sql --bench jaeger_benches InnerProductProof
 //! cargo bench -p proof-of-sql --bench jaeger_benches Dory
 //! cargo bench -p proof-of-sql --bench jaeger_benches DynamicDory
