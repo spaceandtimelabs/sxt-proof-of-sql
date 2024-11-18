@@ -45,10 +45,13 @@ impl ProofPlan for TableExec {
         builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
-        Ok(repeat_with(|| builder.consume_intermediate_mle())
-            .take(self.schema.len())
-            .collect::<Vec<_>>())
+    ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
+        Ok(self
+            .schema
+            .iter()
+            .map(|field| ColumnRef::new(self.table_ref, field.name(), field.data_type()))
+            .zip(repeat_with(|| builder.consume_intermediate_mle()).take(self.schema.len()))
+            .collect::<IndexMap<_, _>>())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

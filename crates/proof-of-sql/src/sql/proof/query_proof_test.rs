@@ -10,7 +10,7 @@ use crate::{
             ColumnField, ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, Table,
             TableRef,
         },
-        map::{indexset, IndexMap, IndexSet},
+        map::{indexmap, indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::{Curve25519Scalar, Scalar},
     },
@@ -85,13 +85,19 @@ impl ProofPlan for TrivialTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+    ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
         assert_eq!(builder.consume_intermediate_mle(), S::ZERO);
         builder.produce_sumcheck_subpolynomial_evaluation(
             &SumcheckSubpolynomialType::ZeroSum,
             S::from(self.evaluation),
         );
-        Ok(vec![S::ZERO])
+        Ok(indexmap! {
+            ColumnRef::new(
+                "sxt.test".parse().unwrap(),
+                "a1".parse().unwrap(),
+                ColumnType::BigInt,
+            ) => S::ZERO
+        })
     }
     ///
     /// # Panics
@@ -261,7 +267,7 @@ impl ProofPlan for SquareTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+    ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
         let x_eval = S::from(self.anchored_commit_multiplier)
             * *accessor
                 .get(&ColumnRef::new(
@@ -275,7 +281,13 @@ impl ProofPlan for SquareTestProofPlan {
             &SumcheckSubpolynomialType::Identity,
             res_eval - x_eval * x_eval,
         );
-        Ok(vec![res_eval])
+        Ok(indexmap! {
+            ColumnRef::new(
+                "sxt.test".parse().unwrap(),
+                "a1".parse().unwrap(),
+                ColumnType::BigInt,
+            ) => res_eval
+        })
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
@@ -451,7 +463,7 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+    ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
         let x_eval = *accessor
             .get(&ColumnRef::new(
                 "sxt.test".parse().unwrap(),
@@ -473,7 +485,13 @@ impl ProofPlan for DoubleSquareTestProofPlan {
             &SumcheckSubpolynomialType::Identity,
             res_eval - z_eval * z_eval,
         );
-        Ok(vec![res_eval])
+        Ok(indexmap! {
+            ColumnRef::new(
+                "sxt.test".parse().unwrap(),
+                "a1".parse().unwrap(),
+                ColumnType::BigInt,
+            ) => res_eval
+        })
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
@@ -650,7 +668,7 @@ impl ProofPlan for ChallengeTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+    ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();
         let x_eval = *accessor
@@ -665,7 +683,13 @@ impl ProofPlan for ChallengeTestProofPlan {
             &SumcheckSubpolynomialType::Identity,
             alpha * res_eval - alpha * x_eval * x_eval,
         );
-        Ok(vec![res_eval])
+        Ok(indexmap! {
+            ColumnRef::new(
+                "sxt.test".parse().unwrap(),
+                "a1".parse().unwrap(),
+                ColumnType::BigInt,
+            ) => res_eval
+        })
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]

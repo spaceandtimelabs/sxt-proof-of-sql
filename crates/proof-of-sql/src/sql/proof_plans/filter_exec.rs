@@ -78,7 +78,7 @@ where
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+    ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
         // 1. selection
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         // 2. columns
@@ -105,7 +105,13 @@ where
             selection_eval,
             &filtered_columns_evals,
         )?;
-        Ok(filtered_columns_evals)
+        let filtered_evals_map: IndexMap<ColumnRef, S> = self
+            .get_column_result_fields()
+            .into_iter()
+            .map(|field| ColumnRef::new(self.table.table_ref, field.name(), field.data_type()))
+            .zip(filtered_columns_evals)
+            .collect();
+        Ok(filtered_evals_map)
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

@@ -44,8 +44,8 @@ impl ProofPlan for EmptyExec {
         _builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
-        Ok(Vec::new())
+    ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
+        Ok(IndexMap::default())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

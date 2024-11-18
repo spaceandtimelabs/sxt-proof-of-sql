@@ -21,7 +21,7 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError>;
+    ) -> Result<IndexMap<ColumnRef, S>, ProofError>;
 
     /// Return all the result column fields
     fn get_column_result_fields(&self) -> Vec<ColumnField>;

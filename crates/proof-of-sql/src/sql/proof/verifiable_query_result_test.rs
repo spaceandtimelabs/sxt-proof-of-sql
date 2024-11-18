@@ -66,13 +66,25 @@ impl ProofPlan for EmptyTestQueryExpr {
         builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+    ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
         let _ = std::iter::repeat_with(|| {
             assert_eq!(builder.consume_intermediate_mle(), S::ZERO);
         })
         .take(self.columns)
         .collect::<Vec<_>>();
-        Ok(vec![S::ZERO])
+        let res_map: IndexMap<ColumnRef, S> = (1..=self.columns)
+            .map(|i| {
+                (
+                    ColumnRef::new(
+                        "sxt.test".parse().unwrap(),
+                        format!("a{i}").parse().unwrap(),
+                        ColumnType::BigInt,
+                    ),
+                    S::ZERO,
+                )
+            })
+            .collect();
+        Ok(res_map)
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
