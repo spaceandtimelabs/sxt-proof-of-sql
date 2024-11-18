@@ -92,7 +92,7 @@ impl ProofPlan for GroupByExec {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+    ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
         // 1. selection
         let where_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         // 2. columns
@@ -152,11 +152,17 @@ impl ProofPlan for GroupByExec {
             None => todo!("GroupByExec currently only supported at top level of query plan."),
         }
 
-        Ok(group_by_result_columns_evals
+        Ok(self
+            .get_column_result_fields()
             .into_iter()
-            .chain(sum_result_columns_evals)
-            .chain(iter::once(count_column_eval))
-            .collect::<Vec<_>>())
+            .map(|field| ColumnRef::new(self.table.table_ref, field.name(), field.data_type()))
+            .zip(
+                group_by_result_columns_evals
+                    .into_iter()
+                    .chain(sum_result_columns_evals)
+                    .chain(iter::once(count_column_eval)),
+            )
+            .collect::<IndexMap<_, _>>())
     }
 
     #[allow(clippy::redundant_closure_for_method_calls)]

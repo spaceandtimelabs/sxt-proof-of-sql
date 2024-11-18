@@ -280,11 +280,15 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .map(|col| (col, builder.consume_anchored_mle()))
             .collect();
 
-        let verifier_evaluations = expr.verifier_evaluate(
-            &mut builder,
-            &evaluation_accessor,
-            Some(&owned_table_result),
-        )?;
+        let verifier_evaluations = expr
+            .verifier_evaluate(
+                &mut builder,
+                &evaluation_accessor,
+                Some(&owned_table_result),
+            )?
+            .into_iter()
+            .map(|(_, v)| v)
+            .collect::<Vec<_>>();
         // compute the evaluation of the result MLEs
         let result_evaluations = owned_table_result.mle_evaluations(&subclaim.evaluation_point);
         // check the evaluation of the result MLEs

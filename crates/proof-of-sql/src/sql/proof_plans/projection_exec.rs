@@ -55,14 +55,20 @@ impl ProofPlan for ProjectionExec {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+    ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
         self.aliased_results
             .iter()
             .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(repeat_with(|| builder.consume_intermediate_mle())
-            .take(self.aliased_results.len())
-            .collect::<Vec<_>>())
+        let evals_map: IndexMap<ColumnRef, S> = self
+            .get_column_result_fields()
+            .into_iter()
+            .map(|field| ColumnRef::new(self.table.table_ref, field.name(), field.data_type()))
+            .zip(
+                repeat_with(|| builder.consume_intermediate_mle()).take(self.aliased_results.len()),
+            )
+            .collect();
+        Ok(evals_map)
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
