@@ -1,3 +1,4 @@
+use super::DynProofPlan;
 use crate::{
     base::{
         database::{ColumnField, ColumnRef, OwnedTable, Table, TableOptions, TableRef},
@@ -10,36 +11,37 @@ use crate::{
             CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
             VerificationBuilder,
         },
-        proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
+        proof_exprs::{AliasedDynProofExpr, ProofExpr},
     },
 };
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use core::iter::repeat_with;
 use serde::{Deserialize, Serialize};
 
 /// Provable expressions for queries of the form
 /// ```ignore
-///     SELECT <result_expr1>, ..., <result_exprN> FROM <table>
+///     SELECT <result_expr1>, ..., <result_exprN> FROM <input>
 /// ```
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ProjectionExec {
     pub(super) aliased_results: Vec<AliasedDynProofExpr>,
-    pub(super) table: TableExpr,
+    pub(super) input: Box<DynProofPlan>,
 }
 
 impl ProjectionExec {
     /// Creates a new projection expression.
-    pub fn new(aliased_results: Vec<AliasedDynProofExpr>, table: TableExpr) -> Self {
+    pub fn new(aliased_results: Vec<AliasedDynProofExpr>, input: DynProofPlan) -> Self {
         Self {
             aliased_results,
-            table,
+            input: Box::new(input),
         }
     }
 }
 
 impl ProofPlan for ProjectionExec {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
+        self.input.count(builder)?;
         for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
             builder.count_intermediate_mles(1);
@@ -54,13 +56,27 @@ impl ProofPlan for ProjectionExec {
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
     ) -> Result<Vec<S>, ProofError> {
+        //TODO: Switch to ref to the input itself
+        let table_ref = *self.input.get_table_references().iter().next().unwrap();
+        let input_commitment_map: IndexMap<ColumnRef, S> = self
+            .input
+            .get_column_result_fields()
+            .iter()
+            .map(|field| ColumnRef::new(table_ref, field.name(), field.data_type()))
+            .zip(self.input.verifier_evaluate(builder, accessor, None)?)
+            .collect();
         self.aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .verifier_evaluate(builder, &input_commitment_map)
+            })
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(repeat_with(|| builder.consume_intermediate_mle())
+        let columns_evals: Vec<_> = repeat_with(|| builder.consume_intermediate_mle())
             .take(self.aliased_results.len())
-            .collect::<Vec<_>>())
+            .collect();
+        Ok(columns_evals)
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -71,7 +87,7 @@ impl ProofPlan for ProjectionExec {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        let mut columns = IndexSet::default();
+        let mut columns = self.input.get_column_references();
         self.aliased_results.iter().for_each(|aliased_expr| {
             aliased_expr.expr.get_column_references(&mut columns);
         });
@@ -79,7 +95,7 @@ impl ProofPlan for ProjectionExec {
     }
 
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        IndexSet::from_iter([self.table.table_ref])
+        self.input.get_table_references()
     }
 }
 
@@ -90,22 +106,22 @@ impl ProverEvaluate for ProjectionExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let table = table_map
-            .get(&self.table.table_ref)
-            .expect("Table not found");
+        let input_table = self.input.result_evaluate(alloc, table_map);
         Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias,
-                    aliased_expr.expr.result_evaluate(alloc, table),
+                    aliased_expr.expr.result_evaluate(alloc, &input_table),
                 )
             }),
-            TableOptions::new(Some(table.num_rows())),
+            TableOptions::new(Some(input_table.num_rows())),
         )
         .expect("Failed to create table from iterator")
     }
 
-    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
+    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
+        self.input.first_round_evaluate(builder);
+    }
 
     #[tracing::instrument(
         name = "ProjectionExec::final_round_evaluate",
@@ -119,18 +135,18 @@ impl ProverEvaluate for ProjectionExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let table = table_map
-            .get(&self.table.table_ref)
-            .expect("Table not found");
+        let input_table = self.input.final_round_evaluate(builder, alloc, table_map);
         // 1. Evaluate result expressions
         let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias,
-                    aliased_expr.expr.prover_evaluate(builder, alloc, table),
+                    aliased_expr
+                        .expr
+                        .prover_evaluate(builder, alloc, &input_table),
                 )
             }),
-            TableOptions::new(Some(table.num_rows())),
+            TableOptions::new(Some(input_table.num_rows())),
         )
         .expect("Failed to create table from iterator");
         // 2. Produce MLEs

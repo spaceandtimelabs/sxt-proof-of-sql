@@ -14,7 +14,8 @@ use crate::{
             exercise_verification, FirstRoundBuilder, ProofPlan, ProvableQueryResult,
             ProverEvaluate, VerifiableQueryResult,
         },
-        proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr, TableExpr},
+        proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr},
+        proof_plans::TableExec,
     },
 };
 use blitzar::proof::InnerProductProof;
@@ -45,7 +46,13 @@ fn we_can_correctly_fetch_the_query_result_schema() {
                 "b",
             ),
         ],
-        TableExpr { table_ref },
+        DynProofPlan::Table(TableExec::new(
+            table_ref,
+            vec![
+                ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
+            ],
+        )),
     );
     let column_fields: Vec<ColumnField> = provable_ast.get_column_result_fields();
     assert_eq!(
@@ -81,7 +88,13 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 "f",
             ),
         ],
-        TableExpr { table_ref },
+        DynProofPlan::Table(TableExec::new(
+            table_ref,
+            vec![
+                ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("f".parse().unwrap(), ColumnType::BigInt),
+            ],
+        )),
     );
 
     let ref_columns = provable_ast.get_column_references();
@@ -116,7 +129,16 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_projection() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let ast = projection(cols_expr_plan(t, &["b"], &accessor), tab(t));
+    let ast = projection(
+        cols_expr_plan(t, &["b"], &accessor),
+        table_exec(
+            t,
+            vec![
+                ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
+            ],
+        ),
+    );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
     exercise_verification(&verifiable_res, &ast, &accessor, t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
@@ -141,7 +163,13 @@ fn we_can_prove_and_get_the_correct_result_from_a_nontrivial_projection() {
                 "prod",
             ),
         ],
-        tab(t),
+        table_exec(
+            t,
+            vec![
+                ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
+            ],
+        ),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
     exercise_verification(&verifiable_res, &ast, &accessor, t);
@@ -150,6 +178,42 @@ fn we_can_prove_and_get_the_correct_result_from_a_nontrivial_projection() {
         bigint("b", [2_i64, 3, 4, 5, 6]),
         bigint("prod", [1_i64, 8, 15, 8, 25]),
     ]);
+    assert_eq!(res, expected);
+}
+
+#[test]
+fn we_can_prove_and_get_the_correct_result_from_a_composed_projection() {
+    let data = owned_table([
+        bigint("a", [1_i64, 4_i64, 5_i64, 2_i64, 5_i64]),
+        bigint("b", [1_i64, 2, 3, 4, 5]),
+    ]);
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(t, data, 0);
+    let ast = projection(
+        vec![
+            aliased_plan(add(column(t, "b", &accessor), const_bigint(1)), "b"),
+            aliased_plan(
+                multiply(column(t, "a", &accessor), column(t, "b", &accessor)),
+                "prod",
+            ),
+        ],
+        filter(
+            vec![
+                aliased_plan(add(column(t, "b", &accessor), const_bigint(1)), "b"),
+                aliased_plan(
+                    add(column(t, "a", &accessor), column(t, "b", &accessor)),
+                    "a",
+                ),
+            ],
+            tab(t),
+            equal(column(t, "a", &accessor), const_int128(5)),
+        ),
+    );
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected = owned_table([bigint("b", [5_i64, 7]), bigint("prod", [32_i64, 60])]);
     assert_eq!(res, expected);
 }
 
@@ -169,8 +233,19 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr: DynProofPlan =
-        projection(cols_expr_plan(t, &["b", "c", "d", "e"], &accessor), tab(t));
+    let expr: DynProofPlan = projection(
+        cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
+        table_exec(
+            t,
+            vec![
+                ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
+                ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+                ColumnField::new("e".parse().unwrap(), ColumnType::Scalar),
+            ],
+        ),
+    );
 
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
@@ -213,7 +288,19 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr: DynProofPlan = projection(cols_expr_plan(t, &[], &accessor), tab(t));
+    let expr: DynProofPlan = projection(
+        cols_expr_plan(t, &[], &accessor),
+        table_exec(
+            t,
+            vec![
+                ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
+                ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+                ColumnField::new("e".parse().unwrap(), ColumnType::Scalar),
+            ],
+        ),
+    );
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[];
@@ -251,7 +338,16 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
             col_expr_plan(t, "d", &accessor),
             aliased_plan(const_decimal75(1, 0, 3), "e"),
         ],
-        tab(t),
+        table_exec(
+            t,
+            vec![
+                ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
+                ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+                ColumnField::new("e".parse().unwrap(), ColumnType::Scalar),
+            ],
+        ),
     );
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
@@ -299,7 +395,16 @@ fn we_can_prove_a_projection_on_an_empty_table() {
             col_expr_plan(t, "d", &accessor),
             aliased_plan(const_decimal75(1, 0, 3), "e"),
         ],
-        tab(t),
+        table_exec(
+            t,
+            vec![
+                ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
+                ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+                ColumnField::new("e".parse().unwrap(), ColumnType::Scalar),
+            ],
+        ),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
@@ -337,7 +442,16 @@ fn we_can_prove_a_projection() {
                 "bool",
             ),
         ],
-        tab(t),
+        table_exec(
+            t,
+            vec![
+                ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
+                ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+                ColumnField::new("e".parse().unwrap(), ColumnType::Scalar),
+            ],
+        ),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
