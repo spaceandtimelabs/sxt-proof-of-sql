@@ -5,7 +5,7 @@ use crate::{
             group_by_util::{
                 aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
             },
-            Column, ColumnField, ColumnRef, ColumnType, DataAccessor, OwnedTable, Table, TableRef,
+            Column, ColumnField, ColumnRef, ColumnType, OwnedTable, Table, TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -199,12 +199,13 @@ impl ProverEvaluate for GroupByExec {
     fn result_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let column_refs = self.get_column_references();
-        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
+        let table = table_map
+            .get(&self.table.table_ref)
+            .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, &used_table);
+        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, table);
 
         let selection = selection_column
             .as_boolean()
@@ -214,12 +215,12 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.result_evaluate(alloc, &used_table))
+            .map(|expr| expr.result_evaluate(alloc, table))
             .collect::<Vec<_>>();
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, &used_table))
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table))
             .collect::<Vec<_>>();
         // Compute filtered_columns
         let AggregatedColumns {
@@ -254,14 +255,14 @@ impl ProverEvaluate for GroupByExec {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let column_refs = self.get_column_references();
-        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
+        let table = table_map
+            .get(&self.table.table_ref)
+            .expect("Table not found");
         // 1. selection
         let selection_column: Column<'a, S> =
-            self.where_clause
-                .prover_evaluate(builder, alloc, &used_table);
+            self.where_clause.prover_evaluate(builder, alloc, table);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -270,16 +271,12 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.prover_evaluate(builder, alloc, &used_table))
+            .map(|expr| expr.prover_evaluate(builder, alloc, table))
             .collect::<Vec<_>>();
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| {
-                aliased_expr
-                    .expr
-                    .prover_evaluate(builder, alloc, &used_table)
-            })
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, table))
             .collect::<Vec<_>>();
         // 3. Compute filtered_columns
         let AggregatedColumns {

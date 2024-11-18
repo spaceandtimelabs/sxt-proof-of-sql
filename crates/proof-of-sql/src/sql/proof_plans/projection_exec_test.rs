@@ -2,10 +2,10 @@ use super::{test_utility::*, DynProofPlan, ProjectionExec};
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, ColumnField, ColumnRef, ColumnType, OwnedTable,
-            OwnedTableTestAccessor, TableRef, TestAccessor,
+            owned_table_utility::*, table_utility::*, ColumnField, ColumnRef, ColumnType,
+            OwnedTable, OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
         },
-        map::{IndexMap, IndexSet},
+        map::{indexmap, IndexMap, IndexSet},
         math::decimal::Precision,
         scalar::Curve25519Scalar,
     },
@@ -155,19 +155,23 @@ fn we_can_prove_and_get_the_correct_result_from_a_nontrivial_projection() {
 
 #[test]
 fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_result_evaluate() {
-    let data = owned_table([
-        bigint("a", [0; 0]),
-        bigint("b", [0; 0]),
-        int128("c", [0; 0]),
-        varchar("d", [""; 0]),
-        scalar("e", [0; 0]),
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [0; 0], &alloc),
+        borrowed_bigint("b", [0; 0], &alloc),
+        borrowed_int128("c", [0; 0], &alloc),
+        borrowed_varchar("d", [""; 0], &alloc),
+        borrowed_scalar("e", [0; 0], &alloc),
     ]);
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let table_map = indexmap! {
+        t => data.clone()
+    };
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let expr: DynProofPlan =
         projection(cols_expr_plan(t, &["b", "c", "d", "e"], &accessor), tab(t));
-    let alloc = Bump::new();
+
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -180,7 +184,7 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::from(expr.result_evaluate(&alloc, &accessor))
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map))
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -195,23 +199,26 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
 
 #[test]
 fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_result_evaluate() {
-    let data = owned_table([
-        bigint("a", [1, 4, 5, 2, 5]),
-        bigint("b", [1, 2, 3, 4, 5]),
-        int128("c", [1, 2, 3, 4, 5]),
-        varchar("d", ["1", "2", "3", "4", "5"]),
-        scalar("e", [1, 2, 3, 4, 5]),
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [1, 4, 5, 2, 5], &alloc),
+        borrowed_bigint("b", [1, 2, 3, 4, 5], &alloc),
+        borrowed_int128("c", [1, 2, 3, 4, 5], &alloc),
+        borrowed_varchar("d", ["1", "2", "3", "4", "5"], &alloc),
+        borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let table_map = indexmap! {
+        t => data.clone()
+    };
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let expr: DynProofPlan = projection(cols_expr_plan(t, &[], &accessor), tab(t));
-    let alloc = Bump::new();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::from(expr.result_evaluate(&alloc, &accessor))
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map))
             .to_owned_table(fields)
             .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
@@ -220,15 +227,19 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
 
 #[test]
 fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate() {
-    let data = owned_table([
-        bigint("a", [1, 4, 5, 2, 5]),
-        bigint("b", [1, 2, 3, 4, 5]),
-        int128("c", [1, 2, 3, 4, 5]),
-        varchar("d", ["1", "2", "3", "4", "5"]),
-        scalar("e", [1, 2, 3, 4, 5]),
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [1, 4, 5, 2, 5], &alloc),
+        borrowed_bigint("b", [1, 2, 3, 4, 5], &alloc),
+        borrowed_int128("c", [1, 2, 3, 4, 5], &alloc),
+        borrowed_varchar("d", ["1", "2", "3", "4", "5"], &alloc),
+        borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let table_map = indexmap! {
+        t => data.clone()
+    };
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let expr: DynProofPlan = projection(
         vec![
@@ -242,7 +253,6 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
         ],
         tab(t),
     );
-    let alloc = Bump::new();
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
     let fields = &[
@@ -255,7 +265,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::from(expr.result_evaluate(&alloc, &accessor))
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map))
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([

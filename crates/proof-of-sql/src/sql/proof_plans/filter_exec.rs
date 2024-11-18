@@ -2,8 +2,8 @@ use super::{fold_columns, fold_vals};
 use crate::{
     base::{
         database::{
-            filter_util::filter_columns, Column, ColumnField, ColumnRef, DataAccessor, OwnedTable,
-            Table, TableOptions, TableRef,
+            filter_util::filter_columns, Column, ColumnField, ColumnRef, OwnedTable, Table,
+            TableOptions, TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -140,12 +140,13 @@ impl ProverEvaluate for FilterExec {
     fn result_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let column_refs = self.get_column_references();
-        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
+        let table = table_map
+            .get(&self.table.table_ref)
+            .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, &used_table);
+        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, table);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -155,7 +156,7 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, &used_table))
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table))
             .collect();
 
         // Compute filtered_columns and indexes
@@ -180,14 +181,14 @@ impl ProverEvaluate for FilterExec {
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let column_refs = self.get_column_references();
-        let used_table = accessor.get_table(self.table.table_ref, &column_refs);
+        let table = table_map
+            .get(&self.table.table_ref)
+            .expect("Table not found");
         // 1. selection
         let selection_column: Column<'a, S> =
-            self.where_clause
-                .prover_evaluate(builder, alloc, &used_table);
+            self.where_clause.prover_evaluate(builder, alloc, table);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -197,11 +198,7 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| {
-                aliased_expr
-                    .expr
-                    .prover_evaluate(builder, alloc, &used_table)
-            })
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, table))
             .collect();
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
