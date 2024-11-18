@@ -136,7 +136,9 @@ impl ProverEvaluate for ProjectionExec {
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias,
-                    aliased_expr.expr.prover_evaluate(builder, alloc, &input_table),
+                    aliased_expr
+                        .expr
+                        .prover_evaluate(builder, alloc, &input_table),
                 )
             }),
             TableOptions::new(Some(input_table.num_rows())),

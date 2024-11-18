@@ -1,4 +1,4 @@
-use super::{fold_columns, fold_vals};
+use super::{fold_columns, fold_vals, DynProofPlan};
 use crate::{
     base::{
         database::{
@@ -15,7 +15,7 @@ use crate::{
             CountBuilder, FinalRoundBuilder, FirstRoundBuilder, HonestProver, ProofPlan,
             ProverEvaluate, ProverHonestyMarker, SumcheckSubpolynomialType, VerificationBuilder,
         },
-        proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
+        proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr},
     },
 };
 use alloc::{boxed::Box, vec, vec::Vec};
@@ -26,14 +26,14 @@ use serde::{Deserialize, Serialize};
 
 /// Provable expressions for queries of the form
 /// ```ignore
-///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
+///     SELECT <result_expr1>, ..., <result_exprN> FROM <input> WHERE <where_clause>
 /// ```
 ///
 /// This differs from the [`FilterExec`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OstensibleFilterExec<H: ProverHonestyMarker> {
     pub(super) aliased_results: Vec<AliasedDynProofExpr>,
-    pub(super) table: TableExpr,
+    pub(super) input: Box<DynProofPlan>,
     /// TODO: add docs
     pub(crate) where_clause: DynProofExpr,
     phantom: PhantomData<H>,
@@ -43,12 +43,12 @@ impl<H: ProverHonestyMarker> OstensibleFilterExec<H> {
     /// Creates a new filter expression.
     pub fn new(
         aliased_results: Vec<AliasedDynProofExpr>,
-        table: TableExpr,
+        input: DynProofPlan,
         where_clause: DynProofExpr,
     ) -> Self {
         Self {
             aliased_results,
-            table,
+            input: Box::new(input),
             where_clause,
             phantom: PhantomData,
         }
@@ -60,6 +60,7 @@ where
     OstensibleFilterExec<H>: ProverEvaluate,
 {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
+        self.input.count(builder)?;
         self.where_clause.count(builder)?;
         for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
@@ -79,13 +80,20 @@ where
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
     ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
+        let input_commitment_map = self.input.verifier_evaluate(builder, accessor, None)?;
         // 1. selection
-        let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
+        let selection_eval = self
+            .where_clause
+            .verifier_evaluate(builder, &input_commitment_map)?;
         // 2. columns
         let columns_evals = Vec::from_iter(
             self.aliased_results
                 .iter()
-                .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
+                .map(|aliased_expr| {
+                    aliased_expr
+                        .expr
+                        .verifier_evaluate(builder, &input_commitment_map)
+                })
                 .collect::<Result<Vec<_>, _>>()?,
         );
         // 3. filtered_columns
@@ -134,7 +142,7 @@ where
     }
 
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        IndexSet::from_iter([self.table.table_ref])
+        self.input.get_table_references()
     }
 }
 
@@ -148,11 +156,10 @@ impl ProverEvaluate for FilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let table = table_map
-            .get(&self.table.table_ref)
-            .expect("Table not found");
+        let input_table = self.input.result_evaluate(alloc, table_map);
         // 1. selection
-        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, table);
+        let selection_column: Column<'a, S> =
+            self.where_clause.result_evaluate(alloc, &input_table);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -162,7 +169,7 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table))
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, &input_table))
             .collect();
 
         // Compute filtered_columns and indexes
@@ -189,12 +196,11 @@ impl ProverEvaluate for FilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let table = table_map
-            .get(&self.table.table_ref)
-            .expect("Table not found");
+        let input_table = self.input.final_round_evaluate(builder, alloc, table_map);
         // 1. selection
         let selection_column: Column<'a, S> =
-            self.where_clause.prover_evaluate(builder, alloc, table);
+            self.where_clause
+                .prover_evaluate(builder, alloc, &input_table);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -204,7 +210,11 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, table))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(builder, alloc, &input_table)
+            })
             .collect();
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);

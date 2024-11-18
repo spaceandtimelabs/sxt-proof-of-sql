@@ -93,18 +93,19 @@ impl ProofPlan for GroupByExec {
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
     ) -> Result<IndexMap<ColumnRef, S>, ProofError> {
+        let input_commitment_map = self.input.verifier_evaluate(builder, accessor, None)?;
         // 1. selection
-        let where_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
+        let where_eval = self.where_clause.verifier_evaluate(builder, &input_commitment_map)?;
         // 2. columns
         let group_by_evals = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.verifier_evaluate(builder, accessor))
+            .map(|expr| expr.verifier_evaluate(builder, &input_commitment_map))
             .collect::<Result<Vec<_>, _>>()?;
         let aggregate_evals = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
+            .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, &input_commitment_map))
             .collect::<Result<Vec<_>, _>>()?;
         // 3. filtered_columns
 

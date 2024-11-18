@@ -1,4 +1,4 @@
-use super::{filter_exec::prove_filter, OstensibleFilterExec};
+use super::{filter_exec::prove_filter, DynProofPlan, OstensibleFilterExec};
 use crate::{
     base::{
         database::{
@@ -39,11 +39,10 @@ impl ProverEvaluate for DishonestFilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let table = table_map
-            .get(&self.table.table_ref)
-            .expect("Table not found");
+        let input_table = self.input.result_evaluate(alloc, table_map);
         // 1. selection
-        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, table);
+        let selection_column: Column<'a, S> =
+            self.where_clause.result_evaluate(alloc, &input_table);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -52,7 +51,7 @@ impl ProverEvaluate for DishonestFilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table))
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, &input_table))
             .collect();
         // Compute filtered_columns
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
@@ -83,12 +82,11 @@ impl ProverEvaluate for DishonestFilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        let table = table_map
-            .get(&self.table.table_ref)
-            .expect("Table not found");
+        let input_table = self.input.final_round_evaluate(builder, alloc, table_map);
         // 1. selection
         let selection_column: Column<'a, S> =
-            self.where_clause.prover_evaluate(builder, alloc, table);
+            self.where_clause
+                .prover_evaluate(builder, alloc, &input_table);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -97,7 +95,11 @@ impl ProverEvaluate for DishonestFilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, table))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(builder, alloc, &input_table)
+            })
             .collect();
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
