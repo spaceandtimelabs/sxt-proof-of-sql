@@ -15,7 +15,7 @@ pub struct FinalRoundBuilder<'a, S: Scalar> {
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
     commitment_descriptor: Vec<CommittableColumn<'a>>,
-    pub(crate) pcs_proof_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
+    pcs_proof_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
     sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a, S>>,
     /// The challenges used in creation of the constraints in the proof.
     /// Specifically, these are the challenges that the verifier sends to
@@ -45,6 +45,10 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
 
     pub fn num_sumcheck_subpolynomials(&self) -> usize {
         self.sumcheck_subpolynomials.len()
+    }
+
+    pub fn pcs_proof_mles(&self) -> &[Box<dyn MultilinearExtension<S> + 'a>] {
+        &self.pcs_proof_mles
     }
 
     /// Produce a bit distribution that describes which bits are constant

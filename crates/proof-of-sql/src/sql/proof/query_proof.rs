@@ -161,9 +161,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(pcs_proof_evaluations.len())
                 .collect();
 
-        assert_eq!(random_scalars.len(), builder.pcs_proof_mles.len());
+        assert_eq!(random_scalars.len(), builder.pcs_proof_mles().len());
         let mut folded_mle = vec![Zero::zero(); range_length];
-        for (multiplier, evaluator) in random_scalars.iter().zip(builder.pcs_proof_mles.iter()) {
+        for (multiplier, evaluator) in random_scalars.iter().zip(builder.pcs_proof_mles().iter()) {
             evaluator.mul_add(&mut folded_mle, multiplier);
         }
 
