@@ -56,8 +56,8 @@ impl ProofPlan for ProjectionExec {
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
     ) -> Result<Vec<S>, ProofError> {
-        //TODO: Switch to ref to the input itself
-        let table_ref = *self.input.get_table_references().iter().next().unwrap();
+        //TODO: Make `TableRef` optional in `ColumnRef` and None here by default
+        let table_ref = "PLACEHOLDER_SCHEMA.PLACEHOLDER_TABLE".parse().unwrap();
         let input_commitment_map: IndexMap<ColumnRef, S> = self
             .input
             .get_column_result_fields()
