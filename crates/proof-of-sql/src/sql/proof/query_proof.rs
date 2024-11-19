@@ -60,10 +60,8 @@ pub struct QueryProof<CP: CommitmentEvaluationProof> {
     pub pcs_proof_evaluations: Vec<CP::Scalar>,
     /// Inner product proof of the MLEs' evaluations
     pub evaluation_proof: CP,
-    /// Minimum index
-    pub min_row_num: usize,
-    /// Maximum index
-    pub max_row_num: usize,
+    /// Length of the range of generators we use
+    pub range_length: usize,
 }
 
 impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
@@ -184,8 +182,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             sumcheck_proof,
             pcs_proof_evaluations,
             evaluation_proof,
-            min_row_num,
-            max_row_num: min_row_num + range_length,
+            range_length,
         };
         (proof, provable_result)
     }
@@ -200,9 +197,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
         let owned_table_result = result.to_owned_table(&expr.get_column_result_fields())?;
-
-        let range_length = self.max_row_num - self.min_row_num;
-        let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
+        let (min_row_num, _) = get_index_range(accessor, expr.get_table_references());
+        let num_sumcheck_variables = cmp::max(log2_up(self.range_length), 1);
         assert!(num_sumcheck_variables > 0);
 
         // validate bit decompositions
@@ -231,7 +227,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript =
-            make_transcript(expr, result, range_length, self.min_row_num);
+            make_transcript(expr, result, self.range_length, min_row_num);
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -253,7 +249,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(num_random_scalars)
                 .collect();
         let sumcheck_random_scalars =
-            SumcheckRandomScalars::new(&random_scalars, range_length, num_sumcheck_variables);
+            SumcheckRandomScalars::new(&random_scalars, self.range_length, num_sumcheck_variables);
 
         // verify sumcheck up to the evaluation check
         let poly_info = CompositePolynomialInfo {
@@ -280,14 +276,14 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
-            range_length,
+            self.range_length,
             owned_table_result.num_rows(),
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations,
         );
         let mut builder = VerificationBuilder::new(
-            self.min_row_num,
+            min_row_num,
             sumcheck_evaluations,
             &self.bit_distributions,
             sumcheck_random_scalars.subpolynomial_multipliers,
@@ -335,8 +331,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 builder.inner_product_multipliers(),
                 &product,
                 &subclaim.evaluation_point,
-                self.min_row_num as u64,
-                range_length,
+                min_row_num as u64,
+                self.range_length,
                 setup,
             )
             .map_err(|_e| ProofError::VerificationError {
