@@ -46,13 +46,13 @@ fn we_can_correctly_fetch_the_query_result_schema() {
                 "b",
             ),
         ],
-        DynProofPlan::Table(TableExec::new(
+        Box::new(DynProofPlan::Table(TableExec::new(
             table_ref,
             vec![
                 ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
                 ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
             ],
-        )),
+        ))),
     );
     let column_fields: Vec<ColumnField> = provable_ast.get_column_result_fields();
     assert_eq!(
@@ -88,13 +88,13 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 "f",
             ),
         ],
-        DynProofPlan::Table(TableExec::new(
+        Box::new(DynProofPlan::Table(TableExec::new(
             table_ref,
             vec![
                 ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
                 ColumnField::new("f".parse().unwrap(), ColumnType::BigInt),
             ],
-        )),
+        ))),
     );
 
     let ref_columns = provable_ast.get_column_references();

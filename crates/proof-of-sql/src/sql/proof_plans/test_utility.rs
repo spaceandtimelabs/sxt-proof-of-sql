@@ -3,13 +3,14 @@ use crate::{
     base::database::{ColumnField, TableRef},
     sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
 };
+use alloc::boxed::Box;
 
 pub fn table_exec(table_ref: TableRef, schema: Vec<ColumnField>) -> DynProofPlan {
     DynProofPlan::Table(TableExec::new(table_ref, schema))
 }
 
 pub fn projection(results: Vec<AliasedDynProofExpr>, input: DynProofPlan) -> DynProofPlan {
-    DynProofPlan::Projection(ProjectionExec::new(results, input))
+    DynProofPlan::Projection(ProjectionExec::new(results, Box::new(input)))
 }
 
 pub fn filter(

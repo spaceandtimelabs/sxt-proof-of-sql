@@ -31,10 +31,10 @@ pub struct ProjectionExec {
 
 impl ProjectionExec {
     /// Creates a new projection expression.
-    pub fn new(aliased_results: Vec<AliasedDynProofExpr>, input: DynProofPlan) -> Self {
+    pub fn new(aliased_results: Vec<AliasedDynProofExpr>, input: Box<DynProofPlan>) -> Self {
         Self {
             aliased_results,
-            input: Box::new(input),
+            input,
         }
     }
 }
