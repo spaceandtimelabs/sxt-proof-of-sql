@@ -5,19 +5,29 @@ pub struct FirstRoundBuilder {
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
     num_post_result_challenges: usize,
-}
 
-impl Default for FirstRoundBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
+    /// Used to determine the indices of generators we use
+    range_length: usize,
 }
 
 impl FirstRoundBuilder {
-    /// Create a new result builder for a table with the given length. For multi table queries, this will likely need to change.
-    pub fn new() -> Self {
+    pub fn new(range_length: usize) -> Self {
         Self {
             num_post_result_challenges: 0,
+            range_length,
+        }
+    }
+
+    pub fn range_length(&self) -> usize {
+        self.range_length
+    }
+
+    /// Used if a `ProofPlan` can cause output `table_length` to be larger
+    /// than the largest of the input ones e.g. unions and joins since it will
+    /// force us to update `range_length`.
+    pub fn update_range_length(&mut self, table_length: usize) {
+        if table_length > self.range_length {
+            self.range_length = table_length;
         }
     }
 

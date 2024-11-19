@@ -103,7 +103,7 @@ impl ProofExpr for InequalityExpr {
         };
 
         // diff == 0
-        let equals_zero = prover_evaluate_equals_zero(builder, alloc, diff);
+        let equals_zero = prover_evaluate_equals_zero(table.num_rows(), builder, alloc, diff);
 
         // sign(diff) == -1
         let sign = prover_evaluate_sign(

@@ -118,6 +118,7 @@ impl ProverEvaluate for DishonestFilterExec {
             &columns,
             selection,
             &filtered_columns,
+            table.num_rows(),
             result_len,
         );
         Table::<'a, S>::try_from_iter_with_options(

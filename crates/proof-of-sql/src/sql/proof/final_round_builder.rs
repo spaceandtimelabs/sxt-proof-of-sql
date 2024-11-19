@@ -8,16 +8,14 @@ use crate::base::{
     polynomial::{CompositePolynomial, MultilinearExtension},
     scalar::Scalar,
 };
-use alloc::{boxed::Box, vec, vec::Vec};
-use num_traits::Zero;
+use alloc::{boxed::Box, vec::Vec};
 
 /// Track components used to form a query's proof
 pub struct FinalRoundBuilder<'a, S: Scalar> {
-    table_length: usize,
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
     commitment_descriptor: Vec<CommittableColumn<'a>>,
-    pcs_proof_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
+    pub(crate) pcs_proof_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
     sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a, S>>,
     /// The challenges used in creation of the constraints in the proof.
     /// Specifically, these are the challenges that the verifier sends to
@@ -30,13 +28,8 @@ pub struct FinalRoundBuilder<'a, S: Scalar> {
 }
 
 impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
-    pub fn new(
-        table_length: usize,
-        num_sumcheck_variables: usize,
-        post_result_challenges: Vec<S>,
-    ) -> Self {
+    pub fn new(num_sumcheck_variables: usize, post_result_challenges: Vec<S>) -> Self {
         Self {
-            table_length,
             num_sumcheck_variables,
             bit_distributions: Vec::new(),
             commitment_descriptor: Vec::new(),
@@ -44,10 +37,6 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
             sumcheck_subpolynomials: Vec::new(),
             post_result_challenges,
         }
-    }
-
-    pub fn table_length(&self) -> usize {
-        self.table_length
     }
 
     pub fn num_sumcheck_variables(&self) -> usize {
@@ -148,22 +137,6 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
         let mut res = Vec::with_capacity(self.pcs_proof_mles.len());
         for evaluator in &self.pcs_proof_mles {
             res.push(evaluator.inner_product(evaluation_vec));
-        }
-        res
-    }
-
-    /// Given random multipliers, multiply and add together all of the MLEs used in sumcheck except
-    /// for those that correspond to result columns sent to the verifier.
-    #[tracing::instrument(
-        name = "FinalRoundBuilder::fold_pcs_proof_mles",
-        level = "debug",
-        skip_all
-    )]
-    pub fn fold_pcs_proof_mles(&self, multipliers: &[S]) -> Vec<S> {
-        assert_eq!(multipliers.len(), self.pcs_proof_mles.len());
-        let mut res = vec![Zero::zero(); self.table_length];
-        for (multiplier, evaluator) in multipliers.iter().zip(self.pcs_proof_mles.iter()) {
-            evaluator.mul_add(&mut res, multiplier);
         }
         res
     }

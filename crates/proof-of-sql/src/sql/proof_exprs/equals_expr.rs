@@ -67,7 +67,12 @@ impl ProofExpr for EqualsExpr {
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        Column::Boolean(prover_evaluate_equals_zero(builder, alloc, res))
+        Column::Boolean(prover_evaluate_equals_zero(
+            table.num_rows(),
+            builder,
+            alloc,
+            res,
+        ))
     }
 
     fn verifier_evaluate<S: Scalar>(
@@ -103,12 +108,11 @@ pub fn result_evaluate_equals_zero<'a, S: Scalar>(
 }
 
 pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
+    table_length: usize,
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     lhs: &'a [S],
 ) -> &'a [bool] {
-    let table_length = builder.table_length();
-
     // lhs_pseudo_inv
     let lhs_pseudo_inv = alloc.alloc_slice_copy(lhs);
     slice_ops::batch_inversion(lhs_pseudo_inv);
