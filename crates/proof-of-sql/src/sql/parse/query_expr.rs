@@ -65,7 +65,9 @@ impl QueryExpr {
                 .visit_slice_expr(ast.slice)
                 .build()?,
         };
+        //Get result aliased expressions
         let result_aliased_exprs = context.get_aliased_result_exprs()?.to_vec();
+        //Get group by expressions
         let group_by = context.get_group_by_exprs();
 
         // Figure out the basic postprocessing steps.
@@ -76,6 +78,7 @@ impl QueryExpr {
                 OrderByPostprocessing::new(order_bys.clone()),
             ));
         }
+        //the slice means we need to slice the result,like limit -> return rows num || offset -> skip rows num.
         if let Some(slice) = context.get_slice_expr() {
             postprocessing.push(OwnedTablePostprocessing::new_slice(
                 SlicePostprocessing::new(Some(slice.number_rows), Some(slice.offset_value)),
