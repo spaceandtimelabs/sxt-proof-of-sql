@@ -8,7 +8,7 @@ Run `cargo install --example posql_db --path crates/proof-of-sql` to install the
 > [!NOTE]
 > To run this example without the `blitzar` (i.e CPU only )feature 
 > ```bash
-> cargo install --example posql_db --path crates/proof-of-sql --no-default-features --features="rayon"
+> cargo install --example posql_db --path crates/proof-of-sql --no-default-features --features="cpu-perf"
 > ```
 
 ## Quick Start Exmaple

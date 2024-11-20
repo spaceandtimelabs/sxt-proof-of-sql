@@ -49,7 +49,7 @@ Workaround for non-Linux and/or non-GPU machines.
     ```
 * Workaround #2: disable the `blitzar` feature in the repo. Example
     ```bash
-    cargo test --no-default-features --features="arrow rayon ark-ec/parallel ark-poly/parallel ark-ff/asm"
+    cargo test --no-default-features --features="arrow cpu-perf"
     ```
 
 </details>
