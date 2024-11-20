@@ -135,7 +135,7 @@ impl ProverEvaluate for ProjectionExec {
         .expect("Failed to create table from iterator");
         // 2. Produce MLEs
         res.inner_table().values().for_each(|column| {
-            builder.produce_intermediate_mle(column.as_scalar(alloc));
+            builder.produce_intermediate_mle(column.to_scalar(alloc));
         });
         res
     }

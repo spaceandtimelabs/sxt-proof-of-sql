@@ -175,8 +175,80 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 
+    /// Returns the column as a slice of i8 if it is a tinyint column. Otherwise, returns None.
+    pub(crate) fn as_tinyint(&self) -> Option<&'a [i8]> {
+        match self {
+            Self::TinyInt(col) => Some(col),
+            _ => None,
+        }
+    }
+
+    /// Returns the column as a slice of i16 if it is a smallint column. Otherwise, returns None.
+    pub(crate) fn as_smallint(&self) -> Option<&'a [i16]> {
+        match self {
+            Self::SmallInt(col) => Some(col),
+            _ => None,
+        }
+    }
+
+    /// Returns the column as a slice of i32 if it is an int column. Otherwise, returns None.
+    pub(crate) fn as_int(&self) -> Option<&'a [i32]> {
+        match self {
+            Self::Int(col) => Some(col),
+            _ => None,
+        }
+    }
+
+    /// Returns the column as a slice of i64 if it is a bigint column. Otherwise, returns None.
+    pub(crate) fn as_bigint(&self) -> Option<&'a [i64]> {
+        match self {
+            Self::BigInt(col) => Some(col),
+            _ => None,
+        }
+    }
+
+    /// Returns the column as a slice of i128 if it is an int128 column. Otherwise, returns None.
+    pub(crate) fn as_int128(&self) -> Option<&'a [i128]> {
+        match self {
+            Self::Int128(col) => Some(col),
+            _ => None,
+        }
+    }
+
+    /// Returns the column as a slice of scalars if it is a scalar column. Otherwise, returns None.
+    pub(crate) fn as_scalar(&self) -> Option<&'a [S]> {
+        match self {
+            Self::Scalar(col) => Some(col),
+            _ => None,
+        }
+    }
+
+    /// Returns the column as a slice of scalars if it is a decimal75 column. Otherwise, returns None.
+    pub(crate) fn as_decimal75(&self) -> Option<&'a [S]> {
+        match self {
+            Self::Decimal75(_, _, col) => Some(col),
+            _ => None,
+        }
+    }
+
+    /// Returns the column as a slice of strings and a slice of scalars if it is a varchar column. Otherwise, returns None.
+    pub(crate) fn as_varchar(&self) -> Option<(&'a [&'a str], &'a [S])> {
+        match self {
+            Self::VarChar((col, scals)) => Some((col, scals)),
+            _ => None,
+        }
+    }
+
+    /// Returns the column as a slice of i64 if it is a timestamp column. Otherwise, returns None.
+    pub(crate) fn as_timestamptz(&self) -> Option<&'a [i64]> {
+        match self {
+            Self::TimestampTZ(_, _, col) => Some(col),
+            _ => None,
+        }
+    }
+
     /// Returns the column as a slice of scalars
-    pub(crate) fn as_scalar(&self, alloc: &'a Bump) -> &'a [S] {
+    pub(crate) fn to_scalar(self, alloc: &'a Bump) -> &'a [S] {
         match self {
             Self::Boolean(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
             Self::TinyInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
