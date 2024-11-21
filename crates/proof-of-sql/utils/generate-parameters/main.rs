@@ -5,7 +5,6 @@ mod round_trip_test;
 
 use ark_std::rand::SeedableRng;
 use clap::{Parser, ValueEnum};
-use indicatif::{ProgressBar, ProgressStyle};
 use proof_of_sql::proof_primitive::dory::{ProverSetup, PublicParameters, VerifierSetup};
 use rand_chacha::ChaCha20Rng;
 use sha2::{Digest, Sha256};
@@ -15,7 +14,7 @@ use std::{
     io::{self, Write},
     path::Path,
     process::Command,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 /// Transparent public randomness
@@ -83,6 +82,7 @@ fn main() {
     };
 }
 
+#[allow(unexpected_cfgs)]
 fn generate_parameters(args: &Args) {
     // Clear out the digests.txt file if it already exists
     let digests_path = format!("{}/digests_nu_{}.txt", args.target, args.nu);
@@ -98,12 +98,14 @@ fn generate_parameters(args: &Args) {
 
     let mut rng = rng_from_seed(args);
 
-    let spinner = spinner(format!(
+    #[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
+    let spinner = spinner::spinner(format!(
         "Generating a random public setup with seed {SEED:?} please wait..."
     ));
 
     // Obtain public parameter from nu
     let public_parameters = PublicParameters::rand(args.nu, &mut rng);
+    #[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
     spinner.finish_with_message("Public parameter setup complete");
 
     match args.mode {
@@ -139,9 +141,11 @@ fn rng_from_seed(args: &Args) -> ChaCha20Rng {
     ChaCha20Rng::from_seed(seed_bytes)
 }
 
+#[allow(unexpected_cfgs)]
 /// Generates and writes the ```ProverSetup``` from initial public parameters
 fn generate_prover_setup(public_parameters: &PublicParameters, nu: usize, target: &str) {
-    let spinner = spinner(
+    #[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
+    let spinner = spinner::spinner(
         "Generating parameters for the SxT network. This may take a long time, please wait..."
             .into(),
     );
@@ -151,6 +155,7 @@ fn generate_prover_setup(public_parameters: &PublicParameters, nu: usize, target
     // Heavy operation
     let setup = ProverSetup::from(public_parameters);
 
+    #[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
     spinner.finish_with_message("Prover setup complete.");
     let duration = start_time.elapsed();
     println!("Generated prover setup in {duration:.2?}");
@@ -182,9 +187,11 @@ fn generate_prover_setup(public_parameters: &PublicParameters, nu: usize, target
     }
 }
 
+#[allow(unexpected_cfgs)]
 // Generates and writes the VerifierSetup from initial public parameters
 fn generate_verifier_setup(public_parameters: &PublicParameters, nu: usize, target: &str) {
-    let spinner = spinner(
+    #[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
+    let spinner = spinner::spinner(
         "Generating parameters for the SxT network. This may take a long time, please wait..."
             .into(),
     );
@@ -194,6 +201,7 @@ fn generate_verifier_setup(public_parameters: &PublicParameters, nu: usize, targ
     // Heavy operation
     let setup = VerifierSetup::from(public_parameters);
 
+    #[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
     spinner.finish_with_message("Verifier setup complete.");
     let duration = start_time.elapsed();
     println!("Generated verifier setup in {duration:.2?}");
@@ -313,14 +321,20 @@ fn write_verifier_setup(setup: &VerifierSetup, file_path: &str) -> std::io::Resu
 }
 
 // Get a spinner so we have haptic feedback during param generation
-fn spinner(message: String) -> ProgressBar {
-    let spinner = ProgressBar::new_spinner();
-    spinner.set_style(
-        ProgressStyle::default_spinner()
-            .template("{spinner:.green} {msg}")
-            .unwrap_or_else(|_| ProgressStyle::default_spinner()),
-    );
-    spinner.enable_steady_tick(Duration::from_millis(100));
-    spinner.set_message(message);
-    spinner
+#[allow(unexpected_cfgs)]
+mod spinner {
+    #[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
+    pub fn spinner(message: String) -> indicatif::ProgressBar {
+        use std::time::Duration;
+
+        let spinner = indicatif::ProgressBar::new_spinner();
+        spinner.set_style(
+            indicatif::ProgressStyle::default_spinner()
+                .template("{spinner:.green} {msg}")
+                .unwrap_or_else(|_| indicatif::ProgressStyle::default_spinner()),
+        );
+        spinner.enable_steady_tick(Duration::from_millis(100));
+        spinner.set_message(message);
+        spinner
+    }
 }

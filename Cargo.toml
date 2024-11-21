@@ -32,7 +32,7 @@ byte-slice-cast = { version = "1.2.1", default-features = false }
 clap = { version = "4.5.4" }
 criterion = { version = "0.5.1" }
 chrono = { version = "0.4.38", default-features = false }
-curve25519-dalek = { version = "4", features = ["rand_core"] }
+curve25519-dalek = { version = "4.1.3", features = ["rand_core"] }
 derive_more = { version = "0.99" }
 enum_dispatch = { version = "0.3.13" }
 flexbuffers = { version = "2.0.0" }
@@ -72,3 +72,6 @@ missing_docs = "warn"
 [workspace.lints.clippy]
 missing_errors_doc = "allow"
 pedantic = { level = "warn", priority = -1 }
+
+[patch.crates-io]
+curve25519-dalek = { git = "https://github.com/sp1-patches/curve25519-dalek", branch = "patch-curve25519-v4.1.3" }
