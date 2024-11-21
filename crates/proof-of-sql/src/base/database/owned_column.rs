@@ -347,7 +347,6 @@ mod test {
     use crate::base::{math::decimal::Precision, scalar::test_scalar::TestScalar};
     use alloc::vec;
     use bumpalo::Bump;
-    use proof_of_sql_parser::intermediate_ast::OrderByDirection;
 
     #[test]
     fn we_can_slice_a_column() {

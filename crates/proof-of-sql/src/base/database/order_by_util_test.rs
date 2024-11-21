@@ -1,11 +1,13 @@
 use crate::{
     base::{
         database::{order_by_util::*, Column, OwnedColumn},
+        math::decimal::Precision,
         scalar::test_scalar::TestScalar,
     },
     proof_primitive::dory::DoryScalar,
 };
 use core::cmp::Ordering;
+use proof_of_sql_parser::intermediate_ast::OrderByDirection;
 
 #[test]
 fn we_can_compare_indexes_by_columns_with_no_columns() {
@@ -200,7 +202,7 @@ fn we_can_compare_columns_with_direction() {
     let col3: OwnedColumn<TestScalar> = OwnedColumn::Decimal75(
         Precision::new(70).unwrap(),
         20,
-        [1, 2, 2, 1, 2]
+        [-3, 2, 2, -3, 2]
             .iter()
             .map(|&i| TestScalar::from(i))
             .collect(),
