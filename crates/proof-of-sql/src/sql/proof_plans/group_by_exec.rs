@@ -2,9 +2,8 @@ use super::{fold_columns, fold_vals};
 use crate::{
     base::{
         database::{
-            group_by_util::{
-                aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
-            },
+            group_by_util::{aggregate_columns, AggregatedColumns},
+            order_by_util::compare_indexes_by_owned_columns,
             Column, ColumnField, ColumnRef, ColumnType, OwnedTable, Table, TableRef,
         },
         map::{IndexMap, IndexSet},

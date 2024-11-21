@@ -15,11 +15,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::cmp::Ordering;
-use proof_of_sql_parser::{
-    intermediate_ast::OrderByDirection,
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Clone, Eq, Serialize, Deserialize)]
@@ -345,38 +341,6 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
     }
 }
 
-/// Compares the tuples `(order_by_pairs[0][i], order_by_pairs[1][i], ...)` and
-/// `(order_by_pairs[0][j], order_by_pairs[1][j], ...)` in lexicographic order.
-/// Note that direction flips the ordering.
-pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
-    order_by_pairs: &[(OwnedColumn<S>, OrderByDirection)],
-    i: usize,
-    j: usize,
-) -> Ordering {
-    order_by_pairs
-        .iter()
-        .map(|(col, direction)| {
-            let ordering = match col {
-                OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
-                OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
-                OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
-                OwnedColumn::Int(col) => col[i].cmp(&col[j]),
-                OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => {
-                    col[i].cmp(&col[j])
-                }
-                OwnedColumn::Int128(col) => col[i].cmp(&col[j]),
-                OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
-                OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
-            };
-            match direction {
-                OrderByDirection::Asc => ordering,
-                OrderByDirection::Desc => ordering.reverse(),
-            }
-        })
-        .find(|&ord| ord != Ordering::Equal)
-        .unwrap_or(Ordering::Equal)
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -398,50 +362,6 @@ mod test {
         assert_eq!(
             col.try_permute(&permutation).unwrap(),
             OwnedColumn::Int128(vec![2, 4, 5, 1, 3])
-        );
-    }
-
-    #[test]
-    fn we_can_compare_columns() {
-        let col1: OwnedColumn<TestScalar> = OwnedColumn::SmallInt(vec![1, 1, 2, 1, 1]);
-        let col2: OwnedColumn<TestScalar> = OwnedColumn::VarChar(
-            ["b", "b", "a", "b", "a"]
-                .iter()
-                .map(ToString::to_string)
-                .collect(),
-        );
-        let col3: OwnedColumn<TestScalar> = OwnedColumn::Decimal75(
-            Precision::new(70).unwrap(),
-            20,
-            [1, 2, 2, 1, 2]
-                .iter()
-                .map(|&i| TestScalar::from(i))
-                .collect(),
-        );
-        let order_by_pairs = vec![
-            (col1, OrderByDirection::Asc),
-            (col2, OrderByDirection::Desc),
-            (col3, OrderByDirection::Asc),
-        ];
-        // Equal on col1 and col2, less on col3
-        assert_eq!(
-            compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 0, 1),
-            Ordering::Less
-        );
-        // Less on col1
-        assert_eq!(
-            compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 0, 2),
-            Ordering::Less
-        );
-        // Equal on all 3 columns
-        assert_eq!(
-            compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 0, 3),
-            Ordering::Equal
-        );
-        // Equal on col1, greater on col2 reversed
-        assert_eq!(
-            compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 1, 4),
-            Ordering::Less
         );
     }
 
