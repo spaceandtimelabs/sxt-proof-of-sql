@@ -316,6 +316,7 @@ impl ProverEvaluate for GroupByExec {
             beta,
             (&group_by_columns, &sum_columns, selection),
             (&group_by_result_columns, &sum_result_columns, count_column),
+            table.num_rows(),
         );
         res
     }
@@ -375,8 +376,8 @@ pub fn prove_group_by<'a, S: Scalar>(
     beta: S,
     (g_in, sum_in, sel_in): (&[Column<S>], &[Column<S>], &'a [bool]),
     (g_out, sum_out, count_out): (&[Column<S>], &[&'a [S]], &'a [i64]),
+    n: usize,
 ) {
-    let n = builder.table_length();
     let m_out = count_out.len();
 
     // g_in_fold = alpha + sum beta^j * g_in[j]

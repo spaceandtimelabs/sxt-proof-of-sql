@@ -11,8 +11,8 @@ use crate::{
     },
     sql::{
         proof::{
-            exercise_verification, FirstRoundBuilder, ProofPlan, ProvableQueryResult,
-            ProverEvaluate, VerifiableQueryResult,
+            exercise_verification, ProofPlan, ProvableQueryResult, ProverEvaluate,
+            VerifiableQueryResult,
         },
         proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr, TableExpr},
     },
@@ -171,9 +171,6 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
     accessor.add_table(t, data, 0);
     let expr: DynProofPlan =
         projection(cols_expr_plan(t, &["b", "c", "d", "e"], &accessor), tab(t));
-
-    let mut builder = FirstRoundBuilder::new();
-    expr.first_round_evaluate(&mut builder);
     let fields = &[
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
@@ -214,8 +211,6 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let expr: DynProofPlan = projection(cols_expr_plan(t, &[], &accessor), tab(t));
-    let mut builder = FirstRoundBuilder::new();
-    expr.first_round_evaluate(&mut builder);
     let fields = &[];
     let res: OwnedTable<Curve25519Scalar> =
         ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map))
@@ -253,8 +248,6 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
         ],
         tab(t),
     );
-    let mut builder = FirstRoundBuilder::new();
-    expr.first_round_evaluate(&mut builder);
     let fields = &[
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("prod".parse().unwrap(), ColumnType::Int128),

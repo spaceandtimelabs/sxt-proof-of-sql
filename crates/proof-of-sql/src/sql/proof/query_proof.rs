@@ -60,6 +60,8 @@ pub struct QueryProof<CP: CommitmentEvaluationProof> {
     pub pcs_proof_evaluations: Vec<CP::Scalar>,
     /// Inner product proof of the MLEs' evaluations
     pub evaluation_proof: CP,
+    /// Length of the range of generators we use
+    pub range_length: usize,
 }
 
 impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
@@ -71,10 +73,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         setup: &CP::ProverPublicSetup<'_>,
     ) -> (Self, ProvableQueryResult) {
         let (min_row_num, max_row_num) = get_index_range(accessor, expr.get_table_references());
-        let range_length = max_row_num - min_row_num;
-        let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
-        assert!(num_sumcheck_variables > 0);
-
+        let initial_range_length = max_row_num - min_row_num;
         let alloc = Bump::new();
 
         let total_col_refs = expr.get_column_references();
@@ -95,8 +94,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let provable_result = expr.result_evaluate(&alloc, &table_map).into();
 
         // Prover First Round
-        let mut first_round_builder = FirstRoundBuilder::new();
+        let mut first_round_builder = FirstRoundBuilder::new(initial_range_length);
         expr.first_round_evaluate(&mut first_round_builder);
+        let range_length = first_round_builder.range_length();
+        let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
+        assert!(num_sumcheck_variables > 0);
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript =
@@ -112,8 +114,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(first_round_builder.num_post_result_challenges())
                 .collect();
 
-        let mut builder =
-            FinalRoundBuilder::new(range_length, num_sumcheck_variables, post_result_challenges);
+        let mut builder = FinalRoundBuilder::new(num_sumcheck_variables, post_result_challenges);
 
         for col_ref in total_col_refs {
             builder.produce_anchored_mle(accessor.get_column(col_ref));
@@ -159,7 +160,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
                 .take(pcs_proof_evaluations.len())
                 .collect();
-        let folded_mle = builder.fold_pcs_proof_mles(&random_scalars);
+
+        assert_eq!(random_scalars.len(), builder.pcs_proof_mles().len());
+        let mut folded_mle = vec![Zero::zero(); range_length];
+        for (multiplier, evaluator) in random_scalars.iter().zip(builder.pcs_proof_mles().iter()) {
+            evaluator.mul_add(&mut folded_mle, multiplier);
+        }
 
         // finally, form the inner product proof of the MLEs' evaluations
         let evaluation_proof = CP::new(
@@ -176,6 +182,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             sumcheck_proof,
             pcs_proof_evaluations,
             evaluation_proof,
+            range_length,
         };
         (proof, provable_result)
     }
@@ -190,10 +197,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
         let owned_table_result = result.to_owned_table(&expr.get_column_result_fields())?;
-
-        let (min_row_num, max_row_num) = get_index_range(accessor, expr.get_table_references());
-        let range_length = max_row_num - min_row_num;
-        let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
+        let (min_row_num, _) = get_index_range(accessor, expr.get_table_references());
+        let num_sumcheck_variables = cmp::max(log2_up(self.range_length), 1);
         assert!(num_sumcheck_variables > 0);
 
         // validate bit decompositions
@@ -222,7 +227,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript =
-            make_transcript(expr, result, range_length, min_row_num);
+            make_transcript(expr, result, self.range_length, min_row_num);
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -244,7 +249,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(num_random_scalars)
                 .collect();
         let sumcheck_random_scalars =
-            SumcheckRandomScalars::new(&random_scalars, range_length, num_sumcheck_variables);
+            SumcheckRandomScalars::new(&random_scalars, self.range_length, num_sumcheck_variables);
 
         // verify sumcheck up to the evaluation check
         let poly_info = CompositePolynomialInfo {
@@ -271,7 +276,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
-            range_length,
+            self.range_length,
             owned_table_result.num_rows(),
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
@@ -327,7 +332,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 &product,
                 &subclaim.evaluation_point,
                 min_row_num as u64,
-                range_length,
+                self.range_length,
                 setup,
             )
             .map_err(|_e| ProofError::VerificationError {
