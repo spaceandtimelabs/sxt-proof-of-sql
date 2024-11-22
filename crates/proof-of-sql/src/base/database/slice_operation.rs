@@ -229,17 +229,17 @@ pub(super) fn slice_or(lhs: &[bool], rhs: &[bool]) -> Vec<bool> {
 /// Repeat a slice of values `n` times.
 ///
 /// e.g. `repeat_slice(&[1, 2, 3], 2)` -> `[1, 2, 3, 1, 2, 3]`
-pub(super) fn repeat_slice<S: Clone>(slice: &[S], n: usize) -> impl Iterator<Item = S> {
+pub(super) fn repeat_slice<S: Clone>(slice: &[S], n: usize) -> impl Iterator<Item = S> + '_ {
     slice.iter().cloned().cycle().take(slice.len() * n)
 }
 
 /// Repeat each element of a slice `n` times.
 ///
 /// e.g. `repeat_elementwise(&[1, 2, 3], 2)` -> `[1, 1, 2, 2, 3, 3]`
-pub(super) fn repeat_elementwise<S: Clone>(slice: &[S], n: usize) -> impl Iterator<Item = S> {
+pub(super) fn repeat_elementwise<S: Clone>(slice: &[S], n: usize) -> impl Iterator<Item = S> + '_ {
     slice
         .iter()
-        .flat_map(|s| core::iter::repeat(s).take(n).cloned())
+        .flat_map(move |s| core::iter::repeat(s).take(n).cloned())
 }
 
 #[cfg(test)]

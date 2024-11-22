@@ -3,12 +3,12 @@ use super::{
     Column, ColumnType,
 };
 use crate::base::scalar::Scalar;
-use alloc::vec::Vec;
 use bumpalo::Bump;
+use core::iter::Iterator;
 
 #[allow(dead_code)]
 pub trait RepetitionOp {
-    fn op<T: Clone>(column: &[T], n: usize) -> Vec<T>;
+    fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T>;
 
     /// Run a column repetition operation on a `Column`.
     fn column_op<'a, S>(column: &Column<'a, S>, alloc: &'a Bump, n: usize) -> Column<'a, S>
@@ -17,117 +17,108 @@ pub trait RepetitionOp {
     {
         let len = n * column.len();
         match column.column_type() {
-            ColumnType::Boolean => Column::Boolean(
-                alloc.alloc_slice_fill_with(
-                    len,
-                    Self::op(column.as_boolean().expect("Column types should match"), n)
-                        .next()
-                        .expect("The element should exist"),
-                ) as &[_],
-            ),
-            ColumnType::TinyInt => Column::TinyInt(
-                alloc.alloc_slice_fill_with(
-                    len,
-                    Self::op(column.as_tinyint().expect("Column types should match"), n)
-                        .next()
-                        .expect("The element should exist"),
-                ) as &[_],
-            ),
-            ColumnType::SmallInt => Column::SmallInt(
-                alloc.alloc_slice_fill_with(
-                    len,
-                    Self::op(column.as_smallint().expect("Column types should match"), n)
-                        .next()
-                        .expect("The element should exist"),
-                ) as &[_],
-            ),
-            ColumnType::Int => Column::Int(
-                alloc.alloc_slice_fill_with(
-                    len,
-                    Self::op(column.as_int().expect("Column types should match"), n)
-                        .next()
-                        .expect("The element should exist"),
-                ) as &[_],
-            ),
-            ColumnType::BigInt => Column::BigInt(
-                alloc.alloc_slice_fill_with(
-                    len,
-                    Self::op(column.as_bigint().expect("Column types should match"), n)
-                        .next()
-                        .expect("The element should exist"),
-                ) as &[_],
-            ),
-            ColumnType::Int128 => Column::Int128(
-                alloc.alloc_slice_fill_with(
-                    len,
-                    Self::op(column.as_int128().expect("Column types should match"), n)
-                        .next()
-                        .expect("The element should exist"),
-                ) as &[_],
-            ),
-            ColumnType::Scalar => Column::Scalar(
-                alloc.alloc_slice_fill_with(
-                    len,
-                    Self::op(column.as_scalar().expect("Column types should match"), n)
-                        .next()
-                        .expect("The element should exist"),
-                ) as &[_],
-            ),
-            ColumnType::Decimal75(precision, scale) => Column::Decimal75(
-                precision,
-                scale,
-                alloc.alloc_slice_fill_with(
-                    len,
-                    Self::op(column.as_decimal75().expect("Column types should match"), n)
-                        .next()
-                        .expect("The element should exist"),
-                ) as &[_],
-            ),
+            ColumnType::Boolean => {
+                let mut iter = Self::op(column.as_boolean().expect("Column types should match"), n);
+                Column::Boolean(alloc.alloc_slice_fill_with(len, |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }) as &[_])
+            }
+            ColumnType::TinyInt => {
+                let mut iter = Self::op(column.as_tinyint().expect("Column types should match"), n);
+                Column::TinyInt(alloc.alloc_slice_fill_with(len, |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }) as &[_])
+            }
+            ColumnType::SmallInt => {
+                let mut iter =
+                    Self::op(column.as_smallint().expect("Column types should match"), n);
+                Column::SmallInt(alloc.alloc_slice_fill_with(len, |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }) as &[_])
+            }
+            ColumnType::Int => {
+                let mut iter = Self::op(column.as_int().expect("Column types should match"), n);
+                Column::Int(alloc.alloc_slice_fill_with(len, |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }) as &[_])
+            }
+            ColumnType::BigInt => {
+                let mut iter = Self::op(column.as_bigint().expect("Column types should match"), n);
+                Column::BigInt(alloc.alloc_slice_fill_with(len, |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }) as &[_])
+            }
+            ColumnType::Int128 => {
+                let mut iter = Self::op(column.as_int128().expect("Column types should match"), n);
+                Column::Int128(alloc.alloc_slice_fill_with(len, |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }) as &[_])
+            }
+            ColumnType::Scalar => {
+                let mut iter = Self::op(column.as_scalar().expect("Column types should match"), n);
+                Column::Scalar(alloc.alloc_slice_fill_with(len, |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }) as &[_])
+            }
+            ColumnType::Decimal75(precision, scale) => {
+                let mut iter =
+                    Self::op(column.as_decimal75().expect("Column types should match"), n);
+                Column::Decimal75(
+                    precision,
+                    scale,
+                    alloc.alloc_slice_fill_with(len, |_| {
+                        iter.next().expect("Iterator should have enough elements")
+                    }) as &[_],
+                )
+            }
             ColumnType::VarChar => {
                 let (raw_result, raw_scalars) =
                     column.as_varchar().expect("Column types should match");
+
+                // Create iterators for both the result and scalars
+                let mut result_iter = Self::op(raw_result, n);
+                let mut scalar_iter = Self::op(raw_scalars, n);
+
                 Column::VarChar((
-                    alloc.alloc_slice_fill_with(
-                        len,
-                        Self::op(raw_result, n)
+                    alloc.alloc_slice_fill_with(len, |_| {
+                        result_iter
                             .next()
-                            .expect("The element should exist"),
-                    ) as &[_],
-                    alloc.alloc_slice_fill_with(
-                        len,
-                        Self::op(raw_scalars, n)
+                            .expect("Iterator should have enough elements")
+                    }) as &[_],
+                    alloc.alloc_slice_fill_with(len, |_| {
+                        scalar_iter
                             .next()
-                            .expect("The element should exist"),
-                    ) as &[_],
+                            .expect("Iterator should have enough elements")
+                    }) as &[_],
                 ))
             }
-            ColumnType::TimestampTZ(tu, tz) => Column::TimestampTZ(
-                tu,
-                tz,
-                alloc.alloc_slice_fill_with(
-                    len,
-                    Self::op(
-                        column.as_timestamptz().expect("Column types should match"),
-                        n,
-                    )
-                    .next()
-                    .expect("The element should exist"),
-                ) as &[_],
-            ),
+            ColumnType::TimestampTZ(tu, tz) => {
+                let mut iter = Self::op(
+                    column.as_timestamptz().expect("Column types should match"),
+                    n,
+                );
+                Column::TimestampTZ(
+                    tu,
+                    tz,
+                    alloc.alloc_slice_fill_with(len, |_| {
+                        iter.next().expect("Iterator should have enough elements")
+                    }) as &[_],
+                )
+            }
         }
     }
 }
 
 pub struct ColumnRepeatOp {}
 impl RepetitionOp for ColumnRepeatOp {
-    fn op<T: Clone>(column: &[T], n: usize) -> Vec<T> {
+    fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T> {
         repeat_slice(column, n)
     }
 }
 
 pub struct ElementwiseRepeatOp {}
 impl RepetitionOp for ElementwiseRepeatOp {
-    fn op<T: Clone>(column: &[T], n: usize) -> Vec<T> {
+    fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T> {
         repeat_elementwise(column, n)
     }
 }
