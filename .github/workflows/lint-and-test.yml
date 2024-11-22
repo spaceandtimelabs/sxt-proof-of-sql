@@ -45,19 +45,33 @@ jobs:
       - name: Run cargo check (proof-of-sql) (no features)
         run: cargo check -p proof-of-sql --no-default-features
       - name: Run cargo check (proof-of-sql) (all features)
-        run: cargo check -p proof-of-sql --all-features
+        run: |
+          cargo check -p proof-of-sql --all-features
+          cargo check -p proof-of-sql --all-targets --all-features
       - name: Run cargo check (proof-of-sql) (just "test" feature)
-        run: cargo check -p proof-of-sql --no-default-features --features="test"
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="test"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="test"
       - name: Run cargo check (proof-of-sql) (just "blitzar" feature)
-        run: cargo check -p proof-of-sql --no-default-features --features="blitzar"
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="blitzar"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="blitzar"
       - name: Run cargo check (proof-of-sql) (just "arrow" feature)
-        run: cargo check -p proof-of-sql --no-default-features --features="arrow"
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="arrow"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="arrow"
       - name: Run cargo check (proof-of-sql) (just "rayon" feature)
-        run: cargo check -p proof-of-sql --no-default-features --features="rayon"
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="rayon"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="rayon"
       - name: Run cargo check (proof-of-sql) (just "perf" feature)
-        run: cargo check -p proof-of-sql --no-default-features --features="perf"
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="perf"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="perf"
       - name: Run cargo check (proof-of-sql) (just "std" feature)
-        run: cargo check -p proof-of-sql --no-default-features --features="std"
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="std"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="std"
       - name: Run cargo check (proof-of-sql-parser) with no_std target.
         run: |
           rustup target add thumbv7em-none-eabi

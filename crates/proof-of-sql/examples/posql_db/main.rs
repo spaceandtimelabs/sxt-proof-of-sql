@@ -150,9 +150,13 @@ fn end_timer(instant: Instant) {
 #[allow(clippy::too_many_lines)]
 fn main() {
     let args = CliArgs::parse();
-    println!("Warming up GPU...");
-    blitzar::compute::init_backend();
-    println!("Done.");
+
+    #[cfg(feature = "blitzar")]
+    {
+        println!("Warming up GPU...");
+        proof_of_sql::base::commitment::init_backend();
+        println!("Done.");
+    }
 
     let mut rng = <ark_std::rand::rngs::StdRng as ark_std::rand::SeedableRng>::from_seed([0u8; 32]);
     let public_parameters = PublicParameters::rand(5, &mut rng);
