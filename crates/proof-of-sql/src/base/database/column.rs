@@ -247,23 +247,6 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 
-    /// Returns the column as a slice of scalars
-    pub(crate) fn to_scalar(self, alloc: &'a Bump) -> &'a [S] {
-        match self {
-            Self::Boolean(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::TinyInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::SmallInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::Int(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::BigInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::Int128(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::Scalar(col) | Self::Decimal75(_, _, col) => col,
-            Self::VarChar((_, scals)) => scals,
-            Self::TimestampTZ(_, _, col) => {
-                alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i]))
-            }
-        }
-    }
-
     /// Returns element at index as scalar
     ///
     /// Note that if index is out of bounds, this function will return None
