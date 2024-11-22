@@ -20,6 +20,7 @@ fn are_schemas_compatible(left: &[ColumnField], right: &[ColumnField]) -> bool {
 ///
 /// # Panics
 /// This function should never panic as long as it is written correctly
+#[allow(clippy::too_many_lines)]
 pub fn column_union<'a, S: Scalar>(
     columns: &[&Column<'a, S>],
     alloc: &'a Bump,
@@ -36,90 +37,132 @@ pub fn column_union<'a, S: Scalar>(
             correct_type: column_type,
         });
     }
+    // First, calculate the total length of the combined columns
+    let len: usize = columns.iter().map(|col| col.len()).sum();
+
     Ok(match column_type {
         ColumnType::Boolean => {
-            let result: Vec<_> = columns
+            // Define a mutable iterator outside the closure
+            let mut iter = columns
                 .iter()
                 .flat_map(|col| col.as_boolean().expect("Column types should match"))
-                .copied()
-                .collect();
-            Column::Boolean(alloc.alloc_slice_copy(&result) as &[_])
+                .copied();
+
+            Column::Boolean(alloc.alloc_slice_fill_with(len, |_| {
+                // Use iter.next() to get the next element
+                iter.next().expect("Iterator should have enough elements")
+            }) as &[_])
         }
         ColumnType::TinyInt => {
-            let result: Vec<_> = columns
+            let mut iter = columns
                 .iter()
                 .flat_map(|col| col.as_tinyint().expect("Column types should match"))
-                .copied()
-                .collect();
-            Column::TinyInt(alloc.alloc_slice_copy(&result) as &[_])
+                .copied();
+
+            Column::TinyInt(alloc.alloc_slice_fill_with(len, |_| {
+                iter.next().expect("Iterator should have enough elements")
+            }) as &[_])
         }
         ColumnType::SmallInt => {
-            let result: Vec<_> = columns
+            let mut iter = columns
                 .iter()
                 .flat_map(|col| col.as_smallint().expect("Column types should match"))
-                .copied()
-                .collect();
-            Column::SmallInt(alloc.alloc_slice_copy(&result) as &[_])
+                .copied();
+
+            Column::SmallInt(alloc.alloc_slice_fill_with(len, |_| {
+                iter.next().expect("Iterator should have enough elements")
+            }) as &[_])
         }
         ColumnType::Int => {
-            let result: Vec<_> = columns
+            let mut iter = columns
                 .iter()
                 .flat_map(|col| col.as_int().expect("Column types should match"))
-                .copied()
-                .collect();
-            Column::Int(alloc.alloc_slice_copy(&result) as &[_])
+                .copied();
+
+            Column::Int(alloc.alloc_slice_fill_with(len, |_| {
+                iter.next().expect("Iterator should have enough elements")
+            }) as &[_])
         }
         ColumnType::BigInt => {
-            let result: Vec<_> = columns
+            let mut iter = columns
                 .iter()
                 .flat_map(|col| col.as_bigint().expect("Column types should match"))
-                .copied()
-                .collect();
-            Column::BigInt(alloc.alloc_slice_copy(&result) as &[_])
+                .copied();
+
+            Column::BigInt(alloc.alloc_slice_fill_with(len, |_| {
+                iter.next().expect("Iterator should have enough elements")
+            }) as &[_])
         }
         ColumnType::Int128 => {
-            let result: Vec<_> = columns
+            let mut iter = columns
                 .iter()
                 .flat_map(|col| col.as_int128().expect("Column types should match"))
-                .copied()
-                .collect();
-            Column::Int128(alloc.alloc_slice_copy(&result) as &[_])
+                .copied();
+
+            Column::Int128(alloc.alloc_slice_fill_with(len, |_| {
+                iter.next().expect("Iterator should have enough elements")
+            }) as &[_])
         }
         ColumnType::Scalar => {
-            let result: Vec<_> = columns
+            let mut iter = columns
                 .iter()
                 .flat_map(|col| col.as_scalar().expect("Column types should match"))
-                .copied()
-                .collect();
-            Column::Scalar(alloc.alloc_slice_copy(&result) as &[_])
+                .copied();
+
+            Column::Scalar(alloc.alloc_slice_fill_with(len, |_| {
+                iter.next().expect("Iterator should have enough elements")
+            }) as &[_])
         }
         ColumnType::Decimal75(precision, scale) => {
-            let result: Vec<_> = columns
+            let mut iter = columns
                 .iter()
                 .flat_map(|col| col.as_decimal75().expect("Column types should match"))
-                .copied()
-                .collect();
-            Column::Decimal75(precision, scale, alloc.alloc_slice_copy(&result) as &[_])
+                .copied();
+
+            Column::Decimal75(
+                precision,
+                scale,
+                alloc.alloc_slice_fill_with(len, |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }) as &[_],
+            )
         }
         ColumnType::VarChar => {
-            let (nested_result, nested_scalars): (Vec<_>, Vec<_>) = columns
+            let (nested_results, nested_scalars): (Vec<_>, Vec<_>) = columns
                 .iter()
                 .map(|col| col.as_varchar().expect("Column types should match"))
                 .unzip();
-            let result: Vec<_> = nested_result.into_iter().flatten().copied().collect();
-            let scalars: Vec<_> = nested_scalars.into_iter().flatten().copied().collect();
+
+            // Create iterators for both results and scalars
+            let mut result_iter = nested_results.into_iter().flatten().copied();
+            let mut scalar_iter = nested_scalars.into_iter().flatten().copied();
+
             Column::VarChar((
-                alloc.alloc_slice_copy(&result) as &[_],
-                alloc.alloc_slice_copy(&scalars) as &[_],
+                alloc.alloc_slice_fill_with(len, |_| {
+                    result_iter
+                        .next()
+                        .expect("Iterator should have enough elements")
+                }) as &[_],
+                alloc.alloc_slice_fill_with(len, |_| {
+                    scalar_iter
+                        .next()
+                        .expect("Iterator should have enough elements")
+                }) as &[_],
             ))
         }
         ColumnType::TimestampTZ(tu, tz) => {
-            let result: Vec<_> = columns
+            let mut iter = columns
                 .iter()
                 .flat_map(|col| col.as_timestamptz().expect("Column types should match"))
-                .copied()
-                .collect();
-            Column::TimestampTZ(tu, tz, alloc.alloc_slice_copy(&result) as &[_])
+                .copied();
+
+            Column::TimestampTZ(
+                tu,
+                tz,
+                alloc.alloc_slice_fill_with(len, |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }) as &[_],
+            )
         }
     })
 }
