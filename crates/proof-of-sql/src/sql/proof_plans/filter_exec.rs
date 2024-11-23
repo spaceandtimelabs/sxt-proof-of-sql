@@ -218,6 +218,7 @@ impl ProverEvaluate for FilterExec {
             &columns,
             selection,
             &filtered_columns,
+            table.num_rows(),
             result_len,
         );
         Table::<'a, S>::try_from_iter_with_options(
@@ -278,9 +279,9 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
     c: &[Column<S>],
     s: &'a [bool],
     d: &[Column<S>],
+    n: usize,
     m: usize,
 ) {
-    let n = builder.table_length();
     let chi = alloc.alloc_slice_fill_copy(n, false);
     chi[..m].fill(true);
 
