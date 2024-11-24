@@ -1,5 +1,6 @@
-use super::Column;
+use super::{Column, ColumnField};
 use crate::base::{map::IndexMap, scalar::Scalar};
+use alloc::vec::Vec;
 use proof_of_sql_parser::Identifier;
 use snafu::Snafu;
 
@@ -116,6 +117,14 @@ impl<'a, S: Scalar> Table<'a, S> {
     pub fn inner_table(&self) -> &IndexMap<Identifier, Column<'a, S>> {
         &self.table
     }
+    /// Return the schema of this table as a `Vec` of `ColumnField`s
+    #[must_use]
+    pub fn schema(&self) -> Vec<ColumnField> {
+        self.table
+            .iter()
+            .map(|(name, column)| ColumnField::new(*name, column.column_type()))
+            .collect()
+    }
     /// Returns the columns of this table as an Iterator
     pub fn column_names(&self) -> impl Iterator<Item = &Identifier> {
         self.table.keys()
@@ -123,6 +132,11 @@ impl<'a, S: Scalar> Table<'a, S> {
     /// Returns the columns of this table as an Iterator
     pub fn columns(&self) -> impl Iterator<Item = &Column<'a, S>> {
         self.table.values()
+    }
+    /// Returns the column with the given position.
+    #[must_use]
+    pub fn column(&self, index: usize) -> Option<&Column<'a, S>> {
+        self.table.values().nth(index)
     }
 }
 

@@ -52,6 +52,17 @@ pub enum ColumnOperationError {
         /// The underlying source error
         source: DecimalError,
     },
+
+    /// Errors related to unioning columns of different types
+    #[snafu(display(
+        "Cannot union columns of different types: {correct_type:?} and {actual_type:?}"
+    ))]
+    UnionDifferentTypes {
+        /// The correct data type
+        correct_type: ColumnType,
+        /// The type of the column that caused the error
+        actual_type: ColumnType,
+    },
 }
 
 /// Result type for column operations
