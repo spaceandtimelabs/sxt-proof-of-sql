@@ -226,6 +226,22 @@ pub(super) fn slice_or(lhs: &[bool], rhs: &[bool]) -> Vec<bool> {
     slice_binary_op(lhs, rhs, |l, r| -> bool { *l || *r })
 }
 
+/// Repeat a slice of values `n` times.
+///
+/// e.g. `repeat_slice(&[1, 2, 3], 2)` -> `[1, 2, 3, 1, 2, 3]`
+pub(super) fn repeat_slice<S: Clone>(slice: &[S], n: usize) -> impl Iterator<Item = S> + '_ {
+    slice.iter().cloned().cycle().take(slice.len() * n)
+}
+
+/// Repeat each element of a slice `n` times.
+///
+/// e.g. `repeat_elementwise(&[1, 2, 3], 2)` -> `[1, 1, 2, 2, 3, 3]`
+pub(super) fn repeat_elementwise<S: Clone>(slice: &[S], n: usize) -> impl Iterator<Item = S> + '_ {
+    slice
+        .iter()
+        .flat_map(move |s| core::iter::repeat(s).take(n).cloned())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -591,5 +607,59 @@ mod test {
             try_slice_binary_op_right_upcast(&lhs, &rhs, try_div),
             Err(ColumnOperationError::DivisionByZero)
         ));
+    }
+
+    #[test]
+    fn we_can_repeat_a_slice() {
+        // We can repeat a slice
+        let slice = [1_i16, 2, 3];
+        let actual = repeat_slice(&slice, 2).collect::<Vec<_>>();
+        let expected = vec![1_i16, 2, 3, 1, 2, 3];
+        assert_eq!(expected, actual);
+
+        // We can repeat an empty slice
+        let slice = [0; 0];
+        let actual = repeat_slice(&slice, 2).collect::<Vec<_>>();
+        let expected: Vec<i32> = vec![];
+        assert_eq!(expected, actual);
+
+        // We can repeat a slice 0 times
+        let slice = [1_i16, 2, 3];
+        let actual = repeat_slice(&slice, 0).collect::<Vec<_>>();
+        let expected: Vec<i16> = vec![];
+        assert_eq!(expected, actual);
+
+        // We can repeat an empty slice 0 times
+        let slice = [0; 0];
+        let actual = repeat_slice(&slice, 0).collect::<Vec<_>>();
+        let expected: Vec<i32> = vec![];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_repeat_elementwise() {
+        // We can repeat each element of a slice
+        let slice = [1_i16, 2, 3];
+        let actual = repeat_elementwise(&slice, 2).collect::<Vec<_>>();
+        let expected = vec![1_i16, 1, 2, 2, 3, 3];
+        assert_eq!(expected, actual);
+
+        // We can repeat an empty slice
+        let slice = [0; 0];
+        let actual = repeat_elementwise(&slice, 2).collect::<Vec<_>>();
+        let expected: Vec<i32> = vec![];
+        assert_eq!(expected, actual);
+
+        // We can repeat each element of a slice 0 times
+        let slice = [1_i16, 2, 3];
+        let actual = repeat_elementwise(&slice, 0).collect::<Vec<_>>();
+        let expected: Vec<i16> = vec![];
+        assert_eq!(expected, actual);
+
+        // We can repeat an empty slice 0 times
+        let slice = [0; 0];
+        let actual = repeat_elementwise(&slice, 0).collect::<Vec<_>>();
+        let expected: Vec<i32> = vec![];
+        assert_eq!(expected, actual);
     }
 }
