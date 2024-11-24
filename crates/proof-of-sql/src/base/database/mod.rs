@@ -55,7 +55,6 @@ pub use table_ref::TableRef;
 pub mod arrow_schema_utility;
 
 mod owned_column;
-pub(crate) use owned_column::compare_indexes_by_owned_columns_with_direction;
 pub use owned_column::OwnedColumn;
 
 mod owned_column_error;
@@ -115,3 +114,7 @@ mod group_by_util_test;
 
 #[allow(dead_code)]
 pub(crate) mod union_util;
+
+pub(crate) mod order_by_util;
+#[cfg(test)]
+mod order_by_util_test;
