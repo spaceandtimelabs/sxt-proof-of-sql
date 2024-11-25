@@ -5,17 +5,20 @@ use crate::{
             owned_table_utility::{bigint, boolean, owned_table},
             ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, TestAccessor,
         },
-        scalar::Curve25519Scalar,
+        scalar::{Curve25519Scalar, Scalar},
     },
     proof_primitive::hyrax::{
         base::{hyrax_public_setup::HyraxPublicSetup, hyrax_scalar::HyraxScalarWrapper},
-        sp1::sp1_hyrax_commitment_evaluation_proof::Sp1HyraxCommitmentEvaluationProof,
+        sp1::{
+            edwards_point::generate_random_element,
+            sp1_hyrax_commitment_evaluation_proof::Sp1HyraxCommitmentEvaluationProof,
+        },
     },
     sql::{parse::QueryExpr, proof::QueryProof},
 };
 use alloc::vec::Vec;
 use core::iter;
-use curve25519_dalek::{EdwardsPoint, Scalar};
+use curve25519_dalek::{EdwardsPoint};
 use proof_of_sql_parser::Identifier;
 use rand::{random, thread_rng, Rng, RngCore, SeedableRng};
 
@@ -23,10 +26,9 @@ use rand::{random, thread_rng, Rng, RngCore, SeedableRng};
 fn we_can_verify_hyrax_proof() {
     let nu = 7;
     let mut rng = rand::rngs::StdRng::seed_from_u64(100);
-    let generators: Vec<EdwardsPoint> =
-        iter::repeat_with(|| EdwardsPoint::mul_base(&Scalar::from(rng.next_u64())))
-            .take(1 << nu)
-            .collect();
+    let generators: Vec<EdwardsPoint> = iter::repeat_with(|| generate_random_element(&mut rng))
+        .take(1 << nu)
+        .collect();
     let setup = HyraxPublicSetup {
         generators: &generators,
     };
@@ -55,12 +57,11 @@ fn we_can_verify_hyrax_proof() {
 
 #[test]
 fn reproduce_normalization_error() {
-    let nu = 7;
-    let mut rng = rand::rngs::StdRng::seed_from_u64(100);
-    let generators: Vec<EdwardsPoint> =
-        iter::repeat_with(|| EdwardsPoint::mul_base(&Scalar::from(rng.next_u64())))
-            .take(1 << nu)
-            .collect();
+    let nu = 2;
+    let mut rng = rand::rngs::StdRng::seed_from_u64(103);
+    let generators: Vec<EdwardsPoint> = iter::repeat_with(|| generate_random_element(&mut rng))
+        .take(1 << nu)
+        .collect();
     let setup = HyraxPublicSetup {
         generators: &generators,
     };
