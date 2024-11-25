@@ -1,6 +1,8 @@
 use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
 use crate::base::{
-    database::{compare_indexes_by_owned_columns_with_direction, OwnedColumn, OwnedTable},
+    database::{
+        order_by_util::compare_indexes_by_owned_columns_with_direction, OwnedColumn, OwnedTable,
+    },
     if_rayon,
     math::permutation::Permutation,
     scalar::Scalar,

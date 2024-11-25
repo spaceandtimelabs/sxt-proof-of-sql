@@ -1,9 +1,11 @@
 //! Contains the utility functions for the `GroupByExec` node.
 
 use crate::base::{
-    database::{filter_util::filter_column_by_index, Column, OwnedColumn},
+    database::{
+        filter_util::filter_column_by_index, order_by_util::compare_indexes_by_columns, Column,
+    },
     if_rayon,
-    scalar::{Scalar, ScalarExt},
+    scalar::Scalar,
 };
 use alloc::vec::Vec;
 use bumpalo::Bump;
@@ -354,54 +356,4 @@ where
             .map(|i| S::from(&slice[*i]))
             .min_by(super::super::scalar::ScalarExt::signed_cmp)
     }))
-}
-
-/// Compares the tuples `(group_by[0][i], group_by[1][i], ...)` and
-/// `(group_by[0][j], group_by[1][j], ...)` in lexicographic order.
-pub(crate) fn compare_indexes_by_columns<S: Scalar>(
-    group_by: &[Column<S>],
-    i: usize,
-    j: usize,
-) -> Ordering {
-    group_by
-        .iter()
-        .map(|col| match col {
-            Column::Boolean(col) => col[i].cmp(&col[j]),
-            Column::TinyInt(col) => col[i].cmp(&col[j]),
-            Column::SmallInt(col) => col[i].cmp(&col[j]),
-            Column::Int(col) => col[i].cmp(&col[j]),
-            Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
-            Column::Int128(col) => col[i].cmp(&col[j]),
-            Column::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
-            Column::Scalar(col) => col[i].cmp(&col[j]),
-            Column::VarChar((col, _)) => col[i].cmp(col[j]),
-        })
-        .find(|&ord| ord != Ordering::Equal)
-        .unwrap_or(Ordering::Equal)
-}
-
-/// Compares the tuples `(group_by[0][i], group_by[1][i], ...)` and
-/// `(group_by[0][j], group_by[1][j], ...)` in lexicographic order.
-///
-/// Identical in functionality to [`compare_indexes_by_columns`]
-pub(crate) fn compare_indexes_by_owned_columns<S: Scalar>(
-    group_by: &[&OwnedColumn<S>],
-    i: usize,
-    j: usize,
-) -> Ordering {
-    group_by
-        .iter()
-        .map(|col| match col {
-            OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
-            OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
-            OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
-            OwnedColumn::Int(col) => col[i].cmp(&col[j]),
-            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
-            OwnedColumn::Int128(col) => col[i].cmp(&col[j]),
-            OwnedColumn::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
-            OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
-            OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
-        })
-        .find(|&ord| ord != Ordering::Equal)
-        .unwrap_or(Ordering::Equal)
 }
