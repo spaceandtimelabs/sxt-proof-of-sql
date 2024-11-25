@@ -44,6 +44,8 @@ mod sp1_hyrax_configuration_tests {
 
     #[test]
     fn from_compressed_to_operable_and_from_operable_to_compressed_are_inverses_for_sp1() {
-        from_compressed_to_operable_and_from_operable_to_compressed_are_inverses::<Sp1HyraxConfiguration>();
+        from_compressed_to_operable_and_from_operable_to_compressed_are_inverses::<
+            Sp1HyraxConfiguration,
+        >();
     }
 }
