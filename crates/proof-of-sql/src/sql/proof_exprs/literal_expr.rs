@@ -59,17 +59,17 @@ impl ProofExpr for LiteralExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        Column::from_literal_with_length(&self.value, table.num_rows(), alloc)
+        let table_length = table.num_rows();
+        Column::from_literal_with_length(&self.value, table_length, alloc)
     }
 
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        _builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
+        one_eval: S,
     ) -> Result<S, ProofError> {
-        let mut commitment = builder.mle_evaluations.input_one_evaluation;
-        commitment *= self.value.to_scalar();
-        Ok(commitment)
+        Ok(one_eval * self.value.to_scalar())
     }
 
     fn get_column_references(&self, _columns: &mut IndexSet<ColumnRef>) {}

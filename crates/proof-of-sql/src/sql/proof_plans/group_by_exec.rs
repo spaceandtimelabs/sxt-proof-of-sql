@@ -4,7 +4,8 @@ use crate::{
         database::{
             group_by_util::{aggregate_columns, AggregatedColumns},
             order_by_util::compare_indexes_by_owned_columns,
-            Column, ColumnField, ColumnRef, ColumnType, OwnedTable, Table, TableRef,
+            Column, ColumnField, ColumnRef, ColumnType, OwnedTable, Table, TableEvaluation,
+            TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -91,22 +92,31 @@ impl ProofPlan for GroupByExec {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+        one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
+        let input_one_eval = *one_eval_map
+            .get(&self.table.table_ref)
+            .expect("One eval not found");
         // 1. selection
-        let where_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
+        let where_eval = self
+            .where_clause
+            .verifier_evaluate(builder, accessor, input_one_eval)?;
         // 2. columns
         let group_by_evals = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.verifier_evaluate(builder, accessor))
+            .map(|expr| expr.verifier_evaluate(builder, accessor, input_one_eval))
             .collect::<Result<Vec<_>, _>>()?;
         let aggregate_evals = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .verifier_evaluate(builder, accessor, input_one_eval)
+            })
             .collect::<Result<Vec<_>, _>>()?;
         // 3. filtered_columns
-
         let group_by_result_columns_evals: Vec<_> =
             repeat_with(|| builder.consume_intermediate_mle())
                 .take(self.group_by_exprs.len())
@@ -123,6 +133,7 @@ impl ProofPlan for GroupByExec {
             builder,
             alpha,
             beta,
+            input_one_eval,
             (group_by_evals, aggregate_evals, where_eval),
             (
                 group_by_result_columns_evals.clone(),
@@ -151,11 +162,13 @@ impl ProofPlan for GroupByExec {
             None => todo!("GroupByExec currently only supported at top level of query plan."),
         }
 
-        Ok(group_by_result_columns_evals
+        let column_evals = group_by_result_columns_evals
             .into_iter()
             .chain(sum_result_columns_evals)
             .chain(iter::once(count_column_eval))
-            .collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+        let output_one_eval = builder.consume_one_evaluation();
+        Ok(TableEvaluation::new(column_evals, output_one_eval))
     }
 
     #[allow(clippy::redundant_closure_for_method_calls)]
@@ -317,6 +330,7 @@ impl ProverEvaluate for GroupByExec {
             (&group_by_result_columns, &sum_result_columns, count_column),
             table.num_rows(),
         );
+        builder.push_one_evaluation_length(res.num_rows());
         res
     }
 }
@@ -326,11 +340,10 @@ fn verify_group_by<S: Scalar>(
     builder: &mut VerificationBuilder<S>,
     alpha: S,
     beta: S,
+    one_eval: S,
     (g_in_evals, sum_in_evals, sel_in_eval): (Vec<S>, Vec<S>, S),
     (g_out_evals, sum_out_evals, count_out_eval): (Vec<S>, Vec<S>, S),
 ) -> Result<(), ProofError> {
-    let one_eval = builder.mle_evaluations.input_one_evaluation;
-
     // g_in_fold = alpha + sum beta^j * g_in[j]
     let g_in_fold_eval = alpha * one_eval + fold_vals(beta, &g_in_evals);
     // g_out_bar_fold = alpha + sum beta^j * g_out_bar[j]

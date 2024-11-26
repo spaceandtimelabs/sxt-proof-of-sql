@@ -86,9 +86,10 @@ impl ProofExpr for AndExpr {
         &self,
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
+        one_eval: S,
     ) -> Result<S, ProofError> {
-        let lhs = self.lhs.verifier_evaluate(builder, accessor)?;
-        let rhs = self.rhs.verifier_evaluate(builder, accessor)?;
+        let lhs = self.lhs.verifier_evaluate(builder, accessor, one_eval)?;
+        let rhs = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
 
         // lhs_and_rhs
         let lhs_and_rhs = builder.consume_intermediate_mle();

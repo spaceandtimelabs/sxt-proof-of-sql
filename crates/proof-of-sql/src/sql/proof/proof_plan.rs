@@ -1,6 +1,6 @@
 use super::{CountBuilder, FinalRoundBuilder, FirstRoundBuilder, VerificationBuilder};
 use crate::base::{
-    database::{ColumnField, ColumnRef, OwnedTable, Table, TableRef},
+    database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
     map::{IndexMap, IndexSet},
     proof::ProofError,
     scalar::Scalar,
@@ -21,7 +21,8 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError>;
+        one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError>;
 
     /// Return all the result column fields
     fn get_column_result_fields(&self) -> Vec<ColumnField>;

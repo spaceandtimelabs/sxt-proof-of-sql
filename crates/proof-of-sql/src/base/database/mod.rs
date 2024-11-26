@@ -77,6 +77,9 @@ pub use table::{Table, TableOptions};
 mod table_test;
 pub mod table_utility;
 
+mod table_evaluation;
+pub use table_evaluation::TableEvaluation;
+
 /// TODO: add docs
 pub(crate) mod expression_evaluation;
 mod expression_evaluation_error;

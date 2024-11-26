@@ -17,6 +17,7 @@ pub struct FinalRoundBuilder<'a, S: Scalar> {
     commitment_descriptor: Vec<CommittableColumn<'a>>,
     pcs_proof_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
     sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a, S>>,
+    one_evaluation_lengths: Vec<usize>,
     /// The challenges used in creation of the constraints in the proof.
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
@@ -36,6 +37,7 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
             pcs_proof_mles: Vec::new(),
             sumcheck_subpolynomials: Vec::new(),
             post_result_challenges,
+            one_evaluation_lengths: Vec::new(),
         }
     }
 
@@ -49,6 +51,15 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
 
     pub fn pcs_proof_mles(&self) -> &[Box<dyn MultilinearExtension<S> + 'a>] {
         &self.pcs_proof_mles
+    }
+
+    pub fn one_evaluation_lengths(&self) -> &[usize] {
+        &self.one_evaluation_lengths
+    }
+
+    /// Whenever we need to evaluate a column of 1s with a given length, we push the length
+    pub fn push_one_evaluation_length(&mut self, length: usize) {
+        self.one_evaluation_lengths.push(length);
     }
 
     /// Produce a bit distribution that describes which bits are constant
