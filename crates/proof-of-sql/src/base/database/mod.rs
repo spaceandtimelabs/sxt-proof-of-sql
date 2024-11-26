@@ -26,6 +26,7 @@ pub(super) use column_comparison_operation::{
 };
 
 mod column_index_operation;
+pub(super) use column_index_operation::apply_column_to_indexes;
 
 mod column_repetition_operation;
 pub(super) use column_repetition_operation::{ColumnRepeatOp, ElementwiseRepeatOp, RepetitionOp};

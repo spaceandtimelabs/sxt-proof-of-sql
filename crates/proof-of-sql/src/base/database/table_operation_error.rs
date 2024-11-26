@@ -1,7 +1,8 @@
-use crate::base::database::{ColumnField, ColumnType};
+use super::{ColumnField, ColumnOperationError, ColumnType};
 use alloc::vec::Vec;
 use core::result::Result;
 use snafu::Snafu;
+use sqlparser::ast::Ident;
 
 /// Errors from operations on tables.
 #[derive(Snafu, Debug, PartialEq, Eq)]
@@ -25,6 +26,21 @@ pub enum TableOperationError {
         left_type: ColumnType,
         /// The right-hand side data type
         right_type: ColumnType,
+    },
+    /// Errors related to a column that does not exist in a table.
+    #[snafu(display("Column {column_ident:?} does not exist in table"))]
+    ColumnDoesNotExist {
+        /// The nonexistent column identifier
+        column_ident: Ident,
+    },
+    /// Errors related to duplicate columns in a table.
+    #[snafu(display("Some column is duplicated in table"))]
+    DuplicateColumn,
+    /// Errors due to bad column operations.
+    #[snafu(transparent)]
+    ColumnOperationError {
+        /// The underlying `ColumnOperationError`
+        source: ColumnOperationError,
     },
 }
 
