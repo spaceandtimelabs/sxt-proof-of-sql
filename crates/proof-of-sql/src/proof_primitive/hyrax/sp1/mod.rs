@@ -1,4 +1,5 @@
 mod edwards_point;
+pub use edwards_point::generate_random_edwards_point_by_table_size;
 /// The sp1 hyrax commitment scheme.
 pub mod sp1_hyrax_commitment;
 /// The sp1 hyrax commitment evaluation scheme.

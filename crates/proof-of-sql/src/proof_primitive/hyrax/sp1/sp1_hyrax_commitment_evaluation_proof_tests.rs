@@ -9,10 +9,7 @@ use crate::{
     },
     proof_primitive::hyrax::{
         base::{hyrax_public_setup::HyraxPublicSetup, hyrax_scalar::HyraxScalarWrapper},
-        sp1::{
-            edwards_point::generate_random_element,
-            sp1_hyrax_commitment_evaluation_proof::Sp1HyraxCommitmentEvaluationProof,
-        },
+        sp1::sp1_hyrax_commitment_evaluation_proof::Sp1HyraxCommitmentEvaluationProof,
     },
     sql::{parse::QueryExpr, proof::QueryProof},
 };

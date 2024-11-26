@@ -8,16 +8,17 @@ use proof_of_sql::{
         database::{owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TestAccessor},
         scalar::Curve25519Scalar,
     },
-    proof_primitive::dory::{
+    proof_primitive::{dory::{
         DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
-    },
+    }, hyrax::sp1::{generate_random_edwards_point_by_table_size, sp1_hyrax_commitment_evaluation_proof::Sp1HyraxCommitmentEvaluationProof, sp1_hyrax_public_setup::Sp1HyraxPublicSetup}},
     sql::{
         parse::{ConversionError, QueryExpr},
         postprocessing::apply_postprocessing_steps,
         proof::{QueryError, VerifiableQueryResult},
     },
 };
+use rand::SeedableRng;
 
 #[test]
 #[cfg(feature = "blitzar")]
@@ -104,6 +105,43 @@ fn we_can_prove_a_minimal_filter_query_with_dynamic_dory() {
     );
     let owned_table_result = verifiable_result
         .verify(query.proof_expr(), &accessor, &&verifier_setup)
+        .unwrap()
+        .table;
+    let expected_result = owned_table([boolean("a", [false])]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+fn we_can_prove_a_minimal_filter_query_with_sp1_hyrax() {
+    let mut rng = rand::rngs::StdRng::seed_from_u64(100);
+    let generators = proof_of_sql::proof_primitive::hyrax::sp1::generate_random_edwards_point_by_table_size(&mut rng, 2);
+    let setup = Sp1HyraxPublicSetup{generators: &generators};
+
+    let mut accessor =
+        OwnedTableTestAccessor::<Sp1HyraxCommitmentEvaluationProof>::new_empty_with_setup(setup);
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([boolean("a", [true, false])]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE not a".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) = QueryProof::<Sp1HyraxCommitmentEvaluationProof>::new(
+        query.proof_expr(),
+        &accessor,
+        &&setup,
+    );
+    let owned_table_result = proof
+        .verify(
+            query.proof_expr(),
+            &accessor,
+            &serialized_result,
+            &&setup,
+        )
         .unwrap()
         .table;
     let expected_result = owned_table([boolean("a", [false])]);
@@ -709,6 +747,85 @@ fn we_can_prove_a_cat_group_by_query_with_dynamic_dory() {
     );
     let owned_table_result = verifiable_result
         .verify(query.proof_expr(), &accessor, &&verifier_setup)
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        decimal75("diff_from_ideal_weight", 3, 1, [-25, -20, 34, 103]),
+        bigint("num_cats", [1_i64, 1, 2, 2]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+fn we_can_prove_a_cat_group_by_query_with_sp1_hyrax() {
+    let mut rng = rand::rngs::StdRng::seed_from_u64(100);
+    let generators = generate_random_edwards_point_by_table_size(&mut rng, 10);
+    let setup = Sp1HyraxPublicSetup{generators: &generators};
+
+    let mut accessor =
+        OwnedTableTestAccessor::<Sp1HyraxCommitmentEvaluationProof>::new_empty_with_setup(setup);
+    accessor.add_table(
+        "sxt.cats".parse().unwrap(),
+        owned_table([
+            int("id", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+            varchar(
+                "name",
+                [
+                    "Chloe",
+                    "Margaret",
+                    "Prudence",
+                    "Lucy",
+                    "Ms. Kitty",
+                    "Pepper",
+                    "Rocky",
+                    "Smokey",
+                    "Tiger",
+                    "Whiskers",
+                ],
+            ),
+            decimal75(
+                "diff_from_ideal_weight",
+                3,
+                1,
+                [103_i16, -20, 34, 34, 103, -25, -25, 47, 52, 63],
+            ),
+            varchar(
+                "human",
+                [
+                    "Ian", "Ian", "Gretta", "Gretta", "Gretta", "Gretta", "Gretta", "Alice", "Bob",
+                    "Charlie",
+                ],
+            ),
+            boolean(
+                "is_female",
+                [
+                    true, true, true, true, true, true, false, false, false, false,
+                ],
+            ),
+            bigint("proof_order", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "select diff_from_ideal_weight, count(*) as num_cats from sxt.cats where is_female group by diff_from_ideal_weight order by diff_from_ideal_weight"
+            .parse()
+            .unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) = QueryProof::<Sp1HyraxCommitmentEvaluationProof>::new(
+        query.proof_expr(),
+        &accessor,
+        &&setup,
+    );
+    let owned_table_result = proof
+        .verify(
+            query.proof_expr(),
+            &accessor,
+            &serialized_result,
+            &&setup,
+        )
         .unwrap()
         .table;
     let expected_result = owned_table([
