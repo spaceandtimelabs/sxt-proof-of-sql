@@ -6,6 +6,7 @@ use crate::base::{
     },
     scalar::Scalar,
 };
+use core::iter::IntoIterator;
 
 /// Evaluations for different MLEs at the random point chosen for sumcheck
 #[derive(Default)]
@@ -40,7 +41,7 @@ impl<'a, S: Scalar> SumcheckMleEvaluations<'a, S> {
     /// - `pcs_proof_evaluations` - the evaluations of the MLEs that are proven via IPA
     pub fn new(
         range_length: usize,
-        one_evaluation_lengths: &[usize],
+        one_evaluation_lengths: impl IntoIterator<Item = usize>,
         evaluation_point: &[S],
         sumcheck_random_scalars: &SumcheckRandomScalars<S>,
         pcs_proof_evaluations: &'a [S],
@@ -56,7 +57,7 @@ impl<'a, S: Scalar> SumcheckMleEvaluations<'a, S> {
             sumcheck_random_scalars.entrywise_point,
         );
         let unique_one_evaluation_lengths: IndexSet<usize> =
-            one_evaluation_lengths.iter().copied().collect();
+            one_evaluation_lengths.into_iter().collect();
         let one_evaluations = unique_one_evaluation_lengths
             .iter()
             .map(|&length| {

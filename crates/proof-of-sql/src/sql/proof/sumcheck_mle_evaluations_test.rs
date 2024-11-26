@@ -15,7 +15,7 @@ fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {
     let pcs_proof_evaluations = [Curve25519Scalar::from(42u64)];
     let evals = SumcheckMleEvaluations::new(
         3,
-        &[3, 3],
+        [3, 3],
         &evaluation_point,
         &sumcheck_random_scalars,
         &pcs_proof_evaluations,
