@@ -27,15 +27,15 @@ use serde::{Deserialize, Serialize};
 ///
 /// Basically we are looking for the smallest offset and the largest offset + length
 /// so that we have an index range of the table rows that the query is referencing.
-fn get_index_range(
+fn get_index_range<'a>(
     accessor: &dyn MetadataAccessor,
-    table_refs: impl IntoIterator<Item = TableRef>,
+    table_refs: impl IntoIterator<Item = &'a TableRef>,
 ) -> (usize, usize) {
     table_refs
         .into_iter()
         .map(|table_ref| {
-            let length = accessor.get_length(table_ref);
-            let offset = accessor.get_offset(table_ref);
+            let length = accessor.get_length(*table_ref);
+            let offset = accessor.get_offset(*table_ref);
             (offset, offset + length)
         })
         .reduce(|(min_start, max_end), (start, end)| (min_start.min(start), max_end.max(end)))
@@ -74,7 +74,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> (Self, ProvableQueryResult) {
-        let (min_row_num, max_row_num) = get_index_range(accessor, expr.get_table_references());
+        let (min_row_num, max_row_num) = get_index_range(accessor, &expr.get_table_references());
         let initial_range_length = max_row_num - min_row_num;
         let alloc = Bump::new();
 
@@ -201,7 +201,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     ) -> QueryResult<CP::Scalar> {
         let owned_table_result = result.to_owned_table(&expr.get_column_result_fields())?;
         let table_refs = expr.get_table_references();
-        let (min_row_num, _) = get_index_range(accessor, table_refs.clone());
+        let (min_row_num, _) = get_index_range(accessor, &table_refs);
         let num_sumcheck_variables = cmp::max(log2_up(self.range_length), 1);
         assert!(num_sumcheck_variables > 0);
 
@@ -293,7 +293,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
             self.range_length,
-            &one_evaluation_lengths,
+            one_evaluation_lengths,
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations,
