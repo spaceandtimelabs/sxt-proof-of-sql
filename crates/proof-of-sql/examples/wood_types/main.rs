@@ -21,7 +21,7 @@ use std::{fs::File, time::Instant};
 
 // We generate the public parameters and the setups used by the prover and verifier for the Dory PCS.
 // The `max_nu` should be set such that the maximum table size is less than `2^(2*max_nu-1)`.
-const DORY_SETUP_MAX_NU: usize = 8;
+const DORY_SETUP_MAX_NU: usize = 13;
 // This should be a "nothing-up-my-sleeve" phrase or number.
 const DORY_SEED: [u8; 32] = *b"f3a8d12e6b7c4590a1f2e3d4b5c6a7b8";
 
