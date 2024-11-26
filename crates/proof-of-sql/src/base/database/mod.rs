@@ -25,6 +25,8 @@ pub(super) use column_comparison_operation::{
     ComparisonOp, EqualOp, GreaterThanOrEqualOp, LessThanOrEqualOp,
 };
 
+mod column_index_operation;
+
 mod column_repetition_operation;
 pub(super) use column_repetition_operation::{ColumnRepeatOp, ElementwiseRepeatOp, RepetitionOp};
 
