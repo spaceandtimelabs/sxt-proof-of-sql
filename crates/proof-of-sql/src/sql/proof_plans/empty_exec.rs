@@ -1,6 +1,8 @@
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, OwnedTable, Table, TableOptions, TableRef},
+        database::{
+            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
+        },
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -41,11 +43,15 @@ impl ProofPlan for EmptyExec {
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        _builder: &mut VerificationBuilder<S>,
+        builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
-        Ok(Vec::new())
+        _one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
+        Ok(TableEvaluation::new(
+            Vec::<S>::new(),
+            builder.mle_evaluations.singleton_one_evaluation,
+        ))
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

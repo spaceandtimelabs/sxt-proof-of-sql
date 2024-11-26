@@ -52,6 +52,8 @@ fn get_index_range(
 pub struct QueryProof<CP: CommitmentEvaluationProof> {
     /// Bit distributions
     pub bit_distributions: Vec<BitDistribution>,
+    /// One evaluation lengths
+    pub one_evaluation_lengths: Vec<usize>,
     /// Commitments
     pub commitments: Vec<CP::Commitment>,
     /// Sumcheck Proof
@@ -178,6 +180,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let proof = Self {
             bit_distributions: builder.bit_distributions().to_vec(),
+            one_evaluation_lengths: builder.one_evaluation_lengths().to_vec(),
             commitments,
             sumcheck_proof,
             pcs_proof_evaluations,
@@ -197,7 +200,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
         let owned_table_result = result.to_owned_table(&expr.get_column_result_fields())?;
-        let (min_row_num, _) = get_index_range(accessor, expr.get_table_references());
+        let table_refs = expr.get_table_references();
+        let (min_row_num, _) = get_index_range(accessor, table_refs.clone());
         let num_sumcheck_variables = cmp::max(log2_up(self.range_length), 1);
         assert!(num_sumcheck_variables > 0);
 
@@ -274,14 +278,30 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(self.pcs_proof_evaluations.len())
                 .collect();
 
+        // Always prepend input lengths to the one evaluation lengths
+        let table_length_map = table_refs
+            .iter()
+            .map(|table_ref| (table_ref, accessor.get_length(*table_ref)))
+            .collect::<IndexMap<_, _>>();
+
+        let one_evaluation_lengths = table_length_map
+            .values()
+            .chain(self.one_evaluation_lengths.clone().iter())
+            .copied()
+            .collect::<Vec<_>>();
+
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
             self.range_length,
-            owned_table_result.num_rows(),
+            &one_evaluation_lengths,
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations,
         );
+        let one_eval_map: IndexMap<TableRef, CP::Scalar> = table_length_map
+            .iter()
+            .map(|(table_ref, length)| (**table_ref, sumcheck_evaluations.one_evaluations[length]))
+            .collect();
         let mut builder = VerificationBuilder::new(
             min_row_num,
             sumcheck_evaluations,
@@ -289,6 +309,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             sumcheck_random_scalars.subpolynomial_multipliers,
             &evaluation_random_scalars,
             post_result_challenges,
+            self.one_evaluation_lengths.clone(),
         );
 
         let pcs_proof_commitments: Vec<_> = column_references
@@ -305,11 +326,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &mut builder,
             &evaluation_accessor,
             Some(&owned_table_result),
+            &one_eval_map,
         )?;
         // compute the evaluation of the result MLEs
         let result_evaluations = owned_table_result.mle_evaluations(&subclaim.evaluation_point);
         // check the evaluation of the result MLEs
-        if verifier_evaluations != result_evaluations {
+        if verifier_evaluations.column_evals() != result_evaluations {
             Err(ProofError::VerificationError {
                 error: "result evaluation check failed",
             })?;

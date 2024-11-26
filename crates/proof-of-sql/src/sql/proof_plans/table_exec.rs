@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, OwnedTable, Table, TableRef},
+        database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -44,15 +44,20 @@ impl ProofPlan for TableExec {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
-        Ok(self
+        one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
+        let column_evals = self
             .schema
             .iter()
             .map(|field| {
                 let column_ref = ColumnRef::new(self.table_ref, field.name(), field.data_type());
                 *accessor.get(&column_ref).expect("Column does not exist")
             })
-            .collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+        let one_eval = *one_eval_map
+            .get(&self.table_ref)
+            .expect("One eval not found");
+        Ok(TableEvaluation::new(column_evals, one_eval))
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

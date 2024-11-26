@@ -65,8 +65,9 @@ impl ProofExpr for AggregateExpr {
         &self,
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
+        one_eval: S,
     ) -> Result<S, ProofError> {
-        self.expr.verifier_evaluate(builder, accessor)
+        self.expr.verifier_evaluate(builder, accessor, one_eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

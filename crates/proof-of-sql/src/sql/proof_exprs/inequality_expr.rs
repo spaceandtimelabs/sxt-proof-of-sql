@@ -90,6 +90,7 @@ impl ProofExpr for InequalityExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
+        let table_length = table.num_rows();
         let lhs_column = self.lhs.prover_evaluate(builder, alloc, table);
         let rhs_column = self.rhs.prover_evaluate(builder, alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
@@ -110,6 +111,7 @@ impl ProofExpr for InequalityExpr {
             builder,
             alloc,
             diff,
+            table_length,
             #[cfg(test)]
             self.treat_column_of_zeros_as_negative,
         );
@@ -122,10 +124,10 @@ impl ProofExpr for InequalityExpr {
         &self,
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
+        one_eval: S,
     ) -> Result<S, ProofError> {
-        let one_eval = builder.mle_evaluations.input_one_evaluation;
-        let lhs_eval = self.lhs.verifier_evaluate(builder, accessor)?;
-        let rhs_eval = self.rhs.verifier_evaluate(builder, accessor)?;
+        let lhs_eval = self.lhs.verifier_evaluate(builder, accessor, one_eval)?;
+        let rhs_eval = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let diff_eval = if self.is_lte {
@@ -135,7 +137,7 @@ impl ProofExpr for InequalityExpr {
         };
 
         // diff == 0
-        let equals_zero = verifier_evaluate_equals_zero(builder, diff_eval);
+        let equals_zero = verifier_evaluate_equals_zero(builder, diff_eval, one_eval);
 
         // sign(diff) == -1
         let sign = verifier_evaluate_sign(builder, diff_eval, one_eval)?;
