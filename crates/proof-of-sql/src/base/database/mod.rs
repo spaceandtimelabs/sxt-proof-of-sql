@@ -26,7 +26,6 @@ pub(super) use column_comparison_operation::{
 };
 
 mod column_repetition_operation;
-#[allow(unused_imports)]
 pub(super) use column_repetition_operation::{ColumnRepeatOp, ElementwiseRepeatOp, RepetitionOp};
 
 mod column_operation_error;
@@ -118,3 +117,6 @@ pub(crate) mod union_util;
 pub(crate) mod order_by_util;
 #[cfg(test)]
 mod order_by_util_test;
+
+#[allow(dead_code)]
+pub(crate) mod join_util;
