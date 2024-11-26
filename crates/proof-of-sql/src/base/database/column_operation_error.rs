@@ -63,6 +63,15 @@ pub enum ColumnOperationError {
         /// The type of the column that caused the error
         actual_type: ColumnType,
     },
+
+    /// Errors related to index out of bounds
+    #[snafu(display("Index out of bounds: {index} >= {len}"))]
+    IndexOutOfBounds {
+        /// The index that caused the error
+        index: usize,
+        /// The length of the column
+        len: usize,
+    },
 }
 
 /// Result type for column operations

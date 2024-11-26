@@ -25,6 +25,10 @@ pub(super) use column_comparison_operation::{
     ComparisonOp, EqualOp, GreaterThanOrEqualOp, LessThanOrEqualOp,
 };
 
+mod column_index_operation;
+#[allow(unused_imports)]
+pub(super) use column_index_operation::{ApplyIndexOp, IndexOp};
+
 mod column_repetition_operation;
 pub(super) use column_repetition_operation::{ColumnRepeatOp, ElementwiseRepeatOp, RepetitionOp};
 
