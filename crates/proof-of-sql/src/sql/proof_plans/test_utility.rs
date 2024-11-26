@@ -1,4 +1,4 @@
-use super::{DynProofPlan, FilterExec, GroupByExec, ProjectionExec, TableExec};
+use super::{DynProofPlan, FilterExec, GroupByExec, ProjectionExec, SliceExec, TableExec};
 use crate::{
     base::database::{ColumnField, TableRef},
     sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
@@ -37,4 +37,8 @@ pub fn group_by(
         table,
         where_clause,
     ))
+}
+
+pub fn slice_exec(input: DynProofPlan, skip: usize, fetch: Option<usize>) -> DynProofPlan {
+    DynProofPlan::Slice(SliceExec::new(Box::new(input), skip, fetch))
 }
