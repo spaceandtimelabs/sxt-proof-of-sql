@@ -1,6 +1,7 @@
 use super::{pack_scalars, pairings, DoryCommitment, DoryProverPublicSetup, G1Affine};
-use crate::base::commitment::CommittableColumn;
+use crate::base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast};
 use blitzar::compute::ElementP2;
+#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 use tracing::{span, Level};
 
@@ -9,6 +10,11 @@ use tracing::{span, Level};
     level = "debug",
     skip_all
 )]
+/// # Panics
+///
+/// Will panic if:
+/// - `Gamma_2.last()` returns `None` during the computation of the gamma_2 slice.
+/// - The slice indexing in `gamma_2.last().unwrap()` is out of bounds, which can happen if `gamma_2_offset + num_sub_commits` exceeds the length of `Gamma_2`.
 fn compute_dory_commitments_packed_impl(
     committable_columns: &[CommittableColumn],
     offset: usize,
@@ -48,10 +54,7 @@ fn compute_dory_commitments_packed_impl(
     }
 
     // Convert the sub-commits to G1Affine.
-    let all_sub_commits: Vec<G1Affine> = sub_commits_from_blitzar
-        .par_iter()
-        .map(Into::into)
-        .collect();
+    let all_sub_commits: Vec<G1Affine> = slice_cast(&sub_commits_from_blitzar);
 
     // Modify the sub-commits to account for signed values that were offset.
     let modified_sub_commits_update = pack_scalars::modify_commits(
@@ -82,17 +85,19 @@ fn compute_dory_commitments_packed_impl(
 
     // Compute the Dory commitments using multi pairing of sub-commits.
     let span = span!(Level::INFO, "multi_pairing").entered();
-    let dc: Vec<DoryCommitment> = cumulative_sub_commit_sums
-        .par_iter()
-        .zip(num_sub_commits_per_full_commit.par_iter())
-        .map(|(&idx, &num_sub_commits)| {
-            let sub_commits = &modified_sub_commits_update[idx..idx + num_sub_commits];
-            let gamma_2_slice =
-                &gamma_2.last().unwrap()[gamma_2_offset..gamma_2_offset + num_sub_commits];
+    let dc: Vec<DoryCommitment> = if_rayon!(
+        cumulative_sub_commit_sums.par_iter(),
+        cumulative_sub_commit_sums.iter()
+    )
+    .zip(&num_sub_commits_per_full_commit)
+    .map(|(&idx, &num_sub_commits)| {
+        let sub_commits = &modified_sub_commits_update[idx..idx + num_sub_commits];
+        let gamma_2_slice =
+            &gamma_2.last().unwrap()[gamma_2_offset..gamma_2_offset + num_sub_commits];
 
-            DoryCommitment(pairings::multi_pairing(sub_commits, gamma_2_slice))
-        })
-        .collect();
+        DoryCommitment(pairings::multi_pairing(sub_commits, gamma_2_slice))
+    })
+    .collect();
     span.exit();
 
     dc

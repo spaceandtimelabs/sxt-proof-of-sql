@@ -1,11 +1,22 @@
 use super::{
+    blitzar_metadata_table::create_blitzar_metadata_tables,
     dynamic_dory_standard_basis_helper::fold_dynamic_standard_basis_tensors,
     dynamic_dory_structure::row_and_column_from_index, ExtendedVerifierState, G1Affine,
     ProverSetup, F,
 };
-use crate::proof_primitive::dory::dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs;
-use ark_ff::Field;
-use itertools::Itertools;
+use crate::{
+    base::{commitment::CommittableColumn, slice_ops::slice_cast},
+    proof_primitive::dory::{
+        dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs, DoryScalar,
+    },
+};
+use alloc::{vec, vec::Vec};
+use ark_ff::{AdditiveGroup, Field};
+#[cfg(feature = "blitzar")]
+use blitzar::compute::ElementP2;
+#[cfg(feature = "blitzar")]
+use bytemuck::TransparentWrapper;
+use itertools::{Itertools, __std_iter::repeat};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
 ///
@@ -28,6 +39,7 @@ pub(super) fn compute_dynamic_v_vec(a: &[F], hi_vec: &[F], nu: usize) -> Vec<F> 
 }
 
 /// Compute the commitments to the rows of the matrix M that is derived from `a`.
+#[cfg(not(feature = "blitzar"))]
 pub(super) fn compute_dynamic_T_vec_prime(
     a: &[F],
     nu: usize,
@@ -41,6 +53,39 @@ pub(super) fn compute_dynamic_T_vec_prime(
     T_vec_prime
 }
 
+/// Compute the commitments to the rows of the matrix M that is derived from `a`.
+#[cfg(feature = "blitzar")]
+pub(super) fn compute_dynamic_T_vec_prime(
+    a: &[F],
+    nu: usize,
+    prover_setup: &ProverSetup,
+) -> Vec<G1Affine> {
+    let a_col = CommittableColumn::from(TransparentWrapper::wrap_slice(a) as &[DoryScalar]);
+
+    let (blitzar_output_bit_table, blitzar_output_length_table, blitzar_scalars) =
+        create_blitzar_metadata_tables(&[a_col], 0);
+
+    let mut blitzar_sub_commits =
+        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); blitzar_output_bit_table.len()];
+
+    prover_setup.blitzar_vlen_msm(
+        &mut blitzar_sub_commits,
+        &blitzar_output_bit_table,
+        &blitzar_output_length_table,
+        blitzar_scalars.as_slice(),
+    );
+
+    let all_sub_commits: Vec<G1Affine> = slice_cast(&blitzar_sub_commits);
+
+    all_sub_commits
+        .iter()
+        .step_by(2)
+        .chain(repeat(&G1Affine::identity()))
+        .take(1 << nu)
+        .copied()
+        .collect()
+}
+
 /// Compute the size of the matrix M that is derived from `a`.
 /// More specifically compute `nu`, where 2^nu is the side length the square matrix, M.
 /// `num_vars` is the number of variables in the polynomial. In other words, it is the length of `b_points`, which is `ceil(log2(len(a)))`.
@@ -50,6 +95,8 @@ pub(super) fn compute_dynamic_nu(num_vars: usize) -> usize {
 
 /// Compute the hi and lo vectors (or L and R) that are derived from `point`.
 /// L and R are the vectors such that LMR is exactly the evaluation of `a` at the point `point`.
+/// # Panics
+/// This function requires that `point` has length at least as big as the number of rows in `M` that is created by `a`.
 pub(super) fn compute_dynamic_vecs(point: &[F]) -> (Vec<F>, Vec<F>) {
     let nu = point.len() / 2 + 1;
     let mut lo_vec = vec![F::ZERO; 1 << nu];
@@ -71,8 +118,10 @@ pub(super) fn compute_dynamic_vecs(point: &[F]) -> (Vec<F>, Vec<F>) {
 
 /// Folds the `s1` and `s2` tensors:
 ///
-/// This is the analogous function of the non-dynamic folding function [extended_dory_reduce_verify_fold_s_vecs](super::extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs).
+/// This is the analogous function of the non-dynamic folding function [`extended_dory_reduce_verify_fold_s_vecs`](super::extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs).
 /// See that method for more details.
+/// # Panics
+/// This function requires that `point` has length at least as big as the number of rows in `M` that is created by `a`. In practice, `point` is normally length `1 << nu`.      
 pub(super) fn fold_dynamic_tensors(state: &ExtendedVerifierState) -> (F, F) {
     let point = &state.s1_tensor;
     let nu = point.len() / 2 + 1;
@@ -170,8 +219,9 @@ mod tests {
         use ark_std::UniformRand;
         let mut rng = ark_std::test_rng();
         for num_vars in 0..20 {
-            let point =
-                Vec::from_iter(core::iter::repeat_with(|| F::rand(&mut rng)).take(num_vars));
+            let point: Vec<_> = core::iter::repeat_with(|| F::rand(&mut rng))
+                .take(num_vars)
+                .collect();
             let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
             let mut eval_vec = vec![F::ZERO; 1 << num_vars];
             compute_evaluation_vector(&mut eval_vec, &point);
@@ -189,8 +239,9 @@ mod tests {
         let mut rng = test_rng();
         for num_vars in 0..10 {
             let nu = num_vars / 2 + 1;
-            let point =
-                Vec::from_iter(core::iter::repeat_with(|| F::rand(&mut rng)).take(num_vars));
+            let point: Vec<_> = core::iter::repeat_with(|| F::rand(&mut rng))
+                .take(num_vars)
+                .collect();
             let alphas = core::iter::repeat_with(|| F::rand(&mut rng))
                 .take(nu)
                 .collect_vec();
@@ -215,7 +266,7 @@ mod tests {
                     D_2: DeferredMSM::new([], []),
                     nu,
                 },
-                s2_tensor: Default::default(),
+                s2_tensor: Vec::default(),
             };
             let (lo_fold, hi_fold) = fold_dynamic_tensors(&state);
 
@@ -255,7 +306,7 @@ mod tests {
 
     #[test]
     fn we_can_compute_dynamic_T_vec_prime() {
-        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
 
         let a: Vec<F> = (100..109).map(Into::into).collect();

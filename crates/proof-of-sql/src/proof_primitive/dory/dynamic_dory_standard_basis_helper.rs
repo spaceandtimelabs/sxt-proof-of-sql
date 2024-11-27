@@ -2,16 +2,16 @@
 //! vector used in a Vector-Matrix-Vector product in the dynamic dory scheme.
 
 use super::F;
-use ark_ff::Field;
+use ark_ff::{AdditiveGroup, Field};
 
 #[allow(dead_code)]
 /// This method produces evaluation vectors from a point. This is a helper method for generating a Vector-Matrix-Vector product in the dynamic dory scheme.
 ///
-/// The ith element of the lo_vec is essentially the ith monomial basis element (lexicographically).
-/// The ith element of the hi_vec is essentially the jth monomial basis element where j = row_start_index(i).
+/// The ith element of the `lo_vec` is essentially the ith monomial basis element (lexicographically).
+/// The ith element of the `hi_vec` is essentially the jth monomial basis element where `j = row_start_index(i)`.
 ///
-/// NOTE: the lo_vec and hi_vec are scaled by lo_vec[0] and hi_vec[0] respectively.
-/// NOTE: lo_vec and hi_vec should otherwise consist entirely of zeros in order to ensure correct output.
+/// NOTE: the `lo_vec` and `hi_vec` are scaled by `lo_vec[0]` and `hi_vec[0]` respectively.
+/// NOTE: `lo_vec` and `hi_vec` should otherwise consist entirely of zeros in order to ensure correct output.
 pub(super) fn compute_dynamic_standard_basis_vecs(point: &[F], lo_vec: &mut [F], hi_vec: &mut [F]) {
     let nu = point.len() / 2 + 1;
     debug_assert_eq!(lo_vec.len(), 1 << nu);
@@ -30,7 +30,7 @@ pub(super) fn compute_dynamic_standard_basis_vecs(point: &[F], lo_vec: &mut [F],
     point.iter().skip(1).enumerate().for_each(|(i, v)| {
         let p = i / 2;
         let o = 2 + i % 2;
-        (o << p..(o + 1) << p).for_each(|k| hi_vec[k] *= v)
+        (o << p..(o + 1) << p).for_each(|k| hi_vec[k] *= v);
     });
 }
 
@@ -290,9 +290,12 @@ pub(super) mod tests {
             k => Some(k),
         })
         .enumerate()
-        .filter_map(|(i, b)| match b % 2 == 0 {
-            true => None,
-            false => Some(point.get(i).copied().unwrap_or(F::ZERO)),
+        .filter_map(|(i, b)| {
+            if b % 2 == 0 {
+                None
+            } else {
+                Some(point.get(i).copied().unwrap_or(F::ZERO))
+            }
         })
         .product()
     }

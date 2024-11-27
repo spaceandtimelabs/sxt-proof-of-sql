@@ -2,15 +2,16 @@ use super::{test_utility::*, DynProofPlan, ProjectionExec};
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, ColumnField, ColumnRef, ColumnType, OwnedTable,
-            OwnedTableTestAccessor, TableRef, TestAccessor,
+            owned_table_utility::*, table_utility::*, ColumnField, ColumnRef, ColumnType,
+            OwnedTable, OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
         },
+        map::{indexmap, IndexMap, IndexSet},
         math::decimal::Precision,
         scalar::Curve25519Scalar,
     },
     sql::{
         proof::{
-            exercise_verification, ProofPlan, ProvableQueryResult, ProverEvaluate, ResultBuilder,
+            exercise_verification, ProofPlan, ProvableQueryResult, ProverEvaluate,
             VerifiableQueryResult,
         },
         proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr, TableExpr},
@@ -18,8 +19,6 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
-use curve25519_dalek::RistrettoPoint;
-use indexmap::{IndexMap, IndexSet};
 use proof_of_sql_parser::{Identifier, ResourceId};
 
 #[test]
@@ -27,7 +26,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let b = Identifier::try_new("b").unwrap();
-    let provable_ast = ProjectionExec::<RistrettoPoint>::new(
+    let provable_ast = ProjectionExec::new(
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
@@ -63,7 +62,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let f = Identifier::try_new("f").unwrap();
-    let provable_ast = ProjectionExec::<RistrettoPoint>::new(
+    let provable_ast = ProjectionExec::new(
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
@@ -89,7 +88,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
 
     assert_eq!(
         ref_columns,
-        IndexSet::from([
+        IndexSet::from_iter([
             ColumnRef::new(
                 table_ref,
                 Identifier::try_new("a").unwrap(),
@@ -102,6 +101,10 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             ),
         ])
     );
+
+    let ref_tables = provable_ast.get_table_references();
+
+    assert_eq!(ref_tables, IndexSet::from_iter([table_ref]));
 }
 
 #[test]
@@ -152,21 +155,22 @@ fn we_can_prove_and_get_the_correct_result_from_a_nontrivial_projection() {
 
 #[test]
 fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_result_evaluate() {
-    let data = owned_table([
-        bigint("a", [0; 0]),
-        bigint("b", [0; 0]),
-        int128("c", [0; 0]),
-        varchar("d", [""; 0]),
-        scalar("e", [0; 0]),
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [0; 0], &alloc),
+        borrowed_bigint("b", [0; 0], &alloc),
+        borrowed_int128("c", [0; 0], &alloc),
+        borrowed_varchar("d", [""; 0], &alloc),
+        borrowed_scalar("e", [0; 0], &alloc),
     ]);
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let table_map = indexmap! {
+        t => data.clone()
+    };
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr: DynProofPlan<RistrettoPoint> =
+    let expr: DynProofPlan =
         projection(cols_expr_plan(t, &["b", "c", "d", "e"], &accessor), tab(t));
-    let alloc = Bump::new();
-    let mut builder = ResultBuilder::new(0);
-    let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
     let fields = &[
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
@@ -177,7 +181,7 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map))
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -192,42 +196,47 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
 
 #[test]
 fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_result_evaluate() {
-    let data = owned_table([
-        bigint("a", [1, 4, 5, 2, 5]),
-        bigint("b", [1, 2, 3, 4, 5]),
-        int128("c", [1, 2, 3, 4, 5]),
-        varchar("d", ["1", "2", "3", "4", "5"]),
-        scalar("e", [1, 2, 3, 4, 5]),
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [1, 4, 5, 2, 5], &alloc),
+        borrowed_bigint("b", [1, 2, 3, 4, 5], &alloc),
+        borrowed_int128("c", [1, 2, 3, 4, 5], &alloc),
+        borrowed_varchar("d", ["1", "2", "3", "4", "5"], &alloc),
+        borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let table_map = indexmap! {
+        t => data.clone()
+    };
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr: DynProofPlan<RistrettoPoint> = projection(cols_expr_plan(t, &[], &accessor), tab(t));
-    let alloc = Bump::new();
-    let mut builder = ResultBuilder::new(5);
-    let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
+    let expr: DynProofPlan = projection(cols_expr_plan(t, &[], &accessor), tab(t));
     let fields = &[];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map))
             .to_owned_table(fields)
             .unwrap();
-    let expected = OwnedTable::try_new(IndexMap::new()).unwrap();
+    let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
     assert_eq!(res, expected);
 }
 
 #[test]
 fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate() {
-    let data = owned_table([
-        bigint("a", [1, 4, 5, 2, 5]),
-        bigint("b", [1, 2, 3, 4, 5]),
-        int128("c", [1, 2, 3, 4, 5]),
-        varchar("d", ["1", "2", "3", "4", "5"]),
-        scalar("e", [1, 2, 3, 4, 5]),
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [1, 4, 5, 2, 5], &alloc),
+        borrowed_bigint("b", [1, 2, 3, 4, 5], &alloc),
+        borrowed_int128("c", [1, 2, 3, 4, 5], &alloc),
+        borrowed_varchar("d", ["1", "2", "3", "4", "5"], &alloc),
+        borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let table_map = indexmap! {
+        t => data.clone()
+    };
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr: DynProofPlan<RistrettoPoint> = projection(
+    let expr: DynProofPlan = projection(
         vec![
             aliased_plan(add(column(t, "b", &accessor), const_bigint(1)), "b"),
             aliased_plan(
@@ -239,9 +248,6 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
         ],
         tab(t),
     );
-    let alloc = Bump::new();
-    let mut builder = ResultBuilder::new(5);
-    let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
     let fields = &[
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("prod".parse().unwrap(), ColumnType::Int128),
@@ -252,7 +258,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map))
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([

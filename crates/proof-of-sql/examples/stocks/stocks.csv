@@ -1,0 +1,19 @@
+Symbol,Company,Sector,Price,Volume,MarketCap,PE_Ratio,DividendYield
+AAPL,Apple Inc.,Technology,175.50,52000000,2850.25,28.5,0.5
+MSFT,Microsoft Corporation,Technology,325.75,25000000,2425.80,32.8,0.8
+GOOGL,Alphabet Inc.,Technology,135.20,18000000,1720.40,25.2,0.0
+AMZN,Amazon.com Inc.,Consumer Cyclical,128.90,35000000,1325.60,42.1,0.0
+META,Meta Platforms Inc.,Technology,308.45,22000000,785.30,31.5,0.0
+TSLA,Tesla Inc.,Automotive,238.45,100000000,755.90,75.2,0.0
+JPM,JPMorgan Chase & Co.,Financial Services,148.75,12000000,428.90,11.2,2.8
+V,Visa Inc.,Financial Services,245.60,8000000,510.30,28.9,0.7
+JNJ,Johnson & Johnson,Healthcare,152.30,6000000,395.80,15.5,3.1
+PG,Procter & Gamble Co.,Consumer Defensive,150.20,7000000,355.40,25.3,2.4
+XOM,Exxon Mobil Corporation,Energy,105.80,20000000,425.60,8.9,3.5
+WMT,Walmart Inc.,Consumer Defensive,158.90,8500000,428.70,26.4,1.5
+KO,Coca-Cola Company,Consumer Defensive,58.75,12000000,254.30,24.2,3.0
+DIS,Walt Disney Company,Communication Services,85.50,15000000,156.80,42.8,0.0
+NFLX,Netflix Inc.,Communication Services,385.20,7500000,171.20,38.5,0.0
+NVDA,NVIDIA Corporation,Technology,455.80,45000000,1125.40,110.5,0.1
+INTC,Intel Corporation,Technology,35.80,42000000,150.20,15.8,1.5
+AMD,Advanced Micro Devices,Technology,105.25,65000000,170.30,220.5,0.0

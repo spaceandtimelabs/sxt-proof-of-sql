@@ -1,31 +1,35 @@
-use super::{DynProofPlan, FilterExec, GroupByExec, ProjectionExec};
+use super::{DynProofPlan, FilterExec, GroupByExec, ProjectionExec, TableExec};
 use crate::{
-    base::commitment::Commitment,
+    base::database::{ColumnField, TableRef},
     sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
 };
 
-pub fn projection<C: Commitment>(
-    results: Vec<AliasedDynProofExpr<C>>,
-    table: TableExpr,
-) -> DynProofPlan<C> {
+pub fn table_exec(table_ref: TableRef, schema: Vec<ColumnField>) -> DynProofPlan {
+    DynProofPlan::Table(TableExec::new(table_ref, schema))
+}
+
+pub fn projection(results: Vec<AliasedDynProofExpr>, table: TableExpr) -> DynProofPlan {
     DynProofPlan::Projection(ProjectionExec::new(results, table))
 }
 
-pub fn filter<C: Commitment>(
-    results: Vec<AliasedDynProofExpr<C>>,
+pub fn filter(
+    results: Vec<AliasedDynProofExpr>,
     table: TableExpr,
-    where_clause: DynProofExpr<C>,
-) -> DynProofPlan<C> {
+    where_clause: DynProofExpr,
+) -> DynProofPlan {
     DynProofPlan::Filter(FilterExec::new(results, table, where_clause))
 }
 
-pub fn group_by<C: Commitment>(
-    group_by_exprs: Vec<ColumnExpr<C>>,
-    sum_expr: Vec<AliasedDynProofExpr<C>>,
+/// # Panics
+///
+/// Will panic if `count_alias` cannot be parsed as a valid identifier.
+pub fn group_by(
+    group_by_exprs: Vec<ColumnExpr>,
+    sum_expr: Vec<AliasedDynProofExpr>,
     count_alias: &str,
     table: TableExpr,
-    where_clause: DynProofExpr<C>,
-) -> DynProofPlan<C> {
+    where_clause: DynProofExpr,
+) -> DynProofPlan {
     DynProofPlan::GroupBy(GroupByExec::new(
         group_by_exprs,
         sum_expr,

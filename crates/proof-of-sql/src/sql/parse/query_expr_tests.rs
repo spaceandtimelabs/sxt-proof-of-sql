@@ -1,6 +1,9 @@
 use super::ConversionError;
 use crate::{
-    base::database::{ColumnType, TableRef, TestSchemaAccessor},
+    base::{
+        database::{ColumnType, TableRef, TestSchemaAccessor},
+        map::{indexmap, IndexMap, IndexSet},
+    },
     sql::{
         parse::QueryExpr,
         postprocessing::{test_utility::*, PostprocessingError},
@@ -8,8 +11,6 @@ use crate::{
         proof_plans::{test_utility::*, DynProofPlan},
     },
 };
-use curve25519_dalek::RistrettoPoint;
-use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use proof_of_sql_parser::{
     intermediate_ast::OrderByDirection::*,
@@ -21,21 +22,19 @@ use proof_of_sql_parser::{
     Identifier,
 };
 
-fn query_to_provable_ast(
-    table: TableRef,
-    query: &str,
-    accessor: &TestSchemaAccessor,
-) -> QueryExpr<RistrettoPoint> {
+/// # Panics
+///
+/// Will panic if:
+/// - The `parse` method of `SelectStatementParser` fails, causing `unwrap()` to panic.
+/// - The `try_new` method of `QueryExpr` fails, causing `unwrap()` to panic.
+fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestSchemaAccessor) -> QueryExpr {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
     QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).unwrap()
 }
 
 fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &TestSchemaAccessor) {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
-    assert!(
-        QueryExpr::<RistrettoPoint>::try_new(intermediate_ast, table.schema_id(), accessor)
-            .is_err()
-    );
+    assert!(QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).is_err());
 }
 
 #[cfg(test)]
@@ -44,62 +43,6 @@ pub fn schema_accessor_from_table_ref_with_schema(
     schema: IndexMap<Identifier, ColumnType>,
 ) -> TestSchemaAccessor {
     TestSchemaAccessor::new(indexmap! {table => schema})
-}
-
-fn get_test_accessor() -> (TableRef, TestSchemaAccessor) {
-    let table = "sxt.t".parse().unwrap();
-    let accessor = schema_accessor_from_table_ref_with_schema(
-        table,
-        indexmap! {
-            "s".parse().unwrap() => ColumnType::VarChar,
-            "i".parse().unwrap() => ColumnType::BigInt,
-            "d".parse().unwrap() => ColumnType::Int128,
-            "s0".parse().unwrap() => ColumnType::VarChar,
-            "i0".parse().unwrap() => ColumnType::BigInt,
-            "d0".parse().unwrap() => ColumnType::Int128,
-            "s1".parse().unwrap() => ColumnType::VarChar,
-            "i1".parse().unwrap() => ColumnType::BigInt,
-            "d1".parse().unwrap() => ColumnType::Int128,
-        },
-    );
-    (table, accessor)
-}
-
-macro_rules! query {
-    (select: $select:expr $(, filter: $filter:expr)? $(, group: $groupby:expr)? $(, order: $orderby:expr)? $(, limit: $limit:expr)? $(, offset: $offset:expr)? $(, should_err: $should_err:tt)? $(,)?) => {{
-        let (t, accessor) = get_test_accessor();
-        let mut query = String::new();
-        query.push_str(&format!("select {} from t", $select.join(", ")));
-        macro_rules! filter_str {
-            () => {}; ($expr:expr) => { query.push_str(&format!(" where {}", $expr)) };
-        }
-        filter_str!($($filter)?);
-        macro_rules! groupby_str {
-            () => {}; ($expr:expr) => { query.push_str(&format!(" group by {}", $expr.clone().join(", "))) };
-        }
-        groupby_str!($($groupby)?);
-        macro_rules! orderby_str {
-            () => {}; ($expr:expr) => { query.push_str(&format!(" order by {}", $expr.clone().join(", "))) };
-        }
-        orderby_str!($($orderby)?);
-        macro_rules! limit_str {
-            () => {}; ($expr:expr) => { query.push_str(&format!(" limit {}", $expr.to_string())) };
-        }
-        limit_str!($($limit)?);
-        macro_rules! offset_str {
-            () => {}; ($expr:expr) => { query.push_str(&format!(" offset {}", $expr.to_string())) };
-        }
-        offset_str!($($offset)?);
-
-        let intermediate_ast = SelectStatementParser::new().parse(&query).unwrap();
-        let query_expr = QueryExpr::<RistrettoPoint>::try_new(intermediate_ast, t.schema_id(), &accessor);
-        macro_rules! expect_err_str {
-            () => { query_expr.unwrap() };
-            (true) => { query_expr.unwrap_err() };
-            (false) => { query_expr.unwrap() };
-        }
-        expect_err_str!($($should_err)?)
-    }};
 }
 
 #[test]
@@ -658,7 +601,7 @@ fn we_can_convert_an_ast_without_any_filter() {
 }
 
 /////////////////////////
-/// OrderBy
+/// `OrderBy`
 /////////////////////////
 #[test]
 fn we_can_parse_order_by_with_a_single_column() {
@@ -1156,29 +1099,39 @@ fn we_can_group_by_without_using_aggregate_functions() {
 
 #[test]
 fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_alias_result() {
-    let query = query!(
-        select: ["max(i) max_sal", "i0 d", "count(i0)"],
-        group: ["i0", "i1"],
-        order: ["max_sal"]
+    let query_text =
+        "select max(salary) max_sal, department_budget d, count(department_budget) from sxt.employees group by department_budget, tax order by max_sal";
+
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "department_budget".parse().unwrap() => ColumnType::BigInt,
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "tax".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-    let (t, accessor) = get_test_accessor();
+
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+    let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+
     let expected_query = QueryExpr::new(
         filter(
             vec![
-                col_expr_plan(t, "i", &accessor),
-                col_expr_plan(t, "i0", &accessor),
-                col_expr_plan(t, "i1", &accessor),
+                col_expr_plan(t, "department_budget", &accessor),
+                col_expr_plan(t, "salary", &accessor),
+                col_expr_plan(t, "tax", &accessor),
             ],
             tab(t),
             const_bool(true),
         ),
         vec![
             group_by_postprocessing(
-                &["i0", "i1"],
+                &["department_budget", "tax"],
                 &[
-                    aliased_expr(max(col("i")), "max_sal"),
-                    aliased_expr(col("i0"), "d"),
-                    aliased_expr(count(col("i0")), "__count__"),
+                    aliased_expr(max(col("salary")), "max_sal"),
+                    aliased_expr(col("department_budget"), "d"),
+                    aliased_expr(count(col("department_budget")), "__count__"),
                 ],
             ),
             orders(&["max_sal"], &[Asc]),
@@ -1267,10 +1220,18 @@ fn group_by_column_cannot_be_a_column_result_alias() {
 
 #[test]
 fn we_can_have_aggregate_functions_without_a_group_by_clause() {
-    let ast = query!(
-        select: ["count(s)"],
+    let query_text = "select count(name) from sxt.employees";
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "name".parse().unwrap() => ColumnType::VarChar,
+        },
     );
-    let (t, _accessor) = get_test_accessor();
+
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+    let ast = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+
     let expected_ast = QueryExpr::new(
         group_by(vec![], vec![], "__count__", tab(t), const_bool(true)),
         vec![],
@@ -1425,25 +1386,35 @@ fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_wi
 
 #[test]
 fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
-    let (t, accessor) = get_test_accessor();
-    let ast = query!(
-        select: ["i d1", "max(i1)", "i d2", "sum(i0) sum_bonus", "count(s) count_s"],
-        group: ["i", "i0", "i"]
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "bonus".parse().unwrap() => ColumnType::BigInt,
+            "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "tax".parse().unwrap() => ColumnType::BigInt,
+        },
     );
+    let query_text = "select salary d1, max(tax), salary d2, sum(bonus) sum_bonus, count(name) count_s from sxt.employees group by salary, bonus, salary";
+
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+    let ast = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+
     let expected_ast = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["i", "i0", "i1", "s"], &accessor),
+            cols_expr_plan(t, &["bonus", "name", "salary", "tax"], &accessor),
             tab(t),
             const_bool(true),
         ),
         vec![group_by_postprocessing(
-            &["i", "i0", "i"],
+            &["salary", "bonus", "salary"],
             &[
-                aliased_expr(col("i"), "d1"),
-                aliased_expr(max(col("i1")), "__max__"),
-                aliased_expr(col("i"), "d2"),
-                aliased_expr(sum(col("i0")), "sum_bonus"),
-                aliased_expr(count(col("s")), "count_s"),
+                aliased_expr(col("salary"), "d1"),
+                aliased_expr(max(col("tax")), "__max__"),
+                aliased_expr(col("salary"), "d2"),
+                aliased_expr(sum(col("bonus")), "sum_bonus"),
+                aliased_expr(count(col("name")), "count_s"),
             ],
         )],
     );
@@ -1589,116 +1560,185 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
 
 #[test]
 fn we_cannot_use_non_grouped_columns_outside_agg() {
-    assert!(matches!(
-        query!(select: ["i"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
-    ));
-    assert!(matches!(
-        query!(select: ["sum(i)", "i"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
-    ));
-    assert!(matches!(
-        query!(select: ["min(i) + i"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
-    ));
-    assert!(matches!(
-        query!(select: ["2 * i", "min(i)"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
-    ));
-    assert!(matches!(
-        query!(select: ["2 * i", "min(i)"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef(_)
-    ));
-    assert!(matches!(
-        query!(select: ["sum(i)", "i"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef(_)
-    ));
-    assert!(matches!(
-        query!(select: ["max(i) + 2 * i"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef(_)
-    ));
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "name".parse().unwrap() => ColumnType::VarChar,
+        },
+    );
+    let identifier_not_in_agg_queries = vec![
+        "select salary from sxt.employees group by name",
+        "select sum(salary), salary from sxt.employees group by name",
+        "select min(salary) + salary from sxt.employees group by name",
+        "select 2 * salary, min(salary) from sxt.employees group by name",
+    ];
+
+    for query_text in &identifier_not_in_agg_queries {
+        let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+        let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
+
+        assert!(matches!(
+            result,
+            Err(ConversionError::PostprocessingError {
+                source: PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. }
+            })
+        ));
+    }
+
+    let invalid_group_by_queries = vec![
+        "select 2 * salary, min(salary) from sxt.employees",
+        "select sum(salary), salary from sxt.employees",
+        "select max(salary) + 2 * salary from sxt.employees",
+    ];
+
+    for query_text in &invalid_group_by_queries {
+        let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+        let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
+
+        assert!(matches!(
+            result,
+            Err(ConversionError::InvalidGroupByColumnRef { .. })
+        ));
+    }
 }
 
 #[test]
 fn varchar_column_is_not_compatible_with_integer_column() {
-    assert_eq!(
-        query!(select: ["-123 * s"], should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::BigInt.to_string(),
-            ColumnType::VarChar.to_string()
-        )
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "name".parse().unwrap() => ColumnType::VarChar,
+        },
     );
-    assert_eq!(
-        query!(select: ["i - s"], should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::BigInt.to_string(),
-            ColumnType::VarChar.to_string()
-        )
-    );
-    assert_eq!(
-        query!(select: ["s"], filter: "'abc' = i", should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::VarChar.to_string(),
-            ColumnType::BigInt.to_string(),
-        )
-    );
-    assert_eq!(
-        query!(select: ["s"], filter: "'abc' != i", should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::VarChar.to_string(),
-            ColumnType::BigInt.to_string(),
-        )
-    );
+
+    let bigint_to_varchar_queries = vec![
+        "select -123 * name from sxt.employees",
+        "select salary - name from sxt.employees",
+    ];
+
+    let varchar_to_bigint_queries = vec![
+        "select name from sxt.employees where 'abc' = salary",
+        "select name from sxt.employees where 'abc' != salary",
+    ];
+
+    for query_text in &bigint_to_varchar_queries {
+        let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+        let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
+
+        assert_eq!(
+            result,
+            Err(ConversionError::DataTypeMismatch {
+                left_type: ColumnType::BigInt.to_string(),
+                right_type: ColumnType::VarChar.to_string(),
+            })
+        );
+    }
+
+    for query_text in &varchar_to_bigint_queries {
+        let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+        let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
+
+        assert_eq!(
+            result,
+            Err(ConversionError::DataTypeMismatch {
+                left_type: ColumnType::VarChar.to_string(),
+                right_type: ColumnType::BigInt.to_string(),
+            })
+        );
+    }
 }
 
 #[test]
 fn arithmetic_operations_are_not_allowed_with_varchar_column() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "name".parse().unwrap() => ColumnType::VarChar,
+            "position".parse().unwrap() => ColumnType::VarChar,
+        },
+    );
+
+    let query_text = "select name - position from sxt.employees";
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+    let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
+
     assert_eq!(
-        query!(select: ["s - s1"], should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::VarChar.to_string(),
-            ColumnType::VarChar.to_string()
-        )
+        result,
+        Err(ConversionError::DataTypeMismatch {
+            left_type: ColumnType::VarChar.to_string(),
+            right_type: ColumnType::VarChar.to_string(),
+        })
     );
 }
 
 #[test]
 fn varchar_column_is_not_allowed_within_numeric_aggregations() {
-    assert_eq!(
-        query!(select: ["sum(s)"], should_err: true),
-        ConversionError::non_numeric_expr_in_agg("varchar", "sum")
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "name".parse().unwrap() => ColumnType::VarChar,
+        },
     );
-    assert_eq!(
-        query!(select: ["max(s)"], should_err: true),
-        ConversionError::non_numeric_expr_in_agg("varchar", "max")
-    );
-    assert_eq!(
-        query!(select: ["min(s)"], should_err: true),
-        ConversionError::non_numeric_expr_in_agg("varchar", "min")
-    );
+    let sum_query = "select sum(name) from sxt.employees";
+    let intermediate_ast = SelectStatementParser::new().parse(sum_query).unwrap();
+    let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
+
+    assert!(matches!(
+        result,
+        Err(ConversionError::InvalidExpression { expression })
+            if expression == "cannot use expression of type 'varchar' with numeric aggregation function 'sum'"
+    ));
+
+    let max_query = "select max(name) from sxt.employees";
+    let intermediate_ast = SelectStatementParser::new().parse(max_query).unwrap();
+    let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
+
+    assert!(matches!(
+        result,
+        Err(ConversionError::InvalidExpression { expression })
+            if expression == "cannot use expression of type 'varchar' with numeric aggregation function 'max'"
+    ));
+
+    let min_query = "select min(name) from sxt.employees";
+    let intermediate_ast = SelectStatementParser::new().parse(min_query).unwrap();
+    let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
+
+    assert!(matches!(
+        result,
+        Err(ConversionError::InvalidExpression { expression })
+            if expression == "cannot use expression of type 'varchar' with numeric aggregation function 'min'"
+    ));
 }
 
 #[test]
 fn group_by_with_bigint_column_is_valid() {
-    let (t, accessor) = get_test_accessor();
-    let query = query!(select: ["i"], group: ["i"]);
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+        },
+    );
+    let query_text = "select salary from sxt.employees group by salary";
+
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+    let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+
     let expected_query = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["i"], &accessor),
+            cols_expr_plan(t, &["salary"], &accessor),
             tab(t),
             const_bool(true),
         ),
         vec![group_by_postprocessing(
-            &["i"],
-            &[aliased_expr(col("i"), "i")],
+            &["salary"],
+            &[aliased_expr(col("salary"), "salary")],
         )],
     );
     assert_eq!(query, expected_query);
@@ -1706,17 +1746,27 @@ fn group_by_with_bigint_column_is_valid() {
 
 #[test]
 fn group_by_with_decimal_column_is_valid() {
-    let (t, accessor) = get_test_accessor();
-    let query = query!(select: ["d"], group: ["d"]);
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::Int128,
+        },
+    );
+    let query_text = "select salary from sxt.employees group by salary";
+
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+    let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+
     let expected_query = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["d"], &accessor),
+            cols_expr_plan(t, &["salary"], &accessor),
             tab(t),
             const_bool(true),
         ),
         vec![group_by_postprocessing(
-            &["d"],
-            &[aliased_expr(col("d"), "d")],
+            &["salary"],
+            &[aliased_expr(col("salary"), "salary")],
         )],
     );
     assert_eq!(query, expected_query);
@@ -1724,17 +1774,27 @@ fn group_by_with_decimal_column_is_valid() {
 
 #[test]
 fn group_by_with_varchar_column_is_valid() {
-    let (t, accessor) = get_test_accessor();
-    let query = query!(select: ["s"], group: ["s"]);
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "name".parse().unwrap() => ColumnType::VarChar,
+        },
+    );
+    let query_text = "select name from sxt.employees group by name";
+
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+    let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+
     let expected_query = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["s"], &accessor),
+            cols_expr_plan(t, &["name"], &accessor),
             tab(t),
             const_bool(true),
         ),
         vec![group_by_postprocessing(
-            &["s"],
-            &[aliased_expr(col("s"), "s")],
+            &["name"],
+            &[aliased_expr(col("name"), "name")],
         )],
     );
     assert_eq!(query, expected_query);
@@ -1742,27 +1802,42 @@ fn group_by_with_varchar_column_is_valid() {
 
 #[test]
 fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
-    let (t, accessor) = get_test_accessor();
-    let query = query!(
-        select: ["2 * i + sum(i) - i1"],
-        group: ["i", "i1"]
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "tax".parse().unwrap() => ColumnType::BigInt,
+        },
     );
+    let query_text =
+        "select 2 * salary + sum(salary) - tax from sxt.employees group by salary, tax";
+
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+    let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+
     let expected_query = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["i", "i1"], &accessor),
+            cols_expr_plan(t, &["salary", "tax"], &accessor),
             tab(t),
             const_bool(true),
         ),
         vec![
             group_by_postprocessing(
-                &["i", "i1"],
+                &["salary", "tax"],
                 &[aliased_expr(
-                    psub(padd(pmul(lit(2), col("i")), sum(col("i"))), col("i1")),
+                    psub(
+                        padd(pmul(lit(2), col("salary")), sum(col("salary"))),
+                        col("tax"),
+                    ),
                     "__expr__",
                 )],
             ),
             select_expr(&[aliased_expr(
-                psub(padd(pmul(lit(2), col("i")), col("__col_agg_0")), col("i1")),
+                psub(
+                    padd(pmul(lit(2), col("salary")), col("__col_agg_0")),
+                    col("tax"),
+                ),
                 "__expr__",
             )]),
         ],
@@ -1772,13 +1847,22 @@ fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
 
 #[test]
 fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
-    let (t, accessor) = get_test_accessor();
-    let ast = query!(
-        select: ["7 + max(i) as max_i", "min(i + 777 * d) * -5 as min_d"],
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "bonus".parse().unwrap() => ColumnType::Int128,
+        },
     );
+    let query_text = "select 7 + max(salary) as max_i, min(salary + 777 * bonus) * -5 as min_d from sxt.employees";
+
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+    let ast = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+
     let expected_ast = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["d", "i"], &accessor),
+            cols_expr_plan(t, &["bonus", "salary"], &accessor),
             tab(t),
             const_bool(true),
         ),
@@ -1786,9 +1870,12 @@ fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
             group_by_postprocessing(
                 &[],
                 &[
-                    aliased_expr(padd(lit(7), max(col("i"))), "max_i"),
+                    aliased_expr(padd(lit(7), max(col("salary"))), "max_i"),
                     aliased_expr(
-                        pmul(min(padd(col("i"), pmul(lit(777), col("d")))), lit(-5)),
+                        pmul(
+                            min(padd(col("salary"), pmul(lit(777), col("bonus")))),
+                            lit(-5),
+                        ),
                         "min_d",
                     ),
                 ],
@@ -1804,13 +1891,24 @@ fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
 
 #[test]
 fn count_aggregation_always_have_integer_type() {
-    let (t, accessor) = get_test_accessor();
-    let ast = query!(
-        select: ["7 + count(s) as cs", "count(i) * -5 as ci", "count(d)"]
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "name".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "tax".parse().unwrap() => ColumnType::Int128,
+        },
     );
+    let query_text =
+        "select 7 + count(name) as cs, count(salary) * -5 as ci, count(tax) from sxt.employees";
+
+    let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+    let ast = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+
     let expected_ast = QueryExpr::new(
         filter(
-            cols_expr_plan(t, &["d", "i", "s"], &accessor),
+            cols_expr_plan(t, &["name", "salary", "tax"], &accessor),
             tab(t),
             const_bool(true),
         ),
@@ -1818,9 +1916,9 @@ fn count_aggregation_always_have_integer_type() {
             group_by_postprocessing(
                 &[],
                 &[
-                    aliased_expr(padd(lit(7), count(col("s"))), "cs"),
-                    aliased_expr(pmul(count(col("i")), lit(-5)), "ci"),
-                    aliased_expr(count(col("d")), "__count__"),
+                    aliased_expr(padd(lit(7), count(col("name"))), "cs"),
+                    aliased_expr(pmul(count(col("salary")), lit(-5)), "ci"),
+                    aliased_expr(count(col("tax")), "__count__"),
                 ],
             ),
             select_expr(&[
@@ -1835,17 +1933,47 @@ fn count_aggregation_always_have_integer_type() {
 
 #[test]
 fn select_wildcard_is_valid_with_group_by_exprs() {
-    let columns = ["s", "i", "d", "s0", "i0", "d0", "s1", "i1", "d1"];
+    let columns = [
+        "employee_name",
+        "base_salary",
+        "annual_bonus",
+        "manager_name",
+        "manager_salary",
+        "manager_bonus",
+        "department_name",
+        "department_budget",
+        "department_headcount",
+    ];
     let sorted_columns = columns.iter().sorted().collect::<Vec<_>>();
     let aliased_exprs = columns
         .iter()
         .map(|c| aliased_expr(col(c), c))
         .collect::<Vec<_>>();
-    let (t, accessor) = get_test_accessor();
-    let ast = query!(
-        select: ["*"],
-        group: columns.clone()
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "employee_name".parse().unwrap() => ColumnType::VarChar,
+            "base_salary".parse().unwrap() => ColumnType::BigInt,
+            "annual_bonus".parse().unwrap() => ColumnType::Int128,
+            "manager_name".parse().unwrap() => ColumnType::VarChar,
+            "manager_salary".parse().unwrap() => ColumnType::BigInt,
+            "manager_bonus".parse().unwrap() => ColumnType::Int128,
+            "department_name".parse().unwrap() => ColumnType::VarChar,
+            "department_budget".parse().unwrap() => ColumnType::BigInt,
+            "department_headcount".parse().unwrap() => ColumnType::Int128,
+        },
     );
+
+    let query_text = format!(
+        "SELECT * FROM {} GROUP BY {}",
+        "sxt.employees",
+        columns.join(", ")
+    );
+
+    let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+    let ast = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+
     let expected_ast = QueryExpr::new(
         filter(
             sorted_columns
@@ -1863,10 +1991,28 @@ fn select_wildcard_is_valid_with_group_by_exprs() {
 #[test]
 fn nested_aggregations_are_not_supported() {
     let supported_agg = ["max", "min", "sum", "count"];
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+        },
+    );
+
     for perm_aggs in supported_agg.iter().permutations(2) {
+        let query_text = format!(
+            "SELECT {}({}(salary)) FROM sxt.employees",
+            perm_aggs[0], perm_aggs[1]
+        );
+
+        let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+        let result = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
+
         assert_eq!(
-            query!(select: [format!("{}({}(i))", perm_aggs[0], perm_aggs[1])], should_err: true),
-            ConversionError::InvalidExpression("nested aggregations are not supported".to_string())
+            result,
+            Err(ConversionError::InvalidExpression {
+                expression: "nested aggregations are not supported".to_string()
+            })
         );
     }
 }
@@ -1874,10 +2020,25 @@ fn nested_aggregations_are_not_supported() {
 #[test]
 fn select_group_and_order_by_preserve_the_column_order_reference() {
     const N: usize = 4;
-    let (t, accessor) = get_test_accessor();
-    let base_cols: [&str; N] = ["i", "i0", "i1", "s"]; // sorted because of `select: [cols = ... ]`
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        t,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+            "tax".parse().unwrap() => ColumnType::BigInt,
+            "name".parse().unwrap() => ColumnType::VarChar,
+        },
+    );
+    let base_cols: [&str; N] = ["salary", "department", "tax", "name"]; // sorted because of `select: [cols = ... ]`
     let base_ordering = [Asc, Desc, Asc, Desc];
-    for (idx, perm_cols) in base_cols.into_iter().permutations(N).unique().enumerate() {
+    for (idx, perm_cols) in base_cols
+        .into_iter()
+        .permutations(N)
+        .collect::<IndexSet<_>>()
+        .into_iter()
+        .enumerate()
+    {
         let perm_col_plans = perm_cols
             .iter()
             .sorted()
@@ -1893,11 +2054,22 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
         let order_cols_vec = order_cols.clone().collect::<Vec<_>>();
         let ordering = base_ordering.into_iter().cycle().skip(idx).take(N);
         let ordering_vec = ordering.clone().collect::<Vec<_>>();
-        let query = query!(
-            select: perm_cols,
-            group: group_cols.clone(),
-            order: order_cols.clone().zip(ordering.clone()).map(|(c, o)| format!("{} {}", c, o))
+        let query_text = format!(
+            "SELECT {} FROM {} GROUP BY {} ORDER BY {}",
+            perm_cols.join(", "),
+            t,
+            group_cols_vec.join(", "),
+            order_cols_vec
+                .iter()
+                .zip(ordering_vec.iter())
+                .map(|(c, o)| format!("{c} {o}"))
+                .collect::<Vec<_>>()
+                .join(", ")
         );
+
+        let intermediate_ast = SelectStatementParser::new().parse(&query_text).unwrap();
+        let query = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor).unwrap();
+
         let expected_query = QueryExpr::new(
             filter(perm_col_plans, tab(t), const_bool(true)),
             vec![
@@ -1909,8 +2081,8 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
     }
 }
 
-/// Creates a new QueryExpr, with the given select statement and a sample schema accessor.
-fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
+/// Creates a new [`QueryExpr`], with the given select statement and a sample schema accessor.
+fn query_expr_for_test_table(sql_text: &str) -> QueryExpr {
     let schema_accessor = schema_accessor_from_table_ref_with_schema(
         "test.table".parse().unwrap(),
         indexmap! {
@@ -1924,31 +2096,30 @@ fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
     QueryExpr::try_new(select_statement, default_schema, &schema_accessor).unwrap()
 }
 
-/// Serializes and deserializes QueryExpr with flexbuffers and asserts that it remains the same.
-fn assert_query_expr_serializes_to_and_from_flex_buffers(query_expr: QueryExpr<RistrettoPoint>) {
-    let serialized = flexbuffers::to_vec(&query_expr).unwrap();
-    let deserialized: QueryExpr<RistrettoPoint> =
-        flexbuffers::from_slice(serialized.as_slice()).unwrap();
-    assert_eq!(deserialized, query_expr);
+/// Serializes and deserializes [`QueryExpr`] with flexbuffers and asserts that it remains the same.
+fn assert_query_expr_serializes_to_and_from_flex_buffers(query_expr: &QueryExpr) {
+    let serialized = flexbuffers::to_vec(query_expr).unwrap();
+    let deserialized: QueryExpr = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    assert_eq!(deserialized, *query_expr);
 }
 
 #[test]
 fn basic_query_expr_can_serialize_to_and_from_flex_buffers() {
     let query_expr = query_expr_for_test_table("select * from table");
-    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 }
 
 #[test]
 fn query_expr_with_selected_columns_can_serialize_to_and_from_flex_buffers() {
     let query_expr =
         query_expr_for_test_table("select bigint_column, varchar_column, int128_column from table");
-    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 }
 
 #[test]
 fn query_expr_with_aggregation_can_serialize_to_and_from_flex_buffers() {
     let query_expr = query_expr_for_test_table("select count(*) from table group by bigint_column");
-    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 }
 
 #[test]
@@ -1956,7 +2127,7 @@ fn query_expr_with_filters_can_serialize_to_and_from_flex_buffers() {
     let query_expr = query_expr_for_test_table(
         "select * from table where bigint_column != 5 and varchar_column = 'example' or int128_column = 10",
     );
-    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 }
 
 #[test]
@@ -1964,7 +2135,7 @@ fn query_expr_with_order_and_limits_can_serialize_to_and_from_flex_buffers() {
     let query_expr = query_expr_for_test_table(
         "select * from table order by int128_column desc limit 1 offset 1",
     );
-    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 }
 
 #[test]
@@ -1972,9 +2143,8 @@ fn we_can_serialize_list_of_filters_from_query_expr() {
     let query_expr = query_expr_for_test_table("select * from table");
     let filter_execs = vec![query_expr.proof_expr()];
     let serialized = flexbuffers::to_vec(&filter_execs).unwrap();
-    let deserialized: Vec<DynProofPlan<RistrettoPoint>> =
-        flexbuffers::from_slice(serialized.as_slice()).unwrap();
-    let deserialized_as_ref: Vec<&DynProofPlan<RistrettoPoint>> = deserialized.iter().collect();
+    let deserialized: Vec<DynProofPlan> = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    let deserialized_as_ref: Vec<&DynProofPlan> = deserialized.iter().collect();
     assert_eq!(filter_execs.len(), deserialized_as_ref.len());
     assert_eq!(filter_execs[0], deserialized_as_ref[0]);
 }

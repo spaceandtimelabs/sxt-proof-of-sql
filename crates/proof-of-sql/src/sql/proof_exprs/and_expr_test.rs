@@ -1,7 +1,11 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
+        database::{
+            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor,
+            TableTestAccessor,
+        },
+        scalar::test_scalar::TestScalar,
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
@@ -10,7 +14,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -32,8 +35,11 @@ fn we_can_prove_a_simple_and_query() {
         cols_expr_plan(t, &["a", "d"], &accessor),
         tab(t),
         and(
-            equal(column(t, "b", &accessor), const_scalar(1)),
-            equal(column(t, "d", &accessor), const_scalar("t")),
+            equal(column(t, "b", &accessor), const_scalar::<TestScalar, _>(1)),
+            equal(
+                column(t, "d", &accessor),
+                const_scalar::<TestScalar, _>("t"),
+            ),
         ),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
@@ -57,8 +63,11 @@ fn we_can_prove_a_simple_and_query_with_128_bits() {
         cols_expr_plan(t, &["a", "d"], &accessor),
         tab(t),
         and(
-            equal(column(t, "b", &accessor), const_scalar(1)),
-            equal(column(t, "d", &accessor), const_scalar("t")),
+            equal(column(t, "b", &accessor), const_scalar::<TestScalar, _>(1)),
+            equal(
+                column(t, "d", &accessor),
+                const_scalar::<TestScalar, _>("t"),
+            ),
         ),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
@@ -131,7 +140,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         .multiunzip();
         let expected_result = owned_table([bigint("a", expected_a), varchar("d", expected_d)]);
 
-        assert_eq!(expected_result, res)
+        assert_eq!(expected_result, res);
     }
 }
 
@@ -147,20 +156,20 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
-    let data = owned_table([
-        bigint("a", [1, 2, 3, 4]),
-        bigint("b", [0, 1, 0, 1]),
-        varchar("d", ["ab", "t", "efg", "g"]),
-        bigint("c", [0, 2, 2, 0]),
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [1, 2, 3, 4], &alloc),
+        borrowed_bigint("b", [0, 1, 0, 1], &alloc),
+        borrowed_varchar("d", ["ab", "t", "efg", "g"], &alloc),
+        borrowed_bigint("c", [0, 2, 2, 0], &alloc),
     ]);
     let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let and_expr: DynProofExpr<RistrettoPoint> = and(
+    let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(t, data.clone(), 0, ());
+    let and_expr: DynProofExpr = and(
         equal(column(t, "b", &accessor), const_int128(1)),
         equal(column(t, "d", &accessor), const_varchar("t")),
     );
-    let alloc = Bump::new();
-    let res = and_expr.result_evaluate(4, &alloc, &accessor);
+    let res = and_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[false, true, false, false]);
     assert_eq!(res, expected_res);
 }

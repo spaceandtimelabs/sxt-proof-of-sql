@@ -1,8 +1,11 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
-        scalar::Curve25519Scalar,
+        database::{
+            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor,
+            TableTestAccessor,
+        },
+        scalar::{test_scalar::TestScalar, Curve25519Scalar},
     },
     sql::{
         parse::ConversionError,
@@ -12,7 +15,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -106,8 +108,8 @@ fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     assert!(matches!(
-        DynProofExpr::try_new_add(column(t, "a", &accessor), const_bigint::<RistrettoPoint>(1)),
-        Err(ConversionError::DataTypeMismatch(..))
+        DynProofExpr::try_new_add(column(t, "a", &accessor), const_bigint(1)),
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 
@@ -121,7 +123,7 @@ fn result_expr_can_overflow() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: DynProofPlan<RistrettoPoint> = filter(
+    let ast: DynProofPlan = filter(
         vec![aliased_plan(
             add(column(t, "a", &accessor), column(t, "b", &accessor)),
             "c",
@@ -146,7 +148,7 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: DynProofPlan<RistrettoPoint> = filter(
+    let ast: DynProofPlan = filter(
         vec![aliased_plan(
             add(column(t, "a", &accessor), column(t, "b", &accessor)),
             "c",
@@ -168,7 +170,7 @@ fn overflow_in_where_clause_doesnt_error_out() {
     let data = owned_table([bigint("a", [i64::MAX, i64::MIN]), smallint("b", [1_i16, 0])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: DynProofPlan<RistrettoPoint> = filter(
+    let ast: DynProofPlan = filter(
         cols_expr_plan(t, &["a", "b"], &accessor),
         tab(t),
         gte(
@@ -193,7 +195,7 @@ fn result_expr_can_overflow_more() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: DynProofPlan<RistrettoPoint> = filter(
+    let ast: DynProofPlan = filter(
         vec![
             aliased_plan(
                 add(column(t, "a", &accessor), column(t, "b", &accessor)),
@@ -261,9 +263,12 @@ fn test_random_tables_with_given_offset(offset: usize) {
             and(
                 equal(
                     column(t, "b", &accessor),
-                    const_scalar(filter_val1.as_str()),
+                    const_scalar::<TestScalar, _>(filter_val1.as_str()),
                 ),
-                equal(column(t, "c", &accessor), const_scalar(filter_val2)),
+                equal(
+                    column(t, "c", &accessor),
+                    const_scalar::<TestScalar, _>(filter_val2),
+                ),
             ),
         );
         let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
@@ -279,7 +284,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         ))
         .filter_map(|(a, b, c, d)| {
             if b == &filter_val1 && c == &filter_val2 {
-                Some(((*a + *c - 4) as i128, d.clone()))
+                Some((i128::from(*a + *c - 4), d.clone()))
             } else {
                 None
             }
@@ -287,7 +292,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         .multiunzip();
         let expected_result = owned_table([varchar("d", expected_d), int128("f", expected_f)]);
 
-        assert_eq!(expected_result, res)
+        assert_eq!(expected_result, res);
     }
 }
 
@@ -304,20 +309,20 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 // b + a - 1
 #[test]
 fn we_can_compute_the_correct_output_of_an_add_subtract_expr_using_result_evaluate() {
-    let data = owned_table([
-        smallint("a", [1_i16, 2, 3, 4]),
-        int("b", [0_i32, 1, 0, 1]),
-        varchar("d", ["ab", "t", "efg", "g"]),
-        bigint("c", [0_i64, 2, 2, 0]),
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_smallint("a", [1_i16, 2, 3, 4], &alloc),
+        borrowed_int("b", [0_i32, 1, 0, 1], &alloc),
+        borrowed_varchar("d", ["ab", "t", "efg", "g"], &alloc),
+        borrowed_bigint("c", [0_i64, 2, 2, 0], &alloc),
     ]);
     let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let add_subtract_expr: DynProofExpr<RistrettoPoint> = add(
+    let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(t, data.clone(), 0, ());
+    let add_subtract_expr: DynProofExpr = add(
         column(t, "b", &accessor),
         subtract(column(t, "a", &accessor), const_bigint(1)),
     );
-    let alloc = Bump::new();
-    let res = add_subtract_expr.result_evaluate(4, &alloc, &accessor);
+    let res = add_subtract_expr.result_evaluate(&alloc, &data);
     let expected_res_scalar = [0, 2, 2, 4]
         .iter()
         .map(|v| Curve25519Scalar::from(*v))

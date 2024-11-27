@@ -2,11 +2,10 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, Column, LiteralValue, OwnedTable, OwnedTableTestAccessor,
-            TestAccessor,
+            owned_table_utility::*, table_utility::*, Column, LiteralValue, OwnedTable,
+            OwnedTableTestAccessor, TableTestAccessor, TestAccessor,
         },
-        math::decimal::scale_scalar,
-        scalar::{Curve25519Scalar, Scalar},
+        scalar::{Curve25519Scalar, Scalar, ScalarExt},
     },
     sql::{
         parse::ConversionError,
@@ -16,7 +15,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::{
@@ -164,7 +162,7 @@ fn we_can_compare_columns_with_extreme_values() {
 
 #[test]
 fn we_can_compare_columns_with_small_decimal_values_without_scale() {
-    let scalar_pos = scale_scalar(Curve25519Scalar::ONE, 38).unwrap() - Curve25519Scalar::ONE;
+    let scalar_pos = Curve25519Scalar::pow10(38) - Curve25519Scalar::ONE;
     let scalar_neg = -scalar_pos;
     let data: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("a", [123, 25]),
@@ -192,7 +190,7 @@ fn we_can_compare_columns_with_small_decimal_values_without_scale() {
 
 #[test]
 fn we_can_compare_columns_with_small_decimal_values_with_scale() {
-    let scalar_pos = scale_scalar(Curve25519Scalar::ONE, 38).unwrap() - Curve25519Scalar::ONE;
+    let scalar_pos = Curve25519Scalar::pow10(38) - Curve25519Scalar::ONE;
     let scalar_neg = -scalar_pos;
     let data: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("a", [123, 25]),
@@ -222,7 +220,7 @@ fn we_can_compare_columns_with_small_decimal_values_with_scale() {
 
 #[test]
 fn we_can_compare_columns_with_small_decimal_values_with_differing_scale_gte() {
-    let scalar_pos = scale_scalar(Curve25519Scalar::ONE, 38).unwrap() - Curve25519Scalar::ONE;
+    let scalar_pos = Curve25519Scalar::pow10(38) - Curve25519Scalar::ONE;
     let scalar_neg = -scalar_pos;
     let data: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("a", [123, 25]),
@@ -301,10 +299,10 @@ fn we_cannot_compare_columns_filtering_on_extreme_decimal_values() {
     assert!(matches!(
         DynProofExpr::try_new_inequality(
             column(t, "e", &accessor),
-            const_scalar::<RistrettoPoint, Curve25519Scalar>(Curve25519Scalar::ONE),
+            const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ONE),
             false
         ),
-        Err(ConversionError::DataTypeMismatch(_, _))
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 
@@ -489,7 +487,7 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     );
     if let DynProofPlan::Filter(filter) = &mut ast {
         if let DynProofExpr::Inequality(lte) = &mut filter.where_clause {
-            lte.treat_column_of_zeros_as_negative = true
+            lte.treat_column_of_zeros_as_negative = true;
         }
     }
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
@@ -546,7 +544,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 .multiunzip();
         let expected_result = owned_table([bigint("a", expected_a), varchar("b", expected_b)]);
 
-        assert_eq!(expected_result, res)
+        assert_eq!(expected_result, res);
     }
 }
 
@@ -562,30 +560,36 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evaluate() {
-    let data = owned_table([bigint("a", [-1, 9, 1]), bigint("b", [1, 2, 3])]);
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [-1, 9, 1], &alloc),
+        borrowed_bigint("b", [1, 2, 3], &alloc),
+    ]);
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
-    accessor.add_table(t, data, 0);
-    let lhs_expr: DynProofExpr<RistrettoPoint> = column(t, "a", &accessor);
+    accessor.add_table(t, data.clone(), 0);
+    let lhs_expr: DynProofExpr = column(t, "a", &accessor);
     let rhs_expr = column(t, "b", &accessor);
     let lte_expr = lte(lhs_expr, rhs_expr);
-    let alloc = Bump::new();
-    let res = lte_expr.result_evaluate(3, &alloc, &accessor);
+    let res = lte_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[true, false, true]);
     assert_eq!(res, expected_res);
 }
 
 #[test]
 fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evaluate() {
-    let data = owned_table([bigint("a", [-1, 9, 1]), bigint("b", [1, 2, 3])]);
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_bigint("a", [-1, 9, 1], &alloc),
+        borrowed_bigint("b", [1, 2, 3], &alloc),
+    ]);
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
-    accessor.add_table(t, data, 0);
-    let col_expr: DynProofExpr<RistrettoPoint> = column(t, "a", &accessor);
+    accessor.add_table(t, data.clone(), 0);
+    let col_expr: DynProofExpr = column(t, "a", &accessor);
     let lit_expr = const_bigint(1);
     let gte_expr = gte(col_expr, lit_expr);
-    let alloc = Bump::new();
-    let res = gte_expr.result_evaluate(3, &alloc, &accessor);
+    let res = gte_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[false, true, true]);
     assert_eq!(res, expected_res);
 }

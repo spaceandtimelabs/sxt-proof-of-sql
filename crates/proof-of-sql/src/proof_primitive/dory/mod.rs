@@ -1,4 +1,4 @@
-//! Dory is the commitment scheme described in https://eprint.iacr.org/2020/1274.pdf.
+//! Dory is the commitment scheme described in <https://eprint.iacr.org/2020/1274.pdf>.
 //!
 //! This module contains the implementation of the Dory inner product argument for the BLS12-381 curve.
 //!
@@ -25,9 +25,9 @@ type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
 mod rand_util;
 #[cfg(test)]
 use rand_util::rand_F_tensors;
-#[cfg(any(test, feature = "test"))]
+#[cfg(test)]
 use rand_util::rand_G_vecs;
-#[cfg(any(test, feature = "test"))]
+#[cfg(test)]
 pub use rand_util::test_rng;
 
 mod dory_messages;
@@ -138,19 +138,28 @@ type DeferredGT = deferred_msm::DeferredMSM<GT, F>;
 type DeferredG1 = deferred_msm::DeferredMSM<G1Affine, F>;
 type DeferredG2 = deferred_msm::DeferredMSM<G2Affine, F>;
 
+mod blitzar_metadata_table;
 mod offset_to_bytes;
 mod pack_scalars;
 mod pairings;
 mod transpose;
 
 mod dynamic_build_vmv_state;
+#[cfg(not(feature = "blitzar"))]
 mod dynamic_dory_commitment_helper_cpu;
+#[cfg(feature = "blitzar")]
+mod dynamic_dory_commitment_helper_gpu;
 mod dynamic_dory_helper;
 mod dynamic_dory_standard_basis_helper;
 mod dynamic_dory_structure;
+#[cfg(not(feature = "blitzar"))]
 use dynamic_dory_commitment_helper_cpu::compute_dynamic_dory_commitments;
+#[cfg(feature = "blitzar")]
+use dynamic_dory_commitment_helper_gpu::compute_dynamic_dory_commitments;
 mod dynamic_dory_commitment;
 mod dynamic_dory_commitment_evaluation_proof;
+#[cfg(test)]
+mod dynamic_dory_compute_commitments_test;
 pub use dynamic_dory_commitment::DynamicDoryCommitment;
 #[cfg(test)]
 mod dynamic_dory_commitment_evaluation_proof_test;

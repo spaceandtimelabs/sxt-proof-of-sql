@@ -1,13 +1,18 @@
 use super::{ExpressionEvaluationError, ExpressionEvaluationResult};
 use crate::base::{
     database::{OwnedColumn, OwnedTable},
-    math::decimal::{try_into_to_scalar, Precision},
+    math::{
+        decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError, Precision},
+        BigDecimalExt,
+    },
     scalar::Scalar,
 };
+use alloc::{format, string::ToString, vec};
 use proof_of_sql_parser::{
-    intermediate_ast::{BinaryOperator, Expression, Literal, UnaryOperator},
+    intermediate_ast::{Expression, Literal},
     Identifier,
 };
+use sqlparser::ast::{BinaryOperator, UnaryOperator};
 
 impl<S: Scalar> OwnedTable<S> {
     /// Evaluate an expression on the table.
@@ -15,12 +20,13 @@ impl<S: Scalar> OwnedTable<S> {
         match expr {
             Expression::Column(identifier) => self.evaluate_column(identifier),
             Expression::Literal(lit) => self.evaluate_literal(lit),
-            Expression::Binary { op, left, right } => self.evaluate_binary_expr(*op, left, right),
-            Expression::Unary { op, expr } => self.evaluate_unary_expr(*op, expr),
-            _ => Err(ExpressionEvaluationError::Unsupported(format!(
-                "Expression {:?} is not supported yet",
-                expr
-            ))),
+            Expression::Binary { op, left, right } => {
+                self.evaluate_binary_expr(&(*op).into(), left, right)
+            }
+            Expression::Unary { op, expr } => self.evaluate_unary_expr((*op).into(), expr),
+            _ => Err(ExpressionEvaluationError::Unsupported {
+                expression: format!("Expression {expr:?} is not supported yet"),
+            }),
         }
     }
 
@@ -31,9 +37,9 @@ impl<S: Scalar> OwnedTable<S> {
         Ok(self
             .inner_table()
             .get(identifier)
-            .ok_or(ExpressionEvaluationError::ColumnNotFound(
-                identifier.to_string(),
-            ))?
+            .ok_or(ExpressionEvaluationError::ColumnNotFound {
+                error: identifier.to_string(),
+            })?
             .clone())
     }
 
@@ -44,9 +50,14 @@ impl<S: Scalar> OwnedTable<S> {
             Literal::BigInt(i) => Ok(OwnedColumn::BigInt(vec![*i; len])),
             Literal::Int128(i) => Ok(OwnedColumn::Int128(vec![*i; len])),
             Literal::Decimal(d) => {
-                let scale = d.scale();
-                let precision = Precision::new(d.precision())?;
-                let scalar = try_into_to_scalar(d, precision, scale)?;
+                let raw_scale = d.scale();
+                let scale = raw_scale
+                    .try_into()
+                    .map_err(|_| DecimalError::InvalidScale {
+                        scale: raw_scale.to_string(),
+                    })?;
+                let precision = Precision::try_from(d.precision())?;
+                let scalar = try_convert_intermediate_decimal_to_scalar(d, precision, scale)?;
                 Ok(OwnedColumn::Decimal75(precision, scale, vec![scalar; len]))
             }
             Literal::VarChar(s) => Ok(OwnedColumn::VarChar(vec![s.clone(); len])),
@@ -66,12 +77,16 @@ impl<S: Scalar> OwnedTable<S> {
         let column = self.evaluate(expr)?;
         match op {
             UnaryOperator::Not => Ok(column.element_wise_not()?),
+            // Handle unsupported unary operators
+            _ => Err(ExpressionEvaluationError::Unsupported {
+                expression: format!("Unary operator '{op}' is not supported."),
+            }),
         }
     }
 
     fn evaluate_binary_expr(
         &self,
-        op: BinaryOperator,
+        op: &BinaryOperator,
         left: &Expression,
         right: &Expression,
     ) -> ExpressionEvaluationResult<OwnedColumn<S>> {
@@ -80,13 +95,16 @@ impl<S: Scalar> OwnedTable<S> {
         match op {
             BinaryOperator::And => Ok(left.element_wise_and(&right)?),
             BinaryOperator::Or => Ok(left.element_wise_or(&right)?),
-            BinaryOperator::Equal => Ok(left.element_wise_eq(&right)?),
-            BinaryOperator::GreaterThanOrEqual => Ok(left.element_wise_ge(&right)?),
-            BinaryOperator::LessThanOrEqual => Ok(left.element_wise_le(&right)?),
-            BinaryOperator::Add => Ok((left + right)?),
-            BinaryOperator::Subtract => Ok((left - right)?),
-            BinaryOperator::Multiply => Ok((left * right)?),
-            BinaryOperator::Division => Ok((left / right)?),
+            BinaryOperator::Eq => Ok(left.element_wise_eq(&right)?),
+            BinaryOperator::GtEq => Ok(left.element_wise_ge(&right)?),
+            BinaryOperator::LtEq => Ok(left.element_wise_le(&right)?),
+            BinaryOperator::Plus => Ok(left.element_wise_add(&right)?),
+            BinaryOperator::Minus => Ok(left.element_wise_sub(&right)?),
+            BinaryOperator::Multiply => Ok(left.element_wise_mul(&right)?),
+            BinaryOperator::Divide => Ok(left.element_wise_div(&right)?),
+            _ => Err(ExpressionEvaluationError::Unsupported {
+                expression: format!("Binary operator '{op}' is not supported."),
+            }),
         }
     }
 }

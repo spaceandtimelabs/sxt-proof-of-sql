@@ -1,31 +1,28 @@
 use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        commitment::Commitment,
-        database::{
-            try_add_subtract_column_types, Column, ColumnRef, ColumnType, CommitmentAccessor,
-            DataAccessor,
-        },
+        database::{try_add_subtract_column_types, Column, ColumnRef, ColumnType, Table},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
+        scalar::Scalar,
     },
-    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
+use alloc::boxed::Box;
 use bumpalo::Bump;
-use indexmap::IndexSet;
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 use serde::{Deserialize, Serialize};
 
 /// Provable numerical `+` / `-` expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct AddSubtractExpr<C: Commitment> {
-    lhs: Box<DynProofExpr<C>>,
-    rhs: Box<DynProofExpr<C>>,
+pub struct AddSubtractExpr {
+    lhs: Box<DynProofExpr>,
+    rhs: Box<DynProofExpr>,
     is_subtract: bool,
 }
 
-impl<C: Commitment> AddSubtractExpr<C> {
+impl AddSubtractExpr {
     /// Create numerical `+` / `-` expression
-    pub fn new(lhs: Box<DynProofExpr<C>>, rhs: Box<DynProofExpr<C>>, is_subtract: bool) -> Self {
+    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>, is_subtract: bool) -> Self {
         Self {
             lhs,
             rhs,
@@ -34,7 +31,7 @@ impl<C: Commitment> AddSubtractExpr<C> {
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
+impl ProofExpr for AddSubtractExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
@@ -42,25 +39,17 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
     }
 
     fn data_type(&self) -> ColumnType {
-        let operator = if self.is_subtract {
-            BinaryOperator::Subtract
-        } else {
-            BinaryOperator::Add
-        };
-        try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type(), operator)
+        try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type())
             .expect("Failed to add/subtract column types")
     }
 
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> =
-            self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> =
-            self.rhs.result_evaluate(table_length, alloc, accessor);
+        table: &Table<'a, S>,
+    ) -> Column<'a, S> {
+        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table);
+        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table);
         Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,
@@ -76,14 +65,14 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
         level = "info",
         skip_all
     )]
-    fn prover_evaluate<'a>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
+        table: &Table<'a, S>,
+    ) -> Column<'a, S> {
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
         Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,
@@ -94,11 +83,11 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
         ))
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-    ) -> Result<C::Scalar, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError> {
         let lhs_eval = self.lhs.verifier_evaluate(builder, accessor)?;
         let rhs_eval = self.rhs.verifier_evaluate(builder, accessor)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);

@@ -1,22 +1,23 @@
 use super::{
-    CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, VerifiableQueryResult,
+    CountBuilder, FinalRoundBuilder, ProofPlan, ProverEvaluate, VerifiableQueryResult,
     VerificationBuilder,
 };
 use crate::{
     base::{
-        commitment::{Commitment, InnerProductProof},
+        commitment::InnerProductProof,
         database::{
             owned_table_utility::{bigint, owned_table},
-            Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, TestAccessor, UnimplementedTestAccessor,
+            table_utility::*,
+            ColumnField, ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, Table,
+            TableRef,
         },
+        map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{QueryData, ResultBuilder},
+    sql::proof::{FirstRoundBuilder, ProvableQueryResult, QueryData},
 };
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Default)]
@@ -24,50 +25,54 @@ pub(super) struct EmptyTestQueryExpr {
     pub(super) length: usize,
     pub(super) columns: usize,
 }
-impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
-    fn result_evaluate<'a>(
+impl ProverEvaluate for EmptyTestQueryExpr {
+    fn result_evaluate<'a, S: Scalar>(
         &self,
-        _builder: &mut ResultBuilder,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
-        let zeros = vec![0; self.length];
-        let res: &[_] = alloc.alloc_slice_copy(&zeros);
-        vec![Column::BigInt(res); self.columns]
+        _table_map: &IndexMap<TableRef, Table<'a, S>>,
+    ) -> Table<'a, S> {
+        let zeros = vec![0_i64; self.length];
+        table_with_row_count(
+            (1..=self.columns).map(|i| borrowed_bigint(format!("a{i}"), zeros.clone(), alloc)),
+            self.length,
+        )
     }
-    fn prover_evaluate<'a>(
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
-        _builder: &mut ProofBuilder<'a, S>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>> {
-        let zeros = vec![0; self.length];
+        _table_map: &IndexMap<TableRef, Table<'a, S>>,
+    ) -> Table<'a, S> {
+        let zeros = vec![0_i64; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
-        vec![Column::BigInt(res); self.columns]
+        let _ = std::iter::repeat_with(|| builder.produce_intermediate_mle(res))
+            .take(self.columns)
+            .collect::<Vec<_>>();
+        table_with_row_count(
+            (1..=self.columns).map(|i| borrowed_bigint(format!("a{i}"), zeros.clone(), alloc)),
+            self.length,
+        )
     }
 }
-impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
-        builder.count_result_columns(1);
+impl ProofPlan for EmptyTestQueryExpr {
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
+        builder.count_intermediate_mles(self.columns);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        self.length
-    }
-    fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        0
-    }
-    fn verifier_evaluate(
+
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        _builder: &mut VerificationBuilder<C>,
-        _accessor: &dyn CommitmentAccessor<C>,
-        _result: Option<&OwnedTable<<C as Commitment>::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
-        Ok(vec![C::Scalar::ZERO])
+        builder: &mut VerificationBuilder<S>,
+        _accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
+        let _ = std::iter::repeat_with(|| {
+            assert_eq!(builder.consume_intermediate_mle(), S::ZERO);
+        })
+        .take(self.columns)
+        .collect::<Vec<_>>();
+        Ok(vec![S::ZERO])
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -77,7 +82,11 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        unimplemented!("no real usage for this function yet")
+        indexset! {}
+    }
+
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        indexset! {TableRef::new("sxt.test".parse().unwrap())}
     }
 }
 
@@ -87,7 +96,12 @@ fn we_can_verify_queries_on_an_empty_table() {
         columns: 1,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [0_i64; 0])]),
+        0,
+        (),
+    );
     let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     let QueryData {
         verification_hash: _,
@@ -103,9 +117,14 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
         columns: 1,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [0_i64; 0])]),
+        0,
+        (),
+    );
     let res = VerifiableQueryResult::<InnerProductProof> {
-        provable_result: Some(Default::default()),
+        provable_result: Some(ProvableQueryResult::default()),
         proof: None,
     };
     assert!(res.verify(&expr, &accessor, &()).is_err());

@@ -1,32 +1,32 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, Table},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
+use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 /// Provable logical OR expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct OrExpr<C: Commitment> {
-    lhs: Box<DynProofExpr<C>>,
-    rhs: Box<DynProofExpr<C>>,
+pub struct OrExpr {
+    lhs: Box<DynProofExpr>,
+    rhs: Box<DynProofExpr>,
 }
 
-impl<C: Commitment> OrExpr<C> {
+impl OrExpr {
     /// Create logical OR expression
-    pub fn new(lhs: Box<DynProofExpr<C>>, rhs: Box<DynProofExpr<C>>) -> Self {
+    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
         Self { lhs, rhs }
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
+impl ProofExpr for OrExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
@@ -39,40 +39,37 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
     }
 
     #[tracing::instrument(name = "OrExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> =
-            self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> =
-            self.rhs.result_evaluate(table_length, alloc, accessor);
+        table: &Table<'a, S>,
+    ) -> Column<'a, S> {
+        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table);
+        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table);
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        Column::Boolean(result_evaluate_or(table_length, alloc, lhs, rhs))
+        Column::Boolean(result_evaluate_or(table.num_rows(), alloc, lhs, rhs))
     }
 
     #[tracing::instrument(name = "OrExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
+        table: &Table<'a, S>,
+    ) -> Column<'a, S> {
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         Column::Boolean(prover_evaluate_or(builder, alloc, lhs, rhs))
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-    ) -> Result<C::Scalar, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError> {
         let lhs = self.lhs.verifier_evaluate(builder, accessor)?;
         let rhs = self.rhs.verifier_evaluate(builder, accessor)?;
 
@@ -85,6 +82,10 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
     }
 }
 
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "table_length matches lhs and rhs lengths, ensuring no panic occurs"
+)]
 pub fn result_evaluate_or<'a>(
     table_length: usize,
     alloc: &'a Bump,
@@ -96,8 +97,12 @@ pub fn result_evaluate_or<'a>(
     alloc.alloc_slice_fill_with(table_length, |i| lhs[i] || rhs[i])
 }
 
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "lhs and rhs are guaranteed to have the same length, ensuring no panic occurs"
+)]
 pub fn prover_evaluate_or<'a, S: Scalar>(
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     lhs: &'a [bool],
     rhs: &'a [bool],
@@ -122,17 +127,17 @@ pub fn prover_evaluate_or<'a, S: Scalar>(
     alloc.alloc_slice_fill_with(n, |i| lhs[i] || rhs[i])
 }
 
-pub fn verifier_evaluate_or<C: Commitment>(
-    builder: &mut VerificationBuilder<C>,
-    lhs: &C::Scalar,
-    rhs: &C::Scalar,
-) -> C::Scalar {
+pub fn verifier_evaluate_or<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    lhs: &S,
+    rhs: &S,
+) -> S {
     // lhs_and_rhs
     let lhs_and_rhs = builder.consume_intermediate_mle();
 
     // subpolynomial: lhs_and_rhs - lhs * rhs
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
+        &SumcheckSubpolynomialType::Identity,
         lhs_and_rhs - *lhs * *rhs,
     );
 

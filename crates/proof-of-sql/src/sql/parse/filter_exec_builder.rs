@@ -1,27 +1,27 @@
 use super::{where_expr_builder::WhereExprBuilder, ConversionError, EnrichedExpr};
 use crate::{
     base::{
-        commitment::Commitment,
         database::{ColumnRef, LiteralValue, TableRef},
+        map::IndexMap,
     },
     sql::{
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, TableExpr},
         proof_plans::FilterExec,
     },
 };
-use indexmap::IndexMap;
+use alloc::{boxed::Box, vec, vec::Vec};
 use itertools::Itertools;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 
-pub struct FilterExecBuilder<C: Commitment> {
+pub struct FilterExecBuilder {
     table_expr: Option<TableExpr>,
-    where_expr: Option<DynProofExpr<C>>,
-    filter_result_expr_list: Vec<AliasedDynProofExpr<C>>,
+    where_expr: Option<DynProofExpr>,
+    filter_result_expr_list: Vec<AliasedDynProofExpr>,
     column_mapping: IndexMap<Identifier, ColumnRef>,
 }
 
 // Public interface
-impl<C: Commitment> FilterExecBuilder<C> {
+impl FilterExecBuilder {
     pub fn new(column_mapping: IndexMap<Identifier, ColumnRef>) -> Self {
         Self {
             table_expr: None,
@@ -44,7 +44,11 @@ impl<C: Commitment> FilterExecBuilder<C> {
         Ok(self)
     }
 
-    pub fn add_result_columns(mut self, columns: &[EnrichedExpr<C>]) -> Self {
+    /// # Panics
+    ///
+    /// Will panic if:
+    /// - `self.column_mapping.get(alias)` returns `None`, which can occur if the alias is not found in the column mapping.
+    pub fn add_result_columns(mut self, columns: &[EnrichedExpr]) -> Self {
         // If a column is provable, add it to the filter result expression list
         // If at least one column is non-provable, add all columns from the column mapping to the filter result expression list
         let mut has_nonprovable_column = false;
@@ -58,6 +62,7 @@ impl<C: Commitment> FilterExecBuilder<C> {
                 has_nonprovable_column = true;
             }
         }
+
         if has_nonprovable_column {
             // Has to keep them sorted to have deterministic order for tests
             for alias in self.column_mapping.keys().sorted() {
@@ -71,7 +76,8 @@ impl<C: Commitment> FilterExecBuilder<C> {
         self
     }
 
-    pub fn build(self) -> FilterExec<C> {
+    #[allow(clippy::missing_panics_doc)]
+    pub fn build(self) -> FilterExec {
         FilterExec::new(
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),

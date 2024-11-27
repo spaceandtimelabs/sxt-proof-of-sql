@@ -2,29 +2,38 @@ use super::{
     column_commitment_metadata::ColumnCommitmentMetadataMismatch, ColumnCommitmentMetadata,
     CommittableColumn,
 };
-use crate::base::database::ColumnField;
+use crate::base::{database::ColumnField, map::IndexMap};
 use alloc::string::{String, ToString};
-use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Mapping of column identifiers to column metadata used to associate metadata with commitments.
 pub type ColumnCommitmentMetadataMap = IndexMap<Identifier, ColumnCommitmentMetadata>;
 
 /// During commitment operation, metadata indicates that operand tables cannot be the same.
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum ColumnCommitmentsMismatch {
     /// Anonymous metadata indicates a column mismatch.
-    #[error(transparent)]
-    ColumnCommitmentMetadata(#[from] ColumnCommitmentMetadataMismatch),
+    #[snafu(transparent)]
+    ColumnCommitmentMetadata {
+        /// The underlying source error
+        source: ColumnCommitmentMetadataMismatch,
+    },
     /// Commitments with different column counts cannot operate with each other.
-    #[error("commitments with different column counts cannot operate with each other")]
+    #[snafu(display("commitments with different column counts cannot operate with each other"))]
     NumColumns,
     /// Columns with mismatched identifiers cannot operate with each other.
     ///
     /// Strings are used here instead of Identifiers to decrease the size of this variant
-    #[error("column with identifier {0} cannot operate with column with identifier {1}")]
-    Identifier(String, String),
+    #[snafu(display(
+        "column with identifier {id_a} cannot operate with column with identifier {id_b}"
+    ))]
+    Identifier {
+        /// The first column identifier
+        id_a: String,
+        /// The second column identifier
+        id_b: String,
+    },
 }
 
 /// Extension trait intended for [`ColumnCommitmentMetadataMap`].
@@ -90,10 +99,10 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
             .zip(other)
             .map(|((identifier_a, metadata_a), (identifier_b, metadata_b))| {
                 if identifier_a != identifier_b {
-                    Err(ColumnCommitmentsMismatch::Identifier(
-                        identifier_a.to_string(),
-                        identifier_b.to_string(),
-                    ))?
+                    Err(ColumnCommitmentsMismatch::Identifier {
+                        id_a: identifier_a.to_string(),
+                        id_b: identifier_b.to_string(),
+                    })?;
                 }
 
                 Ok((identifier_a, metadata_a.try_union(metadata_b)?))
@@ -113,10 +122,10 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
             .zip(other)
             .map(|((identifier_a, metadata_a), (identifier_b, metadata_b))| {
                 if identifier_a != identifier_b {
-                    Err(ColumnCommitmentsMismatch::Identifier(
-                        identifier_a.to_string(),
-                        identifier_b.to_string(),
-                    ))?
+                    Err(ColumnCommitmentsMismatch::Identifier {
+                        id_a: identifier_a.to_string(),
+                        id_b: identifier_b.to_string(),
+                    })?;
                 }
 
                 Ok((identifier_a, metadata_a.try_difference(metadata_b)?))
@@ -131,13 +140,13 @@ mod tests {
     use crate::base::{
         commitment::{column_bounds::Bounds, ColumnBounds},
         database::{owned_table_utility::*, ColumnType, OwnedTable},
-        scalar::Curve25519Scalar,
+        scalar::test_scalar::TestScalar,
     };
     use alloc::vec::Vec;
     use itertools::Itertools;
 
     fn metadata_map_from_owned_table(
-        table: OwnedTable<Curve25519Scalar>,
+        table: &OwnedTable<TestScalar>,
     ) -> ColumnCommitmentMetadataMap {
         let (identifiers, columns): (Vec<&Identifier>, Vec<CommittableColumn>) = table
             .inner_table()
@@ -155,14 +164,14 @@ mod tests {
         assert_eq!(empty_metadata_map.len(), 0);
 
         // With columns
-        let table: OwnedTable<Curve25519Scalar> = owned_table([
+        let table: OwnedTable<TestScalar> = owned_table([
             bigint("bigint_column", [1, 5, -5, 0]),
             int128("int128_column", [100, 200, 300, 400]),
             varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit"]),
             scalar("scalar_column", [1000, 2000, -1000, 0]),
         ]);
 
-        let metadata_map = metadata_map_from_owned_table(table);
+        let metadata_map = metadata_map_from_owned_table(&table);
 
         assert_eq!(metadata_map.len(), 4);
 
@@ -205,7 +214,7 @@ mod tests {
             varchar("varchar_column", ["Lorem", "ipsum"]),
             scalar("scalar_column", [1000, 2000]),
         ]);
-        let metadata_a = metadata_map_from_owned_table(table_a);
+        let metadata_a = metadata_map_from_owned_table(&table_a);
 
         let table_b = owned_table([
             bigint("bigint_column", [-5, 0, 10]),
@@ -213,7 +222,7 @@ mod tests {
             varchar("varchar_column", ["dolor", "sit", "amet"]),
             scalar("scalar_column", [-1000, 0, -2000]),
         ]);
-        let metadata_b = metadata_map_from_owned_table(table_b);
+        let metadata_b = metadata_map_from_owned_table(&table_b);
 
         let table_c = owned_table([
             bigint("bigint_column", [1, 5, -5, 0, 10]),
@@ -221,7 +230,7 @@ mod tests {
             varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
             scalar("scalar_column", [1000, 2000, -1000, 0, -2000]),
         ]);
-        let metadata_c = metadata_map_from_owned_table(table_c);
+        let metadata_c = metadata_map_from_owned_table(&table_c);
 
         assert_eq!(metadata_a.try_union(metadata_b).unwrap(), metadata_c);
     }
@@ -233,7 +242,7 @@ mod tests {
             varchar("varchar_column", ["Lorem", "ipsum"]),
             scalar("scalar_column", [1000, 2000]),
         ]);
-        let metadata_a = metadata_map_from_owned_table(table_a);
+        let metadata_a = metadata_map_from_owned_table(&table_a);
 
         let table_b = owned_table([
             bigint("bigint_column", [1, 5, -5, 0, 10]),
@@ -241,7 +250,7 @@ mod tests {
             varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
             scalar("scalar_column", [1000, 2000, -1000, 0, -2000]),
         ]);
-        let metadata_b = metadata_map_from_owned_table(table_b);
+        let metadata_b = metadata_map_from_owned_table(&table_b);
 
         let b_difference_a = metadata_b.try_difference(metadata_a.clone()).unwrap();
 
@@ -288,13 +297,13 @@ mod tests {
             varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
             scalar("scalar_column", [1000, 2000, -1000, 0, -2000]),
         ]);
-        let metadata_a = metadata_map_from_owned_table(table_a);
+        let metadata_a = metadata_map_from_owned_table(&table_a);
 
         let table_b = owned_table([
             bigint("bigint_column", [1, 5, -5, 0, 10]),
             varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
         ]);
-        let metadata_b = metadata_map_from_owned_table(table_b);
+        let metadata_b = metadata_map_from_owned_table(&table_b);
 
         assert!(matches!(
             metadata_a.clone().try_union(metadata_b.clone()),
@@ -317,6 +326,7 @@ mod tests {
         ));
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_cannot_perform_arithmetic_on_mismatched_metadata_maps_with_same_column_counts() {
         let id_a = "column_a";
@@ -327,25 +337,25 @@ mod tests {
         let strings = ["Lorem", "ipsum", "dolor", "sit"];
 
         let ab_ii_metadata =
-            metadata_map_from_owned_table(owned_table([bigint(id_a, ints), bigint(id_b, ints)]));
+            metadata_map_from_owned_table(&owned_table([bigint(id_a, ints), bigint(id_b, ints)]));
 
-        let ab_iv_metadata = metadata_map_from_owned_table(owned_table([
+        let ab_iv_metadata = metadata_map_from_owned_table(&owned_table([
             bigint(id_a, ints),
             varchar(id_b, strings),
         ]));
 
-        let ab_vi_metadata = metadata_map_from_owned_table(owned_table([
+        let ab_vi_metadata = metadata_map_from_owned_table(&owned_table([
             varchar(id_a, strings),
             bigint(id_b, ints),
         ]));
 
         let ad_ii_metadata =
-            metadata_map_from_owned_table(owned_table([bigint(id_a, ints), bigint(id_d, ints)]));
+            metadata_map_from_owned_table(&owned_table([bigint(id_a, ints), bigint(id_d, ints)]));
 
         let cb_ii_metadata =
-            metadata_map_from_owned_table(owned_table([bigint(id_c, ints), bigint(id_b, ints)]));
+            metadata_map_from_owned_table(&owned_table([bigint(id_c, ints), bigint(id_b, ints)]));
 
-        let cd_vv_metadata = metadata_map_from_owned_table(owned_table([
+        let cd_vv_metadata = metadata_map_from_owned_table(&owned_table([
             varchar(id_c, strings),
             varchar(id_d, strings),
         ]));

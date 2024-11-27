@@ -2,10 +2,10 @@
 mod count_builder;
 pub(crate) use count_builder::CountBuilder;
 
-mod proof_builder;
-pub(crate) use proof_builder::ProofBuilder;
+mod final_round_builder;
+pub(crate) use final_round_builder::FinalRoundBuilder;
 #[cfg(all(test, feature = "blitzar"))]
-mod proof_builder_test;
+mod final_round_builder_test;
 
 mod composite_polynomial_builder;
 pub(crate) use composite_polynomial_builder::CompositePolynomialBuilder;
@@ -25,8 +25,6 @@ pub(crate) use provable_result_column::ProvableResultColumn;
 
 mod provable_query_result;
 pub use provable_query_result::ProvableQueryResult;
-#[cfg(all(test, feature = "arrow"))]
-mod provable_query_result_test;
 
 mod sumcheck_mle_evaluations;
 pub(crate) use sumcheck_mle_evaluations::SumcheckMleEvaluations;
@@ -68,10 +66,8 @@ pub(crate) use result_element_serialization::{
     decode_and_convert, decode_multiple_elements, ProvableResultElement,
 };
 
-mod indexes;
-pub(crate) use indexes::Indexes;
-#[cfg(test)]
-mod indexes_test;
+mod first_round_builder;
+pub(crate) use first_round_builder::FirstRoundBuilder;
 
-mod result_builder;
-pub(crate) use result_builder::ResultBuilder;
+#[cfg(all(test, feature = "arrow"))]
+mod provable_query_result_test;

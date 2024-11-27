@@ -3,14 +3,14 @@ use ark_ff::MontConfig;
 
 /// A trait for enabling zig-zag encoding
 ///
-/// See https://developers.google.com/protocol-buffers/docs/encoding#signed-ints
+/// See <https://developers.google.com/protocol-buffers/docs/encoding#signed-ints>
 /// for a descriptive reference.
 pub trait ZigZag<T> {
     /// Encodes this ZigZag-enabled type into the type specified by implementation
     fn zigzag(&self) -> T;
 }
 
-/// Zigzag convertion from a dalek Scalar to a ZigZag u256 integer
+/// Zigzag convertion from a dalek Scalar to a [`ZigZag`] u256 integer
 ///
 /// For this conversion, we compute:
 ///
@@ -21,9 +21,9 @@ pub trait ZigZag<T> {
 ///
 /// Then we choose the smallest value between `x` and `y`. Finally,
 /// if `x` is the smallest value, we remap it to `2 * x` u256 integer,
-/// which represents a positive ZigZag encoding.
+/// which represents a positive [`ZigZag`] encoding.
 /// Otherwise, we remap `y` to `2 * y + 1` u256 integer,
-/// which represents a negative ZigZag encoding (-y).
+/// which represents a negative [`ZigZag`] encoding (-y).
 impl<T: MontConfig<4>> ZigZag<U256> for MontScalar<T> {
     fn zigzag(&self) -> U256 {
         // since self is a dalek scalar, we never have the last bit 255 set
@@ -46,7 +46,7 @@ impl<T: MontConfig<4>> ZigZag<U256> for MontScalar<T> {
             let (low_val, carry_low) = y.low.overflowing_sub(1_u128);
 
             y.low = low_val;
-            y.high -= carry_low as u128; // we should never expect overflow here
+            y.high -= u128::from(carry_low); // we should never expect overflow here
 
             // effectively encoding a ZigZag y
             y
@@ -65,14 +65,14 @@ impl<T: MontConfig<4>> ZigZag<U256> for MontScalar<T> {
 ///
 /// For this conversion, we first verify if `self` is an odd or even number.
 /// In case `self` is odd, the encoded number represents a negative
-/// ZigZag value `-y`, encoded as `2 * y + 1`.
+/// [`ZigZag`] value `-y`, encoded as `2 * y + 1`.
 /// Otherwise, in case it's even, the encoded number represents
-/// a positive ZigZag value `x`, encoded as `2 * x`.
+/// a positive [`ZigZag`] value `x`, encoded as `2 * x`.
 ///
 /// In both cases, we divide the `self` value by 2 in order
-/// to remove the ZigZag encoding (`y = self / 2` or `x = self / 2`).
+/// to remove the [`ZigZag`] encoding (`y = self / 2` or `x = self / 2`).
 ///
-/// Finally, we return either -1 * dalek::Scalar(y) or dalek::Scalar(x),
+/// Finally, we return either `-1 * dalek::Scalar(y)` or `dalek::Scalar(x)`,
 /// which in both cases represents the `x` scalar.
 impl<T: MontConfig<4>> ZigZag<MontScalar<T>> for U256 {
     fn zigzag(&self) -> MontScalar<T> {
@@ -93,7 +93,7 @@ impl<T: MontConfig<4>> ZigZag<MontScalar<T>> for U256 {
             let (low_val, carry_low) = zig_val.low.overflowing_add(1_u128);
 
             zig_val.low = low_val;
-            zig_val.high += carry_low as u128; // we should never expect overflow here
+            zig_val.high += u128::from(carry_low); // we should never expect overflow here
 
             // even though the encoding represented a -y,
             // zig_val actually represents a `y` (we simply divided self by 2).

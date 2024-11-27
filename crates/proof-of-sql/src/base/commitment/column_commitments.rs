@@ -2,33 +2,42 @@ use super::{
     committable_column::CommittableColumn, ColumnCommitmentMetadata, ColumnCommitmentMetadataMap,
     ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch, Commitment, VecCommitmentExt,
 };
-use crate::base::database::{ColumnField, ColumnRef, CommitmentAccessor, TableRef};
+use crate::base::{
+    database::{ColumnField, ColumnRef, CommitmentAccessor, TableRef},
+    map::IndexSet,
+};
 use alloc::{
-    borrow::ToOwned,
     string::{String, ToString},
     vec,
     vec::Vec,
 };
 use core::{iter, slice};
-use indexmap::IndexSet;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Cannot create commitments with duplicate identifier.
-#[derive(Debug, Error)]
-#[error("cannot create commitments with duplicate identifier: {0}")]
-pub struct DuplicateIdentifiers(String);
+#[derive(Debug, Snafu)]
+#[snafu(display("cannot create commitments with duplicate identifier: {id}"))]
+pub struct DuplicateIdentifiers {
+    id: String,
+}
 
-/// Errors that can occur when attempting to append rows to ColumnCommitments.
-#[derive(Debug, Error)]
+/// Errors that can occur when attempting to append rows to [`ColumnCommitments`].
+#[derive(Debug, Snafu)]
 pub enum AppendColumnCommitmentsError {
     /// Metadata between new and old columns are mismatched.
-    #[error(transparent)]
-    Mismatch(#[from] ColumnCommitmentsMismatch),
+    #[snafu(transparent)]
+    Mismatch {
+        /// The underlying source error
+        source: ColumnCommitmentsMismatch,
+    },
     /// New columns have duplicate identifiers.
-    #[error(transparent)]
-    DuplicateIdentifiers(#[from] DuplicateIdentifiers),
+    #[snafu(transparent)]
+    DuplicateIdentifiers {
+        /// The underlying source error
+        source: DuplicateIdentifiers,
+    },
 }
 
 /// Commitments for a collection of columns with some metadata.
@@ -65,26 +74,31 @@ impl<C: Commitment> ColumnCommitments<C> {
     }
 
     /// Returns a reference to the stored commitments.
+    #[must_use]
     pub fn commitments(&self) -> &Vec<C> {
         &self.commitments
     }
 
     /// Returns a reference to the stored column metadata.
+    #[must_use]
     pub fn column_metadata(&self) -> &ColumnCommitmentMetadataMap {
         &self.column_metadata
     }
 
     /// Returns the number of columns.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.column_metadata.len()
     }
 
     /// Returns true if there are no columns.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.column_metadata.is_empty()
     }
 
     /// Returns the commitment with the given identifier.
+    #[must_use]
     pub fn get_commitment(&self, identifier: &Identifier) -> Option<C> {
         self.column_metadata
             .get_index_of(identifier)
@@ -92,6 +106,7 @@ impl<C: Commitment> ColumnCommitments<C> {
     }
 
     /// Returns the metadata for the commitment with the given identifier.
+    #[must_use]
     pub fn get_metadata(&self, identifier: &Identifier) -> Option<&ColumnCommitmentMetadata> {
         self.column_metadata.get(identifier)
     }
@@ -111,14 +126,16 @@ impl<C: Commitment> ColumnCommitments<C> {
         COL: Into<CommittableColumn<'a>>,
     {
         // Check for duplicate identifiers
-        let mut unique_identifiers = IndexSet::new();
+        let mut unique_identifiers = IndexSet::default();
         let unique_columns = columns
             .into_iter()
             .map(|(identifier, column)| {
                 if unique_identifiers.insert(identifier) {
                     Ok((identifier, column))
                 } else {
-                    Err(DuplicateIdentifiers(identifier.to_string()))
+                    Err(DuplicateIdentifiers {
+                        id: identifier.to_string(),
+                    })
                 }
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -151,6 +168,7 @@ impl<C: Commitment> ColumnCommitments<C> {
     ///
     /// Will error on a variety of mismatches.
     /// See [`ColumnCommitmentsMismatch`] for an enumeration of these errors.
+    #[allow(clippy::missing_panics_doc)]
     pub fn try_append_rows_with_offset<'a, COL>(
         &mut self,
         columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
@@ -161,14 +179,16 @@ impl<C: Commitment> ColumnCommitments<C> {
         COL: Into<CommittableColumn<'a>>,
     {
         // Check for duplicate identifiers.
-        let mut unique_identifiers = IndexSet::new();
+        let mut unique_identifiers = IndexSet::default();
         let unique_columns = columns
             .into_iter()
             .map(|(identifier, column)| {
                 if unique_identifiers.insert(identifier) {
                     Ok((identifier, column))
                 } else {
-                    Err(DuplicateIdentifiers(identifier.to_string()))
+                    Err(DuplicateIdentifiers {
+                        id: identifier.to_string(),
+                    })
                 }
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -186,7 +206,7 @@ impl<C: Commitment> ColumnCommitments<C> {
             identifiers.into_iter().zip(committable_columns.iter()),
         );
 
-        self.column_metadata = self.column_metadata.to_owned().try_union(column_metadata)?;
+        self.column_metadata = self.column_metadata.clone().try_union(column_metadata)?;
 
         self.commitments
             .try_append_rows_with_offset(committable_columns, offset, setup)
@@ -216,7 +236,9 @@ impl<C: Commitment> ColumnCommitments<C> {
             .into_iter()
             .map(|(identifier, column)| {
                 if self.column_metadata.contains_key(identifier) {
-                    Err(DuplicateIdentifiers(identifier.to_string()))
+                    Err(DuplicateIdentifiers {
+                        id: identifier.to_string(),
+                    })
                 } else {
                     Ok((identifier, column))
                 }
@@ -238,6 +260,7 @@ impl<C: Commitment> ColumnCommitments<C> {
     ///
     /// Will error on a variety of mismatches.
     /// See [`ColumnCommitmentsMismatch`] for an enumeration of these errors.
+    #[allow(clippy::missing_panics_doc)]
     pub fn try_add(self, other: Self) -> Result<Self, ColumnCommitmentsMismatch>
     where
         Self: Sized,
@@ -249,8 +272,8 @@ impl<C: Commitment> ColumnCommitments<C> {
             .expect("we've already checked that self and other have equal column counts");
 
         Ok(ColumnCommitments {
-            column_metadata,
             commitments,
+            column_metadata,
         })
     }
 
@@ -258,6 +281,7 @@ impl<C: Commitment> ColumnCommitments<C> {
     ///
     /// Will error on a variety of mismatches.
     /// See [`ColumnCommitmentsMismatch`] for an enumeration of these errors.
+    #[allow(clippy::missing_panics_doc)]
     pub fn try_sub(self, other: Self) -> Result<Self, ColumnCommitmentsMismatch>
     where
         Self: Sized,
@@ -269,8 +293,8 @@ impl<C: Commitment> ColumnCommitments<C> {
             .expect("we've already checked that self and other have equal column counts");
 
         Ok(ColumnCommitments {
-            column_metadata,
             commitments,
+            column_metadata,
         })
     }
 }
@@ -331,18 +355,17 @@ impl<C> FromIterator<(Identifier, ColumnCommitmentMetadata, C)> for ColumnCommit
 mod tests {
     use super::*;
     use crate::base::{
-        commitment::{column_bounds::Bounds, ColumnBounds},
+        commitment::{column_bounds::Bounds, naive_commitment::NaiveCommitment, ColumnBounds},
         database::{owned_table_utility::*, ColumnType, OwnedColumn, OwnedTable},
-        scalar::Curve25519Scalar,
+        scalar::test_scalar::TestScalar,
     };
-    use curve25519_dalek::RistrettoPoint;
 
     #[test]
     fn we_can_construct_column_commitments_from_columns_and_identifiers() {
         // empty case
         let column_commitments =
-            ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset::<
-                &OwnedColumn<Curve25519Scalar>,
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset::<
+                &OwnedColumn<TestScalar>,
             >([], 0, &())
             .unwrap();
         assert_eq!(column_commitments.len(), 0);
@@ -354,7 +377,7 @@ mod tests {
         let bigint_id: Identifier = "bigint_column".parse().unwrap();
         let varchar_id: Identifier = "varchar_column".parse().unwrap();
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
-        let owned_table = owned_table::<Curve25519Scalar>([
+        let owned_table = owned_table::<TestScalar>([
             bigint(bigint_id, [1, 5, -5, 0]),
             // "int128_column" => [100i128, 200, 300, 400], TODO: enable this column once blitzar
             // supports it
@@ -362,16 +385,17 @@ mod tests {
             scalar(scalar_id, [1000, 2000, -1000, 0]),
         ]);
 
-        let column_commitments = ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
-            owned_table.inner_table(),
-            0,
-            &(),
-        )
-        .unwrap();
+        let column_commitments =
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
+                owned_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         assert_eq!(column_commitments.len(), 3);
 
-        let expected_commitments = Vec::<RistrettoPoint>::from_columns_with_offset(
+        let expected_commitments = Vec::<NaiveCommitment>::from_columns_with_offset(
             owned_table.inner_table().values(),
             0,
             &(),
@@ -428,7 +452,7 @@ mod tests {
         let bigint_id: Identifier = "bigint_column".parse().unwrap();
         let varchar_id: Identifier = "varchar_column".parse().unwrap();
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
-        let owned_table = owned_table::<Curve25519Scalar>([
+        let owned_table = owned_table::<TestScalar>([
             bigint(bigint_id, [1, 5, -5, 0]),
             // "int128_column" => [100i128, 200, 300, 400], TODO: enable this column once blitzar
             // supports it
@@ -437,7 +461,7 @@ mod tests {
         ]);
 
         let column_commitments_from_columns =
-            ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
                 owned_table.inner_table(),
                 0,
                 &(),
@@ -458,21 +482,25 @@ mod tests {
         let duplicate_identifier_b = "duplicate_identifier_b".parse().unwrap();
         let unique_identifier = "unique_identifier".parse().unwrap();
 
-        let empty_column = OwnedColumn::<Curve25519Scalar>::BigInt(vec![]);
+        let empty_column = OwnedColumn::<TestScalar>::BigInt(vec![]);
 
-        let from_columns_result = ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
-            [
-                (&duplicate_identifier_b, &empty_column),
-                (&duplicate_identifier_b, &empty_column),
-                (&unique_identifier, &empty_column),
-            ],
-            0,
-            &(),
-        );
-        assert!(matches!(from_columns_result, Err(DuplicateIdentifiers(_))));
+        let from_columns_result =
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
+                [
+                    (&duplicate_identifier_b, &empty_column),
+                    (&duplicate_identifier_b, &empty_column),
+                    (&unique_identifier, &empty_column),
+                ],
+                0,
+                &(),
+            );
+        assert!(matches!(
+            from_columns_result,
+            Err(DuplicateIdentifiers { .. })
+        ));
 
         let mut existing_column_commitments =
-            ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
                 [
                     (&duplicate_identifier_a, &empty_column),
                     (&unique_identifier, &empty_column),
@@ -486,7 +514,7 @@ mod tests {
             .try_extend_columns_with_offset([(&duplicate_identifier_a, &empty_column)], 0, &());
         assert!(matches!(
             extend_with_existing_column_result,
-            Err(DuplicateIdentifiers(_))
+            Err(DuplicateIdentifiers { .. })
         ));
 
         let extend_with_duplicate_columns_result = existing_column_commitments
@@ -500,7 +528,7 @@ mod tests {
             );
         assert!(matches!(
             extend_with_duplicate_columns_result,
-            Err(DuplicateIdentifiers(_))
+            Err(DuplicateIdentifiers { .. })
         ));
 
         let append_result = existing_column_commitments.try_append_rows_with_offset(
@@ -514,7 +542,7 @@ mod tests {
         );
         assert!(matches!(
             append_result,
-            Err(AppendColumnCommitmentsError::DuplicateIdentifiers(_))
+            Err(AppendColumnCommitmentsError::DuplicateIdentifiers { .. })
         ));
     }
 
@@ -523,19 +551,20 @@ mod tests {
         let bigint_id: Identifier = "bigint_column".parse().unwrap();
         let varchar_id: Identifier = "varchar_column".parse().unwrap();
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
-        let owned_table = owned_table::<Curve25519Scalar>([
+        let owned_table = owned_table::<TestScalar>([
             bigint(bigint_id, [1, 5, -5, 0]),
             varchar(varchar_id, ["Lorem", "ipsum", "dolor", "sit"]),
             scalar(scalar_id, [1000, 2000, -1000, 0]),
         ]);
-        let column_commitments = ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
-            owned_table.inner_table(),
-            0,
-            &(),
-        )
-        .unwrap();
+        let column_commitments =
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
+                owned_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
-        let expected_commitments = Vec::<RistrettoPoint>::from_columns_with_offset(
+        let expected_commitments = Vec::<NaiveCommitment>::from_columns_with_offset(
             owned_table.inner_table().values(),
             0,
             &(),
@@ -570,21 +599,21 @@ mod tests {
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
         let scalar_data = [1000, 2000, 3000, -1000, 0];
 
-        let initial_columns: OwnedTable<Curve25519Scalar> = owned_table([
+        let initial_columns: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[..2].to_vec()),
             varchar(varchar_id, varchar_data[..2].to_vec()),
             scalar(scalar_id, scalar_data[..2].to_vec()),
         ]);
 
         let mut column_commitments =
-            ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
                 initial_columns.inner_table(),
                 0,
                 &(),
             )
             .unwrap();
 
-        let append_columns: OwnedTable<Curve25519Scalar> = owned_table([
+        let append_columns: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[2..].to_vec()),
             varchar(varchar_id, varchar_data[2..].to_vec()),
             scalar(scalar_id, scalar_data[2..].to_vec()),
@@ -594,7 +623,7 @@ mod tests {
             .try_append_rows_with_offset(append_columns.inner_table(), 2, &())
             .unwrap();
 
-        let total_columns: OwnedTable<Curve25519Scalar> = owned_table([
+        let total_columns: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
             scalar(scalar_id, scalar_data),
@@ -609,30 +638,30 @@ mod tests {
 
     #[test]
     fn we_cannot_append_rows_to_mismatched_column_commitments() {
-        let base_table: OwnedTable<Curve25519Scalar> = owned_table([
+        let base_table: OwnedTable<TestScalar> = owned_table([
             bigint("column_a", [1, 2, 3, 4]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
         let mut base_commitments =
-            ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
                 base_table.inner_table(),
                 0,
                 &(),
             )
             .unwrap();
 
-        let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_diff_type: OwnedTable<TestScalar> = owned_table([
             varchar("column_a", ["5", "6", "7", "8"]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
         assert!(matches!(
             base_commitments.try_append_rows_with_offset(table_diff_type.inner_table(), 4, &()),
-            Err(AppendColumnCommitmentsError::Mismatch(
-                ColumnCommitmentsMismatch::ColumnCommitmentMetadata(_)
-            ))
+            Err(AppendColumnCommitmentsError::Mismatch {
+                source: ColumnCommitmentsMismatch::ColumnCommitmentMetadata { .. }
+            })
         ));
 
-        let table_diff_id: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_diff_id: OwnedTable<TestScalar> = owned_table([
             bigint("column_a", [5, 6, 7, 8]),
             varchar("b", ["amet", "ipsum", "dolor", "sit"]),
         ]);
@@ -642,18 +671,18 @@ mod tests {
         );
         assert!(matches!(
             base_commitments.try_append_rows_with_offset(table_diff_id.inner_table(), 4, &()),
-            Err(AppendColumnCommitmentsError::Mismatch(
-                ColumnCommitmentsMismatch::Identifier(..)
-            ))
+            Err(AppendColumnCommitmentsError::Mismatch {
+                source: ColumnCommitmentsMismatch::Identifier { .. }
+            })
         ));
 
-        let table_diff_len: OwnedTable<Curve25519Scalar> =
+        let table_diff_len: OwnedTable<TestScalar> =
             owned_table([bigint("column_a", [5, 6, 7, 8])]);
         assert!(matches!(
             base_commitments.try_append_rows_with_offset(table_diff_len.inner_table(), 4, &()),
-            Err(AppendColumnCommitmentsError::Mismatch(
-                ColumnCommitmentsMismatch::NumColumns
-            ))
+            Err(AppendColumnCommitmentsError::Mismatch {
+                source: ColumnCommitmentsMismatch::NumColumns
+            })
         ));
     }
 
@@ -668,24 +697,24 @@ mod tests {
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
         let scalar_data = [1000, 2000, 3000, -1000, 0];
 
-        let initial_columns: OwnedTable<Curve25519Scalar> = owned_table([
+        let initial_columns: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
         ]);
         let mut column_commitments =
-            ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
                 initial_columns.inner_table(),
                 0,
                 &(),
             )
             .unwrap();
 
-        let new_columns = owned_table::<Curve25519Scalar>([scalar(scalar_id, scalar_data)]);
+        let new_columns = owned_table::<TestScalar>([scalar(scalar_id, scalar_data)]);
         column_commitments
             .try_extend_columns_with_offset(new_columns.inner_table(), 0, &())
             .unwrap();
 
-        let expected_columns = owned_table::<Curve25519Scalar>([
+        let expected_columns = owned_table::<TestScalar>([
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
             scalar(scalar_id, scalar_data),
@@ -708,21 +737,21 @@ mod tests {
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
         let scalar_data = [1000, 2000, 3000, -1000, 0];
 
-        let columns_a: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_a: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[..2].to_vec()),
             varchar(varchar_id, varchar_data[..2].to_vec()),
             scalar(scalar_id, scalar_data[..2].to_vec()),
         ]);
 
         let column_commitments_a =
-            ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
                 columns_a.inner_table(),
                 0,
                 &(),
             )
             .unwrap();
 
-        let columns_b: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_b: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[2..].to_vec()),
             varchar(varchar_id, varchar_data[2..].to_vec()),
             scalar(scalar_id, scalar_data[2..].to_vec()),
@@ -731,7 +760,7 @@ mod tests {
             ColumnCommitments::try_from_columns_with_offset(columns_b.inner_table(), 2, &())
                 .unwrap();
 
-        let columns_sum: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_sum: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
             scalar(scalar_id, scalar_data),
@@ -748,18 +777,18 @@ mod tests {
 
     #[test]
     fn we_cannot_add_mismatched_column_commitments() {
-        let base_table: OwnedTable<Curve25519Scalar> = owned_table([
+        let base_table: OwnedTable<TestScalar> = owned_table([
             bigint("column_a", [1, 2, 3, 4]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
-        let base_commitments = ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
+        let base_commitments = ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
             base_table.inner_table(),
             0,
             &(),
         )
         .unwrap();
 
-        let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_diff_type: OwnedTable<TestScalar> = owned_table([
             varchar("column_a", ["5", "6", "7", "8"]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
@@ -768,10 +797,10 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             base_commitments.clone().try_add(commitments_diff_type),
-            Err(ColumnCommitmentsMismatch::ColumnCommitmentMetadata(_))
+            Err(ColumnCommitmentsMismatch::ColumnCommitmentMetadata { .. })
         ));
 
-        let table_diff_id: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_diff_id: OwnedTable<TestScalar> = owned_table([
             bigint("column_a", [5, 6, 7, 8]),
             varchar("b", ["amet", "ipsum", "dolor", "sit"]),
         ]);
@@ -780,10 +809,10 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             base_commitments.clone().try_add(commitments_diff_id),
-            Err(ColumnCommitmentsMismatch::Identifier(..))
+            Err(ColumnCommitmentsMismatch::Identifier { .. })
         ));
 
-        let table_diff_len: OwnedTable<Curve25519Scalar> =
+        let table_diff_len: OwnedTable<TestScalar> =
             owned_table([bigint("column_a", [5, 6, 7, 8])]);
         let commitments_diff_len =
             ColumnCommitments::try_from_columns_with_offset(table_diff_len.inner_table(), 4, &())
@@ -805,21 +834,21 @@ mod tests {
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
         let scalar_data = [1000, 2000, 3000, -1000, 0];
 
-        let columns_subtrahend: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_subtrahend: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[..2].to_vec()),
             varchar(varchar_id, varchar_data[..2].to_vec()),
             scalar(scalar_id, scalar_data[..2].to_vec()),
         ]);
 
         let column_commitments_subtrahend =
-            ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
                 columns_subtrahend.inner_table(),
                 0,
                 &(),
             )
             .unwrap();
 
-        let columns_minuend: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_minuend: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
             scalar(scalar_id, scalar_data),
@@ -832,7 +861,7 @@ mod tests {
             .try_sub(column_commitments_subtrahend)
             .unwrap();
 
-        let expected_difference_columns: OwnedTable<Curve25519Scalar> = owned_table([
+        let expected_difference_columns: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[2..].to_vec()),
             varchar(varchar_id, varchar_data[2..].to_vec()),
             scalar(scalar_id, scalar_data[2..].to_vec()),
@@ -875,19 +904,19 @@ mod tests {
 
     #[test]
     fn we_cannot_sub_mismatched_column_commitments() {
-        let minuend_table: OwnedTable<Curve25519Scalar> = owned_table([
+        let minuend_table: OwnedTable<TestScalar> = owned_table([
             bigint("column_a", [1, 2, 3, 4]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
         let minuend_commitments =
-            ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
                 minuend_table.inner_table(),
                 0,
                 &(),
             )
             .unwrap();
 
-        let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_diff_type: OwnedTable<TestScalar> = owned_table([
             varchar("column_a", ["1", "2"]),
             varchar("column_b", ["Lorem", "ipsum"]),
         ]);
@@ -896,21 +925,20 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             minuend_commitments.clone().try_sub(commitments_diff_type),
-            Err(ColumnCommitmentsMismatch::ColumnCommitmentMetadata(_))
+            Err(ColumnCommitmentsMismatch::ColumnCommitmentMetadata { .. })
         ));
 
-        let table_diff_id: OwnedTable<Curve25519Scalar> =
+        let table_diff_id: OwnedTable<TestScalar> =
             owned_table([bigint("column_a", [1, 2]), varchar("b", ["Lorem", "ipsum"])]);
         let commitments_diff_id =
             ColumnCommitments::try_from_columns_with_offset(table_diff_id.inner_table(), 4, &())
                 .unwrap();
         assert!(matches!(
             minuend_commitments.clone().try_sub(commitments_diff_id),
-            Err(ColumnCommitmentsMismatch::Identifier(..))
+            Err(ColumnCommitmentsMismatch::Identifier { .. })
         ));
 
-        let table_diff_len: OwnedTable<Curve25519Scalar> =
-            owned_table([bigint("column_a", [1, 2])]);
+        let table_diff_len: OwnedTable<TestScalar> = owned_table([bigint("column_a", [1, 2])]);
         let commitments_diff_len =
             ColumnCommitments::try_from_columns_with_offset(table_diff_len.inner_table(), 4, &())
                 .unwrap();

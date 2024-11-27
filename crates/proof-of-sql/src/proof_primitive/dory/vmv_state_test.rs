@@ -5,7 +5,7 @@ use ark_ec::pairing::Pairing;
 fn we_can_create_correct_vmv_states_from_a_small_fixed_vmv() {
     let mut rng = test_rng();
     let nu = 2;
-    let pp = PublicParameters::rand(nu, &mut rng);
+    let pp = PublicParameters::test_rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let Gamma_1 = pp.Gamma_1.clone();
     let Gamma_2 = pp.Gamma_2.clone();
@@ -100,7 +100,7 @@ fn we_can_create_correct_vmv_states_from_a_small_fixed_vmv() {
 fn we_can_create_vmv_states_from_random_vmv_and_get_correct_sizes() {
     let mut rng = test_rng();
     let max_nu = 5;
-    let pp = PublicParameters::rand(max_nu, &mut rng);
+    let pp = PublicParameters::test_rand(max_nu, &mut rng);
     let prover_setup = (&pp).into();
     for nu in 0..max_nu {
         let vmv = VMV::rand(nu, &mut rng);
@@ -108,7 +108,7 @@ fn we_can_create_vmv_states_from_random_vmv_and_get_correct_sizes() {
         assert_eq!(vmv.L.len(), 1 << nu);
         assert_eq!(vmv.R.len(), 1 << nu);
         assert_eq!(vmv.M.len(), 1 << nu);
-        for row in vmv.M.iter() {
+        for row in &vmv.M {
             assert_eq!(row.len(), 1 << nu);
         }
 

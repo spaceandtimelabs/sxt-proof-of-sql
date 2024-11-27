@@ -1,6 +1,9 @@
 use super::{Scalar, ScalarConversionError};
-use crate::base::math::decimal::MAX_SUPPORTED_PRECISION;
-use alloc::{format, vec::Vec};
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 use ark_ff::{BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use bytemuck::TransparentWrapper;
@@ -13,7 +16,7 @@ use core::{
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 use num_bigint::BigInt;
-use num_traits::Signed;
+use num_traits::{Signed, Zero};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(CanonicalSerialize, CanonicalDeserialize, TransparentWrapper)]
@@ -94,7 +97,7 @@ impl<T: MontConfig<4>> PartialEq for MontScalar<T> {
 }
 impl<T: MontConfig<4>> Default for MontScalar<T> {
     fn default() -> Self {
-        Self(Default::default())
+        Self(Fp::default())
     }
 }
 impl<T: MontConfig<4>> Debug for MontScalar<T> {
@@ -105,7 +108,7 @@ impl<T: MontConfig<4>> Debug for MontScalar<T> {
 impl<T: MontConfig<4>> Eq for MontScalar<T> {}
 impl<T: MontConfig<4>> Hash for MontScalar<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
+        self.0.hash(state);
     }
 }
 impl<T: MontConfig<4>> Ord for MontScalar<T> {
@@ -116,6 +119,66 @@ impl<T: MontConfig<4>> Ord for MontScalar<T> {
 // --------------------------------------------------------------------------------
 // end replacement for #[derive(...)]
 // --------------------------------------------------------------------------------
+
+/// TODO: add docs
+macro_rules! impl_from_for_mont_scalar_for_type_supported_by_from {
+    ($tt:ty) => {
+        impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {
+            fn from(x: $tt) -> Self {
+                Self(x.into())
+            }
+        }
+    };
+}
+
+/// Implement `From<&[u8]>` for `MontScalar`
+impl<T: MontConfig<4>> From<&[u8]> for MontScalar<T> {
+    fn from(x: &[u8]) -> Self {
+        if x.is_empty() {
+            return Self::zero();
+        }
+
+        let hash = blake3::hash(x);
+        let mut bytes: [u8; 32] = hash.into();
+        bytes[31] &= 0b0000_1111_u8;
+
+        Self::from_le_bytes_mod_order(&bytes)
+    }
+}
+
+/// TODO: add docs
+macro_rules! impl_from_for_mont_scalar_for_string {
+    ($tt:ty) => {
+        impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {
+            fn from(x: $tt) -> Self {
+                x.as_bytes().into()
+            }
+        }
+    };
+}
+
+impl_from_for_mont_scalar_for_type_supported_by_from!(bool);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u8);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u16);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u32);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u64);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u128);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i8);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i16);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i32);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i64);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i128);
+impl_from_for_mont_scalar_for_string!(&str);
+impl_from_for_mont_scalar_for_string!(String);
+
+impl<F: MontConfig<4>, T> From<&T> for MontScalar<F>
+where
+    T: Into<MontScalar<F>> + Clone,
+{
+    fn from(x: &T) -> Self {
+        x.clone().into()
+    }
+}
 
 /// A wrapper type around the field element `ark_curve25519::Fr` and should be used in place of `ark_curve25519::Fr`.
 ///
@@ -129,6 +192,10 @@ impl<T: MontConfig<4>> MontScalar<T> {
         Self(value)
     }
     /// Create a new `MontScalar<T>` from a `[u64, 4]`. The array is expected to be in non-montgomery form.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the provided `[u64; 4]` cannot be converted into a valid `BigInt` due to an overflow or invalid input. The method unwraps the result of `Fp::from_bigint`, which will panic if the `BigInt` does not represent a valid field element ("Invalid input" refers to an integer that is outside the valid range [0,p-1] for the prime field or cannot be represented as a canonical field element. It can also occur due to overflow or issues in the conversion process.).
     pub fn from_bigint(vals: [u64; 4]) -> Self {
         Self(Fp::from_bigint(ark_ff::BigInt(vals)).unwrap())
     }
@@ -153,35 +220,29 @@ impl<T: MontConfig<4>> MontScalar<T> {
     }
 }
 
-impl<T: MontConfig<4>> TryFrom<BigInt> for MontScalar<T> {
+impl<T> TryFrom<BigInt> for MontScalar<T>
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
     type Error = ScalarConversionError;
 
     fn try_from(value: BigInt) -> Result<Self, Self::Error> {
-        // Obtain the absolute value to ignore the sign when counting digits
-        let value_abs = value.abs();
-
-        // Extract digits and check the number of digits directly
-        let (_, digits) = value_abs.to_u64_digits();
-
-        // Check if the number of digits exceeds the maximum precision allowed
-        if digits.len() > MAX_SUPPORTED_PRECISION.into() {
-            return Err(ScalarConversionError::Overflow(format!(
-                "Attempted to parse a number with {} digits, which exceeds the max supported precision of {}",
-                digits.len(),
-                MAX_SUPPORTED_PRECISION
-            )));
+        if value.abs() > BigInt::from(<MontScalar<T>>::MAX_SIGNED) {
+            return Err(ScalarConversionError::Overflow {
+                error: "BigInt too large for Scalar".to_string(),
+            });
         }
 
-        // Continue with the previous logic
-        assert!(digits.len() <= 4); // This should not happen if the precision check is correct
-        let mut data = [0u64; 4];
-        data[..digits.len()].copy_from_slice(&digits);
-        let result = Self::from_bigint(data);
-        match value.sign() {
-            // Updated to use value.sign() for clarity
-            num_bigint::Sign::Minus => Ok(-result),
-            _ => Ok(result),
-        }
+        let (sign, digits) = value.to_u64_digits();
+        assert!(digits.len() <= 4); // This should not happen if the above check is correct
+        let mut limbs = [0u64; 4];
+        limbs[..digits.len()].copy_from_slice(&digits);
+        let result = Self::from(limbs);
+        Ok(match sign {
+            num_bigint::Sign::Minus => -result,
+            num_bigint::Sign::Plus | num_bigint::Sign::NoSign => result,
+        })
     }
 }
 impl<T: MontConfig<4>> From<[u64; 4]> for MontScalar<T> {
@@ -275,6 +336,10 @@ impl From<Curve25519Scalar> for curve25519_dalek::scalar::Scalar {
 }
 
 impl From<&Curve25519Scalar> for curve25519_dalek::scalar::Scalar {
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the byte array is not of the expected length (32 bytes) or if it cannot be converted to a valid canonical scalar. However, under normal conditions, valid `Curve25519Scalar` values should always satisfy these requirements.
     fn from(value: &Curve25519Scalar) -> Self {
         let bytes = ark_ff::BigInteger::to_bytes_le(&value.0.into_bigint());
         curve25519_dalek::scalar::Scalar::from_canonical_bytes(bytes.try_into().unwrap()).unwrap()
@@ -295,15 +360,15 @@ impl<T: MontConfig<4>> From<&MontScalar<T>> for [u64; 4] {
 
 impl<T: MontConfig<4>> Display for MontScalar<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let sign = match f.sign_plus() {
-            true => {
-                let n = -self;
-                match self > &n {
-                    true => Some(Some(n)),
-                    false => Some(None),
-                }
+        let sign = if f.sign_plus() {
+            let n = -self;
+            if self > &n {
+                Some(Some(n))
+            } else {
+                Some(None)
             }
-            false => None,
+        } else {
+            None
         };
         match (f.alternate(), sign) {
             (false, None) => {
@@ -365,6 +430,7 @@ impl super::Scalar for Curve25519Scalar {
     const ZERO: Self = Self(ark_ff::MontFp!("0"));
     const ONE: Self = Self(ark_ff::MontFp!("1"));
     const TWO: Self = Self(ark_ff::MontFp!("2"));
+    const TEN: Self = Self(ark_ff::MontFp!("10"));
 }
 
 impl<T> TryFrom<MontScalar<T>> for bool
@@ -380,19 +446,17 @@ where
             (1, value.into())
         };
         if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i8",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in an i8"),
+            });
         }
-        let val: i128 = sign * abs[0] as i128;
+        let val: i128 = sign * i128::from(abs[0]);
         match val {
             0 => Ok(false),
             1 => Ok(true),
-            _ => Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in a bool",
-                value
-            ))),
+            _ => Err(ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in a bool"),
+            }),
         }
     }
 }
@@ -410,14 +474,13 @@ where
             (1, value.into())
         };
         if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i8",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in an i8"),
+            });
         }
-        let val: i128 = sign * abs[0] as i128;
-        val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!("{} is too large to fit in an i8", value))
+        let val: i128 = sign * i128::from(abs[0]);
+        val.try_into().map_err(|_| ScalarConversionError::Overflow {
+            error: format!("{value} is too large to fit in an i8"),
         })
     }
 }
@@ -435,14 +498,13 @@ where
             (1, value.into())
         };
         if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i16",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in an i16"),
+            });
         }
-        let val: i128 = sign * abs[0] as i128;
-        val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!("{} is too large to fit in an i16", value))
+        let val: i128 = sign * i128::from(abs[0]);
+        val.try_into().map_err(|_| ScalarConversionError::Overflow {
+            error: format!("{value} is too large to fit in an i16"),
         })
     }
 }
@@ -460,14 +522,13 @@ where
             (1, value.into())
         };
         if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i32",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in an i32"),
+            });
         }
-        let val: i128 = sign * abs[0] as i128;
-        val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!("{} is too large to fit in an i32", value))
+        let val: i128 = sign * i128::from(abs[0]);
+        val.try_into().map_err(|_| ScalarConversionError::Overflow {
+            error: format!("{value} is too large to fit in an i32"),
         })
     }
 }
@@ -485,14 +546,13 @@ where
             (1, value.into())
         };
         if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i64",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in an i64"),
+            });
         }
-        let val: i128 = sign * abs[0] as i128;
-        val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!("{} is too large to fit in an i64", value))
+        let val: i128 = sign * i128::from(abs[0]);
+        val.try_into().map_err(|_| ScalarConversionError::Overflow {
+            error: format!("{value} is too large to fit in an i64"),
         })
     }
 }
@@ -503,6 +563,8 @@ where
     MontScalar<T>: Scalar,
 {
     type Error = ScalarConversionError;
+
+    #[allow(clippy::cast_possible_wrap)]
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
         let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
             (-1, (-value).into())
@@ -510,20 +572,18 @@ where
             (1, value.into())
         };
         if abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i128",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in an i128"),
+            });
         }
         let val: u128 = (abs[1] as u128) << 64 | (abs[0] as u128);
         match (sign, val) {
             (1, v) if v <= i128::MAX as u128 => Ok(v as i128),
             (-1, v) if v <= i128::MAX as u128 => Ok(-(v as i128)),
             (-1, v) if v == i128::MAX as u128 + 1 => Ok(i128::MIN),
-            _ => Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i128",
-                value
-            ))),
+            _ => Err(ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in an i128"),
+            }),
         }
     }
 }

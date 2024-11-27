@@ -3,14 +3,15 @@ use super::{
     pairings, DeferredGT, DoryMessages, G1Projective, G2Projective, ProverSetup, ProverState,
     VerifierSetup, VerifierState, F,
 };
-use merlin::Transcript;
+use crate::base::proof::Transcript;
 
-/// This is the prover side of the Fold-Scalars algorithm in section 4.1 of https://eprint.iacr.org/2020/1274.pdf.
+/// This is the prover side of the Fold-Scalars algorithm in section 4.1 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///
 /// Note: this only works for nu = 0.
+#[allow(clippy::missing_panics_doc)]
 pub fn fold_scalars_0_prove(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     mut state: ExtendedProverState,
     setup: &ProverSetup,
 ) -> ProverState {
@@ -30,7 +31,7 @@ pub fn fold_scalars_0_prove(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn fold_scalars_0_verify(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     mut state: ExtendedVerifierState,
     setup: &VerifierSetup,
     fold_s_tensors_verify: impl Fn(&ExtendedVerifierState) -> (F, F),

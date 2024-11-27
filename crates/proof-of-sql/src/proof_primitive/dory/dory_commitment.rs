@@ -28,6 +28,7 @@ use crate::base::{
     impl_serde_for_ark_serde_checked,
     scalar::{MontScalar, Scalar},
 };
+use alloc::vec::Vec;
 use ark_ec::pairing::PairingOutput;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::ops::Mul;
@@ -44,6 +45,7 @@ impl Scalar for DoryScalar {
     const ZERO: Self = Self(ark_ff::MontFp!("0"));
     const ONE: Self = Self(ark_ff::MontFp!("1"));
     const TWO: Self = Self(ark_ff::MontFp!("2"));
+    const TEN: Self = Self(ark_ff::MontFp!("10"));
 }
 
 #[derive(
@@ -88,14 +90,11 @@ impl Commitment for DoryCommitment {
     type PublicSetup<'a> = DoryProverPublicSetup<'a>;
 
     fn compute_commitments(
-        commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
         offset: usize,
         setup: &Self::PublicSetup<'_>,
-    ) {
-        assert_eq!(commitments.len(), committable_columns.len());
-        let c = super::compute_dory_commitments(committable_columns, offset, setup);
-        commitments.copy_from_slice(&c);
+    ) -> Vec<Self> {
+        super::compute_dory_commitments(committable_columns, offset, setup)
     }
 }
 
@@ -113,7 +112,7 @@ mod tests {
 
     #[test]
     fn we_can_convert_from_columns() {
-        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
         let Gamma_1 = &public_parameters.Gamma_1;
@@ -121,7 +120,7 @@ mod tests {
 
         // empty case
         let commitments = Vec::<DoryCommitment>::from_columns_with_offset(
-            &Vec::<Column<DoryScalar>>::new(),
+            Vec::<Column<DoryScalar>>::new(),
             0,
             &setup,
         );
@@ -158,7 +157,7 @@ mod tests {
 
     #[test]
     fn we_can_append_rows() {
-        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
         let Gamma_1 = &public_parameters.Gamma_1;
@@ -208,7 +207,7 @@ mod tests {
 
     #[test]
     fn we_cannot_append_rows_with_different_column_count() {
-        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
 
@@ -247,7 +246,7 @@ mod tests {
 
     #[test]
     fn we_can_extend_columns() {
-        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
         let Gamma_1 = &public_parameters.Gamma_1;
@@ -304,7 +303,7 @@ mod tests {
 
     #[test]
     fn we_can_add_commitment_collections() {
-        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
         let Gamma_1 = &public_parameters.Gamma_1;
@@ -355,7 +354,7 @@ mod tests {
 
     #[test]
     fn we_cannot_add_commitment_collections_of_mixed_column_counts() {
-        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
 
@@ -400,7 +399,7 @@ mod tests {
 
     #[test]
     fn we_can_sub_commitment_collections() {
-        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
         let Gamma_1 = &public_parameters.Gamma_1;
@@ -443,7 +442,7 @@ mod tests {
 
     #[test]
     fn we_cannot_sub_commitment_collections_of_mixed_column_counts() {
-        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 2);
 

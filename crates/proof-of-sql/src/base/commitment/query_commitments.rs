@@ -1,10 +1,12 @@
 use super::{Commitment, TableCommitment};
-use crate::base::database::{
-    ColumnField, ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor, SchemaAccessor,
-    TableRef,
+use crate::base::{
+    database::{
+        ColumnField, ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor, SchemaAccessor,
+        TableRef,
+    },
+    map::IndexMap,
 };
 use alloc::vec::Vec;
-use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
 
 /// The commitments for all of the tables in a query.
@@ -34,25 +36,27 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
     ) -> Self {
         columns
             .into_iter()
-            .fold(IndexMap::<_, Vec<_>>::new(), |mut table_columns, column| {
-                table_columns
-                    .entry(column.table_ref())
-                    .or_default()
-                    .push(ColumnField::new(column.column_id(), *column.column_type()));
-                table_columns
-            })
+            .fold(
+                IndexMap::<_, Vec<_>>::default(),
+                |mut table_columns, column| {
+                    table_columns
+                        .entry(column.table_ref())
+                        .or_default()
+                        .push(ColumnField::new(column.column_id(), *column.column_type()));
+                    table_columns
+                },
+            )
             .into_iter()
             .map(|(table_ref, columns)| {
                 (
                     table_ref,
                     TableCommitment::from_accessor_with_max_bounds(
                         table_ref,
-                        &Vec::from_iter(
-                            accessor
-                                .lookup_schema(table_ref)
-                                .iter()
-                                .filter_map(|c| columns.iter().find(|x| x.name() == c.0).copied()),
-                        ),
+                        &accessor
+                            .lookup_schema(table_ref)
+                            .iter()
+                            .filter_map(|c| columns.iter().find(|x| x.name() == c.0).copied())
+                            .collect::<Vec<_>>(),
                         accessor,
                     ),
                 )
@@ -75,6 +79,9 @@ impl<C: Commitment> MetadataAccessor for QueryCommitments<C> {
     }
 }
 
+/// # Panics
+///
+/// Panics if the commitment for the table or column cannot be found.
 impl<C: Commitment> CommitmentAccessor<C> for QueryCommitments<C> {
     fn get_commitment(&self, column: ColumnRef) -> C {
         let table_commitment = self.get(&column.table_ref()).unwrap();
@@ -100,6 +107,9 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
             .map(|column_metadata| *column_metadata.column_type())
     }
 
+    /// # Panics
+    ///
+    /// Panics if the column metadata cannot be found.
     fn lookup_schema(
         &self,
         table_ref: crate::base::database::TableRef,
@@ -120,38 +130,37 @@ mod tests {
     use super::*;
     use crate::{
         base::{
-            commitment::{Bounds, ColumnBounds},
+            commitment::{naive_commitment::NaiveCommitment, Bounds, ColumnBounds},
             database::{
                 owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableTestAccessor,
                 TestAccessor,
             },
-            scalar::Curve25519Scalar,
+            scalar::test_scalar::TestScalar,
         },
         proof_primitive::dory::{
             test_rng, DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup,
             PublicParameters,
         },
     };
-    use curve25519_dalek::RistrettoPoint;
 
     #[test]
     fn we_can_get_length_and_offset_of_tables() {
-        let table_a: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_a: OwnedTable<TestScalar> = owned_table([
             bigint("column_a", [1, 2, 3, 4]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
 
-        let table_b: OwnedTable<Curve25519Scalar> = owned_table([scalar("column_c", [1, 2])]);
+        let table_b: OwnedTable<TestScalar> = owned_table([scalar("column_c", [1, 2])]);
 
         let offset_commitment =
-            TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
+            TableCommitment::<NaiveCommitment>::from_owned_table_with_offset(&table_a, 2, &());
         let offset_table_id = "off.table".parse().unwrap();
 
         let no_offset_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());
         let no_offset_id = "no.off".parse().unwrap();
 
         let no_columns_commitment = TableCommitment::try_from_columns_with_offset(
-            Vec::<(&Identifier, &OwnedColumn<Curve25519Scalar>)>::new(),
+            Vec::<(&Identifier, &OwnedColumn<TestScalar>)>::new(),
             0,
             &(),
         )
@@ -161,7 +170,7 @@ mod tests {
         let no_rows_commitment = TableCommitment::try_from_columns_with_offset(
             [(
                 &"column_c".parse().unwrap(),
-                &OwnedColumn::<Curve25519Scalar>::BigInt(vec![]),
+                &OwnedColumn::<TestScalar>::BigInt(vec![]),
             )],
             3,
             &(),
@@ -189,19 +198,20 @@ mod tests {
         assert_eq!(query_commitments.get_length(no_rows_id), 0);
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_commitment_of_a_column() {
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
-        let table_a: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_a: OwnedTable<TestScalar> = owned_table([
             bigint(column_a_id, [1, 2, 3, 4]),
             varchar(column_b_id, ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
-        let table_b: OwnedTable<Curve25519Scalar> = owned_table([scalar(column_a_id, [1, 2])]);
+        let table_b: OwnedTable<TestScalar> = owned_table([scalar(column_a_id, [1, 2])]);
 
         let table_a_commitment =
-            TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
+            TableCommitment::<NaiveCommitment>::from_owned_table_with_offset(&table_a, 2, &());
         let table_a_id = "table.a".parse().unwrap();
 
         let table_b_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());
@@ -238,26 +248,27 @@ mod tests {
         );
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_schema_of_tables() {
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
-        let table_a: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_a: OwnedTable<TestScalar> = owned_table([
             bigint(column_a_id, [1, 2, 3, 4]),
             varchar(column_b_id, ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
-        let table_b: OwnedTable<Curve25519Scalar> = owned_table([scalar(column_a_id, [1, 2])]);
+        let table_b: OwnedTable<TestScalar> = owned_table([scalar(column_a_id, [1, 2])]);
 
         let table_a_commitment =
-            TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
+            TableCommitment::<NaiveCommitment>::from_owned_table_with_offset(&table_a, 2, &());
         let table_a_id = "table.a".parse().unwrap();
 
         let table_b_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());
         let table_b_id = "table.b".parse().unwrap();
 
         let no_columns_commitment = TableCommitment::try_from_columns_with_offset(
-            Vec::<(&Identifier, &OwnedColumn<Curve25519Scalar>)>::new(),
+            Vec::<(&Identifier, &OwnedColumn<TestScalar>)>::new(),
             0,
             &(),
         )
@@ -312,9 +323,10 @@ mod tests {
         assert_eq!(query_commitments.lookup_schema(no_columns_id), vec![]);
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_query_commitments_from_accessor() {
-        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 3);
 

@@ -7,6 +7,7 @@ use crate::base::{
     proof::ProofError,
     scalar::Scalar,
 };
+use alloc::vec;
 use serde::{Deserialize, Serialize};
 
 /// The result of an sql query along with a proof that the query is valid. The
@@ -17,11 +18,11 @@ use serde::{Deserialize, Serialize};
 /// intermediate form allows us to handle overflow and certain cases where the final
 /// result might use floating point numbers (e.g. `SELECT STDDEV(A) FROM T WHERE B = 0`).
 ///
-/// Below we demonstrate typical usage of VerifiableQueryResult with pseudo-code.
+/// Below we demonstrate typical usage of [`VerifiableQueryResult`] with pseudo-code.
 ///
 /// Here we assume that a verifier only has access to the commitments of database columns. To
 /// process a query, the verifier forwards the query to an untrusted
-/// prover. The prover has full access to the database and constructs a VerifiableQueryResult that
+/// prover. The prover has full access to the database and constructs a [`VerifiableQueryResult`] that
 /// it sends back to the verifier. The verifier checks that the result is valid using its
 /// commitments, and constructs the finalized form of the query result.
 ///
@@ -79,7 +80,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
     pub fn new(
-        expr: &(impl ProofPlan<CP::Commitment> + Serialize),
+        expr: &(impl ProofPlan + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> Self {
@@ -87,7 +88,11 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         // have been rejected at the parsing stage.
 
         // handle the empty case
-        if expr.is_empty(accessor) {
+        let table_refs = expr.get_table_references();
+        if table_refs
+            .into_iter()
+            .all(|table_ref| accessor.get_length(table_ref) == 0)
+        {
             return VerifiableQueryResult {
                 provable_result: None,
                 proof: None,
@@ -107,10 +112,15 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// Note: a verified result can still respresent an error (e.g. overflow), but it is a verified
     /// error.
     ///
-    /// Note: This does NOT transform the result!
+    /// Note: This does NOT transform the result!4
+    /// # Panics
+    /// - Panics if:
+    ///   - `self.provable_result` is `None` but `self.proof` is `Some()`, or vice versa.
+    ///   - `self.proof.as_ref().unwrap()` is called but `self.proof` is `None`.
+    ///   - `self.provable_result.as_ref().unwrap()` is called but `self.provable_result` is `None`.
     pub fn verify(
         &self,
-        expr: &(impl ProofPlan<CP::Commitment> + Serialize),
+        expr: &(impl ProofPlan + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
@@ -118,24 +128,27 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         // have been rejected at the parsing stage.
 
         // handle the empty case
-        if expr.is_empty(accessor) {
+        let table_refs = expr.get_table_references();
+        if table_refs
+            .into_iter()
+            .all(|table_ref| accessor.get_length(table_ref) == 0)
+        {
             if self.provable_result.is_some() || self.proof.is_some() {
-                return Err(ProofError::VerificationError(
-                    "zero sumcheck variables but non-empty result",
-                ))?;
+                return Err(ProofError::VerificationError {
+                    error: "zero sumcheck variables but non-empty result",
+                })?;
             }
 
             let result_fields = expr.get_column_result_fields();
 
-            return make_empty_query_result(result_fields);
+            return make_empty_query_result(&result_fields);
         }
 
         if self.provable_result.is_none() || self.proof.is_none() {
-            return Err(ProofError::VerificationError(
-                "non-zero sumcheck variables but empty result",
-            ))?;
+            return Err(ProofError::VerificationError {
+                error: "non-zero sumcheck variables but empty result",
+            })?;
         }
-
         self.proof.as_ref().unwrap().verify(
             expr,
             accessor,
@@ -145,7 +158,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     }
 }
 
-fn make_empty_query_result<S: Scalar>(result_fields: Vec<ColumnField>) -> QueryResult<S> {
+fn make_empty_query_result<S: Scalar>(result_fields: &[ColumnField]) -> QueryResult<S> {
     let table = OwnedTable::try_new(
         result_fields
             .iter()
@@ -154,6 +167,7 @@ fn make_empty_query_result<S: Scalar>(result_fields: Vec<ColumnField>) -> QueryR
                     field.name(),
                     match field.data_type() {
                         ColumnType::Boolean => OwnedColumn::Boolean(vec![]),
+                        ColumnType::TinyInt => OwnedColumn::TinyInt(vec![]),
                         ColumnType::SmallInt => OwnedColumn::SmallInt(vec![]),
                         ColumnType::Int => OwnedColumn::Int(vec![]),
                         ColumnType::BigInt => OwnedColumn::BigInt(vec![]),

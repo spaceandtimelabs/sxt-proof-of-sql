@@ -5,6 +5,7 @@ use core::hash::Hash;
 use serde::{Deserialize, Serialize};
 
 /// Represents a fully parsed timestamp with detailed time unit and timezone information
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct PoSQLTimestamp {
     /// The datetime representation in UTC.
@@ -19,21 +20,24 @@ pub struct PoSQLTimestamp {
 
 impl PoSQLTimestamp {
     /// Returns the combined date and time with time zone.
+    #[must_use]
     pub fn timestamp(&self) -> DateTime<Utc> {
         self.timestamp
     }
 
-    /// Returns the [PoSQLTimeUnit] for this timestamp
+    /// Returns the [`PoSQLTimeUnit`] for this timestamp
+    #[must_use]
     pub fn timeunit(&self) -> PoSQLTimeUnit {
         self.timeunit
     }
 
-    /// Returns the [PoSQLTimeZone] for this timestamp
+    /// Returns the [`PoSQLTimeZone`] for this timestamp
+    #[must_use]
     pub fn timezone(&self) -> PoSQLTimeZone {
         self.timezone
     }
 
-    /// Attempts to parse a timestamp string into an [PoSQLTimestamp] structure.
+    /// Attempts to parse a timestamp string into an [`PoSQLTimestamp`] structure.
     /// This function supports two primary formats:
     ///
     /// 1. **RFC 3339 Parsing**:
@@ -44,6 +48,13 @@ impl PoSQLTimestamp {
     /// 2. **Timezone Parsing and Conversion**:
     ///    - The `from_offset` method is used to determine whether the timezone should be represented
     ///      as `Utc` or `FixedOffset`. This function simplifies the decision based on the offset value.
+    ///
+    /// # Errors
+    /// This function returns a `PoSQLTimestampError` in the following cases:
+    ///
+    /// - **Parsing Error**: Returns `PoSQLTimestampError::ParsingError` if the input string does not conform
+    ///   to the RFC 3339 format or if the timestamp cannot be parsed due to invalid formatting.
+    ///   This error includes the original parsing error message for further details.
     ///
     /// # Examples
     /// ```
@@ -61,8 +72,11 @@ impl PoSQLTimestamp {
     /// assert_eq!(intermediate_timestamp.timezone(), PoSQLTimeZone::FixedOffset(10800)); // 3 hours in seconds
     /// ```
     pub fn try_from(timestamp_str: &str) -> Result<Self, PoSQLTimestampError> {
-        let dt = DateTime::parse_from_rfc3339(timestamp_str)
-            .map_err(|e| PoSQLTimestampError::ParsingError(e.to_string()))?;
+        let dt = DateTime::parse_from_rfc3339(timestamp_str).map_err(|e| {
+            PoSQLTimestampError::ParsingError {
+                error: e.to_string(),
+            }
+        })?;
 
         let offset_seconds = dt.offset().local_minus_utc();
         let timezone = PoSQLTimeZone::from_offset(offset_seconds);
@@ -91,6 +105,17 @@ impl PoSQLTimestamp {
     ///    - Since Unix epoch timestamps don't inherently carry timezone information,
     ///      any Unix time parsed directly from an integer is assumed to be in UTC.
     ///
+    /// # Errors
+    /// This function returns a `PoSQLTimestampError` in the following cases:
+    ///
+    /// - **Ambiguous Time**: Returns `PoSQLTimestampError::Ambiguous` if the provided epoch time
+    ///   corresponds to a time that is ambiguous (e.g., during a daylight saving time change where
+    ///   the local time could correspond to two different UTC times).
+    ///
+    /// - **Non-Existent Local Time**: Returns `PoSQLTimestampError::LocalTimeDoesNotExist` if the
+    ///   provided epoch time corresponds to a time that does not exist in the local time zone (e.g.,
+    ///   during a daylight saving time change where a certain local time is skipped).
+    ///
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
@@ -108,9 +133,9 @@ impl PoSQLTimestamp {
                 timeunit: PoSQLTimeUnit::Second,
                 timezone: PoSQLTimeZone::Utc,
             }),
-            LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous(
-                format!("The local time is ambiguous because there is a fold in the local time: earliest: {} latest: {} ", earliest, latest),
-            )),
+            LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous{ error:
+                format!("The local time is ambiguous because there is a fold in the local time: earliest: {earliest} latest: {latest} "),
+        }),
             LocalResult::None => Err(PoSQLTimestampError::LocalTimeDoesNotExist),
         }
     }
@@ -122,7 +147,7 @@ mod tests {
 
     #[test]
     fn test_unix_epoch_time_timezone() {
-        let unix_time = 1231006505; // Unix time as string
+        let unix_time = 1_231_006_505; // Unix time as string
         let expected_timezone = PoSQLTimeZone::Utc; // Unix time should always be UTC
         let result = PoSQLTimestamp::to_timestamp(unix_time).unwrap();
         assert_eq!(result.timezone, expected_timezone);
@@ -130,7 +155,7 @@ mod tests {
 
     #[test]
     fn test_unix_epoch_timestamp_parsing() {
-        let unix_time = 1231006505; // Example Unix timestamp (seconds since epoch)
+        let unix_time = 1_231_006_505; // Example Unix timestamp (seconds since epoch)
         let expected_datetime = Utc.timestamp_opt(unix_time, 0).unwrap();
         let expected_unit = PoSQLTimeUnit::Second; // Assuming basic second precision for Unix timestamp
         let input = unix_time; // Simulate input as string since Unix times are often transmitted as strings
@@ -177,9 +202,9 @@ mod tests {
         let input = "not-a-timestamp";
         assert_eq!(
             PoSQLTimestamp::try_from(input),
-            Err(PoSQLTimestampError::ParsingError(
-                "input contains invalid characters".into()
-            ))
+            Err(PoSQLTimestampError::ParsingError {
+                error: "input contains invalid characters".into()
+            })
         );
     }
 
@@ -198,7 +223,10 @@ mod tests {
         // This test assumes that there's a catch-all parsing error case that isn't covered by the more specific errors.
         let malformed_input = "2009-01-03T::00Z"; // Intentionally malformed timestamp
         let result = PoSQLTimestamp::try_from(malformed_input);
-        assert!(matches!(result, Err(PoSQLTimestampError::ParsingError(_))));
+        assert!(matches!(
+            result,
+            Err(PoSQLTimestampError::ParsingError { .. })
+        ));
     }
 
     #[test]
@@ -207,8 +235,7 @@ mod tests {
         for input in inputs {
             assert!(
                 DateTime::parse_from_rfc3339(input).is_ok(),
-                "Should parse correctly: {}",
-                input
+                "Should parse correctly: {input}"
             );
         }
     }
@@ -258,8 +285,7 @@ mod tests {
         for input in incorrect_formats {
             assert!(
                 DateTime::parse_from_rfc3339(input).is_err(),
-                "Should reject incorrect format: {}",
-                input
+                "Should reject incorrect format: {input}"
             );
         }
     }

@@ -2,20 +2,28 @@ use super::{column_bounds::BoundsInner, committable_column::CommittableColumn, C
 use crate::base::database::ColumnType;
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Errors that can occur when constructing invalid [`ColumnCommitmentMetadata`].
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum InvalidColumnCommitmentMetadata {
     /// Column of this type cannot have these bounds.
-    #[error("column of type {0} cannot have bounds like {1:?}")]
-    TypeBoundsMismatch(ColumnType, ColumnBounds),
+    #[snafu(display("column of type {column_type} cannot have bounds like {column_bounds:?}"))]
+    TypeBoundsMismatch {
+        column_type: ColumnType,
+        column_bounds: ColumnBounds,
+    },
 }
 
 /// During column operation, metadata indicates that the operand columns cannot be the same.
-#[derive(Debug, Error)]
-#[error("column with type {0} cannot operate with column with type {1}")]
-pub struct ColumnCommitmentMetadataMismatch(ColumnType, ColumnType);
+#[derive(Debug, Snafu)]
+#[snafu(display(
+    "column with type {datatype_a} cannot operate with column with type {datatype_b}"
+))]
+pub struct ColumnCommitmentMetadataMismatch {
+    datatype_a: ColumnType,
+    datatype_b: ColumnType,
+}
 
 const EXPECT_BOUNDS_MATCH_MESSAGE: &str = "we've already checked the column types match, which is a stronger requirement (mapping of type variants to bounds variants is surjective)";
 
@@ -36,7 +44,8 @@ impl ColumnCommitmentMetadata {
         bounds: ColumnBounds,
     ) -> Result<ColumnCommitmentMetadata, InvalidColumnCommitmentMetadata> {
         match (column_type, bounds) {
-            (ColumnType::SmallInt, ColumnBounds::SmallInt(_))
+            (ColumnType::TinyInt, ColumnBounds::TinyInt(_))
+            | (ColumnType::SmallInt, ColumnBounds::SmallInt(_))
             | (ColumnType::Int, ColumnBounds::Int(_))
             | (ColumnType::BigInt, ColumnBounds::BigInt(_))
             | (ColumnType::Int128, ColumnBounds::Int128(_))
@@ -51,14 +60,16 @@ impl ColumnCommitmentMetadata {
                 column_type,
                 bounds,
             }),
-            _ => Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(
+            _ => Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch {
                 column_type,
-                bounds,
-            )),
+                column_bounds: bounds,
+            }),
         }
     }
 
+    #[allow(clippy::missing_panics_doc)]
     /// Construct a [`ColumnCommitmentMetadata`] with widest possible bounds for the column type.
+    #[must_use]
     pub fn from_column_type_with_max_bounds(column_type: ColumnType) -> Self {
         let bounds = match column_type {
             ColumnType::SmallInt => ColumnBounds::SmallInt(super::Bounds::Bounded(
@@ -92,16 +103,19 @@ impl ColumnCommitmentMetadata {
     }
 
     /// Immutable reference to this column's type.
+    #[must_use]
     pub fn column_type(&self) -> &ColumnType {
         &self.column_type
     }
 
     /// Immutable reference to this column's bounds.
+    #[must_use]
     pub fn bounds(&self) -> &ColumnBounds {
         &self.bounds
     }
 
     /// Contruct a [`ColumnCommitmentMetadata`] by analyzing a column.
+    #[must_use]
     pub fn from_column(column: &CommittableColumn) -> ColumnCommitmentMetadata {
         ColumnCommitmentMetadata {
             column_type: column.column_type(),
@@ -112,15 +126,16 @@ impl ColumnCommitmentMetadata {
     /// Combine two [`ColumnCommitmentMetadata`] as if their source collections are being unioned.
     ///
     /// Can error if the two metadatas are mismatched.
+    #[allow(clippy::missing_panics_doc)]
     pub fn try_union(
         self,
         other: ColumnCommitmentMetadata,
     ) -> Result<ColumnCommitmentMetadata, ColumnCommitmentMetadataMismatch> {
         if self.column_type != other.column_type {
-            return Err(ColumnCommitmentMetadataMismatch(
-                self.column_type,
-                other.column_type,
-            ));
+            return Err(ColumnCommitmentMetadataMismatch {
+                datatype_a: self.column_type,
+                datatype_b: other.column_type,
+            });
         }
 
         let bounds = self
@@ -138,15 +153,16 @@ impl ColumnCommitmentMetadata {
     ///
     /// This should be interpreted as the set difference of the two collections.
     /// The result would be the rows in self that are not also rows in other.
+    #[allow(clippy::missing_panics_doc)]
     pub fn try_difference(
         self,
         other: ColumnCommitmentMetadata,
     ) -> Result<ColumnCommitmentMetadata, ColumnCommitmentMetadataMismatch> {
         if self.column_type != other.column_type {
-            return Err(ColumnCommitmentMetadataMismatch(
-                self.column_type,
-                other.column_type,
-            ));
+            return Err(ColumnCommitmentMetadataMismatch {
+                datatype_a: self.column_type,
+                datatype_b: other.column_type,
+            });
         }
 
         let bounds = self
@@ -167,13 +183,25 @@ mod tests {
     use super::*;
     use crate::base::{
         commitment::column_bounds::Bounds, database::OwnedColumn, math::decimal::Precision,
-        scalar::Curve25519Scalar,
+        scalar::test_scalar::TestScalar,
     };
     use alloc::string::String;
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_construct_metadata() {
+        assert_eq!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::TinyInt,
+                ColumnBounds::TinyInt(Bounds::Empty)
+            )
+            .unwrap(),
+            ColumnCommitmentMetadata {
+                column_type: ColumnType::TinyInt,
+                bounds: ColumnBounds::TinyInt(Bounds::Empty)
+            }
+        );
+
         assert_eq!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::SmallInt,
@@ -267,14 +295,14 @@ mod tests {
                 ColumnType::Boolean,
                 ColumnBounds::BigInt(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::Boolean,
                 ColumnBounds::Int128(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
 
         assert!(matches!(
@@ -282,14 +310,14 @@ mod tests {
                 ColumnType::Decimal75(Precision::new(10).unwrap(), 10),
                 ColumnBounds::Int128(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::Decimal75(Precision::new(10).unwrap(), 10),
                 ColumnBounds::BigInt(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
 
         assert!(matches!(
@@ -297,14 +325,14 @@ mod tests {
                 ColumnType::Scalar,
                 ColumnBounds::BigInt(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::Scalar,
                 ColumnBounds::Int128(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
 
         assert!(matches!(
@@ -312,11 +340,11 @@ mod tests {
                 ColumnType::BigInt,
                 ColumnBounds::Int128(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(ColumnType::BigInt, ColumnBounds::NoOrder),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
 
         assert!(matches!(
@@ -324,11 +352,11 @@ mod tests {
                 ColumnType::Int128,
                 ColumnBounds::BigInt(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(ColumnType::Int128, ColumnBounds::NoOrder),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
 
         assert!(matches!(
@@ -336,30 +364,30 @@ mod tests {
                 ColumnType::VarChar,
                 ColumnBounds::BigInt(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::VarChar,
                 ColumnBounds::Int128(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
     }
 
     #[test]
     fn we_can_construct_metadata_from_column() {
         let boolean_column =
-            OwnedColumn::<Curve25519Scalar>::Boolean([true, false, true, false, true].to_vec());
+            OwnedColumn::<TestScalar>::Boolean([true, false, true, false, true].to_vec());
         let committable_boolean_column = CommittableColumn::from(&boolean_column);
         let boolean_metadata = ColumnCommitmentMetadata::from_column(&committable_boolean_column);
         assert_eq!(boolean_metadata.column_type(), &ColumnType::Boolean);
         assert_eq!(boolean_metadata.bounds(), &ColumnBounds::NoOrder);
 
-        let decimal_column = OwnedColumn::<Curve25519Scalar>::Decimal75(
+        let decimal_column = OwnedColumn::<TestScalar>::Decimal75(
             Precision::new(10).unwrap(),
             0,
-            [1, 2, 3, 4, 5].map(Curve25519Scalar::from).to_vec(),
+            [1, 2, 3, 4, 5].map(TestScalar::from).to_vec(),
         );
         let committable_decimal_column = CommittableColumn::from(&decimal_column);
         let decimal_metadata = ColumnCommitmentMetadata::from_column(&committable_decimal_column);
@@ -369,12 +397,11 @@ mod tests {
         );
         assert_eq!(decimal_metadata.bounds(), &ColumnBounds::NoOrder);
 
-        let timestamp_column: OwnedColumn<Curve25519Scalar> =
-            OwnedColumn::<Curve25519Scalar>::TimestampTZ(
-                PoSQLTimeUnit::Second,
-                PoSQLTimeZone::Utc,
-                [1i64, 2, 3, 4, 5].to_vec(),
-            );
+        let timestamp_column: OwnedColumn<TestScalar> = OwnedColumn::<TestScalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+            [1i64, 2, 3, 4, 5].to_vec(),
+        );
         let committable_timestamp_column = CommittableColumn::from(&timestamp_column);
         let timestamp_metadata =
             ColumnCommitmentMetadata::from_column(&committable_timestamp_column);
@@ -389,7 +416,7 @@ mod tests {
             panic!("Bounds constructed from nonempty TimestampTZ column should be ColumnBounds::BigInt(Bounds::Sharp(_))");
         }
 
-        let varchar_column = OwnedColumn::<Curve25519Scalar>::VarChar(
+        let varchar_column = OwnedColumn::<TestScalar>::VarChar(
             ["Lorem", "ipsum", "dolor", "sit", "amet"]
                 .map(String::from)
                 .to_vec(),
@@ -399,7 +426,7 @@ mod tests {
         assert_eq!(varchar_metadata.column_type(), &ColumnType::VarChar);
         assert_eq!(varchar_metadata.bounds(), &ColumnBounds::NoOrder);
 
-        let bigint_column = OwnedColumn::<Curve25519Scalar>::BigInt([1, 2, 3, 1, 0].to_vec());
+        let bigint_column = OwnedColumn::<TestScalar>::BigInt([1, 2, 3, 1, 0].to_vec());
         let committable_bigint_column = CommittableColumn::from(&bigint_column);
         let bigint_metadata = ColumnCommitmentMetadata::from_column(&committable_bigint_column);
         assert_eq!(bigint_metadata.column_type(), &ColumnType::BigInt);
@@ -410,7 +437,7 @@ mod tests {
             panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::BigInt(Bounds::Sharp(_))");
         }
 
-        let int_column = OwnedColumn::<Curve25519Scalar>::Int([1, 2, 3, 1, 0].to_vec());
+        let int_column = OwnedColumn::<TestScalar>::Int([1, 2, 3, 1, 0].to_vec());
         let committable_int_column = CommittableColumn::from(&int_column);
         let int_metadata = ColumnCommitmentMetadata::from_column(&committable_int_column);
         assert_eq!(int_metadata.column_type(), &ColumnType::Int);
@@ -421,7 +448,18 @@ mod tests {
             panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::Int(Bounds::Sharp(_))");
         }
 
-        let smallint_column = OwnedColumn::<Curve25519Scalar>::SmallInt([1, 2, 3, 1, 0].to_vec());
+        let tinyint_column = OwnedColumn::<TestScalar>::TinyInt([1, 2, 3, 1, 0].to_vec());
+        let committable_tinyint_column = CommittableColumn::from(&tinyint_column);
+        let tinyint_metadata = ColumnCommitmentMetadata::from_column(&committable_tinyint_column);
+        assert_eq!(tinyint_metadata.column_type(), &ColumnType::TinyInt);
+        if let ColumnBounds::TinyInt(Bounds::Sharp(bounds)) = tinyint_metadata.bounds() {
+            assert_eq!(bounds.min(), &0);
+            assert_eq!(bounds.max(), &3);
+        } else {
+            panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::TinyInt(Bounds::Sharp(_))");
+        }
+
+        let smallint_column = OwnedColumn::<TestScalar>::SmallInt([1, 2, 3, 1, 0].to_vec());
         let committable_smallint_column = CommittableColumn::from(&smallint_column);
         let smallint_metadata = ColumnCommitmentMetadata::from_column(&committable_smallint_column);
         assert_eq!(smallint_metadata.column_type(), &ColumnType::SmallInt);
@@ -432,7 +470,7 @@ mod tests {
             panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::SmallInt(Bounds::Sharp(_))");
         }
 
-        let int128_column = OwnedColumn::<Curve25519Scalar>::Int128([].to_vec());
+        let int128_column = OwnedColumn::<TestScalar>::Int128([].to_vec());
         let committable_int128_column = CommittableColumn::from(&int128_column);
         let int128_metadata = ColumnCommitmentMetadata::from_column(&committable_int128_column);
         assert_eq!(int128_metadata.column_type(), &ColumnType::Int128);
@@ -441,8 +479,7 @@ mod tests {
             &ColumnBounds::Int128(Bounds::Empty)
         );
 
-        let scalar_column =
-            OwnedColumn::Scalar([1, 2, 3, 4, 5].map(Curve25519Scalar::from).to_vec());
+        let scalar_column = OwnedColumn::Scalar([1, 2, 3, 4, 5].map(TestScalar::from).to_vec());
         let committable_scalar_column = CommittableColumn::from(&scalar_column);
         let scalar_metadata = ColumnCommitmentMetadata::from_column(&committable_scalar_column);
         assert_eq!(scalar_metadata.column_type(), &ColumnType::Scalar);
@@ -489,6 +526,18 @@ mod tests {
         );
 
         // Ordered case
+        let ints = [1, 2, 3, 1, 0];
+        let tinyint_column_a = CommittableColumn::TinyInt(&ints[..2]);
+        let tinyint_metadata_a = ColumnCommitmentMetadata::from_column(&tinyint_column_a);
+        let tinyint_column_b = CommittableColumn::TinyInt(&ints[2..]);
+        let tinyint_metadata_b = ColumnCommitmentMetadata::from_column(&tinyint_column_b);
+        let tinyint_column_c = CommittableColumn::TinyInt(&ints);
+        let tinyint_metadata_c = ColumnCommitmentMetadata::from_column(&tinyint_column_c);
+        assert_eq!(
+            tinyint_metadata_a.try_union(tinyint_metadata_b).unwrap(),
+            tinyint_metadata_c
+        );
+
         let ints = [1, 2, 3, 1, 0];
         let smallint_column_a = CommittableColumn::SmallInt(&ints[..2]);
         let smallint_metadata_a = ColumnCommitmentMetadata::from_column(&smallint_column_a);
@@ -636,6 +685,43 @@ mod tests {
     }
 
     #[test]
+    fn we_can_difference_tinyint_matching_metadata() {
+        // Ordered case
+        let tinyints = [1, 2, 3, 1, 0];
+        let tinyint_column_a = CommittableColumn::TinyInt(&tinyints[..2]);
+        let tinyint_metadata_a = ColumnCommitmentMetadata::from_column(&tinyint_column_a);
+        let tinyint_column_b = CommittableColumn::TinyInt(&tinyints);
+        let tinyint_metadata_b = ColumnCommitmentMetadata::from_column(&tinyint_column_b);
+
+        let b_difference_a = tinyint_metadata_b
+            .try_difference(tinyint_metadata_a)
+            .unwrap();
+        assert_eq!(b_difference_a.column_type, ColumnType::TinyInt);
+        if let ColumnBounds::TinyInt(Bounds::Bounded(bounds)) = b_difference_a.bounds() {
+            assert_eq!(bounds.min(), &0);
+            assert_eq!(bounds.max(), &3);
+        } else {
+            panic!("difference of overlapping bounds should be Bounded");
+        }
+
+        let tinyint_column_empty = CommittableColumn::TinyInt(&[]);
+        let tinyint_metadata_empty = ColumnCommitmentMetadata::from_column(&tinyint_column_empty);
+
+        assert_eq!(
+            tinyint_metadata_b
+                .try_difference(tinyint_metadata_empty)
+                .unwrap(),
+            tinyint_metadata_b
+        );
+        assert_eq!(
+            tinyint_metadata_empty
+                .try_difference(tinyint_metadata_b)
+                .unwrap(),
+            tinyint_metadata_empty
+        );
+    }
+
+    #[test]
     fn we_can_difference_smallint_matching_metadata() {
         // Ordered case
         let smallints = [1, 2, 3, 1, 0];
@@ -703,6 +789,7 @@ mod tests {
         );
     }
 
+    #[allow(clippy::too_many_lines)]
     #[test]
     fn we_cannot_perform_arithmetic_on_mismatched_metadata() {
         let boolean_metadata = ColumnCommitmentMetadata {
@@ -716,6 +803,10 @@ mod tests {
         let scalar_metadata = ColumnCommitmentMetadata {
             column_type: ColumnType::Scalar,
             bounds: ColumnBounds::NoOrder,
+        };
+        let tinyint_metadata = ColumnCommitmentMetadata {
+            column_type: ColumnType::TinyInt,
+            bounds: ColumnBounds::TinyInt(Bounds::Empty),
         };
         let smallint_metadata = ColumnCommitmentMetadata {
             column_type: ColumnType::SmallInt,
@@ -737,6 +828,18 @@ mod tests {
             column_type: ColumnType::Decimal75(Precision::new(4).unwrap(), 8),
             bounds: ColumnBounds::Int128(Bounds::Empty),
         };
+
+        assert!(tinyint_metadata.try_union(scalar_metadata).is_err());
+        assert!(scalar_metadata.try_union(tinyint_metadata).is_err());
+
+        assert!(tinyint_metadata.try_union(decimal75_metadata).is_err());
+        assert!(decimal75_metadata.try_union(tinyint_metadata).is_err());
+
+        assert!(tinyint_metadata.try_union(varchar_metadata).is_err());
+        assert!(varchar_metadata.try_union(tinyint_metadata).is_err());
+
+        assert!(tinyint_metadata.try_union(boolean_metadata).is_err());
+        assert!(boolean_metadata.try_union(tinyint_metadata).is_err());
 
         assert!(smallint_metadata.try_union(scalar_metadata).is_err());
         assert!(scalar_metadata.try_union(smallint_metadata).is_err());

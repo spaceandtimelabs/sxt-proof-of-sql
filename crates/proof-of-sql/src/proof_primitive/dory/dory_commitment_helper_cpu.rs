@@ -1,9 +1,17 @@
 use super::{pairings, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Projective};
 use crate::base::commitment::CommittableColumn;
+use alloc::vec::Vec;
 use ark_ec::VariableBaseMSM;
 use core::iter::once;
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
+/// # Panics
+///
+/// Will panic if:
+/// - `Gamma_1.last()` returns `None` when computing the first row commitment.
+/// - `Gamma_1.last()` returns `None` when computing remaining row commitments.
+/// - `Gamma_2.last()` returns `None` when computing the commitment for the entire matrix.
+/// - The slices accessed in `Gamma_1.last().unwrap()` or `Gamma_2.last().unwrap()` are out of bounds.
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,
@@ -52,6 +60,7 @@ fn compute_dory_commitment(
 ) -> DoryCommitment {
     match committable_column {
         CommittableColumn::Scalar(column) => compute_dory_commitment_impl(column, offset, setup),
+        CommittableColumn::TinyInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::SmallInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Int(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::BigInt(column) => compute_dory_commitment_impl(column, offset, setup),

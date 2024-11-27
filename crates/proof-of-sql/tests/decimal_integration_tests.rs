@@ -1,4 +1,5 @@
 #![cfg(feature = "test")]
+#![cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(feature = "blitzar")]
 use blitzar::proof::InnerProductProof;
 #[cfg(feature = "blitzar")]
@@ -156,8 +157,8 @@ mod decimal_query_tests {
             "SELECT * FROM table WHERE c = 0.1",
             7,
             6,
-            vec![S::from(100000), S::ZERO, S::from(100000)],
-            vec![S::from(100000), S::from(100000)],
+            vec![S::from(100_000), S::ZERO, S::from(100_000)],
+            vec![S::from(100_000), S::from(100_000)],
         );
     }
 
@@ -178,8 +179,8 @@ mod decimal_query_tests {
             "SELECT * FROM table WHERE c = 123.456;",
             6,
             3,
-            vec![S::from(123456), S::ZERO, S::from(123456)],
-            vec![S::from(123456), S::from(123456)],
+            vec![S::from(123_456), S::ZERO, S::from(123_456)],
+            vec![S::from(123_456), S::from(123_456)],
         );
     }
 
@@ -189,8 +190,8 @@ mod decimal_query_tests {
             "SELECT * FROM table WHERE c = 12345",
             7,
             2,
-            vec![S::from(1234500), S::ZERO, S::from(1234500)],
-            vec![S::from(1234500), S::from(1234500)],
+            vec![S::from(1_234_500), S::ZERO, S::from(1_234_500)],
+            vec![S::from(1_234_500), S::from(1_234_500)],
         );
     }
 
@@ -200,8 +201,8 @@ mod decimal_query_tests {
             "SELECT * FROM table WHERE c = -12345",
             7,
             2,
-            vec![-S::from(1234500), S::ZERO, -S::from(1234500)],
-            vec![-S::from(1234500), -S::from(1234500)],
+            vec![-S::from(1_234_500), S::ZERO, -S::from(1_234_500)],
+            vec![-S::from(1_234_500), -S::from(1_234_500)],
         );
     }
 

@@ -1,26 +1,26 @@
 use super::{fold_columns, fold_vals};
 use crate::{
     base::{
-        commitment::Commitment,
         database::{
-            filter_util::filter_columns, Column, ColumnField, ColumnRef, CommitmentAccessor,
-            DataAccessor, MetadataAccessor, OwnedTable,
+            filter_util::filter_columns, Column, ColumnField, ColumnRef, OwnedTable, Table,
+            TableOptions, TableRef,
         },
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
     },
     sql::{
         proof::{
-            CountBuilder, HonestProver, Indexes, ProofBuilder, ProofPlan, ProverEvaluate,
-            ProverHonestyMarker, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
+            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, HonestProver, ProofPlan,
+            ProverEvaluate, ProverHonestyMarker, SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
     },
 };
+use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use core::{iter::repeat_with, marker::PhantomData};
-use indexmap::IndexSet;
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 
@@ -31,20 +31,20 @@ use serde::{Deserialize, Serialize};
 ///
 /// This differs from the [`FilterExec`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct OstensibleFilterExec<C: Commitment, H: ProverHonestyMarker> {
-    pub(super) aliased_results: Vec<AliasedDynProofExpr<C>>,
+pub struct OstensibleFilterExec<H: ProverHonestyMarker> {
+    pub(super) aliased_results: Vec<AliasedDynProofExpr>,
     pub(super) table: TableExpr,
     /// TODO: add docs
-    pub(crate) where_clause: DynProofExpr<C>,
+    pub(crate) where_clause: DynProofExpr,
     phantom: PhantomData<H>,
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
+impl<H: ProverHonestyMarker> OstensibleFilterExec<H> {
     /// Creates a new filter expression.
     pub fn new(
-        aliased_results: Vec<AliasedDynProofExpr<C>>,
+        aliased_results: Vec<AliasedDynProofExpr>,
         table: TableExpr,
-        where_clause: DynProofExpr<C>,
+        where_clause: DynProofExpr,
     ) -> Self {
         Self {
             aliased_results,
@@ -55,19 +55,15 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
     }
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> ProofPlan<C> for OstensibleFilterExec<C, H>
+impl<H: ProverHonestyMarker> ProofPlan for OstensibleFilterExec<H>
 where
-    OstensibleFilterExec<C, H>: ProverEvaluate<C::Scalar>,
+    OstensibleFilterExec<H>: ProverEvaluate,
 {
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.where_clause.count(builder)?;
-        for aliased_expr in self.aliased_results.iter() {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
-            builder.count_result_columns(1);
+            builder.count_intermediate_mles(1);
         }
         builder.count_intermediate_mles(2);
         builder.count_subpolynomials(3);
@@ -76,21 +72,13 @@ where
         Ok(())
     }
 
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
-    }
-
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset(self.table.table_ref)
-    }
-
     #[allow(unused_variables)]
-    fn verifier_evaluate(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-        _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
         // 1. selection
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         // 2. columns
@@ -100,15 +88,11 @@ where
                 .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
                 .collect::<Result<Vec<_>, _>>()?,
         );
-        // 3. indexes
-        let indexes_eval = builder
-            .mle_evaluations
-            .result_indexes_evaluation
-            .ok_or(ProofError::VerificationError("invalid indexes"))?;
-        // 4. filtered_columns
-        let filtered_columns_evals = Vec::from_iter(
-            repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
-        );
+        // 3. filtered_columns
+        let filtered_columns_evals: Vec<_> = repeat_with(|| builder.consume_intermediate_mle())
+            .take(self.aliased_results.len())
+            .collect();
+        assert!(filtered_columns_evals.len() == self.aliased_results.len());
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -117,10 +101,11 @@ where
             builder,
             alpha,
             beta,
-            columns_evals,
+            &columns_evals,
             selection_eval,
-            filtered_columns_evals,
-        )
+            &filtered_columns_evals,
+        )?;
+        Ok(filtered_columns_evals)
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -131,9 +116,9 @@ where
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        let mut columns = IndexSet::new();
+        let mut columns = IndexSet::default();
 
-        for aliased_expr in self.aliased_results.iter() {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.get_column_references(&mut columns);
         }
 
@@ -141,69 +126,91 @@ where
 
         columns
     }
+
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        IndexSet::from_iter([self.table.table_ref])
+    }
 }
 
 /// Alias for a filter expression with a honest prover.
-pub type FilterExec<C> = OstensibleFilterExec<C, HonestProver>;
+pub type FilterExec = OstensibleFilterExec<HonestProver>;
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
+impl ProverEvaluate for FilterExec {
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut ResultBuilder,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
+    ) -> Table<'a, S> {
+        let table = table_map
+            .get(&self.table.table_ref)
+            .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, C::Scalar> =
-            self.where_clause
-                .result_evaluate(builder.table_length(), alloc, accessor);
+        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, table);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
+        let output_length = selection.iter().filter(|b| **b).count();
 
         // 2. columns
-        let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            aliased_expr
-                .expr
-                .result_evaluate(builder.table_length(), alloc, accessor)
-        }));
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table))
+            .collect();
+
         // Compute filtered_columns and indexes
-        let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
-        // 3. set indexes
-        builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
-        builder.request_post_result_challenges(2);
-        filtered_columns
-    }
-
-    #[tracing::instrument(name = "FilterExec::prover_evaluate", level = "debug", skip_all)]
-    #[allow(unused_variables)]
-    fn prover_evaluate<'a>(
-        &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
-        alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
-        // 1. selection
-        let selection_column: Column<'a, C::Scalar> =
-            self.where_clause.prover_evaluate(builder, alloc, accessor);
-        let selection = selection_column
-            .as_boolean()
-            .expect("selection is not boolean");
-
-        // 2. columns
-        let columns = Vec::from_iter(
+        let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
+        Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results
                 .iter()
-                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
-        );
-        // Compute filtered_columns and indexes
+                .map(|expr| expr.alias)
+                .zip(filtered_columns),
+            TableOptions::new(Some(output_length)),
+        )
+        .expect("Failed to create table from iterator")
+    }
+
+    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
+        builder.request_post_result_challenges(2);
+    }
+
+    #[tracing::instrument(name = "FilterExec::final_round_evaluate", level = "debug", skip_all)]
+    #[allow(unused_variables)]
+    fn final_round_evaluate<'a, S: Scalar>(
+        &self,
+        builder: &mut FinalRoundBuilder<'a, S>,
+        alloc: &'a Bump,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
+    ) -> Table<'a, S> {
+        let table = table_map
+            .get(&self.table.table_ref)
+            .expect("Table not found");
+        // 1. selection
+        let selection_column: Column<'a, S> =
+            self.where_clause.prover_evaluate(builder, alloc, table);
+        let selection = selection_column
+            .as_boolean()
+            .expect("selection is not boolean");
+        let output_length = selection.iter().filter(|b| **b).count();
+
+        // 2. columns
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, table))
+            .collect();
+        // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
+        // 3. Produce MLEs
+        filtered_columns.iter().copied().for_each(|column| {
+            builder.produce_intermediate_mle(column);
+        });
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
 
-        prove_filter::<C::Scalar>(
+        prove_filter::<S>(
             builder,
             alloc,
             alpha,
@@ -211,65 +218,70 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             &columns,
             selection,
             &filtered_columns,
+            table.num_rows(),
             result_len,
         );
-        filtered_columns
+        Table::<'a, S>::try_from_iter_with_options(
+            self.aliased_results
+                .iter()
+                .map(|expr| expr.alias)
+                .zip(filtered_columns),
+            TableOptions::new(Some(output_length)),
+        )
+        .expect("Failed to create table from iterator")
     }
 }
 
-fn verify_filter<C: Commitment>(
-    builder: &mut VerificationBuilder<C>,
-    alpha: C::Scalar,
-    beta: C::Scalar,
-    c_evals: Vec<C::Scalar>,
-    s_eval: C::Scalar,
-    d_evals: Vec<C::Scalar>,
-) -> Result<Vec<C::Scalar>, ProofError> {
-    let one_eval = builder.mle_evaluations.one_evaluation;
+#[allow(clippy::unnecessary_wraps)]
+fn verify_filter<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    alpha: S,
+    beta: S,
+    c_evals: &[S],
+    s_eval: S,
+    d_evals: &[S],
+) -> Result<(), ProofError> {
+    let one_eval = builder.mle_evaluations.input_one_evaluation;
+    let chi_eval = builder.mle_evaluations.output_one_evaluation;
 
-    let chi_eval = match builder.mle_evaluations.result_indexes_evaluation {
-        Some(eval) => eval,
-        None => return Err(ProofError::VerificationError("Result indexes not valid.")),
-    };
-
-    let c_fold_eval = alpha * one_eval + fold_vals(beta, &c_evals);
-    let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, &d_evals);
+    let c_fold_eval = alpha * one_eval + fold_vals(beta, c_evals);
+    let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, d_evals);
     let c_star_eval = builder.consume_intermediate_mle();
     let d_star_eval = builder.consume_intermediate_mle();
 
     // sum c_star * s - d_star = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::ZeroSum,
+        &SumcheckSubpolynomialType::ZeroSum,
         c_star_eval * s_eval - d_star_eval,
     );
 
     // c_fold * c_star - 1 = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
+        &SumcheckSubpolynomialType::Identity,
         c_fold_eval * c_star_eval - one_eval,
     );
 
     // d_bar_fold * d_star - chi = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
+        &SumcheckSubpolynomialType::Identity,
         d_bar_fold_eval * d_star_eval - chi_eval,
     );
 
-    Ok(c_evals)
+    Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::many_single_char_names)]
 pub(super) fn prove_filter<'a, S: Scalar + 'a>(
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     alpha: S,
     beta: S,
     c: &[Column<S>],
     s: &'a [bool],
     d: &[Column<S>],
+    n: usize,
     m: usize,
 ) {
-    let n = builder.table_length();
     let chi = alloc.alloc_slice_fill_copy(n, false);
     chi[..m].fill(true);
 

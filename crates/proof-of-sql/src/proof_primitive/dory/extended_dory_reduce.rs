@@ -1,16 +1,22 @@
 use super::{
-    dory_reduce_helper::*,
-    extended_dory_reduce_helper::*,
+    dory_reduce_helper::{
+        dory_reduce_prove_compute_Cs, dory_reduce_prove_compute_Ds, dory_reduce_prove_fold_v_vecs,
+        dory_reduce_prove_mutate_v_vecs, dory_reduce_verify_update_C, dory_reduce_verify_update_Ds,
+    },
+    extended_dory_reduce_helper::{
+        extended_dory_reduce_prove_compute_E_betas, extended_dory_reduce_prove_compute_signed_Es,
+        extended_dory_reduce_prove_fold_s_vecs, extended_dory_reduce_verify_update_Es,
+    },
     extended_state::{ExtendedProverState, ExtendedVerifierState},
     DoryMessages, ProverSetup, VerifierSetup,
 };
-use merlin::Transcript;
+use crate::base::proof::Transcript;
 
 /// This is the prover side of the extended Dory-Reduce algorithm in section 3.2 & 4.2 of https://eprint.iacr.org/2020/1274.pdf.
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn extended_dory_reduce_prove(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     state: &mut ExtendedProverState,
     setup: &ProverSetup,
 ) {
@@ -45,7 +51,7 @@ pub fn extended_dory_reduce_prove(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn extended_dory_reduce_verify(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     state: &mut ExtendedVerifierState,
     setup: &VerifierSetup,
 ) -> bool {

@@ -1,9 +1,15 @@
-# posql_db
+# `posql_db`
 
 Example demonstrating an implementation of a simple csv-backed database with Proof of SQL capabilities.
 
 ## Install
 Run `cargo install --example posql_db --path crates/proof-of-sql` to install the example.
+
+> [!NOTE]
+> To run this example without the `blitzar` (i.e CPU only )feature 
+> ```bash
+> cargo install --example posql_db --path crates/proof-of-sql --no-default-features --features="cpu-perf"
+> ```
 
 ## Quick Start Exmaple
 Run the following

@@ -1,5 +1,6 @@
 //! Types for creation and utilization of cryptographic commitments to proof-of-sql data.
 use crate::base::scalar::Scalar;
+use alloc::vec::Vec;
 #[cfg(feature = "blitzar")]
 pub use blitzar::{
     compute::{init_backend, init_backend_with_config, BackendConfig},
@@ -9,7 +10,7 @@ use core::ops::{AddAssign, SubAssign};
 use curve25519_dalek::ristretto::RistrettoPoint;
 
 mod committable_column;
-pub(crate) use committable_column::CommittableColumn;
+pub use committable_column::CommittableColumn;
 
 mod vec_commitment_ext;
 pub use vec_commitment_ext::{NumColumnsMismatch, VecCommitmentExt};
@@ -80,15 +81,14 @@ pub trait Commitment:
     ///
     /// The resulting commitments are written to the slice in `commitments`, which is a buffer.
     /// `commitments` is expected to have the same length as `committable_columns` and the behavior is undefined if it does not.
-    /// The length of each CommittableColumn should be the same.
+    /// The length of each [`CommittableColumn`] should be the same.
     ///
     /// `offset` is the amount that `committable_columns` is "offset" by. Logically adding `offset` many 0s to the beginning of each of the `committable_columns`.
     fn compute_commitments(
-        commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
         offset: usize,
         setup: &Self::PublicSetup<'_>,
-    );
+    ) -> Vec<Self>;
 }
 
 impl Commitment for RistrettoPoint {
@@ -96,34 +96,35 @@ impl Commitment for RistrettoPoint {
     type PublicSetup<'a> = ();
     #[cfg(feature = "blitzar")]
     fn compute_commitments(
-        commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
         offset: usize,
         _setup: &Self::PublicSetup<'_>,
-    ) {
-        let sequences = Vec::from_iter(committable_columns.iter().map(Into::into));
-        let mut compressed_commitments = vec![Default::default(); committable_columns.len()];
+    ) -> Vec<Self> {
+        use curve25519_dalek::ristretto::CompressedRistretto;
+
+        let sequences: Vec<_> = committable_columns.iter().map(Into::into).collect();
+        let mut compressed_commitments =
+            vec![CompressedRistretto::default(); committable_columns.len()];
         blitzar::compute::compute_curve25519_commitments(
             &mut compressed_commitments,
             &sequences,
             offset as u64,
         );
-        commitments
-            .iter_mut()
-            .zip(compressed_commitments.iter())
-            .for_each(|(c, cc)| {
-                *c = cc.decompress().expect(
+        compressed_commitments
+            .into_iter()
+            .map(|cc| {
+                cc.decompress().expect(
                     "invalid ristretto point decompression in Commitment::compute_commitments",
-                );
-            });
+                )
+            })
+            .collect()
     }
     #[cfg(not(feature = "blitzar"))]
     fn compute_commitments(
-        _commitments: &mut [Self],
         _committable_columns: &[CommittableColumn],
         _offset: usize,
         _setup: &Self::PublicSetup<'_>,
-    ) {
+    ) -> Vec<Self> {
         unimplemented!()
     }
 }

@@ -6,6 +6,7 @@
 //! cargo bench --features "test" --bench bench_append_rows
 //! ```
 #![allow(missing_docs, clippy::missing_docs_in_private_items)]
+use ark_std::test_rng;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use proof_of_sql::{
     base::{
@@ -13,22 +14,21 @@ use proof_of_sql::{
         database::{
             owned_table_utility::{
                 bigint, boolean, decimal75, int, int128, owned_table, scalar, smallint,
-                timestamptz, varchar,
+                timestamptz, tinyint, varchar,
             },
             OwnedTable,
         },
         scalar::Scalar,
     },
     proof_primitive::dory::{
-        test_rng, DoryCommitment, DoryProverPublicSetup, DoryScalar, ProverSetup, PublicParameters,
+        DoryCommitment, DoryProverPublicSetup, DoryScalar, ProverSetup, PublicParameters,
     },
 };
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::Rng;
-use std::ops::Deref;
 
 /// Bench dory performance when appending rows to a table. This includes the computation of
-/// commitments. Chose the number of columns to randomly generate across supported PoSQL
+/// commitments. Chose the number of columns to randomly generate across supported `PoSQL`
 /// data types, and choose the number of rows to append at a time.
 ///
 /// ```text
@@ -37,8 +37,14 @@ use std::ops::Deref;
 /// append 10 rows to 10 cols in 100 tables = 1.1382 seconds
 /// append 1000 rows to 10 cols in 1 table = 652ms
 /// ```
+///
+/// # Panics
+///
+/// Will panic if the creation of the table commitment fails due to invalid column data or an incorrect prover setup.
+///
+/// Will panic if the row appending operation fails due to invalid data or if the local commitment has reached an invalid state.
 fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
-    let public_parameters = PublicParameters::rand(10, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(10, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
     c.bench_function("append_rows_to_table_commitment", |b| {
@@ -65,7 +71,8 @@ fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
     });
 }
 
-/// Generates a random OwnedTable with a specified number of columns
+/// Generates a random [`OwnedTable`] with a specified number of columns
+#[must_use]
 pub fn generate_random_owned_table<S: Scalar>(
     num_columns: usize,
     num_rows: usize,
@@ -78,6 +85,7 @@ pub fn generate_random_owned_table<S: Scalar>(
         "scalar",
         "varchar",
         "decimal75",
+        "tinyint",
         "smallint",
         "int",
         "timestamptz",
@@ -90,33 +98,28 @@ pub fn generate_random_owned_table<S: Scalar>(
         let identifier = format!("column_{}", rng.gen::<u32>());
 
         match column_type {
-            "bigint" => columns.push(bigint(identifier.deref(), vec![rng.gen::<i64>(); num_rows])),
+            "bigint" => columns.push(bigint(&*identifier, vec![rng.gen::<i64>(); num_rows])),
             "boolean" => columns.push(boolean(
-                identifier.deref(),
+                &*identifier,
                 generate_random_boolean_vector(num_rows),
             )),
-            "int128" => columns.push(int128(
-                identifier.deref(),
-                vec![rng.gen::<i128>(); num_rows],
-            )),
+            "int128" => columns.push(int128(&*identifier, vec![rng.gen::<i128>(); num_rows])),
             "scalar" => columns.push(scalar(
-                identifier.deref(),
+                &*identifier,
                 vec![generate_random_u64_array(); num_rows],
             )),
-            "varchar" => columns.push(varchar(identifier.deref(), gen_rnd_str(num_rows))),
+            "varchar" => columns.push(varchar(&*identifier, gen_rnd_str(num_rows))),
             "decimal75" => columns.push(decimal75(
-                identifier.deref(),
+                &*identifier,
                 12,
                 2,
                 vec![generate_random_u64_array(); num_rows],
             )),
-            "smallint" => columns.push(smallint(
-                identifier.deref(),
-                vec![rng.gen::<i16>(); num_rows],
-            )),
-            "int" => columns.push(int(identifier.deref(), vec![rng.gen::<i32>(); num_rows])),
+            "tinyint" => columns.push(tinyint(&*identifier, vec![rng.gen::<i8>(); num_rows])),
+            "smallint" => columns.push(smallint(&*identifier, vec![rng.gen::<i16>(); num_rows])),
+            "int" => columns.push(int(&*identifier, vec![rng.gen::<i32>(); num_rows])),
             "timestamptz" => columns.push(timestamptz(
-                identifier.deref(),
+                &*identifier,
                 PoSQLTimeUnit::Second,
                 PoSQLTimeZone::Utc,
                 vec![rng.gen::<i64>(); num_rows],

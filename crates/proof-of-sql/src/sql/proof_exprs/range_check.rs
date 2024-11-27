@@ -477,7 +477,7 @@ mod tests {
         // Convert Vec<Vec<S>> into Vec<&mut [S]> for use in get_logarithmic_derivative
         let mut word_columns_from_log_deriv: Vec<&mut [S]> = inverted_word_columns_plus_alpha
             .iter_mut()
-            .map(|col| col.as_mut_slice())
+            .map(Vec::as_mut_slice)
             .collect();
 
         let alloc = Bump::new();
@@ -575,7 +575,7 @@ mod tests {
         // Convert Vec<Vec<S>> into Vec<&mut [S]> for use in get_logarithmic_derivative
         let mut word_columns_from_log_deriv: Vec<&mut [S]> = inverted_word_columns_plus_alpha
             .iter_mut()
-            .map(|col| col.as_mut_slice())
+            .map(Vec::as_mut_slice)
             .collect();
 
         let alloc = Bump::new();

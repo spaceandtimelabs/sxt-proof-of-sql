@@ -1,11 +1,11 @@
 use crate::{
     base::{
         database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
-        scalar::Curve25519Scalar,
+        map::IndexMap,
+        scalar::test_scalar::TestScalar,
     },
     proof_primitive::dory::DoryScalar,
 };
-use indexmap::IndexMap;
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
@@ -13,7 +13,7 @@ use proof_of_sql_parser::{
 
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {
-    let table = OwnedTable::<Curve25519Scalar>::try_new(IndexMap::new()).unwrap();
+    let table = OwnedTable::<TestScalar>::try_new(IndexMap::default()).unwrap();
     assert_eq!(table.num_columns(), 0);
 }
 #[test]
@@ -25,7 +25,7 @@ fn we_can_create_an_empty_owned_table() {
         scalar("scalar", [0; 0]),
         boolean("boolean", [true; 0]),
     ]);
-    let mut table = IndexMap::new();
+    let mut table = IndexMap::default();
     table.insert(
         Identifier::try_new("bigint").unwrap(),
         OwnedColumn::BigInt(vec![]),
@@ -66,7 +66,7 @@ fn we_can_create_an_owned_table_with_data() {
             [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
         ),
     ]);
-    let mut table = IndexMap::new();
+    let mut table = IndexMap::default();
     table.insert(
         Identifier::try_new("time_stamp").unwrap(),
         OwnedColumn::TimestampTZ(
@@ -121,7 +121,7 @@ fn we_can_create_an_owned_table_with_data() {
 }
 #[test]
 fn we_get_inequality_between_tables_with_differing_column_order() {
-    let owned_table_a: OwnedTable<Curve25519Scalar> = owned_table([
+    let owned_table_a: OwnedTable<TestScalar> = owned_table([
         bigint("a", [0; 0]),
         int128("b", [0; 0]),
         varchar("c", ["0"; 0]),
@@ -133,7 +133,7 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
             [0; 0],
         ),
     ]);
-    let owned_table_b: OwnedTable<Curve25519Scalar> = owned_table([
+    let owned_table_b: OwnedTable<TestScalar> = owned_table([
         boolean("d", [false; 0]),
         int128("b", [0; 0]),
         bigint("a", [0; 0]),
@@ -158,7 +158,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
-            [1625072400],
+            [1_625_072_400],
         ),
     ]);
     let owned_table_b: OwnedTable<DoryScalar> = owned_table([
@@ -170,7 +170,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
-            [1625076000],
+            [1_625_076_000],
         ),
     ]);
     assert_ne!(owned_table_a, owned_table_b);
@@ -178,7 +178,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
 #[test]
 fn we_cannot_create_an_owned_table_with_differing_column_lengths() {
     assert!(matches!(
-        OwnedTable::<Curve25519Scalar>::try_from_iter([
+        OwnedTable::<TestScalar>::try_from_iter([
             ("a".parse().unwrap(), OwnedColumn::BigInt(vec![0])),
             ("b".parse().unwrap(), OwnedColumn::BigInt(vec![])),
         ]),

@@ -3,12 +3,14 @@ use super::{
 };
 #[cfg(test)]
 use super::{G1Affine, G1Projective, G2Projective, ProverSetup};
+use alloc::{vec, vec::Vec};
 #[cfg(test)]
 use ark_ec::VariableBaseMSM;
+use ark_ff::Fp;
 
 /// The state of the prover during the Dory proof generation with the extended algorithm.
 /// `base_state` is the state of the prover during the Dory proof generation with the original algorithm.
-/// See the beginning of section 4 of https://eprint.iacr.org/2020/1274.pdf for details.
+/// See the beginning of section 4 of <https://eprint.iacr.org/2020/1274.pdf> for details.
 pub struct ExtendedProverState {
     /// The state of the prover during the Dory proof generation with the original algorithm.
     pub(super) base_state: ProverState,
@@ -52,8 +54,8 @@ impl ExtendedProverState {
         use crate::base::polynomial::compute_evaluation_vector;
         assert_eq!(s1_tensor.len(), nu);
         assert_eq!(s2_tensor.len(), nu);
-        let mut s1 = vec![Default::default(); 1 << nu];
-        let mut s2 = vec![Default::default(); 1 << nu];
+        let mut s1 = vec![Fp::default(); 1 << nu];
+        let mut s2 = vec![Fp::default(); 1 << nu];
         compute_evaluation_vector(&mut s1, &s1_tensor);
         compute_evaluation_vector(&mut s2, &s2_tensor);
         ExtendedProverState {
@@ -68,7 +70,7 @@ impl ExtendedProverState {
     }
     /// Calculate the verifier state from the prover state and setup information.
     /// This is basically the commitment computation of the witness.
-    /// See the beginning of section 4 of https://eprint.iacr.org/2020/1274.pdf for details.
+    /// See the beginning of section 4 of <https://eprint.iacr.org/2020/1274.pdf> for details.
     #[cfg(test)]
     pub fn calculate_verifier_state(&self, setup: &ProverSetup) -> ExtendedVerifierState {
         let E_1: G1Affine = G1Projective::msm_unchecked(&self.base_state.v1, &self.s2).into();
@@ -79,15 +81,15 @@ impl ExtendedProverState {
             E_2: E_2.into(),
             s1_tensor: self.s1_tensor.clone(),
             s2_tensor: self.s2_tensor.clone(),
-            alphas: vec![Default::default(); self.base_state.nu],
-            alpha_invs: vec![Default::default(); self.base_state.nu],
+            alphas: vec![Fp::default(); self.base_state.nu],
+            alpha_invs: vec![Fp::default(); self.base_state.nu],
         }
     }
 }
 
 /// The state of the verifier during the Dory proof verification with the extended algorithm.
 /// `base_state` is the state of the verifier during the Dory proof verification with the original algorithm.
-/// See the beginning of section 4 of https://eprint.iacr.org/2020/1274.pdf for details.
+/// See the beginning of section 4 of <https://eprint.iacr.org/2020/1274.pdf> for details.
 #[cfg_attr(test, derive(PartialEq))]
 #[derive(Debug)]
 pub struct ExtendedVerifierState {
@@ -101,9 +103,9 @@ pub struct ExtendedVerifierState {
     pub(super) s1_tensor: Vec<F>,
     /// The second tensor of F elements in the witness. This will NOT be mutated during the proof verification.
     pub(super) s2_tensor: Vec<F>,
-    /// The folding factors for the s1_tensors. This will be populated during the proof verification.
+    /// The folding factors for the `s1_tensors`. This will be populated during the proof verification.
     pub(super) alphas: Vec<F>,
-    /// The folding factors for the s2_tensors. This will be populated during the proof verification.
+    /// The folding factors for the `s2_tensors`. This will be populated during the proof verification.
     pub(super) alpha_invs: Vec<F>,
 }
 
@@ -126,8 +128,8 @@ impl ExtendedVerifierState {
             E_2,
             s1_tensor,
             s2_tensor,
-            alphas: vec![Default::default(); nu],
-            alpha_invs: vec![Default::default(); nu],
+            alphas: vec![Fp::default(); nu],
+            alpha_invs: vec![Fp::default(); nu],
         }
     }
 }

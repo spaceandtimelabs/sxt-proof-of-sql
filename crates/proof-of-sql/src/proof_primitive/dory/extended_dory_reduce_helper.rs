@@ -65,11 +65,11 @@ pub fn extended_dory_reduce_prove_fold_s_vecs(
     state.s1.truncate(half_n);
     state.s2.truncate(half_n);
 }
-/// From the extended Dory-Reduce algorithm in section 4.2 of https://eprint.iacr.org/2020/1274.pdf.
+/// From the extended Dory-Reduce algorithm in section 4.2 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///
-/// Updates E_1 and E_2
-/// * E_1' <- E_1 + beta * E_1beta + alpha * E_1plus + alpha_inv * E_1minus
-/// * E_2' <- E_2 + beta_inv * E_2beta + alpha * E_2plus + alpha_inv * E_2minus
+/// Updates `E_1` and `E_2`
+/// * `E_1' <- E_1 + beta * E_1beta + alpha * E_1plus + alpha_inv * E_1minus`
+/// * `E_2' <- E_2 + beta_inv * E_2beta + alpha * E_2plus + alpha_inv * E_2minus`
 pub fn extended_dory_reduce_verify_update_Es(
     state: &mut ExtendedVerifierState,
     (E_1beta, E_2beta): (G1Affine, G2Affine),
@@ -85,16 +85,16 @@ pub fn extended_dory_reduce_verify_update_Es(
         + DeferredG2::from(E_2minus) * alpha_inv;
 }
 
-/// From the extended Dory-Reduce algorithm in section 4.2 of https://eprint.iacr.org/2020/1274.pdf.
+/// From the extended Dory-Reduce algorithm in section 4.2 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///
 /// Folds s1 and s2.
-/// * s_1' <- alpha * s_1L + s_1R
-/// * s_2' <- alpha_inv * s_2L + s_2R
+/// * `s_1' <- alpha * s_1L + s_1R`
+/// * `s_2' <- alpha_inv * s_2L + s_2R`
 ///
 /// NOTE: this logically is identical to `extended_dory_reduce_prove_fold_s_vecs`. However, the actual values
 /// of the s vectors not needed.
 ///
-/// Instead, only the final, completely folded value is used, in [fold_scalars_0_verify](super::fold_scalars_0_verify).
+/// Instead, only the final, completely folded value is used, in [`fold_scalars_0_verify`](super::fold_scalars_0_verify).
 /// This implementation works because the final value of the s vectors is:
 ///
 /// `product (1-s1_tensor[i]) * alpha[i] + s1_tensor[i] over all i`
@@ -103,7 +103,7 @@ pub fn extended_dory_reduce_verify_update_Es(
 ///
 /// `s1_tensor[nu-1] <- s1_tensor[nu-1] * (1- alpha) + alpha`
 ///
-/// and taking the product in [fold_scalars_0_verify](super::fold_scalars_0_verify).
+/// and taking the product in [`fold_scalars_0_verify`](super::fold_scalars_0_verify).
 pub fn extended_dory_reduce_verify_fold_s_vecs(state: &ExtendedVerifierState) -> (F, F) {
     (
         state

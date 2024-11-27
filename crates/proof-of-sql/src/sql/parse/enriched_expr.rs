@@ -1,9 +1,9 @@
 use super::DynProofExprBuilder;
 use crate::{
-    base::{commitment::Commitment, database::ColumnRef},
+    base::{database::ColumnRef, map::IndexMap},
     sql::proof_exprs::DynProofExpr,
 };
-use indexmap::IndexMap;
+use alloc::boxed::Box;
 use proof_of_sql_parser::{
     intermediate_ast::{AliasedResultExpr, Expression},
     Identifier,
@@ -13,14 +13,14 @@ use proof_of_sql_parser::{
 /// An enriched expression consists of an `proof_of_sql_parser::intermediate_ast::AliasedResultExpr`
 /// and an optional `DynProofExpr`.
 /// If the `DynProofExpr` is `None`, the `EnrichedExpr` is not provable.
-pub struct EnrichedExpr<C: Commitment> {
+pub struct EnrichedExpr {
     /// The remaining expression after the provable expression plan has been extracted.
     pub residue_expression: AliasedResultExpr,
     /// The extracted provable expression plan if it exists.
-    pub dyn_proof_expr: Option<DynProofExpr<C>>,
+    pub dyn_proof_expr: Option<DynProofExpr>,
 }
 
-impl<C: Commitment> EnrichedExpr<C> {
+impl EnrichedExpr {
     /// Create a new `EnrichedExpr` with a provable expression.
     ///
     /// If the expression is not provable, the `dyn_proof_expr` will be `None`.
@@ -28,12 +28,12 @@ impl<C: Commitment> EnrichedExpr<C> {
     /// and the `residue_expression` will contain the remaining expression.
     pub fn new(
         expression: AliasedResultExpr,
-        column_mapping: IndexMap<Identifier, ColumnRef>,
+        column_mapping: &IndexMap<Identifier, ColumnRef>,
     ) -> Self {
         // TODO: Using new_agg (ironically) disables aggregations in `QueryExpr` for now.
         // Re-enable aggregations when we add `GroupByExec` generalizations.
         let res_dyn_proof_expr =
-            DynProofExprBuilder::new_agg(&column_mapping).build(&expression.expr);
+            DynProofExprBuilder::new_agg(column_mapping).build(&expression.expr);
         match res_dyn_proof_expr {
             Ok(dyn_proof_expr) => {
                 let alias = expression.alias;

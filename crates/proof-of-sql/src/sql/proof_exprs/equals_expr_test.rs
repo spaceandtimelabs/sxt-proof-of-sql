@@ -1,7 +1,10 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTable, OwnedTableTestAccessor},
+        database::{
+            owned_table_utility::*, table_utility::*, Column, OwnedTable, OwnedTableTestAccessor,
+            Table, TableTestAccessor,
+        },
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::{
@@ -11,7 +14,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -373,7 +375,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         .multiunzip();
         let expected_result = owned_table([bigint("a", expected_a), varchar("d", expected_d)]);
 
-        assert_eq!(expected_result, res)
+        assert_eq!(expected_result, res);
     }
 }
 
@@ -389,11 +391,12 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
-    let data: OwnedTable<Curve25519Scalar> = owned_table([
-        bigint("a", [1, 2, 3, 4]),
-        bigint("b", [0, 5, 0, 5]),
-        varchar("c", ["t", "ghi", "jj", "f"]),
-        decimal75(
+    let alloc = Bump::new();
+    let data: Table<Curve25519Scalar> = table([
+        borrowed_bigint("a", [1, 2, 3, 4], &alloc),
+        borrowed_bigint("b", [0, 5, 0, 5], &alloc),
+        borrowed_varchar("c", ["t", "ghi", "jj", "f"], &alloc),
+        borrowed_decimal75(
             "e",
             42,
             10,
@@ -403,16 +406,16 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
                 Curve25519Scalar::ZERO,
                 Curve25519Scalar::from(-1),
             ],
+            &alloc,
         ),
     ]);
     let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let equals_expr: DynProofExpr<RistrettoPoint> = equal(
+    let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(t, data.clone(), 0, ());
+    let equals_expr: DynProofExpr = equal(
         column(t, "e", &accessor),
-        const_scalar(Curve25519Scalar::ZERO),
+        const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ZERO),
     );
-    let alloc = Bump::new();
-    let res = equals_expr.result_evaluate(4, &alloc, &accessor);
+    let res = equals_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[true, false, true, false]);
     assert_eq!(res, expected_res);
 }

@@ -1,14 +1,15 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, Table},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
+        scalar::Scalar,
     },
-    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
+use alloc::boxed::Box;
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use serde::{Deserialize, Serialize};
 
@@ -16,19 +17,19 @@ use serde::{Deserialize, Serialize};
 ///
 /// Currently it doesn't do much since aggregation logic is implemented elsewhere
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct AggregateExpr<C: Commitment> {
+pub struct AggregateExpr {
     op: AggregationOperator,
-    expr: Box<DynProofExpr<C>>,
+    expr: Box<DynProofExpr>,
 }
 
-impl<C: Commitment> AggregateExpr<C> {
+impl AggregateExpr {
     /// Create a new aggregate expression
-    pub fn new(op: AggregationOperator, expr: Box<DynProofExpr<C>>) -> Self {
+    pub fn new(op: AggregationOperator, expr: Box<DynProofExpr>) -> Self {
         Self { op, expr }
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for AggregateExpr<C> {
+impl ProofExpr for AggregateExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.expr.count(builder)
     }
@@ -42,34 +43,33 @@ impl<C: Commitment> ProofExpr<C> for AggregateExpr<C> {
     }
 
     #[tracing::instrument(name = "AggregateExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        self.expr.result_evaluate(table_length, alloc, accessor)
+        table: &Table<'a, S>,
+    ) -> Column<'a, S> {
+        self.expr.result_evaluate(alloc, table)
     }
 
     #[tracing::instrument(name = "AggregateExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        self.expr.prover_evaluate(builder, alloc, accessor)
+        table: &Table<'a, S>,
+    ) -> Column<'a, S> {
+        self.expr.prover_evaluate(builder, alloc, table)
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-    ) -> Result<C::Scalar, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError> {
         self.expr.verifier_evaluate(builder, accessor)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
-        self.expr.get_column_references(columns)
+        self.expr.get_column_references(columns);
     }
 }

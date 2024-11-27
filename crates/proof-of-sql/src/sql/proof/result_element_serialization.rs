@@ -1,5 +1,7 @@
 use super::QueryError;
 use crate::base::encode::VarInt;
+use alloc::{string::String, vec::Vec};
+use core::str;
 
 pub trait ProvableResultElement<'a> {
     fn required_bytes(&self) -> usize;
@@ -75,7 +77,7 @@ impl<'a> ProvableResultElement<'a> for &'a str {
         }
 
         Ok((
-            std::str::from_utf8(data).map_err(|_e| QueryError::InvalidString)?,
+            str::from_utf8(data).map_err(|_e| QueryError::InvalidString)?,
             bytes_read,
         ))
     }
@@ -252,7 +254,10 @@ mod tests {
         let dist = Uniform::new(1, usize::MAX);
 
         for _ in 0..100 {
-            let value = dist.sample(&mut rng) as i64;
+            let value = match dist.sample(&mut rng).try_into() {
+                Ok(val) => val,
+                Err(_) => i64::MAX,
+            };
 
             let mut out = vec![0_u8; value.required_bytes()];
             value.encode(&mut out[..]);
@@ -314,6 +319,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     #[test]
     fn arbitrary_encoded_buffers_are_correctly_decoded() {
         let mut rng = StdRng::from_seed([0u8; 32]);
@@ -340,7 +346,10 @@ mod tests {
     }
 
     fn encode_multiple_rows<'a, T: ProvableResultElement<'a>>(data: &[T]) -> Vec<u8> {
-        let total_len = data.iter().map(|v| v.required_bytes()).sum::<usize>();
+        let total_len = data
+            .iter()
+            .map(super::ProvableResultElement::required_bytes)
+            .sum::<usize>();
 
         let mut offset = 0;
         let mut out = vec![0_u8; total_len];
@@ -415,7 +424,7 @@ mod tests {
 
         assert!(<i64>::decode(&out[..]).is_ok());
 
-        out[..].clone_from_slice(&vec![0b11111111; value.required_bytes()]);
+        out[..].clone_from_slice(&vec![0b1111_1111; value.required_bytes()]);
 
         assert!(<i64>::decode(&out[..]).is_err());
     }

@@ -28,7 +28,7 @@ pub const MSB: u8 = 0b1000_0000;
 const DROP_MSB: u8 = 0b0111_1111;
 
 /// Varint (variable length integer) encoding, as described in
-/// https://developers.google.com/protocol-buffers/docs/encoding.
+/// <https://developers.google.com/protocol-buffers/docs/encoding>.
 ///
 /// Uses zigzag encoding (also described there) for signed integer representation.
 pub trait VarInt: Sized + Copy {
@@ -53,6 +53,7 @@ pub trait VarInt: Sized + Copy {
     }
 }
 
+#[allow(clippy::cast_sign_loss)]
 #[inline]
 fn zigzag_encode(from: i64) -> u64 {
     ((from << 1) ^ (from >> 63)) as u64
@@ -61,6 +62,7 @@ fn zigzag_encode(from: i64) -> u64 {
 // see: http://stackoverflow.com/a/2211086/56332
 // casting required because operations like unary negation
 // cannot be performed on unsigned integers
+#[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
 #[inline]
 fn zigzag_decode(from: u64) -> i64 {
     ((from >> 1) ^ (-((from & 1) as i64)) as u64) as i64
@@ -70,10 +72,12 @@ fn zigzag_decode(from: u64) -> i64 {
 macro_rules! impl_varint {
     ($t:ty, unsigned) => {
         impl VarInt for $t {
+            #[allow(clippy::cast_lossless)]
             fn required_space(self) -> usize {
                 (self as u64).required_space()
             }
 
+            #[allow(clippy::cast_lossless, clippy::cast_possible_truncation)]
             fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
                 let (n, s) = u64::decode_var(src)?;
                 // This check is required to ensure that we actually return `None` when `src` has a value that would overflow `Self`.
@@ -84,6 +88,7 @@ macro_rules! impl_varint {
                 }
             }
 
+            #[allow(clippy::cast_lossless)]
             fn encode_var(self, dst: &mut [u8]) -> usize {
                 (self as u64).encode_var(dst)
             }
@@ -91,10 +96,12 @@ macro_rules! impl_varint {
     };
     ($t:ty, signed) => {
         impl VarInt for $t {
+            #[allow(clippy::cast_lossless)]
             fn required_space(self) -> usize {
                 (self as i64).required_space()
             }
 
+            #[allow(clippy::cast_lossless, clippy::cast_possible_truncation)]
             fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
                 let (n, s) = i64::decode_var(src)?;
                 // This check is required to ensure that we actually return `None` when `src` has a value that would overflow `Self`.
@@ -105,6 +112,7 @@ macro_rules! impl_varint {
                 }
             }
 
+            #[allow(clippy::cast_lossless)]
             fn encode_var(self, dst: &mut [u8]) -> usize {
                 (self as i64).encode_var(dst)
             }
@@ -124,7 +132,7 @@ impl_varint!(i8, signed);
 
 impl VarInt for bool {
     fn required_space(self) -> usize {
-        (self as u64).required_space()
+        u64::from(self).required_space()
     }
 
     fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
@@ -138,7 +146,7 @@ impl VarInt for bool {
     }
 
     fn encode_var(self, dst: &mut [u8]) -> usize {
-        (self as u64).encode_var(dst)
+        u64::from(self).encode_var(dst)
     }
 }
 
@@ -157,9 +165,9 @@ impl VarInt for u64 {
         let mut shift = 0;
 
         let mut success = false;
-        for b in src.iter() {
+        for b in src {
             let msb_dropped = b & DROP_MSB;
-            result |= (msb_dropped as u64) << shift;
+            result |= u64::from(msb_dropped) << shift;
             shift += 7;
 
             if shift > (9 * 7) {
@@ -179,6 +187,7 @@ impl VarInt for u64 {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     #[inline]
     fn encode_var(self, dst: &mut [u8]) -> usize {
         assert!(dst.len() >= self.required_space());
@@ -241,6 +250,7 @@ impl VarInt for u128 {
 }
 
 // Adapted from integer-encoding-rs. See third_party/license/integer-encoding.LICENSE
+#[allow(clippy::cast_sign_loss)]
 #[inline]
 fn zigzag_encode_i128(from: i128) -> u128 {
     ((from << 1) ^ (from >> 127)) as u128
@@ -249,6 +259,7 @@ fn zigzag_encode_i128(from: i128) -> u128 {
 // see: http://stackoverflow.com/a/2211086/56332
 // casting required because operations like unary negation
 // cannot be performed on unsigned integers
+#[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
 #[inline]
 fn zigzag_decode_i128(from: u128) -> i128 {
     ((from >> 1) ^ (-((from & 1) as i128)) as u128) as i128

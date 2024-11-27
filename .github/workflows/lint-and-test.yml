@@ -4,6 +4,7 @@ on:
   workflow_call:
   pull_request:
     types: [opened, synchronize, reopened]
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -44,11 +45,37 @@ jobs:
       - name: Run cargo check (proof-of-sql) (no features)
         run: cargo check -p proof-of-sql --no-default-features
       - name: Run cargo check (proof-of-sql) (all features)
-        run: cargo check -p proof-of-sql --all-features
+        run: |
+          cargo check -p proof-of-sql --all-features
+          cargo check -p proof-of-sql --all-targets --all-features
       - name: Run cargo check (proof-of-sql) (just "test" feature)
-        run: cargo check -p proof-of-sql --no-default-features --features="test"
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="test"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="test"
       - name: Run cargo check (proof-of-sql) (just "blitzar" feature)
-        run: cargo check -p proof-of-sql --no-default-features --features="blitzar"
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="blitzar"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="blitzar"
+      - name: Run cargo check (proof-of-sql) (just "arrow" feature)
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="arrow"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="arrow"
+      - name: Run cargo check (proof-of-sql) (just "rayon" feature)
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="rayon"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="rayon"
+      - name: Run cargo check (proof-of-sql) (just "perf" feature)
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="perf"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="perf"
+      - name: Run cargo check (proof-of-sql) (just "std" feature)
+        run: |
+          cargo check -p proof-of-sql --no-default-features --features="std"
+          cargo check -p proof-of-sql --all-targets --no-default-features --features="std"
+      - name: Run cargo check (proof-of-sql-parser) with no_std target.
+        run: |
+          rustup target add thumbv7em-none-eabi
+          cargo check -p proof-of-sql-parser --target thumbv7em-none-eabi
 
   test:
     name: Test Suite
@@ -75,21 +102,40 @@ jobs:
           sudo apt-get install -y clang lld
       - name: Run cargo test
         run: cargo test --all-features
+      - name: Install Foundry/forge for solidity tests
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Run solidity tests (ignored by default)
+        run: cargo test --all-features --package proof-of-sql --lib -- tests::sol_test --show-output --ignored
+      - name: Run cargo test without rayon
+        run: cargo test --no-default-features --features="arrow blitzar"
       - name: Dry run cargo test (proof-of-sql) (test feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="test"
       - name: Dry run cargo test (proof-of-sql) (arrow feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="arrow"
       - name: Dry run cargo test (proof-of-sql) (blitzar feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="blitzar"
-      - name: Dry run cargo test (proof-of-sql) (no features)
-        run: cargo test -p proof-of-sql --no-run --no-default-features
-      - name: Run cargo test (proof primitives - Dory) (no features - i.e. not using blitzar)
-        run: cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features
-      - name: Run hello_world example
-        run: cargo run --example hello_world --features="blitzar test"
-      - name: Run posql_db example
+      - name: Dry run cargo test (proof-of-sql) (std feature only)
+        run: cargo test -p proof-of-sql --no-run --no-default-features --features="std"
+      - name: Run cargo test (proof primitives - Dory) (std feature only - i.e. not using blitzar)
+        run: |
+            cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std" && \
+            cargo test proof_primitive::dory::dynamic_dory_compute_commitments_test --no-default-features --features="std"
+      - name: Run hello_world example (With Blitzar)
+        run: cargo run --example hello_world --features="test"
+      - name: Run hello_world example (Without Blitzar and With Rayon)
+        run: cargo run --example hello_world --no-default-features --features="rayon test"
+      - name: Run hello_world example (Without Blitzar and Without Rayon)
+        run: cargo run --example hello_world --no-default-features --features="test"
+      - name: Run space example
+        run: cargo run --example space
+      - name: Run dog breeds example
+        run: cargo run --example dog_breeds
+      - name: Run wood types example
+        run: cargo run --example wood_types
+      - name: Run posql_db example (With Blitzar)
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
-
+      - name: Run posql_db example (Without Blitzar)
+        run: bash crates/proof-of-sql/examples/posql_db/run_example.sh --no-default-features --features="rayon"
   clippy:
     name: Clippy
     runs-on: large-8-core-32gb-22-04
@@ -113,9 +159,44 @@ jobs:
       - name: Install Dependencies
         run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld
       - name: Run clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo cl -- -D warnings
 
-  # Run cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Clean Previous Coverage Artifacts
+        run: cargo llvm-cov clean --workspace
+      - name: Run Tests to Generate Coverage Data (All Features)
+        run: cargo llvm-cov --no-report --all-features
+      #- name: Run Tests to Generate Coverage Data (Rayon Only)
+      #  run: cargo llvm-cov --no-report --no-default-features --features="rayon"
+      #- name: Run Tests to Generate Coverage Data (Blitzar Only)
+      #  run: cargo llvm-cov --no-report --no-default-features --features="blitzar"
+      #- name: Run Tests to Generate Coverage Data (std only)
+      #  run: cargo llvm-cov --no-report --no-default-features --features="std"
+      - name: Generate Final LCOV Report (Merged Coverage)
+        run: cargo llvm-cov report --summary-only --fail-under-lines 90
+      # Future CodeCov Integration
+      # To integrate with CodeCov in the future,, follow these steps: 
+      # 1. Add the CodeCov token to the repository secrets.
+      # 2. Use the CodeCov Action to upload the coverage report. For more detailed info refer to [CodeCov Documentation](https://docs.codecov.com/docs).
+      #
+      # - name: Generate Final LCOV Report (Merged Coverage)
+      #   run: cargo llvm-cov report --lcov --output-path lcov.info --fail-under-lines 95
+      # - name: Upload Coverage to Codecov
+      # uses: codecov/codecov-action@v2
+      # with:
+      #   token: ${{ secrets.CODECOV_TOKEN }}
+      #   files: lcov.info
+      #   fail_ci_if_error: true
+        
+  # Run cargo f --check
   format:
     name: Format
     runs-on: ubuntu-latest
@@ -127,7 +208,7 @@ jobs:
           curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
           rustup component add rustfmt
       - name: Run cargo fmt
-        run: cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
+        run: cargo f --check
 
   udeps:
     name: Unused Dependencies

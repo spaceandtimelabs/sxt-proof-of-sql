@@ -1,7 +1,11 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},
+        database::{
+            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor,
+            TableTestAccessor, TestAccessor,
+        },
+        scalar::test_scalar::TestScalar,
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
@@ -10,7 +14,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -72,7 +75,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 equal(column(t, "a", &accessor), const_bigint(filter_val_a)),
                 equal(
                     column(t, "b", &accessor),
-                    const_scalar(filter_val_b.as_str()),
+                    const_scalar::<TestScalar, _>(filter_val_b.as_str()),
                 ),
             )),
         );
@@ -93,7 +96,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 .multiunzip();
         let expected_result = owned_table([bigint("a", expected_a), varchar("b", expected_b)]);
 
-        assert_eq!(expected_result, res)
+        assert_eq!(expected_result, res);
     }
 }
 
@@ -109,18 +112,17 @@ fn we_can_query_random_tables_with_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
-    let data = owned_table([
-        bigint("a", [123, 456]),
-        bigint("b", [0, 1]),
-        varchar("d", ["alfa", "gama"]),
-    ]);
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    let t = "sxt.t".parse().unwrap();
-    accessor.add_table(t, data, 0);
-    let not_expr: DynProofExpr<RistrettoPoint> =
-        not(equal(column(t, "b", &accessor), const_int128(1)));
     let alloc = Bump::new();
-    let res = not_expr.result_evaluate(2, &alloc, &accessor);
+    let data = table([
+        borrowed_bigint("a", [123, 456], &alloc),
+        borrowed_bigint("b", [0, 1], &alloc),
+        borrowed_varchar("d", ["alfa", "gama"], &alloc),
+    ]);
+    let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let t = "sxt.t".parse().unwrap();
+    accessor.add_table(t, data.clone(), 0);
+    let not_expr: DynProofExpr = not(equal(column(t, "b", &accessor), const_int128(1)));
+    let res = not_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[true, false]);
     assert_eq!(res, expected_res);
 }

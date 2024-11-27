@@ -1,12 +1,12 @@
 use super::record_batch_accessor::RecordBatchAccessor;
 use arrow::{datatypes::Schema, record_batch::RecordBatch};
 use arrow_csv::{ReaderBuilder, WriterBuilder};
+use core::error::Error;
 use proof_of_sql::base::{
     database::{Column, ColumnRef, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef},
     scalar::Scalar,
 };
 use std::{
-    error::Error,
     fs::{File, OpenOptions},
     path::{Path, PathBuf},
     sync::Arc,
@@ -44,7 +44,7 @@ impl CsvDataAccessor {
     pub fn new(base_path: PathBuf) -> Self {
         Self {
             base_path,
-            inner: Default::default(),
+            inner: RecordBatchAccessor::default(),
         }
     }
     pub fn load_table(
@@ -58,7 +58,7 @@ impl CsvDataAccessor {
         Ok(())
     }
     fn get_table_path(&self, table_ref: &TableRef) -> PathBuf {
-        self.base_path.join(format!("{}.csv", table_ref))
+        self.base_path.join(format!("{table_ref}.csv"))
     }
     pub fn write_table(
         &self,

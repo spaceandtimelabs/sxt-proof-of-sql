@@ -2,7 +2,10 @@ use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
+        database::{
+            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor, Table,
+        },
+        scalar::Curve25519Scalar,
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
@@ -11,7 +14,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
@@ -56,9 +58,9 @@ fn test_random_tables_with_given_offset(offset: usize) {
         // Calculate/compare expected result
         let (expected_a, expected_b, expected_c): (Vec<bool>, Vec<String>, Vec<i64>) = if lit {
             (
-                data["a"].bool_iter().cloned().collect(),
+                data["a"].bool_iter().copied().collect(),
                 data["b"].string_iter().cloned().collect(),
-                data["c"].i64_iter().cloned().collect(),
+                data["c"].i64_iter().copied().collect(),
             )
         } else {
             (vec![], vec![], vec![])
@@ -69,7 +71,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
             bigint("c", expected_c),
         ]);
 
-        assert_eq!(expected_result, res)
+        assert_eq!(expected_result, res);
     }
 }
 
@@ -119,12 +121,11 @@ fn we_can_prove_a_query_with_a_single_non_selected_row() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_a_literal_expr_using_result_evaluate() {
-    let data = owned_table([bigint("a", [123_i64, 456, 789, 1011])]);
-    let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let literal_expr: DynProofExpr<RistrettoPoint> = const_bool(true);
     let alloc = Bump::new();
-    let res = literal_expr.result_evaluate(4, &alloc, &accessor);
+    let data: Table<Curve25519Scalar> =
+        table([borrowed_bigint("a", [123_i64, 456, 789, 1011], &alloc)]);
+    let literal_expr: DynProofExpr = const_bool(true);
+    let res = literal_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[true, true, true, true]);
     assert_eq!(res, expected_res);
 }

@@ -2,14 +2,17 @@
 use super::G1Projective;
 use super::{transpose, G1Affine, ProverSetup, F};
 use crate::base::polynomial::compute_evaluation_vector;
+#[cfg(feature = "blitzar")]
+use crate::base::slice_ops::slice_cast;
+use alloc::{vec, vec::Vec};
 #[cfg(not(feature = "blitzar"))]
 use ark_ec::{AffineRepr, VariableBaseMSM};
 use ark_ff::{BigInt, MontBackend};
 #[cfg(feature = "blitzar")]
 use blitzar::compute::ElementP2;
-use num_traits::{One, Zero};
 #[cfg(feature = "blitzar")]
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use core::mem;
+use num_traits::{One, Zero};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
 pub(super) fn compute_v_vec(a: &[F], L_vec: &[F], sigma: usize, nu: usize) -> Vec<F> {
@@ -43,7 +46,7 @@ pub(super) fn compute_T_vec_prime(
 ) -> Vec<G1Affine> {
     let num_columns = 1 << sigma;
     let num_outputs = 1 << nu;
-    let data_size = std::mem::size_of::<F>();
+    let data_size = mem::size_of::<F>();
 
     let a_array = convert_scalar_to_array(a);
     let a_transpose =
@@ -53,11 +56,11 @@ pub(super) fn compute_T_vec_prime(
 
     prover_setup.blitzar_msm(
         &mut blitzar_commits,
-        data_size as u32,
+        u32::try_from(data_size).expect("the size of `data_size` should fit in u32"),
         a_transpose.as_slice(),
     );
 
-    blitzar_commits.par_iter().map(Into::into).collect()
+    slice_cast(&blitzar_commits)
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -116,7 +119,7 @@ pub(super) fn compute_L_R_vec(b_point: &[F], sigma: usize, nu: usize) -> (Vec<F>
 }
 
 /// Compute the l and r tensors that are derived from `b_point`.
-/// These match with [compute_L_R_vec] but are in tensor form.
+/// These match with [`compute_L_R_vec`] but are in tensor form.
 pub(super) fn compute_l_r_tensors(b_point: &[F], sigma: usize, nu: usize) -> (Vec<F>, Vec<F>) {
     let mut r_tensor = vec![Zero::zero(); nu];
     let mut l_tensor = vec![Zero::zero(); nu];
@@ -142,6 +145,7 @@ pub(super) fn compute_l_r_tensors(b_point: &[F], sigma: usize, nu: usize) -> (Ve
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ark_ff::Fp;
     use ark_std::UniformRand;
     use core::iter::repeat_with;
 
@@ -160,7 +164,7 @@ mod tests {
     }
     /// This is the naive inner product. It is used to check the correctness of the `compute_LMR` method.
     fn compute_ab_inner_product(a: &[F], b_point: &[F]) -> F {
-        let mut b = vec![Default::default(); a.len()];
+        let mut b = vec![Fp::default(); a.len()];
         compute_evaluation_vector(&mut b, b_point);
         a.iter().zip(b.iter()).map(|(a, b)| a * b).sum()
     }
@@ -174,8 +178,8 @@ mod tests {
         assert_eq!(LMR, ab);
     }
     fn check_L_R_vecs_with_l_r_tensors(L: &[F], R: &[F], l: &[F], r: &[F]) {
-        let mut l_vec = vec![Default::default(); 1 << l.len()];
-        let mut r_vec = vec![Default::default(); 1 << r.len()];
+        let mut l_vec = vec![Fp::default(); 1 << l.len()];
+        let mut r_vec = vec![Fp::default(); 1 << r.len()];
         compute_evaluation_vector(&mut l_vec, l);
         compute_evaluation_vector(&mut r_vec, r);
         assert_eq!(l_vec, L);

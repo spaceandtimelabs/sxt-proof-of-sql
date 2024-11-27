@@ -8,4 +8,5 @@ fn we_can_get_test_scalar_constants_from_z_p() {
     assert_eq!(TestScalar::from(2), TestScalar::TWO);
     // -1/2 == least upper bound
     assert_eq!(-TestScalar::TWO.inv().unwrap(), TestScalar::MAX_SIGNED);
+    assert_eq!(TestScalar::from(10), TestScalar::TEN);
 }

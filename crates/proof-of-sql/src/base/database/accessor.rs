@@ -1,6 +1,7 @@
 use crate::base::{
     commitment::Commitment,
-    database::{Column, ColumnRef, ColumnType, TableRef},
+    database::{Column, ColumnRef, ColumnType, Table, TableOptions, TableRef},
+    map::{IndexMap, IndexSet},
     scalar::Scalar,
 };
 use alloc::vec::Vec;
@@ -27,7 +28,7 @@ pub trait MetadataAccessor {
 ///
 /// Verifier uses this information to process a query.
 ///
-/// In pseudo-code, here is a sketch of how CommitmentAccessor fits in
+/// In pseudo-code, here is a sketch of how [`CommitmentAccessor`] fits in
 /// with the verification workflow:
 ///
 /// ```ignore
@@ -57,7 +58,7 @@ pub trait CommitmentAccessor<C: Commitment>: MetadataAccessor {
 ///
 /// Prover uses this information to process a query.
 ///
-/// In pseudo-code, here is a sketch of how DataAccessor fits in
+/// In pseudo-code, here is a sketch of how [`DataAccessor`] fits in
 /// with the prove workflow:
 ///
 /// ```ignore
@@ -85,13 +86,35 @@ pub trait CommitmentAccessor<C: Commitment>: MetadataAccessor {
 pub trait DataAccessor<S: Scalar>: MetadataAccessor {
     /// Return the data span in the table (not the full-table data)
     fn get_column(&self, column: ColumnRef) -> Column<S>;
+
+    /// Creates a new [`Table`] from a [`TableRef`] and [`ColumnRef`]s.
+    ///
+    /// Columns are retrieved from the [`DataAccessor`] using the provided [`TableRef`] and [`ColumnRef`]s.
+    /// The only reason why [`table_ref`] is needed is because [`column_refs`] can be empty.
+    /// # Panics
+    /// Column length mismatches can occur in theory. In practice, this should not happen.
+    fn get_table(&self, table_ref: TableRef, column_refs: &IndexSet<ColumnRef>) -> Table<S> {
+        if column_refs.is_empty() {
+            let input_length = self.get_length(table_ref);
+            Table::<S>::try_new_with_options(
+                IndexMap::default(),
+                TableOptions::new(Some(input_length)),
+            )
+        } else {
+            Table::<S>::try_from_iter(column_refs.into_iter().map(|column_ref| {
+                let column = self.get_column(*column_ref);
+                (column_ref.column_id(), column)
+            }))
+        }
+        .expect("Failed to create table from table and column references")
+    }
 }
 
 /// Access tables and their schemas in a database.
 ///
 /// This accessor should be implemented by both the prover and verifier
-/// and then used by the Proof of SQL code to convert an IntermediateAst
-/// into a ProofPlan.
+/// and then used by the Proof of SQL code to convert an `IntermediateAst`
+/// into a [`ProofPlan`](crate::sql::proof::ProofPlan).
 pub trait SchemaAccessor {
     /// Lookup the column's data type in the specified table
     ///

@@ -2,8 +2,9 @@ use super::{
     compute_L_R_vec, compute_l_r_tensors, compute_v_vec, DeferredGT, G1Affine, VMVProverState,
     VMVVerifierState, F,
 };
+use alloc::vec::Vec;
 
-/// Builds a VMVProverState from the given parameters.
+/// Builds a [`VMVProverState`] from the given parameters.
 pub(super) fn build_vmv_prover_state(
     a: &[F],
     b_point: &[F],
@@ -18,17 +19,17 @@ pub(super) fn build_vmv_prover_state(
     VMVProverState {
         v_vec,
         T_vec_prime,
-        L_vec,
-        R_vec,
         #[cfg(test)]
         l_tensor,
         #[cfg(test)]
         r_tensor,
+        L_vec,
+        R_vec,
         nu,
     }
 }
 
-/// Builds a VMVVerifierState from the given parameters.
+/// Builds a [`VMVVerifierState`] from the given parameters.
 pub(super) fn build_vmv_verifier_state(
     y: F,
     b_point: &[F],

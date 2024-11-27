@@ -2,6 +2,8 @@ use super::{
     pairings::{multi_pairing_2, multi_pairing_4},
     DeferredGT, ProverSetup, ProverState, VerifierSetup, VerifierState, F, GT,
 };
+use crate::base::if_rayon;
+#[cfg(feature = "rayon")]
 use rayon::{
     iter::IndexedParallelIterator,
     prelude::{IntoParallelRefMutIterator, ParallelIterator},
@@ -43,14 +45,10 @@ pub fn dory_reduce_prove_mutate_v_vecs(
     setup: &ProverSetup,
     (beta, beta_inv): (F, F),
 ) {
-    state
-        .v1
-        .par_iter_mut()
+    if_rayon!(state.v1.par_iter_mut(), state.v1.iter_mut())
         .zip(setup.Gamma_1[state.nu])
         .for_each(|(v, &g)| *v = (*v + g * beta).into());
-    state
-        .v2
-        .par_iter_mut()
+    if_rayon!(state.v2.par_iter_mut(), state.v2.iter_mut())
         .zip(setup.Gamma_2[state.nu])
         .for_each(|(v, &g)| *v = (*v + g * beta_inv).into());
 }
@@ -80,19 +78,19 @@ pub fn dory_reduce_prove_fold_v_vecs(
 ) {
     let (v_1L, v_1R) = state.v1.split_at_mut(half_n);
     let (v_2L, v_2R) = state.v2.split_at_mut(half_n);
-    v_1L.par_iter_mut()
+    if_rayon!(v_1L.par_iter_mut(), v_1L.iter_mut())
         .zip(v_1R)
         .for_each(|(v_L, v_R)| *v_L = (*v_L * alpha + v_R).into());
-    v_2L.par_iter_mut()
+    if_rayon!(v_2L.par_iter_mut(), v_2L.iter_mut())
         .zip(v_2R)
         .for_each(|(v_L, v_R)| *v_L = (*v_L * alpha_inv + v_R).into());
     state.v1.truncate(half_n);
     state.v2.truncate(half_n);
 }
-/// From the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
+/// From the Dory-Reduce algorithm in section 3.2 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///
 /// Updates C
-/// * C' <- C + chi + beta * D_2 + beta_inv * D_1 + alpha * C_plus + alpha_inv * C_minus
+/// * `C' <- C + chi + beta * D_2 + beta_inv * D_1 + alpha * C_plus + alpha_inv * C_minus`
 ///
 /// Note: this should not be used after `dory_reduce_verify_update_Ds` because that function mutates the Ds.
 pub fn dory_reduce_verify_update_C(
@@ -108,11 +106,11 @@ pub fn dory_reduce_verify_update_C(
         + DeferredGT::from(C_minus) * alpha_inv
         + setup.chi[state.nu];
 }
-/// From the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
+/// From the Dory-Reduce algorithm in section 3.2 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///
-/// Updates D_1 and D_2
-/// * D_1' <- alpha * D_1 + D_1R + alpha * beta * Delta_1L + beta * Delta_1R
-/// * D_2' <- alpha_inv * D_2 + D_2R + alpha_inv * beta_inv * Delta_2L + beta_inv * Delta_2R
+/// Updates `D_1` and `D_2`
+/// * `D_1' <- alpha * D_1 + D_1R + alpha * beta * Delta_1L + beta * Delta_1R`
+/// * `D_2' <- alpha_inv * D_2 + D_2R + alpha_inv * beta_inv * Delta_2L + beta_inv * Delta_2R`
 pub fn dory_reduce_verify_update_Ds(
     state: &mut VerifierState,
     setup: &VerifierSetup,

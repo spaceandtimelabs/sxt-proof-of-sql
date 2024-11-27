@@ -1,27 +1,28 @@
 use super::OwnedColumn;
-use crate::base::scalar::Scalar;
-use indexmap::IndexMap;
+use crate::base::{map::IndexMap, polynomial::compute_evaluation_vector, scalar::Scalar};
+use alloc::{vec, vec::Vec};
 use proof_of_sql_parser::Identifier;
-use thiserror::Error;
+use serde::{Deserialize, Serialize};
+use snafu::Snafu;
 
 /// An error that occurs when working with tables.
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum OwnedTableError {
     /// The columns have different lengths.
-    #[error("Columns have different lengths")]
+    #[snafu(display("Columns have different lengths"))]
     ColumnLengthMismatch,
 }
 /// A table of data, with schema included. This is simply a map from `Identifier` to `OwnedColumn`,
 /// where columns order matters.
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
-/// This is the analog of an arrow RecordBatch.
-#[derive(Debug, Clone, Eq)]
+/// This is the analog of an arrow [`RecordBatch`](arrow::record_batch::RecordBatch).
+#[derive(Debug, Clone, Eq, Serialize, Deserialize)]
 pub struct OwnedTable<S: Scalar> {
     table: IndexMap<Identifier, OwnedColumn<S>>,
 }
 impl<S: Scalar> OwnedTable<S> {
-    /// Creates a new OwnedTable.
+    /// Creates a new [`OwnedTable`].
     pub fn try_new(table: IndexMap<Identifier, OwnedColumn<S>>) -> Result<Self, OwnedTableError> {
         if table.is_empty() {
             return Ok(Self { table });
@@ -33,17 +34,19 @@ impl<S: Scalar> OwnedTable<S> {
             Ok(Self { table })
         }
     }
-    /// Creates a new OwnedTable.
+    /// Creates a new [`OwnedTable`].
     pub fn try_from_iter<T: IntoIterator<Item = (Identifier, OwnedColumn<S>)>>(
         iter: T,
     ) -> Result<Self, OwnedTableError> {
         Self::try_new(IndexMap::from_iter(iter))
     }
     /// Number of columns in the table.
+    #[must_use]
     pub fn num_columns(&self) -> usize {
         self.table.len()
     }
     /// Number of rows in the table.
+    #[must_use]
     pub fn num_rows(&self) -> usize {
         if self.table.is_empty() {
             0
@@ -52,20 +55,32 @@ impl<S: Scalar> OwnedTable<S> {
         }
     }
     /// Whether the table has no columns.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.table.is_empty()
     }
-    /// Returns the columns of this table as an IndexMap
+    /// Returns the columns of this table as an `IndexMap`
+    #[must_use]
     pub fn into_inner(self) -> IndexMap<Identifier, OwnedColumn<S>> {
         self.table
     }
-    /// Returns the columns of this table as an IndexMap
+    /// Returns the columns of this table as an `IndexMap`
+    #[must_use]
     pub fn inner_table(&self) -> &IndexMap<Identifier, OwnedColumn<S>> {
         &self.table
     }
     /// Returns the columns of this table as an Iterator
     pub fn column_names(&self) -> impl Iterator<Item = &Identifier> {
         self.table.keys()
+    }
+
+    pub(crate) fn mle_evaluations(&self, evaluation_point: &[S]) -> Vec<S> {
+        let mut evaluation_vector = vec![S::ZERO; self.num_rows()];
+        compute_evaluation_vector(&mut evaluation_vector, evaluation_point);
+        self.table
+            .values()
+            .map(|column| column.inner_product(&evaluation_vector))
+            .collect()
     }
 }
 

@@ -1,33 +1,33 @@
 use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, Table},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
     },
-    sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
+use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 /// Provable AST expression for an equals expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct EqualsExpr<C: Commitment> {
-    lhs: Box<DynProofExpr<C>>,
-    rhs: Box<DynProofExpr<C>>,
+pub struct EqualsExpr {
+    lhs: Box<DynProofExpr>,
+    rhs: Box<DynProofExpr>,
 }
 
-impl<C: Commitment> EqualsExpr<C> {
+impl EqualsExpr {
     /// Create a new equals expression
-    pub fn new(lhs: Box<DynProofExpr<C>>, rhs: Box<DynProofExpr<C>>) -> Self {
+    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
         Self { lhs, rhs }
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
+impl ProofExpr for EqualsExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
@@ -40,42 +40,46 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
     }
 
     #[tracing::instrument(name = "EqualsExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
+        table: &Table<'a, S>,
+    ) -> Column<'a, S> {
+        let lhs_column = self.lhs.result_evaluate(alloc, table);
+        let rhs_column = self.rhs.result_evaluate(alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        Column::Boolean(result_evaluate_equals_zero(table_length, alloc, res))
+        Column::Boolean(result_evaluate_equals_zero(table.num_rows(), alloc, res))
     }
 
     #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
+        table: &Table<'a, S>,
+    ) -> Column<'a, S> {
+        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table);
+        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        Column::Boolean(prover_evaluate_equals_zero(builder, alloc, res))
+        Column::Boolean(prover_evaluate_equals_zero(
+            table.num_rows(),
+            builder,
+            alloc,
+            res,
+        ))
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-    ) -> Result<C::Scalar, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError> {
         let lhs_eval = self.lhs.verifier_evaluate(builder, accessor)?;
         let rhs_eval = self.rhs.verifier_evaluate(builder, accessor)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
@@ -90,6 +94,10 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
     }
 }
 
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "table_length is guaranteed to match lhs.len()"
+)]
 pub fn result_evaluate_equals_zero<'a, S: Scalar>(
     table_length: usize,
     alloc: &'a Bump,
@@ -100,12 +108,11 @@ pub fn result_evaluate_equals_zero<'a, S: Scalar>(
 }
 
 pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
-    builder: &mut ProofBuilder<'a, S>,
+    table_length: usize,
+    builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     lhs: &'a [S],
 ) -> &'a [bool] {
-    let table_length = builder.table_length();
-
     // lhs_pseudo_inv
     let lhs_pseudo_inv = alloc.alloc_slice_copy(lhs);
     slice_ops::batch_inversion(lhs_pseudo_inv);
@@ -140,24 +147,24 @@ pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
     selection
 }
 
-pub fn verifier_evaluate_equals_zero<C: Commitment>(
-    builder: &mut VerificationBuilder<C>,
-    lhs_eval: C::Scalar,
-) -> C::Scalar {
+pub fn verifier_evaluate_equals_zero<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    lhs_eval: S,
+) -> S {
     // consume mle evaluations
     let lhs_pseudo_inv_eval = builder.consume_intermediate_mle();
     let selection_not_eval = builder.consume_intermediate_mle();
-    let selection_eval = builder.mle_evaluations.one_evaluation - selection_not_eval;
+    let selection_eval = builder.mle_evaluations.input_one_evaluation - selection_not_eval;
 
     // subpolynomial: selection * lhs
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
+        &SumcheckSubpolynomialType::Identity,
         selection_eval * lhs_eval,
     );
 
     // subpolynomial: selection_not - lhs * lhs_pseudo_inv
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
+        &SumcheckSubpolynomialType::Identity,
         selection_not_eval - lhs_eval * lhs_pseudo_inv_eval,
     );
 

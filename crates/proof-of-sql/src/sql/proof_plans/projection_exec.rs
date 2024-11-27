@@ -1,23 +1,21 @@
 use crate::{
     base::{
-        commitment::Commitment,
-        database::{
-            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
-            OwnedTable,
-        },
+        database::{ColumnField, ColumnRef, OwnedTable, Table, TableOptions, TableRef},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
+        scalar::Scalar,
     },
     sql::{
         proof::{
-            CountBuilder, Indexes, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
+            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
             VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
     },
 };
+use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::iter::repeat_with;
-use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 /// Provable expressions for queries of the form
@@ -25,14 +23,14 @@ use serde::{Deserialize, Serialize};
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table>
 /// ```
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct ProjectionExec<C: Commitment> {
-    pub(super) aliased_results: Vec<AliasedDynProofExpr<C>>,
+pub struct ProjectionExec {
+    pub(super) aliased_results: Vec<AliasedDynProofExpr>,
     pub(super) table: TableExpr,
 }
 
-impl<C: Commitment> ProjectionExec<C> {
+impl ProjectionExec {
     /// Creates a new projection expression.
-    pub fn new(aliased_results: Vec<AliasedDynProofExpr<C>>, table: TableExpr) -> Self {
+    pub fn new(aliased_results: Vec<AliasedDynProofExpr>, table: TableExpr) -> Self {
         Self {
             aliased_results,
             table,
@@ -40,41 +38,29 @@ impl<C: Commitment> ProjectionExec<C> {
     }
 }
 
-impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
-        for aliased_expr in self.aliased_results.iter() {
+impl ProofPlan for ProjectionExec {
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
-            builder.count_result_columns(1);
+            builder.count_intermediate_mles(1);
         }
         Ok(())
     }
 
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
-    }
-
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset(self.table.table_ref)
-    }
-
     #[allow(unused_variables)]
-    fn verifier_evaluate(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-        _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<Vec<C::Scalar>, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
         self.aliased_results
             .iter()
             .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(Vec::from_iter(
-            repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
-        ))
+        Ok(repeat_with(|| builder.consume_intermediate_mle())
+            .take(self.aliased_results.len())
+            .collect::<Vec<_>>())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -85,43 +71,72 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        let mut columns = IndexSet::new();
+        let mut columns = IndexSet::default();
         self.aliased_results.iter().for_each(|aliased_expr| {
             aliased_expr.expr.get_column_references(&mut columns);
         });
         columns
     }
+
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        IndexSet::from_iter([self.table.table_ref])
+    }
 }
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
+impl ProverEvaluate for ProjectionExec {
     #[tracing::instrument(name = "ProjectionExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut ResultBuilder,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
-        let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            aliased_expr
-                .expr
-                .result_evaluate(builder.table_length(), alloc, accessor)
-        }));
-        builder.set_result_indexes(Indexes::Dense(0..(builder.table_length() as u64)));
-        columns
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
+    ) -> Table<'a, S> {
+        let table = table_map
+            .get(&self.table.table_ref)
+            .expect("Table not found");
+        Table::<'a, S>::try_from_iter_with_options(
+            self.aliased_results.iter().map(|aliased_expr| {
+                (
+                    aliased_expr.alias,
+                    aliased_expr.expr.result_evaluate(alloc, table),
+                )
+            }),
+            TableOptions::new(Some(table.num_rows())),
+        )
+        .expect("Failed to create table from iterator")
     }
 
-    #[tracing::instrument(name = "ProjectionExec::prover_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
+
+    #[tracing::instrument(
+        name = "ProjectionExec::final_round_evaluate",
+        level = "debug",
+        skip_all
+    )]
     #[allow(unused_variables)]
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Vec<Column<'a, C::Scalar>> {
-        Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
+    ) -> Table<'a, S> {
+        let table = table_map
+            .get(&self.table.table_ref)
+            .expect("Table not found");
+        // 1. Evaluate result expressions
+        let res = Table::<'a, S>::try_from_iter_with_options(
+            self.aliased_results.iter().map(|aliased_expr| {
+                (
+                    aliased_expr.alias,
+                    aliased_expr.expr.prover_evaluate(builder, alloc, table),
+                )
+            }),
+            TableOptions::new(Some(table.num_rows())),
         )
+        .expect("Failed to create table from iterator");
+        // 2. Produce MLEs
+        for column in res.columns().copied() {
+            builder.produce_intermediate_mle(column);
+        }
+        res
     }
 }

@@ -4,18 +4,18 @@ use crate::base::{
         OwnedTable,
     },
     math::decimal::Precision,
-    scalar::Curve25519Scalar,
+    scalar::test_scalar::TestScalar,
 };
+use bigdecimal::BigDecimal;
 use proof_of_sql_parser::{
     intermediate_ast::Literal,
-    intermediate_decimal::IntermediateDecimal,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
     utility::*,
 };
 
 #[test]
 fn we_can_evaluate_a_simple_literal() {
-    let table: OwnedTable<Curve25519Scalar> =
+    let table: OwnedTable<TestScalar> =
         owned_table([varchar("languages", ["en", "es", "pt", "fr", "ht"])]);
 
     // "Space and Time" in Hebrew
@@ -37,7 +37,7 @@ fn we_can_evaluate_a_simple_literal() {
     ));
     let actual_column = table.evaluate(&expr).unwrap();
     // UNIX timestamp for 2022-03-01T00:00:00Z
-    let actual_timestamp = 1646092800;
+    let actual_timestamp = 1_646_092_800;
     let expected_column = OwnedColumn::TimestampTZ(
         PoSQLTimeUnit::Second,
         PoSQLTimeZone::Utc,
@@ -46,7 +46,7 @@ fn we_can_evaluate_a_simple_literal() {
     assert_eq!(actual_column, expected_column);
 
     // A group of people has about 0.67 cats per person
-    let expr = lit("0.67".parse::<IntermediateDecimal>().unwrap());
+    let expr = lit("0.67".parse::<BigDecimal>().unwrap());
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_column = OwnedColumn::Decimal75(Precision::new(2).unwrap(), 2, vec![67.into(); 5]);
     assert_eq!(actual_column, expected_column);
@@ -54,7 +54,7 @@ fn we_can_evaluate_a_simple_literal() {
 
 #[test]
 fn we_can_evaluate_a_simple_column() {
-    let table: OwnedTable<Curve25519Scalar> = owned_table([
+    let table: OwnedTable<TestScalar> = owned_table([
         bigint("bigints", [i64::MIN, -1, 0, 1, i64::MAX]),
         varchar("language", ["en", "es", "pt", "fr", "ht"]),
         varchar("john", ["John", "Juan", "João", "Jean", "Jean"]),
@@ -69,7 +69,7 @@ fn we_can_evaluate_a_simple_column() {
     let expected_column = OwnedColumn::VarChar(
         ["John", "Juan", "João", "Jean", "Jean"]
             .iter()
-            .map(|s| s.to_string())
+            .map(ToString::to_string)
             .collect(),
     );
     assert_eq!(actual_column, expected_column);
@@ -77,19 +77,19 @@ fn we_can_evaluate_a_simple_column() {
 
 #[test]
 fn we_can_not_evaluate_a_nonexisting_column() {
-    let table: OwnedTable<Curve25519Scalar> =
+    let table: OwnedTable<TestScalar> =
         owned_table([varchar("cats", ["Chloe", "Margaret", "Prudence", "Lucy"])]);
     // "not_a_column" is not a column in the table
     let expr = col("not_a_column");
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnNotFound(_))
+        Err(ExpressionEvaluationError::ColumnNotFound { .. })
     ));
 }
 
 #[test]
 fn we_can_evaluate_a_logical_expression() {
-    let table: OwnedTable<Curve25519Scalar> = owned_table([
+    let table: OwnedTable<TestScalar> = owned_table([
         varchar("en", ["Elizabeth", "John", "cat", "dog", "Munich"]),
         varchar("pl", ["Elżbieta", "Jan", "kot", "pies", "Monachium"]),
         varchar("cz", ["Alžběta", "Jan", "kočka", "pes", "Mnichov"]),
@@ -108,14 +108,14 @@ fn we_can_evaluate_a_logical_expression() {
     // Which Czech and Slovak words agree?
     let expr = equal(col("cz"), col("sk"));
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column: OwnedColumn<Curve25519Scalar> =
+    let expected_column: OwnedColumn<TestScalar> =
         OwnedColumn::Boolean(vec![false, false, false, true, false]);
     assert_eq!(actual_column, expected_column);
 
     // Find words shared among Slovak, Croatian and Slovenian
     let expr = and(equal(col("sk"), col("hr")), equal(col("hr"), col("sl")));
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column: OwnedColumn<Curve25519Scalar> =
+    let expected_column: OwnedColumn<TestScalar> =
         OwnedColumn::Boolean(vec![false, false, true, false, false]);
     assert_eq!(actual_column, expected_column);
 
@@ -125,7 +125,7 @@ fn we_can_evaluate_a_logical_expression() {
         not(equal(col("pl"), col("sl"))),
     );
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column: OwnedColumn<Curve25519Scalar> =
+    let expected_column: OwnedColumn<TestScalar> =
         OwnedColumn::Boolean(vec![false, true, false, false, false]);
     assert_eq!(actual_column, expected_column);
 
@@ -135,14 +135,14 @@ fn we_can_evaluate_a_logical_expression() {
         and(equal(col("hr"), col("sl")), equal(col("hr"), col("sk"))),
     );
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_column: OwnedColumn<Curve25519Scalar> =
+    let expected_column: OwnedColumn<TestScalar> =
         OwnedColumn::Boolean(vec![true, true, true, false, true]);
     assert_eq!(actual_column, expected_column);
 }
 
 #[test]
 fn we_can_evaluate_an_arithmetic_expression() {
-    let table: OwnedTable<Curve25519Scalar> = owned_table([
+    let table: OwnedTable<TestScalar> = owned_table([
         smallint("smallints", [-2_i16, -1, 0, 1, 2]),
         int("ints", [-4_i32, -2, 0, 2, 4]),
         bigint("bigints", [-8_i64, -4, 0, 4, 8]),
@@ -165,10 +165,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
     // Multiply decimals with 0.75 and add smallints to the product
     let expr = add(
         col("smallints"),
-        mul(
-            col("decimals"),
-            lit("0.75".parse::<IntermediateDecimal>().unwrap()),
-        ),
+        mul(col("decimals"), lit("0.75".parse::<BigDecimal>().unwrap())),
     );
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_scalars = [-2000, -925, 150, 1225, 2300]
@@ -180,14 +177,11 @@ fn we_can_evaluate_an_arithmetic_expression() {
 
     // Decimals over 2.5 plus int128s
     let expr = add(
-        div(
-            col("decimals"),
-            lit("2.5".parse::<IntermediateDecimal>().unwrap()),
-        ),
+        div(col("decimals"), lit("2.5".parse::<BigDecimal>().unwrap())),
         col("int128s"),
     );
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_scalars = [-16000000, -7960000, 80000, 8120000, 16160000]
+    let expected_scalars = [-16_000_000, -7_960_000, 80000, 8_120_000, 16_160_000]
         .iter()
         .map(|&x| x.into())
         .collect();
@@ -197,7 +191,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
 
 #[test]
 fn we_cannot_evaluate_expressions_if_column_operation_errors_out() {
-    let table: OwnedTable<Curve25519Scalar> = owned_table([
+    let table: OwnedTable<TestScalar> = owned_table([
         bigint("bigints", [i64::MIN, -1, 0, 1, i64::MAX]),
         varchar("language", ["en", "es", "pt", "fr", "ht"]),
         varchar("sarah", ["Sarah", "Sara", "Sara", "Sarah", "Sarah"]),
@@ -207,44 +201,44 @@ fn we_cannot_evaluate_expressions_if_column_operation_errors_out() {
     let expr = not(col("language"));
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnOperationError(
-            ColumnOperationError::UnaryOperationInvalidColumnType { .. }
-        ))
+        Err(ExpressionEvaluationError::ColumnOperationError {
+            source: ColumnOperationError::UnaryOperationInvalidColumnType { .. }
+        })
     ));
 
     // NOT doesn't work on bigint
     let expr = not(col("bigints"));
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnOperationError(
-            ColumnOperationError::UnaryOperationInvalidColumnType { .. }
-        ))
+        Err(ExpressionEvaluationError::ColumnOperationError {
+            source: ColumnOperationError::UnaryOperationInvalidColumnType { .. }
+        })
     ));
 
     // + doesn't work on varchar
     let expr = add(col("sarah"), col("bigints"));
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnOperationError(
-            ColumnOperationError::BinaryOperationInvalidColumnType { .. }
-        ))
+        Err(ExpressionEvaluationError::ColumnOperationError {
+            source: ColumnOperationError::BinaryOperationInvalidColumnType { .. }
+        })
     ));
 
     // i64::MIN - 1 overflows
     let expr = sub(col("bigints"), lit(1));
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnOperationError(
-            ColumnOperationError::IntegerOverflow(_)
-        ))
+        Err(ExpressionEvaluationError::ColumnOperationError {
+            source: ColumnOperationError::IntegerOverflow { .. }
+        })
     ));
 
     // We can't divide by zero
     let expr = div(col("bigints"), lit(0));
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnOperationError(
-            ColumnOperationError::DivisionByZero
-        ))
+        Err(ExpressionEvaluationError::ColumnOperationError {
+            source: ColumnOperationError::DivisionByZero
+        })
     ));
 }

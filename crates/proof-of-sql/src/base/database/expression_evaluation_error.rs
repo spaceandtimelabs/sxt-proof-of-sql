@@ -1,22 +1,36 @@
 use crate::base::{database::ColumnOperationError, math::decimal::DecimalError};
-use thiserror::Error;
+use alloc::string::String;
+use core::result::Result;
+use snafu::Snafu;
 
 /// Errors from evaluation of `Expression`s.
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum ExpressionEvaluationError {
     /// Column not found
-    #[error("Column not found: {0}")]
-    ColumnNotFound(String),
+    #[snafu(display("Column not found: {error}"))]
+    ColumnNotFound {
+        /// The underlying error
+        error: String,
+    },
     /// Error in column operation
-    #[error(transparent)]
-    ColumnOperationError(#[from] ColumnOperationError),
+    #[snafu(transparent)]
+    ColumnOperationError {
+        /// The underlying source error
+        source: ColumnOperationError,
+    },
     /// Expression not yet supported
-    #[error("Expression {0} is not supported yet")]
-    Unsupported(String),
+    #[snafu(display("Expression {expression} is not supported yet"))]
+    Unsupported {
+        /// The unsupported expression
+        expression: String,
+    },
     /// Error in decimal conversion
-    #[error(transparent)]
-    DecimalConversionError(#[from] DecimalError),
+    #[snafu(transparent)]
+    DecimalConversionError {
+        /// The underlying source error
+        source: DecimalError,
+    },
 }
 
 /// Result type for expression evaluation
-pub type ExpressionEvaluationResult<T> = std::result::Result<T, ExpressionEvaluationError>;
+pub type ExpressionEvaluationResult<T> = Result<T, ExpressionEvaluationError>;

@@ -12,6 +12,13 @@ pub mod querys;
 mod random_util;
 use random_util::{generate_random_columns, OptionalRandBound};
 
+/// # Panics
+///
+/// Will panic if:
+/// - The table reference cannot be parsed from the string.
+/// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
+/// - The query string cannot be parsed into a `QueryExpr`.
+/// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
 fn scaffold<'a, CP: CommitmentEvaluationProof>(
     query: &str,
     columns: &[(&str, ColumnType, OptionalRandBound)],
@@ -20,7 +27,7 @@ fn scaffold<'a, CP: CommitmentEvaluationProof>(
     alloc: &'a Bump,
     accessor: &mut BenchmarkAccessor<'a, CP::Commitment>,
     rng: &mut impl Rng,
-) -> (QueryExpr<CP::Commitment>, VerifiableQueryResult<CP>) {
+) -> (QueryExpr, VerifiableQueryResult<CP>) {
     accessor.insert_table(
         "bench.table".parse().unwrap(),
         &generate_random_columns(alloc, rng, columns, size),
@@ -36,6 +43,11 @@ fn scaffold<'a, CP: CommitmentEvaluationProof>(
     level = "debug",
     skip(query, columns, size, prover_setup, verifier_setup)
 )]
+/// # Panics
+///
+/// Will panic if:
+/// - The call to `scaffold` results in a panic due to invalid inputs.
+/// - The `verify` method of `VerifiableQueryResult` fails, indicating an invalid proof.
 pub fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
     title: &str,
     query: &str,
@@ -61,7 +73,7 @@ pub fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
         .unwrap();
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::module_name_repetitions)]
 pub fn criterion_scaffold<CP: CommitmentEvaluationProof>(
     c: &mut Criterion,
     title: &str,
@@ -71,7 +83,7 @@ pub fn criterion_scaffold<CP: CommitmentEvaluationProof>(
     prover_setup: &CP::ProverPublicSetup<'_>,
     verifier_setup: &CP::VerifierPublicSetup<'_>,
 ) {
-    let mut group = c.benchmark_group(format!("{} - {}", title, query));
+    let mut group = c.benchmark_group(format!("{title} - {query}"));
     group.sample_size(10);
     group.plot_config(PlotConfiguration::default().summary_scale(AxisScale::Logarithmic));
     init_backend();
@@ -90,10 +102,12 @@ pub fn criterion_scaffold<CP: CommitmentEvaluationProof>(
             &mut rng,
         );
         group.bench_function("Generate Proof", |b| {
-            b.iter(|| VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, prover_setup))
+            b.iter(|| {
+                VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, prover_setup)
+            });
         });
         group.bench_function("Verify Proof", |b| {
-            b.iter(|| result.verify(query.proof_expr(), &accessor, verifier_setup))
+            b.iter(|| result.verify(query.proof_expr(), &accessor, verifier_setup));
         });
     }
 }

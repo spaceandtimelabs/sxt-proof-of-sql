@@ -1,12 +1,12 @@
 use super::{ConversionError, DynProofExprBuilder};
 use crate::{
     base::{
-        commitment::Commitment,
         database::{ColumnRef, ColumnType},
+        map::IndexMap,
     },
     sql::proof_exprs::{DynProofExpr, ProofExpr},
 };
-use indexmap::IndexMap;
+use alloc::boxed::Box;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 
 /// Builder that enables building a `proof_of_sql::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
@@ -23,19 +23,19 @@ impl<'a> WhereExprBuilder<'a> {
     }
     /// Builds a `proof_of_sql::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
     /// intended to be used as the where clause in a filter expression or group by expression.
-    pub fn build<C: Commitment>(
+    pub fn build(
         self,
         where_expr: Option<Box<Expression>>,
-    ) -> Result<Option<DynProofExpr<C>>, ConversionError> {
+    ) -> Result<Option<DynProofExpr>, ConversionError> {
         where_expr
             .map(|where_expr| {
                 let expr_plan = self.builder.build(&where_expr)?;
                 // Ensure that the expression is a boolean expression
                 match expr_plan.data_type() {
                     ColumnType::Boolean => Ok(expr_plan),
-                    _ => Err(ConversionError::NonbooleanWhereClause(
-                        expr_plan.data_type(),
-                    )),
+                    _ => Err(ConversionError::NonbooleanWhereClause {
+                        datatype: expr_plan.data_type(),
+                    }),
                 }
             })
             .transpose()

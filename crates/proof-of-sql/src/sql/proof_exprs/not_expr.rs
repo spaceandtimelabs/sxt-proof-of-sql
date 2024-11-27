@@ -1,30 +1,31 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, Table},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
+        scalar::Scalar,
     },
-    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
+use alloc::boxed::Box;
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 /// Provable logical NOT expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct NotExpr<C: Commitment> {
-    expr: Box<DynProofExpr<C>>,
+pub struct NotExpr {
+    expr: Box<DynProofExpr>,
 }
 
-impl<C: Commitment> NotExpr<C> {
+impl NotExpr {
     /// Create logical NOT expression
-    pub fn new(expr: Box<DynProofExpr<C>>) -> Self {
+    pub fn new(expr: Box<DynProofExpr>) -> Self {
         Self { expr }
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
+impl ProofExpr for NotExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.expr.count(builder)
     }
@@ -34,38 +35,35 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
     }
 
     #[tracing::instrument(name = "NotExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
-        table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let expr_column: Column<'a, C::Scalar> =
-            self.expr.result_evaluate(table_length, alloc, accessor);
+        table: &Table<'a, S>,
+    ) -> Column<'a, S> {
+        let expr_column: Column<'a, S> = self.expr.result_evaluate(alloc, table);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
     }
 
     #[tracing::instrument(name = "NotExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let expr_column: Column<'a, C::Scalar> =
-            self.expr.prover_evaluate(builder, alloc, accessor);
+        table: &Table<'a, S>,
+    ) -> Column<'a, S> {
+        let expr_column: Column<'a, S> = self.expr.prover_evaluate(builder, alloc, table);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-    ) -> Result<C::Scalar, ProofError> {
+        builder: &mut VerificationBuilder<S>,
+        accessor: &IndexMap<ColumnRef, S>,
+    ) -> Result<S, ProofError> {
         let eval = self.expr.verifier_evaluate(builder, accessor)?;
-        Ok(builder.mle_evaluations.one_evaluation - eval)
+        Ok(builder.mle_evaluations.input_one_evaluation - eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

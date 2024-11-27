@@ -31,33 +31,29 @@ Get started with Proof of SQL by using the published crate on [crates.io](https:
 
 ### Prerequisites
 
-* Linux x86_64 (NOTE: Most of the codebase _should_ work for most rust targets. However, proofs are accelerated using NVIDIA GPUs, so other targets would run very slowly and may require modification.)
+* Linux `x86_64` (NOTE: Most of the codebase _should_ work for most rust targets. However, proofs are accelerated using NVIDIA GPUs, so other targets would run very slowly and may require modification.)
 * NVIDIA GPU & Drivers (Strongly Recommended)
 * lld (`sudo apt install lld`)
 * clang (`sudo apt install clang`)
 * [Rust 1.81.0](https://www.rust-lang.org/tools/install)
 
-<!-- TDDO: add this in when we put it on crates.io
+<details>
+<summary>
+Workaround for non-Linux and/or non-GPU machines.
+</summary>
 
-### Setup
+* Workaround #1: enable the CPU version of Blitzar by setting the `BLITZAR_BACKEND` environment variable. Example:
+    ```bash
+    export BLITZAR_BACKEND=cpu
+    cargo test --all-features --all-targets
+    ```
+* Workaround #2: disable the `blitzar` feature in the repo. Example
+    ```bash
+    cargo test --no-default-features --features="arrow cpu-perf"
+    ```
 
-To use Proof of SQL, add it as a dependency in your `Cargo.toml` file:
+</details>
 
-```toml
-[dependencies]
-proof-of-sql = "x.x.x"
-```
-
-Replace `x.x.x` with the version number you want to use. You can now use Proof of SQL in your Rust project. Import the necessary modules using `proof-of-sql::prelude::*` and start using the library's features in your code:
-
-```rust
-use proof-of-sql::prelude::*;
-
-fn main() {
-    // Your code here
-}
-```
--->
 
 ## Examples
 
@@ -77,8 +73,13 @@ The "Hello World" example demonstrates generating and verifying a proof of the q
 #### Run
 
 ```bash
-cargo run --example hello_world
+cargo run --example hello_world 
 ```
+> [!NOTE]
+> To run this example without the `blitzar` (i.e CPU only) feature:
+> ```bash
+> cargo run --example hello_world --no-default-features --features="rayon test"
+> ```
 
 #### Output
 
@@ -145,7 +146,7 @@ An example result for the 3rd query looks like this:
 
 <p align="center">
 
-b | sum_a | c
+`b` | `sum_a` | `c`
 ---|---|---
 1 | -45585 | 301
 2 | -137574, | 300
