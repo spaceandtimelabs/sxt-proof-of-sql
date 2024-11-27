@@ -20,8 +20,6 @@
 //! ## Optimization Opportunities:
 //! * **Batch Inversion**: Inversions of large vectors are computationally expensive
 //! * **Parallelization**: Single-threaded execution of these operations is a performance bottleneck
-use core::cmp::max;
-
 use crate::{
     base::{polynomial::MultilinearExtension, scalar::Scalar, slice_ops},
     sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
@@ -29,6 +27,7 @@ use crate::{
 use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use bytemuck::cast_slice;
+use core::cmp::max;
 /// Prove that a word-wise decomposition of a collection of scalars
 /// are all within the range 0 to 2^248.
 #[allow(clippy::missing_panics_doc)]
