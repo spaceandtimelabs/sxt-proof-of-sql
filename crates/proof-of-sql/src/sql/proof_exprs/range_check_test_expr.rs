@@ -1,20 +1,18 @@
-use super::range_check::{count, prover_evaluate_range_check, verifier_evaluate_range_check};
 use crate::{
     base::{
-        commitment::Commitment,
-        database::{
-            self, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
-            OwnedTable,
-        },
+        database::{ColumnField, ColumnRef, OwnedTable, Table, TableRef},
+        map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
     sql::proof::{
-        CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder, VerificationBuilder,
+        CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
+        VerificationBuilder,
     },
 };
+use ahash::AHasher;
 use bumpalo::Bump;
-use indexmap::{indexset, IndexSet};
+use core::hash::BuildHasherDefault;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -22,66 +20,56 @@ pub struct RangeCheckTestExpr {
     pub column: ColumnRef,
 }
 
-impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
-    fn result_evaluate<'a>(
-        &self,
-        builder: &mut ResultBuilder,
-        _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<database::Column<'a, S>> {
-        builder.request_post_result_challenges(1);
-        vec![]
+impl ProverEvaluate for RangeCheckTestExpr {
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {
+        todo!()
     }
 
-    fn prover_evaluate<'a>(
+    fn result_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
-        alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<database::Column<'a, S>> {
-        let a = accessor.get_column(self.column);
+        _alloc: &'a Bump,
+        _table_map: &IndexMap<TableRef, Table<'a, S>>,
+    ) -> Table<'a, S> {
+        todo!()
+    }
 
-        let scalar_values = alloc.alloc_slice_copy(&a.to_scalar_with_scaling(0));
-
-        prover_evaluate_range_check(builder, scalar_values, alloc);
-        vec![]
+    fn final_round_evaluate<'a, S: Scalar>(
+        &self,
+        _builder: &mut FinalRoundBuilder<'a, S>,
+        _alloc: &'a Bump,
+        _table_map: &IndexMap<TableRef, Table<'a, S>>,
+    ) -> Table<'a, S> {
+        todo!()
     }
 }
 
-impl<C: Commitment> ProofPlan<C> for RangeCheckTestExpr {
-    fn count(
-        &self,
-        builder: &mut CountBuilder,
-        _accessor: &dyn MetadataAccessor,
-    ) -> Result<(), ProofError> {
-        count(builder);
-        Ok(())
-    }
-
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.column.table_ref())
-    }
-
-    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_offset(self.column.table_ref())
-    }
-
-    fn verifier_evaluate(
-        &self,
-        builder: &mut VerificationBuilder<C>,
-        _accessor: &dyn CommitmentAccessor<C>,
-        _result: Option<&OwnedTable<<C as Commitment>::Scalar>>,
-    ) -> Result<Vec<<C as Commitment>::Scalar>, ProofError> {
-        verifier_evaluate_range_check(builder);
-        Ok(vec![])
-    }
-
+impl ProofPlan for RangeCheckTestExpr {
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![]
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        indexset! {self.column}
+        todo!()
+    }
+
+    #[doc = " Return all the tables referenced in the Query"]
+    fn get_table_references(&self) -> indexmap::IndexSet<TableRef, BuildHasherDefault<AHasher>> {
+        todo!()
+    }
+
+    #[doc = " Count terms used within the Query\'s proof"]
+    fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
+        todo!()
+    }
+
+    #[doc = " Form components needed to verify and proof store into `VerificationBuilder`"]
+    fn verifier_evaluate<S: Scalar>(
+        &self,
+        _builder: &mut VerificationBuilder<S>,
+        _accessor: &IndexMap<ColumnRef, S>,
+        _result: Option<&OwnedTable<S>>,
+    ) -> Result<Vec<S>, ProofError> {
+        todo!()
     }
 }
 
@@ -100,7 +88,7 @@ mod tests {
     use blitzar::proof::InnerProductProof;
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "not yet implemented")]
     fn we_can_prove_a_range_check() {
         // let data = owned_table([bigint("a", 1000..1256)]);
         let data = owned_table([bigint("a", vec![0; 256])]);

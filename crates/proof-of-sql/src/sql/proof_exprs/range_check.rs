@@ -20,17 +20,21 @@
 //! ## Optimization Opportunities:
 //! * **Batch Inversion**: Inversions of large vectors are computationally expensive
 //! * **Parallelization**: Single-threaded execution of these operations is a performance bottleneck
+use core::cmp::max;
+
 use crate::{
-    base::{commitment::Commitment, polynomial::MultilinearExtension, scalar::Scalar, slice_ops},
-    sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    base::{polynomial::MultilinearExtension, scalar::Scalar, slice_ops},
+    sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use bumpalo::Bump;
 use bytemuck::cast_slice;
-
 /// Prove that a word-wise decomposition of a collection of scalars
 /// are all within the range 0 to 2^248.
+#[allow(clippy::missing_panics_doc)]
 pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
     scalars: &mut [S],
     alloc: &'a Bump,
 ) {
@@ -48,11 +52,9 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
     // Initialize a vector to count occurrences of each byte (0-255).
     // The vector has 256 elements padded with zeros to match the length of the word columns
     // The size is the larger of 256 or the number of scalars.
-    let word_counts: &mut [i64] =
-        alloc.alloc_slice_fill_with(std::cmp::max(256, scalars.len()), |_| 0);
+    let word_counts: &mut [i64] = alloc.alloc_slice_fill_with(max(256, scalars.len()), |_| 0);
 
     decompose_scalar_to_words(scalars, &mut word_columns, word_counts);
-    // dbg!(&byte_counts);
     // Retrieve verifier challenge here, after Phase 1
     let alpha = builder.consume_post_result_challenge();
 
@@ -72,10 +74,8 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
     // Allocate row_sums from the bump allocator, ensuring it lives as long as 'a
     let row_sums = alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO);
 
-    dbg!(row_sums.len());
-
     // Iterate over each column and sum up the corresponding row values
-    for column in inverted_word_columns.iter() {
+    for column in &inverted_word_columns {
         // Iterate over each scalar in the column
         for (i, inv_word) in column.iter().enumerate() {
             row_sums[i] += *inv_word;
@@ -109,17 +109,16 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
             ),
         ],
     );
-
-    dbg!("prover completed");
 }
 
 /// Verify the prover claim
-pub fn verifier_evaluate_range_check<'a, C: Commitment + 'a>(
-    builder: &mut VerificationBuilder<'a, C>,
-) {
+pub fn verifier_evaluate_range_check<C>(builder: &mut VerificationBuilder<'_, C>)
+where
+    C: Scalar,
+{
     let _alpha = builder.consume_post_result_challenge();
     let mut w_plus_alpha_inv_evals: Vec<_> = Vec::with_capacity(31);
-    dbg!("made it here");
+
     // Step 1:
     // Consume the (wᵢⱼ + α)  and (wᵢⱼ + α)⁻¹ MLEs
     for _ in 0..31 {
@@ -131,10 +130,10 @@ pub fn verifier_evaluate_range_check<'a, C: Commitment + 'a>(
 
         // Verify that:
         // (wᵢⱼ + α)⁻¹ * (wᵢⱼ + α) - 1 = 0
-        let word_eval =
-            (w_plus_alpha_inv_eval * w_plus_alpha_eval) - builder.mle_evaluations.one_evaluation;
+        let word_eval = (w_plus_alpha_inv_eval * w_plus_alpha_eval)
+            - builder.mle_evaluations.input_one_evaluation;
         builder.produce_sumcheck_subpolynomial_evaluation(
-            SumcheckSubpolynomialType::Identity,
+            &SumcheckSubpolynomialType::Identity,
             word_eval,
         );
     }
@@ -147,10 +146,10 @@ pub fn verifier_evaluate_range_check<'a, C: Commitment + 'a>(
     // Verify that:
     // (word_values + α)⁻¹ * (word_values + α) - 1 = 0
     let word_value_eval = (inverted_word_values_eval * word_plus_alpha_evals)
-        - builder.mle_evaluations.one_evaluation;
+        - builder.mle_evaluations.input_one_evaluation;
 
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
+        &SumcheckSubpolynomialType::Identity,
         word_value_eval,
     );
 
@@ -159,10 +158,9 @@ pub fn verifier_evaluate_range_check<'a, C: Commitment + 'a>(
 
     let row_sum_eval = builder.consume_intermediate_mle();
     let count_value_product_eval = count_eval * inverted_word_values_eval;
-    dbg!(row_sum_eval - count_value_product_eval);
 
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::ZeroSum,
+        &SumcheckSubpolynomialType::ZeroSum,
         row_sum_eval - count_value_product_eval,
     );
 }
@@ -207,18 +205,20 @@ pub fn count(builder: &mut CountBuilder<'_>) {
 ///       v        
 ///    Int. MLE  
 /// ```
-/// Finally, argue that (word_values + α)⁻¹ * (word_values + α) - 1 = 0
+/// Finally, argue that (`word_values` + α)⁻¹ * (`word_values` + α) - 1 = 0
+///
+use alloc::vec;
+#[allow(clippy::missing_panics_doc)]
+#[allow(clippy::cast_possible_truncation)]
 fn prove_word_values<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
     scalars: &mut [S],
     alpha: S,
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
 ) {
     // Allocate from 0 to 255 and pertrub with verifier challenge
-    let word_values_plus_alpha: &mut [S] = alloc
-        .alloc_slice_fill_with(std::cmp::max(256, scalars.len()), |i| {
-            S::from(&(i as u8)) + alpha
-        });
+    let word_values_plus_alpha: &mut [S] =
+        alloc.alloc_slice_fill_with(max(256, scalars.len()), |i| S::from(&(i as u8)) + alpha);
     builder.produce_intermediate_mle(word_values_plus_alpha as &[_]);
 
     // Now produce an intermediate MLE over the inverted word values + verifier challenge alpha
@@ -306,7 +306,7 @@ fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
 ///    Int. MLE      Int. MLE      Int. MLE             Int. MLE     
 /// ```
 fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     word_columns: &mut [&mut [u8]],
     alpha: S,
@@ -352,7 +352,7 @@ mod tests {
     use crate::{
         base::scalar::{Curve25519Scalar as S, Scalar},
         sql::{
-            proof::ProofBuilder,
+            proof::FinalRoundBuilder,
             proof_exprs::range_check::{decompose_scalar_to_words, get_logarithmic_derivative},
         },
     };
@@ -481,7 +481,7 @@ mod tests {
             .collect();
 
         let alloc = Bump::new();
-        let mut builder = ProofBuilder::new(2, 1, Vec::new());
+        let mut builder = FinalRoundBuilder::new(2, Vec::new());
 
         get_logarithmic_derivative(
             &mut builder,
@@ -579,7 +579,7 @@ mod tests {
             .collect();
 
         let alloc = Bump::new();
-        let mut builder = ProofBuilder::new(2, 1, Vec::new());
+        let mut builder = FinalRoundBuilder::new(2, Vec::new());
         get_logarithmic_derivative(
             &mut builder,
             &alloc,
