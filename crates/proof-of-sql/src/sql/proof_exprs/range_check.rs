@@ -26,8 +26,7 @@ use crate::{
     base::{polynomial::MultilinearExtension, scalar::Scalar, slice_ops},
     sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use bytemuck::cast_slice;
 /// Prove that a word-wise decomposition of a collection of scalars
