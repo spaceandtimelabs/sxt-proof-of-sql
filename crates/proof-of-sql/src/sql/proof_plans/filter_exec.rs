@@ -226,6 +226,7 @@ impl ProverEvaluate for FilterExec {
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
+        builder.push_one_evaluation_length(result_len);
 
         prove_filter::<S>(
             builder,
@@ -298,7 +299,6 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
     n: usize,
     m: usize,
 ) {
-    builder.push_one_evaluation_length(m);
     let chi = alloc.alloc_slice_fill_copy(n, false);
     chi[..m].fill(true);
 
