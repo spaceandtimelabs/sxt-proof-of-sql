@@ -30,11 +30,14 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         &self,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
+    ) -> (Table<'a, S>, Vec<usize>) {
         let zeros = vec![0_i64; self.length];
-        table_with_row_count(
-            (1..=self.columns).map(|i| borrowed_bigint(format!("a{i}"), zeros.clone(), alloc)),
-            self.length,
+        (
+            table_with_row_count(
+                (1..=self.columns).map(|i| borrowed_bigint(format!("a{i}"), zeros.clone(), alloc)),
+                self.length,
+            ),
+            vec![self.length],
         )
     }
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -49,7 +52,6 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         let _ = std::iter::repeat_with(|| builder.produce_intermediate_mle(res))
             .take(self.columns)
             .collect::<Vec<_>>();
-        builder.push_one_evaluation_length(self.length);
         table_with_row_count(
             (1..=self.columns).map(|i| borrowed_bigint(format!("a{i}"), zeros.clone(), alloc)),
             self.length,

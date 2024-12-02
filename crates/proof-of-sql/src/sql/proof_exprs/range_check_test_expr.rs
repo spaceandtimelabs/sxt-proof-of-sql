@@ -1,7 +1,7 @@
 use super::range_check::{count, final_round_evaluate_range_check, verifier_evaluate_range_check};
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, OwnedTable, Table, TableRef},
+        database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -23,18 +23,6 @@ pub struct RangeCheckTestExpr {
 impl ProverEvaluate for RangeCheckTestExpr {
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
         builder.request_post_result_challenges(1);
-    }
-
-    fn result_evaluate<'a, S: Scalar>(
-        &self,
-        _alloc: &'a Bump,
-        table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
-        // Get the table from the map using the table reference
-        let table: &Table<'a, S> = table_map
-            .get(&self.column.table_ref())
-            .expect("Table not found");
-        table.clone()
     }
 
     // extract data to test on from here, feed it into range check
@@ -64,6 +52,19 @@ impl ProverEvaluate for RangeCheckTestExpr {
 
         final_round_evaluate_range_check(builder, scalars, alloc);
         table.clone()
+    }
+
+    #[doc = " Evaluate the query and return the result."]
+    fn result_evaluate<'a, S: Scalar>(
+        &self,
+        _alloc: &'a Bump,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
+    ) -> (Table<'a, S>, Vec<usize>) {
+        // Get the table from the map using the table reference
+        let table: &Table<'a, S> = table_map
+            .get(&self.column.table_ref())
+            .expect("Table not found");
+        (table.clone(), vec![])
     }
 }
 
@@ -95,16 +96,20 @@ impl ProofPlan for RangeCheckTestExpr {
     }
 
     #[doc = " Form components needed to verify and proof store into `VerificationBuilder`"]
-    // pull out S, this is evaluation of column
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,
-        // this gives the original eval of column
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+        _one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
         verifier_evaluate_range_check(builder);
-        Ok(vec![])
+        let res_eval = builder.consume_intermediate_mle();
+
+        Ok(TableEvaluation::new(
+            vec![res_eval],
+            builder.consume_one_evaluation(),
+        ))
     }
 }
 
@@ -133,6 +138,6 @@ mod tests {
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let res = verifiable_res.verify(&ast, &accessor, &());
-        println!("failed verification: {:?}", res.is_err());
+        println!("failed verification: {:?}", res.err());
     }
 }

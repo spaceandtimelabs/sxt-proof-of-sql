@@ -181,7 +181,7 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map))
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map).0)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -213,7 +213,7 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
     let expr: DynProofPlan = projection(cols_expr_plan(t, &[], &accessor), tab(t));
     let fields = &[];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map))
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map).0)
             .to_owned_table(fields)
             .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
@@ -258,7 +258,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map))
+        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map).0)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([

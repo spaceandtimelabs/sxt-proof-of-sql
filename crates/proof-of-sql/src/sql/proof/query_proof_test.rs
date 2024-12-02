@@ -46,9 +46,12 @@ impl ProverEvaluate for TrivialTestProofPlan {
         &self,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
+    ) -> (Table<'a, S>, Vec<usize>) {
         let col = vec![self.column_fill_value; self.length];
-        table([borrowed_bigint("a1", col, alloc)])
+        (
+            table([borrowed_bigint("a1", col, alloc)]),
+            vec![self.length],
+        )
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -65,7 +68,6 @@ impl ProverEvaluate for TrivialTestProofPlan {
             SumcheckSubpolynomialType::Identity,
             vec![(S::ONE, vec![Box::new(col as &[_])])],
         );
-        builder.push_one_evaluation_length(self.length);
         table([borrowed_bigint(
             "a1",
             vec![self.column_fill_value; self.length],
@@ -224,8 +226,8 @@ impl ProverEvaluate for SquareTestProofPlan {
         &self,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
-        table([borrowed_bigint("a1", self.res, alloc)])
+    ) -> (Table<'a, S>, Vec<usize>) {
+        (table([borrowed_bigint("a1", self.res, alloc)]), vec![2])
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -251,7 +253,6 @@ impl ProverEvaluate for SquareTestProofPlan {
                 (-S::ONE, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        builder.push_one_evaluation_length(2);
         table([borrowed_bigint("a1", self.res, alloc)])
     }
 }
@@ -406,8 +407,8 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         &self,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
-        table([borrowed_bigint("a1", self.res, alloc)])
+    ) -> (Table<'a, S>, Vec<usize>) {
+        (table([borrowed_bigint("a1", self.res, alloc)]), vec![2])
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -446,7 +447,6 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
             ],
         );
         builder.produce_intermediate_mle(res);
-        builder.push_one_evaluation_length(2);
         table([borrowed_bigint("a1", self.res, alloc)])
     }
 }
@@ -618,8 +618,8 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         &self,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
-        table([borrowed_bigint("a1", [9, 25], alloc)])
+    ) -> (Table<'a, S>, Vec<usize>) {
+        (table([borrowed_bigint("a1", [9, 25], alloc)]), vec![2])
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -649,7 +649,6 @@ impl ProverEvaluate for ChallengeTestProofPlan {
                 (-alpha, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        builder.push_one_evaluation_length(2);
         table([borrowed_bigint("a1", [9, 25], alloc)])
     }
 }

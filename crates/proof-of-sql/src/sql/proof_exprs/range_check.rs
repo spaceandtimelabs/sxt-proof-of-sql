@@ -131,7 +131,7 @@ where
         // Verify that:
         // (wᵢⱼ + α)⁻¹ * (wᵢⱼ + α) - 1 = 0
         let word_eval = (w_plus_alpha_inv_eval * w_plus_alpha_eval)
-            - builder.mle_evaluations.input_one_evaluation;
+            - builder.mle_evaluations.singleton_one_evaluation;
         builder.produce_sumcheck_subpolynomial_evaluation(
             &SumcheckSubpolynomialType::Identity,
             word_eval,
@@ -145,7 +145,7 @@ where
     // Verify that:
     // (word_values + α)⁻¹ * (word_values + α) - 1 = 0
     let word_value_eval = (inverted_word_values_eval * word_plus_alpha_evals)
-        - builder.mle_evaluations.input_one_evaluation;
+        - builder.mle_evaluations.singleton_one_evaluation;
 
     builder.produce_sumcheck_subpolynomial_evaluation(
         &SumcheckSubpolynomialType::Identity,
@@ -360,13 +360,13 @@ mod tests {
 
     #[test]
     fn we_can_decompose_small_scalars_to_words() {
-        let mut scalars: Vec<S> = [1, 2, 3, 255, 256, 257].iter().map(S::from).collect();
+        let scalars: Vec<S> = [1, 2, 3, 255, 256, 257].iter().map(S::from).collect();
 
         let mut word_columns = vec![vec![0; scalars.len()]; 31];
         let mut word_slices: Vec<&mut [u8]> = word_columns.iter_mut().map(|c| &mut c[..]).collect();
         let mut byte_counts = vec![0; 256];
 
-        decompose_scalar_to_words(&mut scalars, &mut word_slices, &mut byte_counts);
+        decompose_scalar_to_words(&scalars, &mut word_slices, &mut byte_counts);
 
         let mut expected_word_columns = vec![vec![0; scalars.len()]; 31];
         expected_word_columns[0] = vec![1, 2, 3, 255, 0, 1];
@@ -386,7 +386,7 @@ mod tests {
 
     #[test]
     fn we_can_decompose_large_scalars_to_words() {
-        let mut scalars: Vec<S> = [S::MAX_SIGNED, S::from(u64::MAX), S::from(-1)]
+        let scalars: Vec<S> = [S::MAX_SIGNED, S::from(u64::MAX), S::from(-1)]
             .iter()
             .map(S::from)
             .collect();
@@ -395,7 +395,7 @@ mod tests {
         let mut word_slices: Vec<&mut [u8]> = word_columns.iter_mut().map(|c| &mut c[..]).collect();
         let mut byte_counts = vec![0; 256];
 
-        decompose_scalar_to_words(&mut scalars, &mut word_slices, &mut byte_counts);
+        decompose_scalar_to_words(&scalars, &mut word_slices, &mut byte_counts);
 
         let expected_word_columns = [
             [246, 255, 236],

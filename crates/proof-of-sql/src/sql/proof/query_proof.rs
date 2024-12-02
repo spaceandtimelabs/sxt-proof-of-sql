@@ -93,18 +93,30 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .collect();
 
         // Evaluate query result
-        let provable_result = expr.result_evaluate(&alloc, &table_map).into();
+        let (query_result, one_evaluation_lengths) = expr.result_evaluate(&alloc, &table_map);
+        let provable_result = query_result.into();
 
         // Prover First Round
-        let mut first_round_builder = FirstRoundBuilder::new(initial_range_length);
+        let mut first_round_builder = FirstRoundBuilder::new();
         expr.first_round_evaluate(&mut first_round_builder);
-        let range_length = first_round_builder.range_length();
+        let range_length = one_evaluation_lengths
+            .iter()
+            .copied()
+            .chain(core::iter::once(initial_range_length))
+            .max()
+            .expect("Will always have at least one element"); // safe to unwrap because we have at least one element
+
         let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
         assert!(num_sumcheck_variables > 0);
 
         // construct a transcript for the proof
-        let mut transcript: Keccak256Transcript =
-            make_transcript(expr, &provable_result, range_length, min_row_num);
+        let mut transcript: Keccak256Transcript = make_transcript(
+            expr,
+            &provable_result,
+            range_length,
+            min_row_num,
+            &one_evaluation_lengths,
+        );
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -130,12 +142,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let commitments = builder.commit_intermediate_mles(min_row_num, setup);
 
         // add the commitments, bit distributions and one evaluation lengths to the proof
-        extend_transcript(
-            &mut transcript,
-            &commitments,
-            builder.bit_distributions(),
-            builder.one_evaluation_lengths(),
-        );
+        extend_transcript(&mut transcript, &commitments, builder.bit_distributions());
 
         // construct the sumcheck polynomial
         let num_random_scalars = num_sumcheck_variables + builder.num_sumcheck_subpolynomials();
@@ -185,7 +192,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let proof = Self {
             bit_distributions: builder.bit_distributions().to_vec(),
-            one_evaluation_lengths: builder.one_evaluation_lengths().to_vec(),
+            one_evaluation_lengths,
             commitments,
             sumcheck_proof,
             pcs_proof_evaluations,
@@ -235,8 +242,13 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         }
 
         // construct a transcript for the proof
-        let mut transcript: Keccak256Transcript =
-            make_transcript(expr, result, self.range_length, min_row_num);
+        let mut transcript: Keccak256Transcript = make_transcript(
+            expr,
+            result,
+            self.range_length,
+            min_row_num,
+            &self.one_evaluation_lengths,
+        );
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -249,12 +261,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .collect();
 
         // add the commitments and bit disctibutions to the proof
-        extend_transcript(
-            &mut transcript,
-            &self.commitments,
-            &self.bit_distributions,
-            &self.one_evaluation_lengths,
-        );
+        extend_transcript(&mut transcript, &self.commitments, &self.bit_distributions);
 
         // draw the random scalars for sumcheck
         let num_random_scalars = num_sumcheck_variables + counts.sumcheck_subpolynomials;
@@ -402,6 +409,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 ///
 /// * `min_row_num` - The smallest offset of the generator used in the proof, as a `usize`.
 ///
+/// * `one_evaluation_lengths` - A slice of `usize` values that represent unexpected intermediate table lengths
+///
 /// # Returns
 /// This function returns a `merlin::Transcript`. The transcript is a record
 /// of all the operations and data involved in creating a proof.
@@ -411,12 +420,14 @@ fn make_transcript<T: Transcript>(
     result: &ProvableQueryResult,
     range_length: usize,
     min_row_num: usize,
+    one_evaluation_lengths: &[usize],
 ) -> T {
     let mut transcript = T::new();
     transcript.extend_serialize_as_le(result);
     transcript.extend_serialize_as_le(expr);
     transcript.extend_serialize_as_le(&range_length);
     transcript.extend_serialize_as_le(&min_row_num);
+    transcript.extend_serialize_as_le(one_evaluation_lengths);
     transcript
 }
 
@@ -424,9 +435,7 @@ fn extend_transcript<C: serde::Serialize>(
     transcript: &mut impl Transcript,
     commitments: &C,
     bit_distributions: &[BitDistribution],
-    one_evaluation_lengths: &[usize],
 ) {
     transcript.extend_serialize_as_le(commitments);
     transcript.extend_serialize_as_le(bit_distributions);
-    transcript.extend_serialize_as_le(one_evaluation_lengths);
 }
