@@ -90,7 +90,6 @@ impl ProofExpr for InequalityExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        let table_length = table.num_rows();
         let lhs_column = self.lhs.prover_evaluate(builder, alloc, table);
         let rhs_column = self.rhs.prover_evaluate(builder, alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
@@ -111,7 +110,6 @@ impl ProofExpr for InequalityExpr {
             builder,
             alloc,
             diff,
-            table_length,
             #[cfg(test)]
             self.treat_column_of_zeros_as_negative,
         );

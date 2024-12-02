@@ -82,9 +82,9 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     expr: &'a [S],
-    table_length: usize,
     #[cfg(test)] treat_column_of_zeros_as_negative: bool,
 ) -> &'a [bool] {
+    let table_length = expr.len();
     // bit_distribution
     let dist = BitDistribution::new::<S, _>(expr);
     #[cfg(test)]
