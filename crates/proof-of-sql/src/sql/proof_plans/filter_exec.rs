@@ -158,7 +158,7 @@ impl ProverEvaluate for FilterExec {
         &self,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
+    ) -> (Table<'a, S>, Vec<usize>) {
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -178,14 +178,15 @@ impl ProverEvaluate for FilterExec {
 
         // Compute filtered_columns and indexes
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
-        Table::<'a, S>::try_from_iter_with_options(
+        let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results
                 .iter()
                 .map(|expr| expr.alias)
                 .zip(filtered_columns),
             TableOptions::new(Some(output_length)),
         )
-        .expect("Failed to create table from iterator")
+        .expect("Failed to create table from iterator");
+        (res, vec![output_length])
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -226,7 +227,6 @@ impl ProverEvaluate for FilterExec {
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
-        builder.push_one_evaluation_length(result_len);
 
         prove_filter::<S>(
             builder,

@@ -212,7 +212,7 @@ impl ProverEvaluate for GroupByExec {
         &self,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
+    ) -> (Table<'a, S>, Vec<usize>) {
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -243,7 +243,7 @@ impl ProverEvaluate for GroupByExec {
         } = aggregate_columns(alloc, &group_by_columns, &sum_columns, &[], &[], selection)
             .expect("columns should be aggregatable");
         let sum_result_columns_iter = sum_result_columns.iter().map(|col| Column::Scalar(col));
-        Table::<'a, S>::try_from_iter(
+        let res = Table::<'a, S>::try_from_iter(
             self.get_column_result_fields()
                 .into_iter()
                 .map(|field| field.name())
@@ -254,7 +254,8 @@ impl ProverEvaluate for GroupByExec {
                         .chain(iter::once(Column::BigInt(count_column))),
                 ),
         )
-        .expect("Failed to create table from column references")
+        .expect("Failed to create table from column references");
+        (res, vec![count_column.len()])
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -330,7 +331,6 @@ impl ProverEvaluate for GroupByExec {
             (&group_by_result_columns, &sum_result_columns, count_column),
             table.num_rows(),
         );
-        builder.push_one_evaluation_length(res.num_rows());
         res
     }
 }

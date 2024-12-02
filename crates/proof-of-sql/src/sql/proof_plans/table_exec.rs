@@ -10,7 +10,7 @@ use crate::{
         VerificationBuilder,
     },
 };
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -82,11 +82,14 @@ impl ProverEvaluate for TableExec {
         &self,
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
-        table_map
-            .get(&self.table_ref)
-            .expect("Table not found")
-            .clone()
+    ) -> (Table<'a, S>, Vec<usize>) {
+        (
+            table_map
+                .get(&self.table_ref)
+                .expect("Table not found")
+                .clone(),
+            vec![],
+        )
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}

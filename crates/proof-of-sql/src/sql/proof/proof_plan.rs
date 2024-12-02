@@ -41,7 +41,7 @@ pub trait ProverEvaluate {
         &self,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S>;
+    ) -> (Table<'a, S>, Vec<usize>);
 
     /// Evaluate the query and modify `FirstRoundBuilder` to form the query's proof.
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder);
