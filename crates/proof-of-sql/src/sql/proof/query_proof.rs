@@ -129,8 +129,13 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // commit to any intermediate MLEs
         let commitments = builder.commit_intermediate_mles(min_row_num, setup);
 
-        // add the commitments and bit distributions to the proof
-        extend_transcript(&mut transcript, &commitments, builder.bit_distributions());
+        // add the commitments, bit distributions and one evaluation lengths to the proof
+        extend_transcript(
+            &mut transcript,
+            &commitments,
+            builder.bit_distributions(),
+            builder.one_evaluation_lengths(),
+        );
 
         // construct the sumcheck polynomial
         let num_random_scalars = num_sumcheck_variables + builder.num_sumcheck_subpolynomials();
@@ -244,7 +249,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .collect();
 
         // add the commitments and bit disctibutions to the proof
-        extend_transcript(&mut transcript, &self.commitments, &self.bit_distributions);
+        extend_transcript(
+            &mut transcript,
+            &self.commitments,
+            &self.bit_distributions,
+            &self.one_evaluation_lengths,
+        );
 
         // draw the random scalars for sumcheck
         let num_random_scalars = num_sumcheck_variables + counts.sumcheck_subpolynomials;
@@ -286,9 +296,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let one_evaluation_lengths = table_length_map
             .values()
-            .chain(self.one_evaluation_lengths.clone().iter())
-            .copied()
-            .collect::<Vec<_>>();
+            .chain(self.one_evaluation_lengths.iter())
+            .copied();
 
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
@@ -415,7 +424,9 @@ fn extend_transcript<C: serde::Serialize>(
     transcript: &mut impl Transcript,
     commitments: &C,
     bit_distributions: &[BitDistribution],
+    one_evaluation_lengths: &[usize],
 ) {
     transcript.extend_serialize_as_le(commitments);
     transcript.extend_serialize_as_le(bit_distributions);
+    transcript.extend_serialize_as_le(one_evaluation_lengths);
 }
