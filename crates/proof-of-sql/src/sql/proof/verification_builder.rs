@@ -11,6 +11,7 @@ pub struct VerificationBuilder<'a, S: Scalar> {
     sumcheck_evaluation: S,
     bit_distributions: &'a [BitDistribution],
     folded_pcs_proof_evaluation: S,
+    consumed_one_evaluations: usize,
     consumed_pcs_proof_mles: usize,
     consumed_intermediate_mles: usize,
     produced_subpolynomials: usize,
@@ -22,6 +23,7 @@ pub struct VerificationBuilder<'a, S: Scalar> {
     /// Note: this vector is treated as a stack and the first
     /// challenge is the last entry in the vector.
     post_result_challenges: Vec<S>,
+    one_evaluation_length_queue: Vec<usize>,
 }
 
 impl<'a, S: Scalar> VerificationBuilder<'a, S> {
@@ -36,6 +38,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         subpolynomial_multipliers: &'a [S],
         inner_product_multipliers: &'a [S],
         post_result_challenges: Vec<S>,
+        one_evaluation_length_queue: Vec<usize>,
     ) -> Self {
         assert_eq!(
             inner_product_multipliers.len(),
@@ -49,15 +52,28 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             inner_product_multipliers,
             sumcheck_evaluation: S::zero(),
             folded_pcs_proof_evaluation: S::zero(),
+            consumed_one_evaluations: 0,
             consumed_pcs_proof_mles: 0,
             consumed_intermediate_mles: 0,
             produced_subpolynomials: 0,
             post_result_challenges,
+            one_evaluation_length_queue,
         }
     }
 
-    pub fn table_length(&self) -> usize {
-        self.mle_evaluations.input_length
+    /// Consume the evaluation of a one evaluation
+    ///
+    /// # Panics
+    /// It should never panic, as the length of the one evaluation is guaranteed to be present
+    pub fn consume_one_evaluation(&mut self) -> S {
+        let index = self.consumed_one_evaluations;
+        let length = self.one_evaluation_length_queue[index];
+        self.consumed_one_evaluations += 1;
+        *self
+            .mle_evaluations
+            .one_evaluations
+            .get(&length)
+            .expect("One evaluation not found")
     }
 
     pub fn generator_offset(&self) -> usize {

@@ -1,6 +1,8 @@
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, OwnedTable, Table, TableOptions, TableRef},
+        database::{
+            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
+        },
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -13,7 +15,7 @@ use crate::{
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
     },
 };
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 use bumpalo::Bump;
 use core::iter::repeat_with;
 use serde::{Deserialize, Serialize};
@@ -53,14 +55,24 @@ impl ProofPlan for ProjectionExec {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+        one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
+        // For projections input and output have the same length and hence the same one eval
+        let one_eval = *one_eval_map
+            .get(&self.table.table_ref)
+            .expect("One eval not found");
         self.aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .verifier_evaluate(builder, accessor, one_eval)
+            })
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(repeat_with(|| builder.consume_intermediate_mle())
+        let column_evals = repeat_with(|| builder.consume_intermediate_mle())
             .take(self.aliased_results.len())
-            .collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+        Ok(TableEvaluation::new(column_evals, one_eval))
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -89,20 +101,23 @@ impl ProverEvaluate for ProjectionExec {
         &self,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
+    ) -> (Table<'a, S>, Vec<usize>) {
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
-        Table::<'a, S>::try_from_iter_with_options(
-            self.aliased_results.iter().map(|aliased_expr| {
-                (
-                    aliased_expr.alias,
-                    aliased_expr.expr.result_evaluate(alloc, table),
-                )
-            }),
-            TableOptions::new(Some(table.num_rows())),
+        (
+            Table::<'a, S>::try_from_iter_with_options(
+                self.aliased_results.iter().map(|aliased_expr| {
+                    (
+                        aliased_expr.alias,
+                        aliased_expr.expr.result_evaluate(alloc, table),
+                    )
+                }),
+                TableOptions::new(Some(table.num_rows())),
+            )
+            .expect("Failed to create table from iterator"),
+            vec![],
         )
-        .expect("Failed to create table from iterator")
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}

@@ -15,7 +15,7 @@ fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {
     let pcs_proof_evaluations = [Curve25519Scalar::from(42u64)];
     let evals = SumcheckMleEvaluations::new(
         3,
-        3,
+        [3, 3],
         &evaluation_point,
         &sumcheck_random_scalars,
         &pcs_proof_evaluations,
@@ -38,6 +38,8 @@ fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {
         * (Curve25519Scalar::one() - evaluation_point[1])
         + (evaluation_point[0]) * (Curve25519Scalar::one() - evaluation_point[1])
         + (Curve25519Scalar::one() - evaluation_point[0]) * (evaluation_point[1]);
-    assert_eq!(evals.input_one_evaluation, expected_eval);
-    assert_eq!(evals.output_one_evaluation, expected_eval);
+    assert_eq!(
+        *evals.one_evaluations.values().next().unwrap(),
+        expected_eval
+    );
 }

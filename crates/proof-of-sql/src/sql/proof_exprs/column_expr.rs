@@ -91,6 +91,7 @@ impl ProofExpr for ColumnExpr {
         &self,
         _builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
+        _one_eval: S,
     ) -> Result<S, ProofError> {
         Ok(*accessor
             .get(&self.column_ref)

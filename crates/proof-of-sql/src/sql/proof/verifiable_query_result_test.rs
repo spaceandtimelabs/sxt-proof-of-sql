@@ -9,7 +9,7 @@ use crate::{
             owned_table_utility::{bigint, owned_table},
             table_utility::*,
             ColumnField, ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, Table,
-            TableRef,
+            TableEvaluation, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
@@ -30,11 +30,14 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         &self,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
+    ) -> (Table<'a, S>, Vec<usize>) {
         let zeros = vec![0_i64; self.length];
-        table_with_row_count(
-            (1..=self.columns).map(|i| borrowed_bigint(format!("a{i}"), zeros.clone(), alloc)),
-            self.length,
+        (
+            table_with_row_count(
+                (1..=self.columns).map(|i| borrowed_bigint(format!("a{i}"), zeros.clone(), alloc)),
+                self.length,
+            ),
+            vec![self.length],
         )
     }
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -66,13 +69,17 @@ impl ProofPlan for EmptyTestQueryExpr {
         builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+        _one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
         let _ = std::iter::repeat_with(|| {
             assert_eq!(builder.consume_intermediate_mle(), S::ZERO);
         })
         .take(self.columns)
         .collect::<Vec<_>>();
-        Ok(vec![S::ZERO])
+        Ok(TableEvaluation::new(
+            vec![S::ZERO; self.columns],
+            builder.consume_one_evaluation(),
+        ))
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

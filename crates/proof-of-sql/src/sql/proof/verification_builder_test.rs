@@ -5,7 +5,6 @@ use num_traits::Zero;
 #[test]
 fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
     let mle_evaluations = SumcheckMleEvaluations {
-        input_length: 1,
         num_sumcheck_variables: 1,
         ..Default::default()
     };
@@ -16,6 +15,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
         &[][..],
         &[][..],
         Vec::new(),
+        Vec::new(),
     );
     assert_eq!(builder.sumcheck_evaluation(), Curve25519Scalar::zero());
     assert_eq!(builder.inner_product_multipliers(), &[]);
@@ -24,7 +24,6 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
 #[test]
 fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations() {
     let mle_evaluations = SumcheckMleEvaluations {
-        input_length: 1,
         num_sumcheck_variables: 1,
         ..Default::default()
     };
@@ -38,6 +37,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         &[][..],
         &subpolynomial_multipliers,
         &[][..],
+        Vec::new(),
         Vec::new(),
     );
     builder.produce_sumcheck_subpolynomial_evaluation(
@@ -60,7 +60,6 @@ fn we_build_up_the_folded_pcs_proof_commitment() {
         Curve25519Scalar::from(456u64),
     ];
     let mle_evaluations = SumcheckMleEvaluations {
-        input_length: 1,
         num_sumcheck_variables: 1,
         pcs_proof_evaluations: &pcs_proof_evaluations,
         ..Default::default()
@@ -75,6 +74,7 @@ fn we_build_up_the_folded_pcs_proof_commitment() {
         &[][..],
         &[][..],
         &inner_product_multipliers,
+        Vec::new(),
         Vec::new(),
     );
     let eval = builder.consume_anchored_mle();
@@ -107,6 +107,7 @@ fn we_can_consume_post_result_challenges_in_proof_builder() {
             Curve25519Scalar::from(456),
             Curve25519Scalar::from(789),
         ],
+        Vec::new(),
     );
     assert_eq!(
         Curve25519Scalar::from(789),

@@ -8,7 +8,7 @@ use crate::{
             owned_table_utility::{bigint, owned_table},
             table_utility::*,
             ColumnField, ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, Table,
-            TableRef,
+            TableEvaluation, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
@@ -46,9 +46,12 @@ impl ProverEvaluate for TrivialTestProofPlan {
         &self,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
+    ) -> (Table<'a, S>, Vec<usize>) {
         let col = vec![self.column_fill_value; self.length];
-        table([borrowed_bigint("a1", col, alloc)])
+        (
+            table([borrowed_bigint("a1", col, alloc)]),
+            vec![self.length],
+        )
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -85,13 +88,17 @@ impl ProofPlan for TrivialTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+        _one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
         assert_eq!(builder.consume_intermediate_mle(), S::ZERO);
         builder.produce_sumcheck_subpolynomial_evaluation(
             &SumcheckSubpolynomialType::ZeroSum,
             S::from(self.evaluation),
         );
-        Ok(vec![S::ZERO])
+        Ok(TableEvaluation::new(
+            vec![S::ZERO],
+            builder.consume_one_evaluation(),
+        ))
     }
     ///
     /// # Panics
@@ -219,8 +226,8 @@ impl ProverEvaluate for SquareTestProofPlan {
         &self,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
-        table([borrowed_bigint("a1", self.res, alloc)])
+    ) -> (Table<'a, S>, Vec<usize>) {
+        (table([borrowed_bigint("a1", self.res, alloc)]), vec![2])
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -261,7 +268,8 @@ impl ProofPlan for SquareTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+        _one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
         let x_eval = S::from(self.anchored_commit_multiplier)
             * *accessor
                 .get(&ColumnRef::new(
@@ -275,7 +283,10 @@ impl ProofPlan for SquareTestProofPlan {
             &SumcheckSubpolynomialType::Identity,
             res_eval - x_eval * x_eval,
         );
-        Ok(vec![res_eval])
+        Ok(TableEvaluation::new(
+            vec![res_eval],
+            builder.consume_one_evaluation(),
+        ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
@@ -396,8 +407,8 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         &self,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
-        table([borrowed_bigint("a1", self.res, alloc)])
+    ) -> (Table<'a, S>, Vec<usize>) {
+        (table([borrowed_bigint("a1", self.res, alloc)]), vec![2])
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
@@ -451,7 +462,8 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+        _one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
         let x_eval = *accessor
             .get(&ColumnRef::new(
                 "sxt.test".parse().unwrap(),
@@ -473,7 +485,10 @@ impl ProofPlan for DoubleSquareTestProofPlan {
             &SumcheckSubpolynomialType::Identity,
             res_eval - z_eval * z_eval,
         );
-        Ok(vec![res_eval])
+        Ok(TableEvaluation::new(
+            vec![res_eval],
+            builder.consume_one_evaluation(),
+        ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
@@ -603,8 +618,8 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         &self,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
-        table([borrowed_bigint("a1", [9, 25], alloc)])
+    ) -> (Table<'a, S>, Vec<usize>) {
+        (table([borrowed_bigint("a1", [9, 25], alloc)]), vec![2])
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -650,7 +665,8 @@ impl ProofPlan for ChallengeTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+        _one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();
         let x_eval = *accessor
@@ -665,7 +681,10 @@ impl ProofPlan for ChallengeTestProofPlan {
             &SumcheckSubpolynomialType::Identity,
             alpha * res_eval - alpha * x_eval * x_eval,
         );
-        Ok(vec![res_eval])
+        Ok(TableEvaluation::new(
+            vec![res_eval],
+            builder.consume_one_evaluation(),
+        ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]

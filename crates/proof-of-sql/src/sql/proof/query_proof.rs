@@ -27,15 +27,15 @@ use serde::{Deserialize, Serialize};
 ///
 /// Basically we are looking for the smallest offset and the largest offset + length
 /// so that we have an index range of the table rows that the query is referencing.
-fn get_index_range(
+fn get_index_range<'a>(
     accessor: &dyn MetadataAccessor,
-    table_refs: impl IntoIterator<Item = TableRef>,
+    table_refs: impl IntoIterator<Item = &'a TableRef>,
 ) -> (usize, usize) {
     table_refs
         .into_iter()
         .map(|table_ref| {
-            let length = accessor.get_length(table_ref);
-            let offset = accessor.get_offset(table_ref);
+            let length = accessor.get_length(*table_ref);
+            let offset = accessor.get_offset(*table_ref);
             (offset, offset + length)
         })
         .reduce(|(min_start, max_end), (start, end)| (min_start.min(start), max_end.max(end)))
@@ -52,6 +52,8 @@ fn get_index_range(
 pub struct QueryProof<CP: CommitmentEvaluationProof> {
     /// Bit distributions
     pub bit_distributions: Vec<BitDistribution>,
+    /// One evaluation lengths
+    pub one_evaluation_lengths: Vec<usize>,
     /// Commitments
     pub commitments: Vec<CP::Commitment>,
     /// Sumcheck Proof
@@ -72,7 +74,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> (Self, ProvableQueryResult) {
-        let (min_row_num, max_row_num) = get_index_range(accessor, expr.get_table_references());
+        let (min_row_num, max_row_num) = get_index_range(accessor, &expr.get_table_references());
         let initial_range_length = max_row_num - min_row_num;
         let alloc = Bump::new();
 
@@ -91,18 +93,30 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .collect();
 
         // Evaluate query result
-        let provable_result = expr.result_evaluate(&alloc, &table_map).into();
+        let (query_result, one_evaluation_lengths) = expr.result_evaluate(&alloc, &table_map);
+        let provable_result = query_result.into();
 
         // Prover First Round
-        let mut first_round_builder = FirstRoundBuilder::new(initial_range_length);
+        let mut first_round_builder = FirstRoundBuilder::new();
         expr.first_round_evaluate(&mut first_round_builder);
-        let range_length = first_round_builder.range_length();
+        let range_length = one_evaluation_lengths
+            .iter()
+            .copied()
+            .chain(core::iter::once(initial_range_length))
+            .max()
+            .expect("Will always have at least one element"); // safe to unwrap because we have at least one element
+
         let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
         assert!(num_sumcheck_variables > 0);
 
         // construct a transcript for the proof
-        let mut transcript: Keccak256Transcript =
-            make_transcript(expr, &provable_result, range_length, min_row_num);
+        let mut transcript: Keccak256Transcript = make_transcript(
+            expr,
+            &provable_result,
+            range_length,
+            min_row_num,
+            &one_evaluation_lengths,
+        );
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -127,7 +141,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // commit to any intermediate MLEs
         let commitments = builder.commit_intermediate_mles(min_row_num, setup);
 
-        // add the commitments and bit distributions to the proof
+        // add the commitments, bit distributions and one evaluation lengths to the proof
         extend_transcript(&mut transcript, &commitments, builder.bit_distributions());
 
         // construct the sumcheck polynomial
@@ -178,6 +192,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let proof = Self {
             bit_distributions: builder.bit_distributions().to_vec(),
+            one_evaluation_lengths,
             commitments,
             sumcheck_proof,
             pcs_proof_evaluations,
@@ -197,7 +212,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
         let owned_table_result = result.to_owned_table(&expr.get_column_result_fields())?;
-        let (min_row_num, _) = get_index_range(accessor, expr.get_table_references());
+        let table_refs = expr.get_table_references();
+        let (min_row_num, _) = get_index_range(accessor, &table_refs);
         let num_sumcheck_variables = cmp::max(log2_up(self.range_length), 1);
         assert!(num_sumcheck_variables > 0);
 
@@ -226,8 +242,13 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         }
 
         // construct a transcript for the proof
-        let mut transcript: Keccak256Transcript =
-            make_transcript(expr, result, self.range_length, min_row_num);
+        let mut transcript: Keccak256Transcript = make_transcript(
+            expr,
+            result,
+            self.range_length,
+            min_row_num,
+            &self.one_evaluation_lengths,
+        );
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -274,14 +295,29 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(self.pcs_proof_evaluations.len())
                 .collect();
 
+        // Always prepend input lengths to the one evaluation lengths
+        let table_length_map = table_refs
+            .iter()
+            .map(|table_ref| (table_ref, accessor.get_length(*table_ref)))
+            .collect::<IndexMap<_, _>>();
+
+        let one_evaluation_lengths = table_length_map
+            .values()
+            .chain(self.one_evaluation_lengths.iter())
+            .copied();
+
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
             self.range_length,
-            owned_table_result.num_rows(),
+            one_evaluation_lengths,
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations,
         );
+        let one_eval_map: IndexMap<TableRef, CP::Scalar> = table_length_map
+            .iter()
+            .map(|(table_ref, length)| (**table_ref, sumcheck_evaluations.one_evaluations[length]))
+            .collect();
         let mut builder = VerificationBuilder::new(
             min_row_num,
             sumcheck_evaluations,
@@ -289,6 +325,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             sumcheck_random_scalars.subpolynomial_multipliers,
             &evaluation_random_scalars,
             post_result_challenges,
+            self.one_evaluation_lengths.clone(),
         );
 
         let pcs_proof_commitments: Vec<_> = column_references
@@ -305,11 +342,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &mut builder,
             &evaluation_accessor,
             Some(&owned_table_result),
+            &one_eval_map,
         )?;
         // compute the evaluation of the result MLEs
         let result_evaluations = owned_table_result.mle_evaluations(&subclaim.evaluation_point);
         // check the evaluation of the result MLEs
-        if verifier_evaluations != result_evaluations {
+        if verifier_evaluations.column_evals() != result_evaluations {
             Err(ProofError::VerificationError {
                 error: "result evaluation check failed",
             })?;
@@ -371,6 +409,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 ///
 /// * `min_row_num` - The smallest offset of the generator used in the proof, as a `usize`.
 ///
+/// * `one_evaluation_lengths` - A slice of `usize` values that represent unexpected intermediate table lengths
+///
 /// # Returns
 /// This function returns a `merlin::Transcript`. The transcript is a record
 /// of all the operations and data involved in creating a proof.
@@ -380,12 +420,14 @@ fn make_transcript<T: Transcript>(
     result: &ProvableQueryResult,
     range_length: usize,
     min_row_num: usize,
+    one_evaluation_lengths: &[usize],
 ) -> T {
     let mut transcript = T::new();
     transcript.extend_serialize_as_le(result);
     transcript.extend_serialize_as_le(expr);
     transcript.extend_serialize_as_le(&range_length);
     transcript.extend_serialize_as_le(&min_row_num);
+    transcript.extend_serialize_as_le(one_evaluation_lengths);
     transcript
 }
 

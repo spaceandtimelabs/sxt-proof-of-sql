@@ -1,7 +1,7 @@
 use super::{EmptyExec, FilterExec, GroupByExec, ProjectionExec, TableExec};
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, OwnedTable, Table, TableRef},
+        database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,

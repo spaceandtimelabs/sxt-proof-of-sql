@@ -38,7 +38,7 @@ impl ProverEvaluate for DishonestFilterExec {
         &self,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
+    ) -> (Table<'a, S>, Vec<usize>) {
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -57,14 +57,15 @@ impl ProverEvaluate for DishonestFilterExec {
         // Compute filtered_columns
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
-        Table::<'a, S>::try_from_iter_with_options(
+        let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results
                 .iter()
                 .map(|expr| expr.alias)
                 .zip(filtered_columns),
             TableOptions::new(Some(output_length)),
         )
-        .expect("Failed to create table from iterator")
+        .expect("Failed to create table from iterator");
+        (res, vec![output_length])
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {

@@ -1,6 +1,8 @@
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, OwnedTable, Table, TableOptions, TableRef},
+        database::{
+            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
+        },
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -10,7 +12,7 @@ use crate::{
         VerificationBuilder,
     },
 };
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -41,11 +43,15 @@ impl ProofPlan for EmptyExec {
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        _builder: &mut VerificationBuilder<S>,
+        builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
-        Ok(Vec::new())
+        _one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
+        Ok(TableEvaluation::new(
+            Vec::<S>::new(),
+            builder.mle_evaluations.singleton_one_evaluation,
+        ))
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -67,10 +73,13 @@ impl ProverEvaluate for EmptyExec {
         &self,
         _alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
+    ) -> (Table<'a, S>, Vec<usize>) {
         // Create an empty table with one row
-        Table::<'a, S>::try_new_with_options(IndexMap::default(), TableOptions::new(Some(1)))
-            .unwrap()
+        (
+            Table::<'a, S>::try_new_with_options(IndexMap::default(), TableOptions::new(Some(1)))
+                .unwrap(),
+            vec![],
+        )
     }
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}

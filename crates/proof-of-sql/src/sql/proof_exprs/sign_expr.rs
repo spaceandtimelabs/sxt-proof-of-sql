@@ -152,7 +152,7 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     if dist.num_varying_bits() == 1 {
         verify_constant_abs_decomposition(&dist, eval, one_eval, bit_evals[0])?;
     } else {
-        verify_bit_decomposition(builder, eval, &bit_evals, &dist);
+        verify_bit_decomposition(builder, eval, one_eval, &bit_evals, &dist);
     }
 
     Ok(*bit_evals.last().unwrap())
@@ -241,12 +241,13 @@ fn prove_bit_decomposition<'a, S: Scalar>(
 fn verify_bit_decomposition<S: Scalar>(
     builder: &mut VerificationBuilder<S>,
     expr_eval: S,
+    one_eval: S,
     bit_evals: &[S],
     dist: &BitDistribution,
 ) {
     let mut eval = expr_eval;
     let sign_eval = bit_evals.last().unwrap();
-    let sign_eval = builder.mle_evaluations.input_one_evaluation - S::TWO * *sign_eval;
+    let sign_eval = one_eval - S::TWO * *sign_eval;
     let mut vary_index = 0;
     eval -= sign_eval * S::from(dist.constant_part());
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {

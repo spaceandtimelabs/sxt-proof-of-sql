@@ -79,13 +79,14 @@ impl ProofExpr for EqualsExpr {
         &self,
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
+        one_eval: S,
     ) -> Result<S, ProofError> {
-        let lhs_eval = self.lhs.verifier_evaluate(builder, accessor)?;
-        let rhs_eval = self.rhs.verifier_evaluate(builder, accessor)?;
+        let lhs_eval = self.lhs.verifier_evaluate(builder, accessor, one_eval)?;
+        let rhs_eval = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, true);
-        Ok(verifier_evaluate_equals_zero(builder, res))
+        Ok(verifier_evaluate_equals_zero(builder, res, one_eval))
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
@@ -150,11 +151,12 @@ pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
 pub fn verifier_evaluate_equals_zero<S: Scalar>(
     builder: &mut VerificationBuilder<S>,
     lhs_eval: S,
+    one_eval: S,
 ) -> S {
     // consume mle evaluations
     let lhs_pseudo_inv_eval = builder.consume_intermediate_mle();
     let selection_not_eval = builder.consume_intermediate_mle();
-    let selection_eval = builder.mle_evaluations.input_one_evaluation - selection_not_eval;
+    let selection_eval = one_eval - selection_not_eval;
 
     // subpolynomial: selection * lhs
     builder.produce_sumcheck_subpolynomial_evaluation(

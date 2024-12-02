@@ -3,7 +3,7 @@ use crate::{
     base::{
         database::{
             filter_util::filter_columns, Column, ColumnField, ColumnRef, OwnedTable, Table,
-            TableOptions, TableRef,
+            TableEvaluation, TableOptions, TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -78,14 +78,24 @@ where
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-    ) -> Result<Vec<S>, ProofError> {
+        one_eval_map: &IndexMap<TableRef, S>,
+    ) -> Result<TableEvaluation<S>, ProofError> {
+        let input_one_eval = *one_eval_map
+            .get(&self.table.table_ref)
+            .expect("One eval not found");
         // 1. selection
-        let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
+        let selection_eval =
+            self.where_clause
+                .verifier_evaluate(builder, accessor, input_one_eval)?;
         // 2. columns
         let columns_evals = Vec::from_iter(
             self.aliased_results
                 .iter()
-                .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
+                .map(|aliased_expr| {
+                    aliased_expr
+                        .expr
+                        .verifier_evaluate(builder, accessor, input_one_eval)
+                })
                 .collect::<Result<Vec<_>, _>>()?,
         );
         // 3. filtered_columns
@@ -97,15 +107,22 @@ where
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
 
+        let output_one_eval = builder.consume_one_evaluation();
+
         verify_filter(
             builder,
             alpha,
             beta,
+            input_one_eval,
+            output_one_eval,
             &columns_evals,
             selection_eval,
             &filtered_columns_evals,
         )?;
-        Ok(filtered_columns_evals)
+        Ok(TableEvaluation::new(
+            filtered_columns_evals,
+            output_one_eval,
+        ))
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -141,7 +158,7 @@ impl ProverEvaluate for FilterExec {
         &self,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> Table<'a, S> {
+    ) -> (Table<'a, S>, Vec<usize>) {
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -161,14 +178,15 @@ impl ProverEvaluate for FilterExec {
 
         // Compute filtered_columns and indexes
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
-        Table::<'a, S>::try_from_iter_with_options(
+        let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results
                 .iter()
                 .map(|expr| expr.alias)
                 .zip(filtered_columns),
             TableOptions::new(Some(output_length)),
         )
-        .expect("Failed to create table from iterator")
+        .expect("Failed to create table from iterator");
+        (res, vec![output_length])
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
@@ -232,18 +250,17 @@ impl ProverEvaluate for FilterExec {
     }
 }
 
-#[allow(clippy::unnecessary_wraps)]
+#[allow(clippy::unnecessary_wraps, clippy::too_many_arguments)]
 fn verify_filter<S: Scalar>(
     builder: &mut VerificationBuilder<S>,
     alpha: S,
     beta: S,
+    one_eval: S,
+    chi_eval: S,
     c_evals: &[S],
     s_eval: S,
     d_evals: &[S],
 ) -> Result<(), ProofError> {
-    let one_eval = builder.mle_evaluations.input_one_evaluation;
-    let chi_eval = builder.mle_evaluations.output_one_evaluation;
-
     let c_fold_eval = alpha * one_eval + fold_vals(beta, c_evals);
     let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, d_evals);
     let c_star_eval = builder.consume_intermediate_mle();
