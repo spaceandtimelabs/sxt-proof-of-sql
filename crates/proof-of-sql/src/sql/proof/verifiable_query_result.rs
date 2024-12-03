@@ -112,46 +112,30 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// Note: a verified result can still respresent an error (e.g. overflow), but it is a verified
     /// error.
     ///
-    /// Note: This does NOT transform the result!4
-    /// # Panics
-    /// - Panics if:
-    ///   - `self.provable_result` is `None` but `self.proof` is `Some()`, or vice versa.
-    ///   - `self.proof.as_ref().unwrap()` is called but `self.proof` is `None`.
-    ///   - `self.provable_result.as_ref().unwrap()` is called but `self.provable_result` is `None`.
+    /// Note: This does NOT transform the result!
     pub fn verify(
         self,
         expr: &(impl ProofPlan + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
-        // a query must have at least one result column; if not, it should
-        // have been rejected at the parsing stage.
-
-        // handle the empty case
-        let table_refs = expr.get_table_references();
-        if table_refs
-            .into_iter()
-            .all(|table_ref| accessor.get_length(table_ref) == 0)
-        {
-            if self.provable_result.is_some() || self.proof.is_some() {
-                return Err(ProofError::VerificationError {
-                    error: "zero sumcheck variables but non-empty result",
-                })?;
+        match (self.provable_result, self.proof) {
+            (Some(provable_result), Some(proof)) => {
+                proof.verify(expr, accessor, provable_result, setup)
             }
-
-            let result_fields = expr.get_column_result_fields();
-
-            return make_empty_query_result(&result_fields);
+            (None, None)
+                if expr
+                    .get_table_references()
+                    .into_iter()
+                    .all(|table_ref| accessor.get_length(table_ref) == 0) =>
+            {
+                let result_fields = expr.get_column_result_fields();
+                make_empty_query_result(&result_fields)
+            }
+            _ => Err(ProofError::VerificationError {
+                error: "Proof does not match result: at least one is missing",
+            })?,
         }
-
-        if self.provable_result.is_none() || self.proof.is_none() {
-            return Err(ProofError::VerificationError {
-                error: "non-zero sumcheck variables but empty result",
-            })?;
-        }
-        self.proof
-            .unwrap()
-            .verify(expr, accessor, self.provable_result.unwrap(), setup)
     }
 }
 
