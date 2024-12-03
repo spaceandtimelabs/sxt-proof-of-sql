@@ -44,6 +44,22 @@ const ARITHMETIC_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     ),
     ("c", ColumnType::VarChar, None),
 ];
+const GROUPBY_TITLE: &str = "Group By";
+const GROUPBY_SQL: &str =
+    "SELECT a, COUNT(*) FROM table WHERE (c = TRUE) and (a <= b) and (a > 0) GROUP BY a";
+const GROUPBY_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
+    (
+        "a",
+        ColumnType::Int128,
+        Some(|size| (size / 10).max(10) as i64),
+    ),
+    (
+        "b",
+        ColumnType::TinyInt,
+        Some(|size| (size / 10).max(10) as i64),
+    ),
+    ("c", ColumnType::Boolean, None),
+];
 
 #[allow(clippy::type_complexity)]
 pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &[
@@ -58,4 +74,5 @@ pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &
         MULTI_COLUMN_FILTER_COLUMNS,
     ),
     (ARITHMETIC_TITLE, ARITHMETIC_SQL, ARITHMETIC_COLUMNS),
+    (GROUPBY_TITLE, GROUPBY_SQL, GROUPBY_COLUMNS),
 ];
