@@ -75,6 +75,17 @@ const AGGREGATE_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     ),
     ("c", ColumnType::VarChar, None),
 ];
+const BOOLEAN_FILTER_TITLE: &str = "Boolean Filter";
+const BOOLEAN_FILTER_SQL: &str = "SELECT * FROM table WHERE c = TRUE and b = 'aaa' or a = 0";
+const BOOLEAN_FILTER_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
+    (
+        "a",
+        ColumnType::BigInt,
+        Some(|size| (size / 10).max(10) as i64),
+    ),
+    ("b", ColumnType::VarChar, None),
+    ("c", ColumnType::Boolean, None),
+];
 
 #[allow(clippy::type_complexity)]
 pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &[
@@ -91,4 +102,9 @@ pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &
     (ARITHMETIC_TITLE, ARITHMETIC_SQL, ARITHMETIC_COLUMNS),
     (GROUPBY_TITLE, GROUPBY_SQL, GROUPBY_COLUMNS),
     (AGGREGATE_TITLE, AGGREGATE_SQL, AGGREGATE_COLUMNS),
+    (
+        BOOLEAN_FILTER_TITLE,
+        BOOLEAN_FILTER_SQL,
+        BOOLEAN_FILTER_COLUMNS,
+    ),
 ];
