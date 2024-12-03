@@ -29,7 +29,8 @@ const MULTI_COLUMN_FILTER_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     ("c", ColumnType::VarChar, None),
 ];
 const ARITHMETIC_TITLE: &str = "Arithmetic";
-const ARITHMETIC_SQL: &str = "SELECT a + b as r0, a * b - 2 as r1, c FROM table WHERE a >= b";
+const ARITHMETIC_SQL: &str =
+    "SELECT a + b as r0, a * b - 2 as r1, c FROM table WHERE a <= b AND a >= 0";
 const ARITHMETIC_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
@@ -38,7 +39,7 @@ const ARITHMETIC_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     ),
     (
         "b",
-        ColumnType::BigInt,
+        ColumnType::TinyInt,
         Some(|size| (size / 10).max(10) as i64),
     ),
     ("c", ColumnType::VarChar, None),
