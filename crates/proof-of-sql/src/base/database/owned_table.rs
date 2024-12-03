@@ -1,4 +1,4 @@
-use super::OwnedColumn;
+use super::{OwnedColumn, Table};
 use crate::base::{map::IndexMap, polynomial::compute_evaluation_vector, scalar::Scalar};
 use alloc::{vec, vec::Vec};
 use proof_of_sql_parser::Identifier;
@@ -104,5 +104,130 @@ impl<S: Scalar> core::ops::Index<&str> for OwnedTable<S> {
         self.table
             .get(&index.parse::<Identifier>().unwrap())
             .unwrap()
+    }
+}
+
+impl<'a, S: Scalar> From<&Table<'a, S>> for OwnedTable<S> {
+    fn from(value: &Table<'a, S>) -> Self {
+        OwnedTable::try_from_iter(
+            value
+                .inner_table()
+                .iter()
+                .map(|(name, column)| (*name, OwnedColumn::from(column))),
+        )
+        .expect("Tables should not have columns with differing lengths")
+    }
+}
+
+impl<'a, S: Scalar> From<Table<'a, S>> for OwnedTable<S> {
+    fn from(value: Table<'a, S>) -> Self {
+        OwnedTable::try_from_iter(
+            value
+                .into_inner()
+                .into_iter()
+                .map(|(name, column)| (name, OwnedColumn::from(&column))),
+        )
+        .expect("Tables should not have columns with differing lengths")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::OwnedTable;
+    use crate::base::{
+        database::{owned_table_utility::*, table_utility::*, Table, TableOptions},
+        map::indexmap,
+        scalar::test_scalar::TestScalar,
+    };
+    use bumpalo::Bump;
+    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+
+    #[test]
+    fn test_conversion_from_table_to_owned_table() {
+        let alloc = Bump::new();
+
+        let borrowed_table = table::<TestScalar>([
+            borrowed_bigint(
+                "bigint",
+                [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
+                &alloc,
+            ),
+            borrowed_int128(
+                "decimal",
+                [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX],
+                &alloc,
+            ),
+            borrowed_varchar(
+                "varchar",
+                ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
+                &alloc,
+            ),
+            borrowed_scalar("scalar", [0, 1, 2, 3, 4, 5, 6, 7, 8], &alloc),
+            borrowed_boolean(
+                "boolean",
+                [true, false, true, false, true, false, true, false, true],
+                &alloc,
+            ),
+            borrowed_timestamptz(
+                "time_stamp",
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc,
+                [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
+                &alloc,
+            ),
+        ]);
+
+        let expected_table = owned_table::<TestScalar>([
+            bigint("bigint", [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
+            int128("decimal", [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX]),
+            varchar("varchar", ["0", "1", "2", "3", "4", "5", "6", "7", "8"]),
+            scalar("scalar", [0, 1, 2, 3, 4, 5, 6, 7, 8]),
+            boolean(
+                "boolean",
+                [true, false, true, false, true, false, true, false, true],
+            ),
+            timestamptz(
+                "time_stamp",
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc,
+                [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
+            ),
+        ]);
+
+        assert_eq!(OwnedTable::from(&borrowed_table), expected_table);
+        assert_eq!(OwnedTable::from(borrowed_table), expected_table);
+    }
+
+    #[test]
+    fn test_empty_and_no_columns_tables() {
+        let alloc = Bump::new();
+        // Test with no rows
+        let empty_table = table::<TestScalar>([borrowed_bigint("bigint", [0; 0], &alloc)]);
+        let expected_empty_table = owned_table::<TestScalar>([bigint("bigint", [0; 0])]);
+        assert_eq!(OwnedTable::from(&empty_table), expected_empty_table);
+        assert_eq!(OwnedTable::from(empty_table), expected_empty_table);
+
+        // Test with no columns
+        let no_columns_table_no_rows =
+            Table::try_new_with_options(indexmap! {}, TableOptions::new(Some(0))).unwrap();
+        let no_columns_table_two_rows =
+            Table::try_new_with_options(indexmap! {}, TableOptions::new(Some(2))).unwrap();
+        let expected_no_columns_table = owned_table::<TestScalar>([]);
+        assert_eq!(
+            OwnedTable::from(&no_columns_table_no_rows),
+            expected_no_columns_table
+        );
+        assert_eq!(
+            OwnedTable::from(no_columns_table_no_rows),
+            expected_no_columns_table
+        );
+        assert_eq!(
+            OwnedTable::from(&no_columns_table_two_rows),
+            expected_no_columns_table
+        );
+        assert_eq!(
+            OwnedTable::from(no_columns_table_two_rows),
+            expected_no_columns_table
+        );
     }
 }
