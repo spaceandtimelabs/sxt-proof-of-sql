@@ -60,6 +60,21 @@ const GROUPBY_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     ),
     ("c", ColumnType::Boolean, None),
 ];
+const AGGREGATE_TITLE: &str = "Aggregate";
+const AGGREGATE_SQL: &str = "SELECT SUM(a) FROM table WHERE b = a OR c = 'ab'";
+const AGGREGATE_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
+    (
+        "a",
+        ColumnType::BigInt,
+        Some(|size| (size / 10).max(10) as i64),
+    ),
+    (
+        "b",
+        ColumnType::Int,
+        Some(|size| (size / 10).max(10) as i64),
+    ),
+    ("c", ColumnType::VarChar, None),
+];
 
 #[allow(clippy::type_complexity)]
 pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &[
@@ -75,4 +90,5 @@ pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &
     ),
     (ARITHMETIC_TITLE, ARITHMETIC_SQL, ARITHMETIC_COLUMNS),
     (GROUPBY_TITLE, GROUPBY_SQL, GROUPBY_COLUMNS),
+    (AGGREGATE_TITLE, AGGREGATE_SQL, AGGREGATE_COLUMNS),
 ];
