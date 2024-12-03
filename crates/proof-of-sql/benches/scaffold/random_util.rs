@@ -28,6 +28,17 @@ pub fn generate_random_columns<'a, S: Scalar>(
                     (ColumnType::Boolean, _) => {
                         Column::Boolean(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
                     }
+                    (ColumnType::TinyInt, None) => {
+                        Column::TinyInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
+                    }
+                    (ColumnType::TinyInt, Some(b)) => {
+                        Column::TinyInt(alloc.alloc_slice_fill_with(num_rows, |_| {
+                            let b_value = b(num_rows);
+                            let clamped_b_value =
+                                b_value.clamp(i8::MIN as i64, i8::MAX as i64) as i8;
+                            rng.gen_range(-clamped_b_value..=clamped_b_value)
+                        }))
+                    }                    
                     (ColumnType::BigInt, None) => {
                         Column::BigInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
                     }
