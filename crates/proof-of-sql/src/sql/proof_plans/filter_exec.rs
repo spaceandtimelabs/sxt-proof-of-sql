@@ -272,7 +272,7 @@ fn verify_filter<S: Scalar>(
         c_star_eval * s_eval - d_star_eval,
     );
 
-    // c_fold * c_star - 1 = 0
+    // c_fold * c_star - input_ones = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
         &SumcheckSubpolynomialType::Identity,
         c_fold_eval * c_star_eval - one_eval,
@@ -299,6 +299,7 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
     n: usize,
     m: usize,
 ) {
+    let input_ones = alloc.alloc_slice_fill_copy(n, true);
     let chi = alloc.alloc_slice_fill_copy(n, false);
     chi[..m].fill(true);
 
@@ -325,7 +326,7 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
         ],
     );
 
-    // c_fold * c_star - 1 = 0
+    // c_fold * c_star - input_ones = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -333,7 +334,7 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
                 S::one(),
                 vec![Box::new(c_star as &[_]), Box::new(c_fold as &[_])],
             ),
-            (-S::one(), vec![]),
+            (-S::one(), vec![Box::new(input_ones as &[_])]),
         ],
     );
 
