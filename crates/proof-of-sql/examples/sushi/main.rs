@@ -48,7 +48,7 @@ fn prove_and_verify_query(
         .verify(
             query_plan.proof_expr(),
             accessor,
-            &provable_result,
+            provable_result,
             &verifier_setup,
         )
         .unwrap();

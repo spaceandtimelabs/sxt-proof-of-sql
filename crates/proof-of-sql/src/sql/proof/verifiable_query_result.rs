@@ -149,12 +149,9 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
                 error: "non-zero sumcheck variables but empty result",
             })?;
         }
-        self.proof.as_ref().unwrap().verify(
-            expr,
-            accessor,
-            self.provable_result.as_ref().unwrap(),
-            setup,
-        )
+        self.proof
+            .unwrap()
+            .verify(expr, accessor, self.provable_result.unwrap(), setup)
     }
 }
 
