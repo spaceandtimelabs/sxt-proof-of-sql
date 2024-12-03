@@ -79,7 +79,7 @@ fn we_can_compare_indexes_by_columns_for_mixed_columns() {
 }
 
 #[test]
-fn we_can_compare_indexes_of_tables_by_columns() {
+fn we_can_compare_single_row_of_tables() {
     let left_slice_a = &[55, 44, 44, 66, 66, 77, 66, 66, 66, 66];
     let left_slice_b = &[22, 44, 55, 44, 33, 22, 22, 11, 22, 22];
     let left_slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
@@ -97,29 +97,29 @@ fn we_can_compare_indexes_of_tables_by_columns() {
     let right = &[right_column_a, right_column_b, right_column_c];
 
     assert_eq!(
-        compare_indexes_of_tables_by_columns(left, right, 0, 1).unwrap(),
+        compare_single_row_of_tables(left, right, 0, 1).unwrap(),
         Ordering::Greater
     );
     assert_eq!(
-        compare_indexes_of_tables_by_columns(left, right, 1, 2).unwrap(),
+        compare_single_row_of_tables(left, right, 1, 2).unwrap(),
         Ordering::Less
     );
     assert_eq!(
-        compare_indexes_of_tables_by_columns(left, right, 2, 3).unwrap(),
+        compare_single_row_of_tables(left, right, 2, 3).unwrap(),
         Ordering::Less
     );
     assert_eq!(
-        compare_indexes_of_tables_by_columns(left, right, 2, 1).unwrap(),
+        compare_single_row_of_tables(left, right, 2, 1).unwrap(),
         Ordering::Less
     );
     assert_eq!(
-        compare_indexes_of_tables_by_columns(left, right, 5, 0).unwrap(),
+        compare_single_row_of_tables(left, right, 5, 0).unwrap(),
         Ordering::Equal
     );
 }
 
 #[test]
-fn we_cannot_compare_indexes_of_tables_by_columns_if_type_mismatch() {
+fn we_cannot_compare_single_row_of_tables_if_type_mismatch() {
     let left_slice = &[55, 44, 66, 66, 66, 77, 66, 66, 66, 66];
     let right_slice = &[
         true, false, true, true, false, true, false, true, false, true,
@@ -129,7 +129,7 @@ fn we_cannot_compare_indexes_of_tables_by_columns_if_type_mismatch() {
     let left = &[left_column];
     let right = &[right_column];
     assert_eq!(
-        compare_indexes_of_tables_by_columns(left, right, 0, 1),
+        compare_single_row_of_tables(left, right, 0, 1),
         Err(TableOperationError::JoinIncompatibleTypes {
             left_type: ColumnType::BigInt,
             right_type: ColumnType::Boolean
