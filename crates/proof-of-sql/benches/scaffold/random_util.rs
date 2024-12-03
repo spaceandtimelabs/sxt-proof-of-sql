@@ -50,6 +50,17 @@ pub fn generate_random_columns<'a, S: Scalar>(
                             rng.gen_range(-clamped_b_value..=clamped_b_value)
                         }))
                     }
+                    (ColumnType::Int, None) => {
+                        Column::Int(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
+                    }
+                    (ColumnType::Int, Some(b)) => {
+                        Column::Int(alloc.alloc_slice_fill_with(num_rows, |_| {
+                            let b_value = b(num_rows);
+                            let clamped_b_value =
+                                b_value.clamp(i32::MIN as i64, i32::MAX as i64) as i32;
+                            rng.gen_range(-clamped_b_value..=clamped_b_value)
+                        }))
+                    }
                     (ColumnType::BigInt, None) => {
                         Column::BigInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
                     }
