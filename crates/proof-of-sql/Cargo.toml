@@ -51,6 +51,7 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 snafu = { workspace = true }
 sqlparser = { workspace = true }
+sysinfo = { workspace = true }
 tiny-keccak = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 zerocopy = { workspace = true }
@@ -188,4 +189,4 @@ required-features = ["test"]
 [[bench]]
 name = "jaeger_benches"
 harness = false
-required-features = ["blitzar"]
+# required-features = ["blitzar"]

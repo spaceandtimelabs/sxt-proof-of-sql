@@ -17,13 +17,13 @@ use proof_of_sql::proof_primitive::dory::{
 mod scaffold;
 use crate::scaffold::querys::QUERIES;
 use scaffold::jaeger_scaffold;
-use std::env;
+use std::{env, path::Path};
 
 const SIZE: usize = 1_000_000;
 
 #[allow(clippy::items_after_statements)]
 fn main() {
-    init_backend();
+    //init_backend();
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
     let tracer = opentelemetry_jaeger::new_agent_pipeline()
         .with_service_name("benches")
@@ -42,14 +42,14 @@ fn main() {
         .expect("Please specify the benchmark type: InnerProductProof or Dory");
 
     match benchmark_type.as_str() {
-        "InnerProductProof" => {
-            // Run 3 times to ensure that warm-up of the GPU has occurred.
-            for _ in 0..3 {
-                for (title, query, columns) in QUERIES {
-                    jaeger_scaffold::<InnerProductProof>(title, query, columns, SIZE, &(), &());
-                }
-            }
-        }
+        // "InnerProductProof" => {
+        //     // Run 3 times to ensure that warm-up of the GPU has occurred.
+        //     for _ in 0..3 {
+        //         for (title, query, columns) in QUERIES {
+        //             jaeger_scaffold::<InnerProductProof>(title, query, columns, SIZE, &(), &());
+        //         }
+        //     }
+        // }
         "Dory" => {
             // Run 3 times to ensure that warm-up of the GPU has occurred.
             let pp = PublicParameters::test_rand(10, &mut test_rng());
@@ -72,22 +72,57 @@ fn main() {
             }
         }
         "DynamicDory" => {
+            /*
             // Run 3 times to ensure that warm-up of the GPU has occurred.
             let public_parameters = PublicParameters::test_rand(11, &mut test_rng());
             let prover_setup = ProverSetup::from(&public_parameters);
             let verifier_setup = VerifierSetup::from(&public_parameters);
+            */
 
-            for _ in 0..3 {
+            /*
+            // Load with blitzar
+            let blitzar_handle_path = "/home/jacob.trombetta/sxt-proof-of-sql/data/blitzar_handle.bin";
+            let public_parameters_path = "/home/jacob.trombetta/sxt-proof-of-sql/data/public_parameters_nu_15.bin";
+            let verifier_setup_path = "/home/jacob.trombetta/sxt-proof-of-sql/data/verifier_setup_nu_15.bin";
+
+            let handle = blitzar::compute::MsmHandle::new_from_file(&blitzar_handle_path);
+            let params =
+                PublicParameters::load_from_file(Path::new(&public_parameters_path)).unwrap();
+
+            let prover_setup =
+                ProverSetup::from_public_parameters_and_blitzar_handle(&params, handle);
+            let verifier_setup = VerifierSetup::load_from_file(Path::new(&verifier_setup_path))
+                .expect("Failed to load VerifierSetup");            
+            */
+
+            // Load without blitzar
+            let public_parameters_path = "/home/jacob.trombetta/sxt-proof-of-sql/data/public_parameters_nu_15.bin";
+            let verifier_setup_path = "/home/jacob.trombetta/sxt-proof-of-sql/data/verifier_setup_nu_15.bin";
+
+            let params =
+                PublicParameters::load_from_file(Path::new(&public_parameters_path)).unwrap();
+
+            let prover_setup = ProverSetup::from(&params);
+            let verifier_setup = VerifierSetup::load_from_file(Path::new(&verifier_setup_path))
+                .expect("Failed to load VerifierSetup");
+
+            
+            let sizes = [1<<24];
+
+            for size in sizes {
+            //for _ in 0..3 {
+                dbg!("Starting {} data size on CPU", size);
                 for (title, query, columns) in QUERIES {
                     jaeger_scaffold::<DynamicDoryEvaluationProof>(
                         title,
                         query,
                         columns,
-                        SIZE,
+                        size,
                         &&prover_setup,
                         &&verifier_setup,
                     );
                 }
+                dbg!("Successfully ran benchmarks on {} data points", size);
             }
         }
         _ => panic!("Invalid benchmark type specified."),

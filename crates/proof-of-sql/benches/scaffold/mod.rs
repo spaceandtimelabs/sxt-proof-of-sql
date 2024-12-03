@@ -11,6 +11,7 @@ use benchmark_accessor::BenchmarkAccessor;
 pub mod querys;
 mod random_util;
 use random_util::{generate_random_columns, OptionalRandBound};
+use sysinfo::{System, SystemExt};
 
 /// # Panics
 ///
@@ -59,6 +60,19 @@ pub fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
     let mut accessor = BenchmarkAccessor::default();
     let mut rng = rand::thread_rng();
     let alloc = Bump::new();
+
+    // Print the current CPU memory usage
+    let mut system = System::new_all();
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("Begin creating jaeger_scaffold");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
+
     let (query, result) = scaffold::<CP>(
         query,
         columns,
@@ -68,6 +82,16 @@ pub fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
         &mut accessor,
         &mut rng,
     );
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("jaeger_scaffold created");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     result
         .verify(query.proof_expr(), &accessor, verifier_setup)
         .unwrap();

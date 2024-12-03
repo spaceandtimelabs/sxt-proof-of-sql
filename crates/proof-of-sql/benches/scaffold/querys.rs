@@ -46,15 +46,15 @@ const ARITHMETIC_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
 
 #[allow(clippy::type_complexity)]
 pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &[
-    (
-        SINGLE_COLUMN_FILTER_TITLE,
-        SINGLE_COLUMN_FILTER_SQL,
-        SINGLE_COLUMN_FILTER_COLUMNS,
-    ),
+    //(
+    //    SINGLE_COLUMN_FILTER_TITLE,
+    //    SINGLE_COLUMN_FILTER_SQL,
+    //    SINGLE_COLUMN_FILTER_COLUMNS,
+    //),
     (
         MULTI_COLUMN_FILTER_TITLE,
         MULTI_COLUMN_FILTER_SQL,
         MULTI_COLUMN_FILTER_COLUMNS,
     ),
-    (ARITHMETIC_TITLE, ARITHMETIC_SQL, ARITHMETIC_COLUMNS),
+    //(ARITHMETIC_TITLE, ARITHMETIC_SQL, ARITHMETIC_COLUMNS),
 ];

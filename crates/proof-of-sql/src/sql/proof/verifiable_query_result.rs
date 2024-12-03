@@ -9,6 +9,7 @@ use crate::base::{
 };
 use alloc::vec;
 use serde::{Deserialize, Serialize};
+use sysinfo::{System, SystemExt};
 
 /// The result of an sql query along with a proof that the query is valid. The
 /// result and proof can be verified using commitments to database columns.
@@ -126,6 +127,17 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     ) -> QueryResult<CP::Scalar> {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
+
+        // Print the current CPU memory usage
+        let mut system = System::new_all();
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("Begin VerifiableQueryResult::verify");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used);        
 
         // handle the empty case
         let table_refs = expr.get_table_references();
