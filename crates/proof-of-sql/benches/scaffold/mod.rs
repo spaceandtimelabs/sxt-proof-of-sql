@@ -74,7 +74,7 @@ pub fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
 }
 
 #[allow(dead_code, clippy::module_name_repetitions)]
-pub fn criterion_scaffold<CP: CommitmentEvaluationProof>(
+pub fn criterion_scaffold<CP: CommitmentEvaluationProof + Clone>(
     c: &mut Criterion,
     title: &str,
     query: &str,
@@ -107,7 +107,11 @@ pub fn criterion_scaffold<CP: CommitmentEvaluationProof>(
             });
         });
         group.bench_function("Verify Proof", |b| {
-            b.iter(|| result.verify(query.proof_expr(), &accessor, verifier_setup));
+            b.iter(|| {
+                result
+                    .clone()
+                    .verify(query.proof_expr(), &accessor, verifier_setup)
+            });
         });
     }
 }

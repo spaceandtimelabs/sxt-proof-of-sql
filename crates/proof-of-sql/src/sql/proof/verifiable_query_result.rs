@@ -119,7 +119,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     ///   - `self.proof.as_ref().unwrap()` is called but `self.proof` is `None`.
     ///   - `self.provable_result.as_ref().unwrap()` is called but `self.provable_result` is `None`.
     pub fn verify(
-        &self,
+        self,
         expr: &(impl ProofPlan + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         setup: &CP::VerifierPublicSetup<'_>,
