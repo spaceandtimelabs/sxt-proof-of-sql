@@ -37,7 +37,7 @@ fn we_can_prove_a_minimal_filter_query_with_curve25519() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, serialized_result, &())
         .unwrap()
         .table;
     let expected_result = owned_table([boolean("a", [true])]);
@@ -71,7 +71,7 @@ fn we_can_prove_a_minimal_filter_query_with_dory() {
         .verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &dory_verifier_setup,
         )
         .unwrap()
@@ -108,7 +108,7 @@ fn we_can_prove_a_minimal_filter_query_with_dynamic_dory() {
         .verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &&verifier_setup,
         )
         .unwrap()
@@ -135,7 +135,7 @@ fn we_can_prove_a_basic_equality_query_with_curve25519() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, serialized_result, &())
         .unwrap()
         .table;
     let expected_result = owned_table([bigint("a", [1, 3]), bigint("b", [1, 1])]);
@@ -169,7 +169,7 @@ fn we_can_prove_a_basic_equality_query_with_dory() {
         .verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &dory_verifier_setup,
         )
         .unwrap()
@@ -196,7 +196,7 @@ fn we_can_prove_a_basic_inequality_query_with_curve25519() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, serialized_result, &())
         .unwrap()
         .table;
     let expected_result = owned_table([bigint("a", [1, 3]), bigint("b", [1, 2])]);
@@ -227,7 +227,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_curve25519() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, serialized_result, &())
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -273,7 +273,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
         .verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &dory_verifier_setup,
         )
         .unwrap()
@@ -306,7 +306,7 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, serialized_result, &())
         .unwrap()
         .table;
     let transformed_result: OwnedTable<Curve25519Scalar> =
@@ -341,7 +341,7 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
         .verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &dory_verifier_setup,
         )
         .unwrap()
@@ -373,7 +373,7 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, serialized_result, &())
         .unwrap()
         .table;
     let transformed_result: OwnedTable<Curve25519Scalar> =
@@ -409,7 +409,7 @@ fn we_can_prove_a_basic_inequality_query_with_dory() {
         .verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &dory_verifier_setup,
         )
         .unwrap()
@@ -468,7 +468,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, serialized_result, &())
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -518,7 +518,7 @@ fn we_can_prove_a_complex_query_with_dory() {
         .verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &dory_verifier_setup,
         )
         .unwrap()
@@ -553,7 +553,7 @@ fn we_can_prove_a_minimal_group_by_query_with_curve25519() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result: OwnedTable<Curve25519Scalar> = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, serialized_result, &())
         .unwrap()
         .table;
     let transformed_result: OwnedTable<Curve25519Scalar> =
@@ -587,7 +587,7 @@ fn we_can_prove_a_basic_group_by_query_with_curve25519() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, serialized_result, &())
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -650,7 +650,7 @@ fn we_can_prove_a_cat_group_by_query_with_curve25519() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, serialized_result, &())
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -728,7 +728,7 @@ fn we_can_prove_a_cat_group_by_query_with_dynamic_dory() {
         .verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &&verifier_setup,
         )
         .unwrap()
@@ -773,7 +773,7 @@ fn we_can_prove_a_basic_group_by_query_with_dory() {
         .verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &dory_verifier_setup,
         )
         .unwrap()
@@ -805,7 +805,7 @@ fn we_can_prove_a_query_with_overflow_with_curve25519() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     assert!(matches!(
-        proof.verify(query.proof_expr(), &accessor, &serialized_result, &()),
+        proof.verify(query.proof_expr(), &accessor, serialized_result, &()),
         Err(QueryError::Overflow)
     ));
 }
@@ -837,7 +837,7 @@ fn we_can_prove_a_query_with_overflow_with_dory() {
         proof.verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &dory_verifier_setup
         ),
         Err(QueryError::Overflow)
@@ -868,7 +868,7 @@ fn we_can_perform_arithmetic_and_conditional_operations_on_tinyint() {
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, serialized_result, &())
         .unwrap()
         .table;
     let expected_result = owned_table([tinyint("result", [9_i8, 10])]);

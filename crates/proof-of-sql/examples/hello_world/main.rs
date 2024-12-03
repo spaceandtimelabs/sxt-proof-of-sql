@@ -80,7 +80,7 @@ fn main() {
     let result = proof.verify(
         query.proof_expr(),
         &accessor,
-        &serialized_result,
+        serialized_result,
         &&verifier_setup,
     );
     end_timer(timer);

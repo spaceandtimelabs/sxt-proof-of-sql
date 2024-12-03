@@ -57,7 +57,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
         .verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &dory_verifier_setup,
         )
         .unwrap()
@@ -450,7 +450,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
         .verify(
             query.proof_expr(),
             &accessor,
-            &serialized_result,
+            serialized_result,
             &dory_verifier_setup,
         )
         .unwrap()

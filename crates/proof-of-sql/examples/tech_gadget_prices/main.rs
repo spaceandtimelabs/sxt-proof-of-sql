@@ -44,7 +44,7 @@ fn prove_and_verify_query(
     let result = proof.verify(
         query_plan.proof_expr(),
         accessor,
-        &provable_result,
+        provable_result,
         &verifier_setup,
     )?;
     println!("Verified in {} ms.", now.elapsed().as_secs_f64() * 1000.);
