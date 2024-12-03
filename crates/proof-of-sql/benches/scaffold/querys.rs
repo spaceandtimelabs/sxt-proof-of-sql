@@ -118,6 +118,27 @@ const LARGE_COLUMN_SET_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     ("g", ColumnType::VarChar, None),
     ("h", ColumnType::Scalar, None),
 ];
+const COMPLEX_CONDITION_TITLE: &str = "Complex Condition";
+const COMPLEX_CONDITION_SQL: &str =
+    "SELECT * FROM table WHERE (a > c * c AND b < c + 10) OR (d = 'abc')";
+const COMPLEX_CONDITION_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
+    (
+        "a",
+        ColumnType::BigInt,
+        Some(|size| (size / 10).max(10) as i64),
+    ),
+    (
+        "b",
+        ColumnType::BigInt,
+        Some(|size| (size / 10).max(10) as i64),
+    ),
+    (
+        "c",
+        ColumnType::Int128,
+        Some(|size| (size / 10).max(10) as i64),
+    ),
+    ("d", ColumnType::VarChar, None),
+];
 
 #[allow(clippy::type_complexity)]
 pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &[
@@ -144,4 +165,9 @@ pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &
         LARGE_COLUMN_SET_SQL,
         LARGE_COLUMN_SET_COLUMNS,
     ),
+    (
+        COMPLEX_CONDITION_TITLE,
+        COMPLEX_CONDITION_SQL,
+        COMPLEX_CONDITION_COLUMNS,
+    ),    
 ];
