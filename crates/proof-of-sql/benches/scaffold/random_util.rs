@@ -93,6 +93,21 @@ pub fn generate_random_columns<'a, S: Scalar>(
                             alloc.alloc_slice_fill_iter(strs.iter().map(|&s| Into::into(s))),
                         ))
                     }
+                    (ColumnType::Scalar, _) => {
+                        let strs = alloc.alloc_slice_fill_with(num_rows, |_| {
+                            let len = rng
+                                .gen_range(0..=bound.map(|b| b(num_rows) as usize).unwrap_or(10));
+                            alloc.alloc_str(
+                                &rng.sample_iter(&rand::distributions::Alphanumeric)
+                                    .take(len)
+                                    .map(char::from)
+                                    .collect::<String>(),
+                            ) as &str
+                        });
+                        Column::Scalar(
+                            alloc.alloc_slice_fill_iter(strs.iter().map(|&s| Into::into(s))),
+                        )
+                    }
                     _ => todo!(),
                 },
             )
