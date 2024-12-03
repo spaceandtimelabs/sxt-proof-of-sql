@@ -8,18 +8,18 @@
 //! logarithmic derivatives to perform multivariate lookups in cryptographic protocols.
 //!
 //! ## Key Steps:
-//! * **Word-Sized Decomposition**: Each scalar is decomposed into its byte-level representation, forming a matrix where
+//! * Word-Sized Decomposition: Each scalar is decomposed into its byte-level representation, forming a matrix where
 //!   each row corresponds to the decomposition of a scalar and each column corresponds to the bytes from the same position
 //!   across all scalars.
-//! * **Intermediate MLE Computation**: Multi-linear extensions are computed for each word column and for the count of how
+//! * Intermediate MLE Computation: Multi-linear extensions are computed for each word column and for the count of how
 //!   often each word appears.
-//! * **Logarithmic Derivative Calculation**: After decomposing the scalars, the verifier's challenge is added to each word,
+//! * Logarithmic Derivative Calculation: After decomposing the scalars, the verifier's challenge is added to each word,
 //!   and the modular multiplicative inverse of this sum is computed, forming a new matrix of logarithmic derivatives.
 //!   This matrix is key to constructing range constraints.
 //!
 //! ## Optimization Opportunities:
-//! * **Batch Inversion**: Inversions of large vectors are computationally expensive
-//! * **Parallelization**: Single-threaded execution of these operations is a performance bottleneck
+//! * Batch Inversion: Inversions of large vectors are computationally expensive
+//! * Parallelization: Single-threaded execution of these operations is a performance bottleneck
 use crate::{
     base::{polynomial::MultilinearExtension, scalar::Scalar, slice_ops},
     sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
@@ -28,12 +28,13 @@ use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use bytemuck::cast_slice;
 use core::cmp::max;
+
 /// Prove that a word-wise decomposition of a collection of scalars
-/// are all within the range 0 to 2^248.
+/// are all within the range 0 to 2^248. (want this power to be flexible, want to pick word size and range)
 #[allow(clippy::missing_panics_doc)]
-pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
+pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
-    scalars: &mut [S],
+    scalars: &[S],
     alloc: &'a Bump,
 ) {
     // Create 31 columns, each will collect the corresponding word from all scalars.
@@ -110,6 +111,8 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
 }
 
 /// Verify the prover claim
+/// need a check that decomposition is correct
+///
 pub fn verifier_evaluate_range_check<C>(builder: &mut VerificationBuilder<'_, C>)
 where
     C: Scalar,
@@ -117,7 +120,6 @@ where
     let _alpha = builder.consume_post_result_challenge();
     let mut w_plus_alpha_inv_evals: Vec<_> = Vec::with_capacity(31);
 
-    // Step 1:
     // Consume the (wᵢⱼ + α)  and (wᵢⱼ + α)⁻¹ MLEs
     for _ in 0..31 {
         let w_plus_alpha_eval = builder.consume_intermediate_mle();
@@ -136,7 +138,6 @@ where
         );
     }
 
-    // Step 2:
     // Consume the (word_values + α)⁻¹ * (word_values + α) MLEs:
     let word_plus_alpha_evals = builder.consume_intermediate_mle();
     let inverted_word_values_eval = builder.consume_intermediate_mle();
@@ -210,7 +211,7 @@ use alloc::vec;
 #[allow(clippy::cast_possible_truncation)]
 fn prove_word_values<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
-    scalars: &mut [S],
+    scalars: &[S],
     alpha: S,
     builder: &mut FinalRoundBuilder<'a, S>,
 ) {
@@ -255,7 +256,7 @@ fn prove_word_values<'a, S: Scalar + 'a>(
 /// ------------------------------------------------------------
 /// ```
 fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
-    scalars: &mut [S],
+    scalars: &[S],
     word_columns: &mut [&mut [u8]],
     byte_counts: &mut [i64],
 ) {
