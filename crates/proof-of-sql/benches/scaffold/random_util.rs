@@ -25,6 +25,9 @@ pub fn generate_random_columns<'a, S: Scalar>(
             (
                 id.parse().unwrap(),
                 match (ty, bound) {
+                    (ColumnType::Boolean, _) => {
+                        Column::Boolean(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
+                    }
                     (ColumnType::BigInt, None) => {
                         Column::BigInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
                     }
@@ -32,9 +35,6 @@ pub fn generate_random_columns<'a, S: Scalar>(
                         Column::BigInt(alloc.alloc_slice_fill_with(num_rows, |_| {
                             rng.gen_range(-b(num_rows)..=b(num_rows))
                         }))
-                    }
-                    (ColumnType::Boolean, _) => {
-                        Column::Boolean(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
                     }
                     (ColumnType::Int128, None) => {
                         Column::Int128(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
