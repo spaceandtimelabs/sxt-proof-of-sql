@@ -1,6 +1,7 @@
 use super::{ColumnRepeatOp, ElementwiseRepeatOp, RepetitionOp, Table, TableOptions};
-use crate::base::scalar::Scalar;
+use crate::base::{if_rayon, scalar::Scalar};
 use bumpalo::Bump;
+use itertools::Itertools;
 
 /// Compute the CROSS JOIN / cartesian product of two tables.
 ///
@@ -32,6 +33,96 @@ pub fn cross_join<'a, S: Scalar>(
         TableOptions::new(Some(product_num_rows)),
     )
     .expect("Table creation should not fail")
+}
+
+/// Compute the JOIN of two tables using a sort-merge join.
+///
+/// Currently we only support INNER JOINs and only support joins on equalities.
+/// # Panics
+/// The function panics if we feed in incorrect data (e.g. Num of rows in `left` and some column of `left_on` being different).
+pub fn sort_merge_join<'a, S: Scalar>(
+    left: &Table<'a, S>,
+    right: &Table<'a, S>,
+    left_on: &[Column<'a, S>],
+    right_on: &[Column<'a, S>],
+    alloc: &'a Bump,
+) -> Table<'a, S> {
+    let left_num_rows = left.num_rows();
+    let right_num_rows = right.num_rows();
+    // Check that the number of rows is good
+    for column in left_on.iter() {
+        assert_eq!(column.len(), left_num_rows);
+    }
+    for column in right_on.iter() {
+        assert_eq!(column.len(), right_num_rows);
+    }
+    // First of all sort the tables by the columns we are joining on
+    let left_indexes = if_rayon!(
+        (0..left.num_rows()).par_sort_unstable_by(|&a, &b| compare_indexes_by_columns(
+            left_join_cols,
+            a,
+            b
+        )),
+        (0..left.num_rows())..sort_unstable_by(|&a, &b| compare_indexes_by_columns(
+            left_join_cols
+            a,
+            b
+        ))
+    );
+    let right_indexes = if_rayon!(
+        (0..right.num_rows()).par_sort_unstable_by(|&a, &b| compare_indexes_by_columns(
+            right_join_cols,
+            a,
+            b
+        )),
+        (0..right.num_rows())..sort_unstable_by(|&a, &b| compare_indexes_by_columns(
+            right_join_cols
+            a,
+            b
+        ))
+    );
+    // Collect the indexes of the rows that match
+    let mut left_iter = left_indexes.into_iter().peekable();
+    let mut right_iter = right_indexes.into_iter().peekable();
+    let mut index_pairs = Vec::<(usize, usize)>::new();
+    while let (Some(&left_index), Some(&right_index)) = (left_iter.peek(), right_iter.peek()) {
+        match compare_indexes_of_tables_by_columns(
+            left_join_cols,
+            right_join_cols,
+            left_index,
+            right_index,
+        ) {
+            Ordering::Less => {
+                left_iter.next();
+            }
+            Ordering::Greater => {
+                right_iter.next();
+            }
+            Ordering::Equal => {
+                // Collect all matching indexes from the left table
+                let left_group: Vec<_> = left_iter
+                    .by_ref()
+                    .take_while(|item| {
+                        compare_indexes_by_columns(left_join_cols, left_index, item)
+                            == Ordering::Equal
+                    })
+                    .collect();
+                // Collect all matching indexes from the right table
+                let right_group: Vec<_> = right_iter
+                    .by_ref()
+                    .take_while(|item| {
+                        compare_indexes_by_columns(right_join_cols, right_index, item)
+                            == Ordering::Equal
+                    })
+                    .collect();
+                // Collect indexes
+                let matched_index_pairs = left_group.iter().cartesian_product(right_group.iter());
+                index_pairs.extend(matched_index_pairs);
+            }
+        }
+    }
+    // Now we have the indexes of the rows that match, we can create the new table
+    let (left_indexes, right_indexes) = index_pairs.iter().copied().unzip();
 }
 
 #[cfg(test)]

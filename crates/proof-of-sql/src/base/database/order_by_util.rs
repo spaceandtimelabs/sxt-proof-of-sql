@@ -1,6 +1,6 @@
 //! Contains the utility functions for ordering.
 use crate::base::{
-    database::{Column, OwnedColumn},
+    database::{Column, OwnedColumn, TableOperationError, TableOperationResult},
     scalar::{Scalar, ScalarExt},
 };
 use alloc::vec::Vec;
@@ -29,6 +29,65 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
+}
+
+/// Compares the tuples `(left[0][i], left[1][i], ...)` and
+/// `(right[0][j], right[1][j], ...)` in lexicographic order.
+///
+/// Requires that columns in `left` and `right` have the same column types for now
+///
+/// # Panics
+/// Panics if `left` and `right` have different number of columns
+/// which should never happen since this function should only be called
+/// for joins.
+#[allow(dead_code)]
+pub(crate) fn compare_indexes_of_tables_by_columns<S: Scalar>(
+    left: &[Column<S>],
+    right: &[Column<S>],
+    i: usize,
+    j: usize,
+) -> TableOperationResult<Ordering> {
+    // Should never happen
+    assert_eq!(left.len(), right.len());
+    for col in 0..left.len() {
+        if left[col].column_type() != right[col].column_type() {
+            return Err(TableOperationError::JoinIncompatibleTypes {
+                left_type: left[col].column_type(),
+                right_type: right[col].column_type(),
+            });
+        }
+    }
+    Ok(left
+        .iter()
+        .zip(right.iter())
+        .map(|(left_col, right_col)| match (left_col, right_col) {
+            (Column::Boolean(left_col), Column::Boolean(right_col)) => {
+                left_col[i].cmp(&right_col[j])
+            }
+            (Column::TinyInt(left_col), Column::TinyInt(right_col)) => {
+                left_col[i].cmp(&right_col[j])
+            }
+            (Column::SmallInt(left_col), Column::SmallInt(right_col)) => {
+                left_col[i].cmp(&right_col[j])
+            }
+            (Column::Int(left_col), Column::Int(right_col)) => left_col[i].cmp(&right_col[j]),
+            (Column::BigInt(left_col), Column::BigInt(right_col))
+            | (Column::TimestampTZ(_, _, left_col), Column::TimestampTZ(_, _, right_col)) => {
+                left_col[i].cmp(&right_col[j])
+            }
+            (Column::Int128(left_col), Column::Int128(right_col)) => left_col[i].cmp(&right_col[j]),
+            (Column::Decimal75(_, _, left_col), Column::Decimal75(_, _, right_col)) => {
+                left_col[i].signed_cmp(&right_col[j])
+            }
+            (Column::Scalar(left_col), Column::Scalar(right_col)) => left_col[i].cmp(&right_col[j]),
+            (Column::VarChar((left_col, _)), Column::VarChar((right_col, _))) => {
+                left_col[i].cmp(right_col[j])
+            }
+            // Should never happen since we checked the column types
+            _ => unreachable!(),
+        })
+        .find(|&ord| ord != Ordering::Equal)
+        .unwrap_or(Ordering::Equal))
 }
 
 /// Compares the tuples `(order_by[0][i], order_by[1][i], ...)` and
