@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{order_by_util::*, Column, OwnedColumn},
+        database::{order_by_util::*, Column, ColumnType, OwnedColumn, TableOperationError},
         math::decimal::Precision,
         scalar::test_scalar::TestScalar,
     },
@@ -76,6 +76,65 @@ fn we_can_compare_indexes_by_columns_for_mixed_columns() {
     assert_eq!(compare_indexes_by_columns(columns, 3, 4), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 2, 7), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 6, 9), Ordering::Equal);
+}
+
+#[test]
+fn we_can_compare_single_row_of_tables() {
+    let left_slice_a = &[55, 44, 44, 66, 66, 77, 66, 66, 66, 66];
+    let left_slice_b = &[22, 44, 55, 44, 33, 22, 22, 11, 22, 22];
+    let left_slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
+    let left_column_a = Column::BigInt::<TestScalar>(left_slice_a);
+    let left_column_b = Column::BigInt::<TestScalar>(left_slice_b);
+    let left_column_c = Column::BigInt::<TestScalar>(left_slice_c);
+    let left = &[left_column_a, left_column_b, left_column_c];
+
+    let right_slice_a = &[77, 44, 66, 44, 77, 77, 66, 66, 55, 66];
+    let right_slice_b = &[22, 55, 11, 77, 33, 33, 22, 22, 22, 11];
+    let right_slice_c = &[11, 55, 22, 0, 77, 11, 33, 55, 11, 22];
+    let right_column_a = Column::BigInt::<TestScalar>(right_slice_a);
+    let right_column_b = Column::BigInt::<TestScalar>(right_slice_b);
+    let right_column_c = Column::BigInt::<TestScalar>(right_slice_c);
+    let right = &[right_column_a, right_column_b, right_column_c];
+
+    assert_eq!(
+        compare_single_row_of_tables(left, right, 0, 1).unwrap(),
+        Ordering::Greater
+    );
+    assert_eq!(
+        compare_single_row_of_tables(left, right, 1, 2).unwrap(),
+        Ordering::Less
+    );
+    assert_eq!(
+        compare_single_row_of_tables(left, right, 2, 3).unwrap(),
+        Ordering::Less
+    );
+    assert_eq!(
+        compare_single_row_of_tables(left, right, 2, 1).unwrap(),
+        Ordering::Less
+    );
+    assert_eq!(
+        compare_single_row_of_tables(left, right, 5, 0).unwrap(),
+        Ordering::Equal
+    );
+}
+
+#[test]
+fn we_cannot_compare_single_row_of_tables_if_type_mismatch() {
+    let left_slice = &[55, 44, 66, 66, 66, 77, 66, 66, 66, 66];
+    let right_slice = &[
+        true, false, true, true, false, true, false, true, false, true,
+    ];
+    let left_column = Column::BigInt::<TestScalar>(left_slice);
+    let right_column = Column::Boolean::<TestScalar>(right_slice);
+    let left = &[left_column];
+    let right = &[right_column];
+    assert_eq!(
+        compare_single_row_of_tables(left, right, 0, 1),
+        Err(TableOperationError::JoinIncompatibleTypes {
+            left_type: ColumnType::BigInt,
+            right_type: ColumnType::Boolean
+        })
+    );
 }
 
 #[test]
