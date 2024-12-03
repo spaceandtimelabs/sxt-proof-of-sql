@@ -69,9 +69,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct VerifiableQueryResult<CP: CommitmentEvaluationProof> {
     /// The result of the query in intermediate form.
-    pub provable_result: Option<ProvableQueryResult>,
+    pub(super) provable_result: Option<ProvableQueryResult>,
     /// The proof that the query result is valid.
-    pub proof: Option<QueryProof<CP>>,
+    pub(super) proof: Option<QueryProof<CP>>,
 }
 
 impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
