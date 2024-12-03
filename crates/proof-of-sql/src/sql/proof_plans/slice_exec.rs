@@ -1,4 +1,7 @@
-use super::{prove_filter, verify_filter, DynProofPlan};
+use super::{
+    filter_exec::{prove_filter, verify_filter},
+    DynProofPlan,
+};
 use crate::{
     base::{
         database::{
@@ -16,7 +19,8 @@ use crate::{
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
-use core::iter::repeat_with;
+use core::iter::{repeat, repeat_with};
+use itertools::repeat_n;
 use serde::{Deserialize, Serialize};
 
 /// `ProofPlan` for queries of the form
@@ -32,12 +36,11 @@ pub struct SliceExec {
 
 /// Get the boolean slice selection from the number of rows, skip and fetch
 fn get_slice_select(num_rows: usize, skip: usize, fetch: Option<usize>) -> Vec<bool> {
-    if let Some(fetch) = fetch {
-        let end = skip + fetch;
-        (0..num_rows).map(|i| i >= skip && i < end).collect()
-    } else {
-        (0..num_rows).map(|i| i >= skip).collect()
-    }
+    repeat_n(false, skip)
+        .chain(repeat_n(true, fetch.unwrap_or(num_rows)))
+        .chain(repeat(false))
+        .take(num_rows)
+        .collect()
 }
 
 impl SliceExec {
@@ -71,7 +74,12 @@ where
         one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         // 1. columns
-        // TODO: Make sure `GroupByExec` as self.input is supported
+        // We do not support `GroupByExec` as input for now
+        if let DynProofPlan::GroupBy(_) = *self.input {
+            return Err(ProofError::UnsupportedError {
+                error: "GroupByExec as input for another plan is not supported",
+            });
+        }
         let input_table_eval =
             self.input
                 .verifier_evaluate(builder, accessor, None, one_eval_map)?;
@@ -119,14 +127,16 @@ where
 }
 
 impl ProverEvaluate for SliceExec {
-    #[tracing::instrument(name = "SliceExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "SliceExec::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> (Table<'a, S>, Vec<usize>) {
         // 1. columns
-        let (input, input_one_eval_lengths) = self.input.result_evaluate(alloc, table_map);
+        let (input, input_one_eval_lengths) =
+            self.input.first_round_evaluate(builder, alloc, table_map);
         let input_length = input.num_rows();
         let columns = input.columns().copied().collect::<Vec<_>>();
         // 2. select
@@ -151,12 +161,8 @@ impl ProverEvaluate for SliceExec {
         .expect("Failed to create table from iterator");
         let mut one_eval_lengths = input_one_eval_lengths;
         one_eval_lengths.extend(vec![output_length, offset_index, max_index]);
-        (res, one_eval_lengths)
-    }
-
-    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
-        self.input.first_round_evaluate(builder);
         builder.request_post_result_challenges(2);
+        (res, one_eval_lengths)
     }
 
     #[tracing::instrument(name = "SliceExec::prover_evaluate", level = "debug", skip_all)]

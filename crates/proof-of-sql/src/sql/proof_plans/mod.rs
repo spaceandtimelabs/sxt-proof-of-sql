@@ -16,9 +16,9 @@ mod projection_exec_test;
 pub(crate) mod test_utility;
 
 mod filter_exec;
+pub(super) use filter_exec::FilterExec;
 #[cfg(test)]
 pub(crate) use filter_exec::OstensibleFilterExec;
-pub(crate) use filter_exec::{prove_filter, verify_filter, FilterExec};
 #[cfg(all(test, feature = "blitzar"))]
 mod filter_exec_test;
 #[cfg(all(test, feature = "blitzar"))]

@@ -249,7 +249,7 @@ impl ProverEvaluate for FilterExec {
 }
 
 #[allow(clippy::unnecessary_wraps, clippy::too_many_arguments)]
-pub(crate) fn verify_filter<S: Scalar>(
+pub(super) fn verify_filter<S: Scalar>(
     builder: &mut VerificationBuilder<S>,
     alpha: S,
     beta: S,
