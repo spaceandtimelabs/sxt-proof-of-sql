@@ -169,5 +169,5 @@ pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &
         COMPLEX_CONDITION_TITLE,
         COMPLEX_CONDITION_SQL,
         COMPLEX_CONDITION_COLUMNS,
-    ),    
+    ),
 ];
