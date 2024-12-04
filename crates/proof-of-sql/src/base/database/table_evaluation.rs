@@ -28,7 +28,7 @@ impl<S: Scalar> TableEvaluation<S> {
 
     /// Returns the evaluation of an all-one column with the same length as the table.
     #[must_use]
-    pub fn one_eval(&self) -> &S {
-        &self.one_eval
+    pub fn one_eval(&self) -> S {
+        self.one_eval
     }
 }

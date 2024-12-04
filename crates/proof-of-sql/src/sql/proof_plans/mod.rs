@@ -36,10 +36,14 @@ pub(crate) use group_by_exec::GroupByExec;
 mod group_by_exec_test;
 
 mod slice_exec;
-#[allow(unused_imports)]
 pub(crate) use slice_exec::SliceExec;
 #[cfg(all(test, feature = "blitzar"))]
 mod slice_exec_test;
+
+mod union_exec;
+pub(crate) use union_exec::UnionExec;
+#[cfg(all(test, feature = "blitzar"))]
+mod union_exec_test;
 
 mod dyn_proof_plan;
 pub use dyn_proof_plan::DynProofPlan;

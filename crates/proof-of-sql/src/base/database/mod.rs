@@ -117,7 +117,6 @@ pub(crate) mod group_by_util;
 #[cfg(test)]
 mod group_by_util_test;
 
-#[allow(dead_code)]
 pub(crate) mod union_util;
 
 pub(crate) mod order_by_util;
