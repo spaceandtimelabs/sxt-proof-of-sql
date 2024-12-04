@@ -540,7 +540,7 @@ fn we_cannot_prove_a_slice_exec_if_it_has_groupby_as_input_for_now() {
     assert!(matches!(
         res.verify(&expr, &accessor, &()),
         Err(QueryError::ProofError {
-            source: ProofError::UnsupportedError { .. }
+            source: ProofError::UnsupportedQueryPlan { .. }
         })
     ));
 }

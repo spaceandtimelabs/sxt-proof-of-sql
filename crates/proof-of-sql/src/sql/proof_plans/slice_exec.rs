@@ -75,8 +75,8 @@ where
     ) -> Result<TableEvaluation<S>, ProofError> {
         // 1. columns
         // We do not support `GroupByExec` as input for now
-        if let DynProofPlan::GroupBy(_) = *self.input {
-            return Err(ProofError::UnsupportedError {
+        if matches!(*self.input, DynProofPlan::GroupBy(_)) {
+            return Err(ProofError::UnsupportedQueryPlan {
                 error: "GroupByExec as input for another plan is not supported",
             });
         }
