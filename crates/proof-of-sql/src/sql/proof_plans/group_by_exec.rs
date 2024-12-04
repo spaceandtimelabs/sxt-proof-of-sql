@@ -213,7 +213,7 @@ impl ProverEvaluate for GroupByExec {
         builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
+    ) -> Table<'a, S> {
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -257,7 +257,8 @@ impl ProverEvaluate for GroupByExec {
         )
         .expect("Failed to create table from column references");
         builder.request_post_result_challenges(2);
-        (res, vec![count_column.len()])
+        builder.produce_one_evaluation_length(count_column.len());
+        res
     }
 
     #[tracing::instrument(name = "GroupByExec::final_round_evaluate", level = "debug", skip_all)]
