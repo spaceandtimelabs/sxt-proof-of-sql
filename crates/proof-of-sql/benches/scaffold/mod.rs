@@ -29,14 +29,54 @@ fn scaffold<'a, CP: CommitmentEvaluationProof>(
     accessor: &mut BenchmarkAccessor<'a, CP::Commitment>,
     rng: &mut impl Rng,
 ) -> (QueryExpr, VerifiableQueryResult<CP>) {
+    let mut system = System::new_all();
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("Begin creating scaffold");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     accessor.insert_table(
         "bench.table".parse().unwrap(),
         &generate_random_columns(alloc, rng, columns, size),
         prover_setup,
     );
+    
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("End insert_table");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     let query =
         QueryExpr::try_new(query.parse().unwrap(), "bench".parse().unwrap(), accessor).unwrap();
+
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("End QueryExpr::try_new");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used);
+
     let result = VerifiableQueryResult::new(query.proof_expr(), accessor, prover_setup);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("End VerifiableQueryResult::new");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     (query, result)
 }
 

@@ -12,6 +12,7 @@ use crate::{
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
+use sysinfo::{System, SystemExt};
 
 /// Provable AST expression for an equals expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -110,18 +111,84 @@ pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
 ) -> &'a [bool] {
     let table_length = builder.table_length();
 
+    let mut system = System::new_all();
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("Start lhs_pseudo_inv");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);   
+
     // lhs_pseudo_inv
     let lhs_pseudo_inv = alloc.alloc_slice_copy(lhs);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("End lhs_pseudo_inv");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);  
+
     slice_ops::batch_inversion(lhs_pseudo_inv);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("End batch_inversion");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);  
 
     builder.produce_intermediate_mle(lhs_pseudo_inv as &[_]);
 
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("End produce_intermediate_mle");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);  
+
     // selection_not
     let selection_not: &[_] = alloc.alloc_slice_fill_with(table_length, |i| lhs[i] != S::zero());
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("End alloc_slice_fill_with");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);  
+
     builder.produce_intermediate_mle(selection_not);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("End produce_intermediate_mle");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);  
 
     // selection
     let selection: &[_] = alloc.alloc_slice_fill_with(table_length, |i| !selection_not[i]);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("Start produce_sumcheck_subpolynomial");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);  
 
     // subpolynomial: selection * lhs
     builder.produce_sumcheck_subpolynomial(

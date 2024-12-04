@@ -71,6 +71,16 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> (Self, ProvableQueryResult) {
+        let mut system = System::new_all();
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("Start QueryProof::new");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used);           
+
         let (min_row_num, max_row_num) = get_index_range(accessor, expr.get_table_references());
         let range_length = max_row_num - min_row_num;
         let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
@@ -82,7 +92,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         system.refresh_all();
         let total_memory = system.total_memory();
         let used_memory = system.used_memory();
-        dbg!("Begin QueryProof::new");
+        dbg!("Start result_evaluate");
         dbg!(total_memory);
         dbg!(used_memory);
         let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
@@ -90,34 +100,63 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // Evaluate query result
         let result_cols = expr.result_evaluate(range_length, &alloc, accessor);
+
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("End result_evaluate");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used);  
+
         let output_length = result_cols.first().map_or(0, Column::len);
         let provable_result = ProvableQueryResult::new(output_length as u64, &result_cols);
 
         // Prover First Round
         let mut first_round_builder = FirstRoundBuilder::new();
+
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("Begin first_round_evaluate");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used);  
+
         expr.first_round_evaluate(&mut first_round_builder);
 
         system.refresh_all();
         let total_memory = system.total_memory();
         let used_memory = system.used_memory();
-        dbg!("Begin make_transcript");
+        dbg!("End first_round_evaluate");
         dbg!(total_memory);
         dbg!(used_memory);
         let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used);   
+        dbg!(memory_used);  
+
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin make_transcript");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used);   
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript =
             make_transcript(expr, &provable_result, range_length, min_row_num);
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin post_result_challenges");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used); 
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin post_result_challenges");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used); 
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -129,26 +168,26 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(first_round_builder.num_post_result_challenges())
                 .collect();
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("FinalRoundBuilder::new");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used); 
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("FinalRoundBuilder::new");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used); 
 
         let mut builder =
             FinalRoundBuilder::new(range_length, num_sumcheck_variables, post_result_challenges);
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin produce_anchored_mle");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used); 
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin produce_anchored_mle");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used); 
 
         expr.get_column_references().into_iter().for_each(|col| {
             builder.produce_anchored_mle(accessor.get_column(col));
@@ -168,7 +207,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         system.refresh_all();
         let total_memory = system.total_memory();
         let used_memory = system.used_memory();
-        dbg!("Begin num_sumcheck_variables");
+        dbg!("End final_round_evaluate");
         dbg!(total_memory);
         dbg!(used_memory);
         let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
@@ -176,50 +215,50 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let num_sumcheck_variables = builder.num_sumcheck_variables();
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin commit_intermediate_mles");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used);   
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin commit_intermediate_mles");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used);   
 
         // commit to any intermediate MLEs
         let commitments = builder.commit_intermediate_mles(min_row_num, setup);
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin extend_transcript");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used); 
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin extend_transcript");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used); 
 
         // add the commitments and bit distributions to the proof
         extend_transcript(&mut transcript, &commitments, builder.bit_distributions());
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin num_sumcheck_subpolynomials");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used); 
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin num_sumcheck_subpolynomials");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used); 
 
         // construct the sumcheck polynomial
         let num_random_scalars = num_sumcheck_variables + builder.num_sumcheck_subpolynomials();
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin random_scalars");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used); 
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin random_scalars");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used); 
 
         let random_scalars: Vec<_> =
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
@@ -229,7 +268,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         system.refresh_all();
         let total_memory = system.total_memory();
         let used_memory = system.used_memory();
-        dbg!("Begin sumcheck_state");
+        dbg!("Begin make_sumcheck_prover_state");
         dbg!(total_memory);
         dbg!(used_memory);
         let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
@@ -244,7 +283,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         system.refresh_all();
         let total_memory = system.total_memory();
         let used_memory = system.used_memory();
-        dbg!("Begin SumcheckProof::create");
+        dbg!("End make_sumcheck_prover_state");
         dbg!(total_memory);
         dbg!(used_memory);
         let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
@@ -255,50 +294,50 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let sumcheck_proof =
             SumcheckProof::create(&mut transcript, &mut evaluation_point, sumcheck_state);
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin compute_evaluation_vector");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used); 
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin compute_evaluation_vector");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used); 
 
         // evaluate the MLEs used in sumcheck except for the result columns
         let mut evaluation_vec = vec![Zero::zero(); range_length];
         compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin evaluate_pcs_proof_mles");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used); 
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin evaluate_pcs_proof_mles");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used); 
 
         let pcs_proof_evaluations = builder.evaluate_pcs_proof_mles(&evaluation_vec);
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin extend_canonical_serialize_as_le");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used); 
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin extend_canonical_serialize_as_le");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used); 
 
         // commit to the MLE evaluations
         transcript.extend_canonical_serialize_as_le(&pcs_proof_evaluations);
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin random_scalars");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used); 
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin random_scalars");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used); 
 
         // fold together the pre result MLEs -- this will form the input to an inner product proof
         // of their evaluations (fold in this context means create a random linear combination)
@@ -307,25 +346,25 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(pcs_proof_evaluations.len())
                 .collect();
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin folded_mle");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used); 
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin folded_mle");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used); 
 
         let folded_mle = builder.fold_pcs_proof_mles(&random_scalars);
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin CP::new");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used);  
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin CP::new");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used);  
 
         // finally, form the inner product proof of the MLEs' evaluations
         let evaluation_proof = CP::new(
@@ -336,14 +375,14 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             setup,
         );
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("Begin proof");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used);  
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("Begin proof");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used);  
 
         let proof = Self {
             bit_distributions: builder.bit_distributions().to_vec(),
@@ -353,14 +392,14 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             evaluation_proof,
         };
 
-        system.refresh_all();
-        let total_memory = system.total_memory();
-        let used_memory = system.used_memory();
-        dbg!("End proof");
-        dbg!(total_memory);
-        dbg!(used_memory);
-        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
-        dbg!(memory_used);
+        // system.refresh_all();
+        // let total_memory = system.total_memory();
+        // let used_memory = system.used_memory();
+        // dbg!("End proof");
+        // dbg!(total_memory);
+        // dbg!(used_memory);
+        // let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        // dbg!(memory_used);
 
         (proof, provable_result)
     }

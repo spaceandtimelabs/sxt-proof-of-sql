@@ -23,6 +23,7 @@ use bumpalo::Bump;
 use core::{iter::repeat_with, marker::PhantomData};
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
+use sysinfo::{System, SystemExt};
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -143,13 +144,43 @@ impl ProverEvaluate for FilterExec {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
+
+        let mut system = System::new_all();
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("Start FilterExec::result_evaluate");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used);    
+
         // 1. selection
         let selection_column: Column<'a, S> =
             self.where_clause
                 .result_evaluate(input_length, alloc, accessor);
+
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("End FilterExec::result_evaluate");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used);    
+        
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
+
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("Begin FilterExec::columns");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used);    
 
         // 2. columns
         let columns: Vec<_> = self
@@ -162,13 +193,51 @@ impl ProverEvaluate for FilterExec {
             })
             .collect();
 
+            system.refresh_all();
+            let total_memory = system.total_memory();
+            let used_memory = system.used_memory();
+            dbg!("Begin FilterExec::filter_columns");
+            dbg!(total_memory);
+            dbg!(used_memory);
+            let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+            dbg!(memory_used);    
+
         // Compute filtered_columns and indexes
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
+
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("End FilterExec::filter_columns");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used);    
+
         filtered_columns
     }
 
     fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
+        let mut system = System::new_all();
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("Start FilterExec::first_round_evaluate");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used); 
+
         builder.request_post_result_challenges(2);
+
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("End FilterExec::first_round_evaluate");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used); 
     }
 
     #[tracing::instrument(name = "FilterExec::final_round_evaluate", level = "debug", skip_all)]
@@ -179,12 +248,42 @@ impl ProverEvaluate for FilterExec {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
+
+        let mut system = System::new_all();
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("Start FilterExec::final_round_evaluate");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used); 
+
         // 1. selection
         let selection_column: Column<'a, S> =
             self.where_clause.prover_evaluate(builder, alloc, accessor);
+
+            system.refresh_all();
+            let total_memory = system.total_memory();
+            let used_memory = system.used_memory();
+            dbg!("End FilterExec::prover_evaluate");
+            dbg!(total_memory);
+            dbg!(used_memory);
+            let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+            dbg!(memory_used); 
+
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
+
+            system.refresh_all();
+            let total_memory = system.total_memory();
+            let used_memory = system.used_memory();
+            dbg!("Start FilterExec::columns");
+            dbg!(total_memory);
+            dbg!(used_memory);
+            let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+            dbg!(memory_used); 
 
         // 2. columns
         let columns: Vec<_> = self
@@ -192,15 +291,63 @@ impl ProverEvaluate for FilterExec {
             .iter()
             .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
             .collect();
+
+            system.refresh_all();
+            let total_memory = system.total_memory();
+            let used_memory = system.used_memory();
+            dbg!("Start FilterExec::filter_columns");
+            dbg!(total_memory);
+            dbg!(used_memory);
+            let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+            dbg!(memory_used); 
+
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
+
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("Start FilterExec::produce_intermediate_mle");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used); 
+
         // 3. Produce MLEs
         filtered_columns.iter().copied().for_each(|column| {
             builder.produce_intermediate_mle(column);
         });
 
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("Start FilterExec::alpha");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used); 
+
         let alpha = builder.consume_post_result_challenge();
+
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("Start FilterExec::beta");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used); 
+
         let beta = builder.consume_post_result_challenge();
+
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("Start FilterExec::prove_filter");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used); 
 
         prove_filter::<S>(
             builder,
@@ -212,6 +359,16 @@ impl ProverEvaluate for FilterExec {
             &filtered_columns,
             result_len,
         );
+
+        system.refresh_all();
+        let total_memory = system.total_memory();
+        let used_memory = system.used_memory();
+        dbg!("End FilterExec::prove_filter");
+        dbg!(total_memory);
+        dbg!(used_memory);
+        let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+        dbg!(memory_used); 
+
         filtered_columns
     }
 }
@@ -265,23 +422,169 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
     d: &[Column<S>],
     m: usize,
 ) {
+    let mut system = System::new_all();
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 1");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     let n = builder.table_length();
+    
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 2");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     let chi = alloc.alloc_slice_fill_copy(n, false);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 3");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     chi[..m].fill(true);
 
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 4");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     let c_fold = alloc.alloc_slice_fill_copy(n, alpha);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 5");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     fold_columns(c_fold, One::one(), beta, c);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 6");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     let d_bar_fold = alloc.alloc_slice_fill_copy(n, alpha);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 7");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     fold_columns(d_bar_fold, One::one(), beta, d);
 
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 8");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     let c_star = alloc.alloc_slice_copy(c_fold);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 9");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     let d_star = alloc.alloc_slice_copy(d_bar_fold);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 10");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     d_star[m..].fill(Zero::zero());
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 11");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     slice_ops::batch_inversion(c_star);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 12");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     slice_ops::batch_inversion(&mut d_star[..m]);
 
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 13");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     builder.produce_intermediate_mle(c_star as &[_]);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 14");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     builder.produce_intermediate_mle(d_star as &[_]);
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 15");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
 
     // sum c_star * s - d_star = 0
     builder.produce_sumcheck_subpolynomial(
@@ -291,6 +594,15 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
             (-S::one(), vec![Box::new(d_star as &[_])]),
         ],
     );
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 16");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
 
     // c_fold * c_star - 1 = 0
     builder.produce_sumcheck_subpolynomial(
@@ -304,6 +616,15 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
         ],
     );
 
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 17");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
+
     // d_bar_fold * d_star - chi = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
@@ -315,4 +636,13 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
             (-S::one(), vec![Box::new(chi as &[_])]),
         ],
     );
+
+    system.refresh_all();
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    dbg!("   Prove filter 18");
+    dbg!(total_memory);
+    dbg!(used_memory);
+    let memory_used = ((used_memory as f32) / (total_memory as f32)) * 100.0;
+    dbg!(memory_used);
 }
