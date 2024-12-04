@@ -92,13 +92,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             })
             .collect();
 
-        // Evaluate query result
-        let (query_result, one_evaluation_lengths) = expr.result_evaluate(&alloc, &table_map);
+        // Prover First Round: Evaluate the query && get the right number of post result challenges
+        let mut first_round_builder = FirstRoundBuilder::new();
+        let (query_result, one_evaluation_lengths) =
+            expr.first_round_evaluate(&mut first_round_builder, &alloc, &table_map);
         let provable_result = query_result.into();
 
-        // Prover First Round
-        let mut first_round_builder = FirstRoundBuilder::new();
-        expr.first_round_evaluate(&mut first_round_builder);
         let range_length = one_evaluation_lengths
             .iter()
             .copied()
