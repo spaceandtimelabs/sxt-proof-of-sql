@@ -1,4 +1,4 @@
-use super::{EmptyExec, FilterExec, GroupByExec, ProjectionExec, SliceExec, TableExec};
+use super::{EmptyExec, FilterExec, GroupByExec, ProjectionExec, SliceExec, TableExec, UnionExec};
 use crate::{
     base::{
         database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
@@ -48,4 +48,14 @@ pub enum DynProofPlan {
     ///     <ProofPlan> LIMIT <fetch> [OFFSET <skip>]
     /// ```
     Slice(SliceExec),
+    /// `ProofPlan` for queries of the form
+    /// ```ignore
+    ///     <ProofPlan>
+    ///     UNION ALL
+    ///     <ProofPlan>
+    ///     ...
+    ///     UNION ALL
+    ///     <ProofPlan>
+    /// ```
+    Union(UnionExec),
 }
