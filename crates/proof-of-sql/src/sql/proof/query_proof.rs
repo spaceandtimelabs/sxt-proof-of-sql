@@ -49,7 +49,7 @@ fn get_index_range<'a>(
 /// cannot maintain any invariant on its data members; hence, they are
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Clone, Serialize, Deserialize)]
-pub struct QueryProof<CP: CommitmentEvaluationProof> {
+pub(super) struct QueryProof<CP: CommitmentEvaluationProof> {
     /// Bit distributions
     pub bit_distributions: Vec<BitDistribution>,
     /// One evaluation lengths
