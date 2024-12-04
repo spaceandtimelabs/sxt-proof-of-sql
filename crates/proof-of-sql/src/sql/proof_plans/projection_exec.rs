@@ -96,9 +96,14 @@ impl ProofPlan for ProjectionExec {
 }
 
 impl ProverEvaluate for ProjectionExec {
-    #[tracing::instrument(name = "ProjectionExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(
+        name = "ProjectionExec::first_round_evaluate",
+        level = "debug",
+        skip_all
+    )]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        _builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> (Table<'a, S>, Vec<usize>) {
@@ -119,8 +124,6 @@ impl ProverEvaluate for ProjectionExec {
             vec![],
         )
     }
-
-    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
     #[tracing::instrument(
         name = "ProjectionExec::final_round_evaluate",

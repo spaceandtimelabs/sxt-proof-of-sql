@@ -77,9 +77,10 @@ impl ProofPlan for TableExec {
 }
 
 impl ProverEvaluate for TableExec {
-    #[tracing::instrument(name = "TableExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "TableExec::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        _builder: &mut FirstRoundBuilder,
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> (Table<'a, S>, Vec<usize>) {
@@ -91,8 +92,6 @@ impl ProverEvaluate for TableExec {
             vec![],
         )
     }
-
-    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
     #[tracing::instrument(name = "TableExec::final_round_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]

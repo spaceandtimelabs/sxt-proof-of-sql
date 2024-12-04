@@ -12,8 +12,8 @@ use crate::{
     },
     sql::{
         proof::{
-            exercise_verification, ProofPlan, ProvableQueryResult, ProverEvaluate,
-            VerifiableQueryResult,
+            exercise_verification, FirstRoundBuilder, ProofPlan, ProvableQueryResult,
+            ProverEvaluate, VerifiableQueryResult,
         },
         proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr, LiteralExpr, TableExpr},
     },
@@ -177,7 +177,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_filter() {
 }
 
 #[test]
-fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result_evaluate() {
+fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint("a", [0; 0], &alloc),
@@ -207,10 +207,13 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map).0)
-            .to_owned_table(fields)
-            .unwrap();
+    let first_round_builder = &mut FirstRoundBuilder::new();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map)
+            .0,
+    )
+    .to_owned_table(fields)
+    .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [0; 0]),
         int128("c", [0; 0]),
@@ -222,7 +225,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
 }
 
 #[test]
-fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
+fn we_can_get_an_empty_result_from_a_basic_filter_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint("a", [1, 4, 5, 2, 5], &alloc),
@@ -252,10 +255,13 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map).0)
-            .to_owned_table(fields)
-            .unwrap();
+    let first_round_builder = &mut FirstRoundBuilder::new();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map)
+            .0,
+    )
+    .to_owned_table(fields)
+    .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [0; 0]),
         int128("c", [0; 0]),
@@ -267,7 +273,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
 }
 
 #[test]
-fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_result_evaluate() {
+fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint("a", [1, 4, 5, 2, 5], &alloc),
@@ -285,16 +291,19 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
     let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(5));
     let expr = filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause);
     let fields = &[];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map).0)
-            .to_owned_table(fields)
-            .unwrap();
+    let first_round_builder = &mut FirstRoundBuilder::new();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map)
+            .0,
+    )
+    .to_owned_table(fields)
+    .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
     assert_eq!(res, expected);
 }
 
 #[test]
-fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
+fn we_can_get_the_correct_result_from_a_basic_filter_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint("a", [1, 4, 5, 2, 5], &alloc),
@@ -324,10 +333,13 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::from(expr.result_evaluate(&alloc, &table_map).0)
-            .to_owned_table(fields)
-            .unwrap();
+    let first_round_builder = &mut FirstRoundBuilder::new();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map)
+            .0,
+    )
+    .to_owned_table(fields)
+    .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [3, 5]),
         int128("c", [3, 5]),

@@ -30,12 +30,13 @@ type DishonestFilterExec = OstensibleFilterExec<Dishonest>;
 
 impl ProverEvaluate for DishonestFilterExec {
     #[tracing::instrument(
-        name = "DishonestFilterExec::result_evaluate",
+        name = "DishonestFilterExec::first_round_evaluate",
         level = "debug",
         skip_all
     )]
-    fn result_evaluate<'a, S: Scalar>(
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> (Table<'a, S>, Vec<usize>) {
@@ -65,11 +66,8 @@ impl ProverEvaluate for DishonestFilterExec {
             TableOptions::new(Some(output_length)),
         )
         .expect("Failed to create table from iterator");
-        (res, vec![output_length])
-    }
-
-    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
         builder.request_post_result_challenges(2);
+        (res, vec![output_length])
     }
 
     #[tracing::instrument(

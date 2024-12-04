@@ -207,9 +207,10 @@ impl ProofPlan for GroupByExec {
 }
 
 impl ProverEvaluate for GroupByExec {
-    #[tracing::instrument(name = "GroupByExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "GroupByExec::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> (Table<'a, S>, Vec<usize>) {
@@ -255,11 +256,8 @@ impl ProverEvaluate for GroupByExec {
                 ),
         )
         .expect("Failed to create table from column references");
-        (res, vec![count_column.len()])
-    }
-
-    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
         builder.request_post_result_challenges(2);
+        (res, vec![count_column.len()])
     }
 
     #[tracing::instrument(name = "GroupByExec::final_round_evaluate", level = "debug", skip_all)]

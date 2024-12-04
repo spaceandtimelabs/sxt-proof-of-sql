@@ -36,15 +36,13 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
 
 #[enum_dispatch::enum_dispatch(DynProofPlan)]
 pub trait ProverEvaluate {
-    /// Evaluate the query and return the result.
-    fn result_evaluate<'a, S: Scalar>(
+    /// Evaluate the query, modify `FirstRoundBuilder` and return the result.
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> (Table<'a, S>, Vec<usize>);
-
-    /// Evaluate the query and modify `FirstRoundBuilder` to form the query's proof.
-    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder);
 
     /// Evaluate the query and modify `FinalRoundBuilder` to store an intermediate representation
     /// of the query result and track all the components needed to form the query's proof.

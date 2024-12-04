@@ -153,9 +153,10 @@ where
 pub type FilterExec = OstensibleFilterExec<HonestProver>;
 
 impl ProverEvaluate for FilterExec {
-    #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "FilterExec::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> (Table<'a, S>, Vec<usize>) {
@@ -186,11 +187,8 @@ impl ProverEvaluate for FilterExec {
             TableOptions::new(Some(output_length)),
         )
         .expect("Failed to create table from iterator");
-        (res, vec![output_length])
-    }
-
-    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
         builder.request_post_result_challenges(2);
+        (res, vec![output_length])
     }
 
     #[tracing::instrument(name = "FilterExec::final_round_evaluate", level = "debug", skip_all)]
