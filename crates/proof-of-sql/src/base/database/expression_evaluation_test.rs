@@ -40,7 +40,7 @@ fn we_can_evaluate_a_simple_literal() {
     let actual_timestamp = 1_646_092_800;
     let expected_column = OwnedColumn::TimestampTZ(
         PoSQLTimeUnit::Second,
-        PoSQLTimeZone::Utc,
+        PoSQLTimeZone::utc(),
         vec![actual_timestamp; 5],
     );
     assert_eq!(actual_column, expected_column);

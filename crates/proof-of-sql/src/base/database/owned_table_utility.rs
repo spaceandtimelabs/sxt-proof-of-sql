@@ -266,7 +266,7 @@ pub fn decimal75<S: Scalar>(
 ///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
 ///
 /// let result = owned_table::<Curve25519Scalar>([
-///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600]),
+///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), vec![1625072400, 1625076000, 1625079600]),
 /// ]);
 /// ```
 ///
