@@ -74,12 +74,6 @@ where
         one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         // 1. columns
-        // We do not support `GroupByExec` as input for now
-        if matches!(*self.input, DynProofPlan::GroupBy(_)) {
-            return Err(ProofError::UnsupportedQueryPlan {
-                error: "GroupByExec as input for another plan is not supported",
-            });
-        }
         let input_table_eval =
             self.input
                 .verifier_evaluate(builder, accessor, None, one_eval_map)?;
