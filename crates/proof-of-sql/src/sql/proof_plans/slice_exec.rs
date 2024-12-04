@@ -95,7 +95,7 @@ where
             builder,
             alpha,
             beta,
-            *input_table_eval.one_eval(),
+            input_table_eval.one_eval(),
             output_one_eval,
             columns_evals,
             selection_eval,
