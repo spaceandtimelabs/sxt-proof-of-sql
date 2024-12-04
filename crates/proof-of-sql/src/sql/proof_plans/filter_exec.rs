@@ -159,7 +159,7 @@ impl ProverEvaluate for FilterExec {
         builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
+    ) -> Table<'a, S> {
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -188,7 +188,8 @@ impl ProverEvaluate for FilterExec {
         )
         .expect("Failed to create table from iterator");
         builder.request_post_result_challenges(2);
-        (res, vec![output_length])
+        builder.produce_one_evaluation_length(output_length);
+        res
     }
 
     #[tracing::instrument(name = "FilterExec::final_round_evaluate", level = "debug", skip_all)]

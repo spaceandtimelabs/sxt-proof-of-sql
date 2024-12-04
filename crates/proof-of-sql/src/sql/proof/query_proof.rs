@@ -94,9 +94,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // Prover First Round: Evaluate the query && get the right number of post result challenges
         let mut first_round_builder = FirstRoundBuilder::new();
-        let (query_result, one_evaluation_lengths) =
-            expr.first_round_evaluate(&mut first_round_builder, &alloc, &table_map);
+        let query_result = expr.first_round_evaluate(&mut first_round_builder, &alloc, &table_map);
         let provable_result = query_result.into();
+        let one_evaluation_lengths = first_round_builder.one_evaluation_lengths();
 
         let range_length = one_evaluation_lengths
             .iter()
@@ -114,7 +114,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &provable_result,
             range_length,
             min_row_num,
-            &one_evaluation_lengths,
+            one_evaluation_lengths,
         );
 
         // These are the challenges that will be consumed by the proof
@@ -191,7 +191,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let proof = Self {
             bit_distributions: builder.bit_distributions().to_vec(),
-            one_evaluation_lengths,
+            one_evaluation_lengths: one_evaluation_lengths.to_vec(),
             commitments,
             sumcheck_proof,
             pcs_proof_evaluations,

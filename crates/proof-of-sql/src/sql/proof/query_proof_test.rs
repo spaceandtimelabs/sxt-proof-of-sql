@@ -44,15 +44,13 @@ impl Default for TrivialTestProofPlan {
 impl ProverEvaluate for TrivialTestProofPlan {
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
-        _builder: &mut FirstRoundBuilder,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
+    ) -> Table<'a, S> {
         let col = vec![self.column_fill_value; self.length];
-        (
-            table([borrowed_bigint("a1", col, alloc)]),
-            vec![self.length],
-        )
+        builder.produce_one_evaluation_length(self.length);
+        table([borrowed_bigint("a1", col, alloc)])
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -226,11 +224,12 @@ impl Default for SquareTestProofPlan {
 impl ProverEvaluate for SquareTestProofPlan {
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
-        _builder: &mut FirstRoundBuilder,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
-        (table([borrowed_bigint("a1", self.res, alloc)]), vec![2])
+    ) -> Table<'a, S> {
+        builder.produce_one_evaluation_length(2);
+        table([borrowed_bigint("a1", self.res, alloc)])
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -409,11 +408,12 @@ impl Default for DoubleSquareTestProofPlan {
 impl ProverEvaluate for DoubleSquareTestProofPlan {
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
-        _builder: &mut FirstRoundBuilder,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
-        (table([borrowed_bigint("a1", self.res, alloc)]), vec![2])
+    ) -> Table<'a, S> {
+        builder.produce_one_evaluation_length(2);
+        table([borrowed_bigint("a1", self.res, alloc)])
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -625,9 +625,10 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
+    ) -> Table<'a, S> {
         builder.request_post_result_challenges(2);
-        (table([borrowed_bigint("a1", [9, 25], alloc)]), vec![2])
+        builder.produce_one_evaluation_length(2);
+        table([borrowed_bigint("a1", [9, 25], alloc)])
     }
 
     fn final_round_evaluate<'a, S: Scalar>(

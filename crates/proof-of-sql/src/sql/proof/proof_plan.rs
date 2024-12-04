@@ -42,7 +42,7 @@ pub trait ProverEvaluate {
         builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>);
+    ) -> Table<'a, S>;
 
     /// Evaluate the query and modify `FinalRoundBuilder` to store an intermediate representation
     /// of the query result and track all the components needed to form the query's proof.

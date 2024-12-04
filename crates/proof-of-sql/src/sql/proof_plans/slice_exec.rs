@@ -17,7 +17,7 @@ use crate::{
         VerificationBuilder,
     },
 };
-use alloc::{boxed::Box, vec, vec::Vec};
+use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use core::iter::{repeat, repeat_with};
 use itertools::repeat_n;
@@ -133,10 +133,9 @@ impl ProverEvaluate for SliceExec {
         builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
+    ) -> Table<'a, S> {
         // 1. columns
-        let (input, input_one_eval_lengths) =
-            self.input.first_round_evaluate(builder, alloc, table_map);
+        let input = self.input.first_round_evaluate(builder, alloc, table_map);
         let input_length = input.num_rows();
         let columns = input.columns().copied().collect::<Vec<_>>();
         // 2. select
@@ -159,10 +158,11 @@ impl ProverEvaluate for SliceExec {
             TableOptions::new(Some(output_length)),
         )
         .expect("Failed to create table from iterator");
-        let mut one_eval_lengths = input_one_eval_lengths;
-        one_eval_lengths.extend(vec![output_length, offset_index, max_index]);
         builder.request_post_result_challenges(2);
-        (res, one_eval_lengths)
+        builder.produce_one_evaluation_length(output_length);
+        builder.produce_one_evaluation_length(offset_index);
+        builder.produce_one_evaluation_length(max_index);
+        res
     }
 
     #[tracing::instrument(name = "SliceExec::prover_evaluate", level = "debug", skip_all)]
