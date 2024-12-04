@@ -159,7 +159,11 @@ impl ProofPlan for GroupByExec {
                     })?;
                 }
             }
-            None => todo!("GroupByExec currently only supported at top level of query plan."),
+            None => {
+                Err(ProofError::UnsupportedQueryPlan {
+                    error: "GroupByExec currently only supported at top level of query plan.",
+                })?;
+            }
         }
 
         let column_evals = group_by_result_columns_evals
@@ -361,13 +365,13 @@ fn verify_group_by<S: Scalar>(
         g_in_star_eval * sel_in_eval * sum_in_fold_eval - g_out_star_eval * sum_out_bar_fold_eval,
     );
 
-    // g_in_star * g_in_fold - 1 = 0
+    // g_in_star * g_in_fold - input_ones = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
         &SumcheckSubpolynomialType::Identity,
         g_in_star_eval * g_in_fold_eval - one_eval,
     );
 
-    // g_out_star * g_out_bar_fold - 1 = 0
+    // g_out_star * g_out_bar_fold - input_ones = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
         &SumcheckSubpolynomialType::Identity,
         g_out_star_eval * g_out_bar_fold_eval - one_eval,
@@ -390,6 +394,7 @@ pub fn prove_group_by<'a, S: Scalar>(
     n: usize,
 ) {
     let m_out = count_out.len();
+    let input_ones = alloc.alloc_slice_fill_copy(n, true);
 
     // g_in_fold = alpha + sum beta^j * g_in[j]
     let g_in_fold = alloc.alloc_slice_fill_copy(n, alpha);
@@ -442,7 +447,7 @@ pub fn prove_group_by<'a, S: Scalar>(
         ],
     );
 
-    // g_in_star * g_in_fold - 1 = 0
+    // g_in_star * g_in_fold - input_ones = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -450,11 +455,11 @@ pub fn prove_group_by<'a, S: Scalar>(
                 S::one(),
                 vec![Box::new(g_in_star as &[_]), Box::new(g_in_fold as &[_])],
             ),
-            (-S::one(), vec![]),
+            (-S::one(), vec![Box::new(input_ones as &[_])]),
         ],
     );
 
-    // g_out_star * g_out_bar_fold - 1 = 0
+    // g_out_star * g_out_bar_fold - input_ones = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -465,7 +470,7 @@ pub fn prove_group_by<'a, S: Scalar>(
                     Box::new(g_out_bar_fold as &[_]),
                 ],
             ),
-            (-S::one(), vec![]),
+            (-S::one(), vec![Box::new(input_ones as &[_])]),
         ],
     );
 }
