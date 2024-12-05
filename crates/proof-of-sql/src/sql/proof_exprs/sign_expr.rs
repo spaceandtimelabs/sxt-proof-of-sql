@@ -1,10 +1,10 @@
-use super::{
-    is_within_acceptable_range, verify_constant_abs_decomposition,
-    verify_constant_sign_decomposition,
-};
+use super::is_within_acceptable_range;
 use crate::{
     base::{
-        bit::{compute_varying_bit_matrix, BitDistribution},
+        bit::{
+            bit_mask_utils::{is_bit_mask_negative_representation, make_bit_mask},
+            compute_varying_bit_matrix, BitDistribution,
+        },
         proof::ProofError,
         scalar::Scalar,
     },
@@ -29,10 +29,10 @@ pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
     }
     builder.count_intermediate_mles(dist.num_varying_bits());
     builder.count_subpolynomials(dist.num_varying_bits());
-    builder.count_degree(3);
-    if dist.has_varying_sign_bit() && dist.num_varying_bits() > 1 {
-        builder.count_subpolynomials(1);
-    }
+    builder.count_degree(2);
+    // if dist.has_varying_sign_bit() && dist.num_varying_bits() > 1 {
+    //     builder.count_subpolynomials(1);
+    // }
     Ok(())
 }
 
@@ -48,23 +48,13 @@ pub fn result_evaluate_sign<'a, S: Scalar>(
     expr: &'a [S],
 ) -> &'a [bool] {
     assert_eq!(table_length, expr.len());
-    // bit_distribution
-    let dist = BitDistribution::new::<S, _>(expr);
-
-    // handle the constant case
-    if dist.num_varying_bits() == 0 {
-        return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
-    }
-
-    // prove that the bits are binary
-    let bits = compute_varying_bit_matrix(alloc, expr, &dist);
-    if !dist.has_varying_sign_bit() {
-        return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
-    }
-
-    let result = bits.last().unwrap();
-    assert_eq!(table_length, result.len());
-    result
+    let signs = expr
+        .iter()
+        .map(|s| make_bit_mask(*s))
+        .map(is_bit_mask_negative_representation)
+        .collect::<Vec<_>>();
+    assert_eq!(table_length, signs.len());
+    alloc.alloc_slice_copy(&signs)
 }
 
 /// Prove the sign decomposition for a column of scalars.
@@ -84,37 +74,33 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
     expr: &'a [S],
     #[cfg(test)] treat_column_of_zeros_as_negative: bool,
 ) -> &'a [bool] {
-    let table_length = expr.len();
     // bit_distribution
     let dist = BitDistribution::new::<S, _>(expr);
-    #[cfg(test)]
-    let dist = {
-        let mut dist = dist;
-        if treat_column_of_zeros_as_negative && dist.vary_mask == [0; 4] {
-            dist.or_all[3] = 1 << 63;
-        }
-        dist
-    };
+    // #[cfg(test)]
+    // let dist = {
+    //     let mut dist = dist;
+    //     if treat_column_of_zeros_as_negative && dist.vary_mask == [0; 4] {
+    //         dist.or_all[3] = 1 << 63;
+    //     }
+    //     dist
+    // };
     builder.produce_bit_distribution(dist.clone());
 
-    // handle the constant case
-    if dist.num_varying_bits() == 0 {
-        return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
-    }
-
-    // prove that the bits are binary
-    let bits = compute_varying_bit_matrix(alloc, expr, &dist);
-    prove_bits_are_binary(builder, &bits);
-    if !dist.has_varying_sign_bit() {
-        return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
-    }
-
-    if dist.num_varying_bits() > 1 {
+    if dist.num_varying_bits() > 0 {
+        // prove that the bits are binary
+        let bits = compute_varying_bit_matrix(alloc, expr, &dist);
+        prove_bits_are_binary(builder, &bits);
         prove_bit_decomposition(builder, alloc, expr, &bits, &dist);
     }
 
     // This might panic if `bits.last()` returns `None`.
-    bits.last().unwrap()
+
+    let signs = expr
+        .iter()
+        .map(|s| make_bit_mask(*s))
+        .map(is_bit_mask_negative_representation)
+        .collect::<Vec<_>>();
+    alloc.alloc_slice_copy(&signs)
 }
 
 /// Verify the sign decomposition for a column of scalars.
@@ -143,34 +129,24 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     // establish that the bits are binary
     verify_bits_are_binary(builder, &bit_evals);
 
-    // handle the special case of the sign bit being constant
-    if !dist.has_varying_sign_bit() {
-        return verifier_const_sign_evaluate(&dist, eval, one_eval, &bit_evals);
-    }
-
-    // handle the special case of the absolute part being constant
-    if dist.num_varying_bits() == 1 {
-        verify_constant_abs_decomposition(&dist, eval, one_eval, bit_evals[0])?;
-    } else {
-        verify_bit_decomposition(builder, eval, &bit_evals, &dist);
-    }
+    verify_bit_decomposition(builder, eval, &bit_evals, &dist);
 
     Ok(*bit_evals.last().unwrap())
 }
 
-fn verifier_const_sign_evaluate<S: Scalar>(
-    dist: &BitDistribution,
-    eval: S,
-    one_eval: S,
-    bit_evals: &[S],
-) -> Result<S, ProofError> {
-    verify_constant_sign_decomposition(dist, eval, one_eval, bit_evals)?;
-    if dist.sign_bit() {
-        Ok(one_eval)
-    } else {
-        Ok(S::zero())
-    }
-}
+// fn verifier_const_sign_evaluate<S: Scalar>(
+//     dist: &BitDistribution,
+//     eval: S,
+//     one_eval: S,
+//     bit_evals: &[S],
+// ) -> Result<S, ProofError> {
+//     verify_constant_sign_decomposition(dist, eval, one_eval, bit_evals)?;
+//     if dist.sign_bit() {
+//         Ok(one_eval)
+//     } else {
+//         Ok(S::zero())
+//     }
+// }
 
 fn prove_bits_are_binary<'a, S: Scalar>(
     builder: &mut FinalRoundBuilder<'a, S>,
@@ -209,26 +185,29 @@ fn prove_bit_decomposition<'a, S: Scalar>(
     dist: &BitDistribution,
 ) {
     let sign_mle = bits.last().unwrap();
-    let sign_mle: &[_] =
-        alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * i32::from(sign_mle[i]));
+    let positive_mle: &[_] =
+        alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - i32::from(sign_mle[i]));
+    let negative_mle: &[_] =
+        alloc.alloc_slice_fill_with(sign_mle.len(), |i| i32::from(sign_mle[i]));
     let mut terms: Vec<SumcheckSubpolynomialTerm<S>> = Vec::new();
 
     // expr
     terms.push((S::one(), vec![Box::new(expr)]));
 
     // expr bit decomposition
-    let const_part = S::from(dist.constant_part());
-    if !const_part.is_zero() {
-        terms.push((-const_part, vec![Box::new(sign_mle)]));
+    let positive_part = S::from(dist.sign_mask);
+    if !positive_part.is_zero() {
+        terms.push((-positive_part, vec![Box::new(positive_mle)]));
+    }
+    let negative_part = S::from(dist.inverse_sign_mask);
+    if !negative_part.is_zero() {
+        terms.push((-negative_part, vec![Box::new(negative_mle)]));
     }
     let mut vary_index = 0;
-    dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
+    dist.for_each_varying_bit(|int_index: usize, bit_index: usize| {
         let mut mult = [0u64; 4];
         mult[int_index] = 1u64 << bit_index;
-        terms.push((
-            -S::from(mult),
-            vec![Box::new(sign_mle), Box::new(bits[vary_index])],
-        ));
+        terms.push((-S::from(mult), vec![Box::new(bits[vary_index])]));
         vary_index += 1;
     });
     builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomialType::Identity, terms);
@@ -246,14 +225,17 @@ fn verify_bit_decomposition<S: Scalar>(
 ) {
     let mut eval = expr_eval;
     let sign_eval = bit_evals.last().unwrap();
-    let sign_eval = builder.mle_evaluations.input_one_evaluation - S::TWO * *sign_eval;
+    let positive_component = *sign_eval;
+    let negative_component = builder.mle_evaluations.input_one_evaluation - *sign_eval;
     let mut vary_index = 0;
-    eval -= sign_eval * S::from(dist.constant_part());
-    dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
+    eval -= positive_component * S::from(dist.sign_mask);
+    eval -= negative_component * S::from(dist.inverse_sign_mask);
+
+    dist.for_each_varying_bit(|int_index: usize, bit_index: usize| {
         let mut mult = [0u64; 4];
         mult[int_index] = 1u64 << bit_index;
         let bit_eval = bit_evals[vary_index];
-        eval -= S::from(mult) * sign_eval * bit_eval;
+        eval -= S::from(mult) * bit_eval;
         vary_index += 1;
     });
     builder.produce_sumcheck_subpolynomial_evaluation(&SumcheckSubpolynomialType::Identity, eval);

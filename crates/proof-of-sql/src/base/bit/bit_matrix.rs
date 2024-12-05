@@ -1,7 +1,5 @@
-use crate::base::{
-    bit::{make_abs_bit_mask, BitDistribution},
-    scalar::Scalar,
-};
+use super::bit_mask_utils::make_bit_mask;
+use crate::base::{bit::BitDistribution, scalar::Scalar};
 use alloc::vec::Vec;
 use bumpalo::Bump;
 
@@ -23,7 +21,7 @@ pub fn compute_varying_bit_matrix<'a, S: Scalar>(
 
     // decompose
     for (i, val) in vals.iter().enumerate() {
-        let mask = make_abs_bit_mask(*val);
+        let mask = make_bit_mask(*val);
         let mut offset = i;
         dist.for_each_varying_bit(|int_index: usize, bit_index: usize| {
             data[offset] = (mask[int_index] & (1u64 << bit_index)) != 0;
