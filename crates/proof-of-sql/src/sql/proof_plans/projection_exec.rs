@@ -15,7 +15,7 @@ use crate::{
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
     },
 };
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::iter::repeat_with;
 use serde::{Deserialize, Serialize};
@@ -96,31 +96,31 @@ impl ProofPlan for ProjectionExec {
 }
 
 impl ProverEvaluate for ProjectionExec {
-    #[tracing::instrument(name = "ProjectionExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(
+        name = "ProjectionExec::first_round_evaluate",
+        level = "debug",
+        skip_all
+    )]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        _builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
+    ) -> Table<'a, S> {
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
-        (
-            Table::<'a, S>::try_from_iter_with_options(
-                self.aliased_results.iter().map(|aliased_expr| {
-                    (
-                        aliased_expr.alias,
-                        aliased_expr.expr.result_evaluate(alloc, table),
-                    )
-                }),
-                TableOptions::new(Some(table.num_rows())),
-            )
-            .expect("Failed to create table from iterator"),
-            vec![],
+        Table::<'a, S>::try_from_iter_with_options(
+            self.aliased_results.iter().map(|aliased_expr| {
+                (
+                    aliased_expr.alias,
+                    aliased_expr.expr.result_evaluate(alloc, table),
+                )
+            }),
+            TableOptions::new(Some(table.num_rows())),
         )
+        .expect("Failed to create table from iterator")
     }
-
-    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
     #[tracing::instrument(
         name = "ProjectionExec::final_round_evaluate",

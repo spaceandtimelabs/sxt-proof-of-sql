@@ -33,7 +33,7 @@ pub fn exercise_verification(
     accessor: &impl TestAccessor<RistrettoPoint>,
     table_ref: TableRef,
 ) {
-    let verification_result = res.verify(expr, accessor, &());
+    let verification_result = res.clone().verify(expr, accessor, &());
     assert!(
         verification_result.is_ok(),
         "Verification failed: {:?}",
@@ -82,9 +82,9 @@ pub fn exercise_verification(
         let offset_generators = accessor.get_offset(table_ref);
         let mut fake_accessor = accessor.clone();
         fake_accessor.update_offset(table_ref, offset_generators);
-        res.verify(expr, &fake_accessor, &()).unwrap();
+        res.clone().verify(expr, &fake_accessor, &()).unwrap();
         fake_accessor.update_offset(table_ref, offset_generators + 1);
-        assert!(res.verify(expr, &fake_accessor, &()).is_err());
+        assert!(res.clone().verify(expr, &fake_accessor, &()).is_err());
     }
 }
 

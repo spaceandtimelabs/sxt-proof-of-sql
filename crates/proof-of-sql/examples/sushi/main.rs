@@ -10,7 +10,7 @@ use proof_of_sql::{
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
-    sql::{parse::QueryExpr, proof::QueryProof},
+    sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
 use rand::{rngs::StdRng, SeedableRng};
 use std::{fs::File, time::Instant};
@@ -35,7 +35,7 @@ fn prove_and_verify_query(
     // Generate the proof and result:
     print!("Generating proof...");
     let now = Instant::now();
-    let (proof, provable_result) = QueryProof::<DynamicDoryEvaluationProof>::new(
+    let verifiable_result = VerifiableQueryResult::<DynamicDoryEvaluationProof>::new(
         query_plan.proof_expr(),
         accessor,
         &prover_setup,
@@ -44,13 +44,8 @@ fn prove_and_verify_query(
     // Verify the result with the proof:
     print!("Verifying proof...");
     let now = Instant::now();
-    let result = proof
-        .verify(
-            query_plan.proof_expr(),
-            accessor,
-            &provable_result,
-            &verifier_setup,
-        )
+    let result = verifiable_result
+        .verify(query_plan.proof_expr(), accessor, &verifier_setup)
         .unwrap();
     println!("Verified in {} ms.", now.elapsed().as_secs_f64() * 1000.);
     // Display the result

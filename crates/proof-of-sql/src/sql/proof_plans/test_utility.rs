@@ -1,8 +1,14 @@
-use super::{DynProofPlan, FilterExec, GroupByExec, ProjectionExec, TableExec};
+use super::{
+    DynProofPlan, EmptyExec, FilterExec, GroupByExec, ProjectionExec, SliceExec, TableExec,
+};
 use crate::{
     base::database::{ColumnField, TableRef},
     sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
 };
+
+pub fn empty_exec() -> DynProofPlan {
+    DynProofPlan::Empty(EmptyExec::new())
+}
 
 pub fn table_exec(table_ref: TableRef, schema: Vec<ColumnField>) -> DynProofPlan {
     DynProofPlan::Table(TableExec::new(table_ref, schema))
@@ -37,4 +43,8 @@ pub fn group_by(
         table,
         where_clause,
     ))
+}
+
+pub fn slice_exec(input: DynProofPlan, skip: usize, fetch: Option<usize>) -> DynProofPlan {
+    DynProofPlan::Slice(SliceExec::new(Box::new(input), skip, fetch))
 }

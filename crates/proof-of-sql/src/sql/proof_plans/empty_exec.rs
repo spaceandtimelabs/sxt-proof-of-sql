@@ -12,7 +12,7 @@ use crate::{
         VerificationBuilder,
     },
 };
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -68,21 +68,17 @@ impl ProofPlan for EmptyExec {
 }
 
 impl ProverEvaluate for EmptyExec {
-    #[tracing::instrument(name = "EmptyExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "EmptyExec::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        _builder: &mut FirstRoundBuilder,
         _alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
+    ) -> Table<'a, S> {
         // Create an empty table with one row
-        (
-            Table::<'a, S>::try_new_with_options(IndexMap::default(), TableOptions::new(Some(1)))
-                .unwrap(),
-            vec![],
-        )
+        Table::<'a, S>::try_new_with_options(IndexMap::default(), TableOptions::new(Some(1)))
+            .unwrap()
     }
-
-    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
     #[tracing::instrument(name = "EmptyExec::final_round_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]

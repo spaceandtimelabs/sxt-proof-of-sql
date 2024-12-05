@@ -159,7 +159,11 @@ impl ProofPlan for GroupByExec {
                     })?;
                 }
             }
-            None => todo!("GroupByExec currently only supported at top level of query plan."),
+            None => {
+                Err(ProofError::UnsupportedQueryPlan {
+                    error: "GroupByExec currently only supported at top level of query plan.",
+                })?;
+            }
         }
 
         let column_evals = group_by_result_columns_evals
@@ -207,12 +211,13 @@ impl ProofPlan for GroupByExec {
 }
 
 impl ProverEvaluate for GroupByExec {
-    #[tracing::instrument(name = "GroupByExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "GroupByExec::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
+    ) -> Table<'a, S> {
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -255,11 +260,9 @@ impl ProverEvaluate for GroupByExec {
                 ),
         )
         .expect("Failed to create table from column references");
-        (res, vec![count_column.len()])
-    }
-
-    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
         builder.request_post_result_challenges(2);
+        builder.produce_one_evaluation_length(count_column.len());
+        res
     }
 
     #[tracing::instrument(name = "GroupByExec::final_round_evaluate", level = "debug", skip_all)]
@@ -362,13 +365,13 @@ fn verify_group_by<S: Scalar>(
         g_in_star_eval * sel_in_eval * sum_in_fold_eval - g_out_star_eval * sum_out_bar_fold_eval,
     );
 
-    // g_in_star * g_in_fold - 1 = 0
+    // g_in_star * g_in_fold - input_ones = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
         &SumcheckSubpolynomialType::Identity,
         g_in_star_eval * g_in_fold_eval - one_eval,
     );
 
-    // g_out_star * g_out_bar_fold - 1 = 0
+    // g_out_star * g_out_bar_fold - input_ones = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
         &SumcheckSubpolynomialType::Identity,
         g_out_star_eval * g_out_bar_fold_eval - one_eval,
@@ -391,6 +394,7 @@ pub fn prove_group_by<'a, S: Scalar>(
     n: usize,
 ) {
     let m_out = count_out.len();
+    let input_ones = alloc.alloc_slice_fill_copy(n, true);
 
     // g_in_fold = alpha + sum beta^j * g_in[j]
     let g_in_fold = alloc.alloc_slice_fill_copy(n, alpha);
@@ -443,7 +447,7 @@ pub fn prove_group_by<'a, S: Scalar>(
         ],
     );
 
-    // g_in_star * g_in_fold - 1 = 0
+    // g_in_star * g_in_fold - input_ones = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -451,11 +455,11 @@ pub fn prove_group_by<'a, S: Scalar>(
                 S::one(),
                 vec![Box::new(g_in_star as &[_]), Box::new(g_in_fold as &[_])],
             ),
-            (-S::one(), vec![]),
+            (-S::one(), vec![Box::new(input_ones as &[_])]),
         ],
     );
 
-    // g_out_star * g_out_bar_fold - 1 = 0
+    // g_out_star * g_out_bar_fold - input_ones = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -466,7 +470,7 @@ pub fn prove_group_by<'a, S: Scalar>(
                     Box::new(g_out_bar_fold as &[_]),
                 ],
             ),
-            (-S::one(), vec![]),
+            (-S::one(), vec![Box::new(input_ones as &[_])]),
         ],
     );
 }
