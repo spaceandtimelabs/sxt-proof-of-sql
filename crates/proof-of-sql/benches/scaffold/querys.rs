@@ -61,7 +61,7 @@ const GROUPBY_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     ("c", ColumnType::Boolean, None),
 ];
 const AGGREGATE_TITLE: &str = "Aggregate";
-const AGGREGATE_SQL: &str = "SELECT SUM(a) FROM table WHERE b = a OR c = 'ab'";
+const AGGREGATE_SQL: &str = "SELECT SUM(a) FROM table WHERE b = a OR c = 'yz'";
 const AGGREGATE_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
@@ -76,7 +76,7 @@ const AGGREGATE_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     ("c", ColumnType::VarChar, None),
 ];
 const BOOLEAN_FILTER_TITLE: &str = "Boolean Filter";
-const BOOLEAN_FILTER_SQL: &str = "SELECT * FROM table WHERE c = TRUE and b = 'aaa' or a = 0";
+const BOOLEAN_FILTER_SQL: &str = "SELECT * FROM table WHERE c = TRUE and b = 'xyz' or a = 0";
 const BOOLEAN_FILTER_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
@@ -120,7 +120,7 @@ const LARGE_COLUMN_SET_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
 ];
 const COMPLEX_CONDITION_TITLE: &str = "Complex Condition";
 const COMPLEX_CONDITION_SQL: &str =
-    "SELECT * FROM table WHERE (a > c * c AND b < c + 10) OR (d = 'abc')";
+    "SELECT * FROM table WHERE (a > c * c AND b < c + 10) OR (d = 'xyz')";
 const COMPLEX_CONDITION_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     (
         "a",
