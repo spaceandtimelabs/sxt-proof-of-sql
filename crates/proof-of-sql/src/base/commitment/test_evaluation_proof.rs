@@ -7,7 +7,7 @@ use crate::base::{
 use core::ops::Add;
 
 /// This should only be used for the purpose of unit testing.
-pub struct TestEvaluationProof {
+pub struct NaiveEvaluationProof {
     a: NaiveCommitment,
     b_point: Vec<TestScalar>,
     challenge: [u8; 32],
@@ -18,7 +18,7 @@ pub struct TestEvaluationProof {
 /// [`CommitmentEvaluationProof`] for [`NaiveEvaluationProof`].
 pub struct NaiveEvaluationProofError;
 
-impl CommitmentEvaluationProof for TestEvaluationProof {
+impl CommitmentEvaluationProof for NaiveEvaluationProof {
     type Scalar = TestScalar;
 
     type Commitment = NaiveCommitment;
@@ -97,7 +97,7 @@ impl CommitmentEvaluationProof for TestEvaluationProof {
 }
 
 mod tests {
-    use super::TestEvaluationProof;
+    use super::NaiveEvaluationProof;
     use crate::base::commitment::commitment_evaluation_proof_test::{
         test_commitment_evaluation_proof_with_length_1, test_random_commitment_evaluation_proof,
         test_simple_commitment_evaluation_proof,
@@ -105,128 +105,128 @@ mod tests {
 
     #[test]
     fn test_simple_ipa() {
-        test_simple_commitment_evaluation_proof::<TestEvaluationProof>(&(), &());
+        test_simple_commitment_evaluation_proof::<NaiveEvaluationProof>(&(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_1() {
-        test_commitment_evaluation_proof_with_length_1::<TestEvaluationProof>(&(), &());
+        test_commitment_evaluation_proof_with_length_1::<NaiveEvaluationProof>(&(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_128() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(128, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(128, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(128, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(128, 64, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(128, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(128, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(128, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(128, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(128, 64, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(128, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_100() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(100, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(100, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(100, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(100, 64, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(100, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(100, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(100, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(100, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(100, 64, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(100, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_64() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(64, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(64, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(64, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(64, 32, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(64, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(64, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(64, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(64, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(64, 32, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(64, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_50() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(50, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(50, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(50, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(50, 32, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(50, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(50, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(50, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(50, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(50, 32, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(50, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_32() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(32, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(32, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(32, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(32, 16, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(32, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(32, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(32, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(32, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(32, 16, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(32, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_20() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(20, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(20, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(20, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(20, 16, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(20, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(20, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(20, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(20, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(20, 16, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(20, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_16() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(16, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(16, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(16, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(16, 8, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(16, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(16, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(16, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(16, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(16, 8, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(16, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_10() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(10, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(10, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(10, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(10, 8, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(10, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(10, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(10, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(10, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(10, 8, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(10, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_8() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(8, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(8, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(8, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(8, 4, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(8, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(8, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(8, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(8, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(8, 4, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(8, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_5() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(5, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(5, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(5, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(5, 4, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(5, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(5, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(5, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(5, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(5, 4, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(5, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_4() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(4, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(4, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(4, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(4, 2, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(4, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(4, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(4, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(4, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(4, 2, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(4, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_3() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(3, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(3, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(3, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(3, 2, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(3, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(3, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(3, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(3, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(3, 2, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(3, 200, &(), &());
     }
 
     #[test]
     fn test_random_ipa_with_length_2() {
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(2, 0, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(2, 1, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(2, 10, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(2, 2, &(), &());
-        test_random_commitment_evaluation_proof::<TestEvaluationProof>(2, 200, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(2, 0, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(2, 1, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(2, 10, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(2, 2, &(), &());
+        test_random_commitment_evaluation_proof::<NaiveEvaluationProof>(2, 200, &(), &());
     }
 }
