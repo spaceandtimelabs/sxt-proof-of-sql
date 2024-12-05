@@ -12,11 +12,11 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use sysinfo::{System, SystemExt};
 use tracing::{debug, span, Level};
 
-fn log_start_memory_usage() {
+fn log_memory_start_usage() {
     log_memory_usage("Start");
 }
 
-fn log_end_memory_usage() {
+fn log_memory_end_usage() {
     log_memory_usage("End");
 }
 
@@ -126,7 +126,7 @@ pub(super) fn compute_dynamic_dory_commitments(
         });
     span.exit();
 
-    log_end_memory_usage();
+    log_memory_end_usage();
 
     ddc
 }
