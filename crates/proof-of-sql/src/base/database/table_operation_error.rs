@@ -1,4 +1,4 @@
-use crate::base::database::ColumnField;
+use crate::base::database::{ColumnField, ColumnType};
 use alloc::vec::Vec;
 use core::result::Result;
 use snafu::Snafu;
@@ -15,6 +15,16 @@ pub enum TableOperationError {
         correct_schema: Vec<ColumnField>,
         /// The schema of the table that caused the error
         actual_schema: Vec<ColumnField>,
+    },
+    /// Errors related to joining tables on columns with incompatible types.
+    #[snafu(display(
+        "Cannot join tables on columns with incompatible types: {left_type:?} and {right_type:?}"
+    ))]
+    JoinIncompatibleTypes {
+        /// The left-hand side data type
+        left_type: ColumnType,
+        /// The right-hand side data type
+        right_type: ColumnType,
     },
 }
 

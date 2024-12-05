@@ -35,5 +35,11 @@ pub(crate) use group_by_exec::GroupByExec;
 #[cfg(all(test, feature = "blitzar"))]
 mod group_by_exec_test;
 
+mod slice_exec;
+#[allow(unused_imports)]
+pub(crate) use slice_exec::SliceExec;
+#[cfg(all(test, feature = "blitzar"))]
+mod slice_exec_test;
+
 mod dyn_proof_plan;
 pub use dyn_proof_plan::DynProofPlan;

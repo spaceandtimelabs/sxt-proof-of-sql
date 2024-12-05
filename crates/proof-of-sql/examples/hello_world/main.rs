@@ -8,7 +8,7 @@ use proof_of_sql::{
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
-    sql::{parse::QueryExpr, proof::QueryProof},
+    sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
 use std::{
     io::{stdout, Write},
@@ -70,19 +70,14 @@ fn main() {
     .unwrap();
     end_timer(timer);
     let timer = start_timer("Generating Proof");
-    let (proof, serialized_result) = QueryProof::<DynamicDoryEvaluationProof>::new(
+    let verifiable_result = VerifiableQueryResult::<DynamicDoryEvaluationProof>::new(
         query.proof_expr(),
         &accessor,
         &&prover_setup,
     );
     end_timer(timer);
     let timer = start_timer("Verifying Proof");
-    let result = proof.verify(
-        query.proof_expr(),
-        &accessor,
-        &serialized_result,
-        &&verifier_setup,
-    );
+    let result = verifiable_result.verify(query.proof_expr(), &accessor, &&verifier_setup);
     end_timer(timer);
     match result {
         Ok(result) => {

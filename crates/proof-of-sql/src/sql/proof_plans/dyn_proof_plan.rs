@@ -1,4 +1,4 @@
-use super::{EmptyExec, FilterExec, GroupByExec, ProjectionExec, TableExec};
+use super::{EmptyExec, FilterExec, GroupByExec, ProjectionExec, SliceExec, TableExec};
 use crate::{
     base::{
         database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
@@ -43,4 +43,9 @@ pub enum DynProofPlan {
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
     /// ```
     Filter(FilterExec),
+    /// `ProofPlan` for queries of the form
+    /// ```ignore
+    ///     <ProofPlan> LIMIT <fetch> [OFFSET <skip>]
+    /// ```
+    Slice(SliceExec),
 }

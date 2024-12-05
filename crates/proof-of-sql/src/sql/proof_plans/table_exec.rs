@@ -10,7 +10,7 @@ use crate::{
         VerificationBuilder,
     },
 };
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -77,22 +77,18 @@ impl ProofPlan for TableExec {
 }
 
 impl ProverEvaluate for TableExec {
-    #[tracing::instrument(name = "TableExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "TableExec::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        _builder: &mut FirstRoundBuilder,
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
-        (
-            table_map
-                .get(&self.table_ref)
-                .expect("Table not found")
-                .clone(),
-            vec![],
-        )
+    ) -> Table<'a, S> {
+        table_map
+            .get(&self.table_ref)
+            .expect("Table not found")
+            .clone()
     }
-
-    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
     #[tracing::instrument(name = "TableExec::final_round_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]

@@ -242,6 +242,28 @@ pub(super) fn repeat_elementwise<S: Clone>(slice: &[S], n: usize) -> impl Iterat
         .flat_map(move |s| core::iter::repeat(s).take(n).cloned())
 }
 
+/// Apply a slice to a slice of indexes.
+///
+/// e.g. `apply_slice_to_indexes(&[1, 2, 3], &[0, 0, 1, 0]).unwrap()` -> `vec![1, 1, 2, 1]`
+/// Note that the function will return an error if any index is out of bounds.
+pub(super) fn apply_slice_to_indexes<S: Clone>(
+    slice: &[S],
+    indexes: &[usize],
+) -> ColumnOperationResult<Vec<S>> {
+    let max_index = slice.len();
+    indexes
+        .iter()
+        .map(|&i| {
+            (i < max_index).then(|| slice[i].clone()).ok_or(
+                ColumnOperationError::IndexOutOfBounds {
+                    index: i,
+                    len: max_index,
+                },
+            )
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -661,5 +683,55 @@ mod test {
         let actual = repeat_elementwise(&slice, 0).collect::<Vec<_>>();
         let expected: Vec<i32> = vec![];
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_apply_slices_to_indexes() {
+        // We can apply a slice to indexes
+        let slice = [1_i16, 2, 3];
+        let indexes = [0, 2];
+        let actual = apply_slice_to_indexes(&slice, &indexes).unwrap();
+        let expected = vec![1_i16, 3];
+        assert_eq!(expected, actual);
+
+        // We can apply an empty slice to no indexes
+        let slice = [0; 0];
+        let indexes = [];
+        let actual = apply_slice_to_indexes(&slice, &indexes).unwrap();
+        let expected: Vec<i32> = vec![];
+        assert_eq!(expected, actual);
+
+        // We can apply a slice to no indexes
+        let slice = [1_i16, 2, 3];
+        let indexes = [];
+        let actual = apply_slice_to_indexes(&slice, &indexes).unwrap();
+        let expected: Vec<i16> = vec![];
+        assert_eq!(expected, actual);
+
+        // Repetition in indexes is allowed
+        let slice = [1_i16, 2, 3];
+        let indexes = [0, 0, 2, 2];
+        let actual = apply_slice_to_indexes(&slice, &indexes).unwrap();
+        let expected = vec![1_i16, 1, 3, 3];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_cannot_apply_slices_to_indexes_if_out_of_bounds() {
+        // We cannot apply a slice to out-of-bounds indexes
+        let slice = [1_i16, 2, 3];
+        let indexes = [0, 3];
+        assert!(matches!(
+            apply_slice_to_indexes(&slice, &indexes),
+            Err(ColumnOperationError::IndexOutOfBounds { .. })
+        ));
+
+        // We can not apply an empty slice to any non-empty indexes
+        let slice = [0; 0];
+        let indexes = [0];
+        assert!(matches!(
+            apply_slice_to_indexes(&slice, &indexes),
+            Err(ColumnOperationError::IndexOutOfBounds { .. })
+        ));
     }
 }

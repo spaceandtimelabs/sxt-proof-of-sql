@@ -153,12 +153,13 @@ where
 pub type FilterExec = OstensibleFilterExec<HonestProver>;
 
 impl ProverEvaluate for FilterExec {
-    #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "FilterExec::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
+    ) -> Table<'a, S> {
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -186,11 +187,9 @@ impl ProverEvaluate for FilterExec {
             TableOptions::new(Some(output_length)),
         )
         .expect("Failed to create table from iterator");
-        (res, vec![output_length])
-    }
-
-    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
         builder.request_post_result_challenges(2);
+        builder.produce_one_evaluation_length(output_length);
+        res
     }
 
     #[tracing::instrument(name = "FilterExec::final_round_evaluate", level = "debug", skip_all)]
@@ -251,7 +250,7 @@ impl ProverEvaluate for FilterExec {
 }
 
 #[allow(clippy::unnecessary_wraps, clippy::too_many_arguments)]
-fn verify_filter<S: Scalar>(
+pub(super) fn verify_filter<S: Scalar>(
     builder: &mut VerificationBuilder<S>,
     alpha: S,
     beta: S,
@@ -272,7 +271,7 @@ fn verify_filter<S: Scalar>(
         c_star_eval * s_eval - d_star_eval,
     );
 
-    // c_fold * c_star - 1 = 0
+    // c_fold * c_star - input_ones = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
         &SumcheckSubpolynomialType::Identity,
         c_fold_eval * c_star_eval - one_eval,
@@ -299,6 +298,7 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
     n: usize,
     m: usize,
 ) {
+    let input_ones = alloc.alloc_slice_fill_copy(n, true);
     let chi = alloc.alloc_slice_fill_copy(n, false);
     chi[..m].fill(true);
 
@@ -325,7 +325,7 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
         ],
     );
 
-    // c_fold * c_star - 1 = 0
+    // c_fold * c_star - input_ones = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -333,7 +333,7 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
                 S::one(),
                 vec![Box::new(c_star as &[_]), Box::new(c_fold as &[_])],
             ),
-            (-S::one(), vec![]),
+            (-S::one(), vec![Box::new(input_ones as &[_])]),
         ],
     );
 
