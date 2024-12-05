@@ -47,7 +47,7 @@ pub mod naive_commitment;
 
 /// Module for providing a test commitment evaluation proof.
 #[cfg(test)]
-pub mod test_evaluation_proof;
+pub mod naive_evaluation_proof;
 
 #[cfg(test)]
 mod naive_commitment_test;

@@ -4,8 +4,8 @@ use super::{
 };
 use crate::base::{
     commitment::{
-        naive_commitment::NaiveCommitment, test_evaluation_proof::NaiveEvaluationProof, Commitment,
-        CommittableColumn,
+        naive_commitment::NaiveCommitment, naive_evaluation_proof::NaiveEvaluationProof,
+        Commitment, CommittableColumn,
     },
     database::owned_table_utility::*,
     scalar::test_scalar::TestScalar,
