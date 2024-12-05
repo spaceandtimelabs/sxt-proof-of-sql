@@ -10,5 +10,5 @@ pub fn is_within_acceptable_range(dist: &BitDistribution) -> bool {
     // the maximum absolute value of the sum of two signed 128-integers is
     // then
     //       2 * (2^127) = 2^128
-    return dist.inverse_sign_mask[2] == u64::MAX && dist.inverse_sign_mask[3] == u64::MAX - 1 << 63;
+    dist.inverse_sign_mask[2] == u64::MAX && dist.inverse_sign_mask[3] == u64::MAX - (1 << 63)
 }

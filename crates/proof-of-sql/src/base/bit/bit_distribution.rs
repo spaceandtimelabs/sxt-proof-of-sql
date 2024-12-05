@@ -1,15 +1,15 @@
 use super::bit_mask_utils::make_sign_bit_mask;
 use crate::base::scalar::Scalar;
 use bit_iter::BitIter;
-use core::{convert::Into, u64};
+use core::convert::Into;
 use serde::{Deserialize, Serialize};
 
 /// Describe the distribution of bit values in a table column
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct BitDistribution {
-    ///
+    /// Identifies all columns that are identical to the leading column (the sign column)
     pub sign_mask: [u64; 4],
-    ///
+    /// Identifies all columns that are the complement of the lead column
     pub inverse_sign_mask: [u64; 4],
 }
 
@@ -54,6 +54,8 @@ impl BitDistribution {
         }
         true
     }
+    // Value  = Sum of varying bits | or mask
+    // Varying bits = vary mask & value
 
     /// Iterate over each varying bit
     pub fn for_each_varying_bit<F>(&self, mut f: F)

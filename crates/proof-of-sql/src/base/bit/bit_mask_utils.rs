@@ -1,6 +1,5 @@
 use crate::base::scalar::Scalar;
 use bnum::types::U256;
-use core::u64;
 
 pub fn make_bit_mask<S: Scalar>(x: S) -> [u64; 4] {
     let x_as_limbs: [u64; 4] = x.into();

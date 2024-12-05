@@ -11,7 +11,7 @@ use crate::{
         parse::ConversionError,
         proof::{exercise_verification, VerifiableQueryResult},
         proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
-        proof_plans::{test_utility::*, DynProofPlan},
+        proof_plans::test_utility::*,
     },
 };
 use bumpalo::Bump;
@@ -480,16 +480,11 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     let data = owned_table([bigint("a", [0_i64, 0, 0]), bigint("b", [1_i64, 2, 3])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let mut ast = filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(0)),
     );
-    if let DynProofPlan::Filter(filter) = &mut ast {
-        if let DynProofExpr::Inequality(lte) = &mut filter.where_clause {
-            lte.treat_column_of_zeros_as_negative = true;
-        }
-    }
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
     exercise_verification(&verifiable_res, &ast, &accessor, t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
