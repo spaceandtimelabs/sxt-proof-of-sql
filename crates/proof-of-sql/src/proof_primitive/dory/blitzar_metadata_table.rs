@@ -218,7 +218,7 @@ pub fn create_blitzar_metadata_tables(
     let mut blitzar_scalars = vec![0u8; num_scalar_rows * num_scalar_columns];
 
     // Populate the scalars array.
-    let span = span!(Level::INFO, "pack_blitzar_scalars").entered();
+    let span = span!(Level::DEBUG, "pack_blitzar_scalars").entered();
     if !blitzar_scalars.is_empty() {
         if_rayon!(
             blitzar_scalars.par_chunks_exact_mut(num_scalar_columns),

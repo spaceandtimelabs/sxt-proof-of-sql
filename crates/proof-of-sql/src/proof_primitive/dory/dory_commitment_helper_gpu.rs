@@ -84,7 +84,7 @@ fn compute_dory_commitments_packed_impl(
         .collect();
 
     // Compute the Dory commitments using multi pairing of sub-commits.
-    let span = span!(Level::INFO, "multi_pairing").entered();
+    let span = span!(Level::DEBUG, "multi_pairing").entered();
     let dc: Vec<DoryCommitment> = if_rayon!(
         cumulative_sub_commit_sums.par_iter(),
         cumulative_sub_commit_sums.iter()
