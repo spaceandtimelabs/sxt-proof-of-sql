@@ -24,14 +24,21 @@ const SIZE: usize = 1_000_000;
 #[allow(clippy::items_after_statements)]
 fn main() {
     init_backend();
-    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+
     let tracer = opentelemetry_jaeger::new_agent_pipeline()
         .with_service_name("benches")
         .install_simple()
         .unwrap();
+
     let opentelemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("DEBUG"));
+
     tracing_subscriber::registry()
         .with(opentelemetry)
+        .with(filter)
         .try_init()
         .unwrap();
 
