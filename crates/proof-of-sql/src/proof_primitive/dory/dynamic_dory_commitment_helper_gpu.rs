@@ -7,16 +7,13 @@ use crate::base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast
 use blitzar::compute::ElementP2;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-#[cfg(feature = "log-memory-usage")]
 use sysinfo::{System, SystemExt};
-#[cfg(feature = "log-memory-usage")]
-use tracing::debug;
+use tracing::trace;
 use tracing::{span, Level};
 
-#[cfg(feature = "log-memory-usage")]
 #[allow(clippy::cast_precision_loss)]
 fn log_memory_usage(name: &str) {
-    if tracing::level_enabled!(Level::DEBUG) {
+    if tracing::level_enabled!(Level::TRACE) {
         let mut system = System::new_all();
         system.refresh_memory();
 
@@ -28,9 +25,12 @@ fn log_memory_usage(name: &str) {
         tracing::Span::current().record("used_memory", used_memory);
         tracing::Span::current().record("percentage_memory_used", percentage_memory_used);
 
-        debug!(
+        trace!(
             "{} Available memory: {:.2} MB, Used memory: {:.2} MB, Percentage memory used: {:.2}%",
-            name, available_memory, used_memory, percentage_memory_used
+            name,
+            available_memory,
+            used_memory,
+            percentage_memory_used
         );
     }
 }
@@ -61,7 +61,6 @@ pub(super) fn compute_dynamic_dory_commitments(
     offset: usize,
     setup: &ProverSetup,
 ) -> Vec<DynamicDoryCommitment> {
-    #[cfg(feature = "log-memory-usage")]
     log_memory_usage("Start");
 
     let Gamma_2 = setup.Gamma_2.last().unwrap();
@@ -93,7 +92,7 @@ pub(super) fn compute_dynamic_dory_commitments(
     let num_commits = signed_sub_commits.len() / committable_columns.len();
 
     // Calculate the dynamic Dory commitments.
-    let span = span!(Level::INFO, "multi_pairing").entered();
+    let span = span!(Level::DEBUG, "multi_pairing").entered();
     let ddc: Vec<DynamicDoryCommitment> = signed_sub_commits
         .is_empty()
         .then_some(vec![
@@ -119,7 +118,6 @@ pub(super) fn compute_dynamic_dory_commitments(
         });
     span.exit();
 
-    #[cfg(feature = "log-memory-usage")]
     log_memory_usage("End");
 
     ddc
