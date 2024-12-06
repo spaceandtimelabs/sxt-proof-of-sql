@@ -6,11 +6,12 @@ use crate::{
             compute_varying_bit_matrix, BitDistribution,
         },
         proof::ProofError,
-        scalar::Scalar,
+        scalar::{Scalar, ScalarExt},
     },
     sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::{boxed::Box, vec, vec::Vec};
+use bnum::types::U256;
 use bumpalo::Bump;
 
 /// Count the number of components needed to prove a sign decomposition
@@ -107,7 +108,7 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     // extract evaluations and commitmens of the multilinear extensions for the varying
     // bits of the expression
     let mut bit_evals = Vec::with_capacity(num_varying_bits);
-    for _ in 0..num_varying_bits + 1 {
+    for _ in 0..num_varying_bits {
         let eval = builder.consume_intermediate_mle();
         bit_evals.push(eval);
     }
@@ -205,25 +206,21 @@ fn verify_bits_are_binary<S: Scalar>(builder: &mut VerificationBuilder<S>, bit_e
 /// Panics if `bit_evals.last()` returns `None`.
 ///
 /// This function checks the consistency of the bit evaluations with the expression evaluation.
-fn verify_bit_decomposition<S: Scalar>(
+fn verify_bit_decomposition<S: ScalarExt>(
     builder: &mut VerificationBuilder<S>,
     expr_eval: S,
     bit_evals: &[S],
     dist: &BitDistribution,
 ) -> bool {
     let mut eval = expr_eval;
-    let sign_eval = bit_evals.last().unwrap();
-    let mut vary_index = 0;
-    eval -= *sign_eval * S::from(dist.sign_mask)
-        + (builder.mle_evaluations.input_one_evaluation - *sign_eval)
-            * S::from(dist.inverse_sign_mask);
+    let sign_eval = dist.sign_eval(bit_evals);
+    eval -= sign_eval * S::from_wrapping(dist.sign_mask() - dist.inverse_sign_mask())
+        + builder.mle_evaluations.input_one_evaluation * S::from_wrapping(dist.inverse_sign_mask());
 
-    dist.for_each_varying_bit(|int_index: usize, bit_index: usize| {
-        let mut mult = [0u64; 4];
-        mult[int_index] = 1u64 << bit_index;
+    dist.for_enumerated_vary_mask(|vary_index, bit_index: u8| {
+        let mult = (U256::ONE << bit_index) ^ (U256::ONE << 255);
         let bit_eval = bit_evals[vary_index];
-        eval -= S::from(mult) * bit_eval;
-        vary_index += 1;
+        eval -= S::from_wrapping(mult) * bit_eval;
     });
     eval == S::ZERO
 }

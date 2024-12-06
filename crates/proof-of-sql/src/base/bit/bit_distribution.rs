@@ -1,72 +1,100 @@
-use super::bit_mask_utils::make_sign_bit_mask;
-use crate::base::scalar::Scalar;
+use super::bit_mask_utils::{is_bit_mask_negative_representation, make_bit_mask};
+use crate::base::scalar::{Scalar, ScalarExt};
 use bit_iter::BitIter;
+use bnum::types::U256;
 use core::convert::Into;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 /// Describe the distribution of bit values in a table column
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct BitDistribution {
-    /// Identifies all columns that are identical to the leading column (the sign column)
-    pub sign_mask: [u64; 4],
-    /// Identifies all columns that are the complement of the lead column
-    pub inverse_sign_mask: [u64; 4],
+    /// Identifies all columns that are identical to the leading column (the sign column). The lead bit indicates if the sign column is constant
+    vary_mask: [u64; 4],
+    /// Identifies all columns that are the identcal to the lead column. The lead bit indicates the sign of the last row of data (only relevant if the sign is constant)
+    sign_mask: [u64; 4],
 }
 
 impl BitDistribution {
     pub fn new<S: Scalar, T: Into<S> + Clone>(data: &[T]) -> Self {
-        if data.is_empty() {
-            return Self {
-                sign_mask: [0; 4],
-                inverse_sign_mask: [0; 4],
-            };
-        }
-        let mut sign_mask = make_sign_bit_mask(data[0].clone().into());
-        let mut inverse_sign_mask = sign_mask.map(|u| u ^ u64::MAX);
+        let bit_masks = data.iter().cloned().map(Into::<S>::into).map(make_bit_mask);
+        let (sign_mask, inverse_sign_mask) = bit_masks
+            .clone()
+            .fold((U256::MAX, U256::MAX), |acc, bit_mask| {
+                (acc.0 & bit_mask, acc.1 & !bit_mask)
+            });
+        let vary_mask_bit = U256::from(
+            !bit_masks
+                .map(is_bit_mask_negative_representation)
+                .all_equal(),
+        ) << 255;
+        let vary_mask: U256 = !(sign_mask | inverse_sign_mask) | vary_mask_bit;
 
-        for x in data.iter().skip(1) {
-            let mask = make_sign_bit_mask((*x).clone().into());
-            for i in 0..4 {
-                sign_mask[i] &= mask[i];
-                inverse_sign_mask[i] &= mask[i] ^ u64::MAX;
-            }
-        }
         Self {
-            sign_mask,
-            inverse_sign_mask,
+            sign_mask: sign_mask.into(),
+            vary_mask: vary_mask.into(),
         }
     }
 
+    pub fn vary_mask(&self) -> U256 {
+        U256::from(self.vary_mask)
+    }
+
+    pub fn sign_mask(&self) -> U256 {
+        U256::from(self.sign_mask) | (U256::ONE << 255)
+    }
+
+    pub fn inverse_sign_mask(&self) -> U256 {
+        !(self.vary_mask() ^ self.sign_mask()) & (U256::MAX >> 1)
+    }
+
     pub fn num_varying_bits(&self) -> usize {
-        (0..4).fold(0, |acc, i| {
-            acc + (self.sign_mask[i] | self.inverse_sign_mask[i]).count_zeros() as usize
-        })
+        self.vary_mask().count_ones().try_into().unwrap()
+    }
+
+    pub fn sign_eval<S: ScalarExt>(&self, bit_evals: &[S]) -> S {
+        if U256::from(self.vary_mask) & (U256::ONE << 255) != U256::ZERO {
+            *bit_evals.last().expect("bit_evals should be non-empty")
+        } else if U256::from(self.sign_mask) & (U256::ONE << 255) == U256::ZERO {
+            S::ZERO
+        } else {
+            S::ONE
+        }
     }
 
     /// Check if this instance represents a valid bit distribution. `is_valid`
     /// can be used after deserializing a [`BitDistribution`] from an untrusted
     /// source.
     pub fn is_valid(&self) -> bool {
-        for (s, i) in self.sign_mask.iter().zip(self.inverse_sign_mask) {
-            if s & i != 0 {
-                return false;
-            }
-        }
-        true
+        self.vary_mask() & self.sign_mask() == U256::ZERO
     }
     // Value  = Sum of varying bits | or mask
     // Varying bits = vary mask & value
 
     /// Iterate over each varying bit
-    pub fn for_each_varying_bit<F>(&self, mut f: F)
+    pub fn for_enumerated_vary_mask<F>(&self, mut f: F)
     where
-        F: FnMut(usize, usize),
+        F: FnMut(usize, u8),
     {
         for i in 0..4 {
-            let bitset = (self.sign_mask[i] | self.inverse_sign_mask[i]) ^ u64::MAX;
-            for pos in BitIter::from(bitset) {
-                f(i, pos);
+            let bitset: u64 = self.vary_mask[i];
+            for (index, pos) in BitIter::from(bitset).enumerate() {
+                f(index, (i * 64 + pos).try_into().unwrap());
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::base::bit::BitDistribution;
+
+    #[test]
+    fn we_can_detect_invalid_bit_distributions() {
+        let dist = BitDistribution {
+            sign_mask: [1, 0, 0, 0],
+            vary_mask: [1, 0, 0, 0],
+        };
+        assert!(!dist.is_valid());
     }
 }

@@ -1,4 +1,5 @@
 use crate::base::bit::BitDistribution;
+use bnum::types::U256;
 /// In order to avoid cases with large numbers where there can be both a positive and negative
 /// representation, we restrict the range of bit distributions that we accept.
 ///
@@ -10,5 +11,5 @@ pub fn is_within_acceptable_range(dist: &BitDistribution) -> bool {
     // the maximum absolute value of the sum of two signed 128-integers is
     // then
     //       2 * (2^127) = 2^128
-    dist.inverse_sign_mask[2] == u64::MAX && dist.inverse_sign_mask[3] == u64::MAX - (1 << 63)
+    dist.inverse_sign_mask() ^ ((U256::MAX >> 129) << 128) == U256::ZERO
 }

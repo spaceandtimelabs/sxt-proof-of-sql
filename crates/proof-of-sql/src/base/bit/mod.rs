@@ -1,4 +1,4 @@
-pub mod bit_mask_utils;
+pub(crate) mod bit_mask_utils;
 
 mod bit_distribution;
 pub use bit_distribution::*;
