@@ -9,17 +9,13 @@ use crate::{
 use blitzar::compute::ElementP2;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+#[cfg(feature = "log-memory-usage")]
 use sysinfo::{System, SystemExt};
-use tracing::{debug, span, Level};
+#[cfg(feature = "log-memory-usage")]
+use tracing::debug;
+use tracing::{span, Level};
 
-fn log_memory_start_usage() {
-    log_memory_usage("Start");
-}
-
-fn log_memory_end_usage() {
-    log_memory_usage("End");
-}
-
+#[cfg(feature = "log-memory-usage")]
 #[allow(clippy::cast_precision_loss)]
 fn log_memory_usage(name: &str) {
     if tracing::level_enabled!(Level::DEBUG) {
@@ -126,7 +122,8 @@ pub(super) fn compute_dynamic_dory_commitments(
         });
     span.exit();
 
-    log_memory_end_usage();
+    #[cfg(feature = "log-memory-usage")]
+    log_memory_usage("End");
 
     ddc
 }
