@@ -43,3 +43,6 @@ mod slice_exec_test;
 
 mod dyn_proof_plan;
 pub use dyn_proof_plan::DynProofPlan;
+
+#[cfg(test)]
+mod demo_mock_plan;
