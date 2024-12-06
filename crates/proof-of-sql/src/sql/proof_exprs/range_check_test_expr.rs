@@ -1,8 +1,10 @@
-use super::range_check::{count, final_round_evaluate_range_check, verifier_evaluate_range_check};
+use super::range_check::{
+    count_range_check, final_round_evaluate_range_check, verifier_evaluate_range_check,
+};
 use crate::{
     base::{
         database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
-        map::{IndexMap, IndexSet},
+        map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -21,8 +23,15 @@ pub struct RangeCheckTestExpr {
 }
 
 impl ProverEvaluate for RangeCheckTestExpr {
-    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
+    #[doc = " Evaluate the query, modify `FirstRoundBuilder` and return the result."]
+    fn first_round_evaluate<'a, S: Scalar>(
+        &self,
+        builder: &mut FirstRoundBuilder,
+        _alloc: &'a Bump,
+        table_map: &IndexMap<TableRef, Table<'a, S>>,
+    ) -> Table<'a, S> {
         builder.request_post_result_challenges(1);
+        table_map[&self.column.table_ref()].clone()
     }
 
     // extract data to test on from here, feed it into range check
@@ -37,34 +46,14 @@ impl ProverEvaluate for RangeCheckTestExpr {
             .get(&self.column.table_ref())
             .expect("Table not found");
 
-        // Get the column identifier from `self.column`
-        let column_id: &Identifier = &self.column.column_id();
-
-        // Retrieve the column from the table
-        let column = table
+        let scalars = table
             .inner_table()
-            .get(column_id)
-            .expect("Column not found in table");
-
-        let scalars = column
+            .get(&self.column.column_id())
+            .expect("Column not found in table")
             .as_scalar()
             .expect("Failed to convert column to scalar");
-
-        final_round_evaluate_range_check(builder, scalars, alloc);
+        final_round_evaluate_range_check(builder, scalars, 256, alloc);
         table.clone()
-    }
-
-    #[doc = " Evaluate the query and return the result."]
-    fn result_evaluate<'a, S: Scalar>(
-        &self,
-        _alloc: &'a Bump,
-        table_map: &IndexMap<TableRef, Table<'a, S>>,
-    ) -> (Table<'a, S>, Vec<usize>) {
-        // Get the table from the map using the table reference
-        let table: &Table<'a, S> = table_map
-            .get(&self.column.table_ref())
-            .expect("Table not found");
-        (table.clone(), vec![])
     }
 }
 
@@ -77,21 +66,17 @@ impl ProofPlan for RangeCheckTestExpr {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        let mut refs = IndexSet::default();
-        refs.insert(self.column);
-        refs
+        indexset! {self.column}
     }
 
     #[doc = " Return all the tables referenced in the Query"]
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        let mut refs = IndexSet::default();
-        refs.insert(self.column.table_ref());
-        refs
+        indexset! {self.column.table_ref()}
     }
 
     #[doc = " Count terms used within the Query\'s proof"]
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        count(builder);
+        count_range_check(builder);
         Ok(())
     }
 
@@ -99,16 +84,15 @@ impl ProofPlan for RangeCheckTestExpr {
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,
-        _accessor: &IndexMap<ColumnRef, S>,
+        accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         verifier_evaluate_range_check(builder);
-        let res_eval = builder.consume_intermediate_mle();
 
         Ok(TableEvaluation::new(
-            vec![res_eval],
-            builder.consume_one_evaluation(),
+            vec![accessor[&self.column]],
+            one_eval_map[&self.column.table_ref()],
         ))
     }
 }
