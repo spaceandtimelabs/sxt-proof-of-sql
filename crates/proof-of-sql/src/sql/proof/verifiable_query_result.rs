@@ -79,6 +79,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     ///
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
+    #[tracing::instrument(name = "VerifiableQueryResult::new", level = "info", skip_all)]
     pub fn new(
         expr: &(impl ProofPlan + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
@@ -113,6 +114,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// error.
     ///
     /// Note: This does NOT transform the result!
+    #[tracing::instrument(name = "VerifiableQueryResult::verify", level = "info", skip_all)]
     pub fn verify(
         self,
         expr: &(impl ProofPlan + Serialize),
