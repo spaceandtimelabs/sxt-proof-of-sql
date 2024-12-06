@@ -36,8 +36,8 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_a_single_element() {
     assert_eq!(dist.num_varying_bits(), 0);
     assert!(dist.is_valid());
     assert_eq!(
-        TestScalar::from(Into::<[u64; 4]>::into(dist.sign_mask())),
-        TestScalar::from(val) + TestScalar::from_wrapping(U256::ONE << 255)
+        TestScalar::from_wrapping(dist.sign_mask()),
+        TestScalar::from_wrapping((U256::ONE << 2) | (U256::ONE << 10) | (U256::ONE << 255))
     );
     assert_eq!(
         TestScalar::from_wrapping(dist.vary_mask()),
@@ -103,7 +103,8 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_multiple_varying_bits() {
                 | (U256::ONE << 10)
                 | (U256::ONE << 21)
                 | (U256::ONE << 50)
-                | (U256::ONE << 255)) ^ U256::MAX
+                | (U256::ONE << 255))
+                ^ U256::MAX
         )
     );
 
@@ -141,7 +142,7 @@ fn we_can_compute_the_bit_distribution_of_negative_values() {
 fn we_can_compute_the_bit_distribution_of_values_with_different_signs() {
     let data: Vec<i64> = vec![-1, 1];
     let dist = BitDistribution::new::<TestScalar, _>(&data);
-    assert_eq!(dist.num_varying_bits(), 1);
+    assert_eq!(dist.num_varying_bits(), 2);
     assert_eq!(
         TestScalar::from_wrapping(dist.sign_mask()),
         TestScalar::from_wrapping(U256::ONE << 255)
@@ -153,17 +154,17 @@ fn we_can_compute_the_bit_distribution_of_values_with_different_signs() {
 
     let mut cnt = 0;
     dist.for_enumerated_vary_mask(|_index, i: u8| {
-        assert_eq!(i, 0);
+        assert!(i == 0 || i == 255);
         cnt += 1;
     });
-    assert_eq!(cnt, 1);
+    assert_eq!(cnt, 2);
 }
 
 #[test]
 fn we_can_compute_the_bit_distribution_of_values_with_different_signs_and_values() {
     let data: Vec<i64> = vec![4, -1, 1];
     let dist = BitDistribution::new::<TestScalar, _>(&data);
-    assert_eq!(dist.num_varying_bits(), 2);
+    assert_eq!(dist.num_varying_bits(), 3);
     assert!(dist.is_valid());
     assert_eq!(
         TestScalar::from_wrapping(dist.sign_mask()),
@@ -176,10 +177,10 @@ fn we_can_compute_the_bit_distribution_of_values_with_different_signs_and_values
 
     let mut cnt = 0;
     dist.for_enumerated_vary_mask(|_index, i: u8| {
-        assert!(i == 0 || i == 2);
+        assert!(i == 0 || i == 2 || i == 255);
         cnt += 1;
     });
-    assert_eq!(cnt, 2);
+    assert_eq!(cnt, 3);
 }
 
 #[test]

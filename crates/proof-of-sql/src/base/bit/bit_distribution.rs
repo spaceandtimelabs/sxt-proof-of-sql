@@ -18,11 +18,17 @@ pub struct BitDistribution {
 impl BitDistribution {
     pub fn new<S: Scalar, T: Into<S> + Clone>(data: &[T]) -> Self {
         let bit_masks = data.iter().cloned().map(Into::<S>::into).map(make_bit_mask);
-        let (sign_mask, inverse_sign_mask) = bit_masks
-            .clone()
-            .fold((U256::MAX, U256::MAX), |acc, bit_mask| {
-                (acc.0 & bit_mask, acc.1 & !bit_mask)
-            });
+        let (sign_mask, inverse_sign_mask) =
+            bit_masks
+                .clone()
+                .fold((U256::MAX, U256::MAX), |acc, bit_mask| {
+                    let bit_mask = if is_bit_mask_negative_representation(bit_mask) {
+                        !bit_mask
+                    } else {
+                        bit_mask
+                    };
+                    (acc.0 & bit_mask, acc.1 & !bit_mask)
+                });
         let vary_mask_bit = U256::from(
             !bit_masks
                 .map(is_bit_mask_negative_representation)
@@ -45,7 +51,7 @@ impl BitDistribution {
     }
 
     pub fn inverse_sign_mask(&self) -> U256 {
-        !(self.vary_mask() ^ self.sign_mask()) & (U256::MAX >> 1)
+        (!self.vary_mask() ^ self.sign_mask()) & (U256::MAX >> 1)
     }
 
     pub fn num_varying_bits(&self) -> usize {
@@ -66,7 +72,7 @@ impl BitDistribution {
     /// can be used after deserializing a [`BitDistribution`] from an untrusted
     /// source.
     pub fn is_valid(&self) -> bool {
-        self.vary_mask() & self.sign_mask() == U256::ZERO
+        (self.vary_mask() & self.sign_mask()) & (U256::MAX >> 1) == U256::ZERO
     }
     // Value  = Sum of varying bits | or mask
     // Varying bits = vary mask & value

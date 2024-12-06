@@ -25,8 +25,8 @@ pub trait ScalarExt: Scalar {
         Self::from(value_as_limbs)
     }
 
-    /// Converts a Scalar to U256
-    fn into_u256(self) -> U256 {
+    /// Converts a Scalar to U256. Note that any values above MAX_SIGNED shall remain positive, even if they are representative of negative values.
+    fn into_u256_wrapping(self) -> U256 {
         U256::from(Into::<[u64; 4]>::into(self))
     }
 }
