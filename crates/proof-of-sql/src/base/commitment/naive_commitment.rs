@@ -159,6 +159,10 @@ impl Commitment for NaiveCommitment {
             })
             .collect()
     }
+
+    fn append_to_transcript(&self, transcript: &mut impl crate::base::proof::Transcript) {
+        transcript.extend_as_le(self.0.iter().map(Into::<[u64; 4]>::into));
+    }
 }
 
 #[allow(clippy::similar_names)]
@@ -193,4 +197,24 @@ fn we_can_compute_commitments_from_commitable_columns_with_offset() {
     let committable_columns: &[CommittableColumn] = &[commitable_column_a];
     let commitments = NaiveCommitment::compute_commitments(committable_columns, 1, &());
     assert_eq!(commitments[0].0, column_a_scalars);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::base::proof::{Keccak256Transcript, Transcript};
+
+    #[test]
+    fn we_can_append_different_naive_commitments_and_get_different_transcripts() {
+        let commitment1 = NaiveCommitment(vec![TestScalar::from(1), TestScalar::from(2)]);
+        let commitment2 = NaiveCommitment(vec![TestScalar::from(3), TestScalar::from(4)]);
+
+        let mut transcript1 = Keccak256Transcript::new();
+        let mut transcript2 = Keccak256Transcript::new();
+
+        commitment1.append_to_transcript(&mut transcript1);
+        commitment2.append_to_transcript(&mut transcript2);
+
+        assert_ne!(transcript1.challenge_as_le(), transcript2.challenge_as_le());
+    }
 }

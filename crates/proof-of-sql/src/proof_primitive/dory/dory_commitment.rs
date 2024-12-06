@@ -96,19 +96,26 @@ impl Commitment for DoryCommitment {
     ) -> Vec<Self> {
         super::compute_dory_commitments(committable_columns, offset, setup)
     }
+
+    fn append_to_transcript(&self, transcript: &mut impl crate::base::proof::Transcript) {
+        transcript.extend_canonical_serialize_as_le(&self.0);
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{DoryCommitment, DoryProverPublicSetup, DoryScalar, GT};
     use crate::{
         base::{
-            commitment::{NumColumnsMismatch, VecCommitmentExt},
+            commitment::{Commitment, NumColumnsMismatch, VecCommitmentExt},
             database::{Column, OwnedColumn},
+            proof::{Keccak256Transcript, Transcript},
         },
         proof_primitive::dory::{rand_util::test_rng, ProverSetup, PublicParameters},
     };
     use ark_ec::pairing::Pairing;
+    use ark_ff::UniformRand;
+    use rand::{rngs::StdRng, SeedableRng};
 
     #[test]
     fn we_can_convert_from_columns() {
@@ -483,5 +490,20 @@ mod tests {
             full_commitments.try_sub(commitments),
             Err(NumColumnsMismatch)
         ));
+    }
+
+    #[test]
+    fn we_can_append_different_dory_commitments_and_get_different_transcripts() {
+        let mut rng = StdRng::seed_from_u64(42);
+        let commitment1 = DoryCommitment(GT::rand(&mut rng));
+        let commitment2 = DoryCommitment(GT::rand(&mut rng));
+
+        let mut transcript1 = Keccak256Transcript::new();
+        let mut transcript2 = Keccak256Transcript::new();
+
+        commitment1.append_to_transcript(&mut transcript1);
+        commitment2.append_to_transcript(&mut transcript2);
+
+        assert_ne!(transcript1.challenge_as_le(), transcript2.challenge_as_le());
     }
 }
