@@ -21,7 +21,10 @@
 //! * Batch Inversion: Inversions of large vectors are computationally expensive
 //! * Parallelization: Single-threaded execution of these operations is a performance bottleneck
 use crate::{
-    base::{database::TableRef, map::IndexMap, scalar::Scalar, slice_ops},
+    base::{
+        database::TableRef, map::IndexMap, polynomial::MultilinearExtension, scalar::Scalar,
+        slice_ops,
+    },
     sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::{boxed::Box, vec::Vec};
@@ -55,7 +58,8 @@ pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     let word_counts: &mut [i64] = alloc.alloc_slice_fill_with(max(256, scalars.len()), |_| 0);
 
     decompose_scalar_to_words(scalars, &mut word_columns, word_counts);
-    // Retrieve verifier challenge here, after Phase 1
+
+    // Retrieve verifier challenge here, *after* Phase 1
     let alpha = builder.consume_post_result_challenge();
 
     get_logarithmic_derivative(
@@ -67,11 +71,49 @@ pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
         &mut inverted_word_columns,
     );
 
-    // Produce an MLE over the counts of each word value
-    builder.produce_intermediate_mle(word_counts as &[_]);
-
     // Produce an MLE over the word values
     prove_word_values(alloc, scalars, alpha, table_length, builder);
+
+    // Argue that the sum of all words in each row, minus the count of each
+    // word multiplied by the inverted word value, is zero.
+    prove_row_zero_sum(
+        builder,
+        word_counts,
+        alloc,
+        scalars,
+        &inverted_word_columns,
+        alpha,
+    );
+}
+
+/// Decomposes a scalar to requisite words, additionally tracks the total
+/// number of occurrences of each word for later use in the argument.
+///
+/// ```text
+/// | Column 0   | Column 1   | Column 2   | ... | Column 31   |
+/// |------------|------------|------------|-----|-------------|
+/// |  w₀,₀      |  w₀,₁      |  w₀,₂      | ... |  w₀,₃₁      |
+/// |  w₁,₀      |  w₁,₁      |  w₁,₂      | ... |  w₁,₃₁      |
+/// |  w₂,₀      |  w₂,₁      |  w₂,₂      | ... |  w₂,₃₁      |
+/// ------------------------------------------------------------
+/// ```
+fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
+    scalars: &[S],
+    word_columns: &mut [&mut [u8]],
+    byte_counts: &mut [i64],
+) {
+    for (i, scalar) in scalars.iter().enumerate() {
+        let scalar_array: [u64; 4] = (*scalar).into(); // Convert scalar to u64 array
+        let scalar_bytes_full = cast_slice::<u64, u8>(&scalar_array); // Cast u64 array to u8 slice
+        let scalar_bytes = &scalar_bytes_full[..31];
+
+        // Populate the columns of the words table with decomposition of scalar:
+        for (byte_index, &byte) in scalar_bytes.iter().enumerate() {
+            // Each column in word_columns is for a specific byte position across all scalars
+            word_columns[byte_index][i] = byte;
+            byte_counts[byte as usize] += 1;
+        }
+    }
 }
 
 /// For a word w and a verifier challenge α, compute
@@ -104,6 +146,7 @@ pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
 ///       v              v              v                    v          
 ///    Int. MLE      Int. MLE      Int. MLE             Int. MLE     
 /// ```
+#[allow(clippy::missing_panics_doc)]
 fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
@@ -149,66 +192,6 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
             ],
         );
     }
-}
-
-/// Verify that the prover claim is correct.
-pub fn verifier_evaluate_range_check<C>(
-    builder: &mut VerificationBuilder<'_, C>,
-    one_eval_map: &IndexMap<TableRef, C>,
-) where
-    C: Scalar,
-{
-    let _alpha = builder.consume_post_result_challenge();
-    let mut w_plus_alpha_inv_evals: Vec<_> = Vec::with_capacity(31);
-
-    // Consume the (wᵢⱼ + α)  and (wᵢⱼ + α)⁻¹ MLEs
-    for _ in 0..31 {
-        let w_plus_alpha_eval = builder.consume_intermediate_mle();
-        let w_plus_alpha_inv_eval = builder.consume_intermediate_mle();
-
-        // Store the evaluations of (wᵢⱼ + α)⁻¹
-        w_plus_alpha_inv_evals.push(w_plus_alpha_inv_eval);
-
-        // Verify that:
-        // (wᵢⱼ + α)⁻¹ * (wᵢⱼ + α) - 1 = 0
-        let one_eval = one_eval_map
-            .values()
-            .next()
-            .expect("one_eval_map should have at least one value");
-        let word_eval = (w_plus_alpha_inv_eval * w_plus_alpha_eval) - *one_eval;
-        builder.produce_sumcheck_subpolynomial_evaluation(
-            &SumcheckSubpolynomialType::Identity,
-            word_eval,
-        );
-    }
-
-    let _word_counts = builder.consume_intermediate_mle();
-
-    // // Consume the (word_values + α)⁻¹ * (word_values + α) MLEs:
-    let word_plus_alpha_evals = builder.consume_intermediate_mle();
-    let inverted_word_values_eval = builder.consume_intermediate_mle();
-
-    let one_eval = one_eval_map
-        .values()
-        .next()
-        .expect("one_eval_map should have at least one value");
-
-    // // Verify that:
-    // (word_values + α)⁻¹ * (word_values + α) - 1 = 0
-    let word_value_eval = (inverted_word_values_eval * word_plus_alpha_evals) - *one_eval;
-
-    builder.produce_sumcheck_subpolynomial_evaluation(
-        &SumcheckSubpolynomialType::Identity,
-        word_value_eval,
-    );
-}
-
-/// Get a count of the intermediate MLEs, post-result challenges, and subpolynomials
-pub fn count_range_check(builder: &mut CountBuilder<'_>) {
-    builder.count_intermediate_mles(65);
-    builder.count_post_result_challenges(1);
-    builder.count_degree(3);
-    builder.count_subpolynomials(32);
 }
 
 /// Produce the range of possible values that a word can take on,
@@ -286,34 +269,137 @@ fn prove_word_values<'a, S: Scalar + 'a>(
     );
 }
 
-/// Decomposes a scalar to requisite words, additionally tracks the total
-/// number of occurrences of each word for later use in the argument.
+/// Argue that the sum of all words in each row, minus the count of each word
+/// multiplied by the inverted word value, is zero.
 ///
 /// ```text
-/// | Column 0   | Column 1   | Column 2   | ... | Column 31   |
-/// |------------|------------|------------|-----|-------------|
-/// |  w₀,₀      |  w₀,₁      |  w₀,₂      | ... |  w₀,₃₁      |
-/// |  w₁,₀      |  w₁,₁      |  w₁,₂      | ... |  w₁,₃₁      |
-/// |  w₂,₀      |  w₂,₁      |  w₂,₂      | ... |  w₂,₃₁      |
-/// ------------------------------------------------------------
+/// ∑ (I₀ + I₁ + I₂ + I₃ - (C * IN)) = 0
 /// ```
-fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
+///
+/// Where:
+/// - `I₀, I₁, I₂, I₃` are the inverted word columns.
+/// - `C` is the count of each word.
+/// - `IN` is the inverted word values column.
+#[allow(clippy::missing_panics_doc)]
+fn prove_row_zero_sum<'a, S: Scalar + 'a>(
+    builder: &mut FinalRoundBuilder<'a, S>,
+    word_counts: &'a mut [i64],
+    alloc: &'a Bump,
     scalars: &[S],
-    word_columns: &mut [&mut [u8]],
-    byte_counts: &mut [i64],
+    inverted_word_columns: &[&mut [S]],
+    alpha: S,
 ) {
-    for (i, scalar) in scalars.iter().enumerate() {
-        let scalar_array: [u64; 4] = (*scalar).into(); // Convert scalar to u64 array
-        let scalar_bytes_full = cast_slice::<u64, u8>(&scalar_array); // Cast u64 array to u8 slice
-        let scalar_bytes = &scalar_bytes_full[..31];
+    // Produce an MLE over the counts of each word value
+    builder.produce_intermediate_mle(word_counts as &[_]);
 
-        // Populate the columns of the words table with decomposition of scalar:
-        for (byte_index, &byte) in scalar_bytes.iter().enumerate() {
-            // Each column in word_columns is for a specific byte position across all scalars
-            word_columns[byte_index][i] = byte;
-            byte_counts[byte as usize] += 1;
+    // Allocate row_sums from the bump allocator, ensuring it lives as long as 'a
+    let row_sums = alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO);
+
+    // Iterate over each column and sum up the corresponding row values
+    for column in inverted_word_columns {
+        // Iterate over each scalar in the column
+        for (i, inv_word) in column.iter().enumerate() {
+            row_sums[i] += *inv_word;
         }
     }
+
+    // Pass the row_sums reference with the correct lifetime to the builder
+    builder.produce_intermediate_mle(row_sums as &[_]);
+
+    // Allocate and store the row sums in a Box using the bump allocator
+    let row_sums_box: Box<_> =
+        Box::new(alloc.alloc_slice_copy(row_sums) as &[_]) as Box<dyn MultilinearExtension<S>>;
+
+    let inverted_word_values_plus_alpha: &mut [S] = alloc.alloc_slice_fill_with(256, |i| {
+        S::try_from(i.into()).expect("word value will always fit into S") + alpha
+    });
+
+    slice_ops::batch_inversion(&mut inverted_word_values_plus_alpha[..]);
+
+    // Now pass the vector to the builder
+    builder.produce_sumcheck_subpolynomial(
+        SumcheckSubpolynomialType::ZeroSum,
+        vec![
+            (S::one(), vec![row_sums_box]),
+            (
+                -S::one(),
+                vec![
+                    Box::new(word_counts as &[_]),
+                    Box::new(inverted_word_values_plus_alpha as &[_]),
+                ],
+            ),
+        ],
+    );
+}
+
+/// Verify that the prover claim is correct.
+#[allow(clippy::missing_panics_doc)]
+pub fn verifier_evaluate_range_check<C>(
+    builder: &mut VerificationBuilder<'_, C>,
+    one_eval_map: &IndexMap<TableRef, C>,
+) where
+    C: Scalar,
+{
+    let _alpha = builder.consume_post_result_challenge();
+    let mut w_plus_alpha_inv_evals: Vec<_> = Vec::with_capacity(31);
+
+    // Consume the (wᵢⱼ + α)  and (wᵢⱼ + α)⁻¹ MLEs
+    for _ in 0..31 {
+        let w_plus_alpha_eval = builder.consume_intermediate_mle();
+        let w_plus_alpha_inv_eval = builder.consume_intermediate_mle();
+
+        // Store the evaluations of (wᵢⱼ + α)⁻¹
+        w_plus_alpha_inv_evals.push(w_plus_alpha_inv_eval);
+
+        // Verify that:
+        // (wᵢⱼ + α)⁻¹ * (wᵢⱼ + α) - 1 = 0
+        let one_eval = one_eval_map
+            .values()
+            .next()
+            .expect("one_eval_map should have at least one value");
+        let word_eval = (w_plus_alpha_inv_eval * w_plus_alpha_eval) - *one_eval;
+        builder.produce_sumcheck_subpolynomial_evaluation(
+            &SumcheckSubpolynomialType::Identity,
+            word_eval,
+        );
+    }
+
+    // // Consume the (word_values + α)⁻¹ * (word_values + α) MLEs:
+    let word_plus_alpha_evals = builder.consume_intermediate_mle();
+    let inverted_word_values_eval = builder.consume_intermediate_mle();
+
+    let one_eval = one_eval_map
+        .values()
+        .next()
+        .expect("one_eval_map should have at least one value");
+
+    // // Verify that:
+    // (word_values + α)⁻¹ * (word_values + α) - 1 = 0
+    let word_value_eval = (inverted_word_values_eval * word_plus_alpha_evals) - *one_eval;
+
+    builder.produce_sumcheck_subpolynomial_evaluation(
+        &SumcheckSubpolynomialType::Identity,
+        word_value_eval,
+    );
+
+    // Consume the word count mle:
+    let count_eval = builder.consume_intermediate_mle();
+
+    let row_sum_eval = builder.consume_intermediate_mle();
+    let count_value_product_eval = count_eval * inverted_word_values_eval;
+
+    builder.produce_sumcheck_subpolynomial_evaluation(
+        &SumcheckSubpolynomialType::ZeroSum,
+        row_sum_eval - count_value_product_eval,
+    );
+}
+
+/// Get a count of the intermediate MLEs, post-result challenges, and subpolynomials
+pub fn count_range_check(builder: &mut CountBuilder<'_>) {
+    builder.count_intermediate_mles(66);
+    builder.count_post_result_challenges(1);
+    builder.count_degree(3);
+    builder.count_subpolynomials(33);
 }
 
 #[cfg(test)]

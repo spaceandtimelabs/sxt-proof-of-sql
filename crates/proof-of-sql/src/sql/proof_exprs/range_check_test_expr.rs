@@ -121,6 +121,6 @@ mod tests {
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let res = verifiable_res.verify(&ast, &accessor, &());
-        println!("failed verification: {:?}", res.err());
+        assert!(res.is_ok());
     }
 }
