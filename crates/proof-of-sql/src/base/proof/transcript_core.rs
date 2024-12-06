@@ -36,6 +36,11 @@ impl<T: TranscriptCore> Transcript for T {
             self.raw_append(bytes);
         });
     }
+    fn extend_as_le<M: AsBytes>(&mut self, messages: impl IntoIterator<Item = M>) {
+        messages
+            .into_iter()
+            .for_each(|message| self.raw_append(message.as_bytes()));
+    }
     fn extend_as_le_from_refs<'a, M: AsBytes + 'a + ?Sized>(
         &mut self,
         messages: impl IntoIterator<Item = &'a M>,

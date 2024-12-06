@@ -5,7 +5,7 @@ use super::{
 use crate::{
     base::{
         bit::BitDistribution,
-        commitment::CommitmentEvaluationProof,
+        commitment::{Commitment, CommitmentEvaluationProof},
         database::{
             ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor, Table, TableRef,
         },
@@ -430,11 +430,13 @@ fn make_transcript<T: Transcript>(
     transcript
 }
 
-fn extend_transcript<C: serde::Serialize>(
+fn extend_transcript<C: Commitment>(
     transcript: &mut impl Transcript,
-    commitments: &C,
+    commitments: &[C],
     bit_distributions: &[BitDistribution],
 ) {
-    transcript.extend_serialize_as_le(commitments);
+    for commitment in commitments {
+        commitment.append_to_transcript(transcript);
+    }
     transcript.extend_serialize_as_le(bit_distributions);
 }

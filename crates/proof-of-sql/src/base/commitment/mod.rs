@@ -16,7 +16,7 @@ mod vec_commitment_ext;
 pub use vec_commitment_ext::{NumColumnsMismatch, VecCommitmentExt};
 
 mod column_bounds;
-use super::scalar::Curve25519Scalar;
+use super::{proof::Transcript, scalar::Curve25519Scalar};
 pub use column_bounds::{Bounds, ColumnBounds, NegativeBounds};
 
 mod column_commitment_metadata;
@@ -89,6 +89,13 @@ pub trait Commitment:
         offset: usize,
         setup: &Self::PublicSetup<'_>,
     ) -> Vec<Self>;
+
+    /// Appends the commitment to the given transcript.
+    ///
+    /// # Arguments
+    ///
+    /// * `transcript` - The transcript to append the commitment to.
+    fn append_to_transcript(&self, transcript: &mut impl Transcript);
 }
 
 impl Commitment for RistrettoPoint {
@@ -127,9 +134,34 @@ impl Commitment for RistrettoPoint {
     ) -> Vec<Self> {
         unimplemented!()
     }
+
+    fn append_to_transcript(&self, transcript: &mut impl Transcript) {
+        transcript.extend_as_le([self.compress().to_bytes()]);
+    }
 }
 
 mod commitment_evaluation_proof;
 pub use commitment_evaluation_proof::CommitmentEvaluationProof;
 #[cfg(test)]
 pub(crate) mod commitment_evaluation_proof_test;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::base::proof::{Keccak256Transcript, Transcript};
+    use curve25519_dalek::{constants::RISTRETTO_BASEPOINT_POINT, ristretto::RistrettoPoint};
+
+    #[test]
+    fn we_can_append_different_ristretto_point_commitments_and_get_different_transcripts() {
+        let commitment1 = RistrettoPoint::default();
+        let commitment2 = RISTRETTO_BASEPOINT_POINT;
+
+        let mut transcript1 = Keccak256Transcript::new();
+        let mut transcript2 = Keccak256Transcript::new();
+
+        commitment1.append_to_transcript(&mut transcript1);
+        commitment2.append_to_transcript(&mut transcript2);
+
+        assert_ne!(transcript1.challenge_as_le(), transcript2.challenge_as_le());
+    }
+}
