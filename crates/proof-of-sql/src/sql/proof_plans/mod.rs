@@ -50,3 +50,7 @@ pub use dyn_proof_plan::DynProofPlan;
 
 #[cfg(test)]
 mod demo_mock_plan;
+
+pub mod range_check;
+#[cfg(all(test, feature = "blitzar"))]
+pub mod range_check_test_plan;
