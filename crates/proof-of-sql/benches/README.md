@@ -20,6 +20,15 @@ To run benchmarks with Jaeger, you need to do the following
     docker kill jaeger
     ```
 
+### Optional
+
+To add memory logging to the Jaeger benchmark, use the `log-memory-usage` feature flag.
+
+Example
+```
+cargo bench -p proof-of-sql --bench jaeger_benches DynamicDory --features=log-memory-usage
+```
+
 ## Criterion benchmarking
 
 To run benchmarks with Criterion, you need to do the following
