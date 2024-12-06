@@ -21,7 +21,7 @@
 //! * Batch Inversion: Inversions of large vectors are computationally expensive
 //! * Parallelization: Single-threaded execution of these operations is a performance bottleneck
 use crate::{
-    base::{polynomial::MultilinearExtension, scalar::Scalar, slice_ops},
+    base::{database::TableRef, map::IndexMap, scalar::Scalar, slice_ops},
     sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::{boxed::Box, vec::Vec};
@@ -58,9 +58,6 @@ pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     // Retrieve verifier challenge here, after Phase 1
     let alpha = builder.consume_post_result_challenge();
 
-    // Produce an MLE over the counts of each word value
-    // builder.produce_intermediate_mle(word_counts as &[_]);
-
     get_logarithmic_derivative(
         builder,
         alloc,
@@ -70,7 +67,11 @@ pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
         &mut inverted_word_columns,
     );
 
-    // prove_word_values(alloc, scalars, alpha, table_length, builder);
+    // Produce an MLE over the counts of each word value
+    builder.produce_intermediate_mle(word_counts as &[_]);
+
+    // Produce an MLE over the word values
+    prove_word_values(alloc, scalars, alpha, table_length, builder);
 }
 
 /// For a word w and a verifier challenge α, compute
@@ -111,24 +112,24 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
     table_length: usize,
     inverted_word_columns: &mut [&mut [S]],
 ) {
-    for i in 0..word_columns.len() {
+    for i in 0..31 {
         let byte_column = &mut word_columns[i];
 
         // Allocate words_plus_alpha
         let words_plus_alpha: &mut [S] =
             alloc.alloc_slice_fill_with(byte_column.len(), |j| S::from(&byte_column[j]) + alpha);
 
-        // Produce an MLE over words_plus_alpha
-        builder.produce_intermediate_mle(words_plus_alpha as &[_]);
-
         // Allocate words_plus_alpha_inv
         let words_plus_alpha_inv: &mut [S] =
             alloc.alloc_slice_fill_with(byte_column.len(), |j| S::from(&byte_column[j]) + alpha);
         slice_ops::batch_inversion(&mut words_plus_alpha_inv[..]);
 
-        builder.produce_intermediate_mle(words_plus_alpha_inv as &[_]);
+        // Produce an MLE over words_plus_alpha
+        builder.produce_intermediate_mle(words_plus_alpha as &[_]);
 
         // Copy words_plus_alpha_inv to the corresponding inverted_word_columns[i]
+        builder.produce_intermediate_mle(words_plus_alpha_inv as &[_]);
+
         inverted_word_columns[i].copy_from_slice(words_plus_alpha_inv);
         assert_eq!(words_plus_alpha_inv, inverted_word_columns[i]);
 
@@ -140,8 +141,8 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
                 (
                     S::one(),
                     vec![
-                        Box::new(words_plus_alpha_inv as &[_]),
                         Box::new(words_plus_alpha as &[_]),
+                        Box::new(words_plus_alpha_inv as &[_]),
                     ],
                 ),
                 (-S::one(), vec![Box::new(input_ones as &[_])]),
@@ -150,58 +151,64 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
     }
 }
 
-/// Verify the prover claim
-/// need a check that decomposition is correct
-///
-pub fn verifier_evaluate_range_check<C>(builder: &mut VerificationBuilder<'_, C>)
-where
+/// Verify that the prover claim is correct.
+pub fn verifier_evaluate_range_check<C>(
+    builder: &mut VerificationBuilder<'_, C>,
+    one_eval_map: &IndexMap<TableRef, C>,
+) where
     C: Scalar,
 {
     let _alpha = builder.consume_post_result_challenge();
-    // let mut w_plus_alpha_inv_evals: Vec<_> = Vec::with_capacity(31);
+    let mut w_plus_alpha_inv_evals: Vec<_> = Vec::with_capacity(31);
 
     // Consume the (wᵢⱼ + α)  and (wᵢⱼ + α)⁻¹ MLEs
     for _ in 0..31 {
         let w_plus_alpha_eval = builder.consume_intermediate_mle();
         let w_plus_alpha_inv_eval = builder.consume_intermediate_mle();
 
-        // // Store the evaluations of (wᵢⱼ + α)⁻¹
-        // w_plus_alpha_inv_evals.push(w_plus_alpha_inv_eval);
+        // Store the evaluations of (wᵢⱼ + α)⁻¹
+        w_plus_alpha_inv_evals.push(w_plus_alpha_inv_eval);
 
         // Verify that:
         // (wᵢⱼ + α)⁻¹ * (wᵢⱼ + α) - 1 = 0
-
-        dbg!(w_plus_alpha_inv_eval * w_plus_alpha_eval);
-        let word_eval = (w_plus_alpha_inv_eval * w_plus_alpha_eval)
-            - builder.mle_evaluations.singleton_one_evaluation;
+        let one_eval = one_eval_map
+            .values()
+            .next()
+            .expect("one_eval_map should have at least one value");
+        let word_eval = (w_plus_alpha_inv_eval * w_plus_alpha_eval) - *one_eval;
         builder.produce_sumcheck_subpolynomial_evaluation(
             &SumcheckSubpolynomialType::Identity,
             word_eval,
         );
     }
-    // let word_counts = builder.consume_intermediate_mle();
+
+    let _word_counts = builder.consume_intermediate_mle();
 
     // // Consume the (word_values + α)⁻¹ * (word_values + α) MLEs:
-    // let word_plus_alpha_evals = builder.consume_intermediate_mle();
-    // let inverted_word_values_eval = builder.consume_intermediate_mle();
+    let word_plus_alpha_evals = builder.consume_intermediate_mle();
+    let inverted_word_values_eval = builder.consume_intermediate_mle();
+
+    let one_eval = one_eval_map
+        .values()
+        .next()
+        .expect("one_eval_map should have at least one value");
 
     // // Verify that:
-    // // (word_values + α)⁻¹ * (word_values + α) - 1 = 0
-    // let word_value_eval = (inverted_word_values_eval * word_plus_alpha_evals)
-    //     - builder.mle_evaluations.singleton_one_evaluation;
+    // (word_values + α)⁻¹ * (word_values + α) - 1 = 0
+    let word_value_eval = (inverted_word_values_eval * word_plus_alpha_evals) - *one_eval;
 
-    // builder.produce_sumcheck_subpolynomial_evaluation(
-    //     &SumcheckSubpolynomialType::Identity,
-    //     word_value_eval,
-    // );
+    builder.produce_sumcheck_subpolynomial_evaluation(
+        &SumcheckSubpolynomialType::Identity,
+        word_value_eval,
+    );
 }
 
 /// Get a count of the intermediate MLEs, post-result challenges, and subpolynomials
 pub fn count_range_check(builder: &mut CountBuilder<'_>) {
-    builder.count_intermediate_mles(62);
+    builder.count_intermediate_mles(65);
     builder.count_post_result_challenges(1);
     builder.count_degree(3);
-    builder.count_subpolynomials(31);
+    builder.count_subpolynomials(32);
 }
 
 /// Produce the range of possible values that a word can take on,

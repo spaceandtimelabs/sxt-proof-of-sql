@@ -14,7 +14,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use proof_of_sql_parser::Identifier;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -88,7 +87,7 @@ impl ProofPlan for RangeCheckTestExpr {
         _result: Option<&OwnedTable<S>>,
         one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        verifier_evaluate_range_check(builder);
+        verifier_evaluate_range_check(builder, one_eval_map);
 
         Ok(TableEvaluation::new(
             vec![accessor[&self.column]],
@@ -113,12 +112,12 @@ mod tests {
 
     #[test]
     fn we_can_prove_a_range_check() {
-        let data = owned_table([scalar("a", 1000..1256)]);
+        let data = owned_table([scalar("a", 0..256)]);
         // let data = owned_table([bigint("a", vec![0; 256])]);
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
         let ast = RangeCheckTestExpr {
-            column: ColumnRef::new(t, "a".parse().unwrap(), ColumnType::BigInt),
+            column: ColumnRef::new(t, "a".parse().unwrap(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let res = verifiable_res.verify(&ast, &accessor, &());
