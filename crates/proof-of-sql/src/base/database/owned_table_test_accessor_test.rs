@@ -4,8 +4,8 @@ use super::{
 };
 use crate::base::{
     commitment::{
-        naive_commitment::NaiveCommitment, test_evaluation_proof::TestEvaluationProof, Commitment,
-        CommittableColumn,
+        naive_commitment::NaiveCommitment, naive_evaluation_proof::NaiveEvaluationProof,
+        Commitment, CommittableColumn,
     },
     database::owned_table_utility::*,
     scalar::test_scalar::TestScalar,
@@ -14,7 +14,7 @@ use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
-    let mut accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
+    let mut accessor = OwnedTableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -32,7 +32,7 @@ fn we_can_query_the_length_of_a_table() {
 
 #[test]
 fn we_can_access_the_columns_of_a_table() {
-    let mut accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
+    let mut accessor = OwnedTableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -126,7 +126,7 @@ fn we_can_access_the_columns_of_a_table() {
 
 #[test]
 fn we_can_access_the_commitments_of_table_columns() {
-    let mut accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
+    let mut accessor = OwnedTableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -169,7 +169,7 @@ fn we_can_access_the_commitments_of_table_columns() {
 
 #[test]
 fn we_can_access_the_type_of_table_columns() {
-    let mut accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
+    let mut accessor = OwnedTableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -210,7 +210,7 @@ fn we_can_access_the_type_of_table_columns() {
 
 #[test]
 fn we_can_access_schema_and_column_names() {
-    let mut accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
+    let mut accessor = OwnedTableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
 
     let data1 = owned_table([bigint("a", [1, 2, 3]), varchar("b", ["x", "y", "z"])]);
@@ -228,14 +228,14 @@ fn we_can_access_schema_and_column_names() {
 
 #[test]
 fn we_can_correctly_update_offsets() {
-    let mut accessor1 = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
+    let mut accessor1 = OwnedTableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
     let table_ref = "sxt.test".parse().unwrap();
 
     let data = owned_table([bigint("a", [1, 2, 3]), bigint("b", [123, 5, 123])]);
     accessor1.add_table(table_ref, data.clone(), 0_usize);
 
     let offset = 123;
-    let mut accessor2 = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
+    let mut accessor2 = OwnedTableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
     accessor2.add_table(table_ref, data, offset);
 
     let column = ColumnRef::new(table_ref, "a".parse().unwrap(), ColumnType::BigInt);
