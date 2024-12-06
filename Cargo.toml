@@ -63,7 +63,7 @@ tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
 tempfile = "3.13.0"
 tracing = { version = "0.1.36", default-features = false }
 tracing-opentelemetry = { version = "0.22.0" }
-tracing-subscriber = { version = "0.3.0" }
+tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
 wasm-bindgen = { version = "0.2.92" }
 zerocopy = { version = "0.7.34" }
 

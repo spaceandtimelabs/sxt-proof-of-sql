@@ -51,7 +51,7 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 snafu = { workspace = true }
 sqlparser = { workspace = true }
-sysinfo = {workspace = true, optional = true }
+sysinfo = {workspace = true }
 tiny-keccak = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 zerocopy = { workspace = true }
@@ -84,7 +84,6 @@ perf = ["blitzar", "cpu-perf"]
 cpu-perf = ["rayon", "ark-ec/parallel", "ark-poly/parallel", "ark-ff/asm"]
 rayon = ["dep:rayon", "std"]
 std = ["snafu/std", "ark-serialize/std"]
-log-memory-usage = ["sysinfo"]
 
 [lints]
 workspace = true
