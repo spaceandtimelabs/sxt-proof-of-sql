@@ -13,6 +13,15 @@ pub trait Transcript {
     fn new() -> Self;
     /// Appends the provided messages by appending the reversed raw bytes (i.e. assuming the message is bigendian)
     fn extend_as_be<M: FromBytes + AsBytes>(&mut self, messages: impl IntoIterator<Item = M>);
+    /// Appends the provided messages by appending the reversed raw bytes (i.e. assuming the message is bigendian)
+    fn extend_as_be_from_refs<'a, M: FromBytes + AsBytes + 'a + Copy>(
+        &mut self,
+        messages: impl IntoIterator<Item = &'a M>,
+    ) {
+        self.extend_as_be(messages.into_iter().copied());
+    }
+    /// Appends the provided messages by appending the raw bytes (i.e. assuming the message is littleendian)
+    fn extend_as_le<M: AsBytes>(&mut self, messages: impl IntoIterator<Item = M>);
     /// Appends the provided messages by appending the raw bytes (i.e. assuming the message is littleendian)
     fn extend_as_le<M: AsBytes>(&mut self, messages: impl IntoIterator<Item = M>);
     /// Appends the provided messages by appending the raw bytes (i.e. assuming the message is littleendian)
