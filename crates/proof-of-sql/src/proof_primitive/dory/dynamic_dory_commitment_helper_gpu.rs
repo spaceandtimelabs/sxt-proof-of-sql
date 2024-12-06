@@ -10,8 +10,7 @@ use blitzar::compute::ElementP2;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use sysinfo::{System, SystemExt};
-use tracing::trace;
-use tracing::{span, Level};
+use tracing::{span, trace, Level};
 
 #[allow(clippy::cast_precision_loss)]
 fn log_memory_usage(name: &str) {
@@ -22,10 +21,6 @@ fn log_memory_usage(name: &str) {
         let available_memory = system.available_memory() as f64 / 1024.0;
         let used_memory = system.used_memory() as f64 / 1024.0;
         let percentage_memory_used = (used_memory / (used_memory + available_memory)) * 100.0;
-
-        tracing::Span::current().record("available_memory", available_memory);
-        tracing::Span::current().record("used_memory", used_memory);
-        tracing::Span::current().record("percentage_memory_used", percentage_memory_used);
 
         trace!(
             "{} Available memory: {:.2} MB, Used memory: {:.2} MB, Percentage memory used: {:.2}%",
@@ -55,8 +50,7 @@ fn log_memory_usage(name: &str) {
 #[tracing::instrument(
     name = "compute_dynamic_dory_commitments (gpu)",
     level = "debug",
-    skip_all,
-    fields(available_memory, used_memory, percentage_memory_used)
+    skip_all
 )]
 pub(super) fn compute_dynamic_dory_commitments(
     committable_columns: &[CommittableColumn],
