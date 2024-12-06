@@ -17,6 +17,19 @@ fn we_can_add_values_to_the_transcript_in_big_endian_form() {
 #[test]
 fn we_can_add_values_to_the_transcript_in_little_endian_form() {
     let mut transcript1: T = TranscriptCore::new();
+    transcript1.extend_as_le([1u16, 1000, 2]);
+
+    let mut transcript2: T = TranscriptCore::new();
+    transcript2.raw_append(&[1, 0]);
+    transcript2.raw_append(&[232, 3]);
+    transcript2.raw_append(&[2, 0]);
+
+    assert_eq!(transcript1.raw_challenge(), transcript2.raw_challenge());
+}
+
+#[test]
+fn we_can_add_values_to_the_transcript_in_little_endian_form_from_refs() {
+    let mut transcript1: T = TranscriptCore::new();
     transcript1.extend_as_le_from_refs(&[1u16, 1000, 2]);
 
     let mut transcript2: T = TranscriptCore::new();
