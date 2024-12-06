@@ -5,22 +5,25 @@ use serde::{Deserialize, Serialize};
 
 /// Captures a timezone from a timestamp query
 #[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize, PartialEq, Eq)]
-pub enum PoSQLTimeZone {
-    /// Default variant for UTC timezone
-    Utc,
-    /// `TImezone` offset in seconds
-    FixedOffset(i32),
+pub struct PoSQLTimeZone {
+    offset: i32,
 }
 
 impl PoSQLTimeZone {
-    /// Parse a timezone from a count of seconds
+    /// Create a timezone from a count of seconds
     #[must_use]
-    pub fn from_offset(offset: i32) -> Self {
-        if offset == 0 {
-            PoSQLTimeZone::Utc
-        } else {
-            PoSQLTimeZone::FixedOffset(offset)
-        }
+    pub const fn new(offset: i32) -> Self {
+        PoSQLTimeZone { offset }
+    }
+    #[must_use]
+    /// The UTC timezone
+    pub const fn utc() -> Self {
+        PoSQLTimeZone::new(0)
+    }
+    /// Get the underlying offset in seconds
+    #[must_use]
+    pub const fn offset(self) -> i32 {
+        self.offset
     }
 }
 
@@ -32,7 +35,7 @@ impl TryFrom<&Option<Arc<str>>> for PoSQLTimeZone {
             Some(tz_str) => {
                 let tz = Arc::as_ref(tz_str).to_uppercase();
                 match tz.as_str() {
-                    "Z" | "UTC" | "00:00" | "+00:00" | "0:00" | "+0:00" => Ok(PoSQLTimeZone::Utc),
+                    "Z" | "UTC" | "00:00" | "+00:00" | "0:00" | "+0:00" => Ok(PoSQLTimeZone::utc()),
                     tz if tz.chars().count() == 6
                         && (tz.starts_with('+') || tz.starts_with('-')) =>
                     {
@@ -44,33 +47,27 @@ impl TryFrom<&Option<Arc<str>>> for PoSQLTimeZone {
                             .parse::<i32>()
                             .map_err(|_| PoSQLTimestampError::InvalidTimezoneOffset)?;
                         let total_seconds = sign * ((hours * 3600) + (minutes * 60));
-                        Ok(PoSQLTimeZone::FixedOffset(total_seconds))
+                        Ok(PoSQLTimeZone::new(total_seconds))
                     }
                     _ => Err(PoSQLTimestampError::InvalidTimezone {
                         timezone: tz.to_string(),
                     }),
                 }
             }
-            None => Ok(PoSQLTimeZone::Utc),
+            None => Ok(PoSQLTimeZone::utc()),
         }
     }
 }
 
 impl fmt::Display for PoSQLTimeZone {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            PoSQLTimeZone::Utc => {
-                write!(f, "+00:00")
-            }
-            PoSQLTimeZone::FixedOffset(seconds) => {
-                let hours = seconds / 3600;
-                let minutes = (seconds.abs() % 3600) / 60;
-                if seconds < 0 {
-                    write!(f, "-{:02}:{:02}", hours.abs(), minutes)
-                } else {
-                    write!(f, "+{hours:02}:{minutes:02}")
-                }
-            }
+        let seconds = self.offset();
+        let hours = seconds / 3600;
+        let minutes = (seconds.abs() % 3600) / 60;
+        if seconds < 0 {
+            write!(f, "-{:02}:{:02}", hours.abs(), minutes)
+        } else {
+            write!(f, "+{hours:02}:{minutes:02}")
         }
     }
 }
@@ -82,19 +79,19 @@ mod timezone_parsing_tests {
 
     #[test]
     fn test_display_fixed_offset_positive() {
-        let timezone = timezone::PoSQLTimeZone::FixedOffset(4500); // +01:15
+        let timezone = timezone::PoSQLTimeZone::new(4500); // +01:15
         assert_eq!(format!("{timezone}"), "+01:15");
     }
 
     #[test]
     fn test_display_fixed_offset_negative() {
-        let timezone = timezone::PoSQLTimeZone::FixedOffset(-3780); // -01:03
+        let timezone = timezone::PoSQLTimeZone::new(-3780); // -01:03
         assert_eq!(format!("{timezone}"), "-01:03");
     }
 
     #[test]
     fn test_display_utc() {
-        let timezone = timezone::PoSQLTimeZone::Utc;
+        let timezone = timezone::PoSQLTimeZone::utc();
         assert_eq!(format!("{timezone}"), "+00:00");
     }
 }
@@ -106,7 +103,7 @@ mod timezone_offset_tests {
     #[test]
     fn test_utc_timezone() {
         let input = "2023-06-26T12:34:56Z";
-        let expected_timezone = timezone::PoSQLTimeZone::Utc;
+        let expected_timezone = timezone::PoSQLTimeZone::utc();
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone(), expected_timezone);
     }
@@ -114,7 +111,7 @@ mod timezone_offset_tests {
     #[test]
     fn test_positive_offset_timezone() {
         let input = "2023-06-26T12:34:56+03:30";
-        let expected_timezone = timezone::PoSQLTimeZone::from_offset(12600); // 3 hours and 30 minutes in seconds
+        let expected_timezone = timezone::PoSQLTimeZone::new(12600); // 3 hours and 30 minutes in seconds
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone(), expected_timezone);
     }
@@ -122,7 +119,7 @@ mod timezone_offset_tests {
     #[test]
     fn test_negative_offset_timezone() {
         let input = "2023-06-26T12:34:56-04:00";
-        let expected_timezone = timezone::PoSQLTimeZone::from_offset(-14400); // -4 hours in seconds
+        let expected_timezone = timezone::PoSQLTimeZone::new(-14400); // -4 hours in seconds
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone(), expected_timezone);
     }
@@ -130,7 +127,7 @@ mod timezone_offset_tests {
     #[test]
     fn test_zero_offset_timezone() {
         let input = "2023-06-26T12:34:56+00:00";
-        let expected_timezone = timezone::PoSQLTimeZone::Utc; // Zero offset defaults to UTC
+        let expected_timezone = timezone::PoSQLTimeZone::utc(); // Zero offset defaults to UTC
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone(), expected_timezone);
     }

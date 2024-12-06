@@ -330,7 +330,7 @@ pub fn borrowed_decimal75<S: Scalar>(
 ///
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     borrowed_timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600], &alloc),
+///     borrowed_timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), vec![1625072400, 1625076000, 1625079600], &alloc),
 /// ]);
 /// ```
 ///

@@ -62,7 +62,7 @@ fn we_can_create_an_owned_table_with_data() {
         timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
+            PoSQLTimeZone::utc(),
             [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
         ),
     ]);
@@ -71,7 +71,7 @@ fn we_can_create_an_owned_table_with_data() {
         Identifier::try_new("time_stamp").unwrap(),
         OwnedColumn::TimestampTZ(
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
+            PoSQLTimeZone::utc(),
             [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX].into(),
         ),
     );
@@ -129,7 +129,7 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
+            PoSQLTimeZone::utc(),
             [0; 0],
         ),
     ]);
@@ -141,7 +141,7 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
+            PoSQLTimeZone::utc(),
             [0; 0],
         ),
     ]);
@@ -157,7 +157,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
         timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
+            PoSQLTimeZone::utc(),
             [1_625_072_400],
         ),
     ]);
@@ -169,7 +169,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
         timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
+            PoSQLTimeZone::utc(),
             [1_625_076_000],
         ),
     ]);

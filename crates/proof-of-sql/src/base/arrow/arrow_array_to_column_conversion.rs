@@ -305,7 +305,7 @@ mod tests {
         let result = array.to_column::<TestScalar>(&alloc, &(1..3), None);
         assert_eq!(
             result.unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[1..3])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &data[1..3])
         );
     }
 
@@ -323,7 +323,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[])
         );
     }
 
@@ -339,7 +339,7 @@ mod tests {
         let result = array.to_column::<DoryScalar>(&alloc, &(1..1), None);
         assert_eq!(
             result.unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[])
         );
     }
 
@@ -1006,7 +1006,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[..])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &data[..])
         );
     }
 
@@ -1076,7 +1076,7 @@ mod tests {
             array
                 .to_column::<TestScalar>(&alloc, &(1..3), None)
                 .unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[1..3])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &data[1..3])
         );
     }
 
@@ -1134,7 +1134,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[])
         );
     }
 }

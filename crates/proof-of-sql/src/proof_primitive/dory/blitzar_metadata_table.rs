@@ -609,7 +609,7 @@ mod tests {
             CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, vec![[6, 0, 0, 0]]),
             CommittableColumn::Scalar(vec![[7, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[8, 0, 0, 0]]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[9]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[9]),
             CommittableColumn::Boolean(&[true]),
         ];
 
@@ -643,7 +643,7 @@ mod tests {
             CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, vec![[6, 0, 0, 0]]),
             CommittableColumn::Scalar(vec![[7, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[8, 0, 0, 0]]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[9]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[9]),
             CommittableColumn::Boolean(&[true]),
         ];
 
@@ -685,7 +685,7 @@ mod tests {
             CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, vec![[6, 0, 0, 0]]),
             CommittableColumn::Scalar(vec![[7, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[8, 0, 0, 0]]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[9]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[9]),
             CommittableColumn::Boolean(&[true]),
         ];
 

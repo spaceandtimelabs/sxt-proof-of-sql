@@ -60,7 +60,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             ident("timestamp_second_column"),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
         ),
     );
     column_mapping.insert(
@@ -68,7 +68,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             ident("timestamp_millisecond_column"),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::Utc),
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::utc()),
         ),
     );
     column_mapping.insert(
@@ -76,7 +76,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             ident("timestamp_microsecond_column"),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Microsecond, PoSQLTimeZone::Utc),
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Microsecond, PoSQLTimeZone::utc()),
         ),
     );
     column_mapping.insert(
@@ -84,7 +84,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             ident("timestamp_nanosecond_column"),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::Utc),
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::utc()),
         ),
     );
     column_mapping

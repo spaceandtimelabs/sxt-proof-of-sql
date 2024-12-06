@@ -414,7 +414,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_fewer_ro
             CommittableColumn::VarChar(vec![[16, 0, 0, 0]]),
             CommittableColumn::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::Utc,
+                PoSQLTimeZone::utc(),
                 &[17, 18, 19, 20],
             ),
         ],
@@ -491,7 +491,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
             CommittableColumn::VarChar(vec![[16, 0, 0, 0]]),
             CommittableColumn::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::Utc,
+                PoSQLTimeZone::utc(),
                 &[17, 18, 19, 20],
             ),
         ],
@@ -567,7 +567,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_signed_v
             CommittableColumn::VarChar(vec![[16, 0, 0, 0]]),
             CommittableColumn::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::Utc,
+                PoSQLTimeZone::utc(),
                 &[-18, -17, 17, 18],
             ),
         ],
@@ -656,7 +656,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
             CommittableColumn::VarChar(vec![[16, 0, 0, 0]]),
             CommittableColumn::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::Utc,
+                PoSQLTimeZone::utc(),
                 &[-18, -17, 17, 18],
             ),
         ],

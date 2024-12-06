@@ -272,10 +272,20 @@ impl<'a> QueryContextBuilder<'a> {
     }
 }
 
-/// TODO: add docs
+/// Checks if the binary operation between the left and right data types is valid.
+///
+/// # Arguments
+///
+/// * `left_dtype` - The data type of the left operand.
+/// * `right_dtype` - The data type of the right operand.
+/// * `binary_operator` - The binary operator to be applied.
+///
+/// # Returns
+///
+/// * `true` if the operation is valid, `false` otherwise.
 pub(crate) fn type_check_binary_operation(
-    left_dtype: &ColumnType,
-    right_dtype: &ColumnType,
+    left_dtype: ColumnType,
+    right_dtype: ColumnType,
     binary_operator: &BinaryOperator,
 ) -> bool {
     match binary_operator {
@@ -296,7 +306,7 @@ pub(crate) fn type_check_binary_operation(
             ) || (left_dtype.is_numeric() && right_dtype.is_numeric())
         }
         BinaryOperator::GtEq | BinaryOperator::LtEq => {
-            if left_dtype == &ColumnType::VarChar || right_dtype == &ColumnType::VarChar {
+            if left_dtype == ColumnType::VarChar || right_dtype == ColumnType::VarChar {
                 return false;
             }
             // Due to constraints in bitwise_verification we limit the precision of decimal types to 38
@@ -318,9 +328,9 @@ pub(crate) fn type_check_binary_operation(
                 )
         }
         BinaryOperator::Plus | BinaryOperator::Minus => {
-            try_add_subtract_column_types(*left_dtype, *right_dtype).is_ok()
+            try_add_subtract_column_types(left_dtype, right_dtype).is_ok()
         }
-        BinaryOperator::Multiply => try_multiply_column_types(*left_dtype, *right_dtype).is_ok(),
+        BinaryOperator::Multiply => try_multiply_column_types(left_dtype, right_dtype).is_ok(),
         BinaryOperator::Divide => left_dtype.is_numeric() && right_dtype.is_numeric(),
         _ => {
             // Handle unsupported binary operations
@@ -334,7 +344,7 @@ fn check_dtypes(
     right_dtype: ColumnType,
     binary_operator: &BinaryOperator,
 ) -> ConversionResult<()> {
-    if type_check_binary_operation(&left_dtype, &right_dtype, binary_operator) {
+    if type_check_binary_operation(left_dtype, right_dtype, binary_operator) {
         Ok(())
     } else {
         Err(ConversionError::DataTypeMismatch {
