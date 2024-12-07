@@ -15,7 +15,7 @@ fn we_can_create_and_prove_an_empty_table_exec() {
     let table_ref = TableRef::new("namespace.table_name".parse().unwrap());
     let plan = table_exec(
         table_ref,
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt)],
+        vec![ColumnField::new("a".into(), ColumnType::BigInt)],
     );
     let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
         table_ref,
@@ -37,9 +37,9 @@ fn we_can_create_and_prove_a_table_exec() {
     let plan = table_exec(
         table_ref,
         vec![
-            ColumnField::new("language_rank".parse().unwrap(), ColumnType::BigInt),
-            ColumnField::new("language_name".parse().unwrap(), ColumnType::VarChar),
-            ColumnField::new("space_and_time".parse().unwrap(), ColumnType::VarChar),
+            ColumnField::new("language_rank".into(), ColumnType::BigInt),
+            ColumnField::new("language_name".into(), ColumnType::VarChar),
+            ColumnField::new("space_and_time".into(), ColumnType::VarChar),
         ],
     );
     let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(

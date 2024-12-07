@@ -20,10 +20,8 @@ use crate::base::scalar::Scalar;
 use alloc::{string::String, vec::Vec};
 use bumpalo::Bump;
 use core::ops::Deref;
-use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    Identifier,
-};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use sqlparser::ast::Ident;
 
 /// Creates an [`Table`] from a list of `(Identifier, Column)` pairs.
 /// This is a convenience wrapper around [`Table::try_from_iter`] primarily for use in tests and
@@ -49,7 +47,7 @@ use proof_of_sql_parser::{
 /// # Panics
 /// - Panics if converting the iterator into an `Table<'a, S>` fails.
 pub fn table<'a, S: Scalar>(
-    iter: impl IntoIterator<Item = (Identifier, Column<'a, S>)>,
+    iter: impl IntoIterator<Item = (Ident, Column<'a, S>)>,
 ) -> Table<'a, S> {
     Table::try_from_iter(iter).unwrap()
 }
@@ -61,7 +59,7 @@ pub fn table<'a, S: Scalar>(
 /// # Panics
 /// - Panics if the given row count doesn't match the number of rows in any of the columns.
 pub fn table_with_row_count<'a, S: Scalar>(
-    iter: impl IntoIterator<Item = (Identifier, Column<'a, S>)>,
+    iter: impl IntoIterator<Item = (Ident, Column<'a, S>)>,
     row_count: usize,
 ) -> Table<'a, S> {
     Table::try_from_iter_with_options(iter, TableOptions::new(Some(row_count))).unwrap()
@@ -79,15 +77,15 @@ pub fn table_with_row_count<'a, S: Scalar>(
 /// ]);
 ///```
 /// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+/// - Panics if `name.parse()()` fails to convert the name into an `Identifier`.
 pub fn borrowed_tinyint<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i8>>,
     alloc: &Bump,
-) -> (Identifier, Column<'_, S>) {
+) -> (Ident, Column<'_, S>) {
     let transformed_data: Vec<i8> = data.into_iter().map(Into::into).collect();
     let alloc_data = alloc.alloc_slice_copy(&transformed_data);
-    (name.parse().unwrap(), Column::TinyInt(alloc_data))
+    (name.deref().into(), Column::TinyInt(alloc_data))
 }
 
 /// Creates a `(Identifier, Column)` pair for a smallint column.
@@ -104,15 +102,15 @@ pub fn borrowed_tinyint<S: Scalar>(
 /// ```
 ///
 /// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+/// - Panics if `name.parse()()` fails to convert the name into an `Identifier`.
 pub fn borrowed_smallint<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i16>>,
     alloc: &Bump,
-) -> (Identifier, Column<'_, S>) {
+) -> (Ident, Column<'_, S>) {
     let transformed_data: Vec<i16> = data.into_iter().map(Into::into).collect();
     let alloc_data = alloc.alloc_slice_copy(&transformed_data);
-    (name.parse().unwrap(), Column::SmallInt(alloc_data))
+    (name.deref().into(), Column::SmallInt(alloc_data))
 }
 
 /// Creates a `(Identifier, Column)` pair for an int column.
@@ -129,15 +127,15 @@ pub fn borrowed_smallint<S: Scalar>(
 /// ```
 ///
 /// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+/// - Panics if `name.parse()()` fails to convert the name into an `Identifier`.
 pub fn borrowed_int<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i32>>,
     alloc: &Bump,
-) -> (Identifier, Column<'_, S>) {
+) -> (Ident, Column<'_, S>) {
     let transformed_data: Vec<i32> = data.into_iter().map(Into::into).collect();
     let alloc_data = alloc.alloc_slice_copy(&transformed_data);
-    (name.parse().unwrap(), Column::Int(alloc_data))
+    (name.deref().into(), Column::Int(alloc_data))
 }
 
 /// Creates a `(Identifier, Column)` pair for a bigint column.
@@ -159,10 +157,10 @@ pub fn borrowed_bigint<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i64>>,
     alloc: &Bump,
-) -> (Identifier, Column<'_, S>) {
+) -> (Ident, Column<'_, S>) {
     let transformed_data: Vec<i64> = data.into_iter().map(Into::into).collect();
     let alloc_data = alloc.alloc_slice_copy(&transformed_data);
-    (name.parse().unwrap(), Column::BigInt(alloc_data))
+    (name.deref().into(), Column::BigInt(alloc_data))
 }
 
 /// Creates a `(Identifier, Column)` pair for a boolean column.
@@ -184,10 +182,10 @@ pub fn borrowed_boolean<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<bool>>,
     alloc: &Bump,
-) -> (Identifier, Column<'_, S>) {
+) -> (Ident, Column<'_, S>) {
     let transformed_data: Vec<bool> = data.into_iter().map(Into::into).collect();
     let alloc_data = alloc.alloc_slice_copy(&transformed_data);
-    (name.parse().unwrap(), Column::Boolean(alloc_data))
+    (name.deref().into(), Column::Boolean(alloc_data))
 }
 
 /// Creates a `(Identifier, Column)` pair for an int128 column.
@@ -209,10 +207,10 @@ pub fn borrowed_int128<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i128>>,
     alloc: &Bump,
-) -> (Identifier, Column<'_, S>) {
+) -> (Ident, Column<'_, S>) {
     let transformed_data: Vec<i128> = data.into_iter().map(Into::into).collect();
     let alloc_data = alloc.alloc_slice_copy(&transformed_data);
-    (name.parse().unwrap(), Column::Int128(alloc_data))
+    (name.deref().into(), Column::Int128(alloc_data))
 }
 
 /// Creates a `(Identifier, Column)` pair for a scalar column.
@@ -234,10 +232,10 @@ pub fn borrowed_scalar<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<S>>,
     alloc: &Bump,
-) -> (Identifier, Column<'_, S>) {
+) -> (Ident, Column<'_, S>) {
     let transformed_data: Vec<S> = data.into_iter().map(Into::into).collect();
     let alloc_data = alloc.alloc_slice_copy(&transformed_data);
-    (name.parse().unwrap(), Column::Scalar(alloc_data))
+    (name.deref().into(), Column::Scalar(alloc_data))
 }
 
 /// Creates a `(Identifier, Column)` pair for a varchar column.
@@ -258,7 +256,7 @@ pub fn borrowed_varchar<'a, S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<String>>,
     alloc: &'a Bump,
-) -> (Identifier, Column<'a, S>) {
+) -> (Ident, Column<'a, S>) {
     let strings: Vec<&'a str> = data
         .into_iter()
         .map(|item| {
@@ -270,7 +268,7 @@ pub fn borrowed_varchar<'a, S: Scalar>(
     let scalars: Vec<S> = strings.iter().map(|s| (*s).into()).collect();
     let alloc_scalars = alloc.alloc_slice_copy(&scalars);
     (
-        name.parse().unwrap(),
+        name.deref().into(),
         Column::VarChar((alloc_strings, alloc_scalars)),
     )
 }
@@ -296,11 +294,11 @@ pub fn borrowed_decimal75<S: Scalar>(
     scale: i8,
     data: impl IntoIterator<Item = impl Into<S>>,
     alloc: &Bump,
-) -> (Identifier, Column<'_, S>) {
+) -> (Ident, Column<'_, S>) {
     let transformed_data: Vec<S> = data.into_iter().map(Into::into).collect();
     let alloc_data = alloc.alloc_slice_copy(&transformed_data);
     (
-        name.parse().unwrap(),
+        name.deref().into(),
         Column::Decimal75(
             crate::base::math::decimal::Precision::new(precision).unwrap(),
             scale,
@@ -342,11 +340,11 @@ pub fn borrowed_timestamptz<S: Scalar>(
     timezone: PoSQLTimeZone,
     data: impl IntoIterator<Item = i64>,
     alloc: &Bump,
-) -> (Identifier, Column<'_, S>) {
+) -> (Ident, Column<'_, S>) {
     let vec_data: Vec<i64> = data.into_iter().collect();
     let alloc_data = alloc.alloc_slice_copy(&vec_data);
     (
-        name.parse().unwrap(),
+        name.deref().into(),
         Column::TimestampTZ(time_unit, timezone, alloc_data),
     )
 }

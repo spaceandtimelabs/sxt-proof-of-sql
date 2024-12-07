@@ -2,15 +2,15 @@ use super::*;
 use proof_of_sql_parser::{
     intermediate_ast::{AliasedResultExpr, OrderBy, OrderByDirection},
     utility::ident,
-    Identifier,
 };
+use sqlparser::ast::Ident;
 
 #[must_use]
 pub fn group_by_postprocessing(
     cols: &[&str],
     result_exprs: &[AliasedResultExpr],
 ) -> OwnedTablePostprocessing {
-    let ids: Vec<Identifier> = cols.iter().map(|col| ident(col)).collect();
+    let ids: Vec<Ident> = cols.iter().map(|col| Ident::from(ident(col))).collect();
     OwnedTablePostprocessing::new_group_by(
         GroupByPostprocessing::try_new(ids, result_exprs.to_vec()).unwrap(),
     )

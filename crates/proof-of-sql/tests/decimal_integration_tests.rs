@@ -29,12 +29,7 @@ fn run_query(
 
     accessor.add_table("sxt.table".parse().unwrap(), data, 0);
 
-    let query = QueryExpr::try_new(
-        query_str.parse().unwrap(),
-        "sxt".parse().unwrap(),
-        &accessor,
-    )
-    .unwrap();
+    let query = QueryExpr::try_new(query_str.parse().unwrap(), "sxt".into(), &accessor).unwrap();
     let proof = VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
         .verify(query.proof_expr(), &accessor, &())

@@ -8,8 +8,7 @@ use proof_of_sql::base::{
     },
     scalar::Scalar,
 };
-use proof_of_sql_parser::Identifier;
-
+use sqlparser::ast::Ident;
 #[derive(Default)]
 /// An implementation of a data accessor that uses a record batch as the underlying data source.
 ///
@@ -31,7 +30,7 @@ impl<S: Scalar> DataAccessor<S> for RecordBatchAccessor {
             .get(&column.table_ref())
             .expect("Table not found.");
         let arrow_column = table
-            .column_by_name(column.column_id().as_str())
+            .column_by_name(column.column_id().value.as_str())
             .expect("Column not found.");
         let result = arrow_column
             .to_column(&self.alloc, &(0..table.num_rows()), None)
@@ -58,12 +57,12 @@ impl MetadataAccessor for RecordBatchAccessor {
     }
 }
 impl SchemaAccessor for RecordBatchAccessor {
-    fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType> {
+    fn lookup_column(&self, table_ref: TableRef, column_id: Ident) -> Option<ColumnType> {
         self.tables
             .get(&table_ref)
             .expect("Table not found.")
             .schema()
-            .column_with_name(column_id.as_str())
+            .column_with_name(column_id.value.as_str())
             .map(|(_, f)| {
                 f.data_type()
                     .clone()
@@ -72,7 +71,7 @@ impl SchemaAccessor for RecordBatchAccessor {
             })
     }
 
-    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
+    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Ident, ColumnType)> {
         self.tables
             .get(&table_ref)
             .expect("Table not found.")
@@ -81,7 +80,7 @@ impl SchemaAccessor for RecordBatchAccessor {
             .iter()
             .map(|field| {
                 (
-                    field.name().parse().expect("Failed to parse field name."),
+                    Ident::new(field.name()),
                     field
                         .data_type()
                         .clone()

@@ -71,7 +71,7 @@ impl TryFrom<DataType> for ColumnType {
 impl From<&ColumnField> for Field {
     fn from(column_field: &ColumnField) -> Self {
         Field::new(
-            column_field.name().name(),
+            column_field.name().value.as_str(),
             (&column_field.data_type()).into(),
             false,
         )

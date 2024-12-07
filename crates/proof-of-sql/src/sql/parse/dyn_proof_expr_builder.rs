@@ -21,27 +21,26 @@ use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, Expression, Literal},
     posql_time::{PoSQLTimeUnit, PoSQLTimestampError},
-    Identifier,
 };
-use sqlparser::ast::{BinaryOperator, UnaryOperator};
+use sqlparser::ast::{BinaryOperator, Ident, UnaryOperator};
 
 /// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
 /// a `proof_of_sql_parser::intermediate_ast::Expression`.
 pub struct DynProofExprBuilder<'a> {
-    column_mapping: &'a IndexMap<Identifier, ColumnRef>,
+    column_mapping: &'a IndexMap<Ident, ColumnRef>,
     in_agg_scope: bool,
 }
 
 impl<'a> DynProofExprBuilder<'a> {
     /// Creates a new `DynProofExprBuilder` with the given column mapping.
-    pub fn new(column_mapping: &'a IndexMap<Identifier, ColumnRef>) -> Self {
+    pub fn new(column_mapping: &'a IndexMap<Ident, ColumnRef>) -> Self {
         Self {
             column_mapping,
             in_agg_scope: false,
         }
     }
     /// Creates a new `DynProofExprBuilder` with the given column mapping and within aggregation scope.
-    pub(crate) fn new_agg(column_mapping: &'a IndexMap<Identifier, ColumnRef>) -> Self {
+    pub(crate) fn new_agg(column_mapping: &'a IndexMap<Ident, ColumnRef>) -> Self {
         Self {
             column_mapping,
             in_agg_scope: true,
@@ -58,7 +57,7 @@ impl<'a> DynProofExprBuilder<'a> {
 impl DynProofExprBuilder<'_> {
     fn visit_expr(&self, expr: &Expression) -> Result<DynProofExpr, ConversionError> {
         match expr {
-            Expression::Column(identifier) => self.visit_column(*identifier),
+            Expression::Column(identifier) => self.visit_column((*identifier).into()),
             Expression::Literal(lit) => self.visit_literal(lit),
             Expression::Binary { op, left, right } => {
                 self.visit_binary_expr(&(*op).into(), left, right)
@@ -71,13 +70,14 @@ impl DynProofExprBuilder<'_> {
         }
     }
 
-    fn visit_column(&self, identifier: Identifier) -> Result<DynProofExpr, ConversionError> {
+    fn visit_column(&self, identifier: Ident) -> Result<DynProofExpr, ConversionError> {
         Ok(DynProofExpr::Column(ColumnExpr::new(
-            *self.column_mapping.get(&identifier).ok_or(
-                ConversionError::MissingColumnWithoutTable {
+            self.column_mapping
+                .get(&identifier)
+                .ok_or(ConversionError::MissingColumnWithoutTable {
                     identifier: Box::new(identifier),
-                },
-            )?,
+                })?
+                .clone(),
         )))
     }
 

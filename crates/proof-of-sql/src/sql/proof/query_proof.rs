@@ -86,7 +86,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 let col_refs: IndexSet<ColumnRef> = total_col_refs
                     .iter()
                     .filter(|col_ref| col_ref.table_ref() == table_ref)
-                    .copied()
+                    .cloned()
                     .collect();
                 (table_ref, accessor.get_table(table_ref, &col_refs))
             })
@@ -329,7 +329,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let pcs_proof_commitments: Vec<_> = column_references
             .iter()
-            .map(|col| accessor.get_commitment(*col))
+            .map(|col| accessor.get_commitment(col.clone()))
             .chain(self.commitments.iter().cloned())
             .collect();
         let evaluation_accessor: IndexMap<_, _> = column_references

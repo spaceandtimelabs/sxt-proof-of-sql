@@ -33,8 +33,7 @@ fn scaffold<'a, CP: CommitmentEvaluationProof>(
         &generate_random_columns(alloc, rng, columns, size),
         prover_setup,
     );
-    let query =
-        QueryExpr::try_new(query.parse().unwrap(), "bench".parse().unwrap(), accessor).unwrap();
+    let query = QueryExpr::try_new(query.parse().unwrap(), "bench".into(), accessor).unwrap();
     let result = VerifiableQueryResult::new(query.proof_expr(), accessor, prover_setup);
     (query, result)
 }

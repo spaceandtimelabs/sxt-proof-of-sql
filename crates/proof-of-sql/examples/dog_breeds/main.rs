@@ -35,12 +35,8 @@ fn prove_and_verify_query(
     // Parse the query:
     println!("Parsing the query: {sql}...");
     let now = Instant::now();
-    let query_plan = QueryExpr::try_new(
-        sql.parse().unwrap(),
-        "dog_breeds".parse().unwrap(),
-        accessor,
-    )
-    .unwrap();
+    let query_plan =
+        QueryExpr::try_new(sql.parse().unwrap(), "dog_breeds".into(), accessor).unwrap();
     println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
     // Generate the proof and result:

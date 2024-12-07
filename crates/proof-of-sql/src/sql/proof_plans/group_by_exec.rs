@@ -24,8 +24,8 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use core::{iter, iter::repeat_with};
 use num_traits::One;
-use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -42,7 +42,7 @@ use serde::{Deserialize, Serialize};
 pub struct GroupByExec {
     pub(super) group_by_exprs: Vec<ColumnExpr>,
     pub(super) sum_expr: Vec<AliasedDynProofExpr>,
-    pub(super) count_alias: Identifier,
+    pub(super) count_alias: Ident,
     pub(super) table: TableExpr,
     pub(super) where_clause: DynProofExpr,
 }
@@ -52,7 +52,7 @@ impl GroupByExec {
     pub fn new(
         group_by_exprs: Vec<ColumnExpr>,
         sum_expr: Vec<AliasedDynProofExpr>,
-        count_alias: Identifier,
+        count_alias: Ident,
         table: TableExpr,
         where_clause: DynProofExpr,
     ) -> Self {
@@ -181,10 +181,10 @@ impl ProofPlan for GroupByExec {
             .iter()
             .map(|col| col.get_column_field())
             .chain(self.sum_expr.iter().map(|aliased_expr| {
-                ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type())
+                ColumnField::new(aliased_expr.alias.clone(), aliased_expr.expr.data_type())
             }))
             .chain(iter::once(ColumnField::new(
-                self.count_alias,
+                self.count_alias.clone(),
                 ColumnType::BigInt,
             )))
             .collect()
