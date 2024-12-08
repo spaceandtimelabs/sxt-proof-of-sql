@@ -3,6 +3,7 @@ use crate::base::{polynomial::MultilinearExtension, scalar::Scalar};
 use alloc::{boxed::Box, vec::Vec};
 
 /// The type of a sumcheck subpolynomial
+#[derive(Copy, Clone)]
 pub enum SumcheckSubpolynomialType {
     /// The subpolynomial should be zero at every entry/row
     Identity,
@@ -54,5 +55,41 @@ impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
                     .produce_zerosum_multiplicand(&(*mult * group_multiplier), term),
             }
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn subpolynomial_type(&self) -> SumcheckSubpolynomialType {
+        self.subpolynomial_type
+    }
+
+    /// Returns an iterator over the terms of the subpolynomial, where each term's
+    /// coefficient is multiplied by the given multiplier.
+    ///
+    /// # Arguments
+    ///
+    /// * `multiplier` - The scalar value to multiply each term's coefficient by.
+    ///
+    /// # Returns
+    ///
+    /// An iterator that yields tuples containing the subpolynomial type, the
+    /// multiplied coefficient, and a slice of multilinear extensions.
+    #[allow(dead_code)]
+    pub fn iter_mul_by(
+        &self,
+        multiplier: S,
+    ) -> impl Iterator<
+        Item = (
+            SumcheckSubpolynomialType,
+            S,
+            &[Box<dyn MultilinearExtension<S> + 'a>],
+        ),
+    > {
+        self.terms.iter().map(move |(coeff, multiplicands)| {
+            (
+                self.subpolynomial_type,
+                multiplier * *coeff,
+                multiplicands.as_slice(),
+            )
+        })
     }
 }
