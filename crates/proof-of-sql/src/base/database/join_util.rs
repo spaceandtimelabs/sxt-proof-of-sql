@@ -17,15 +17,15 @@ pub fn cross_join<'a, S: Scalar>(
     Table::<'a, S>::try_from_iter_with_options(
         left.inner_table()
             .iter()
-            .map(|(&ident, column)| {
+            .map(|(ident, column)| {
                 (
-                    ident,
+                    ident.clone(),
                     ColumnRepeatOp::column_op(column, alloc, right_num_rows),
                 )
             })
-            .chain(right.inner_table().iter().map(|(&ident, column)| {
+            .chain(right.inner_table().iter().map(|(ident, column)| {
                 (
-                    ident,
+                    ident.clone(),
                     ElementwiseRepeatOp::column_op(column, alloc, left_num_rows),
                 )
             })),
@@ -38,26 +38,27 @@ pub fn cross_join<'a, S: Scalar>(
 mod tests {
     use super::*;
     use crate::base::{database::Column, scalar::test_scalar::TestScalar};
+    use sqlparser::ast::Ident;
 
     #[test]
     fn we_can_do_cross_joins() {
         let bump = Bump::new();
-        let a = "a".parse().unwrap();
-        let b = "b".parse().unwrap();
-        let c = "c".parse().unwrap();
-        let d = "d".parse().unwrap();
+        let a: Ident = "a".into();
+        let b: Ident = "b".into();
+        let c: Ident = "c".into();
+        let d: Ident = "d".into();
         let left = Table::<'_, TestScalar>::try_from_iter_with_options(
             vec![
-                (a, Column::SmallInt(&[1_i16, 2, 3])),
-                (b, Column::Int(&[4_i32, 5, 6])),
+                (a.clone(), Column::SmallInt(&[1_i16, 2, 3])),
+                (b.clone(), Column::Int(&[4_i32, 5, 6])),
             ],
             TableOptions::default(),
         )
         .expect("Table creation should not fail");
         let right = Table::<'_, TestScalar>::try_from_iter_with_options(
             vec![
-                (c, Column::BigInt(&[7_i64, 8, 9])),
-                (d, Column::Int128(&[10_i128, 11, 12])),
+                (c.clone(), Column::BigInt(&[7_i64, 8, 9])),
+                (d.clone(), Column::Int128(&[10_i128, 11, 12])),
             ],
             TableOptions::default(),
         )
@@ -86,24 +87,24 @@ mod tests {
     #[test]
     fn we_can_do_cross_joins_if_one_table_has_no_rows() {
         let bump = Bump::new();
-        let a = "a".parse().unwrap();
-        let b = "b".parse().unwrap();
-        let c = "c".parse().unwrap();
-        let d = "d".parse().unwrap();
+        let a: Ident = "a".into();
+        let b: Ident = "b".into();
+        let c: Ident = "c".into();
+        let d: Ident = "d".into();
 
         // Right table has no rows
         let left = Table::<'_, TestScalar>::try_from_iter_with_options(
             vec![
-                (a, Column::SmallInt(&[1_i16, 2, 3])),
-                (b, Column::Int(&[4_i32, 5, 6])),
+                (a.clone(), Column::SmallInt(&[1_i16, 2, 3])),
+                (b.clone(), Column::Int(&[4_i32, 5, 6])),
             ],
             TableOptions::default(),
         )
         .expect("Table creation should not fail");
         let right = Table::<'_, TestScalar>::try_from_iter_with_options(
             vec![
-                (c, Column::BigInt(&[0_i64; 0])),
-                (d, Column::Int128(&[0_i128; 0])),
+                (c.clone(), Column::BigInt(&[0_i64; 0])),
+                (d.clone(), Column::Int128(&[0_i128; 0])),
             ],
             TableOptions::default(),
         )
@@ -119,16 +120,16 @@ mod tests {
         // Left table has no rows
         let left = Table::<'_, TestScalar>::try_from_iter_with_options(
             vec![
-                (a, Column::SmallInt(&[0_i16; 0])),
-                (b, Column::Int(&[0_i32; 0])),
+                (a.clone(), Column::SmallInt(&[0_i16; 0])),
+                (b.clone(), Column::Int(&[0_i32; 0])),
             ],
             TableOptions::default(),
         )
         .expect("Table creation should not fail");
         let right = Table::<'_, TestScalar>::try_from_iter_with_options(
             vec![
-                (c, Column::BigInt(&[7_i64, 8, 9])),
-                (d, Column::Int128(&[10_i128, 11, 12])),
+                (c.clone(), Column::BigInt(&[7_i64, 8, 9])),
+                (d.clone(), Column::Int128(&[10_i128, 11, 12])),
             ],
             TableOptions::default(),
         )
@@ -144,16 +145,16 @@ mod tests {
         // Both tables have no rows
         let left = Table::<'_, TestScalar>::try_from_iter_with_options(
             vec![
-                (a, Column::SmallInt(&[0_i16; 0])),
-                (b, Column::Int(&[0_i32; 0])),
+                (a.clone(), Column::SmallInt(&[0_i16; 0])),
+                (b.clone(), Column::Int(&[0_i32; 0])),
             ],
             TableOptions::default(),
         )
         .expect("Table creation should not fail");
         let right = Table::<'_, TestScalar>::try_from_iter_with_options(
             vec![
-                (c, Column::BigInt(&[0_i64; 0])),
-                (d, Column::Int128(&[0_i128; 0])),
+                (c.clone(), Column::BigInt(&[0_i64; 0])),
+                (d.clone(), Column::Int128(&[0_i128; 0])),
             ],
             TableOptions::default(),
         )
@@ -171,18 +172,18 @@ mod tests {
     fn we_can_do_cross_joins_if_one_table_has_no_columns() {
         // Left table has no columns
         let bump = Bump::new();
-        let a = "a".parse().unwrap();
-        let b = "b".parse().unwrap();
-        let c = "c".parse().unwrap();
-        let d = "d".parse().unwrap();
+        let a: Ident = "a".into();
+        let b: Ident = "b".into();
+        let c: Ident = "c".into();
+        let d: Ident = "d".into();
         let left =
             Table::<'_, TestScalar>::try_from_iter_with_options(vec![], TableOptions::new(Some(2)))
                 .expect("Table creation should not fail");
 
         let right = Table::<'_, TestScalar>::try_from_iter_with_options(
             vec![
-                (c, Column::BigInt(&[7_i64, 8])),
-                (d, Column::Int128(&[10_i128, 11])),
+                (c.clone(), Column::BigInt(&[7_i64, 8])),
+                (d.clone(), Column::Int128(&[10_i128, 11])),
             ],
             TableOptions::default(),
         )
@@ -203,8 +204,8 @@ mod tests {
         // Right table has no columns
         let left = Table::<'_, TestScalar>::try_from_iter_with_options(
             vec![
-                (a, Column::SmallInt(&[1_i16, 2])),
-                (b, Column::Int(&[4_i32, 5])),
+                (a.clone(), Column::SmallInt(&[1_i16, 2])),
+                (b.clone(), Column::Int(&[4_i32, 5])),
             ],
             TableOptions::default(),
         )

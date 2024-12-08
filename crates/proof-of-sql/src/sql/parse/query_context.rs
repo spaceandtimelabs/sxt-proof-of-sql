@@ -2,6 +2,7 @@ use crate::{
     base::{
         database::{ColumnRef, LiteralValue, TableRef},
         map::{IndexMap, IndexSet},
+        sqlparser::normalize_ident,
     },
     sql::{
         parse::{ConversionError, ConversionResult, DynProofExprBuilder, WhereExprBuilder},
@@ -102,8 +103,9 @@ impl QueryContext {
 
     pub fn push_column_ref(&mut self, column: Ident, column_ref: ColumnRef) {
         self.col_ref_counter += 1;
-        self.push_result_column_ref(column.clone());
-        self.column_mapping.insert(column, column_ref);
+        let normalized_column = Ident::new(normalize_ident(column));
+        self.push_result_column_ref(normalized_column.clone());
+        self.column_mapping.insert(normalized_column, column_ref);
     }
 
     fn push_result_column_ref(&mut self, column: Ident) {
