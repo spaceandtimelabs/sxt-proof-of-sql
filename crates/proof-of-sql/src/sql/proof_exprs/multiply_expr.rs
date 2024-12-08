@@ -98,7 +98,7 @@ impl ProofExpr for MultiplyExpr {
 
         // subpolynomial: lhs_times_rhs - lhs * rhs
         builder.produce_sumcheck_subpolynomial_evaluation(
-            &SumcheckSubpolynomialType::Identity,
+            SumcheckSubpolynomialType::Identity,
             lhs_times_rhs - lhs * rhs,
         );
 

@@ -3,6 +3,7 @@ use crate::base::{polynomial::MultilinearExtension, scalar::Scalar};
 use alloc::{boxed::Box, vec::Vec};
 
 /// The type of a sumcheck subpolynomial
+#[derive(Copy, Clone)]
 pub enum SumcheckSubpolynomialType {
     /// The subpolynomial should be zero at every entry/row
     Identity,
