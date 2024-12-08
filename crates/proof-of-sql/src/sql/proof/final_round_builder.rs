@@ -105,6 +105,12 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
         )
     }
 
+    /// Produce a subpolynomial to be aggegated into sumcheck where the sum across binary
+    /// values of the variables is zero.
+    pub fn sumcheck_subpolynomials(&self) -> &[SumcheckSubpolynomial<'a, S>] {
+        &self.sumcheck_subpolynomials
+    }
+
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all
     /// the individual subpolynomials.
     #[tracing::instrument(
