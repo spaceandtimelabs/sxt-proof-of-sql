@@ -1,7 +1,6 @@
 use super::{
-    make_sumcheck_polynomial::make_sumcheck_polynomial, CountBuilder, FinalRoundBuilder,
-    ProofCounts, ProofPlan, ProvableQueryResult, QueryResult, SumcheckMleEvaluations,
-    SumcheckRandomScalars, VerificationBuilder,
+    CountBuilder, FinalRoundBuilder, ProofCounts, ProofPlan, ProvableQueryResult, QueryResult,
+    SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
 };
 use crate::{
     base::{
@@ -15,8 +14,8 @@ use crate::{
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
         proof::{Keccak256Transcript, ProofError, Transcript},
     },
-    proof_primitive::sumcheck::{ProverState, SumcheckProof},
-    sql::proof::{FirstRoundBuilder, QueryData},
+    proof_primitive::sumcheck::SumcheckProof,
+    sql::proof::{make_sumcheck_state::make_sumcheck_prover_state, FirstRoundBuilder, QueryData},
 };
 use alloc::{vec, vec::Vec};
 use bumpalo::Bump;
@@ -150,19 +149,15 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
                 .take(num_random_scalars)
                 .collect();
-        let poly = make_sumcheck_polynomial(
+        let state = make_sumcheck_prover_state(
             builder.sumcheck_subpolynomials(),
             num_sumcheck_variables,
             &SumcheckRandomScalars::new(&random_scalars, range_length, num_sumcheck_variables),
         );
 
         // create the sumcheck proof -- this is the main part of proving a query
-        let mut evaluation_point = vec![Zero::zero(); poly.num_variables];
-        let sumcheck_proof = SumcheckProof::create(
-            &mut transcript,
-            &mut evaluation_point,
-            ProverState::create(&poly),
-        );
+        let mut evaluation_point = vec![Zero::zero(); state.num_vars];
+        let sumcheck_proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, state);
 
         // evaluate the MLEs used in sumcheck except for the result columns
         let mut evaluation_vec = vec![Zero::zero(); range_length];

@@ -1,10 +1,21 @@
 use super::{CompositePolynomialBuilder, SumcheckRandomScalars, SumcheckSubpolynomial};
-use crate::base::{polynomial::CompositePolynomial, scalar::Scalar};
+use crate::{
+    base::{polynomial::CompositePolynomial, scalar::Scalar},
+    proof_primitive::sumcheck::ProverState,
+};
+
+pub fn make_sumcheck_prover_state<S: Scalar>(
+    subpolynomials: &[SumcheckSubpolynomial<'_, S>],
+    num_vars: usize,
+    scalars: &SumcheckRandomScalars<S>,
+) -> ProverState<S> {
+    ProverState::create(&make_sumcheck_polynomial(subpolynomials, num_vars, scalars))
+}
 
 /// Given random multipliers, construct an aggregatated sumcheck polynomial from all
 /// the individual subpolynomials.
 #[tracing::instrument(name = "proof::make_sumcheck_polynomial", level = "debug", skip_all)]
-pub fn make_sumcheck_polynomial<S: Scalar>(
+fn make_sumcheck_polynomial<S: Scalar>(
     subpolynomials: &[SumcheckSubpolynomial<'_, S>],
     num_vars: usize,
     scalars: &SumcheckRandomScalars<S>,
