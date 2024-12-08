@@ -1,6 +1,7 @@
 use super::{
-    CountBuilder, FinalRoundBuilder, ProofCounts, ProofPlan, ProvableQueryResult, QueryResult,
-    SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
+    make_sumcheck_state::make_sumcheck_prover_state, CountBuilder, FinalRoundBuilder, ProofCounts,
+    ProofPlan, ProvableQueryResult, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars,
+    VerificationBuilder,
 };
 use crate::{
     base::{
@@ -149,15 +150,16 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
                 .take(num_random_scalars)
                 .collect();
-        let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(
-            &random_scalars,
-            range_length,
+        let sumcheck_state = make_sumcheck_prover_state(
+            builder.sumcheck_subpolynomials(),
             num_sumcheck_variables,
-        ));
+            &SumcheckRandomScalars::new(&random_scalars, range_length, num_sumcheck_variables),
+        );
 
         // create the sumcheck proof -- this is the main part of proving a query
-        let mut evaluation_point = vec![Zero::zero(); poly.num_variables];
-        let sumcheck_proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
+        let mut evaluation_point = vec![Zero::zero(); num_sumcheck_variables];
+        let sumcheck_proof =
+            SumcheckProof::create(&mut transcript, &mut evaluation_point, sumcheck_state);
 
         // evaluate the MLEs used in sumcheck except for the result columns
         let mut evaluation_vec = vec![Zero::zero(); range_length];
@@ -273,9 +275,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // verify sumcheck up to the evaluation check
         let poly_info = CompositePolynomialInfo {
-            // This needs to be at least 2 since `CompositePolynomialBuilder::make_composite_polynomial`
-            // always adds a degree 2 term.
-            max_multiplicands: core::cmp::max(counts.sumcheck_max_multiplicands, 2),
+            max_multiplicands: counts.sumcheck_max_multiplicands,
             num_variables: num_sumcheck_variables,
         };
         let subclaim = self.sumcheck_proof.verify_without_evaluation(

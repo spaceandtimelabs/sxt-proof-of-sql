@@ -1,8 +1,8 @@
-use super::CompositePolynomialBuilder;
 use crate::base::{polynomial::MultilinearExtension, scalar::Scalar};
 use alloc::{boxed::Box, vec::Vec};
 
 /// The type of a sumcheck subpolynomial
+#[derive(Copy, Clone, Hash, Eq, PartialEq)]
 pub enum SumcheckSubpolynomialType {
     /// The subpolynomial should be zero at every entry/row
     Identity,
@@ -39,20 +39,24 @@ impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
         }
     }
 
-    /// Combine the subpolynomial into a combined composite polynomial
-    pub fn compose(
+    pub fn subpolynomial_type(&self) -> SumcheckSubpolynomialType {
+        self.subpolynomial_type
+    }
+
+    /// Return an iterator over the Subpolynomialterms returning a tuple with the type, coefficient, and multiplicands.
+    /// The multiplier parameters is multiplied by every coefficient.
+    pub fn iter_mul_by(
         &self,
-        composite_polynomial: &mut CompositePolynomialBuilder<S>,
-        group_multiplier: S,
-    ) {
-        for (mult, term) in &self.terms {
-            match self.subpolynomial_type {
-                SumcheckSubpolynomialType::Identity => {
-                    composite_polynomial.produce_fr_multiplicand(&(*mult * group_multiplier), term);
-                }
-                SumcheckSubpolynomialType::ZeroSum => composite_polynomial
-                    .produce_zerosum_multiplicand(&(*mult * group_multiplier), term),
-            }
-        }
+        multiplier: S,
+    ) -> impl Iterator<
+        Item = (
+            SumcheckSubpolynomialType,
+            S,
+            &Vec<Box<dyn MultilinearExtension<S> + 'a>>,
+        ),
+    > {
+        self.terms.iter().map(move |(coeff, multiplicands)| {
+            (self.subpolynomial_type, multiplier * *coeff, multiplicands)
+        })
     }
 }
