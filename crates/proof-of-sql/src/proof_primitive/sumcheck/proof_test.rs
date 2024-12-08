@@ -1,8 +1,11 @@
 use super::test_cases::sumcheck_test_cases;
-use crate::base::{
-    polynomial::{CompositePolynomial, CompositePolynomialInfo},
-    proof::Transcript as _,
-    scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar, Scalar},
+use crate::{
+    base::{
+        polynomial::{CompositePolynomial, CompositePolynomialInfo},
+        proof::Transcript as _,
+        scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar, Scalar},
+    },
+    proof_primitive::sumcheck::ProverState,
 };
 /*
  * Adopted from arkworks
@@ -29,7 +32,11 @@ fn test_create_verify_proof() {
     let fa = Rc::new(a_vec.to_vec());
     poly.add_product([fa], Curve25519Scalar::from(1u64));
     let mut transcript = Transcript::new(b"sumchecktest");
-    let mut proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
+    let mut proof = SumcheckProof::create(
+        &mut transcript,
+        &mut evaluation_point,
+        ProverState::create(&poly),
+    );
 
     // verify proof
     let mut transcript = Transcript::new(b"sumchecktest");
@@ -130,7 +137,11 @@ fn test_polynomial(nv: usize, num_multiplicands_range: (usize, usize), num_produ
     // create a proof
     let mut transcript = Transcript::new(b"sumchecktest");
     let mut evaluation_point = vec![Curve25519Scalar::zero(); poly_info.num_variables];
-    let proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
+    let proof = SumcheckProof::create(
+        &mut transcript,
+        &mut evaluation_point,
+        ProverState::create(&poly),
+    );
 
     // verify proof
     let mut transcript = Transcript::new(b"sumchecktest");
@@ -172,7 +183,7 @@ fn we_can_verify_many_random_test_cases() {
         let proof = SumcheckProof::create(
             &mut transcript,
             &mut evaluation_point,
-            &test_case.polynomial,
+            ProverState::create(&test_case.polynomial),
         );
 
         let mut transcript = Transcript::new(b"sumchecktest");
