@@ -1,14 +1,8 @@
-use super::{
-    verifiable_query_result_test::EmptyTestQueryExpr, ProofPlan, ProvableQueryResult, QueryProof,
-    VerifiableQueryResult,
-};
+use super::{ProofPlan, VerifiableQueryResult};
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
-    database::{
-        owned_table_utility::*, Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef,
-        TestAccessor,
-    },
-    scalar::Curve25519Scalar,
+    database::{owned_table_utility::*, OwnedColumn, OwnedTable, TableRef, TestAccessor},
+    scalar::{Curve25519Scalar, Scalar},
 };
 use blitzar::proof::InnerProductProof;
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
@@ -33,20 +27,20 @@ pub fn exercise_verification(
     accessor: &impl TestAccessor<RistrettoPoint>,
     table_ref: TableRef,
 ) {
-    let verification_result = res.clone().verify(expr, accessor, &());
-    assert!(
-        verification_result.is_ok(),
-        "Verification failed: {:?}",
-        verification_result.err()
-    );
+    res.clone()
+        .verify(expr, accessor, &())
+        .expect("Verification failed");
+
+    let (result, proof) = match (&res.result, &res.proof) {
+        (Some(result), Some(proof)) => (result, proof),
+        (None, None) => return,
+        _ => panic!("verification did not catch a proof/result mismatch"),
+    };
 
     // try changing the result
-    tamper_result(res, expr, accessor);
-
-    if res.proof.is_none() {
-        return;
-    }
-    let proof = res.proof.as_ref().unwrap();
+    let mut res_p = res.clone();
+    res_p.result = Some(tampered_table(result));
+    assert!(res_p.verify(expr, accessor, &()).is_err());
 
     // try changing MLE evaluations
     for i in 0..proof.pcs_proof_evaluations.len() {
@@ -88,74 +82,70 @@ pub fn exercise_verification(
     }
 }
 
-fn tamper_no_result(
-    res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofPlan + Serialize),
-    accessor: &impl CommitmentAccessor<RistrettoPoint>,
-) {
-    // add a result
-    let mut res_p = res.clone();
-    let cols: [Column<'_, Curve25519Scalar>; 1] = [Column::BigInt(&[0_i64; 0])];
-    res_p.provable_result = Some(ProvableQueryResult::new(0, &cols));
-    assert!(res_p.verify(expr, accessor, &()).is_err());
-
-    // add a proof
-    let mut res_p = res.clone();
-    let expr_p = EmptyTestQueryExpr {
-        length: 1,
-        ..Default::default()
-    };
-    let column = vec![1_i64; 1];
-    let accessor_p = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        "sxt.test".parse().unwrap(),
-        owned_table([bigint("bogus_col", column)]),
-        0,
-        (),
-    );
-    let (proof, _result) = QueryProof::new(&expr_p, &accessor_p, &());
-    res_p.proof = Some(proof);
-    assert!(res_p.verify(expr, accessor, &()).is_err());
-}
-
-fn tamper_empty_result(
-    res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofPlan + Serialize),
-    accessor: &impl CommitmentAccessor<RistrettoPoint>,
-) {
-    // try to add a result
-    let mut res_p = res.clone();
-    let cols: [Column<'_, Curve25519Scalar>; 1] = [Column::BigInt(&[123_i64])];
-    res_p.provable_result = Some(ProvableQueryResult::new(1, &cols));
-    assert!(res_p.verify(expr, accessor, &()).is_err());
-}
-
-/// # Panics
-///
-/// Will panic if:
-/// - `res.provable_result` is `None`, which leads to calling `unwrap()` on it in the subsequent
-///   code and may cause an unexpected behavior.
-/// - The assertion `assert!(res_p.verify(expr, accessor, &()).is_err())` fails, indicating that the
-///   verification did not fail as expected after tampering.
-fn tamper_result(
-    res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofPlan + Serialize),
-    accessor: &impl CommitmentAccessor<RistrettoPoint>,
-) {
-    if res.provable_result.is_none() {
-        tamper_no_result(res, expr, accessor);
-        return;
+fn tampered_table<S: Scalar>(table: &OwnedTable<S>) -> OwnedTable<S> {
+    if table.num_columns() == 0 {
+        owned_table([bigint("col", [0; 0])])
+    } else if table.num_rows() == 0 {
+        append_single_row_to_table(table)
+    } else {
+        tamper_first_element_of_table(table)
     }
-    let provable_res = res.provable_result.as_ref().unwrap();
-
-    if provable_res.table_length() == 0 {
-        tamper_empty_result(res, expr, accessor);
-        return;
+}
+fn append_single_row_to_table<S: Scalar>(table: &OwnedTable<S>) -> OwnedTable<S> {
+    OwnedTable::try_from_iter(
+        table
+            .inner_table()
+            .iter()
+            .map(|(name, col)| (*name, append_single_row_to_column(col))),
+    )
+    .expect("Failed to create table")
+}
+fn append_single_row_to_column<S: Scalar>(column: &OwnedColumn<S>) -> OwnedColumn<S> {
+    let mut column = column.clone();
+    match &mut column {
+        OwnedColumn::Boolean(col) => col.push(false),
+        OwnedColumn::TinyInt(col) => col.push(0),
+        OwnedColumn::SmallInt(col) => col.push(0),
+        OwnedColumn::Int(col) => col.push(0),
+        OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col.push(0),
+        OwnedColumn::VarChar(col) => col.push(String::new()),
+        OwnedColumn::Int128(col) => col.push(0),
+        OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col.push(S::ZERO),
     }
-
-    // try to change data
-    let mut res_p = res.clone();
-    let mut provable_res_p = provable_res.clone();
-    provable_res_p.data_mut()[0] += 1;
-    res_p.provable_result = Some(provable_res_p);
-    assert!(res_p.verify(expr, accessor, &()).is_err());
+    column
+}
+fn tamper_first_element_of_table<S: Scalar>(table: &OwnedTable<S>) -> OwnedTable<S> {
+    OwnedTable::try_from_iter(
+        table
+            .inner_table()
+            .iter()
+            .enumerate()
+            .map(|(i, (name, col))| {
+                (
+                    *name,
+                    if i == 0 {
+                        tamper_first_row_of_column(col)
+                    } else {
+                        col.clone()
+                    },
+                )
+            }),
+    )
+    .expect("Failed to create table")
+}
+pub fn tamper_first_row_of_column<S: Scalar>(column: &OwnedColumn<S>) -> OwnedColumn<S> {
+    let mut column = column.clone();
+    match &mut column {
+        OwnedColumn::Boolean(col) => col[0] ^= true,
+        OwnedColumn::TinyInt(col) => col[0] = col[0].wrapping_add(1),
+        OwnedColumn::SmallInt(col) => col[0] = col[0].wrapping_add(1),
+        OwnedColumn::Int(col) => col[0] = col[0].wrapping_add(1),
+        OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => {
+            col[0] = col[0].wrapping_add(1);
+        }
+        OwnedColumn::VarChar(col) => col[0].push('1'),
+        OwnedColumn::Int128(col) => col[0] = col[0].wrapping_add(1),
+        OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col[0] += S::ONE,
+    }
+    column
 }
