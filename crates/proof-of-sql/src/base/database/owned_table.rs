@@ -1,6 +1,10 @@
-use super::{OwnedColumn, Table};
-use crate::base::{map::IndexMap, polynomial::compute_evaluation_vector, scalar::Scalar};
+use super::{ColumnField, OwnedColumn, Table};
+use crate::base::{
+    database::ColumnCoercionError, map::IndexMap, polynomial::compute_evaluation_vector,
+    scalar::Scalar,
+};
 use alloc::{vec, vec::Vec};
+use itertools::{EitherOrBoth, Itertools};
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
@@ -12,6 +16,20 @@ pub enum OwnedTableError {
     #[snafu(display("Columns have different lengths"))]
     ColumnLengthMismatch,
 }
+
+/// Errors that can occur when coercing a table.
+#[derive(Snafu, Debug, PartialEq, Eq)]
+pub(crate) enum TableCoercionError {
+    #[snafu(transparent)]
+    ColumnCoercionError { source: ColumnCoercionError },
+    /// Name mismatch between column and field.
+    #[snafu(display("Name mismatch between column and field"))]
+    NameMismatch,
+    /// Column count mismatch.
+    #[snafu(display("Column count mismatch"))]
+    ColumnCountMismatch,
+}
+
 /// A table of data, with schema included. This is simply a map from `Identifier` to `OwnedColumn`,
 /// where columns order matters.
 /// This is primarily used as an internal result that is used before
@@ -40,6 +58,45 @@ impl<S: Scalar> OwnedTable<S> {
     ) -> Result<Self, OwnedTableError> {
         Self::try_new(IndexMap::from_iter(iter))
     }
+
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "Mapping from one table to another should not result in column mismatch"
+    )]
+    /// Attempts to coerce the columns of the table to match the provided fields.
+    ///
+    /// # Arguments
+    ///
+    /// * `fields` - An iterator of `ColumnField` items that specify the desired schema.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `TableCoercionError` if:
+    /// * The number of columns in the table does not match the number of fields.
+    /// * The name of a column does not match the name of the corresponding field.
+    /// * A column cannot be coerced to the type specified by the corresponding field.
+    pub(crate) fn try_coerce_with_fields<T: IntoIterator<Item = ColumnField>>(
+        self,
+        fields: T,
+    ) -> Result<Self, TableCoercionError> {
+        self.into_inner()
+            .into_iter()
+            .zip_longest(fields)
+            .map(|p| match p {
+                EitherOrBoth::Left(_) | EitherOrBoth::Right(_) => {
+                    Err(TableCoercionError::ColumnCountMismatch)
+                }
+                EitherOrBoth::Both((name, column), field) if name == field.name() => Ok((
+                    name,
+                    column.try_coerce_scalar_to_numeric(field.data_type())?,
+                )),
+                EitherOrBoth::Both(_, _) => Err(TableCoercionError::NameMismatch),
+            })
+            .process_results(|iter| {
+                Self::try_from_iter(iter).expect("Columns should have the same length")
+            })
+    }
+
     /// Number of columns in the table.
     #[must_use]
     pub fn num_columns(&self) -> usize {
@@ -135,7 +192,10 @@ impl<'a, S: Scalar> From<Table<'a, S>> for OwnedTable<S> {
 mod tests {
     use super::OwnedTable;
     use crate::base::{
-        database::{owned_table_utility::*, table_utility::*, Table, TableOptions},
+        database::{
+            owned_table_utility::*, table_utility::*, ColumnCoercionError, Table,
+            TableCoercionError, TableOptions,
+        },
         map::indexmap,
         scalar::test_scalar::TestScalar,
     };
@@ -229,5 +289,94 @@ mod tests {
             OwnedTable::from(no_columns_table_two_rows),
             expected_no_columns_table
         );
+    }
+
+    #[test]
+    fn test_try_coerce_with_fields() {
+        use crate::base::database::{ColumnField, ColumnType};
+
+        let table = owned_table::<TestScalar>([
+            bigint("bigint", [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
+            scalar("scalar", [0, 1, 2, 3, 4, 5, 6, 7, 8]),
+        ]);
+
+        let fields = vec![
+            ColumnField::new("bigint".parse().unwrap(), ColumnType::BigInt),
+            ColumnField::new("scalar".parse().unwrap(), ColumnType::Int),
+        ];
+
+        let coerced_table = table.clone().try_coerce_with_fields(fields).unwrap();
+
+        let expected_table = owned_table::<TestScalar>([
+            bigint("bigint", [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
+            int("scalar", [0, 1, 2, 3, 4, 5, 6, 7, 8]),
+        ]);
+
+        assert_eq!(coerced_table, expected_table);
+    }
+
+    #[test]
+    fn test_try_coerce_with_fields_name_mismatch() {
+        use crate::base::database::{ColumnField, ColumnType};
+
+        let table = owned_table::<TestScalar>([
+            bigint("bigint", [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
+            scalar("scalar", [0, 1, 2, 3, 4, 5, 6, 7, 8]),
+        ]);
+
+        let fields = vec![
+            ColumnField::new("bigint".parse().unwrap(), ColumnType::BigInt),
+            ColumnField::new("mismatch".parse().unwrap(), ColumnType::Int),
+        ];
+
+        let result = table.clone().try_coerce_with_fields(fields);
+
+        assert!(matches!(result, Err(TableCoercionError::NameMismatch)));
+    }
+
+    #[test]
+    fn test_try_coerce_with_fields_column_count_mismatch() {
+        use crate::base::database::{ColumnField, ColumnType};
+
+        let table = owned_table::<TestScalar>([
+            bigint("bigint", [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
+            scalar("scalar", [0, 1, 2, 3, 4, 5, 6, 7, 8]),
+        ]);
+
+        let fields = vec![ColumnField::new(
+            "bigint".parse().unwrap(),
+            ColumnType::BigInt,
+        )];
+
+        let result = table.clone().try_coerce_with_fields(fields);
+
+        assert!(matches!(
+            result,
+            Err(TableCoercionError::ColumnCountMismatch)
+        ));
+    }
+
+    #[test]
+    fn test_try_coerce_with_fields_overflow() {
+        use crate::base::database::{ColumnField, ColumnType};
+
+        let table = owned_table::<TestScalar>([
+            bigint("bigint", [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
+            scalar("scalar", [0, 1, 2, 3, 4, 5, 6, 7, i64::MAX]),
+        ]);
+
+        let fields = vec![
+            ColumnField::new("bigint".parse().unwrap(), ColumnType::BigInt),
+            ColumnField::new("scalar".parse().unwrap(), ColumnType::TinyInt),
+        ];
+
+        let result = table.clone().try_coerce_with_fields(fields);
+
+        assert!(matches!(
+            result,
+            Err(TableCoercionError::ColumnCoercionError {
+                source: ColumnCoercionError::Overflow
+            })
+        ));
     }
 }
