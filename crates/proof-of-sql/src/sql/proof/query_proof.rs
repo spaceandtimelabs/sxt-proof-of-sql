@@ -1,23 +1,25 @@
 use super::{
-    CountBuilder, FinalRoundBuilder, ProofCounts, ProofPlan, ProvableQueryResult, QueryResult,
-    SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
+    CountBuilder, FinalRoundBuilder, ProofCounts, ProofPlan, QueryResult, SumcheckMleEvaluations,
+    SumcheckRandomScalars, VerificationBuilder,
 };
 use crate::{
     base::{
         bit::BitDistribution,
         commitment::{Commitment, CommitmentEvaluationProof},
         database::{
-            ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor, Table, TableRef,
+            ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedColumn, OwnedTable,
+            Table, TableRef,
         },
         map::{IndexMap, IndexSet},
         math::log2_up,
         polynomial::compute_evaluation_vector,
         proof::{Keccak256Transcript, ProofError, Transcript},
+        scalar::Scalar,
     },
     proof_primitive::sumcheck::SumcheckProof,
     sql::proof::{FirstRoundBuilder, QueryData},
 };
-use alloc::{vec, vec::Vec};
+use alloc::{string::String, vec, vec::Vec};
 use bumpalo::Bump;
 use core::cmp;
 use num_traits::Zero;
@@ -73,7 +75,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         expr: &(impl ProofPlan + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
-    ) -> (Self, ProvableQueryResult) {
+    ) -> (Self, OwnedTable<CP::Scalar>) {
         let (min_row_num, max_row_num) = get_index_range(accessor, &expr.get_table_references());
         let initial_range_length = max_row_num - min_row_num;
         let alloc = Bump::new();
@@ -95,6 +97,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // Prover First Round: Evaluate the query && get the right number of post result challenges
         let mut first_round_builder = FirstRoundBuilder::new();
         let query_result = expr.first_round_evaluate(&mut first_round_builder, &alloc, &table_map);
+        let owned_table_result = OwnedTable::from(&query_result);
         let provable_result = query_result.into();
         let one_evaluation_lengths = first_round_builder.one_evaluation_lengths();
 
@@ -111,7 +114,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript = make_transcript(
             expr,
-            &provable_result,
+            &owned_table_result,
             range_length,
             min_row_num,
             one_evaluation_lengths,
@@ -141,7 +144,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let commitments = builder.commit_intermediate_mles(min_row_num, setup);
 
         // add the commitments, bit distributions and one evaluation lengths to the proof
-        extend_transcript_with_commitments(&mut transcript, &commitments, builder.bit_distributions());
+        extend_transcript_with_commitments(
+            &mut transcript,
+            &commitments,
+            builder.bit_distributions(),
+        );
 
         // construct the sumcheck polynomial
         let num_random_scalars = num_sumcheck_variables + builder.num_sumcheck_subpolynomials();
@@ -207,10 +214,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         self,
         expr: &(impl ProofPlan + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
-        result: ProvableQueryResult,
+        result: OwnedTable<CP::Scalar>,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
-        let owned_table_result = result.to_owned_table(&expr.get_column_result_fields())?;
         let table_refs = expr.get_table_references();
         let (min_row_num, _) = get_index_range(accessor, &table_refs);
         let num_sumcheck_variables = cmp::max(log2_up(self.range_length), 1);
@@ -260,7 +266,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .collect();
 
         // add the commitments and bit disctibutions to the proof
-        extend_transcript_with_commitments(&mut transcript, &self.commitments, &self.bit_distributions);
+        extend_transcript_with_commitments(
+            &mut transcript,
+            &self.commitments,
+            &self.bit_distributions,
+        );
 
         // draw the random scalars for sumcheck
         let num_random_scalars = num_sumcheck_variables + counts.sumcheck_subpolynomials;
@@ -337,11 +347,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let verifier_evaluations = expr.verifier_evaluate(
             &mut builder,
             &evaluation_accessor,
-            Some(&owned_table_result),
+            Some(&result),
             &one_eval_map,
         )?;
         // compute the evaluation of the result MLEs
-        let result_evaluations = owned_table_result.mle_evaluations(&subclaim.evaluation_point);
+        let result_evaluations = result.mle_evaluations(&subclaim.evaluation_point);
         // check the evaluation of the result MLEs
         if verifier_evaluations.column_evals() != result_evaluations {
             Err(ProofError::VerificationError {
@@ -375,7 +385,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let verification_hash = transcript.challenge_as_le();
         Ok(QueryData {
-            table: owned_table_result,
+            table: result,
             verification_hash,
         })
     }
@@ -405,13 +415,13 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 /// A transcript initialized with the provided data.
 fn make_transcript<S: Scalar, T: Transcript>(
     expr: &(impl ProofPlan + Serialize),
-    result: &ProvableQueryResult,
+    result: &OwnedTable<S>,
     range_length: usize,
     min_row_num: usize,
     one_evaluation_lengths: &[usize],
 ) -> T {
     let mut transcript = T::new();
-    transcript.extend_serialize_as_le(result);
+    extend_transcript_with_owned_table(&mut transcript, result);
     transcript.extend_serialize_as_le(expr);
     transcript.extend_serialize_as_le(&range_length);
     transcript.extend_serialize_as_le(&min_row_num);
