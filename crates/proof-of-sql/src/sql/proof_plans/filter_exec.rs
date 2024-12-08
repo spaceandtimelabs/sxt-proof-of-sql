@@ -267,19 +267,19 @@ pub(super) fn verify_filter<S: Scalar>(
 
     // sum c_star * s - d_star = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &SumcheckSubpolynomialType::ZeroSum,
+        SumcheckSubpolynomialType::ZeroSum,
         c_star_eval * s_eval - d_star_eval,
     );
 
     // c_fold * c_star - input_ones = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &SumcheckSubpolynomialType::Identity,
+        SumcheckSubpolynomialType::Identity,
         c_fold_eval * c_star_eval - one_eval,
     );
 
     // d_bar_fold * d_star - chi = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &SumcheckSubpolynomialType::Identity,
+        SumcheckSubpolynomialType::Identity,
         d_bar_fold_eval * d_star_eval - chi_eval,
     );
 
