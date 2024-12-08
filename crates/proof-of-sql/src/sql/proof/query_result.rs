@@ -1,5 +1,5 @@
 use crate::base::{
-    database::{OwnedTable, OwnedTableError},
+    database::{ColumnCoercionError, OwnedTable, OwnedTableError, TableCoercionError},
     proof::ProofError,
     scalar::Scalar,
 };
@@ -37,6 +37,21 @@ pub enum QueryError {
     /// The number of columns in the table was invalid.
     #[snafu(display("Invalid number of columns"))]
     InvalidColumnCount,
+}
+
+impl From<TableCoercionError> for QueryError {
+    fn from(error: TableCoercionError) -> Self {
+        match error {
+            TableCoercionError::ColumnCoercionError {
+                source: ColumnCoercionError::Overflow,
+            } => QueryError::Overflow,
+            TableCoercionError::ColumnCoercionError {
+                source: ColumnCoercionError::InvalidTypeCoercion,
+            } => ProofError::InvalidTypeCoercion.into(),
+            TableCoercionError::NameMismatch => ProofError::FieldNamesMismatch.into(),
+            TableCoercionError::ColumnCountMismatch => ProofError::FieldCountMismatch.into(),
+        }
+    }
 }
 
 /// The verified results of a query along with metadata produced by verification
