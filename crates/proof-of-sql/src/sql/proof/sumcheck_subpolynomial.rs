@@ -3,7 +3,7 @@ use crate::base::{polynomial::MultilinearExtension, scalar::Scalar};
 use alloc::{boxed::Box, vec::Vec};
 
 /// The type of a sumcheck subpolynomial
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum SumcheckSubpolynomialType {
     /// The subpolynomial should be zero at every entry/row
     Identity,
@@ -60,5 +60,68 @@ impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
     #[allow(dead_code)]
     pub(crate) fn subpolynomial_type(&self) -> SumcheckSubpolynomialType {
         self.subpolynomial_type
+    }
+
+    /// Returns an iterator over the terms of the subpolynomial, where each term's
+    /// coefficient is multiplied by the given multiplier.
+    ///
+    /// # Arguments
+    ///
+    /// * `multiplier` - The scalar value to multiply each term's coefficient by.
+    ///
+    /// # Returns
+    ///
+    /// An iterator that yields tuples containing the subpolynomial type, the
+    /// multiplied coefficient, and a slice of multilinear extensions.
+    #[allow(dead_code)]
+    pub(crate) fn iter_mul_by(
+        &self,
+        multiplier: S,
+    ) -> impl Iterator<
+        Item = (
+            SumcheckSubpolynomialType,
+            S,
+            &[Box<dyn MultilinearExtension<S> + 'a>],
+        ),
+    > {
+        self.terms.iter().map(move |(coeff, multiplicands)| {
+            (
+                self.subpolynomial_type,
+                multiplier * *coeff,
+                multiplicands.as_slice(),
+            )
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SumcheckSubpolynomial, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType};
+    use crate::base::scalar::test_scalar::TestScalar;
+    use alloc::boxed::Box;
+
+    #[test]
+    fn test_iter_mul_by() {
+        let mle1 = vec![TestScalar::from(1), TestScalar::from(2)];
+        let mle2 = vec![TestScalar::from(3), TestScalar::from(4)];
+
+        let terms: Vec<SumcheckSubpolynomialTerm<_>> = vec![
+            (TestScalar::from(2), vec![Box::new(&mle1)]),
+            (TestScalar::from(3), vec![Box::new(&mle2)]),
+        ];
+        let subpoly = SumcheckSubpolynomial::new(SumcheckSubpolynomialType::Identity, terms);
+
+        let multiplier = TestScalar::from(5);
+        let mut iter = subpoly.iter_mul_by(multiplier);
+
+        let (subpoly_type, coeff, _extensions) = iter.next().unwrap();
+        assert_eq!(subpoly_type, SumcheckSubpolynomialType::Identity);
+        assert_eq!(coeff, TestScalar::from(10));
+
+        let (subpoly_type, coeff, _extensions) = iter.next().unwrap();
+        assert_eq!(subpoly_type, SumcheckSubpolynomialType::Identity);
+        assert_eq!(coeff, TestScalar::from(15));
+
+        assert!(iter.next().is_none());
     }
 }
