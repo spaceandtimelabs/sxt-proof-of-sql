@@ -1,11 +1,8 @@
-use super::{
-    CompositePolynomialBuilder, SumcheckRandomScalars, SumcheckSubpolynomial,
-    SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
-};
+use super::{SumcheckSubpolynomial, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType};
 use crate::base::{
     bit::BitDistribution,
     commitment::{Commitment, CommittableColumn, VecCommitmentExt},
-    polynomial::{CompositePolynomial, MultilinearExtension},
+    polynomial::MultilinearExtension,
     scalar::Scalar,
 };
 use alloc::{boxed::Box, vec::Vec};
@@ -109,31 +106,6 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
     /// values of the variables is zero.
     pub fn sumcheck_subpolynomials(&self) -> &[SumcheckSubpolynomial<'a, S>] {
         &self.sumcheck_subpolynomials
-    }
-
-    /// Given random multipliers, construct an aggregatated sumcheck polynomial from all
-    /// the individual subpolynomials.
-    #[tracing::instrument(
-        name = "FinalRoundBuilder::make_sumcheck_polynomial",
-        level = "debug",
-        skip_all
-    )]
-    pub fn make_sumcheck_polynomial(
-        &self,
-        scalars: &SumcheckRandomScalars<S>,
-    ) -> CompositePolynomial<S> {
-        let mut builder = CompositePolynomialBuilder::new(
-            self.num_sumcheck_variables,
-            &scalars.compute_entrywise_multipliers(),
-        );
-        for (multiplier, subpoly) in scalars
-            .subpolynomial_multipliers
-            .iter()
-            .zip(self.sumcheck_subpolynomials.iter())
-        {
-            subpoly.compose(&mut builder, *multiplier);
-        }
-        builder.make_composite_polynomial()
     }
 
     /// Given the evaluation vector, compute evaluations of all the MLEs used in sumcheck except

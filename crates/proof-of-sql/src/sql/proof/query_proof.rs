@@ -1,6 +1,7 @@
 use super::{
-    CountBuilder, FinalRoundBuilder, ProofCounts, ProofPlan, QueryResult, SumcheckMleEvaluations,
-    SumcheckRandomScalars, VerificationBuilder,
+    make_sumcheck_polynomial::make_sumcheck_polynomial, CountBuilder, FinalRoundBuilder,
+    ProofCounts, ProofPlan, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars,
+    VerificationBuilder,
 };
 use crate::{
     base::{
@@ -156,11 +157,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
                 .take(num_random_scalars)
                 .collect();
-        let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(
-            &random_scalars,
-            range_length,
+        let poly = make_sumcheck_polynomial(
+            builder.sumcheck_subpolynomials(),
             num_sumcheck_variables,
-        ));
+            &SumcheckRandomScalars::new(&random_scalars, range_length, num_sumcheck_variables),
+        );
 
         // create the sumcheck proof -- this is the main part of proving a query
         let mut evaluation_point = vec![Zero::zero(); poly.num_variables];

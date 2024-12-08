@@ -71,3 +71,5 @@ pub(crate) use first_round_builder::FirstRoundBuilder;
 
 #[cfg(all(test, feature = "arrow"))]
 mod provable_query_result_test;
+
+mod make_sumcheck_polynomial;
