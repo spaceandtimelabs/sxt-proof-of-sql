@@ -61,4 +61,35 @@ impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
     pub fn subpolynomial_type(&self) -> SumcheckSubpolynomialType {
         self.subpolynomial_type
     }
+
+    /// Returns an iterator over the terms of the subpolynomial, where each term's
+    /// coefficient is multiplied by the given multiplier.
+    ///
+    /// # Arguments
+    ///
+    /// * `multiplier` - The scalar value to multiply each term's coefficient by.
+    ///
+    /// # Returns
+    ///
+    /// An iterator that yields tuples containing the subpolynomial type, the
+    /// multiplied coefficient, and a slice of multilinear extensions.
+    #[allow(dead_code)]
+    pub fn iter_mul_by(
+        &self,
+        multiplier: S,
+    ) -> impl Iterator<
+        Item = (
+            SumcheckSubpolynomialType,
+            S,
+            &[Box<dyn MultilinearExtension<S> + 'a>],
+        ),
+    > {
+        self.terms.iter().map(move |(coeff, multiplicands)| {
+            (
+                self.subpolynomial_type,
+                multiplier * *coeff,
+                multiplicands.as_slice(),
+            )
+        })
+    }
 }
