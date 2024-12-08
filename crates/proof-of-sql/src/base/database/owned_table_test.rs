@@ -6,11 +6,8 @@ use crate::{
     },
     proof_primitive::dory::DoryScalar,
 };
-use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    Identifier,
-};
-
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use sqlparser::ast::Ident;
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {
     let table = OwnedTable::<TestScalar>::try_new(IndexMap::default()).unwrap();
@@ -26,26 +23,11 @@ fn we_can_create_an_empty_owned_table() {
         boolean("boolean", [true; 0]),
     ]);
     let mut table = IndexMap::default();
-    table.insert(
-        Identifier::try_new("bigint").unwrap(),
-        OwnedColumn::BigInt(vec![]),
-    );
-    table.insert(
-        Identifier::try_new("decimal").unwrap(),
-        OwnedColumn::Int128(vec![]),
-    );
-    table.insert(
-        Identifier::try_new("varchar").unwrap(),
-        OwnedColumn::VarChar(vec![]),
-    );
-    table.insert(
-        Identifier::try_new("scalar").unwrap(),
-        OwnedColumn::Scalar(vec![]),
-    );
-    table.insert(
-        Identifier::try_new("boolean").unwrap(),
-        OwnedColumn::Boolean(vec![]),
-    );
+    table.insert(Ident::new("bigint"), OwnedColumn::BigInt(vec![]));
+    table.insert(Ident::new("decimal"), OwnedColumn::Int128(vec![]));
+    table.insert(Ident::new("varchar"), OwnedColumn::VarChar(vec![]));
+    table.insert(Ident::new("scalar"), OwnedColumn::Scalar(vec![]));
+    table.insert(Ident::new("boolean"), OwnedColumn::Boolean(vec![]));
     assert_eq!(owned_table.into_inner(), table);
 }
 #[test]
@@ -68,7 +50,7 @@ fn we_can_create_an_owned_table_with_data() {
     ]);
     let mut table = IndexMap::default();
     table.insert(
-        Identifier::try_new("time_stamp").unwrap(),
+        Ident::new("time_stamp"),
         OwnedColumn::TimestampTZ(
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::utc(),
@@ -76,15 +58,15 @@ fn we_can_create_an_owned_table_with_data() {
         ),
     );
     table.insert(
-        Identifier::try_new("bigint").unwrap(),
+        Ident::new("bigint"),
         OwnedColumn::BigInt(vec![0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
     );
     table.insert(
-        Identifier::try_new("decimal").unwrap(),
+        Ident::new("decimal"),
         OwnedColumn::Int128(vec![0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX]),
     );
     table.insert(
-        Identifier::try_new("varchar").unwrap(),
+        Ident::new("varchar"),
         OwnedColumn::VarChar(vec![
             "0".to_string(),
             "1".to_string(),
@@ -98,7 +80,7 @@ fn we_can_create_an_owned_table_with_data() {
         ]),
     );
     table.insert(
-        Identifier::try_new("scalar").unwrap(),
+        Ident::new("scalar"),
         OwnedColumn::Scalar(vec![
             DoryScalar::from(0),
             1.into(),
@@ -112,7 +94,7 @@ fn we_can_create_an_owned_table_with_data() {
         ]),
     );
     table.insert(
-        Identifier::try_new("boolean").unwrap(),
+        Ident::new("boolean"),
         OwnedColumn::Boolean(vec![
             true, false, true, false, true, false, true, false, true,
         ]),
@@ -179,8 +161,8 @@ fn we_get_inequality_between_tables_with_differing_data() {
 fn we_cannot_create_an_owned_table_with_differing_column_lengths() {
     assert!(matches!(
         OwnedTable::<TestScalar>::try_from_iter([
-            ("a".parse().unwrap(), OwnedColumn::BigInt(vec![0])),
-            ("b".parse().unwrap(), OwnedColumn::BigInt(vec![])),
+            ("a".into(), OwnedColumn::BigInt(vec![0])),
+            ("b".into(), OwnedColumn::BigInt(vec![])),
         ]),
         Err(OwnedTableError::ColumnLengthMismatch)
     ));

@@ -61,7 +61,7 @@ impl ProverEvaluate for DishonestFilterExec {
         let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results
                 .iter()
-                .map(|expr| expr.alias)
+                .map(|expr| expr.alias.clone())
                 .zip(filtered_columns),
             TableOptions::new(Some(output_length)),
         )
@@ -124,7 +124,7 @@ impl ProverEvaluate for DishonestFilterExec {
         Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results
                 .iter()
-                .map(|expr| expr.alias)
+                .map(|expr| expr.alias.clone())
                 .zip(filtered_columns),
             TableOptions::new(Some(output_length)),
         )

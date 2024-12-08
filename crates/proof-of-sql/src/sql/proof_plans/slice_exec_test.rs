@@ -94,11 +94,11 @@ fn we_can_get_an_empty_result_from_a_slice_on_an_empty_table_using_first_round_e
     );
 
     let fields = &[
-        ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
-        ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
-        ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+        ColumnField::new("b".into(), ColumnType::BigInt),
+        ColumnField::new("c".into(), ColumnType::Int128),
+        ColumnField::new("d".into(), ColumnType::VarChar),
         ColumnField::new(
-            "e".parse().unwrap(),
+            "e".into(),
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
@@ -148,11 +148,11 @@ fn we_can_get_an_empty_result_from_a_slice_using_first_round_evaluate() {
     );
 
     let fields = &[
-        ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
-        ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
-        ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+        ColumnField::new("b".into(), ColumnType::BigInt),
+        ColumnField::new("c".into(), ColumnType::Int128),
+        ColumnField::new("d".into(), ColumnType::VarChar),
         ColumnField::new(
-            "e".parse().unwrap(),
+            "e".into(),
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
@@ -236,11 +236,11 @@ fn we_can_get_the_correct_result_from_a_slice_using_first_round_evaluate() {
         None,
     );
     let fields = &[
-        ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
-        ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
-        ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+        ColumnField::new("b".into(), ColumnType::BigInt),
+        ColumnField::new("c".into(), ColumnType::Int128),
+        ColumnField::new("d".into(), ColumnType::VarChar),
         ColumnField::new(
-            "e".parse().unwrap(),
+            "e".into(),
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
@@ -461,9 +461,9 @@ fn we_can_create_and_prove_a_slice_exec_on_top_of_a_table_exec() {
         table_exec(
             table_ref,
             vec![
-                ColumnField::new("language_rank".parse().unwrap(), ColumnType::BigInt),
-                ColumnField::new("language_name".parse().unwrap(), ColumnType::VarChar),
-                ColumnField::new("space_and_time".parse().unwrap(), ColumnType::VarChar),
+                ColumnField::new("language_rank".into(), ColumnType::BigInt),
+                ColumnField::new("language_name".into(), ColumnType::VarChar),
+                ColumnField::new("space_and_time".into(), ColumnType::VarChar),
             ],
         ),
         1,

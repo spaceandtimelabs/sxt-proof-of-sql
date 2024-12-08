@@ -1,8 +1,8 @@
 use super::{Column, ColumnField};
 use crate::base::{map::IndexMap, scalar::Scalar};
 use alloc::vec::Vec;
-use proof_of_sql_parser::Identifier;
 use snafu::Snafu;
+use sqlparser::ast::Ident;
 
 /// Options for creating a table.
 /// Inspired by [`RecordBatchOptions`](https://docs.rs/arrow/latest/arrow/record_batch/struct.RecordBatchOptions.html)
@@ -42,18 +42,18 @@ pub enum TableError {
 /// This is the analog of an arrow [`RecordBatch`](arrow::record_batch::RecordBatch).
 #[derive(Debug, Clone, Eq)]
 pub struct Table<'a, S: Scalar> {
-    table: IndexMap<Identifier, Column<'a, S>>,
+    table: IndexMap<Ident, Column<'a, S>>,
     row_count: usize,
 }
 impl<'a, S: Scalar> Table<'a, S> {
     /// Creates a new [`Table`] with the given columns and default [`TableOptions`].
-    pub fn try_new(table: IndexMap<Identifier, Column<'a, S>>) -> Result<Self, TableError> {
+    pub fn try_new(table: IndexMap<Ident, Column<'a, S>>) -> Result<Self, TableError> {
         Self::try_new_with_options(table, TableOptions::default())
     }
 
     /// Creates a new [`Table`] with the given columns and with [`TableOptions`].
     pub fn try_new_with_options(
-        table: IndexMap<Identifier, Column<'a, S>>,
+        table: IndexMap<Ident, Column<'a, S>>,
         options: TableOptions,
     ) -> Result<Self, TableError> {
         match (table.is_empty(), options.row_count) {
@@ -78,14 +78,14 @@ impl<'a, S: Scalar> Table<'a, S> {
     }
 
     /// Creates a new [`Table`] from an iterator of `(Identifier, Column)` pairs with default [`TableOptions`].
-    pub fn try_from_iter<T: IntoIterator<Item = (Identifier, Column<'a, S>)>>(
+    pub fn try_from_iter<T: IntoIterator<Item = (Ident, Column<'a, S>)>>(
         iter: T,
     ) -> Result<Self, TableError> {
         Self::try_from_iter_with_options(iter, TableOptions::default())
     }
 
     /// Creates a new [`Table`] from an iterator of `(Identifier, Column)` pairs with [`TableOptions`].
-    pub fn try_from_iter_with_options<T: IntoIterator<Item = (Identifier, Column<'a, S>)>>(
+    pub fn try_from_iter_with_options<T: IntoIterator<Item = (Ident, Column<'a, S>)>>(
         iter: T,
         options: TableOptions,
     ) -> Result<Self, TableError> {
@@ -109,12 +109,12 @@ impl<'a, S: Scalar> Table<'a, S> {
     }
     /// Returns the columns of this table as an `IndexMap`
     #[must_use]
-    pub fn into_inner(self) -> IndexMap<Identifier, Column<'a, S>> {
+    pub fn into_inner(self) -> IndexMap<Ident, Column<'a, S>> {
         self.table
     }
     /// Returns the columns of this table as an `IndexMap`
     #[must_use]
-    pub fn inner_table(&self) -> &IndexMap<Identifier, Column<'a, S>> {
+    pub fn inner_table(&self) -> &IndexMap<Ident, Column<'a, S>> {
         &self.table
     }
     /// Return the schema of this table as a `Vec` of `ColumnField`s
@@ -122,11 +122,11 @@ impl<'a, S: Scalar> Table<'a, S> {
     pub fn schema(&self) -> Vec<ColumnField> {
         self.table
             .iter()
-            .map(|(name, column)| ColumnField::new(*name, column.column_type()))
+            .map(|(name, column)| ColumnField::new(name.clone(), column.column_type()))
             .collect()
     }
     /// Returns the columns of this table as an Iterator
-    pub fn column_names(&self) -> impl Iterator<Item = &Identifier> {
+    pub fn column_names(&self) -> impl Iterator<Item = &Ident> {
         self.table.keys()
     }
     /// Returns the columns of this table as an Iterator
@@ -157,8 +157,6 @@ impl<S: Scalar> PartialEq for Table<'_, S> {
 impl<'a, S: Scalar> core::ops::Index<&str> for Table<'a, S> {
     type Output = Column<'a, S>;
     fn index(&self, index: &str) -> &Self::Output {
-        self.table
-            .get(&index.parse::<Identifier>().unwrap())
-            .unwrap()
+        self.table.get(&Ident::new(index)).unwrap()
     }
 }
