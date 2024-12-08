@@ -17,7 +17,7 @@ use crate::{
         proof::{Keccak256Transcript, ProofError, Transcript},
         scalar::Scalar,
     },
-    proof_primitive::sumcheck::SumcheckProof,
+    proof_primitive::sumcheck::{ProverState, SumcheckProof},
     sql::proof::{FirstRoundBuilder, QueryData},
 };
 use alloc::{string::String, vec, vec::Vec};
@@ -165,7 +165,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // create the sumcheck proof -- this is the main part of proving a query
         let mut evaluation_point = vec![Zero::zero(); poly.num_variables];
-        let sumcheck_proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
+        let sumcheck_proof = SumcheckProof::create(
+            &mut transcript,
+            &mut evaluation_point,
+            ProverState::create(&poly),
+        );
 
         // evaluate the MLEs used in sumcheck except for the result columns
         let mut evaluation_vec = vec![Zero::zero(); range_length];

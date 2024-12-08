@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        polynomial::{interpolate_evaluations_to_reverse_coefficients, CompositePolynomial},
+        polynomial::interpolate_evaluations_to_reverse_coefficients,
         proof::{ProofError, Transcript},
         scalar::Scalar,
     },
@@ -28,19 +28,15 @@ impl<S: Scalar> SumcheckProof<S> {
     pub fn create(
         transcript: &mut impl Transcript,
         evaluation_point: &mut [S],
-        polynomial: &CompositePolynomial<S>,
+        mut state: ProverState<S>,
     ) -> Self {
-        assert_eq!(evaluation_point.len(), polynomial.num_variables);
-        transcript.extend_as_be([
-            polynomial.max_multiplicands as u64,
-            polynomial.num_variables as u64,
-        ]);
+        assert_eq!(evaluation_point.len(), state.num_vars);
+        transcript.extend_as_be([state.max_multiplicands as u64, state.num_vars as u64]);
         // This challenge is in order to keep transcript messages grouped. (This simplifies the Solidity implementation.)
         transcript.scalar_challenge_as_be::<S>();
         let mut r = None;
-        let mut state = ProverState::create(polynomial);
-        let mut coefficients = Vec::with_capacity(polynomial.num_variables);
-        for scalar in evaluation_point.iter_mut().take(polynomial.num_variables) {
+        let mut coefficients = Vec::with_capacity(state.num_vars);
+        for scalar in evaluation_point.iter_mut().take(state.num_vars) {
             let round_evaluations = prove_round(&mut state, &r);
             let round_coefficients =
                 interpolate_evaluations_to_reverse_coefficients(&round_evaluations);
