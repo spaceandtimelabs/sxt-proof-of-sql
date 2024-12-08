@@ -56,4 +56,9 @@ impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
             }
         }
     }
+
+    #[allow(dead_code)]
+    pub(crate) fn subpolynomial_type(&self) -> SumcheckSubpolynomialType {
+        self.subpolynomial_type
+    }
 }
