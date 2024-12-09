@@ -12,6 +12,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
+    utils::log,
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -60,6 +61,8 @@ impl ProofExpr for InequalityExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
+        log::log_memory_usage("Start");
+
         let lhs_column = self.lhs.result_evaluate(alloc, table);
         let rhs_column = self.rhs.result_evaluate(alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
@@ -80,7 +83,11 @@ impl ProofExpr for InequalityExpr {
         let sign = result_evaluate_sign(table_length, alloc, diff);
 
         // (diff == 0) || (sign(diff) == -1)
-        Column::Boolean(result_evaluate_or(table_length, alloc, equals_zero, sign))
+        let res = Column::Boolean(result_evaluate_or(table_length, alloc, equals_zero, sign));
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     #[tracing::instrument(name = "InequalityExpr::prover_evaluate", level = "debug", skip_all)]
@@ -90,6 +97,8 @@ impl ProofExpr for InequalityExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
+        log::log_memory_usage("Start");
+
         let lhs_column = self.lhs.prover_evaluate(builder, alloc, table);
         let rhs_column = self.rhs.prover_evaluate(builder, alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
@@ -115,7 +124,11 @@ impl ProofExpr for InequalityExpr {
         );
 
         // (diff == 0) || (sign(diff) == -1)
-        Column::Boolean(prover_evaluate_or(builder, alloc, equals_zero, sign))
+        let res = Column::Boolean(prover_evaluate_or(builder, alloc, equals_zero, sign));
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     fn verifier_evaluate<S: Scalar>(

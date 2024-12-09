@@ -2,7 +2,7 @@ use super::{
     pairings::{multi_pairing_2, multi_pairing_4},
     DeferredGT, ProverSetup, ProverState, VerifierSetup, VerifierState, F, GT,
 };
-use crate::base::if_rayon;
+use crate::{base::if_rayon, utils::log};
 #[cfg(feature = "rayon")]
 use rayon::{
     iter::IndexedParallelIterator,
@@ -24,6 +24,8 @@ pub fn dory_reduce_prove_compute_Ds(
     setup: &ProverSetup,
     half_n: usize,
 ) -> (GT, GT, GT, GT) {
+    log::log_memory_usage("Start");
+
     let (v_1L, v_1R) = state.v1.split_at(half_n);
     let (v_2L, v_2R) = state.v2.split_at(half_n);
     let (D_1L, D_1R, D_2L, D_2R) = multi_pairing_4(
@@ -32,6 +34,9 @@ pub fn dory_reduce_prove_compute_Ds(
         (setup.Gamma_1[state.nu - 1], v_2L),
         (setup.Gamma_1[state.nu - 1], v_2R),
     );
+
+    log::log_memory_usage("End");
+
     (D_1L, D_1R, D_2L, D_2R)
 }
 /// From the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
@@ -45,12 +50,16 @@ pub fn dory_reduce_prove_mutate_v_vecs(
     setup: &ProverSetup,
     (beta, beta_inv): (F, F),
 ) {
+    log::log_memory_usage("Start");
+
     if_rayon!(state.v1.par_iter_mut(), state.v1.iter_mut())
         .zip(setup.Gamma_1[state.nu])
         .for_each(|(v, &g)| *v = (*v + g * beta).into());
     if_rayon!(state.v2.par_iter_mut(), state.v2.iter_mut())
         .zip(setup.Gamma_2[state.nu])
         .for_each(|(v, &g)| *v = (*v + g * beta_inv).into());
+
+    log::log_memory_usage("End");
 }
 /// From the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
 ///
@@ -59,9 +68,14 @@ pub fn dory_reduce_prove_mutate_v_vecs(
 /// * C_minus = <v_1R, v_2L>
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn dory_reduce_prove_compute_Cs(state: &ProverState, half_n: usize) -> (GT, GT) {
+    log::log_memory_usage("Start");
+
     let (v_1L, v_1R) = state.v1.split_at(half_n);
     let (v_2L, v_2R) = state.v2.split_at(half_n);
     let (C_plus, C_minus) = multi_pairing_2((v_1L, v_2R), (v_1R, v_2L));
+
+    log::log_memory_usage("End");
+
     (C_plus, C_minus)
 }
 
@@ -76,6 +90,8 @@ pub fn dory_reduce_prove_fold_v_vecs(
     (alpha, alpha_inv): (F, F),
     half_n: usize,
 ) {
+    log::log_memory_usage("Start");
+
     let (v_1L, v_1R) = state.v1.split_at_mut(half_n);
     let (v_2L, v_2R) = state.v2.split_at_mut(half_n);
     if_rayon!(v_1L.par_iter_mut(), v_1L.iter_mut())
@@ -86,6 +102,8 @@ pub fn dory_reduce_prove_fold_v_vecs(
         .for_each(|(v_L, v_R)| *v_L = (*v_L * alpha_inv + v_R).into());
     state.v1.truncate(half_n);
     state.v2.truncate(half_n);
+
+    log::log_memory_usage("End");
 }
 /// From the Dory-Reduce algorithm in section 3.2 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///

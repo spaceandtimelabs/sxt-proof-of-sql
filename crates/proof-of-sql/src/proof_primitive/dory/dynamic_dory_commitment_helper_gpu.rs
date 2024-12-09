@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{
     base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast},
-    utils::log::log_memory_usage,
+    utils::log,
 };
 use blitzar::compute::ElementP2;
 #[cfg(feature = "rayon")]
@@ -37,7 +37,7 @@ pub(super) fn compute_dynamic_dory_commitments(
     offset: usize,
     setup: &ProverSetup,
 ) -> Vec<DynamicDoryCommitment> {
-    log_memory_usage("Start");
+    log::log_memory_usage("Start");
 
     let Gamma_2 = setup.Gamma_2.last().unwrap();
     let (gamma_2_offset, _) = row_and_column_from_index(offset);
@@ -94,7 +94,7 @@ pub(super) fn compute_dynamic_dory_commitments(
         });
     span.exit();
 
-    log_memory_usage("End");
+    log::log_memory_usage("End");
 
     ddc
 }

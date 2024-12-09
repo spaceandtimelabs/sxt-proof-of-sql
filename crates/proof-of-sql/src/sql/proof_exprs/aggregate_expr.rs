@@ -7,6 +7,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
+    utils::log,
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -48,7 +49,13 @@ impl ProofExpr for AggregateExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        self.expr.result_evaluate(alloc, table)
+        log::log_memory_usage("Start");
+
+        let res = self.expr.result_evaluate(alloc, table);
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     #[tracing::instrument(name = "AggregateExpr::prover_evaluate", level = "debug", skip_all)]
@@ -58,7 +65,13 @@ impl ProofExpr for AggregateExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        self.expr.prover_evaluate(builder, alloc, table)
+        log::log_memory_usage("Start");
+
+        let res = self.expr.prover_evaluate(builder, alloc, table);
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     fn verifier_evaluate<S: Scalar>(
