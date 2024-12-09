@@ -5,32 +5,12 @@ use super::{
 use crate::{
     base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast},
     proof_primitive::dynamic_matrix_utils::matrix_structure::row_and_column_from_index,
+    utils::log::log_memory_usage,
 };
 use blitzar::compute::ElementP2;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use sysinfo::System;
-use tracing::{span, trace, Level};
-
-#[allow(clippy::cast_precision_loss)]
-fn log_memory_usage(name: &str) {
-    if tracing::level_enabled!(Level::TRACE) {
-        let mut system = System::new_all();
-        system.refresh_memory();
-
-        let available_memory = system.available_memory() as f64 / (1024.0 * 1024.0);
-        let used_memory = system.used_memory() as f64 / (1024.0 * 1024.0);
-        let percentage_memory_used = (used_memory / (used_memory + available_memory)) * 100.0;
-
-        trace!(
-            "{} Available memory: {:.2} MB, Used memory: {:.2} MB, Percentage memory used: {:.2}%",
-            name,
-            available_memory,
-            used_memory,
-            percentage_memory_used
-        );
-    }
-}
+use tracing::{span, Level};
 
 /// Computes the dynamic Dory commitment using the GPU implementation of the `vlen_msm` algorithm.
 ///
