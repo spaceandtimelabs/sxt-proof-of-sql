@@ -118,6 +118,7 @@ impl ProverEvaluate for DishonestFilterExec {
             &columns,
             selection,
             &filtered_columns,
+            builder.range_length(),
             table.num_rows(),
             result_len,
         );

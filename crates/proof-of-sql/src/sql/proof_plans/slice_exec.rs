@@ -95,6 +95,7 @@ where
             builder,
             alpha,
             beta,
+            builder.mle_evaluations.range_length_one_evaluation,
             *input_table_eval.one_eval(),
             output_one_eval,
             columns_evals,
@@ -191,6 +192,7 @@ impl ProverEvaluate for SliceExec {
             &columns,
             select_ref,
             &filtered_columns,
+            builder.range_length(),
             input.num_rows(),
             result_len,
         );
