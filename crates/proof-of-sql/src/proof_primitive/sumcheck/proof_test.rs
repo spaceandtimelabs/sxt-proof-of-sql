@@ -36,7 +36,10 @@ fn test_create_verify_proof() {
     let subclaim = proof
         .verify_without_evaluation(
             &mut transcript,
-            poly.info(),
+            CompositePolynomialInfo {
+                max_multiplicands: poly.max_multiplicands,
+                num_variables: poly.num_variables,
+            },
             &Curve25519Scalar::from(579u64),
         )
         .expect("verify failed");
@@ -52,7 +55,10 @@ fn test_create_verify_proof() {
     let subclaim = proof
         .verify_without_evaluation(
             &mut transcript,
-            poly.info(),
+            CompositePolynomialInfo {
+                max_multiplicands: poly.max_multiplicands,
+                num_variables: poly.num_variables,
+            },
             &Curve25519Scalar::from(579u64),
         )
         .expect("verify failed");
@@ -62,7 +68,10 @@ fn test_create_verify_proof() {
     let mut transcript = Transcript::new(b"sumchecktest");
     let subclaim = proof.verify_without_evaluation(
         &mut transcript,
-        poly.info(),
+        CompositePolynomialInfo {
+            max_multiplicands: poly.max_multiplicands,
+            num_variables: poly.num_variables,
+        },
         &Curve25519Scalar::from(123u64),
     );
     assert!(subclaim.is_err());
@@ -71,7 +80,10 @@ fn test_create_verify_proof() {
     proof.coefficients[0] += Curve25519Scalar::from(3u64);
     let subclaim = proof.verify_without_evaluation(
         &mut transcript,
-        poly.info(),
+        CompositePolynomialInfo {
+            max_multiplicands: poly.max_multiplicands,
+            num_variables: poly.num_variables,
+        },
         &Curve25519Scalar::from(579u64),
     );
     assert!(subclaim.is_err());
@@ -125,7 +137,10 @@ fn test_polynomial(nv: usize, num_multiplicands_range: (usize, usize), num_produ
     let mut rng = <ark_std::rand::rngs::StdRng as ark_std::rand::SeedableRng>::from_seed([0u8; 32]);
     let (poly, asserted_sum) =
         random_polynomial(nv, num_multiplicands_range, num_products, &mut rng);
-    let poly_info = poly.info();
+    let poly_info = CompositePolynomialInfo {
+        max_multiplicands: poly.max_multiplicands,
+        num_variables: poly.num_variables,
+    };
 
     // create a proof
     let mut transcript = Transcript::new(b"sumchecktest");

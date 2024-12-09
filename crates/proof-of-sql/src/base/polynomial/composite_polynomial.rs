@@ -60,14 +60,6 @@ impl<S: Scalar> CompositePolynomial<S> {
         }
     }
 
-    /// Extract the max number of multiplicands and number of variables of the list of products.
-    pub fn info(&self) -> CompositePolynomialInfo {
-        CompositePolynomialInfo {
-            max_multiplicands: self.max_multiplicands,
-            num_variables: self.num_variables,
-        }
-    }
-
     /// Add a list of multilinear extensions that is meant to be multiplied together.
     /// The resulting polynomial will be multiplied by the scalar `coefficient`.
     #[allow(clippy::missing_panics_doc)]
