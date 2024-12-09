@@ -172,7 +172,7 @@ pub fn column_union<'a, S: Scalar>(
 /// # Panics
 /// This function should never panic as long as it is written correctly
 pub fn table_union<'a, S: Scalar>(
-    tables: &[&Table<'a, S>],
+    tables: &[Table<'a, S>],
     alloc: &'a Bump,
     schema: Vec<ColumnField>,
 ) -> TableOperationResult<Table<'a, S>> {
@@ -190,7 +190,7 @@ pub fn table_union<'a, S: Scalar>(
     }
     // Union the columns
     // Make sure to consider the case where the tables have no columns
-    let num_rows = tables.iter().map(|table| table.num_rows()).sum();
+    let num_rows = tables.iter().map(Table::num_rows).sum();
     let result = Table::<'a, S>::try_from_iter_with_options(
         schema.iter().enumerate().map(|(i, field)| {
             let columns: Vec<_> = tables
@@ -290,7 +290,7 @@ mod tests {
             TableOptions::new(Some(0)),
         )
         .unwrap();
-        let result = table_union(&[&table0, &table1, &table2], &alloc, vec![]).unwrap();
+        let result = table_union(&[table0, table1, table2], &alloc, vec![]).unwrap();
         assert_eq!(
             result,
             Table::<'_, TestScalar>::try_new_with_options(
@@ -322,7 +322,7 @@ mod tests {
         )
         .unwrap();
         let result = table_union(
-            &[&table0, &table1],
+            &[table0, table1],
             &alloc,
             vec![
                 ColumnField::new("e".parse().unwrap(), ColumnType::BigInt),
@@ -365,7 +365,7 @@ mod tests {
         )
         .unwrap();
         let result = table_union(
-            &[&table0, &table1],
+            &[table0, table1],
             &alloc,
             vec![
                 ColumnField::new("e".parse().unwrap(), ColumnType::BigInt),
