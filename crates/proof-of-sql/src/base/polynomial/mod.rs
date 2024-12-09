@@ -1,5 +1,5 @@
 mod composite_polynomial;
-pub use composite_polynomial::{CompositePolynomial, CompositePolynomialInfo};
+pub use composite_polynomial::CompositePolynomial;
 #[cfg(test)]
 mod composite_polynomial_test;
 

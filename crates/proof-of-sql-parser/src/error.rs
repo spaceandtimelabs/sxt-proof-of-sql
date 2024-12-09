@@ -18,7 +18,7 @@ pub enum ParseError {
         error: String,
     },
     #[snafu(display("Unable to parse resource_id"))]
-    /// Can not parse the `resource_id`
+    /// Cannot parse the `resource_id`
     ResourceIdParseError {
         /// The underlying error
         error: String,

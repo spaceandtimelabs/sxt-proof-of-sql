@@ -11,7 +11,7 @@ use crate::{
         },
         map::{IndexMap, IndexSet},
         math::log2_up,
-        polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
+        polynomial::compute_evaluation_vector,
         proof::{Keccak256Transcript, ProofError, Transcript},
     },
     proof_primitive::sumcheck::SumcheckProof,
@@ -272,15 +272,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             SumcheckRandomScalars::new(&random_scalars, self.range_length, num_sumcheck_variables);
 
         // verify sumcheck up to the evaluation check
-        let poly_info = CompositePolynomialInfo {
-            // This needs to be at least 2 since `CompositePolynomialBuilder::make_composite_polynomial`
-            // always adds a degree 2 term.
-            max_multiplicands: core::cmp::max(counts.sumcheck_max_multiplicands, 2),
-            num_variables: num_sumcheck_variables,
-        };
         let subclaim = self.sumcheck_proof.verify_without_evaluation(
             &mut transcript,
-            poly_info,
+            // This needs to be at least 2 since `CompositePolynomialBuilder::make_composite_polynomial`
+            // always adds a degree 2 term.
+            core::cmp::max(counts.sumcheck_max_multiplicands, 2),
+            num_sumcheck_variables,
             &Zero::zero(),
         )?;
 
