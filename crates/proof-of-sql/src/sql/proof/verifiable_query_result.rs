@@ -1,11 +1,14 @@
 use super::{ProofPlan, ProvableQueryResult, QueryData, QueryProof, QueryResult};
-use crate::base::{
-    commitment::CommitmentEvaluationProof,
-    database::{
-        ColumnField, ColumnType, CommitmentAccessor, DataAccessor, OwnedColumn, OwnedTable,
+use crate::{
+    base::{
+        commitment::CommitmentEvaluationProof,
+        database::{
+            ColumnField, ColumnType, CommitmentAccessor, DataAccessor, OwnedColumn, OwnedTable,
+        },
+        proof::ProofError,
+        scalar::Scalar,
     },
-    proof::ProofError,
-    scalar::Scalar,
+    utils::log,
 };
 use alloc::vec;
 use serde::{Deserialize, Serialize};
@@ -79,11 +82,14 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     ///
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
+    #[tracing::instrument(name = "VerifiableQueryResult::new", level = "info", skip_all)]
     pub fn new(
         expr: &(impl ProofPlan + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> Self {
+        log::log_memory_usage("Start");
+
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
 
@@ -100,6 +106,9 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         }
 
         let (proof, res) = QueryProof::new(expr, accessor, setup);
+
+        log::log_memory_usage("End");
+
         Self {
             provable_result: Some(res),
             proof: Some(proof),
@@ -113,13 +122,16 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// error.
     ///
     /// Note: This does NOT transform the result!
+    #[tracing::instrument(name = "VerifiableQueryResult::verify", level = "info", skip_all)]
     pub fn verify(
         self,
         expr: &(impl ProofPlan + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
-        match (self.provable_result, self.proof) {
+        log::log_memory_usage("Start");
+
+        let res = match (self.provable_result, self.proof) {
             (Some(provable_result), Some(proof)) => {
                 proof.verify(expr, accessor, provable_result, setup)
             }
@@ -135,7 +147,11 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
             _ => Err(ProofError::VerificationError {
                 error: "Proof does not match result: at least one is missing",
             })?,
-        }
+        };
+
+        log::log_memory_usage("End");
+
+        res
     }
 }
 

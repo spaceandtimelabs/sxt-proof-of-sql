@@ -5,6 +5,7 @@ use crate::{
         scalar::Scalar,
     },
     proof_primitive::sumcheck::{prove_round, ProverState},
+    utils::log,
 };
 /*
  * Adapted from arkworks
@@ -30,6 +31,8 @@ impl<S: Scalar> SumcheckProof<S> {
         evaluation_point: &mut [S],
         polynomial: &CompositePolynomial<S>,
     ) -> Self {
+        log::log_memory_usage("Start");
+
         assert_eq!(evaluation_point.len(), polynomial.num_variables);
         transcript.extend_as_be([
             polynomial.max_multiplicands as u64,
@@ -50,6 +53,8 @@ impl<S: Scalar> SumcheckProof<S> {
             r = Some(*scalar);
         }
 
+        log::log_memory_usage("End");
+
         SumcheckProof { coefficients }
     }
 
@@ -65,6 +70,8 @@ impl<S: Scalar> SumcheckProof<S> {
         num_variables: usize,
         claimed_sum: &S,
     ) -> Result<Subclaim<S>, ProofError> {
+        log::log_memory_usage("Start");
+
         transcript.extend_as_be([max_multiplicands as u64, num_variables as u64]);
         // This challenge is in order to keep transcript messages grouped. (This simplifies the Solidity implementation.)
         transcript.scalar_challenge_as_be::<S>();
@@ -98,6 +105,9 @@ impl<S: Scalar> SumcheckProof<S> {
             }
             expected_evaluation = round_evaluation;
         }
+
+        log::log_memory_usage("End");
+
         Ok(Subclaim {
             evaluation_point,
             expected_evaluation,

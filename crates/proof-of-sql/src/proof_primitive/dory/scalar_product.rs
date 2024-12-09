@@ -1,6 +1,6 @@
 #![allow(unused_variables)]
 use super::{pairings, DoryMessages, ProverState, VerifierSetup, VerifierState};
-use crate::base::proof::Transcript;
+use crate::{base::proof::Transcript, utils::log};
 
 /// This is the prover side of the Scalar-Product algorithm in section 3.1 of <https://eprint.iacr.org/2020/1274.pdf>.
 #[allow(clippy::missing_panics_doc)]
@@ -61,6 +61,8 @@ pub fn scalar_product_verify(
     // * `Gamma_1_0` is the Γ_1 used in Scalar-Product algorithm.
     // * `Gamma_2_0` is the Γ_2 used in Scalar-Product algorithm.
 
+    log::log_memory_usage("Start");
+
     assert_eq!(state.nu, 0);
     if messages.G1_messages.len() != 1
         || messages.G2_messages.len() != 1
@@ -71,6 +73,10 @@ pub fn scalar_product_verify(
     let E_1 = messages.prover_recieve_G1_message(transcript);
     let E_2 = messages.prover_recieve_G2_message(transcript);
     let (d, d_inv) = messages.verifier_F_message(transcript);
-    pairings::pairing(E_1 + setup.Gamma_1_0 * d, E_2 + setup.Gamma_2_0 * d_inv)
-        == (state.C + setup.chi[0] + state.D_2 * d + state.D_1 * d_inv).compute()
+    let res = pairings::pairing(E_1 + setup.Gamma_1_0 * d, E_2 + setup.Gamma_2_0 * d_inv)
+        == (state.C + setup.chi[0] + state.D_2 * d + state.D_1 * d_inv).compute();
+
+    log::log_memory_usage("End");
+
+    res
 }

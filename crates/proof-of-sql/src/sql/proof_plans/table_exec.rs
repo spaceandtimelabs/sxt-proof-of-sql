@@ -9,6 +9,7 @@ use crate::{
         CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
         VerificationBuilder,
     },
+    utils::log,
 };
 use alloc::vec::Vec;
 use bumpalo::Bump;
@@ -84,10 +85,16 @@ impl ProverEvaluate for TableExec {
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        table_map
+        log::log_memory_usage("Start");
+
+        let first_round_table = table_map
             .get(&self.table_ref)
             .expect("Table not found")
-            .clone()
+            .clone();
+
+        log::log_memory_usage("End");
+
+        first_round_table
     }
 
     #[tracing::instrument(name = "TableExec::final_round_evaluate", level = "debug", skip_all)]
@@ -98,9 +105,15 @@ impl ProverEvaluate for TableExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        table_map
+        log::log_memory_usage("Start");
+
+        let final_round_table = table_map
             .get(&self.table_ref)
             .expect("Table not found")
-            .clone()
+            .clone();
+
+        log::log_memory_usage("End");
+
+        final_round_table
     }
 }

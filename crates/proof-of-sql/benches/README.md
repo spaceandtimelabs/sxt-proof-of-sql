@@ -20,6 +20,15 @@ To run benchmarks with Jaeger, you need to do the following
     docker kill jaeger
     ```
 
+### Memory logging (optional)
+
+Jaeger benchmarks default to logging any traces at `DEBUG` level and above. Memory consumption is logged at `TRACE` level. In order to capture memory consumption in the Jaeger benchmarks, add `RUST_LOG=trace` to the command.
+
+Example
+```
+RUST_LOG=trace cargo bench -p proof-of-sql --bench jaeger_benches DynamicDory
+```
+
 ## Criterion benchmarking
 
 To run benchmarks with Criterion, you need to do the following

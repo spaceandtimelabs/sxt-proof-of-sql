@@ -1,5 +1,8 @@
 use super::{pack_scalars, pairings, DoryCommitment, DoryProverPublicSetup, G1Affine};
-use crate::base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast};
+use crate::{
+    base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast},
+    utils::log,
+};
 use blitzar::compute::ElementP2;
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
@@ -20,6 +23,8 @@ fn compute_dory_commitments_packed_impl(
     offset: usize,
     setup: &DoryProverPublicSetup,
 ) -> Vec<DoryCommitment> {
+    log::log_memory_usage("Start");
+
     // Make sure that the committable columns are not empty.
     if committable_columns.is_empty() {
         return vec![];
@@ -84,7 +89,7 @@ fn compute_dory_commitments_packed_impl(
         .collect();
 
     // Compute the Dory commitments using multi pairing of sub-commits.
-    let span = span!(Level::INFO, "multi_pairing").entered();
+    let span = span!(Level::DEBUG, "multi_pairing").entered();
     let dc: Vec<DoryCommitment> = if_rayon!(
         cumulative_sub_commit_sums.par_iter(),
         cumulative_sub_commit_sums.iter()
@@ -99,6 +104,8 @@ fn compute_dory_commitments_packed_impl(
     })
     .collect();
     span.exit();
+
+    log::log_memory_usage("End");
 
     dc
 }

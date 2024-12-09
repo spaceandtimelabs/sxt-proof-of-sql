@@ -3,7 +3,7 @@ use super::{
     pairings, DeferredGT, DoryMessages, G1Projective, G2Projective, ProverSetup, ProverState,
     VerifierSetup, VerifierState, F,
 };
-use crate::base::proof::Transcript;
+use crate::{base::proof::Transcript, utils::log};
 
 /// This is the prover side of the Fold-Scalars algorithm in section 4.1 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///
@@ -36,6 +36,8 @@ pub fn fold_scalars_0_verify(
     setup: &VerifierSetup,
     fold_s_tensors_verify: impl Fn(&ExtendedVerifierState) -> (F, F),
 ) -> VerifierState {
+    log::log_memory_usage("Start");
+
     assert_eq!(state.base_state.nu, 0);
     let (gamma, gamma_inv) = messages.verifier_F_message(transcript);
     let (s1_folded, s2_folded) = fold_s_tensors_verify(&state);
@@ -50,5 +52,8 @@ pub fn fold_scalars_0_verify(
         )) * gamma_inv;
     state.base_state.D_1 += pairings::pairing(setup.H_1, setup.Gamma_2_0 * s1_folded * gamma);
     state.base_state.D_2 += pairings::pairing(setup.Gamma_1_0 * s2_folded * gamma_inv, setup.H_2);
+
+    log::log_memory_usage("End");
+
     state.base_state
 }

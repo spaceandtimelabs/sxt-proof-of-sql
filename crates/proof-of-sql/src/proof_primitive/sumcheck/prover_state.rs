@@ -4,7 +4,7 @@ use crate::base::polynomial::CompositePolynomial;
  *
  * See third_party/license/arkworks.LICENSE
  */
-use crate::base::scalar::Scalar;
+use crate::{base::scalar::Scalar, utils::log};
 use alloc::vec::Vec;
 
 pub struct ProverState<S: Scalar> {
@@ -23,6 +23,8 @@ pub struct ProverState<S: Scalar> {
 impl<S: Scalar> ProverState<S> {
     #[tracing::instrument(name = "ProverState::create", level = "debug", skip_all)]
     pub fn create(polynomial: &CompositePolynomial<S>) -> Self {
+        log::log_memory_usage("Start");
+
         assert!(
             polynomial.num_variables != 0,
             "Attempt to prove a constant."
@@ -34,6 +36,8 @@ impl<S: Scalar> ProverState<S> {
             .iter()
             .map(|x| x.as_ref().clone())
             .collect();
+
+        log::log_memory_usage("End");
 
         ProverState {
             randomness: Vec::with_capacity(polynomial.num_variables),

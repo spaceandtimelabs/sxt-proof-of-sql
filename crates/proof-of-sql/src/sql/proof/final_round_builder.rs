@@ -2,11 +2,14 @@ use super::{
     CompositePolynomialBuilder, SumcheckRandomScalars, SumcheckSubpolynomial,
     SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
 };
-use crate::base::{
-    bit::BitDistribution,
-    commitment::{Commitment, CommittableColumn, VecCommitmentExt},
-    polynomial::{CompositePolynomial, MultilinearExtension},
-    scalar::Scalar,
+use crate::{
+    base::{
+        bit::BitDistribution,
+        commitment::{Commitment, CommittableColumn, VecCommitmentExt},
+        polynomial::{CompositePolynomial, MultilinearExtension},
+        scalar::Scalar,
+    },
+    utils::log,
 };
 use alloc::{boxed::Box, vec::Vec};
 
@@ -98,11 +101,17 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
         offset_generators: usize,
         setup: &C::PublicSetup<'_>,
     ) -> Vec<C> {
-        Vec::from_commitable_columns_with_offset(
+        log::log_memory_usage("Start");
+
+        let res = Vec::from_commitable_columns_with_offset(
             &self.commitment_descriptor,
             offset_generators,
             setup,
-        )
+        );
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all
@@ -116,6 +125,8 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
         &self,
         scalars: &SumcheckRandomScalars<S>,
     ) -> CompositePolynomial<S> {
+        log::log_memory_usage("Start");
+
         let mut builder = CompositePolynomialBuilder::new(
             self.num_sumcheck_variables,
             &scalars.compute_entrywise_multipliers(),
@@ -127,7 +138,11 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
         {
             subpoly.compose(&mut builder, *multiplier);
         }
-        builder.make_composite_polynomial()
+        let res = builder.make_composite_polynomial();
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     /// Given the evaluation vector, compute evaluations of all the MLEs used in sumcheck except
@@ -138,10 +153,15 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
         skip_all
     )]
     pub fn evaluate_pcs_proof_mles(&self, evaluation_vec: &[S]) -> Vec<S> {
+        log::log_memory_usage("Start");
+
         let mut res = Vec::with_capacity(self.pcs_proof_mles.len());
         for evaluator in &self.pcs_proof_mles {
             res.push(evaluator.inner_product(evaluation_vec));
         }
+
+        log::log_memory_usage("End");
+
         res
     }
 
