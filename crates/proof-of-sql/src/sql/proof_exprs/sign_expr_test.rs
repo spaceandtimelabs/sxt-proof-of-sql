@@ -66,15 +66,8 @@ fn we_can_verify_a_constant_decomposition() {
     let one_evals = sumcheck_evaluations.one_evaluations.clone();
     let one_eval = one_evals.values().next().unwrap();
 
-    let mut builder = VerificationBuilder::new(
-        0,
-        sumcheck_evaluations,
-        &dists,
-        &[],
-        &[],
-        Vec::new(),
-        Vec::new(),
-    );
+    let mut builder =
+        VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], Vec::new(), Vec::new());
     let data_eval = (&data).evaluate_at_point(&evaluation_point);
     let eval = verifier_evaluate_sign(&mut builder, data_eval, *one_eval).unwrap();
     assert_eq!(eval, Curve25519Scalar::zero());
@@ -98,15 +91,8 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     let one_evals = sumcheck_evaluations.one_evaluations.clone();
     let one_eval = one_evals.values().next().unwrap();
 
-    let mut builder = VerificationBuilder::new(
-        0,
-        sumcheck_evaluations,
-        &dists,
-        &[],
-        &[],
-        Vec::new(),
-        Vec::new(),
-    );
+    let mut builder =
+        VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], Vec::new(), Vec::new());
     let data_eval = Curve25519Scalar::from(2) * (&data).evaluate_at_point(&evaluation_point);
     assert!(verifier_evaluate_sign(&mut builder, data_eval, *one_eval).is_err());
 }

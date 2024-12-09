@@ -329,7 +329,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             sumcheck_evaluations,
             &self.bit_distributions,
             sumcheck_random_scalars.subpolynomial_multipliers,
-            &evaluation_random_scalars,
             post_result_challenges,
             self.one_evaluation_lengths.clone(),
         );
