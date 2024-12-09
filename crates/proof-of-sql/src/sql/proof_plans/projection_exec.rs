@@ -14,6 +14,7 @@ use crate::{
         },
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
     },
+    utils::log,
 };
 use alloc::vec::Vec;
 use bumpalo::Bump;
@@ -107,10 +108,12 @@ impl ProverEvaluate for ProjectionExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
+        log::log_memory_usage("Start");
+
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
-        Table::<'a, S>::try_from_iter_with_options(
+        let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias,
@@ -119,7 +122,11 @@ impl ProverEvaluate for ProjectionExec {
             }),
             TableOptions::new(Some(table.num_rows())),
         )
-        .expect("Failed to create table from iterator")
+        .expect("Failed to create table from iterator");
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     #[tracing::instrument(
@@ -134,6 +141,8 @@ impl ProverEvaluate for ProjectionExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
+        log::log_memory_usage("Start");
+
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -152,6 +161,9 @@ impl ProverEvaluate for ProjectionExec {
         for column in res.columns().copied() {
             builder.produce_intermediate_mle(column);
         }
+
+        log::log_memory_usage("End");
+
         res
     }
 }

@@ -18,6 +18,7 @@ use crate::{
         scalar::Scalar,
     },
     proof_primitive::sumcheck::SumcheckProof,
+    utils::log,
 };
 use alloc::{string::String, vec, vec::Vec};
 use bumpalo::Bump;
@@ -76,6 +77,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> (Self, OwnedTable<CP::Scalar>) {
+        log::log_memory_usage("Start");
+
         let (min_row_num, max_row_num) = get_index_range(accessor, &expr.get_table_references());
         let initial_range_length = max_row_num - min_row_num;
         let alloc = Bump::new();
@@ -205,6 +208,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             evaluation_proof,
             range_length,
         };
+
+        log::log_memory_usage("End");
+
         (proof, provable_result)
     }
 
@@ -217,6 +223,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         result: OwnedTable<CP::Scalar>,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
+        log::log_memory_usage("Start");
+
         let table_refs = expr.get_table_references();
         let (min_row_num, _) = get_index_range(accessor, &table_refs);
         let num_sumcheck_variables = cmp::max(log2_up(self.range_length), 1);
@@ -384,6 +392,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             })?;
 
         let verification_hash = transcript.challenge_as_le();
+
+        log::log_memory_usage("End");
+
         Ok(QueryData {
             table: result,
             verification_hash,

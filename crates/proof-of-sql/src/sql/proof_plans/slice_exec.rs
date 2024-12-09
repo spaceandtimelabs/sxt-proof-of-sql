@@ -16,6 +16,7 @@ use crate::{
         CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
         VerificationBuilder,
     },
+    utils::log,
 };
 use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
@@ -128,6 +129,8 @@ impl ProverEvaluate for SliceExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
+        log::log_memory_usage("Start");
+
         // 1. columns
         let input = self.input.first_round_evaluate(builder, alloc, table_map);
         let input_length = input.num_rows();
@@ -156,6 +159,9 @@ impl ProverEvaluate for SliceExec {
         builder.produce_one_evaluation_length(output_length);
         builder.produce_one_evaluation_length(offset_index);
         builder.produce_one_evaluation_length(max_index);
+
+        log::log_memory_usage("End");
+
         res
     }
 
@@ -167,6 +173,8 @@ impl ProverEvaluate for SliceExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
+        log::log_memory_usage("Start");
+
         // 1. columns
         let input = self.input.final_round_evaluate(builder, alloc, table_map);
         let columns = input.columns().copied().collect::<Vec<_>>();
@@ -194,13 +202,17 @@ impl ProverEvaluate for SliceExec {
             input.num_rows(),
             result_len,
         );
-        Table::<'a, S>::try_from_iter_with_options(
+        let res = Table::<'a, S>::try_from_iter_with_options(
             self.get_column_result_fields()
                 .into_iter()
                 .map(|expr| expr.name())
                 .zip(filtered_columns),
             TableOptions::new(Some(output_length)),
         )
-        .expect("Failed to create table from iterator")
+        .expect("Failed to create table from iterator");
+
+        log::log_memory_usage("End");
+
+        res
     }
 }

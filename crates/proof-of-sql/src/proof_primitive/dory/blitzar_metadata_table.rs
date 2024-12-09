@@ -7,6 +7,7 @@ use super::{
 use crate::{
     base::{commitment::CommittableColumn, database::ColumnType, if_rayon},
     proof_primitive::dory::offset_to_bytes::OffsetToBytes,
+    utils::log,
 };
 use alloc::{vec, vec::Vec};
 use ark_ec::CurveGroup;
@@ -57,7 +58,9 @@ pub fn signed_commits(
     all_sub_commits: &Vec<G1Affine>,
     committable_columns: &[CommittableColumn],
 ) -> Vec<G1Affine> {
-    if_rayon!(
+    log::log_memory_usage("Start");
+
+    let res = if_rayon!(
         all_sub_commits.par_chunks_exact(committable_columns.len() * 2),
         all_sub_commits.chunks_exact(committable_columns.len() * 2)
     )
@@ -76,7 +79,11 @@ pub fn signed_commits(
         })
         .collect::<Vec<_>>()
     })
-    .collect()
+    .collect();
+
+    log::log_memory_usage("End");
+
+    res
 }
 
 /// Copies the column data to the scalar row slice.
@@ -143,6 +150,8 @@ pub fn create_blitzar_metadata_tables(
     committable_columns: &[CommittableColumn],
     offset: usize,
 ) -> (Vec<u32>, Vec<u32>, Vec<u8>) {
+    log::log_memory_usage("Start");
+
     // Keep track of the lengths of the columns to handled signed data columns.
     let ones_columns_lengths = committable_columns
         .iter()
@@ -260,6 +269,8 @@ pub fn create_blitzar_metadata_tables(
         });
     }
     span.exit();
+
+    log::log_memory_usage("End");
 
     (
         blitzar_output_bit_table,

@@ -1,5 +1,5 @@
 use super::{G1Affine, G2Affine, PublicParameters, GT};
-use crate::base::impl_serde_for_ark_serde_unchecked;
+use crate::{base::impl_serde_for_ark_serde_unchecked, utils::log};
 use alloc::vec::Vec;
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Compress, Validate};
@@ -124,6 +124,8 @@ impl<'a> ProverSetup<'a> {
         element_num_bytes: u32,
         scalars: &[u8],
     ) {
+        log::log_memory_usage("Start");
+
         self.blitzar_handle.msm(res, element_num_bytes, scalars);
     }
 
@@ -135,6 +137,8 @@ impl<'a> ProverSetup<'a> {
         output_bit_table: &[u32],
         scalars: &[u8],
     ) {
+        log::log_memory_usage("Start");
+
         self.blitzar_handle
             .packed_msm(res, output_bit_table, scalars);
     }
@@ -148,6 +152,8 @@ impl<'a> ProverSetup<'a> {
         output_lengths: &[u32],
         scalars: &[u8],
     ) {
+        log::log_memory_usage("Start");
+
         self.blitzar_handle
             .vlen_msm(res, output_bit_table, output_lengths, scalars);
     }
