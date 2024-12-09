@@ -2,7 +2,7 @@
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow Array.
-use super::{Column, ColumnType, OwnedColumnError, OwnedColumnResult};
+use super::{Column, ColumnCoercionError, ColumnType, OwnedColumnError, OwnedColumnResult};
 use crate::base::{
     math::{
         decimal::Precision,
@@ -15,6 +15,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use itertools::Itertools;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
 
@@ -341,6 +342,76 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
     }
 }
 
+impl<S: Scalar> OwnedColumn<S> {
+    /// Attempts to coerce a column of scalars to a numeric column of the specified type.
+    /// If the specified type is the same as the current column type, the function will return the column as is.
+    ///
+    /// # Arguments
+    ///
+    /// * `to_type` - The target numeric column type to coerce to.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Self)` - If the coercion is successful.
+    /// * `Err(ColumnCoercionError)` - If the coercion fails due to type mismatch or overflow.
+    ///
+    /// # Errors
+    ///
+    /// If the specified type is the same as the current column type, the function will not error.
+    ///
+    /// Otherwise, this function will return an error if:
+    /// * The column type is not `Scalar`.
+    /// * The target type is not a numeric type.
+    /// * There is an overflow during the coercion.
+    pub(crate) fn try_coerce_scalar_to_numeric(
+        self,
+        to_type: ColumnType,
+    ) -> Result<Self, ColumnCoercionError> {
+        if self.column_type() == to_type {
+            Ok(self)
+        } else if let OwnedColumn::Scalar(vec) = self {
+            match to_type {
+                ColumnType::TinyInt => vec
+                    .into_iter()
+                    .map(TryInto::try_into)
+                    .try_collect()
+                    .map_err(|_| ColumnCoercionError::Overflow)
+                    .map(OwnedColumn::TinyInt),
+                ColumnType::SmallInt => vec
+                    .into_iter()
+                    .map(TryInto::try_into)
+                    .try_collect()
+                    .map_err(|_| ColumnCoercionError::Overflow)
+                    .map(OwnedColumn::SmallInt),
+                ColumnType::Int => vec
+                    .into_iter()
+                    .map(TryInto::try_into)
+                    .try_collect()
+                    .map_err(|_| ColumnCoercionError::Overflow)
+                    .map(OwnedColumn::Int),
+                ColumnType::BigInt => vec
+                    .into_iter()
+                    .map(TryInto::try_into)
+                    .try_collect()
+                    .map_err(|_| ColumnCoercionError::Overflow)
+                    .map(OwnedColumn::BigInt),
+                ColumnType::Int128 => vec
+                    .into_iter()
+                    .map(TryInto::try_into)
+                    .try_collect()
+                    .map_err(|_| ColumnCoercionError::Overflow)
+                    .map(OwnedColumn::Int128),
+                ColumnType::Decimal75(precision, scale) => {
+                    Ok(OwnedColumn::Decimal75(precision, scale, vec))
+                }
+                _ => Err(ColumnCoercionError::InvalidTypeCoercion),
+            }
+        } else {
+            Err(ColumnCoercionError::InvalidTypeCoercion)
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -603,5 +674,111 @@ mod test {
         let column_type = ColumnType::Boolean;
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
         assert!(matches!(res, Err(OwnedColumnError::Unsupported { .. })));
+    }
+
+    #[test]
+    fn we_can_coerce_scalar_to_numeric() {
+        let scalars = vec![
+            TestScalar::from(1),
+            TestScalar::from(2),
+            TestScalar::from(3),
+        ];
+        let col = OwnedColumn::Scalar(scalars.clone());
+
+        // Coerce to TinyInt
+        let coerced_col = col
+            .clone()
+            .try_coerce_scalar_to_numeric(ColumnType::TinyInt)
+            .unwrap();
+        assert_eq!(coerced_col, OwnedColumn::TinyInt(vec![1, 2, 3]));
+
+        // Coerce to SmallInt
+        let coerced_col = col
+            .clone()
+            .try_coerce_scalar_to_numeric(ColumnType::SmallInt)
+            .unwrap();
+        assert_eq!(coerced_col, OwnedColumn::SmallInt(vec![1, 2, 3]));
+
+        // Coerce to Int
+        let coerced_col = col
+            .clone()
+            .try_coerce_scalar_to_numeric(ColumnType::Int)
+            .unwrap();
+        assert_eq!(coerced_col, OwnedColumn::Int(vec![1, 2, 3]));
+
+        // Coerce to BigInt
+        let coerced_col = col
+            .clone()
+            .try_coerce_scalar_to_numeric(ColumnType::BigInt)
+            .unwrap();
+        assert_eq!(coerced_col, OwnedColumn::BigInt(vec![1, 2, 3]));
+
+        // Coerce to Int128
+        let coerced_col = col
+            .clone()
+            .try_coerce_scalar_to_numeric(ColumnType::Int128)
+            .unwrap();
+        assert_eq!(coerced_col, OwnedColumn::Int128(vec![1, 2, 3]));
+
+        // Coerce to Decimal75
+        let coerced_col = col
+            .clone()
+            .try_coerce_scalar_to_numeric(ColumnType::Decimal75(Precision::new(75).unwrap(), 0))
+            .unwrap();
+        assert_eq!(
+            coerced_col,
+            OwnedColumn::Decimal75(Precision::new(75).unwrap(), 0, scalars)
+        );
+    }
+
+    #[test]
+    fn we_cannot_coerce_scalar_to_invalid_type() {
+        let scalars = vec![
+            TestScalar::from(1),
+            TestScalar::from(2),
+            TestScalar::from(3),
+        ];
+        let col = OwnedColumn::Scalar(scalars);
+
+        // Attempt to coerce to VarChar
+        let res = col
+            .clone()
+            .try_coerce_scalar_to_numeric(ColumnType::VarChar);
+        assert!(matches!(res, Err(ColumnCoercionError::InvalidTypeCoercion)));
+
+        // Attempt to coerce non-scalar column
+        let col = OwnedColumn::<TestScalar>::Int(vec![1, 2, 3]);
+        let res = col.try_coerce_scalar_to_numeric(ColumnType::BigInt);
+        assert!(matches!(res, Err(ColumnCoercionError::InvalidTypeCoercion)));
+    }
+
+    #[test]
+    fn we_cannot_coerce_scalar_to_numeric_if_overflow() {
+        let scalars = vec![TestScalar::from(i128::MAX), -TestScalar::from(i128::MIN)];
+        let col = OwnedColumn::Scalar(scalars);
+
+        // Attempt to coerce to TinyInt
+        let res = col
+            .clone()
+            .try_coerce_scalar_to_numeric(ColumnType::TinyInt);
+        assert!(matches!(res, Err(ColumnCoercionError::Overflow)));
+
+        // Attempt to coerce to SmallInt
+        let res = col
+            .clone()
+            .try_coerce_scalar_to_numeric(ColumnType::SmallInt);
+        assert!(matches!(res, Err(ColumnCoercionError::Overflow)));
+
+        // Attempt to coerce to Int
+        let res = col.clone().try_coerce_scalar_to_numeric(ColumnType::Int);
+        assert!(matches!(res, Err(ColumnCoercionError::Overflow)));
+
+        // Attempt to coerce to BigInt
+        let res = col.clone().try_coerce_scalar_to_numeric(ColumnType::BigInt);
+        assert!(matches!(res, Err(ColumnCoercionError::Overflow)));
+
+        // Attempt to coerce to Int128
+        let res = col.try_coerce_scalar_to_numeric(ColumnType::Int128);
+        assert!(matches!(res, Err(ColumnCoercionError::Overflow)));
     }
 }

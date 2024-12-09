@@ -27,5 +27,16 @@ pub enum OwnedColumnError {
     },
 }
 
+/// Errors that can occur when coercing a column.
+#[derive(Snafu, Debug, PartialEq, Eq)]
+pub(crate) enum ColumnCoercionError {
+    /// Overflow when coercing a column.
+    #[snafu(display("Overflow when coercing a column"))]
+    Overflow,
+    /// Invalid type coercion.
+    #[snafu(display("Invalid type coercion"))]
+    InvalidTypeCoercion,
+}
+
 /// Result type for operations related to `OwnedColumn`s.
 pub type OwnedColumnResult<T> = core::result::Result<T, OwnedColumnError>;

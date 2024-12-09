@@ -1,4 +1,4 @@
-use super::{ProofPlan, ProvableQueryResult, QueryData, QueryProof, QueryResult};
+use super::{ProofPlan, QueryData, QueryProof, QueryResult};
 use crate::base::{
     commitment::CommitmentEvaluationProof,
     database::{
@@ -69,7 +69,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct VerifiableQueryResult<CP: CommitmentEvaluationProof> {
     /// The result of the query in intermediate form.
-    pub(super) provable_result: Option<ProvableQueryResult>,
+    pub(super) result: Option<OwnedTable<CP::Scalar>>,
     /// The proof that the query result is valid.
     pub(super) proof: Option<QueryProof<CP>>,
 }
@@ -94,14 +94,14 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
             .all(|table_ref| accessor.get_length(table_ref) == 0)
         {
             return VerifiableQueryResult {
-                provable_result: None,
+                result: None,
                 proof: None,
             };
         }
 
         let (proof, res) = QueryProof::new(expr, accessor, setup);
         Self {
-            provable_result: Some(res),
+            result: Some(res),
             proof: Some(proof),
         }
     }
@@ -119,9 +119,16 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
-        match (self.provable_result, self.proof) {
-            (Some(provable_result), Some(proof)) => {
-                proof.verify(expr, accessor, provable_result, setup)
+        match (self.result, self.proof) {
+            (Some(result), Some(proof)) => {
+                let QueryData {
+                    table,
+                    verification_hash,
+                } = proof.verify(expr, accessor, result, setup)?;
+                Ok(QueryData {
+                    table: table.try_coerce_with_fields(expr.get_column_result_fields())?,
+                    verification_hash,
+                })
             }
             (None, None)
                 if expr
