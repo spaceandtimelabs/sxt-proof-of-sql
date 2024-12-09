@@ -1,9 +1,9 @@
 #[cfg(not(feature = "blitzar"))]
 use super::G1Projective;
 use super::{transpose, G1Affine, ProverSetup, F};
-use crate::base::polynomial::compute_evaluation_vector;
 #[cfg(feature = "blitzar")]
 use crate::base::slice_ops::slice_cast;
+use crate::{base::polynomial::compute_evaluation_vector, utils::log};
 use alloc::{vec, vec::Vec};
 #[cfg(not(feature = "blitzar"))]
 use ark_ec::{AffineRepr, VariableBaseMSM};
@@ -44,6 +44,8 @@ pub(super) fn compute_T_vec_prime(
     nu: usize,
     prover_setup: &ProverSetup,
 ) -> Vec<G1Affine> {
+    log::log_memory_usage("Start");
+
     let num_columns = 1 << sigma;
     let num_outputs = 1 << nu;
     let data_size = mem::size_of::<F>();
@@ -60,7 +62,11 @@ pub(super) fn compute_T_vec_prime(
         a_transpose.as_slice(),
     );
 
-    slice_cast(&blitzar_commits)
+    let res = slice_cast(&blitzar_commits);
+
+    log::log_memory_usage("End");
+
+    res
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -71,11 +77,18 @@ pub(super) fn compute_T_vec_prime(
     nu: usize,
     prover_setup: &ProverSetup,
 ) -> Vec<G1Affine> {
-    a.chunks(1 << sigma)
+    log::log_memory_usage("Start");
+
+    let res = a
+        .chunks(1 << sigma)
         .map(|row| G1Projective::msm_unchecked(prover_setup.Gamma_1[nu], row).into())
         .chain(core::iter::repeat(G1Affine::zero()))
         .take(1 << nu)
-        .collect()
+        .collect();
+
+    log::log_memory_usage("End");
+
+    res
 }
 
 /// Compute the size of the matrix M that is derived from `a`.

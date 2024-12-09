@@ -5,7 +5,7 @@ use super::{
 use crate::{
     base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast},
     proof_primitive::dynamic_matrix_utils::matrix_structure::row_and_column_from_index,
-    utils::log::log_memory_usage,
+    utils::log,
 };
 use blitzar::compute::ElementP2;
 #[cfg(feature = "rayon")]
@@ -37,7 +37,7 @@ pub(super) fn compute_dynamic_dory_commitments(
     offset: usize,
     setup: &ProverSetup,
 ) -> Vec<DynamicDoryCommitment> {
-    log_memory_usage("Start");
+    log::log_memory_usage("Start");
     
     if committable_columns.is_empty() {
         return vec![];
@@ -98,7 +98,7 @@ pub(super) fn compute_dynamic_dory_commitments(
         });
     span.exit();
 
-    log_memory_usage("End");
+    log::log_memory_usage("End");
 
     ddc
 }

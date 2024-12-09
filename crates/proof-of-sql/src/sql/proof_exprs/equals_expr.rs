@@ -8,6 +8,7 @@ use crate::{
         slice_ops,
     },
     sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    utils::log,
 };
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
@@ -38,13 +39,19 @@ impl ProofExpr for EqualsExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
+        log::log_memory_usage("Start");
+
         let lhs_column = self.lhs.result_evaluate(alloc, table);
         let rhs_column = self.rhs.result_evaluate(alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        Column::Boolean(result_evaluate_equals_zero(table.num_rows(), alloc, res))
+        let res = Column::Boolean(result_evaluate_equals_zero(table.num_rows(), alloc, res));
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
@@ -54,18 +61,25 @@ impl ProofExpr for EqualsExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
+        log::log_memory_usage("Start");
+
         let lhs_column = self.lhs.prover_evaluate(builder, alloc, table);
         let rhs_column = self.rhs.prover_evaluate(builder, alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
-            .expect("Failed to scale and subtract");
-        Column::Boolean(prover_evaluate_equals_zero(
+        let scale_and_subtract_res =
+            scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
+                .expect("Failed to scale and subtract");
+        let res = Column::Boolean(prover_evaluate_equals_zero(
             table.num_rows(),
             builder,
             alloc,
-            res,
-        ))
+            scale_and_subtract_res,
+        ));
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     fn verifier_evaluate<S: Scalar>(

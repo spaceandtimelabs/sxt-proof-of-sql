@@ -1,4 +1,4 @@
-use crate::base::if_rayon;
+use crate::{base::if_rayon, utils::log};
 use core::{
     cmp,
     ops::{Mul, MulAssign, Sub, SubAssign},
@@ -43,6 +43,8 @@ pub fn compute_evaluation_vector<F>(v: &mut [F], point: &[F])
 where
     F: One + Sub<Output = F> + MulAssign + SubAssign + Mul<Output = F> + Send + Sync + Copy,
 {
+    log::log_memory_usage("Start");
+
     assert!(v.len() <= (1 << point.len()));
     if point.is_empty() || v.is_empty() {
         // v is guaranteed to be at most length 1 by the assert!.
@@ -62,4 +64,6 @@ where
         };
         compute_evaluation_vector_impl(left, right, *p);
     }
+
+    log::log_memory_usage("End");
 }

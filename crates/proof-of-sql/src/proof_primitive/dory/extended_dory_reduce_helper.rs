@@ -2,6 +2,7 @@ use super::{
     extended_state::{ExtendedProverState, ExtendedVerifierState},
     DeferredG1, DeferredG2, G1Affine, G1Projective, G2Affine, G2Projective, ProverSetup, F,
 };
+use crate::utils::log;
 use ark_ec::VariableBaseMSM;
 use ark_ff::Field;
 
@@ -15,10 +16,15 @@ pub fn extended_dory_reduce_prove_compute_E_betas(
     state: &ExtendedProverState,
     setup: &ProverSetup,
 ) -> (G1Affine, G2Affine) {
+    log::log_memory_usage("Start");
+
     let E_1beta: G1Affine =
         G1Projective::msm_unchecked(setup.Gamma_1[state.base_state.nu], &state.s2).into();
     let E_2beta: G2Affine =
         G2Projective::msm_unchecked(setup.Gamma_2[state.base_state.nu], &state.s1).into();
+
+    log::log_memory_usage("End");
+
     (E_1beta, E_2beta)
 }
 /// From the extended Dory-Reduce algorithm in section 4.2 of https://eprint.iacr.org/2020/1274.pdf.
@@ -33,6 +39,8 @@ pub fn extended_dory_reduce_prove_compute_signed_Es(
     state: &ExtendedProverState,
     half_n: usize,
 ) -> (G1Affine, G1Affine, G2Affine, G2Affine) {
+    log::log_memory_usage("Start");
+
     let (v_1L, v_1R) = state.base_state.v1.split_at(half_n);
     let (v_2L, v_2R) = state.base_state.v2.split_at(half_n);
     let (s_1L, s_1R) = state.s1.split_at(half_n);
@@ -41,6 +49,9 @@ pub fn extended_dory_reduce_prove_compute_signed_Es(
     let E_1minus = G1Projective::msm_unchecked(v_1R, s_2L).into();
     let E_2plus = G2Projective::msm_unchecked(v_2R, s_1L).into();
     let E_2minus = G2Projective::msm_unchecked(v_2L, s_1R).into();
+
+    log::log_memory_usage("End");
+
     (E_1plus, E_1minus, E_2plus, E_2minus)
 }
 /// From the extended Dory-Reduce algorithm in section 4.2 of https://eprint.iacr.org/2020/1274.pdf.
@@ -54,6 +65,8 @@ pub fn extended_dory_reduce_prove_fold_s_vecs(
     (alpha, alpha_inv): (F, F),
     half_n: usize,
 ) {
+    log::log_memory_usage("Start");
+
     let (s_1L, s_1R) = state.s1.split_at_mut(half_n);
     let (s_2L, s_2R) = state.s2.split_at_mut(half_n);
     s_1L.iter_mut()
@@ -64,6 +77,8 @@ pub fn extended_dory_reduce_prove_fold_s_vecs(
         .for_each(|(s_L, s_R)| *s_L = *s_L * alpha_inv + s_R);
     state.s1.truncate(half_n);
     state.s2.truncate(half_n);
+
+    log::log_memory_usage("End");
 }
 /// From the extended Dory-Reduce algorithm in section 4.2 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///

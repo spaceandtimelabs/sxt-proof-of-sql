@@ -5,7 +5,10 @@ use super::{
     extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs, DeferredGT,
     DoryCommitment, DoryMessages, DoryProverPublicSetup, DoryScalar, DoryVerifierPublicSetup, F,
 };
-use crate::base::{commitment::CommitmentEvaluationProof, proof::Transcript};
+use crate::{
+    base::{commitment::CommitmentEvaluationProof, proof::Transcript},
+    utils::log,
+};
 use snafu::Snafu;
 
 /// The `CommitmentEvaluationProof` for the Dory PCS.
@@ -40,6 +43,8 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         generators_offset: u64,
         setup: &Self::ProverPublicSetup<'_>,
     ) -> Self {
+        log::log_memory_usage("Start");
+
         // Dory PCS Logic
         if generators_offset != 0 {
             // TODO: support offsets other than 0.
@@ -59,6 +64,9 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         let mut messages = DoryMessages::default();
         let extended_state = eval_vmv_re_prove(&mut messages, transcript, state, prover_setup);
         extended_dory_inner_product_prove(&mut messages, transcript, extended_state, prover_setup);
+
+        log::log_memory_usage("End");
+
         messages
     }
 
@@ -78,6 +86,8 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         _table_length: usize,
         setup: &Self::VerifierPublicSetup<'_>,
     ) -> Result<(), Self::Error> {
+        log::log_memory_usage("Start");
+
         let a_commit = DeferredGT::new(
             commit_batch.iter().map(|c| c.0),
             batching_factors.iter().map(|f| f.0),
@@ -115,6 +125,9 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         ) {
             Err(DoryError::VerificationError)?;
         }
+
+        log::log_memory_usage("End");
+
         Ok(())
     }
 }

@@ -10,6 +10,7 @@ use crate::{
         proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
         proof_exprs::multiply_columns,
     },
+    utils::log,
 };
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
@@ -57,6 +58,8 @@ impl ProofExpr for MultiplyExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
+        log::log_memory_usage("Start");
+
         let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
         let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
 
@@ -72,7 +75,11 @@ impl ProofExpr for MultiplyExpr {
                 (-S::one(), vec![Box::new(lhs_column), Box::new(rhs_column)]),
             ],
         );
-        Column::Scalar(lhs_times_rhs)
+        let res = Column::Scalar(lhs_times_rhs);
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     fn verifier_evaluate<S: Scalar>(

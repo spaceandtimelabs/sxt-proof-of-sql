@@ -7,6 +7,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    utils::log,
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -36,9 +37,15 @@ impl ProofExpr for NotExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
+        log::log_memory_usage("Start");
+
         let expr_column: Column<'a, S> = self.expr.result_evaluate(alloc, table);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
-        Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
+        let res = Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]));
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     #[tracing::instrument(name = "NotExpr::prover_evaluate", level = "debug", skip_all)]
@@ -48,9 +55,15 @@ impl ProofExpr for NotExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
+        log::log_memory_usage("Start");
+
         let expr_column: Column<'a, S> = self.expr.prover_evaluate(builder, alloc, table);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
-        Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
+        let res = Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]));
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     fn verifier_evaluate<S: Scalar>(
