@@ -160,13 +160,13 @@ pub fn verifier_evaluate_equals_zero<S: Scalar>(
 
     // subpolynomial: selection * lhs
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &SumcheckSubpolynomialType::Identity,
+        SumcheckSubpolynomialType::Identity,
         selection_eval * lhs_eval,
     );
 
     // subpolynomial: selection_not - lhs * lhs_pseudo_inv
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &SumcheckSubpolynomialType::Identity,
+        SumcheckSubpolynomialType::Identity,
         selection_not_eval - lhs_eval * lhs_pseudo_inv_eval,
     );
 
