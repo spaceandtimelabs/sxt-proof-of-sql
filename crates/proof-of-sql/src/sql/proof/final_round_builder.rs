@@ -12,6 +12,7 @@ use alloc::{boxed::Box, vec::Vec};
 
 /// Track components used to form a query's proof
 pub struct FinalRoundBuilder<'a, S: Scalar> {
+    range_length: usize,
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
     commitment_descriptor: Vec<CommittableColumn<'a>>,
@@ -28,8 +29,13 @@ pub struct FinalRoundBuilder<'a, S: Scalar> {
 }
 
 impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
-    pub fn new(num_sumcheck_variables: usize, post_result_challenges: Vec<S>) -> Self {
+    pub fn new(
+        range_length: usize,
+        num_sumcheck_variables: usize,
+        post_result_challenges: Vec<S>,
+    ) -> Self {
         Self {
+            range_length,
             num_sumcheck_variables,
             bit_distributions: Vec::new(),
             commitment_descriptor: Vec::new(),
@@ -37,6 +43,10 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
             sumcheck_subpolynomials: Vec::new(),
             post_result_challenges,
         }
+    }
+
+    pub fn range_length(&self) -> usize {
+        self.range_length
     }
 
     pub fn num_sumcheck_variables(&self) -> usize {

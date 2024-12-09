@@ -127,7 +127,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(first_round_builder.num_post_result_challenges())
                 .collect();
 
-        let mut builder = FinalRoundBuilder::new(num_sumcheck_variables, post_result_challenges);
+        let mut builder =
+            FinalRoundBuilder::new(range_length, num_sumcheck_variables, post_result_challenges);
 
         for col_ref in total_col_refs {
             builder.produce_anchored_mle(accessor.get_column(col_ref));
