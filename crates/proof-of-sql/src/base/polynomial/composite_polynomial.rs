@@ -38,16 +38,6 @@ pub struct CompositePolynomial<S: Scalar> {
     raw_pointers_lookup_table: IndexMap<*const Vec<S>, usize>,
 }
 
-/// Stores the number of variables and max number of multiplicands of the added polynomial used by the prover.
-/// This data structures will is used as the verifier key.
-#[derive(Clone, Debug)]
-pub struct CompositePolynomialInfo {
-    /// max number of multiplicands in each product
-    pub max_multiplicands: usize,
-    /// number of variables of the polynomial
-    pub num_variables: usize,
-}
-
 impl<S: Scalar> CompositePolynomial<S> {
     /// Returns an empty polynomial
     pub fn new(num_variables: usize) -> Self {
