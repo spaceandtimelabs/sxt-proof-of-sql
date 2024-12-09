@@ -56,7 +56,7 @@ impl CommitmentEvaluationProof for NaiveEvaluationProof {
         transcript: &mut impl Transcript,
         commit_batch: &[Self::Commitment],
         batching_factors: &[Self::Scalar],
-        product: &Self::Scalar,
+        evaluations: &[Self::Scalar],
         b_point: &[Self::Scalar],
         generators_offset: u64,
         _table_length: usize,
@@ -74,6 +74,11 @@ impl CommitmentEvaluationProof for NaiveEvaluationProof {
             .zip(batching_factors)
             .map(|(c, m)| *m * c)
             .fold(NaiveCommitment(vec![]), Add::add);
+        let product = evaluations
+            .iter()
+            .zip(batching_factors)
+            .map(|(&e, &f)| e * f)
+            .sum();
         if folded_commits != self.a {
             return Err(NaiveEvaluationProofError);
         }
@@ -87,7 +92,7 @@ impl CommitmentEvaluationProof for NaiveEvaluationProof {
             .zip(b_vec)
             .map(|(&a, b)| a * b)
             .sum::<TestScalar>();
-        if expected_product != *product {
+        if expected_product != product {
             return Err(NaiveEvaluationProofError);
         }
         transcript.extend_scalars_as_be(&self.a.0);

@@ -367,13 +367,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         }
 
         // finally, check the MLE evaluations with the inner product proof
-        let product = builder.folded_pcs_proof_evaluation();
         self.evaluation_proof
             .verify_batched_proof(
                 &mut transcript,
                 &pcs_proof_commitments,
-                builder.inner_product_multipliers(),
-                &product,
+                &evaluation_random_scalars,
+                &self.pcs_proof_evaluations,
                 &subclaim.evaluation_point,
                 min_row_num as u64,
                 self.range_length,
