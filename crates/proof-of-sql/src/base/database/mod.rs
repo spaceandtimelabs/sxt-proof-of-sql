@@ -59,6 +59,7 @@ mod owned_column;
 pub use owned_column::OwnedColumn;
 
 mod owned_column_error;
+pub(crate) use owned_column_error::ColumnCoercionError;
 pub use owned_column_error::{OwnedColumnError, OwnedColumnResult};
 
 /// TODO: add docs
@@ -66,7 +67,7 @@ pub(crate) mod owned_column_operation;
 
 mod owned_table;
 pub use owned_table::OwnedTable;
-pub(crate) use owned_table::OwnedTableError;
+pub(crate) use owned_table::{OwnedTableError, TableCoercionError};
 #[cfg(test)]
 mod owned_table_test;
 pub mod owned_table_utility;
