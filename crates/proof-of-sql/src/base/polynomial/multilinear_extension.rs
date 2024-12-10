@@ -1,12 +1,12 @@
 use crate::base::{database::Column, if_rayon, scalar::Scalar, slice_ops};
 use alloc::{rc::Rc, vec::Vec};
-use core::ffi::c_void;
+use core::{ffi::c_void, fmt::Debug};
 use num_traits::Zero;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 /// Interface for operating on multilinear extension's in-place
-pub trait MultilinearExtension<S: Scalar> {
+pub trait MultilinearExtension<S: Scalar>: Debug {
     /// Given an evaluation vector, compute the evaluation of the multilinear
     /// extension
     fn inner_product(&self, evaluation_vec: &[S]) -> S;
@@ -18,7 +18,7 @@ pub trait MultilinearExtension<S: Scalar> {
     fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<S>>;
 
     /// pointer to identify the slice forming the MLE
-    fn id(&self) -> *const c_void;
+    fn id(&self) -> (*const c_void, usize);
 
     #[cfg(test)]
     /// Given an evaluation point, compute the evaluation of the multilinear
@@ -30,7 +30,7 @@ pub trait MultilinearExtension<S: Scalar> {
     }
 }
 
-impl<'a, T: Sync, S: Scalar> MultilinearExtension<S> for &'a [T]
+impl<'a, T: Sync + Debug, S: Scalar> MultilinearExtension<S> for &'a [T]
 where
     &'a T: Into<S>,
 {
@@ -56,8 +56,8 @@ where
         Rc::new(scalars)
     }
 
-    fn id(&self) -> *const c_void {
-        self.as_ptr().cast::<c_void>()
+    fn id(&self) -> (*const c_void, usize) {
+        (self.as_ptr().cast::<c_void>(), self.len())
     }
 }
 
@@ -76,20 +76,20 @@ macro_rules! slice_like_mle_impl {
             (&self[..]).to_sumcheck_term(num_vars)
         }
 
-        fn id(&self) -> *const c_void {
+        fn id(&self) -> (*const c_void, usize) {
             (&self[..]).id()
         }
     };
 }
 
-impl<'a, T: Sync, S: Scalar> MultilinearExtension<S> for &'a Vec<T>
+impl<'a, T: Sync + Debug, S: Scalar> MultilinearExtension<S> for &'a Vec<T>
 where
     &'a T: Into<S>,
 {
     slice_like_mle_impl!();
 }
 
-impl<'a, T: Sync, const N: usize, S: Scalar> MultilinearExtension<S> for &'a [T; N]
+impl<'a, T: Sync + Debug, const N: usize, S: Scalar> MultilinearExtension<S> for &'a [T; N]
 where
     &'a T: Into<S>,
 {
@@ -139,7 +139,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
         }
     }
 
-    fn id(&self) -> *const c_void {
+    fn id(&self) -> (*const c_void, usize) {
         match self {
             Column::Boolean(c) => MultilinearExtension::<S>::id(c),
             Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
@@ -167,7 +167,7 @@ impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
         (&self).to_sumcheck_term(num_vars)
     }
 
-    fn id(&self) -> *const c_void {
+    fn id(&self) -> (*const c_void, usize) {
         (&self).id()
     }
 }

@@ -1,5 +1,17 @@
 use super::MultilinearExtension;
 use crate::base::{database::Column, scalar::test_scalar::TestScalar};
+use bumpalo::Bump;
+
+#[test]
+fn allocated_slices_must_have_different_ids_even_when_one_is_empty() {
+    let alloc = Bump::new();
+    let foo = alloc.alloc_slice_fill_default(5) as &[TestScalar];
+    let bar = alloc.alloc_slice_fill_default(0) as &[TestScalar];
+    assert_ne!(
+        MultilinearExtension::<TestScalar>::id(&foo),
+        MultilinearExtension::<TestScalar>::id(&bar)
+    );
+}
 
 #[test]
 fn we_can_use_multilinear_extension_methods_for_i64_slice() {

@@ -17,7 +17,7 @@ pub struct CompositePolynomialBuilder<S: Scalar> {
     fr_multiplicands_rest: Vec<(S, Vec<Rc<Vec<S>>>)>,
     zerosum_multiplicands: Vec<(S, Vec<Rc<Vec<S>>>)>,
     fr: Rc<Vec<S>>,
-    mles: IndexMap<*const c_void, Rc<Vec<S>>>,
+    mles: IndexMap<(*const c_void, usize), Rc<Vec<S>>>,
 }
 
 impl<S: Scalar> CompositePolynomialBuilder<S> {
