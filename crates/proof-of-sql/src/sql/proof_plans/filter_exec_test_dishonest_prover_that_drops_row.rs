@@ -49,7 +49,7 @@ impl ProverEvaluate for DishonestFilterExec {
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
-        let output_length = selection.iter().filter(|b| **b).count();
+        let output_length = selection.iter().filter(|b| **b).count() - 1;
 
         // 2. columns
         let columns: Vec<_> = self
@@ -61,10 +61,11 @@ impl ProverEvaluate for DishonestFilterExec {
         // Compute filtered_columns and indexes
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
         let res = Table::<'a, S>::try_from_iter_with_options(
-            self.aliased_results
-                .iter()
-                .map(|expr| expr.alias)
-                .zip(filtered_columns),
+            self.aliased_results.iter().map(|expr| expr.alias).zip(
+                filtered_columns
+                    .into_iter()
+                    .map(|col| col.slice_range_from(1..)),
+            ),
             TableOptions::new(Some(output_length)),
         )
         .expect("Failed to create table from iterator");
@@ -90,7 +91,7 @@ impl ProverEvaluate for DishonestFilterExec {
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
-        let output_length = selection.iter().filter(|b| **b).count();
+        let output_length = selection.iter().filter(|b| **b).count() - 1;
 
         // 2. columns
         let columns: Vec<_> = self
@@ -102,7 +103,7 @@ impl ProverEvaluate for DishonestFilterExec {
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. Produce MLEs
         filtered_columns.iter().copied().for_each(|column| {
-            builder.produce_intermediate_mle(column);
+            builder.produce_intermediate_mle(column.slice_range_from(1..));
         });
 
         let alpha = builder.consume_post_result_challenge();
@@ -120,10 +121,11 @@ impl ProverEvaluate for DishonestFilterExec {
             result_len,
         );
         Table::<'a, S>::try_from_iter_with_options(
-            self.aliased_results
-                .iter()
-                .map(|expr| expr.alias)
-                .zip(filtered_columns),
+            self.aliased_results.iter().map(|expr| expr.alias).zip(
+                filtered_columns
+                    .into_iter()
+                    .map(|col| col.slice_range_from(1..)),
+            ),
             TableOptions::new(Some(output_length)),
         )
         .expect("Failed to create table from iterator")
@@ -148,7 +150,7 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
 
     let c_fold = alloc.alloc_slice_fill_copy(n, alpha);
     fold_columns(c_fold, One::one(), beta, c);
-    let d_bar_fold = alloc.alloc_slice_fill_copy(n, alpha);
+    let d_bar_fold = alloc.alloc_slice_fill_copy(n + 2, alpha);
     fold_columns(d_bar_fold, One::one(), beta, d);
 
     let c_star = alloc.alloc_slice_copy(c_fold);
@@ -156,16 +158,18 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
     d_star[m..].fill(Zero::zero());
     slice_ops::batch_inversion(c_star);
     slice_ops::batch_inversion(&mut d_star[..m]);
+    d_bar_fold[n + 1] = S::ZERO;
+    d_star[n + 1] = d_star[0];
 
     builder.produce_intermediate_mle(c_star as &[_]);
-    builder.produce_intermediate_mle(d_star as &[_]);
+    builder.produce_intermediate_mle(&d_star[1..]);
 
     // sum c_star * s - d_star = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::ZeroSum,
         vec![
             (S::one(), vec![Box::new(c_star as &[_]), Box::new(s)]),
-            (-S::one(), vec![Box::new(d_star as &[_])]),
+            (-S::one(), vec![Box::new(&d_star[1..])]),
         ],
     );
 
@@ -187,15 +191,15 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
         vec![
             (
                 S::one(),
-                vec![Box::new(d_star as &[_]), Box::new(d_bar_fold as &[_])],
+                vec![Box::new(&d_star[1..]), Box::new(&d_bar_fold[1..])],
             ),
-            (-S::one(), vec![Box::new(chi as &[_])]),
+            (-S::one(), vec![Box::new(&chi[1..])]),
         ],
     );
 }
 
 #[test]
-fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
+fn we_incorrectly_verify_a_basic_filter_with_a_dishonest_prover() {
     let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);

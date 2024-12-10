@@ -29,7 +29,7 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
         assert!(1 << num_sumcheck_variables >= fr.len());
         Self {
             num_sumcheck_variables,
-            fr_multiplicands_degree1: vec![Zero::zero(); fr.len()],
+            fr_multiplicands_degree1: vec![Zero::zero(); fr.len() + 1],
             fr_multiplicands_rest: vec![],
             zerosum_multiplicands: vec![],
             fr: fr.to_sumcheck_term(num_sumcheck_variables),

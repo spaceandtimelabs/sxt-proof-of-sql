@@ -160,7 +160,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let sumcheck_proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
 
         // evaluate the MLEs used in sumcheck except for the result columns
-        let mut evaluation_vec = vec![Zero::zero(); range_length];
+        let mut evaluation_vec = vec![Zero::zero(); range_length + 1];
         compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
         let pcs_proof_evaluations = builder.evaluate_pcs_proof_mles(&evaluation_vec);
 
@@ -175,7 +175,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .collect();
 
         assert_eq!(random_scalars.len(), builder.pcs_proof_mles().len());
-        let mut folded_mle = vec![Zero::zero(); range_length];
+        let mut folded_mle = vec![Zero::zero(); range_length + 1];
         for (multiplier, evaluator) in random_scalars.iter().zip(builder.pcs_proof_mles().iter()) {
             evaluator.mul_add(&mut folded_mle, multiplier);
         }
