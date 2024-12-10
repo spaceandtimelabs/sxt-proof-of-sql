@@ -23,6 +23,8 @@ pub(crate) use filter_exec::OstensibleFilterExec;
 mod filter_exec_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod filter_exec_test_dishonest_prover;
+#[cfg(test)]
+mod filter_exec_test_dishonest_prover_that_drops_row;
 
 mod fold_util;
 pub(crate) use fold_util::{fold_columns, fold_vals};
