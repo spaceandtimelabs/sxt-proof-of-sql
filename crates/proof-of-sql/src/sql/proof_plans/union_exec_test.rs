@@ -20,6 +20,47 @@ use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 
 #[test]
+fn we_can_prove_and_get_the_correct_empty_result_from_a_union_with_no_tables() {
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let ast = union_exec(
+        vec![],
+        vec![
+            column_field("a", ColumnType::BigInt),
+            column_field("b", ColumnType::VarChar),
+        ],
+    );
+    let verifiable_res: VerifiableQueryResult<InnerProductProof> =
+        VerifiableQueryResult::new(&ast, &accessor, &());
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([bigint("a", [0_i64; 0]), varchar("b", [""; 0])]);
+    assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_can_prove_and_get_the_correct_result_from_a_union_with_one_table() {
+    let data = owned_table([
+        bigint("a0", [0_i64, 1, 2, 3, 4]),
+        varchar("b0", ["", "1", "2", "3", "4"]),
+    ]);
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(t, data, 0);
+    let ast = union_exec(
+        vec![filter(
+            cols_expr_plan(t, &["a0"], &accessor),
+            tab(t),
+            gte(column(t, "a0", &accessor), const_int128(2_i128)),
+        )],
+        vec![column_field("a", ColumnType::BigInt)],
+    );
+    let verifiable_res: VerifiableQueryResult<InnerProductProof> =
+        VerifiableQueryResult::new(&ast, &accessor, &());
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([bigint("a", [2_i64, 3, 4])]);
+    assert_eq!(res, expected_res);
+}
+
+#[test]
 fn we_can_prove_and_get_the_correct_empty_result_from_a_union_exec() {
     let data0 = owned_table([bigint("a0", [0_i64; 0])]);
     let t0 = "sxt.t0".parse().unwrap();
@@ -117,6 +158,11 @@ fn we_can_prove_and_get_the_correct_result_from_a_more_complex_union_exec() {
         borrowed_varchar("b5", ["5", "6", "7", "8"], &alloc),
     ]);
     let t5 = "sxt.t5".parse().unwrap();
+    let data6 = table([
+        borrowed_bigint("a6", [7_i64, 8, 9, 10], &alloc),
+        borrowed_varchar("b6", ["8", "9", "10", "11"], &alloc),
+    ]);
+    let t6 = "sxt.t6".parse().unwrap();
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t0, data0, 0);
     accessor.add_table(t1, data1, 0);
@@ -124,51 +170,72 @@ fn we_can_prove_and_get_the_correct_result_from_a_more_complex_union_exec() {
     accessor.add_table(t3, data3, 0);
     accessor.add_table(t4, data4, 0);
     accessor.add_table(t5, data5, 0);
-    let ast = slice_exec(
-        union_exec(
-            vec![
-                projection(cols_expr_plan(t0, &["a0", "b0"], &accessor), tab(t0)),
-                projection(cols_expr_plan(t1, &["a1", "b1"], &accessor), tab(t1)),
-                slice_exec(
-                    filter(
-                        cols_expr_plan(t2, &["a2", "b2"], &accessor),
-                        tab(t2),
-                        gte(column(t2, "a2", &accessor), const_smallint(5_i16)),
-                    ),
-                    2,
-                    None,
-                ),
-                filter(
+    accessor.add_table(t6, data6, 0);
+    let ast = union_exec(
+        vec![
+            slice_exec(
+                union_exec(
                     vec![
-                        aliased_plan(const_bigint(105_i64), "const"),
-                        col_expr_plan(t3, "b3", &accessor),
+                        projection(cols_expr_plan(t0, &["a0", "b0"], &accessor), tab(t0)),
+                        projection(cols_expr_plan(t1, &["a1", "b1"], &accessor), tab(t1)),
+                        slice_exec(
+                            filter(
+                                cols_expr_plan(t2, &["a2", "b2"], &accessor),
+                                tab(t2),
+                                gte(column(t2, "a2", &accessor), const_smallint(5_i16)),
+                            ),
+                            2,
+                            None,
+                        ),
+                        filter(
+                            vec![
+                                aliased_plan(const_bigint(105_i64), "const"),
+                                col_expr_plan(t3, "b3", &accessor),
+                            ],
+                            tab(t3),
+                            equal(column(t3, "a3", &accessor), const_int128(6_i128)),
+                        ),
+                        projection(cols_expr_plan(t4, &["a4", "b4"], &accessor), tab(t4)),
+                        table_exec(
+                            t5,
+                            vec![
+                                column_field("a5", ColumnType::BigInt),
+                                column_field("b5", ColumnType::VarChar),
+                            ],
+                        ),
                     ],
-                    tab(t3),
-                    equal(column(t3, "a3", &accessor), const_int128(6_i128)),
-                ),
-                projection(cols_expr_plan(t4, &["a4", "b4"], &accessor), tab(t4)),
-                table_exec(
-                    t5,
                     vec![
-                        column_field("a5", ColumnType::BigInt),
-                        column_field("b5", ColumnType::VarChar),
+                        column_field("a", ColumnType::BigInt),
+                        column_field("b", ColumnType::VarChar),
                     ],
                 ),
-            ],
-            vec![
-                column_field("a", ColumnType::BigInt),
-                column_field("b", ColumnType::VarChar),
-            ],
-        ),
-        4,
-        Some(11),
+                4,
+                Some(11),
+            ),
+            table_exec(
+                t6,
+                vec![
+                    column_field("a6", ColumnType::BigInt),
+                    column_field("b6", ColumnType::VarChar),
+                ],
+            ),
+        ],
+        vec![
+            column_field("a", ColumnType::BigInt),
+            column_field("b", ColumnType::VarChar),
+        ],
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
     exercise_verification(&verifiable_res, &ast, &accessor, t0);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([
-        bigint("a", [5_i64, 2, 3, 4, 5, 6, 7, 105, 5, 6, 7]),
-        varchar("b", ["5", "2", "3", "4", "5", "6", "7", "6", "5", "6", "7"]),
+        bigint("a", [5_i64, 2, 3, 4, 5, 6, 7, 105, 5, 6, 7, 7, 8, 9, 10]),
+        varchar(
+            "b",
+            [
+                "5", "2", "3", "4", "5", "6", "7", "6", "5", "6", "7", "8", "9", "10", "11",
+            ],
+        ),
     ]);
     assert_eq!(res, expected_res);
 }

@@ -39,12 +39,7 @@ pub struct UnionExec {
 
 impl UnionExec {
     /// Creates a new union execution plan.
-    ///
-    /// # Panics
-    /// Panics if the number of inputs is less than 2 which in practice should never happen.
     pub fn new(inputs: Vec<DynProofPlan>, schema: Vec<ColumnField>) -> Self {
-        // There should be at least two inputs
-        assert!(inputs.len() > 1);
         Self { inputs, schema }
     }
 }
