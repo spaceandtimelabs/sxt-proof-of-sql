@@ -286,7 +286,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &mut transcript,
             // This needs to be at least 2 since `CompositePolynomialBuilder::make_composite_polynomial`
             // always adds a degree 2 term.
-            core::cmp::max(counts.sumcheck_max_multiplicands, 2),
             num_sumcheck_variables,
             &Zero::zero(),
         )?;
@@ -331,7 +330,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             sumcheck_random_scalars.subpolynomial_multipliers,
             post_result_challenges,
             self.one_evaluation_lengths.clone(),
-            core::cmp::max(counts.sumcheck_max_multiplicands, 2),
+            subclaim.max_multiplicands,
         );
 
         let pcs_proof_commitments: Vec<_> = column_references

@@ -21,6 +21,7 @@ pub struct SumcheckProof<S: Scalar> {
 pub struct Subclaim<S: Scalar> {
     pub evaluation_point: Vec<S>,
     pub expected_evaluation: S,
+    pub max_multiplicands: usize,
 }
 
 impl<S: Scalar> SumcheckProof<S> {
@@ -57,18 +58,19 @@ impl<S: Scalar> SumcheckProof<S> {
     pub fn verify_without_evaluation(
         &self,
         transcript: &mut impl Transcript,
-        max_multiplicands: usize,
         num_variables: usize,
         claimed_sum: &S,
     ) -> Result<Subclaim<S>, ProofError> {
-        transcript.extend_as_be([max_multiplicands as u64, num_variables as u64]);
-        // This challenge is in order to keep transcript messages grouped. (This simplifies the Solidity implementation.)
-        transcript.scalar_challenge_as_be::<S>();
-        if self.coefficients.len() != num_variables * (max_multiplicands + 1) {
+        let coefficients_len = self.coefficients.len();
+        if coefficients_len % num_variables != 0 {
             return Err(ProofError::VerificationError {
                 error: "invalid proof size",
             });
         }
+        let max_multiplicands = (coefficients_len / num_variables) - 1;
+        transcript.extend_as_be([max_multiplicands as u64, num_variables as u64]);
+        // This challenge is in order to keep transcript messages grouped. (This simplifies the Solidity implementation.)
+        transcript.scalar_challenge_as_be::<S>();
         let mut evaluation_point = Vec::with_capacity(num_variables);
 
         let mut expected_evaluation = *claimed_sum;
@@ -97,6 +99,7 @@ impl<S: Scalar> SumcheckProof<S> {
         Ok(Subclaim {
             evaluation_point,
             expected_evaluation,
+            max_multiplicands,
         })
     }
 }

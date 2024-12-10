@@ -5,7 +5,6 @@ use itertools::Itertools;
 pub struct SumcheckTestCase<S: Scalar> {
     pub polynomial: CompositePolynomial<S>,
     pub num_vars: usize,
-    pub max_multiplicands: usize,
     pub sum: S,
 }
 
@@ -38,7 +37,6 @@ impl<S: Scalar> SumcheckTestCase<S> {
         Self {
             polynomial,
             num_vars,
-            max_multiplicands,
             sum,
         }
     }
