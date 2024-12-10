@@ -23,6 +23,7 @@ pub type SumcheckSubpolynomialTerm<'a, S> = (S, Vec<Box<dyn MultilinearExtension
 ///
 /// The subpolynomial is represented as a sum of terms, where each term is a
 /// product of multilinear extensions and a constant.
+#[derive(Debug)]
 pub struct SumcheckSubpolynomial<'a, S: Scalar> {
     terms: Vec<SumcheckSubpolynomialTerm<'a, S>>,
     subpolynomial_type: SumcheckSubpolynomialType,

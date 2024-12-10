@@ -7,6 +7,7 @@ use crate::base::polynomial::CompositePolynomial;
 use crate::base::scalar::Scalar;
 use alloc::vec::Vec;
 
+#[derive(Debug)]
 pub struct ProverState<S: Scalar> {
     /// Stores the list of products that is meant to be added together. Each multiplicand is represented by
     /// the index in `flattened_ml_extensions`
