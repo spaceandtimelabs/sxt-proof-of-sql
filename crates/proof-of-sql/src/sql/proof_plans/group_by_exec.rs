@@ -358,22 +358,25 @@ fn verify_group_by<S: Scalar>(
     let g_out_star_eval = builder.consume_mle_evaluation();
 
     // sum g_in_star * sel_in * sum_in_fold - g_out_star * sum_out_fold = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::ZeroSum,
         g_in_star_eval * sel_in_eval * sum_in_fold_eval - g_out_star_eval * sum_out_fold_eval,
-    );
+        3,
+    )?;
 
     // g_in_star + g_in_star * g_in_fold - input_ones = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         g_in_star_eval + g_in_star_eval * g_in_fold_eval - input_one_eval,
-    );
+        2,
+    )?;
 
     // g_out_star + g_out_star * g_out_fold - output_ones = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         g_out_star_eval + g_out_star_eval * g_out_fold_eval - output_one_eval,
-    );
+        2,
+    )?;
 
     Ok(())
 }

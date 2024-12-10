@@ -93,7 +93,7 @@ where
             &output_column_evals,
             &input_one_evals,
             output_one_eval,
-        );
+        )?;
         Ok(TableEvaluation::new(output_column_evals, output_one_eval))
     }
 
@@ -189,41 +189,45 @@ fn verify_union<S: Scalar>(
     output_eval: &[S],
     input_one_evals: &[S],
     output_one_eval: S,
-) {
+) -> Result<(), ProofError> {
     assert_eq!(input_evals.len(), input_one_evals.len());
     let c_star_evals = input_evals
         .iter()
         .zip(input_one_evals)
-        .map(|(&input_eval, &input_one_eval)| {
+        .map(|(&input_eval, &input_one_eval)| -> Result<_, ProofError> {
             let c_fold_eval = gamma * fold_vals(beta, input_eval);
             let c_star_eval = builder.consume_mle_evaluation();
             // c_star + c_fold * c_star - input_ones = 0
-            builder.produce_sumcheck_subpolynomial_evaluation(
+            builder.try_produce_sumcheck_subpolynomial_evaluation(
                 SumcheckSubpolynomialType::Identity,
                 c_star_eval + c_fold_eval * c_star_eval - input_one_eval,
-            );
-            c_star_eval
+                2,
+            )?;
+            Ok(c_star_eval)
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
 
     let d_bar_fold_eval = gamma * fold_vals(beta, output_eval);
     let d_star_eval = builder.consume_mle_evaluation();
 
     // d_star + d_bar_fold * d_star - output_ones = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         d_star_eval + d_bar_fold_eval * d_star_eval - output_one_eval,
-    );
+        2,
+    )?;
 
     // sum (sum c_star) - d_star = 0
     let zero_sum_terms_eval = c_star_evals
         .into_iter()
         .chain(core::iter::once(-d_star_eval))
         .sum::<S>();
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::ZeroSum,
         zero_sum_terms_eval,
-    );
+        1,
+    )?;
+    Ok(())
 }
 
 /// Proves the union of tables.

@@ -264,22 +264,25 @@ pub(super) fn verify_filter<S: Scalar>(
     let d_star_eval = builder.consume_mle_evaluation();
 
     // sum c_star * s - d_star = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::ZeroSum,
         c_star_eval * s_eval - d_star_eval,
-    );
+        2,
+    )?;
 
     // c_star + c_fold * c_star - input_ones = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         c_star_eval + c_fold_eval * c_star_eval - one_eval,
-    );
+        2,
+    )?;
 
     // d_star + d_fold * d_star - chi = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         d_star_eval + d_fold_eval * d_star_eval - chi_eval,
-    );
+        2,
+    )?;
 
     Ok(())
 }

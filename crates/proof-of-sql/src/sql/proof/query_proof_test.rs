@@ -88,10 +88,11 @@ impl ProofPlan for TrivialTestProofPlan {
         _one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         assert_eq!(builder.consume_mle_evaluation(), S::ZERO);
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::ZeroSum,
             S::from(self.evaluation),
-        );
+            1,
+        )?;
         Ok(TableEvaluation::new(
             vec![S::ZERO],
             builder.consume_one_evaluation(),
@@ -279,10 +280,11 @@ impl ProofPlan for SquareTestProofPlan {
                 ))
                 .unwrap();
         let res_eval = builder.consume_mle_evaluation();
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             res_eval - x_eval * x_eval,
-        );
+            2,
+        )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
             builder.consume_one_evaluation(),
@@ -478,16 +480,18 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         let res_eval = builder.consume_mle_evaluation();
 
         // poly1
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             z_eval - x_eval * x_eval,
-        );
+            2,
+        )?;
 
         // poly2
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             res_eval - z_eval * z_eval,
-        );
+            2,
+        )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
             builder.consume_one_evaluation(),
@@ -659,7 +663,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
 }
 impl ProofPlan for ChallengeTestProofPlan {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_degree(3);
+        builder.count_degree(4);
         builder.count_intermediate_mles(1);
         builder.count_subpolynomials(1);
         builder.count_post_result_challenges(2);
@@ -682,10 +686,11 @@ impl ProofPlan for ChallengeTestProofPlan {
             ))
             .unwrap();
         let res_eval = builder.consume_mle_evaluation();
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             alpha * res_eval - alpha * x_eval * x_eval,
-        );
+            2,
+        )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
             builder.consume_one_evaluation(),

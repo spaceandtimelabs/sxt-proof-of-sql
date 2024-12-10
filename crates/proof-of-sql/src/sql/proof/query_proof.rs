@@ -331,6 +331,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             sumcheck_random_scalars.subpolynomial_multipliers,
             post_result_challenges,
             self.one_evaluation_lengths.clone(),
+            core::cmp::max(counts.sumcheck_max_multiplicands, 2),
         );
 
         let pcs_proof_commitments: Vec<_> = column_references

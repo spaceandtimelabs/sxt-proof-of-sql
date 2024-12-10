@@ -1,5 +1,5 @@
 use super::{SumcheckMleEvaluations, SumcheckSubpolynomialType};
-use crate::base::{bit::BitDistribution, scalar::Scalar};
+use crate::base::{bit::BitDistribution, proof::ProofSizeMismatch, scalar::Scalar};
 use alloc::vec::Vec;
 use core::iter;
 
@@ -22,6 +22,7 @@ pub struct VerificationBuilder<'a, S: Scalar> {
     /// challenge is the last entry in the vector.
     post_result_challenges: Vec<S>,
     one_evaluation_length_queue: Vec<usize>,
+    subpolynomial_max_multiplicands: usize,
 }
 
 impl<'a, S: Scalar> VerificationBuilder<'a, S> {
@@ -36,6 +37,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         subpolynomial_multipliers: &'a [S],
         post_result_challenges: Vec<S>,
         one_evaluation_length_queue: Vec<usize>,
+        subpolynomial_max_multiplicands: usize,
     ) -> Self {
         Self {
             mle_evaluations,
@@ -48,6 +50,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             produced_subpolynomials: 0,
             post_result_challenges,
             one_evaluation_length_queue,
+            subpolynomial_max_multiplicands,
         }
     }
 
@@ -95,19 +98,29 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     }
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
-    pub fn produce_sumcheck_subpolynomial_evaluation(
+    pub fn try_produce_sumcheck_subpolynomial_evaluation(
         &mut self,
         subpolynomial_type: SumcheckSubpolynomialType,
         eval: S,
-    ) {
+        degree: usize,
+    ) -> Result<(), ProofSizeMismatch> {
         self.sumcheck_evaluation += self.subpolynomial_multipliers[self.produced_subpolynomials]
             * match subpolynomial_type {
                 SumcheckSubpolynomialType::Identity => {
+                    if degree + 1 > self.subpolynomial_max_multiplicands {
+                        Err(ProofSizeMismatch::SumcheckProofTooSmall)?;
+                    }
                     eval * self.mle_evaluations.random_evaluation
                 }
-                SumcheckSubpolynomialType::ZeroSum => eval,
+                SumcheckSubpolynomialType::ZeroSum => {
+                    if degree > self.subpolynomial_max_multiplicands {
+                        Err(ProofSizeMismatch::SumcheckProofTooSmall)?;
+                    }
+                    eval
+                }
             };
         self.produced_subpolynomials += 1;
+        Ok(())
     }
 
     #[allow(

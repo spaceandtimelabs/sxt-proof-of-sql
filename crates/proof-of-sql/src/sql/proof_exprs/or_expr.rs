@@ -74,7 +74,7 @@ impl ProofExpr for OrExpr {
         let lhs = self.lhs.verifier_evaluate(builder, accessor, one_eval)?;
         let rhs = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
 
-        Ok(verifier_evaluate_or(builder, &lhs, &rhs))
+        verifier_evaluate_or(builder, &lhs, &rhs)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
@@ -132,18 +132,19 @@ pub fn verifier_evaluate_or<S: Scalar>(
     builder: &mut VerificationBuilder<S>,
     lhs: &S,
     rhs: &S,
-) -> S {
+) -> Result<S, ProofError> {
     // lhs_and_rhs
     let lhs_and_rhs = builder.consume_mle_evaluation();
 
     // subpolynomial: lhs_and_rhs - lhs * rhs
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         lhs_and_rhs - *lhs * *rhs,
-    );
+        2,
+    )?;
 
     // selection
-    *lhs + *rhs - lhs_and_rhs
+    Ok(*lhs + *rhs - lhs_and_rhs)
 }
 
 pub fn count_or(builder: &mut CountBuilder) {

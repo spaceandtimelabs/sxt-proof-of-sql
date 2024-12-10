@@ -15,6 +15,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
         &[][..],
         Vec::new(),
         Vec::new(),
+        0,
     );
     assert_eq!(builder.sumcheck_evaluation(), Curve25519Scalar::zero());
 }
@@ -36,15 +37,22 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         &subpolynomial_multipliers,
         Vec::new(),
         Vec::new(),
+        1,
     );
-    builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::ZeroSum,
-        Curve25519Scalar::from(2u64),
-    );
-    builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::ZeroSum,
-        Curve25519Scalar::from(3u64),
-    );
+    builder
+        .try_produce_sumcheck_subpolynomial_evaluation(
+            SumcheckSubpolynomialType::ZeroSum,
+            Curve25519Scalar::from(2u64),
+            1,
+        )
+        .unwrap();
+    builder
+        .try_produce_sumcheck_subpolynomial_evaluation(
+            SumcheckSubpolynomialType::ZeroSum,
+            Curve25519Scalar::from(3u64),
+            1,
+        )
+        .unwrap();
     let expected_sumcheck_evaluation = subpolynomial_multipliers[0] * Curve25519Scalar::from(2u64)
         + subpolynomial_multipliers[1] * Curve25519Scalar::from(3u64);
     assert_eq!(builder.sumcheck_evaluation(), expected_sumcheck_evaluation);
@@ -63,6 +71,7 @@ fn we_can_consume_post_result_challenges_in_proof_builder() {
             Curve25519Scalar::from(789),
         ],
         Vec::new(),
+        0,
     );
     assert_eq!(
         Curve25519Scalar::from(789),

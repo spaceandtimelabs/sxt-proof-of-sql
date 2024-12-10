@@ -135,13 +135,13 @@ impl ProofExpr for InequalityExpr {
         };
 
         // diff == 0
-        let equals_zero = verifier_evaluate_equals_zero(builder, diff_eval, one_eval);
+        let equals_zero = verifier_evaluate_equals_zero(builder, diff_eval, one_eval)?;
 
         // sign(diff) == -1
         let sign = verifier_evaluate_sign(builder, diff_eval, one_eval)?;
 
         // (diff == 0) || (sign(diff) == -1)
-        Ok(verifier_evaluate_or(builder, &equals_zero, &sign))
+        verifier_evaluate_or(builder, &equals_zero, &sign)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

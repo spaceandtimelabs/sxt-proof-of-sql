@@ -18,4 +18,14 @@ pub enum ProofError {
     /// This error occurs when the number of fields in the result table does not match the query.
     #[snafu(display("Result does not match query: field count mismatch"))]
     FieldCountMismatch,
+    #[snafu(transparent)]
+    ProofSizeMismatch { source: ProofSizeMismatch },
+}
+
+#[derive(Snafu, Debug)]
+/// These errors occur when the proof size does not match the expected size.
+pub enum ProofSizeMismatch {
+    /// This error occurs when the sumcheck proof doesn't have enough coefficients.
+    #[snafu(display("Sumcheck proof is too small"))]
+    SumcheckProofTooSmall,
 }

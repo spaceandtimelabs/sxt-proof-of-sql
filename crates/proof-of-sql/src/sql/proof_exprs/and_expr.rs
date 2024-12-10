@@ -95,10 +95,11 @@ impl ProofExpr for AndExpr {
         let lhs_and_rhs = builder.consume_mle_evaluation();
 
         // subpolynomial: lhs_and_rhs - lhs * rhs
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             lhs_and_rhs - lhs * rhs,
-        );
+            2,
+        )?;
 
         // selection
         Ok(lhs_and_rhs)

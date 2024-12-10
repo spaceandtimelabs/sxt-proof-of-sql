@@ -141,7 +141,7 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     }
 
     // establish that the bits are binary
-    verify_bits_are_binary(builder, &bit_evals);
+    verify_bits_are_binary(builder, &bit_evals)?;
 
     // handle the special case of the sign bit being constant
     if !dist.has_varying_sign_bit() {
@@ -152,7 +152,7 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     if dist.num_varying_bits() == 1 {
         verify_constant_abs_decomposition(&dist, eval, one_eval, bit_evals[0])?;
     } else {
-        verify_bit_decomposition(builder, eval, one_eval, &bit_evals, &dist);
+        verify_bit_decomposition(builder, eval, one_eval, &bit_evals, &dist)?;
     }
 
     Ok(*bit_evals.last().unwrap())
@@ -188,13 +188,18 @@ fn prove_bits_are_binary<'a, S: Scalar>(
     }
 }
 
-fn verify_bits_are_binary<S: Scalar>(builder: &mut VerificationBuilder<S>, bit_evals: &[S]) {
+fn verify_bits_are_binary<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    bit_evals: &[S],
+) -> Result<(), ProofError> {
     for bit_eval in bit_evals {
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             *bit_eval - *bit_eval * *bit_eval,
-        );
+            2,
+        )?;
     }
+    Ok(())
 }
 
 /// # Panics
@@ -244,7 +249,7 @@ fn verify_bit_decomposition<S: Scalar>(
     one_eval: S,
     bit_evals: &[S],
     dist: &BitDistribution,
-) {
+) -> Result<(), ProofError> {
     let mut eval = expr_eval;
     let sign_eval = bit_evals.last().unwrap();
     let sign_eval = one_eval - S::TWO * *sign_eval;
@@ -257,5 +262,10 @@ fn verify_bit_decomposition<S: Scalar>(
         eval -= S::from(mult) * sign_eval * bit_eval;
         vary_index += 1;
     });
-    builder.produce_sumcheck_subpolynomial_evaluation(SumcheckSubpolynomialType::Identity, eval);
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
+        SumcheckSubpolynomialType::Identity,
+        eval,
+        2,
+    )?;
+    Ok(())
 }

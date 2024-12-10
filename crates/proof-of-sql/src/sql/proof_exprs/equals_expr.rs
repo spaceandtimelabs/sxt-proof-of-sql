@@ -86,7 +86,7 @@ impl ProofExpr for EqualsExpr {
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, true);
-        Ok(verifier_evaluate_equals_zero(builder, res, one_eval))
+        verifier_evaluate_equals_zero(builder, res, one_eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
@@ -152,25 +152,27 @@ pub fn verifier_evaluate_equals_zero<S: Scalar>(
     builder: &mut VerificationBuilder<S>,
     lhs_eval: S,
     one_eval: S,
-) -> S {
+) -> Result<S, ProofError> {
     // consume mle evaluations
     let lhs_pseudo_inv_eval = builder.consume_mle_evaluation();
     let selection_not_eval = builder.consume_mle_evaluation();
     let selection_eval = one_eval - selection_not_eval;
 
     // subpolynomial: selection * lhs
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         selection_eval * lhs_eval,
-    );
+        2,
+    )?;
 
     // subpolynomial: selection_not - lhs * lhs_pseudo_inv
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         selection_not_eval - lhs_eval * lhs_pseudo_inv_eval,
-    );
+        2,
+    )?;
 
-    selection_eval
+    Ok(selection_eval)
 }
 
 pub fn count_equals_zero(builder: &mut CountBuilder) {
