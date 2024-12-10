@@ -18,7 +18,6 @@ use crate::{
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
-use core::iter::repeat_with;
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 
@@ -78,9 +77,7 @@ where
             .iter()
             .map(TableEvaluation::column_evals)
             .collect::<Vec<_>>();
-        let output_column_evals: Vec<_> = repeat_with(|| builder.consume_intermediate_mle())
-            .take(self.schema.len())
-            .collect();
+        let output_column_evals = builder.consume_mle_evaluations(self.schema.len());
         let input_one_evals = input_table_evals
             .iter()
             .map(TableEvaluation::one_eval)
@@ -199,7 +196,7 @@ fn verify_union<S: Scalar>(
         .zip(input_one_evals)
         .map(|(&input_eval, &input_one_eval)| {
             let c_fold_eval = gamma * fold_vals(beta, input_eval);
-            let c_star_eval = builder.consume_intermediate_mle();
+            let c_star_eval = builder.consume_mle_evaluation();
             // c_star + c_fold * c_star - input_ones = 0
             builder.produce_sumcheck_subpolynomial_evaluation(
                 SumcheckSubpolynomialType::Identity,
@@ -210,7 +207,7 @@ fn verify_union<S: Scalar>(
         .collect::<Vec<_>>();
 
     let d_bar_fold_eval = gamma * fold_vals(beta, output_eval);
-    let d_star_eval = builder.consume_intermediate_mle();
+    let d_star_eval = builder.consume_mle_evaluation();
 
     // d_star + d_bar_fold * d_star - output_ones = 0
     builder.produce_sumcheck_subpolynomial_evaluation(

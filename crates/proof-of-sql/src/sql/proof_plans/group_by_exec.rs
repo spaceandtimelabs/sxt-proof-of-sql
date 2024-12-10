@@ -22,7 +22,7 @@ use crate::{
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
-use core::{iter, iter::repeat_with};
+use core::iter;
 use num_traits::{One, Zero};
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
@@ -117,14 +117,10 @@ impl ProofPlan for GroupByExec {
             })
             .collect::<Result<Vec<_>, _>>()?;
         // 3. filtered_columns
-        let group_by_result_columns_evals: Vec<_> =
-            repeat_with(|| builder.consume_intermediate_mle())
-                .take(self.group_by_exprs.len())
-                .collect();
-        let sum_result_columns_evals: Vec<_> = repeat_with(|| builder.consume_intermediate_mle())
-            .take(self.sum_expr.len())
-            .collect();
-        let count_column_eval = builder.consume_intermediate_mle();
+        let group_by_result_columns_evals =
+            builder.consume_mle_evaluations(self.group_by_exprs.len());
+        let sum_result_columns_evals = builder.consume_mle_evaluations(self.sum_expr.len());
+        let count_column_eval = builder.consume_mle_evaluation();
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -358,8 +354,8 @@ fn verify_group_by<S: Scalar>(
     // sum_out_fold = count_out + sum beta^(j+1) * sum_out[j]
     let sum_out_fold_eval = count_out_eval + beta * fold_vals(beta, &sum_out_evals);
 
-    let g_in_star_eval = builder.consume_intermediate_mle();
-    let g_out_star_eval = builder.consume_intermediate_mle();
+    let g_in_star_eval = builder.consume_mle_evaluation();
+    let g_out_star_eval = builder.consume_mle_evaluation();
 
     // sum g_in_star * sel_in * sum_in_fold - g_out_star * sum_out_fold = 0
     builder.produce_sumcheck_subpolynomial_evaluation(

@@ -19,7 +19,7 @@ use crate::{
 };
 use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
-use core::iter::{repeat, repeat_with};
+use core::iter::repeat;
 use itertools::repeat_n;
 use serde::{Deserialize, Serialize};
 
@@ -85,9 +85,7 @@ where
         let max_one_eval = builder.consume_one_evaluation();
         let selection_eval = max_one_eval - offset_one_eval;
         // 3. filtered_columns
-        let filtered_columns_evals: Vec<_> = repeat_with(|| builder.consume_intermediate_mle())
-            .take(columns_evals.len())
-            .collect();
+        let filtered_columns_evals = builder.consume_mle_evaluations(columns_evals.len());
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
 

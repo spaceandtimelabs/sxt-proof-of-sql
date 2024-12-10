@@ -340,7 +340,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .collect();
         let evaluation_accessor: IndexMap<_, _> = column_references
             .into_iter()
-            .map(|col| (col, builder.consume_anchored_mle()))
+            .map(|col| (col, builder.consume_mle_evaluation()))
             .collect();
 
         let verifier_evaluations = expr.verifier_evaluate(

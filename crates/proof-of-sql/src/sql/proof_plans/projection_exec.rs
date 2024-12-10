@@ -17,7 +17,6 @@ use crate::{
 };
 use alloc::vec::Vec;
 use bumpalo::Bump;
-use core::iter::repeat_with;
 use serde::{Deserialize, Serialize};
 
 /// Provable expressions for queries of the form
@@ -69,9 +68,7 @@ impl ProofPlan for ProjectionExec {
                     .verifier_evaluate(builder, accessor, one_eval)
             })
             .collect::<Result<Vec<_>, _>>()?;
-        let column_evals = repeat_with(|| builder.consume_intermediate_mle())
-            .take(self.aliased_results.len())
-            .collect::<Vec<_>>();
+        let column_evals = builder.consume_mle_evaluations(self.aliased_results.len());
         Ok(TableEvaluation::new(column_evals, one_eval))
     }
 

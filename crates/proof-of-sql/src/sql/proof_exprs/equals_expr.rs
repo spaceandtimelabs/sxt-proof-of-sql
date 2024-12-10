@@ -154,8 +154,8 @@ pub fn verifier_evaluate_equals_zero<S: Scalar>(
     one_eval: S,
 ) -> S {
     // consume mle evaluations
-    let lhs_pseudo_inv_eval = builder.consume_intermediate_mle();
-    let selection_not_eval = builder.consume_intermediate_mle();
+    let lhs_pseudo_inv_eval = builder.consume_mle_evaluation();
+    let selection_not_eval = builder.consume_mle_evaluation();
     let selection_eval = one_eval - selection_not_eval;
 
     // subpolynomial: selection * lhs

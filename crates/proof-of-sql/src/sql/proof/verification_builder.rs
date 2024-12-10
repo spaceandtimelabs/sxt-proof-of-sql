@@ -1,6 +1,7 @@
 use super::{SumcheckMleEvaluations, SumcheckSubpolynomialType};
 use crate::base::{bit::BitDistribution, scalar::Scalar};
 use alloc::vec::Vec;
+use core::iter;
 
 /// Track components used to verify a query's proof
 pub struct VerificationBuilder<'a, S: Scalar> {
@@ -72,10 +73,17 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment
-    pub fn consume_anchored_mle(&mut self) -> S {
+    pub fn consume_mle_evaluation(&mut self) -> S {
         let index = self.consumed_pcs_proof_mles;
         self.consumed_pcs_proof_mles += 1;
         self.mle_evaluations.pcs_proof_evaluations[index]
+    }
+
+    /// Consume multiple MLE evaluations
+    pub fn consume_mle_evaluations(&mut self, count: usize) -> Vec<S> {
+        iter::repeat_with(|| self.consume_mle_evaluation())
+            .take(count)
+            .collect()
     }
 
     /// Consume a bit distribution that describes which bits are constant
@@ -84,13 +92,6 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         let res = self.bit_distributions[0].clone();
         self.bit_distributions = &self.bit_distributions[1..];
         res
-    }
-
-    /// Consume the evaluation of an intermediate MLE used in sumcheck
-    ///
-    /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
-    pub fn consume_intermediate_mle(&mut self) -> S {
-        self.consume_anchored_mle()
     }
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
