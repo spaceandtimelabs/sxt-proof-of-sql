@@ -1,5 +1,6 @@
 use super::{
-    CountBuilder, FinalRoundBuilder, ProofCounts, ProofPlan, QueryResult, SumcheckMleEvaluations,
+    make_sumcheck_state::make_sumcheck_prover_state, CountBuilder, FinalRoundBuilder,
+    FirstRoundBuilder, ProofCounts, ProofPlan, QueryData, QueryResult, SumcheckMleEvaluations,
     SumcheckRandomScalars, VerificationBuilder,
 };
 use crate::{
@@ -17,7 +18,6 @@ use crate::{
         scalar::Scalar,
     },
     proof_primitive::sumcheck::SumcheckProof,
-    sql::proof::{FirstRoundBuilder, QueryData},
 };
 use alloc::{string::String, vec, vec::Vec};
 use bumpalo::Bump;
@@ -156,15 +156,15 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
                 .take(num_random_scalars)
                 .collect();
-        let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(
-            &random_scalars,
-            range_length,
+        let state = make_sumcheck_prover_state(
+            builder.sumcheck_subpolynomials(),
             num_sumcheck_variables,
-        ));
+            &SumcheckRandomScalars::new(&random_scalars, range_length, num_sumcheck_variables),
+        );
 
         // create the sumcheck proof -- this is the main part of proving a query
-        let mut evaluation_point = vec![Zero::zero(); poly.num_variables];
-        let sumcheck_proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
+        let mut evaluation_point = vec![Zero::zero(); state.num_vars];
+        let sumcheck_proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, state);
 
         // evaluate the MLEs used in sumcheck except for the result columns
         let mut evaluation_vec = vec![Zero::zero(); range_length];
