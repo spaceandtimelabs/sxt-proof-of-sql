@@ -1,13 +1,17 @@
 use super::{
-    blitzar_metadata_table::create_blitzar_metadata_tables,
-    dynamic_dory_standard_basis_helper::fold_dynamic_standard_basis_tensors,
-    dynamic_dory_structure::row_and_column_from_index, ExtendedVerifierState, G1Affine,
+    blitzar_metadata_table::create_blitzar_metadata_tables, ExtendedVerifierState, G1Affine,
     ProverSetup, F,
 };
 use crate::{
     base::{commitment::CommittableColumn, slice_ops::slice_cast},
-    proof_primitive::dory::{
-        dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs, DoryScalar,
+    proof_primitive::{
+        dory::{
+            dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs, DoryScalar,
+        },
+        dynamic_dory_and_hyrax_common_utils::{
+            standard_basis_helper::fold_dynamic_standard_basis_tensors,
+            structure::row_and_column_from_index,
+        },
     },
 };
 use alloc::{vec, vec::Vec};
