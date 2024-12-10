@@ -5,9 +5,7 @@ use super::{
 use crate::{
     base::{commitment::CommittableColumn, slice_ops::slice_cast},
     proof_primitive::{
-        dory::{
-            dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs, DoryScalar,
-        },
+        dory::DoryScalar,
         dynamic_dory_and_hyrax_common_utils::{
             standard_basis_helper::fold_dynamic_standard_basis_tensors,
             structure::row_and_column_from_index,
@@ -97,29 +95,6 @@ pub(super) fn compute_dynamic_nu(num_vars: usize) -> usize {
     num_vars / 2 + 1
 }
 
-/// Compute the hi and lo vectors (or L and R) that are derived from `point`.
-/// L and R are the vectors such that LMR is exactly the evaluation of `a` at the point `point`.
-/// # Panics
-/// This function requires that `point` has length at least as big as the number of rows in `M` that is created by `a`.
-pub(super) fn compute_dynamic_vecs(point: &[F]) -> (Vec<F>, Vec<F>) {
-    let nu = point.len() / 2 + 1;
-    let mut lo_vec = vec![F::ZERO; 1 << nu];
-    let mut hi_vec = vec![F::ZERO; 1 << nu];
-    lo_vec[0] = point.iter().take(nu).map(|b| F::ONE - b).product();
-    hi_vec[0] = point.iter().skip(nu).map(|b| F::ONE - b).product();
-    let standard_basis_point = point
-        .iter()
-        .map(|b| {
-            (F::ONE - b)
-                .inverse()
-                .expect("Values in point cannot be 1.")
-                - F::ONE
-        })
-        .collect_vec();
-    compute_dynamic_standard_basis_vecs(&standard_basis_point, &mut lo_vec, &mut hi_vec);
-    (lo_vec, hi_vec)
-}
-
 /// Folds the `s1` and `s2` tensors:
 ///
 /// This is the analogous function of the non-dynamic folding function [`extended_dory_reduce_verify_fold_s_vecs`](super::extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs).
@@ -140,7 +115,7 @@ pub(super) fn fold_dynamic_tensors(state: &ExtendedVerifierState) -> (F, F) {
                 - F::ONE
         })
         .collect_vec();
-    let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(
+    let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors::<DoryScalar, _>(
         &standard_basis_point,
         &state.alphas,
         &state.alpha_invs,
@@ -150,91 +125,13 @@ pub(super) fn fold_dynamic_tensors(state: &ExtendedVerifierState) -> (F, F) {
 
 #[cfg(test)]
 mod tests {
-    use super::{super::dynamic_dory_standard_basis_helper::tests::naive_fold, *};
-    use crate::{
-        base::polynomial::compute_evaluation_vector,
-        proof_primitive::dory::{
-            deferred_msm::DeferredMSM, test_rng, PublicParameters, VerifierState,
+    use super::*;
+    use crate::proof_primitive::{
+        dory::{deferred_msm::DeferredMSM, test_rng, PublicParameters, VerifierState},
+        dynamic_dory_and_hyrax_common_utils::standard_basis_helper::{
+            compute_dynamic_vecs, tests::naive_fold,
         },
     };
-
-    #[test]
-    fn we_can_compute_dynamic_vecs_for_length_0_point() {
-        let point = vec![];
-        let expected_lo_vec = vec![F::from(1), F::from(0)];
-        let expected_hi_vec = vec![F::from(1), F::from(1)];
-        let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
-        assert_eq!(expected_lo_vec, lo_vec);
-        assert_eq!(expected_hi_vec, hi_vec);
-    }
-
-    #[test]
-    fn we_can_compute_dynamic_vecs_for_length_1_point() {
-        let point = vec![F::from(2)];
-        let expected_lo_vec = vec![F::from(1 - 2), F::from(2)];
-        let expected_hi_vec = vec![F::from(1), F::from(1)];
-        let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
-        assert_eq!(expected_lo_vec, lo_vec);
-        assert_eq!(expected_hi_vec, hi_vec);
-    }
-
-    #[test]
-    fn we_can_compute_dynamic_vecs_for_length_2_point() {
-        let point = vec![F::from(2), F::from(3)];
-        let expected_lo_vec = vec![
-            F::from((1 - 2) * (1 - 3)),
-            F::from(2 * (1 - 3)),
-            F::from((1 - 2) * 3),
-            F::from(2 * 3),
-        ];
-        let expected_hi_vec = vec![
-            F::from(1),
-            F::from(1),
-            F::from(3) / F::from(1 - 3),
-            F::from(0),
-        ];
-        let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
-        assert_eq!(expected_lo_vec, lo_vec);
-        assert_eq!(expected_hi_vec, hi_vec);
-    }
-
-    #[test]
-    fn we_can_compute_dynamic_vecs_for_length_3_point() {
-        let point = vec![F::from(2), F::from(3), F::from(5)];
-        let expected_lo_vec = vec![
-            F::from((1 - 2) * (1 - 3)),
-            F::from(2 * (1 - 3)),
-            F::from((1 - 2) * 3),
-            F::from(2 * 3),
-        ];
-        let expected_hi_vec = vec![
-            F::from(1 - 5),
-            F::from(1 - 5),
-            F::from((1 - 5) * 3) / F::from(1 - 3),
-            F::from(5),
-        ];
-        let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
-        assert_eq!(expected_lo_vec, lo_vec);
-        assert_eq!(expected_hi_vec, hi_vec);
-    }
-
-    #[test]
-    fn we_can_compute_dynamic_vecs_that_matches_evaluation_vec() {
-        use ark_std::UniformRand;
-        let mut rng = ark_std::test_rng();
-        for num_vars in 0..20 {
-            let point: Vec<_> = core::iter::repeat_with(|| F::rand(&mut rng))
-                .take(num_vars)
-                .collect();
-            let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
-            let mut eval_vec = vec![F::ZERO; 1 << num_vars];
-            compute_evaluation_vector(&mut eval_vec, &point);
-            for (i, val) in eval_vec.into_iter().enumerate() {
-                let (row, column) = row_and_column_from_index(i);
-                assert_eq!(hi_vec[row] * lo_vec[column], val);
-            }
-        }
-    }
 
     #[test]
     fn we_can_fold_dynamic_tensors() {
@@ -253,7 +150,7 @@ mod tests {
                 .take(nu)
                 .collect_vec();
 
-            let (mut lo_vec, mut hi_vec) = compute_dynamic_vecs(&point);
+            let (mut lo_vec, mut hi_vec) = compute_dynamic_vecs::<DoryScalar, _>(&point);
             naive_fold(&mut lo_vec, &alphas);
             naive_fold(&mut hi_vec, &alpha_invs);
 
