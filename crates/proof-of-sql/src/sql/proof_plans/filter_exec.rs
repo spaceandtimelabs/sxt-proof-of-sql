@@ -260,8 +260,8 @@ pub(super) fn verify_filter<S: Scalar>(
     s_eval: S,
     d_evals: &[S],
 ) -> Result<(), ProofError> {
-    let c_fold_eval = alpha * one_eval + fold_vals(beta, c_evals);
-    let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, d_evals);
+    let c_fold_eval = alpha * fold_vals(beta, c_evals);
+    let d_fold_eval = alpha * fold_vals(beta, d_evals);
     let c_star_eval = builder.consume_intermediate_mle();
     let d_star_eval = builder.consume_intermediate_mle();
 
@@ -271,16 +271,16 @@ pub(super) fn verify_filter<S: Scalar>(
         c_star_eval * s_eval - d_star_eval,
     );
 
-    // c_fold * c_star - input_ones = 0
+    // c_star + c_fold * c_star - input_ones = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        c_fold_eval * c_star_eval - one_eval,
+        c_star_eval + c_fold_eval * c_star_eval - one_eval,
     );
 
-    // d_bar_fold * d_star - chi = 0
+    // d_star + d_fold * d_star - chi = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        d_bar_fold_eval * d_star_eval - chi_eval,
+        d_star_eval + d_fold_eval * d_star_eval - chi_eval,
     );
 
     Ok(())
@@ -299,19 +299,20 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
     m: usize,
 ) {
     let input_ones = alloc.alloc_slice_fill_copy(n, true);
-    let chi = alloc.alloc_slice_fill_copy(n, false);
-    chi[..m].fill(true);
+    let chi = alloc.alloc_slice_fill_copy(m, true);
 
-    let c_fold = alloc.alloc_slice_fill_copy(n, alpha);
-    fold_columns(c_fold, One::one(), beta, c);
-    let d_bar_fold = alloc.alloc_slice_fill_copy(n, alpha);
-    fold_columns(d_bar_fold, One::one(), beta, d);
+    let c_fold = alloc.alloc_slice_fill_copy(n, Zero::zero());
+    fold_columns(c_fold, alpha, beta, c);
+    let d_fold = alloc.alloc_slice_fill_copy(m, Zero::zero());
+    fold_columns(d_fold, alpha, beta, d);
 
     let c_star = alloc.alloc_slice_copy(c_fold);
-    let d_star = alloc.alloc_slice_copy(d_bar_fold);
-    d_star[m..].fill(Zero::zero());
+    slice_ops::add_const::<S, S>(c_star, One::one());
     slice_ops::batch_inversion(c_star);
-    slice_ops::batch_inversion(&mut d_star[..m]);
+
+    let d_star = alloc.alloc_slice_copy(d_fold);
+    slice_ops::add_const::<S, S>(d_star, One::one());
+    slice_ops::batch_inversion(d_star);
 
     builder.produce_intermediate_mle(c_star as &[_]);
     builder.produce_intermediate_mle(d_star as &[_]);
@@ -325,10 +326,11 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
         ],
     );
 
-    // c_fold * c_star - input_ones = 0
+    // c_star + c_fold * c_star - input_ones = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
+            (S::one(), vec![Box::new(c_star as &[_])]),
             (
                 S::one(),
                 vec![Box::new(c_star as &[_]), Box::new(c_fold as &[_])],
@@ -337,13 +339,14 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
         ],
     );
 
-    // d_bar_fold * d_star - chi = 0
+    // d_star + d_fold * d_star - chi = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
+            (S::one(), vec![Box::new(d_star as &[_])]),
             (
                 S::one(),
-                vec![Box::new(d_star as &[_]), Box::new(d_bar_fold as &[_])],
+                vec![Box::new(d_star as &[_]), Box::new(d_fold as &[_])],
             ),
             (-S::one(), vec![Box::new(chi as &[_])]),
         ],
