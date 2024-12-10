@@ -7,9 +7,9 @@ use crate::base::{
 use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::{
-    fmt,
-    fmt::{Display, Formatter},
+    fmt::{self, Display, Formatter},
     mem::size_of,
+    ops::{Index, RangeFrom},
 };
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
@@ -278,6 +278,22 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn slice_range_from(&self, range: RangeFrom<usize>) -> Self {
+        match self {
+            Self::Boolean(col) => Column::Boolean(&col[range]),
+            Self::TinyInt(col) => Column::TinyInt(&col[range]),
+            Self::SmallInt(col) => Column::SmallInt(&col[range]),
+            Self::Int(col) => Column::Int(&col[range]),
+            Self::BigInt(col) => Column::BigInt(&col[range]),
+            Self::Int128(col) => Column::Int128(&col[range]),
+            Self::Decimal75(prec, scale, col) => Column::Decimal75(*prec, *scale, &col[range]),
+            Self::Scalar(col) => Column::Scalar(&col[range]),
+            Self::VarChar((col, scals)) => Column::VarChar((&col[range.clone()], &scals[range])),
+            Self::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, &col[range]),
         }
     }
 }
