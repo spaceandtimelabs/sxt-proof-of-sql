@@ -59,9 +59,9 @@ pub fn exercise_verification(
         &(),
     )[0];
 
-    for i in 0..proof.commitments.len() {
+    for i in 0..proof.final_round_commitments.len() {
         let mut res_p = res.clone();
-        res_p.proof.as_mut().unwrap().commitments[i] = commit_p;
+        res_p.proof.as_mut().unwrap().final_round_commitments[i] = commit_p;
         assert!(res_p.verify(expr, accessor, &()).is_err());
     }
 
@@ -71,7 +71,10 @@ pub fn exercise_verification(
     // the inner product proof isn't dependent on the generators since it simply sends the input
     // vector; hence, changing the offset would have no effect.
     if accessor.get_length(table_ref) > 1
-        || proof.commitments.iter().any(|&c| c != Identity::identity())
+        || proof
+            .final_round_commitments
+            .iter()
+            .any(|&c| c != Identity::identity())
     {
         let offset_generators = accessor.get_offset(table_ref);
         let mut fake_accessor = accessor.clone();
