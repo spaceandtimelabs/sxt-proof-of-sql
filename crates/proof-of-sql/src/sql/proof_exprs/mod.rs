@@ -87,7 +87,3 @@ mod column_expr;
 pub(crate) use column_expr::ColumnExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod column_expr_test;
-
-pub mod range_check;
-#[cfg(all(test, feature = "blitzar"))]
-pub mod range_check_test_expr;

@@ -17,11 +17,11 @@ use bumpalo::Bump;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
-pub struct RangeCheckTestExpr {
+pub struct RangeCheckTestPlan {
     pub column: ColumnRef,
 }
 
-impl ProverEvaluate for RangeCheckTestExpr {
+impl ProverEvaluate for RangeCheckTestPlan {
     #[doc = " Evaluate the query, modify `FirstRoundBuilder` and return the result."]
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
@@ -56,7 +56,7 @@ impl ProverEvaluate for RangeCheckTestExpr {
     }
 }
 
-impl ProofPlan for RangeCheckTestExpr {
+impl ProofPlan for RangeCheckTestPlan {
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new(
             self.column.column_id(),
@@ -105,7 +105,7 @@ mod tests {
             ColumnRef, ColumnType, OwnedTableTestAccessor,
         },
         sql::{
-            proof::VerifiableQueryResult, proof_exprs::range_check_test_expr::RangeCheckTestExpr,
+            proof::VerifiableQueryResult, proof_plans::range_check_test_plan::RangeCheckTestPlan,
         },
     };
     use blitzar::proof::InnerProductProof;
@@ -115,7 +115,7 @@ mod tests {
         let data = owned_table([scalar("a", 0..256)]);
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-        let ast = RangeCheckTestExpr {
+        let ast = RangeCheckTestPlan {
             column: ColumnRef::new(t, "a".parse().unwrap(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());

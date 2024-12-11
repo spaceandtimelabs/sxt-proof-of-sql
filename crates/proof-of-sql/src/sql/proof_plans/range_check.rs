@@ -411,7 +411,7 @@ mod tests {
         base::scalar::{Curve25519Scalar as S, Scalar},
         sql::{
             proof::FinalRoundBuilder,
-            proof_exprs::range_check::{decompose_scalar_to_words, get_logarithmic_derivative},
+            proof_plans::range_check::{decompose_scalar_to_words, get_logarithmic_derivative},
         },
     };
     use bumpalo::Bump;
