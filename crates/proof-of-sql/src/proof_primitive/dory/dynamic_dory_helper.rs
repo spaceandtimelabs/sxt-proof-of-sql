@@ -159,91 +159,11 @@ pub(super) fn fold_dynamic_tensors(state: &ExtendedVerifierState) -> (F, F) {
 
 #[cfg(test)]
 mod tests {
-    use super::{super::dynamic_dory_standard_basis_helper::tests::naive_fold, *};
-    use crate::{
-        base::polynomial::compute_evaluation_vector,
-        proof_primitive::dory::{
-            deferred_msm::DeferredMSM, test_rng, PublicParameters, VerifierState,
-        },
+    use super::*;
+    use crate::proof_primitive::{
+        dory::{deferred_msm::DeferredMSM, test_rng, PublicParameters, VerifierState},
+        dynamic_matrix_utils::standard_basis_helper::{compute_dynamic_vecs, tests::naive_fold},
     };
-
-    #[test]
-    fn we_can_compute_dynamic_vecs_for_length_0_point() {
-        let point = vec![];
-        let expected_lo_vec = vec![F::from(1), F::from(0)];
-        let expected_hi_vec = vec![F::from(1), F::from(1)];
-        let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
-        assert_eq!(expected_lo_vec, lo_vec);
-        assert_eq!(expected_hi_vec, hi_vec);
-    }
-
-    #[test]
-    fn we_can_compute_dynamic_vecs_for_length_1_point() {
-        let point = vec![F::from(2)];
-        let expected_lo_vec = vec![F::from(1 - 2), F::from(2)];
-        let expected_hi_vec = vec![F::from(1), F::from(1)];
-        let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
-        assert_eq!(expected_lo_vec, lo_vec);
-        assert_eq!(expected_hi_vec, hi_vec);
-    }
-
-    #[test]
-    fn we_can_compute_dynamic_vecs_for_length_2_point() {
-        let point = vec![F::from(2), F::from(3)];
-        let expected_lo_vec = vec![
-            F::from((1 - 2) * (1 - 3)),
-            F::from(2 * (1 - 3)),
-            F::from((1 - 2) * 3),
-            F::from(2 * 3),
-        ];
-        let expected_hi_vec = vec![
-            F::from(1),
-            F::from(1),
-            F::from(3) / F::from(1 - 3),
-            F::from(0),
-        ];
-        let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
-        assert_eq!(expected_lo_vec, lo_vec);
-        assert_eq!(expected_hi_vec, hi_vec);
-    }
-
-    #[test]
-    fn we_can_compute_dynamic_vecs_for_length_3_point() {
-        let point = vec![F::from(2), F::from(3), F::from(5)];
-        let expected_lo_vec = vec![
-            F::from((1 - 2) * (1 - 3)),
-            F::from(2 * (1 - 3)),
-            F::from((1 - 2) * 3),
-            F::from(2 * 3),
-        ];
-        let expected_hi_vec = vec![
-            F::from(1 - 5),
-            F::from(1 - 5),
-            F::from((1 - 5) * 3) / F::from(1 - 3),
-            F::from(5),
-        ];
-        let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
-        assert_eq!(expected_lo_vec, lo_vec);
-        assert_eq!(expected_hi_vec, hi_vec);
-    }
-
-    #[test]
-    fn we_can_compute_dynamic_vecs_that_matches_evaluation_vec() {
-        use ark_std::UniformRand;
-        let mut rng = ark_std::test_rng();
-        for num_vars in 0..20 {
-            let point: Vec<_> = core::iter::repeat_with(|| F::rand(&mut rng))
-                .take(num_vars)
-                .collect();
-            let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
-            let mut eval_vec = vec![F::ZERO; 1 << num_vars];
-            compute_evaluation_vector(&mut eval_vec, &point);
-            for (i, val) in eval_vec.into_iter().enumerate() {
-                let (row, column) = row_and_column_from_index(i);
-                assert_eq!(hi_vec[row] * lo_vec[column], val);
-            }
-        }
-    }
 
     #[test]
     fn we_can_fold_dynamic_tensors() {
@@ -262,9 +182,16 @@ mod tests {
                 .take(nu)
                 .collect_vec();
 
-            let (mut lo_vec, mut hi_vec) = compute_dynamic_vecs(&point);
-            naive_fold(&mut lo_vec, &alphas);
-            naive_fold(&mut hi_vec, &alpha_invs);
+            let (mut lo_vec, mut hi_vec) =
+                compute_dynamic_vecs(&point.iter().copied().map(MontScalar).collect_vec());
+            naive_fold(
+                &mut lo_vec,
+                &alphas.iter().copied().map(MontScalar).collect_vec(),
+            );
+            naive_fold(
+                &mut hi_vec,
+                &alpha_invs.iter().copied().map(MontScalar).collect_vec(),
+            );
 
             let state = ExtendedVerifierState {
                 s1_tensor: point,
@@ -283,8 +210,8 @@ mod tests {
             };
             let (lo_fold, hi_fold) = fold_dynamic_tensors(&state);
 
-            assert_eq!(lo_fold, lo_vec[0]);
-            assert_eq!(hi_fold, hi_vec[0]);
+            assert_eq!(lo_fold, lo_vec[0].0);
+            assert_eq!(hi_fold, hi_vec[0].0);
         }
     }
 
