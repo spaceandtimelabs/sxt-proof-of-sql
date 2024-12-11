@@ -1,13 +1,17 @@
 use super::{
-    blitzar_metadata_table::create_blitzar_metadata_tables,
-    dynamic_dory_standard_basis_helper::fold_dynamic_standard_basis_tensors,
-    dynamic_dory_structure::row_and_column_from_index, ExtendedVerifierState, G1Affine,
+    blitzar_metadata_table::create_blitzar_metadata_tables, ExtendedVerifierState, G1Affine,
     ProverSetup, F,
 };
 use crate::{
-    base::{commitment::CommittableColumn, slice_ops::slice_cast},
-    proof_primitive::dory::{
-        dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs, DoryScalar,
+    base::{commitment::CommittableColumn, scalar::MontScalar, slice_ops::slice_cast},
+    proof_primitive::{
+        dory::{
+            dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs, DoryScalar,
+        },
+        dynamic_matrix_utils::{
+            matrix_structure::row_and_column_from_index,
+            standard_basis_helper::fold_dynamic_standard_basis_tensors,
+        },
     },
 };
 use alloc::{vec, vec::Vec};
@@ -137,11 +141,20 @@ pub(super) fn fold_dynamic_tensors(state: &ExtendedVerifierState) -> (F, F) {
         })
         .collect_vec();
     let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(
-        &standard_basis_point,
-        &state.alphas,
-        &state.alpha_invs,
+        &standard_basis_point
+            .iter()
+            .copied()
+            .map(MontScalar)
+            .collect_vec(),
+        &state.alphas.iter().copied().map(MontScalar).collect_vec(),
+        &state
+            .alpha_invs
+            .iter()
+            .copied()
+            .map(MontScalar)
+            .collect_vec(),
     );
-    (lo_fold * lo_inv_prod, hi_fold * hi_inv_prod)
+    (lo_fold.0 * lo_inv_prod, hi_fold.0 * hi_inv_prod)
 }
 
 #[cfg(test)]

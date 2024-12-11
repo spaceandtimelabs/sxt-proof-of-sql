@@ -1,9 +1,11 @@
 use super::{
     blitzar_metadata_table::{create_blitzar_metadata_tables, signed_commits},
-    dynamic_dory_structure::row_and_column_from_index,
     pairings, DynamicDoryCommitment, G1Affine, ProverSetup,
 };
-use crate::base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast};
+use crate::{
+    base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast},
+    proof_primitive::dynamic_matrix_utils::matrix_structure::row_and_column_from_index,
+};
 use blitzar::compute::ElementP2;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
