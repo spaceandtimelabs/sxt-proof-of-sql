@@ -28,7 +28,7 @@ struct TrivialTestProofPlan {
     offset: usize,
     column_fill_value: i64,
     evaluation: i64,
-    anchored_mle_count: usize,
+    produce_length: bool,
 }
 impl Default for TrivialTestProofPlan {
     fn default() -> Self {
@@ -37,7 +37,7 @@ impl Default for TrivialTestProofPlan {
             offset: 0,
             column_fill_value: 0,
             evaluation: 0,
-            anchored_mle_count: 0,
+            produce_length: true,
         }
     }
 }
@@ -49,7 +49,9 @@ impl ProverEvaluate for TrivialTestProofPlan {
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         let col = vec![self.column_fill_value; self.length];
-        builder.produce_one_evaluation_length(self.length);
+        if self.produce_length {
+            builder.produce_one_evaluation_length(self.length);
+        }
         table([borrowed_bigint("a1", col, alloc)])
     }
 
@@ -77,7 +79,6 @@ impl ProofPlan for TrivialTestProofPlan {
         builder.count_degree(2);
         builder.count_intermediate_mles(1);
         builder.count_subpolynomials(1);
-        builder.count_anchored_mles(self.anchored_mle_count);
         Ok(())
     }
     fn verifier_evaluate<S: Scalar>(
@@ -193,7 +194,7 @@ fn verify_fails_if_counts_dont_match() {
     // prove and verify an artificial polynomial where we try to prove
     // that every entry in the result is zero
     let expr = TrivialTestProofPlan {
-        anchored_mle_count: 1,
+        produce_length: false,
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
