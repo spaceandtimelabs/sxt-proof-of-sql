@@ -359,7 +359,7 @@ pub fn verifier_evaluate_range_check<C>(
             .expect("one_eval_map should have at least one value");
         let word_eval = (w_plus_alpha_inv_eval * w_plus_alpha_eval) - *one_eval;
         builder.produce_sumcheck_subpolynomial_evaluation(
-            &SumcheckSubpolynomialType::Identity,
+            SumcheckSubpolynomialType::Identity,
             word_eval,
         );
     }
@@ -378,7 +378,7 @@ pub fn verifier_evaluate_range_check<C>(
     let word_value_eval = (inverted_word_values_eval * word_plus_alpha_evals) - *one_eval;
 
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &SumcheckSubpolynomialType::Identity,
+        SumcheckSubpolynomialType::Identity,
         word_value_eval,
     );
 
@@ -389,7 +389,7 @@ pub fn verifier_evaluate_range_check<C>(
     let count_value_product_eval = count_eval * inverted_word_values_eval;
 
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &SumcheckSubpolynomialType::ZeroSum,
+        SumcheckSubpolynomialType::ZeroSum,
         row_sum_eval - count_value_product_eval,
     );
 }
