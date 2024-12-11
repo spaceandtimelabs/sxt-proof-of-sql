@@ -34,6 +34,10 @@ pub(super) fn compute_dynamic_dory_commitments(
     offset: usize,
     setup: &ProverSetup,
 ) -> Vec<DynamicDoryCommitment> {
+    if committable_columns.is_empty() {
+        return vec![];
+    }
+
     let Gamma_2 = setup.Gamma_2.last().unwrap();
     let (gamma_2_offset, _) = row_and_column_from_index(offset);
 
