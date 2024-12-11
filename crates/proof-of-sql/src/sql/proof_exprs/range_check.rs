@@ -30,7 +30,7 @@ use crate::{
 use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use bytemuck::cast_slice;
-use core::cmp::max;
+use core::{cmp::max, iter::repeat};
 
 /// Prove that a word-wise decomposition of a collection of scalars
 /// are all within the range 0 to 2^248. (want this power to be flexible, want to pick word size and range)
@@ -43,13 +43,15 @@ pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
 ) {
     // Create 31 columns, each will collect the corresponding word from all scalars.
     // 31 because a scalar will only ever have 248 bits of data set.
-    let mut word_columns: Vec<&mut [u8]> = (0..31)
-        .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| 0))
+    let mut word_columns: Vec<&mut [u8]> = repeat(())
+        .take(31)
+        .map(|()| alloc.alloc_slice_fill_with(scalars.len(), |_| 0))
         .collect();
 
-    // Allocate space for the eventual inverted word columns.
-    let mut inverted_word_columns: Vec<&mut [S]> = (0..31)
-        .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO))
+    // Allocate space for the eventual inverted word columns by copying word_columns and converting to the required type.
+    let mut inverted_word_columns: Vec<&mut [S]> = word_columns
+        .iter_mut()
+        .map(|column| alloc.alloc_slice_fill_with(column.len(), |_| S::ZERO))
         .collect();
 
     // Initialize a vector to count occurrences of each byte (0-255).
@@ -165,7 +167,7 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
         // Allocate words_plus_alpha_inv
         let words_plus_alpha_inv: &mut [S] =
             alloc.alloc_slice_fill_with(byte_column.len(), |j| S::from(&byte_column[j]) + alpha);
-        slice_ops::batch_inversion(&mut words_plus_alpha_inv[..]);
+        slice_ops::batch_inversion(words_plus_alpha_inv);
 
         // Produce an MLE over words_plus_alpha
         builder.produce_intermediate_mle(words_plus_alpha as &[_]);
@@ -174,7 +176,6 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
         builder.produce_intermediate_mle(words_plus_alpha_inv as &[_]);
 
         inverted_word_columns[i].copy_from_slice(words_plus_alpha_inv);
-        assert_eq!(words_plus_alpha_inv, inverted_word_columns[i]);
 
         let input_ones = alloc.alloc_slice_fill_copy(table_length, true);
 

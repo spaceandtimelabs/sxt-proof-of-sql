@@ -119,7 +119,14 @@ mod tests {
             column: ColumnRef::new(t, "a".parse().unwrap(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
-        let res = verifiable_res.verify(&ast, &accessor, &());
+        let res: Result<
+            crate::sql::proof::QueryData<crate::base::scalar::MontScalar<ark_curve25519::FrConfig>>,
+            crate::sql::proof::QueryError,
+        > = verifiable_res.verify(&ast, &accessor, &());
+        // If this test fails, tell us why
+        if let Err(e) = res {
+            panic!("Verification failed: {e}");
+        }
         assert!(res.is_ok());
     }
 }
