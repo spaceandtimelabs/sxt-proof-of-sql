@@ -352,6 +352,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .copied();
 
         // pass over the provable AST to fill in the verification builder
+        let pcs_proof_evaluations = self
+            .first_round_pcs_proof_evaluations
+            .iter()
+            .chain(self.final_round_pcs_proof_evaluations.iter())
+            .copied()
+            .collect::<Vec<_>>();
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
             self.range_length,
             one_evaluation_lengths,
