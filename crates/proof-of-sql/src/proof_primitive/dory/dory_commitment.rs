@@ -29,6 +29,7 @@ use crate::base::{
     scalar::{MontScalar, Scalar},
 };
 use alloc::vec::Vec;
+use ark_bls12_381::Fr;
 use ark_ec::pairing::PairingOutput;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::ops::Mul;
@@ -37,6 +38,18 @@ use num_traits::One;
 
 /// The Dory scalar type. (alias for `MontScalar<ark_bls12_381::FrConfig>`)
 pub type DoryScalar = MontScalar<ark_bls12_381::FrConfig>;
+
+impl From<Fr> for DoryScalar {
+    fn from(value: Fr) -> Self {
+        MontScalar(value)
+    }
+}
+
+impl From<DoryScalar> for Fr {
+    fn from(value: DoryScalar) -> Self {
+        value.0
+    }
+}
 
 impl Scalar for DoryScalar {
     const MAX_SIGNED: Self = Self(ark_ff::MontFp!(

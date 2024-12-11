@@ -1,18 +1,56 @@
-//! This module provides the `build_standard_basis_vecs` method, which is used in converting a point to a
-//! vector used in a Vector-Matrix-Vector product in the dynamic dory scheme.
+use crate::base::scalar::Scalar;
+use alloc::{vec, vec::Vec};
+use core::ops::Mul;
+use itertools::Itertools;
 
-use super::F;
-use ark_ff::{AdditiveGroup, Field};
+/// Compute the hi and lo vectors (or L and R) that are derived from `point`.
+/// L and R are the vectors such that LMR is exactly the evaluation of `a` at the point `point`.
+/// # Panics
+/// This function requires that `point` has length at least as big as the number of rows in `M` that is created by `a`.
+pub(crate) fn compute_dynamic_vecs<
+    S: Scalar,
+    I: Into<S> + From<S> + Copy + core::ops::MulAssign + core::ops::Mul<Output = I>,
+>(
+    point: &[I],
+) -> (Vec<I>, Vec<I>) {
+    let point = point.iter().map(|i| (*i).into());
+    let nu = point.len() / 2 + 1;
+    let mut lo_vec = vec![I::from(S::ZERO); 1 << nu];
+    let mut hi_vec = vec![I::from(S::ZERO); 1 << nu];
+    lo_vec[0] = point
+        .clone()
+        .take(nu)
+        .map(|b| S::ONE - b)
+        .product::<S>()
+        .into();
+    hi_vec[0] = point
+        .clone()
+        .skip(nu)
+        .map(|b| S::ONE - b)
+        .product::<S>()
+        .into();
+    let standard_basis_point: Vec<I> = point
+        .map(|b| I::from((S::ONE - b).inv().expect("Values in point cannot be 1.") - S::ONE))
+        .collect_vec();
+    compute_dynamic_standard_basis_vecs::<S, _>(&standard_basis_point, &mut lo_vec, &mut hi_vec);
+    (lo_vec, hi_vec)
+}
 
-#[allow(dead_code)]
-/// This method produces evaluation vectors from a point. This is a helper method for generating a Vector-Matrix-Vector product in the dynamic dory scheme.
+/// This method produces evaluation vectors from a point. This is a helper method for generating a Vector-Matrix-Vector product in the dynamic dory and hyrax schemes.
 ///
 /// The ith element of the `lo_vec` is essentially the ith monomial basis element (lexicographically).
 /// The ith element of the `hi_vec` is essentially the jth monomial basis element where `j = row_start_index(i)`.
 ///
 /// NOTE: the `lo_vec` and `hi_vec` are scaled by `lo_vec[0]` and `hi_vec[0]` respectively.
 /// NOTE: `lo_vec` and `hi_vec` should otherwise consist entirely of zeros in order to ensure correct output.
-pub(super) fn compute_dynamic_standard_basis_vecs(point: &[F], lo_vec: &mut [F], hi_vec: &mut [F]) {
+fn compute_dynamic_standard_basis_vecs<
+    S: Scalar,
+    I: Into<S> + From<S> + Copy + core::ops::MulAssign + core::ops::Mul<Output = I>,
+>(
+    point: &[I],
+    lo_vec: &mut [I],
+    hi_vec: &mut [I],
+) {
     let nu = point.len() / 2 + 1;
     debug_assert_eq!(lo_vec.len(), 1 << nu);
     debug_assert_eq!(hi_vec.len(), 1 << nu);
@@ -30,14 +68,17 @@ pub(super) fn compute_dynamic_standard_basis_vecs(point: &[F], lo_vec: &mut [F],
     point.iter().skip(1).enumerate().for_each(|(i, v)| {
         let p = i / 2;
         let o = 2 + i % 2;
-        (o << p..(o + 1) << p).for_each(|k| hi_vec[k] *= v);
+        (o << p..(o + 1) << p).for_each(|k| hi_vec[k] *= *v);
     });
 }
 
-fn build_partial_second_half_standard_basis_vecs(
-    point: &[F],
-    lo_vec: &mut [F],
-    hi_vec: &mut [F],
+fn build_partial_second_half_standard_basis_vecs<
+    S: Scalar,
+    I: Into<S> + From<S> + Copy + Mul<Output = I>,
+>(
+    point: &[I],
+    lo_vec: &mut [I],
+    hi_vec: &mut [I],
     add_last_quarter: bool,
 ) {
     let nu = point.len() / 2 + 1;
@@ -45,7 +86,7 @@ fn build_partial_second_half_standard_basis_vecs(
     debug_assert_eq!(hi_vec.len(), 1 << nu);
     if nu == 1 {
         lo_vec[1] = if point.is_empty() {
-            F::ZERO
+            I::from(S::ZERO)
         } else {
             lo_vec[0] * point[0]
         };
@@ -97,33 +138,35 @@ fn build_partial_second_half_standard_basis_vecs(
     }
 }
 
-#[allow(dead_code)]
-pub(super) fn fold_dynamic_standard_basis_tensors(
-    point: &[F],
-    alphas: &[F],
-    alpha_invs: &[F],
-) -> (F, F) {
+pub(crate) fn fold_dynamic_standard_basis_tensors<S: Scalar, I: Into<S> + From<S> + Copy>(
+    point: &[I],
+    alphas: &[I],
+    alpha_invs: &[I],
+) -> (I, I) {
+    let point = point.iter().map(|i| (*i).into()).collect::<Vec<S>>();
+    let alphas = alphas.iter().map(|i| (*i).into()).collect::<Vec<S>>();
+    let alpha_invs = alpha_invs.iter().map(|i| (*i).into()).collect::<Vec<S>>();
     let nu = point.len() / 2 + 1;
     debug_assert_eq!(alphas.len(), nu);
     debug_assert_eq!(alpha_invs.len(), nu);
     let lo_fold = if point.is_empty() {
         alphas[0]
     } else {
-        point.iter().zip(alphas).map(|(v, a)| v + a).product()
+        point.iter().zip(alphas).map(|(v, a)| *v + a).product()
     };
     let hi_fold = point
         .iter()
         .enumerate()
         .fold(
-            (alpha_invs[0] + F::ONE, F::ZERO),
+            (alpha_invs[0] + S::ONE, S::ZERO),
             |(acc, prev_partial), (i, &p)| {
                 if i == 0 {
-                    (acc, F::ZERO)
+                    (acc, S::ZERO)
                 } else if i == 1 {
-                    (acc * alpha_invs[1] + p * alpha_invs[0], F::ZERO)
+                    (acc * alpha_invs[1] + p * alpha_invs[0], S::ZERO)
                 } else if i % 2 == 0 {
                     let partial = (i / 2 + 1..i)
-                        .zip(alpha_invs)
+                        .zip(alpha_invs.clone())
                         .map(|(k, a)| point[k] + a)
                         .product();
                     (acc + p * partial, partial)
@@ -133,49 +176,80 @@ pub(super) fn fold_dynamic_standard_basis_tensors(
                             + p * alpha_invs[i / 2]
                                 * (point[i - 1] + alpha_invs[i / 2 - 1])
                                 * prev_partial,
-                        F::ZERO,
+                        S::ZERO,
                     )
                 }
             },
         )
         .0;
-    (lo_fold, hi_fold)
+    (lo_fold.into(), hi_fold.into())
 }
 
 #[cfg(test)]
-pub(super) mod tests {
-    use super::{super::dynamic_dory_structure::row_start_index, *};
+pub(crate) mod tests {
+
+    use super::*;
+    use crate::{
+        base::polynomial::compute_evaluation_vector,
+        proof_primitive::{
+            dory::DoryScalar,
+            dynamic_dory_and_hyrax_common_utils::{
+                standard_basis_helper::{
+                    compute_dynamic_standard_basis_vecs, fold_dynamic_standard_basis_tensors,
+                },
+                structure::{row_and_column_from_index, row_start_index},
+            },
+        },
+    };
+    use ark_bls12_381::Fr as F;
+    use ark_ff::AdditiveGroup;
+
+    pub fn naive_fold<S: std::ops::MulAssign + for<'a> std::ops::AddAssign<&'a mut S> + Copy>(
+        mut vec: &mut [S],
+        fold_factors: &[S],
+    ) {
+        let nu = fold_factors.len();
+        assert_eq!(vec.len(), 1 << fold_factors.len());
+        for i in (0..nu).rev() {
+            let (lo, hi) = vec.split_at_mut(vec.len() / 2);
+            lo.iter_mut().zip(hi).for_each(|(l, h)| {
+                *l *= fold_factors[i];
+                *l += h;
+            });
+            vec = lo;
+        }
+    }
 
     #[test]
     fn we_can_compute_dynamic_standard_basis_vecs_from_length_0_point() {
-        let mut lo_vec = vec![F::ZERO; 2];
-        let mut hi_vec = vec![F::ZERO; 2];
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 2];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 2];
         lo_vec[0] = F::from(2);
         hi_vec[0] = F::from(3);
         let point = vec![];
-        let lo_vec_expected = vec![F::from(2), F::ZERO];
+        let lo_vec_expected = vec![F::from(2), <F as AdditiveGroup>::ZERO];
         let hi_vec_expected = vec![F::from(3), F::from(3)];
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
         assert_eq!(lo_vec, lo_vec_expected);
         assert_eq!(hi_vec, hi_vec_expected);
     }
     #[test]
     fn we_can_compute_dynamic_standard_basis_vecs_from_length_1_point() {
-        let mut lo_vec = vec![F::ZERO; 2];
-        let mut hi_vec = vec![F::ZERO; 2];
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 2];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 2];
         lo_vec[0] = F::from(2);
         hi_vec[0] = F::from(3);
         let point = vec![F::from(5)];
         let lo_vec_expected = vec![F::from(2), F::from(2 * 5)];
         let hi_vec_expected = vec![F::from(3), F::from(3)];
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
         assert_eq!(lo_vec, lo_vec_expected);
         assert_eq!(hi_vec, hi_vec_expected);
     }
     #[test]
     fn we_can_compute_dynamic_standard_basis_vecs_from_length_2_point() {
-        let mut lo_vec = vec![F::ZERO; 4];
-        let mut hi_vec = vec![F::ZERO; 4];
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 4];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 4];
         lo_vec[0] = F::from(2);
         hi_vec[0] = F::from(3);
         let point = vec![F::from(5), F::from(7)];
@@ -185,15 +259,20 @@ pub(super) mod tests {
             F::from(2 * 7),
             F::from(2 * 5 * 7),
         ];
-        let hi_vec_expected = vec![F::from(3), F::from(3), F::from(3 * 7), F::ZERO];
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        let hi_vec_expected = vec![
+            F::from(3),
+            F::from(3),
+            F::from(3 * 7),
+            <F as AdditiveGroup>::ZERO,
+        ];
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
         assert_eq!(lo_vec, lo_vec_expected);
         assert_eq!(hi_vec, hi_vec_expected);
     }
     #[test]
     fn we_can_compute_dynamic_standard_basis_vecs_from_length_3_point() {
-        let mut lo_vec = vec![F::ZERO; 4];
-        let mut hi_vec = vec![F::ZERO; 4];
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 4];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 4];
         lo_vec[0] = F::from(2);
         hi_vec[0] = F::from(3);
         let point = vec![F::from(5), F::from(7), F::from(11)];
@@ -204,14 +283,14 @@ pub(super) mod tests {
             F::from(2 * 5 * 7),
         ];
         let hi_vec_expected = vec![F::from(3), F::from(3), F::from(3 * 7), F::from(3 * 11)];
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
         assert_eq!(lo_vec, lo_vec_expected);
         assert_eq!(hi_vec, hi_vec_expected);
     }
     #[test]
     fn we_can_compute_dynamic_standard_basis_vecs_from_length_4_point() {
-        let mut lo_vec = vec![F::ZERO; 8];
-        let mut hi_vec = vec![F::ZERO; 8];
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 8];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 8];
         lo_vec[0] = F::from(2);
         hi_vec[0] = F::from(3);
         let point = vec![F::from(5), F::from(7), F::from(11), F::from(13)];
@@ -232,17 +311,17 @@ pub(super) mod tests {
             F::from(3 * 11),
             F::from(3 * 13),
             F::from(3 * 11 * 13),
-            F::ZERO,
-            F::ZERO,
+            <F as AdditiveGroup>::ZERO,
+            <F as AdditiveGroup>::ZERO,
         ];
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
         assert_eq!(lo_vec, lo_vec_expected);
         assert_eq!(hi_vec, hi_vec_expected);
     }
     #[test]
     fn we_can_compute_dynamic_standard_basis_vecs_from_length_5_point() {
-        let mut lo_vec = vec![F::ZERO; 8];
-        let mut hi_vec = vec![F::ZERO; 8];
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 8];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 8];
         lo_vec[0] = F::from(2);
         hi_vec[0] = F::from(3);
         let point = vec![
@@ -272,7 +351,7 @@ pub(super) mod tests {
             F::from(3 * 17),
             F::from(3 * 13 * 17),
         ];
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
         assert_eq!(lo_vec, lo_vec_expected);
         assert_eq!(hi_vec, hi_vec_expected);
     }
@@ -294,7 +373,7 @@ pub(super) mod tests {
             if b % 2 == 0 {
                 None
             } else {
-                Some(point.get(i).copied().unwrap_or(F::ZERO))
+                Some(point.get(i).copied().unwrap_or(<F as AdditiveGroup>::ZERO))
             }
         })
         .product()
@@ -312,11 +391,11 @@ pub(super) mod tests {
             let alpha = F::rand(&mut rng);
             let beta = F::rand(&mut rng);
             let nu = point.len() / 2 + 1;
-            let mut lo_vec = vec![F::ZERO; 1 << nu];
-            let mut hi_vec = vec![F::ZERO; 1 << nu];
+            let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 1 << nu];
+            let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 1 << nu];
             lo_vec[0] = alpha;
             hi_vec[0] = beta;
-            compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+            compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
             for i in 0..1 << nu {
                 assert_eq!(lo_vec[i], alpha * get_binary_eval(i, &point));
                 assert_eq!(
@@ -329,46 +408,48 @@ pub(super) mod tests {
 
     #[test]
     fn we_can_fold_dynamic_standard_basis_tensors_of_length_0_point() {
-        let mut lo_vec = vec![F::ZERO; 2];
-        let mut hi_vec = vec![F::ZERO; 2];
-        lo_vec[0] = F::ONE;
-        hi_vec[0] = F::ONE;
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 2];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 2];
+        lo_vec[0] = <F as ark_ff::Field>::ONE;
+        hi_vec[0] = <F as ark_ff::Field>::ONE;
         let point = vec![];
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
 
         let alphas = vec![F::from(200)];
         let alpha_invs = vec![F::from(300)];
         let lo_fold_expected = lo_vec[0] * F::from(200) + lo_vec[1];
         let hi_fold_expected = hi_vec[0] * F::from(300) + hi_vec[1];
-        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        let (lo_fold, hi_fold) =
+            fold_dynamic_standard_basis_tensors::<DoryScalar, _>(&point, &alphas, &alpha_invs);
         assert_eq!(lo_fold, lo_fold_expected);
         assert_eq!(hi_fold, hi_fold_expected);
     }
     #[test]
     fn we_can_fold_dynamic_standard_basis_tensors_of_length_1_point() {
-        let mut lo_vec = vec![F::ZERO; 2];
-        let mut hi_vec = vec![F::ZERO; 2];
-        lo_vec[0] = F::ONE;
-        hi_vec[0] = F::ONE;
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 2];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 2];
+        lo_vec[0] = <F as ark_ff::Field>::ONE;
+        hi_vec[0] = <F as ark_ff::Field>::ONE;
         let point = vec![F::from(5)];
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
 
         let alphas = vec![F::from(200)];
         let alpha_invs = vec![F::from(300)];
         let lo_fold_expected = lo_vec[0] * F::from(200) + lo_vec[1];
         let hi_fold_expected = hi_vec[0] * F::from(300) + hi_vec[1];
-        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        let (lo_fold, hi_fold) =
+            fold_dynamic_standard_basis_tensors::<DoryScalar, _>(&point, &alphas, &alpha_invs);
         assert_eq!(lo_fold, lo_fold_expected);
         assert_eq!(hi_fold, hi_fold_expected);
     }
     #[test]
     fn we_can_fold_dynamic_standard_basis_tensors_of_length_2_point() {
-        let mut lo_vec = vec![F::ZERO; 4];
-        let mut hi_vec = vec![F::ZERO; 4];
-        lo_vec[0] = F::ONE;
-        hi_vec[0] = F::ONE;
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 4];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 4];
+        lo_vec[0] = <F as ark_ff::Field>::ONE;
+        hi_vec[0] = <F as ark_ff::Field>::ONE;
         let point = vec![F::from(5), F::from(7)];
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
 
         let alphas = vec![F::from(200), F::from(201)];
         let alpha_invs = vec![F::from(300), F::from(301)];
@@ -380,18 +461,19 @@ pub(super) mod tests {
             + hi_vec[1] * F::from(301)
             + hi_vec[2] * F::from(300)
             + hi_vec[3];
-        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        let (lo_fold, hi_fold) =
+            fold_dynamic_standard_basis_tensors::<DoryScalar, _>(&point, &alphas, &alpha_invs);
         assert_eq!(lo_fold, lo_fold_expected);
         assert_eq!(hi_fold, hi_fold_expected);
     }
     #[test]
     fn we_can_fold_dynamic_standard_basis_tensors_of_length_3_point() {
-        let mut lo_vec = vec![F::ZERO; 4];
-        let mut hi_vec = vec![F::ZERO; 4];
-        lo_vec[0] = F::ONE;
-        hi_vec[0] = F::ONE;
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 4];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 4];
+        lo_vec[0] = <F as ark_ff::Field>::ONE;
+        hi_vec[0] = <F as ark_ff::Field>::ONE;
         let point = vec![F::from(5), F::from(7), F::from(11)];
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
 
         let alphas = vec![F::from(200), F::from(201)];
         let alpha_invs = vec![F::from(300), F::from(301)];
@@ -403,18 +485,19 @@ pub(super) mod tests {
             + hi_vec[1] * F::from(301)
             + hi_vec[2] * F::from(300)
             + hi_vec[3];
-        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        let (lo_fold, hi_fold) =
+            fold_dynamic_standard_basis_tensors::<DoryScalar, _>(&point, &alphas, &alpha_invs);
         assert_eq!(lo_fold, lo_fold_expected);
         assert_eq!(hi_fold, hi_fold_expected);
     }
     #[test]
     fn we_can_fold_dynamic_standard_basis_tensors_of_length_4_point() {
-        let mut lo_vec = vec![F::ZERO; 8];
-        let mut hi_vec = vec![F::ZERO; 8];
-        lo_vec[0] = F::ONE;
-        hi_vec[0] = F::ONE;
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 8];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 8];
+        lo_vec[0] = <F as ark_ff::Field>::ONE;
+        hi_vec[0] = <F as ark_ff::Field>::ONE;
         let point = vec![F::from(5), F::from(7), F::from(11), F::from(13)];
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
 
         let alphas = vec![F::from(200), F::from(201), F::from(202)];
         let alpha_invs = vec![F::from(300), F::from(301), F::from(302)];
@@ -434,18 +517,19 @@ pub(super) mod tests {
             + hi_vec[5] * F::from(301)
             + hi_vec[6] * F::from(300)
             + hi_vec[7];
-        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        let (lo_fold, hi_fold) =
+            fold_dynamic_standard_basis_tensors::<DoryScalar, _>(&point, &alphas, &alpha_invs);
         assert_eq!(lo_fold, lo_fold_expected);
         assert_eq!(hi_fold, hi_fold_expected);
     }
     #[test]
     fn we_can_fold_dynamic_standard_basis_tensors_of_length_5_point() {
-        let mut lo_vec = vec![F::ZERO; 8];
-        let mut hi_vec = vec![F::ZERO; 8];
-        lo_vec[0] = F::ONE;
-        hi_vec[0] = F::ONE;
+        let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 8];
+        let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 8];
+        lo_vec[0] = <F as ark_ff::Field>::ONE;
+        hi_vec[0] = <F as ark_ff::Field>::ONE;
         let point = [5, 7, 11, 13, 17].map(F::from);
-        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+        compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
 
         let alphas = vec![F::from(200), F::from(201), F::from(202)];
         let alpha_invs = vec![F::from(300), F::from(301), F::from(302)];
@@ -465,22 +549,10 @@ pub(super) mod tests {
             + hi_vec[5] * F::from(301)
             + hi_vec[6] * F::from(300)
             + hi_vec[7];
-        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        let (lo_fold, hi_fold) =
+            fold_dynamic_standard_basis_tensors::<DoryScalar, _>(&point, &alphas, &alpha_invs);
         assert_eq!(lo_fold, lo_fold_expected);
         assert_eq!(hi_fold, hi_fold_expected);
-    }
-
-    pub fn naive_fold(mut vec: &mut [F], fold_factors: &[F]) {
-        let nu = fold_factors.len();
-        assert_eq!(vec.len(), 1 << fold_factors.len());
-        for i in (0..nu).rev() {
-            let (lo, hi) = vec.split_at_mut(vec.len() / 2);
-            lo.iter_mut().zip(hi).for_each(|(l, h)| {
-                *l *= fold_factors[i];
-                *l += h;
-            });
-            vec = lo;
-        }
     }
     #[test]
     fn we_can_naive_fold_length_0_fold_factors() {
@@ -533,11 +605,11 @@ pub(super) mod tests {
                 .take(num_vars)
                 .collect_vec();
             let nu = point.len() / 2 + 1;
-            let mut lo_vec = vec![F::ZERO; 1 << nu];
-            let mut hi_vec = vec![F::ZERO; 1 << nu];
-            lo_vec[0] = F::ONE;
-            hi_vec[0] = F::ONE;
-            compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+            let mut lo_vec = vec![<F as AdditiveGroup>::ZERO; 1 << nu];
+            let mut hi_vec = vec![<F as AdditiveGroup>::ZERO; 1 << nu];
+            lo_vec[0] = <F as ark_ff::Field>::ONE;
+            hi_vec[0] = <F as ark_ff::Field>::ONE;
+            compute_dynamic_standard_basis_vecs::<DoryScalar, _>(&point, &mut lo_vec, &mut hi_vec);
 
             let alphas = core::iter::repeat_with(|| F::rand(&mut rng))
                 .take(nu)
@@ -546,11 +618,89 @@ pub(super) mod tests {
                 .take(nu)
                 .collect_vec();
             let (lo_fold, hi_fold) =
-                fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+                fold_dynamic_standard_basis_tensors::<DoryScalar, _>(&point, &alphas, &alpha_invs);
             naive_fold(&mut lo_vec, &alphas);
             naive_fold(&mut hi_vec, &alpha_invs);
             assert_eq!(lo_fold, lo_vec[0]);
             assert_eq!(hi_fold, hi_vec[0]);
+        }
+    }
+
+    #[test]
+    fn we_can_compute_dynamic_vecs_for_length_0_point() {
+        let point = vec![];
+        let expected_lo_vec = vec![F::from(1), F::from(0)];
+        let expected_hi_vec = vec![F::from(1), F::from(1)];
+        let (lo_vec, hi_vec) = compute_dynamic_vecs::<DoryScalar, _>(&point);
+        assert_eq!(expected_lo_vec, lo_vec);
+        assert_eq!(expected_hi_vec, hi_vec);
+    }
+
+    #[test]
+    fn we_can_compute_dynamic_vecs_for_length_1_point() {
+        let point = vec![F::from(2)];
+        let expected_lo_vec = vec![F::from(1 - 2), F::from(2)];
+        let expected_hi_vec = vec![F::from(1), F::from(1)];
+        let (lo_vec, hi_vec) = compute_dynamic_vecs::<DoryScalar, _>(&point);
+        assert_eq!(expected_lo_vec, lo_vec);
+        assert_eq!(expected_hi_vec, hi_vec);
+    }
+
+    #[test]
+    fn we_can_compute_dynamic_vecs_for_length_2_point() {
+        let point = vec![F::from(2), F::from(3)];
+        let expected_lo_vec = vec![
+            F::from((1 - 2) * (1 - 3)),
+            F::from(2 * (1 - 3)),
+            F::from((1 - 2) * 3),
+            F::from(2 * 3),
+        ];
+        let expected_hi_vec = vec![
+            F::from(1),
+            F::from(1),
+            F::from(3) / F::from(1 - 3),
+            F::from(0),
+        ];
+        let (lo_vec, hi_vec) = compute_dynamic_vecs::<DoryScalar, _>(&point);
+        assert_eq!(expected_lo_vec, lo_vec);
+        assert_eq!(expected_hi_vec, hi_vec);
+    }
+
+    #[test]
+    fn we_can_compute_dynamic_vecs_for_length_3_point() {
+        let point = vec![F::from(2), F::from(3), F::from(5)];
+        let expected_lo_vec = vec![
+            F::from((1 - 2) * (1 - 3)),
+            F::from(2 * (1 - 3)),
+            F::from((1 - 2) * 3),
+            F::from(2 * 3),
+        ];
+        let expected_hi_vec = vec![
+            F::from(1 - 5),
+            F::from(1 - 5),
+            F::from((1 - 5) * 3) / F::from(1 - 3),
+            F::from(5),
+        ];
+        let (lo_vec, hi_vec) = compute_dynamic_vecs::<DoryScalar, _>(&point);
+        assert_eq!(expected_lo_vec, lo_vec);
+        assert_eq!(expected_hi_vec, hi_vec);
+    }
+
+    #[test]
+    fn we_can_compute_dynamic_vecs_that_matches_evaluation_vec() {
+        use ark_std::UniformRand;
+        let mut rng = ark_std::test_rng();
+        for num_vars in 0..20 {
+            let point: Vec<_> = core::iter::repeat_with(|| F::rand(&mut rng))
+                .take(num_vars)
+                .collect();
+            let (lo_vec, hi_vec) = compute_dynamic_vecs::<DoryScalar, _>(&point);
+            let mut eval_vec = vec![<F as AdditiveGroup>::ZERO; 1 << num_vars];
+            compute_evaluation_vector(&mut eval_vec, &point);
+            for (i, val) in eval_vec.into_iter().enumerate() {
+                let (row, column) = row_and_column_from_index(i);
+                assert_eq!(hi_vec[row] * lo_vec[column], val);
+            }
         }
     }
 }

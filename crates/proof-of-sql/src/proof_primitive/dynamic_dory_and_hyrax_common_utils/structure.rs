@@ -1,4 +1,4 @@
-//! This module gives some utility functions for determining the position of data within the dynamic dory matrix
+//! This module gives some utility functions for determining the position of data within the dynamic dory/hyrax matrix
 //!
 //! In general, the data is filled in such a way that the new data is always in the last row, and the row size
 //! (and consequently, the matrix size) is strictly increasing.
@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn we_can_find_the_full_width_of_row() {
         // This corresponds to a matrix with 2^(N+1) rows.
-        let N = 20;
+        let n = 20;
         let mut expected_widths = Vec::new();
 
         // First three rows are defined by the dynamic Dory structure.
@@ -164,7 +164,7 @@ mod tests {
         expected_widths.extend(std::iter::repeat(2).take(2));
 
         // The rest of the rows are defined by the pattern 3*2^n rows of length 4*2^n.
-        for n in 0..N {
+        for n in 0..n {
             let repeat_count = 3 * 2_usize.pow(n);
             let value = 4 * 2_usize.pow(n);
             expected_widths.extend(std::iter::repeat(value).take(repeat_count));

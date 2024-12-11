@@ -1,7 +1,8 @@
 use super::{
-    dynamic_dory_helper::{compute_dynamic_v_vec, compute_dynamic_vecs},
-    DeferredGT, G1Affine, VMVProverState, VMVVerifierState, F,
+    dynamic_dory_helper::compute_dynamic_v_vec, DeferredGT, DoryScalar, G1Affine, VMVProverState,
+    VMVVerifierState, F,
 };
+use crate::proof_primitive::dynamic_dory_and_hyrax_common_utils::standard_basis_helper::compute_dynamic_vecs;
 use alloc::vec::Vec;
 
 /// Builds a [`VMVProverState`] from the given parameters.
@@ -11,7 +12,7 @@ pub(super) fn build_dynamic_vmv_prover_state(
     T_vec_prime: Vec<G1Affine>,
     nu: usize,
 ) -> VMVProverState {
-    let (lo_vec, hi_vec) = compute_dynamic_vecs(b_point);
+    let (lo_vec, hi_vec) = compute_dynamic_vecs::<DoryScalar, _>(b_point);
     let v_vec = compute_dynamic_v_vec(a, &hi_vec, nu);
     VMVProverState {
         v_vec,
