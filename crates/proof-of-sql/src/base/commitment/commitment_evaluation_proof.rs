@@ -56,7 +56,7 @@ pub trait CommitmentEvaluationProof {
             transcript,
             core::slice::from_ref(a_commit),
             &[Self::Scalar::ONE],
-            product,
+            core::slice::from_ref(product),
             b_point,
             generators_offset,
             table_length,
@@ -70,7 +70,7 @@ pub trait CommitmentEvaluationProof {
         transcript: &mut impl Transcript,
         commit_batch: &[Self::Commitment],
         batching_factors: &[Self::Scalar],
-        product: &Self::Scalar,
+        evaluations: &[Self::Scalar],
         b_point: &[Self::Scalar],
         generators_offset: u64,
         table_length: usize,
@@ -117,7 +117,7 @@ impl CommitmentEvaluationProof for InnerProductProof {
         transcript: &mut impl Transcript,
         commit_batch: &[Self::Commitment],
         batching_factors: &[Self::Scalar],
-        product: &Self::Scalar,
+        evaluations: &[Self::Scalar],
         b_point: &[Self::Scalar],
         generators_offset: u64,
         table_length: usize,
@@ -131,6 +131,11 @@ impl CommitmentEvaluationProof for InnerProductProof {
         } else {
             crate::base::polynomial::compute_evaluation_vector(b, b_point);
         }
+        let product: Self::Scalar = evaluations
+            .iter()
+            .zip(batching_factors)
+            .map(|(&e, &f)| e * f)
+            .sum();
         // The InnerProductProof from blitzar only works with the merlin Transcript.
         // So, we wrap the call to it.
         transcript.wrap_transcript(|transcript| {

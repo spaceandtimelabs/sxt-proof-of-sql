@@ -87,7 +87,7 @@ impl ProofPlan for TrivialTestProofPlan {
         _result: Option<&OwnedTable<S>>,
         _one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        assert_eq!(builder.consume_intermediate_mle(), S::ZERO);
+        assert_eq!(builder.consume_mle_evaluation(), S::ZERO);
         builder.produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::ZeroSum,
             S::from(self.evaluation),
@@ -278,7 +278,7 @@ impl ProofPlan for SquareTestProofPlan {
                     ColumnType::BigInt,
                 ))
                 .unwrap();
-        let res_eval = builder.consume_intermediate_mle();
+        let res_eval = builder.consume_mle_evaluation();
         builder.produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             res_eval - x_eval * x_eval,
@@ -474,8 +474,8 @@ impl ProofPlan for DoubleSquareTestProofPlan {
                 ColumnType::BigInt,
             ))
             .unwrap();
-        let z_eval = builder.consume_intermediate_mle();
-        let res_eval = builder.consume_intermediate_mle();
+        let z_eval = builder.consume_mle_evaluation();
+        let res_eval = builder.consume_mle_evaluation();
 
         // poly1
         builder.produce_sumcheck_subpolynomial_evaluation(
@@ -681,7 +681,7 @@ impl ProofPlan for ChallengeTestProofPlan {
                 ColumnType::BigInt,
             ))
             .unwrap();
-        let res_eval = builder.consume_intermediate_mle();
+        let res_eval = builder.consume_mle_evaluation();
         builder.produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             alpha * res_eval - alpha * x_eval * x_eval,

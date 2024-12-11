@@ -70,11 +70,10 @@ impl ProofPlan for EmptyTestQueryExpr {
         _result: Option<&OwnedTable<S>>,
         _one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        let _ = std::iter::repeat_with(|| {
-            assert_eq!(builder.consume_intermediate_mle(), S::ZERO);
-        })
-        .take(self.columns)
-        .collect::<Vec<_>>();
+        assert_eq!(
+            builder.consume_mle_evaluations(self.columns),
+            vec![S::ZERO; self.columns]
+        );
         Ok(TableEvaluation::new(
             vec![S::ZERO; self.columns],
             builder.consume_one_evaluation(),

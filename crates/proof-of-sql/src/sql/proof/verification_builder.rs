@@ -1,19 +1,17 @@
 use super::{SumcheckMleEvaluations, SumcheckSubpolynomialType};
 use crate::base::{bit::BitDistribution, scalar::Scalar};
 use alloc::vec::Vec;
+use core::iter;
 
 /// Track components used to verify a query's proof
 pub struct VerificationBuilder<'a, S: Scalar> {
     pub mle_evaluations: SumcheckMleEvaluations<'a, S>,
     generator_offset: usize,
     subpolynomial_multipliers: &'a [S],
-    inner_product_multipliers: &'a [S],
     sumcheck_evaluation: S,
     bit_distributions: &'a [BitDistribution],
-    folded_pcs_proof_evaluation: S,
     consumed_one_evaluations: usize,
     consumed_pcs_proof_mles: usize,
-    consumed_intermediate_mles: usize,
     produced_subpolynomials: usize,
     /// The challenges used in creation of the constraints in the proof.
     /// Specifically, these are the challenges that the verifier sends to
@@ -36,25 +34,17 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         mle_evaluations: SumcheckMleEvaluations<'a, S>,
         bit_distributions: &'a [BitDistribution],
         subpolynomial_multipliers: &'a [S],
-        inner_product_multipliers: &'a [S],
         post_result_challenges: Vec<S>,
         one_evaluation_length_queue: Vec<usize>,
     ) -> Self {
-        assert_eq!(
-            inner_product_multipliers.len(),
-            mle_evaluations.pcs_proof_evaluations.len()
-        );
         Self {
             mle_evaluations,
             generator_offset,
             bit_distributions,
             subpolynomial_multipliers,
-            inner_product_multipliers,
             sumcheck_evaluation: S::zero(),
-            folded_pcs_proof_evaluation: S::zero(),
             consumed_one_evaluations: 0,
             consumed_pcs_proof_mles: 0,
-            consumed_intermediate_mles: 0,
             produced_subpolynomials: 0,
             post_result_challenges,
             one_evaluation_length_queue,
@@ -83,13 +73,17 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment
-    pub fn consume_anchored_mle(&mut self) -> S {
+    pub fn consume_mle_evaluation(&mut self) -> S {
         let index = self.consumed_pcs_proof_mles;
-        let multiplier = self.inner_product_multipliers[index];
         self.consumed_pcs_proof_mles += 1;
-        let res = self.mle_evaluations.pcs_proof_evaluations[index];
-        self.folded_pcs_proof_evaluation += multiplier * res;
-        res
+        self.mle_evaluations.pcs_proof_evaluations[index]
+    }
+
+    /// Consume multiple MLE evaluations
+    pub fn consume_mle_evaluations(&mut self, count: usize) -> Vec<S> {
+        iter::repeat_with(|| self.consume_mle_evaluation())
+            .take(count)
+            .collect()
     }
 
     /// Consume a bit distribution that describes which bits are constant
@@ -98,14 +92,6 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         let res = self.bit_distributions[0].clone();
         self.bit_distributions = &self.bit_distributions[1..];
         res
-    }
-
-    /// Consume the evaluation of an intermediate MLE used in sumcheck
-    ///
-    /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
-    pub fn consume_intermediate_mle(&mut self) -> S {
-        self.consumed_intermediate_mles += 1;
-        self.consume_anchored_mle()
     }
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
@@ -132,27 +118,6 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     pub fn sumcheck_evaluation(&self) -> S {
         assert!(self.completed());
         self.sumcheck_evaluation
-    }
-
-    #[allow(
-        clippy::missing_panics_doc,
-        reason = "Panic conditions are self-evident from the completed assertion."
-    )]
-    /// Get folding factors for the pre-result commitments
-    pub fn inner_product_multipliers(&self) -> &[S] {
-        assert!(self.completed());
-        self.inner_product_multipliers
-    }
-
-    #[allow(
-        clippy::missing_panics_doc,
-        reason = "The panic condition is evident due to the assertion ensuring completion."
-    )]
-    /// Get the evaluation of the folded pre-result MLE vectors used in a verifiable query's
-    /// bulletproof
-    pub fn folded_pcs_proof_evaluation(&self) -> S {
-        assert!(self.completed());
-        self.folded_pcs_proof_evaluation
     }
 
     /// Check that the verification builder is completely built up

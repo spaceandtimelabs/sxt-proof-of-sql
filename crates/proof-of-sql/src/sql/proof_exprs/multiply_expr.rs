@@ -94,7 +94,7 @@ impl ProofExpr for MultiplyExpr {
         let rhs = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
 
         // lhs_times_rhs
-        let lhs_times_rhs = builder.consume_intermediate_mle();
+        let lhs_times_rhs = builder.consume_mle_evaluation();
 
         // subpolynomial: lhs_times_rhs - lhs * rhs
         builder.produce_sumcheck_subpolynomial_evaluation(

@@ -72,7 +72,7 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         transcript: &mut impl Transcript,
         commit_batch: &[Self::Commitment],
         batching_factors: &[Self::Scalar],
-        product: &Self::Scalar,
+        evaluations: &[Self::Scalar],
         b_point: &[Self::Scalar],
         generators_offset: u64,
         _table_length: usize,
@@ -82,6 +82,11 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
             commit_batch.iter().map(|c| c.0),
             batching_factors.iter().map(|f| f.0),
         );
+        let product: Self::Scalar = evaluations
+            .iter()
+            .zip(batching_factors)
+            .map(|(&e, &f)| e * f)
+            .sum();
         // Dory PCS Logic
         if generators_offset != 0 {
             return Err(DoryError::InvalidGeneratorsOffset {

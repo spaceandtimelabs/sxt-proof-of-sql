@@ -329,7 +329,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             sumcheck_evaluations,
             &self.bit_distributions,
             sumcheck_random_scalars.subpolynomial_multipliers,
-            &evaluation_random_scalars,
             post_result_challenges,
             self.one_evaluation_lengths.clone(),
         );
@@ -341,7 +340,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .collect();
         let evaluation_accessor: IndexMap<_, _> = column_references
             .into_iter()
-            .map(|col| (col, builder.consume_anchored_mle()))
+            .map(|col| (col, builder.consume_mle_evaluation()))
             .collect();
 
         let verifier_evaluations = expr.verifier_evaluate(
@@ -367,13 +366,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         }
 
         // finally, check the MLE evaluations with the inner product proof
-        let product = builder.folded_pcs_proof_evaluation();
         self.evaluation_proof
             .verify_batched_proof(
                 &mut transcript,
                 &pcs_proof_commitments,
-                builder.inner_product_multipliers(),
-                &product,
+                &evaluation_random_scalars,
+                &self.pcs_proof_evaluations,
                 &subclaim.evaluation_point,
                 min_row_num as u64,
                 self.range_length,

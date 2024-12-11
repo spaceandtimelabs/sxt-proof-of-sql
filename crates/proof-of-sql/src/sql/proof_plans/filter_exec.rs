@@ -20,7 +20,7 @@ use crate::{
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
-use core::{iter::repeat_with, marker::PhantomData};
+use core::marker::PhantomData;
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 
@@ -99,9 +99,7 @@ where
                 .collect::<Result<Vec<_>, _>>()?,
         );
         // 3. filtered_columns
-        let filtered_columns_evals: Vec<_> = repeat_with(|| builder.consume_intermediate_mle())
-            .take(self.aliased_results.len())
-            .collect();
+        let filtered_columns_evals = builder.consume_mle_evaluations(self.aliased_results.len());
         assert!(filtered_columns_evals.len() == self.aliased_results.len());
 
         let alpha = builder.consume_post_result_challenge();
@@ -262,8 +260,8 @@ pub(super) fn verify_filter<S: Scalar>(
 ) -> Result<(), ProofError> {
     let c_fold_eval = alpha * fold_vals(beta, c_evals);
     let d_fold_eval = alpha * fold_vals(beta, d_evals);
-    let c_star_eval = builder.consume_intermediate_mle();
-    let d_star_eval = builder.consume_intermediate_mle();
+    let c_star_eval = builder.consume_mle_evaluation();
+    let d_star_eval = builder.consume_mle_evaluation();
 
     // sum c_star * s - d_star = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
