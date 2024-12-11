@@ -129,14 +129,14 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     one_eval: S,
 ) -> Result<S, ProofError> {
     // bit_distribution
-    let dist = builder.consume_bit_distribution();
+    let dist = builder.try_consume_bit_distribution()?;
     let num_varying_bits = dist.num_varying_bits();
 
     // extract evaluations and commitmens of the multilinear extensions for the varying
     // bits of the expression
     let mut bit_evals = Vec::with_capacity(num_varying_bits);
     for _ in 0..num_varying_bits {
-        let eval = builder.consume_mle_evaluation();
+        let eval = builder.try_consume_mle_evaluation()?;
         bit_evals.push(eval);
     }
 

@@ -77,14 +77,14 @@ where
             .iter()
             .map(TableEvaluation::column_evals)
             .collect::<Vec<_>>();
-        let output_column_evals = builder.consume_mle_evaluations(self.schema.len());
+        let output_column_evals = builder.try_consume_mle_evaluations(self.schema.len())?;
         let input_one_evals = input_table_evals
             .iter()
             .map(TableEvaluation::one_eval)
             .collect::<Vec<_>>();
-        let output_one_eval = builder.consume_one_evaluation();
-        let gamma = builder.consume_post_result_challenge();
-        let beta = builder.consume_post_result_challenge();
+        let output_one_eval = builder.try_consume_one_evaluation()?;
+        let gamma = builder.try_consume_post_result_challenge()?;
+        let beta = builder.try_consume_post_result_challenge()?;
         verify_union(
             builder,
             gamma,
@@ -196,7 +196,7 @@ fn verify_union<S: Scalar>(
         .zip(input_one_evals)
         .map(|(&input_eval, &input_one_eval)| -> Result<_, ProofError> {
             let c_fold_eval = gamma * fold_vals(beta, input_eval);
-            let c_star_eval = builder.consume_mle_evaluation();
+            let c_star_eval = builder.try_consume_mle_evaluation()?;
             // c_star + c_fold * c_star - input_ones = 0
             builder.try_produce_sumcheck_subpolynomial_evaluation(
                 SumcheckSubpolynomialType::Identity,
@@ -208,7 +208,7 @@ fn verify_union<S: Scalar>(
         .collect::<Result<Vec<_>, _>>()?;
 
     let d_bar_fold_eval = gamma * fold_vals(beta, output_eval);
-    let d_star_eval = builder.consume_mle_evaluation();
+    let d_star_eval = builder.try_consume_mle_evaluation()?;
 
     // d_star + d_bar_fold * d_star - output_ones = 0
     builder.try_produce_sumcheck_subpolynomial_evaluation(

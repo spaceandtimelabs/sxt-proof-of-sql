@@ -118,13 +118,13 @@ impl ProofPlan for GroupByExec {
             .collect::<Result<Vec<_>, _>>()?;
         // 3. filtered_columns
         let group_by_result_columns_evals =
-            builder.consume_mle_evaluations(self.group_by_exprs.len());
-        let sum_result_columns_evals = builder.consume_mle_evaluations(self.sum_expr.len());
-        let count_column_eval = builder.consume_mle_evaluation();
+            builder.try_consume_mle_evaluations(self.group_by_exprs.len())?;
+        let sum_result_columns_evals = builder.try_consume_mle_evaluations(self.sum_expr.len())?;
+        let count_column_eval = builder.try_consume_mle_evaluation()?;
 
-        let alpha = builder.consume_post_result_challenge();
-        let beta = builder.consume_post_result_challenge();
-        let output_one_eval = builder.consume_one_evaluation();
+        let alpha = builder.try_consume_post_result_challenge()?;
+        let beta = builder.try_consume_post_result_challenge()?;
+        let output_one_eval = builder.try_consume_one_evaluation()?;
 
         verify_group_by(
             builder,
@@ -354,8 +354,8 @@ fn verify_group_by<S: Scalar>(
     // sum_out_fold = count_out + sum beta^(j+1) * sum_out[j]
     let sum_out_fold_eval = count_out_eval + beta * fold_vals(beta, &sum_out_evals);
 
-    let g_in_star_eval = builder.consume_mle_evaluation();
-    let g_out_star_eval = builder.consume_mle_evaluation();
+    let g_in_star_eval = builder.try_consume_mle_evaluation()?;
+    let g_out_star_eval = builder.try_consume_mle_evaluation()?;
 
     // sum g_in_star * sel_in * sum_in_fold - g_out_star * sum_out_fold = 0
     builder.try_produce_sumcheck_subpolynomial_evaluation(

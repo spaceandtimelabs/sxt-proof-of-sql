@@ -99,13 +99,14 @@ where
                 .collect::<Result<Vec<_>, _>>()?,
         );
         // 3. filtered_columns
-        let filtered_columns_evals = builder.consume_mle_evaluations(self.aliased_results.len());
+        let filtered_columns_evals =
+            builder.try_consume_mle_evaluations(self.aliased_results.len())?;
         assert!(filtered_columns_evals.len() == self.aliased_results.len());
 
-        let alpha = builder.consume_post_result_challenge();
-        let beta = builder.consume_post_result_challenge();
+        let alpha = builder.try_consume_post_result_challenge()?;
+        let beta = builder.try_consume_post_result_challenge()?;
 
-        let output_one_eval = builder.consume_one_evaluation();
+        let output_one_eval = builder.try_consume_one_evaluation()?;
 
         verify_filter(
             builder,
@@ -260,8 +261,8 @@ pub(super) fn verify_filter<S: Scalar>(
 ) -> Result<(), ProofError> {
     let c_fold_eval = alpha * fold_vals(beta, c_evals);
     let d_fold_eval = alpha * fold_vals(beta, d_evals);
-    let c_star_eval = builder.consume_mle_evaluation();
-    let d_star_eval = builder.consume_mle_evaluation();
+    let c_star_eval = builder.try_consume_mle_evaluation()?;
+    let d_star_eval = builder.try_consume_mle_evaluation()?;
 
     // sum c_star * s - d_star = 0
     builder.try_produce_sumcheck_subpolynomial_evaluation(

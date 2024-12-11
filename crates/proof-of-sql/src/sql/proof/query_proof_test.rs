@@ -87,7 +87,7 @@ impl ProofPlan for TrivialTestProofPlan {
         _result: Option<&OwnedTable<S>>,
         _one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        assert_eq!(builder.consume_mle_evaluation(), S::ZERO);
+        assert_eq!(builder.try_consume_mle_evaluation()?, S::ZERO);
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::ZeroSum,
             S::from(self.evaluation),
@@ -95,7 +95,7 @@ impl ProofPlan for TrivialTestProofPlan {
         )?;
         Ok(TableEvaluation::new(
             vec![S::ZERO],
-            builder.consume_one_evaluation(),
+            builder.try_consume_one_evaluation()?,
         ))
     }
     ///
@@ -279,7 +279,7 @@ impl ProofPlan for SquareTestProofPlan {
                     ColumnType::BigInt,
                 ))
                 .unwrap();
-        let res_eval = builder.consume_mle_evaluation();
+        let res_eval = builder.try_consume_mle_evaluation()?;
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             res_eval - x_eval * x_eval,
@@ -287,7 +287,7 @@ impl ProofPlan for SquareTestProofPlan {
         )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
-            builder.consume_one_evaluation(),
+            builder.try_consume_one_evaluation()?,
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -476,8 +476,8 @@ impl ProofPlan for DoubleSquareTestProofPlan {
                 ColumnType::BigInt,
             ))
             .unwrap();
-        let z_eval = builder.consume_mle_evaluation();
-        let res_eval = builder.consume_mle_evaluation();
+        let z_eval = builder.try_consume_mle_evaluation()?;
+        let res_eval = builder.try_consume_mle_evaluation()?;
 
         // poly1
         builder.try_produce_sumcheck_subpolynomial_evaluation(
@@ -494,7 +494,7 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
-            builder.consume_one_evaluation(),
+            builder.try_consume_one_evaluation()?,
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -676,8 +676,8 @@ impl ProofPlan for ChallengeTestProofPlan {
         _result: Option<&OwnedTable<S>>,
         _one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        let alpha = builder.consume_post_result_challenge();
-        let _beta = builder.consume_post_result_challenge();
+        let alpha = builder.try_consume_post_result_challenge()?;
+        let _beta = builder.try_consume_post_result_challenge()?;
         let x_eval = *accessor
             .get(&ColumnRef::new(
                 "sxt.test".parse().unwrap(),
@@ -685,7 +685,7 @@ impl ProofPlan for ChallengeTestProofPlan {
                 ColumnType::BigInt,
             ))
             .unwrap();
-        let res_eval = builder.consume_mle_evaluation();
+        let res_eval = builder.try_consume_mle_evaluation()?;
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             alpha * res_eval - alpha * x_eval * x_eval,
@@ -693,7 +693,7 @@ impl ProofPlan for ChallengeTestProofPlan {
         )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
-            builder.consume_one_evaluation(),
+            builder.try_consume_one_evaluation()?,
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

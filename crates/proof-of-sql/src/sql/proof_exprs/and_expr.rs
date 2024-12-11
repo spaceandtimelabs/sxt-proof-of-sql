@@ -92,7 +92,7 @@ impl ProofExpr for AndExpr {
         let rhs = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
 
         // lhs_and_rhs
-        let lhs_and_rhs = builder.consume_mle_evaluation();
+        let lhs_and_rhs = builder.try_consume_mle_evaluation()?;
 
         // subpolynomial: lhs_and_rhs - lhs * rhs
         builder.try_produce_sumcheck_subpolynomial_evaluation(

@@ -75,14 +75,14 @@ fn we_can_consume_post_result_challenges_in_proof_builder() {
     );
     assert_eq!(
         Curve25519Scalar::from(789),
-        builder.consume_post_result_challenge()
+        builder.try_consume_post_result_challenge().unwrap()
     );
     assert_eq!(
         Curve25519Scalar::from(456),
-        builder.consume_post_result_challenge()
+        builder.try_consume_post_result_challenge().unwrap()
     );
     assert_eq!(
         Curve25519Scalar::from(123),
-        builder.consume_post_result_challenge()
+        builder.try_consume_post_result_challenge().unwrap()
     );
 }

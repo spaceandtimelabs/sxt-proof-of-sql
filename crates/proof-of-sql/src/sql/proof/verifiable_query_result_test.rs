@@ -71,12 +71,12 @@ impl ProofPlan for EmptyTestQueryExpr {
         _one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         assert_eq!(
-            builder.consume_mle_evaluations(self.columns),
+            builder.try_consume_mle_evaluations(self.columns)?,
             vec![S::ZERO; self.columns]
         );
         Ok(TableEvaluation::new(
             vec![S::ZERO; self.columns],
-            builder.consume_one_evaluation(),
+            builder.try_consume_one_evaluation()?,
         ))
     }
 
