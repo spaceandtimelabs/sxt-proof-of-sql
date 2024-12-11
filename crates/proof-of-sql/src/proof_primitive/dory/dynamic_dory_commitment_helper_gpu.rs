@@ -38,7 +38,7 @@ pub(super) fn compute_dynamic_dory_commitments(
     setup: &ProverSetup,
 ) -> Vec<DynamicDoryCommitment> {
     log::log_memory_usage("Start");
-    
+
     if committable_columns.is_empty() {
         return vec![];
     }
