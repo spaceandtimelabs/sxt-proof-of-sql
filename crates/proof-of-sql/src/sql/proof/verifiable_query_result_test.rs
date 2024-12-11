@@ -1,6 +1,5 @@
 use super::{
-    CountBuilder, FinalRoundBuilder, ProofPlan, ProverEvaluate, VerifiableQueryResult,
-    VerificationBuilder,
+    FinalRoundBuilder, ProofPlan, ProverEvaluate, VerifiableQueryResult, VerificationBuilder,
 };
 use crate::{
     base::{
@@ -58,11 +57,6 @@ impl ProverEvaluate for EmptyTestQueryExpr {
     }
 }
 impl ProofPlan for EmptyTestQueryExpr {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_intermediate_mles(self.columns);
-        Ok(())
-    }
-
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,

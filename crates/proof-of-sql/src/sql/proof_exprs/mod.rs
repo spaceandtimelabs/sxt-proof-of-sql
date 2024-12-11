@@ -44,7 +44,7 @@ use inequality_expr::InequalityExpr;
 mod inequality_expr_test;
 
 mod or_expr;
-use or_expr::{count_or, prover_evaluate_or, result_evaluate_or, verifier_evaluate_or, OrExpr};
+use or_expr::{prover_evaluate_or, result_evaluate_or, verifier_evaluate_or, OrExpr};
 #[cfg(all(test, feature = "blitzar"))]
 mod or_expr_test;
 
@@ -63,14 +63,14 @@ pub(crate) use numerical_util::{
 
 mod equals_expr;
 use equals_expr::{
-    count_equals_zero, prover_evaluate_equals_zero, result_evaluate_equals_zero,
-    verifier_evaluate_equals_zero, EqualsExpr,
+    prover_evaluate_equals_zero, result_evaluate_equals_zero, verifier_evaluate_equals_zero,
+    EqualsExpr,
 };
 #[cfg(all(test, feature = "blitzar"))]
 mod equals_expr_test;
 
 mod sign_expr;
-use sign_expr::{count_sign, prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
+use sign_expr::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
 #[cfg(all(test, feature = "blitzar"))]
 mod sign_expr_test;
 

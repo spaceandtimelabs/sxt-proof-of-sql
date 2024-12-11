@@ -6,7 +6,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use proof_of_sql_parser::Identifier;
@@ -54,11 +54,6 @@ impl ColumnExpr {
 }
 
 impl ProofExpr for ColumnExpr {
-    /// Count the number of proof terms needed by this expression
-    fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
-        Ok(())
-    }
-
     /// Get the data type of the expression
     fn data_type(&self) -> ColumnType {
         *self.get_column_reference().column_type()

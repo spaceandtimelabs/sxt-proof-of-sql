@@ -7,7 +7,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::{
-        proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+        proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
         proof_exprs::multiply_columns,
     },
 };
@@ -30,15 +30,6 @@ impl MultiplyExpr {
 }
 
 impl ProofExpr for MultiplyExpr {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.lhs.count(builder)?;
-        self.rhs.count(builder)?;
-        builder.count_subpolynomials(1);
-        builder.count_intermediate_mles(1);
-        builder.count_degree(3);
-        Ok(())
-    }
-
     fn data_type(&self) -> ColumnType {
         try_multiply_column_types(self.lhs.data_type(), self.rhs.data_type())
             .expect("Failed to multiply column types")

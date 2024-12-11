@@ -7,7 +7,7 @@ use crate::{
         scalar::Scalar,
         slice_ops,
     },
-    sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
@@ -28,13 +28,6 @@ impl EqualsExpr {
 }
 
 impl ProofExpr for EqualsExpr {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.lhs.count(builder)?;
-        self.rhs.count(builder)?;
-        count_equals_zero(builder);
-        Ok(())
-    }
-
     fn data_type(&self) -> ColumnType {
         ColumnType::Boolean
     }
@@ -173,10 +166,4 @@ pub fn verifier_evaluate_equals_zero<S: Scalar>(
     )?;
 
     Ok(selection_eval)
-}
-
-pub fn count_equals_zero(builder: &mut CountBuilder) {
-    builder.count_subpolynomials(2);
-    builder.count_intermediate_mles(2);
-    builder.count_degree(3);
 }

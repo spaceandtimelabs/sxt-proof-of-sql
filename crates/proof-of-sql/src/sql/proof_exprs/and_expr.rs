@@ -6,7 +6,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
@@ -27,15 +27,6 @@ impl AndExpr {
 }
 
 impl ProofExpr for AndExpr {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.lhs.count(builder)?;
-        self.rhs.count(builder)?;
-        builder.count_subpolynomials(1);
-        builder.count_intermediate_mles(1);
-        builder.count_degree(3);
-        Ok(())
-    }
-
     fn data_type(&self) -> ColumnType {
         ColumnType::Boolean
     }

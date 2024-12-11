@@ -13,8 +13,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{
-        CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
-        VerificationBuilder,
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
     },
 };
 use alloc::{boxed::Box, vec::Vec};
@@ -55,16 +54,6 @@ impl ProofPlan for SliceExec
 where
     SliceExec: ProverEvaluate,
 {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.input.count(builder)?;
-        builder.count_intermediate_mles(self.input.get_column_result_fields().len());
-        builder.count_intermediate_mles(2);
-        builder.count_subpolynomials(3);
-        builder.count_degree(3);
-        builder.count_post_result_challenges(2);
-        Ok(())
-    }
-
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,

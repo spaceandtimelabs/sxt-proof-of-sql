@@ -12,8 +12,8 @@ use crate::{
         slice_ops,
     },
     sql::proof::{
-        CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
-        SumcheckSubpolynomialType, VerificationBuilder,
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, SumcheckSubpolynomialType,
+        VerificationBuilder,
     },
 };
 use alloc::{boxed::Box, vec, vec::Vec};
@@ -47,18 +47,6 @@ impl ProofPlan for UnionExec
 where
     UnionExec: ProverEvaluate,
 {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        let num_parts = self.inputs.len();
-        self.inputs
-            .iter()
-            .try_for_each(|input| input.count(builder))?;
-        builder.count_intermediate_mles(num_parts + self.schema.len() + 1);
-        builder.count_subpolynomials(num_parts + 2);
-        builder.count_degree(3);
-        builder.count_post_result_challenges(2);
-        Ok(())
-    }
-
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,

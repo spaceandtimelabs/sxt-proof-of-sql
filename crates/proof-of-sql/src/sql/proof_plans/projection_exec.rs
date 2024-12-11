@@ -9,8 +9,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
-            VerificationBuilder,
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
     },
@@ -40,14 +39,6 @@ impl ProjectionExec {
 }
 
 impl ProofPlan for ProjectionExec {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        for aliased_expr in &self.aliased_results {
-            aliased_expr.expr.count(builder)?;
-            builder.count_intermediate_mles(1);
-        }
-        Ok(())
-    }
-
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,

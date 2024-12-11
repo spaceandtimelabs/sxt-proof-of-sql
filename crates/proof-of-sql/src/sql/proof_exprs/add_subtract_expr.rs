@@ -6,7 +6,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -32,12 +32,6 @@ impl AddSubtractExpr {
 }
 
 impl ProofExpr for AddSubtractExpr {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.lhs.count(builder)?;
-        self.rhs.count(builder)?;
-        Ok(())
-    }
-
     fn data_type(&self) -> ColumnType {
         try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type())
             .expect("Failed to add/subtract column types")

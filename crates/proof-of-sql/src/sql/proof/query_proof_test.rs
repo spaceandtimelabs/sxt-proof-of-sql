@@ -1,6 +1,4 @@
-use super::{
-    CountBuilder, FinalRoundBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder,
-};
+use super::{FinalRoundBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder};
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -75,12 +73,6 @@ impl ProverEvaluate for TrivialTestProofPlan {
     }
 }
 impl ProofPlan for TrivialTestProofPlan {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_degree(2);
-        builder.count_intermediate_mles(1);
-        builder.count_subpolynomials(1);
-        Ok(())
-    }
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,
@@ -259,12 +251,6 @@ impl ProverEvaluate for SquareTestProofPlan {
     }
 }
 impl ProofPlan for SquareTestProofPlan {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_degree(3);
-        builder.count_intermediate_mles(1);
-        builder.count_subpolynomials(1);
-        Ok(())
-    }
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,
@@ -457,12 +443,6 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
     }
 }
 impl ProofPlan for DoubleSquareTestProofPlan {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_degree(3);
-        builder.count_intermediate_mles(2);
-        builder.count_subpolynomials(2);
-        Ok(())
-    }
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,
@@ -663,13 +643,6 @@ impl ProverEvaluate for ChallengeTestProofPlan {
     }
 }
 impl ProofPlan for ChallengeTestProofPlan {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_degree(4);
-        builder.count_intermediate_mles(1);
-        builder.count_subpolynomials(1);
-        builder.count_post_result_challenges(2);
-        Ok(())
-    }
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,

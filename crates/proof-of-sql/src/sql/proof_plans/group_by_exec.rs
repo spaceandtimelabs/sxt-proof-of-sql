@@ -14,7 +14,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
             SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
@@ -67,25 +67,6 @@ impl GroupByExec {
 }
 
 impl ProofPlan for GroupByExec {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.where_clause.count(builder)?;
-        for expr in &self.group_by_exprs {
-            expr.count(builder)?;
-            builder.count_intermediate_mles(1);
-        }
-        for aliased_expr in &self.sum_expr {
-            aliased_expr.expr.count(builder)?;
-            builder.count_intermediate_mles(1);
-        }
-        // For the count col
-        builder.count_intermediate_mles(1);
-        builder.count_intermediate_mles(2);
-        builder.count_subpolynomials(3);
-        builder.count_degree(3);
-        builder.count_post_result_challenges(2);
-        Ok(())
-    }
-
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,

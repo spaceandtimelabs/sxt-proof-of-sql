@@ -6,27 +6,12 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{
-        CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
+        FinalRoundBuilder, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
         VerificationBuilder,
     },
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
-
-/// Count the number of components needed to prove a sign decomposition
-pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
-    let dist = builder.consume_bit_distribution()?;
-    if dist.num_varying_bits() == 0 {
-        return Ok(());
-    }
-    builder.count_intermediate_mles(dist.num_varying_bits());
-    builder.count_subpolynomials(dist.num_varying_bits());
-    builder.count_degree(3);
-    if dist.has_varying_sign_bit() && dist.num_varying_bits() > 1 {
-        builder.count_subpolynomials(1);
-    }
-    Ok(())
-}
 
 /// Compute the sign bit for a column of scalars.
 ///

@@ -11,7 +11,7 @@ use crate::{
     },
     sql::{
         parse::{type_check_binary_operation, ConversionError, ConversionResult},
-        proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
+        proof::{FinalRoundBuilder, VerificationBuilder},
     },
 };
 use alloc::{boxed::Box, string::ToString};

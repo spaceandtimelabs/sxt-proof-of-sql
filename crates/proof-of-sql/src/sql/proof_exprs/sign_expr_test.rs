@@ -1,9 +1,8 @@
-use super::{count_sign, prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
+use super::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
 use crate::{
     base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Curve25519Scalar},
     sql::proof::{
-        CountBuilder, FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
-        VerificationBuilder,
+        FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -33,20 +32,20 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_colum
     assert_eq!(builder.bit_distributions(), [dist]);
 }
 
-#[test]
-fn count_fails_if_a_bit_distribution_is_out_of_range() {
-    let dists = [BitDistribution::new::<Curve25519Scalar, _>(&[
-        Curve25519Scalar::from(3) * Curve25519Scalar::from(u128::MAX),
-    ])];
-    let mut builder = CountBuilder::new(&dists);
-    assert!(count_sign(&mut builder).is_err());
-}
+// #[test]
+// fn count_fails_if_a_bit_distribution_is_out_of_range() {
+//     let dists = [BitDistribution::new::<Curve25519Scalar, _>(&[
+//         Curve25519Scalar::from(3) * Curve25519Scalar::from(u128::MAX),
+//     ])];
+//     let mut builder = CountBuilder::new(&dists);
+//     assert!(count_sign(&mut builder).is_err());
+// }
 
-#[test]
-fn count_fails_if_no_bit_distribution_is_available() {
-    let mut builder = CountBuilder::new(&[]);
-    assert!(count_sign(&mut builder).is_err());
-}
+// #[test]
+// fn count_fails_if_no_bit_distribution_is_available() {
+//     let mut builder = CountBuilder::new(&[]);
+//     assert!(count_sign(&mut builder).is_err());
+// }
 
 #[test]
 fn we_can_verify_a_constant_decomposition() {

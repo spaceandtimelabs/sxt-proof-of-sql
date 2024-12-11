@@ -1,6 +1,6 @@
 use super::{
-    count_equals_zero, count_or, count_sign, prover_evaluate_equals_zero, prover_evaluate_or,
-    prover_evaluate_sign, result_evaluate_equals_zero, result_evaluate_or, result_evaluate_sign,
+    prover_evaluate_equals_zero, prover_evaluate_or, prover_evaluate_sign,
+    result_evaluate_equals_zero, result_evaluate_or, result_evaluate_sign,
     scale_and_add_subtract_eval, scale_and_subtract, verifier_evaluate_equals_zero,
     verifier_evaluate_or, verifier_evaluate_sign, DynProofExpr, ProofExpr,
 };
@@ -11,7 +11,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -41,15 +41,6 @@ impl InequalityExpr {
 }
 
 impl ProofExpr for InequalityExpr {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.lhs.count(builder)?;
-        self.rhs.count(builder)?;
-        count_equals_zero(builder);
-        count_sign(builder)?;
-        count_or(builder);
-        Ok(())
-    }
-
     fn data_type(&self) -> ColumnType {
         ColumnType::Boolean
     }
