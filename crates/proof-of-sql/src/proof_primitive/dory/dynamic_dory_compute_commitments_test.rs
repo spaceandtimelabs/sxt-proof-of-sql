@@ -9,6 +9,15 @@ use num_traits::Zero;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
+fn we_can_handle_calling_with_an_empty_committable_column() {
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
+    let setup = ProverSetup::from(&public_parameters);
+    let res = compute_dynamic_dory_commitments(&[], 0, &setup);
+
+    assert!(res.is_empty());
+}
+
+#[test]
 fn we_can_compute_a_dynamic_dory_commitment_with_unsigned_bigint_values() {
     let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let setup = ProverSetup::from(&public_parameters);
