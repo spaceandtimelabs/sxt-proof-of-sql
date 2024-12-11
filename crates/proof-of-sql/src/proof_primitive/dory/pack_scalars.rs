@@ -1,6 +1,7 @@
 use super::{blitzar_metadata_table::min_as_f, G1Affine, G1Projective};
 use crate::{
     base::commitment::CommittableColumn, proof_primitive::dory::offset_to_bytes::OffsetToBytes,
+    utils::log,
 };
 use alloc::{vec, vec::Vec};
 use ark_std::ops::Mul;
@@ -65,6 +66,8 @@ pub fn modify_commits(
     offset: usize,
     num_matrix_commitment_columns: usize,
 ) -> Vec<G1Affine> {
+    log::log_memory_usage("Start");
+
     // Set parameters
     let num_offset_commits = OFFSET_SIZE + committable_columns.len();
     let num_sub_commits_in_full_commit = bit_table.len() - num_offset_commits;
@@ -122,7 +125,11 @@ pub fn modify_commits(
         }
     }
 
-    modifed_commits.into_iter().map(Into::into).collect()
+    let res = modifed_commits.into_iter().map(Into::into).collect();
+
+    log::log_memory_usage("End");
+
+    res
 }
 
 /// Packs bits of a committable column into the packed scalars array.
@@ -314,6 +321,8 @@ pub fn bit_table_and_scalars_for_packed_msm(
     offset: usize,
     num_matrix_commitment_columns: usize,
 ) -> (Vec<u32>, Vec<u8>) {
+    log::log_memory_usage("Start");
+
     // Make sure that the committable columns are not empty.
     if committable_columns.is_empty() {
         return (vec![], vec![]);
@@ -449,6 +458,8 @@ pub fn bit_table_and_scalars_for_packed_msm(
                 );
             }
         });
+
+    log::log_memory_usage("End");
 
     (bit_table, packed_scalars)
 }

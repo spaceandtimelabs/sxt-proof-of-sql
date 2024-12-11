@@ -1,9 +1,12 @@
 use super::{SumcheckSubpolynomial, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType};
-use crate::base::{
-    bit::BitDistribution,
-    commitment::{Commitment, CommittableColumn, VecCommitmentExt},
-    polynomial::MultilinearExtension,
-    scalar::Scalar,
+use crate::{
+    base::{
+        bit::BitDistribution,
+        commitment::{Commitment, CommittableColumn, VecCommitmentExt},
+        polynomial::MultilinearExtension,
+        scalar::Scalar,
+    },
+    utils::log,
 };
 use alloc::{boxed::Box, vec::Vec};
 
@@ -95,11 +98,17 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
         offset_generators: usize,
         setup: &C::PublicSetup<'_>,
     ) -> Vec<C> {
-        Vec::from_commitable_columns_with_offset(
+        log::log_memory_usage("Start");
+
+        let res = Vec::from_commitable_columns_with_offset(
             &self.commitment_descriptor,
             offset_generators,
             setup,
-        )
+        );
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     /// Produce a subpolynomial to be aggegated into sumcheck where the sum across binary
@@ -116,10 +125,15 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
         skip_all
     )]
     pub fn evaluate_pcs_proof_mles(&self, evaluation_vec: &[S]) -> Vec<S> {
+        log::log_memory_usage("Start");
+
         let mut res = Vec::with_capacity(self.pcs_proof_mles.len());
         for evaluator in &self.pcs_proof_mles {
             res.push(evaluator.inner_product(evaluation_vec));
         }
+
+        log::log_memory_usage("End");
+
         res
     }
 
