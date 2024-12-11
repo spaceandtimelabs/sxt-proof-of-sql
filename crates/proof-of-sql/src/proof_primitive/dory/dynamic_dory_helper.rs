@@ -5,9 +5,7 @@ use super::{
 use crate::{
     base::{commitment::CommittableColumn, scalar::MontScalar, slice_ops::slice_cast},
     proof_primitive::{
-        dory::{
-            dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs, DoryScalar,
-        },
+        dory::DoryScalar,
         dynamic_matrix_utils::{
             matrix_structure::row_and_column_from_index,
             standard_basis_helper::fold_dynamic_standard_basis_tensors,
@@ -95,29 +93,6 @@ pub(super) fn compute_dynamic_T_vec_prime(
 /// `num_vars` is the number of variables in the polynomial. In other words, it is the length of `b_points`, which is `ceil(log2(len(a)))`.
 pub(super) fn compute_dynamic_nu(num_vars: usize) -> usize {
     num_vars / 2 + 1
-}
-
-/// Compute the hi and lo vectors (or L and R) that are derived from `point`.
-/// L and R are the vectors such that LMR is exactly the evaluation of `a` at the point `point`.
-/// # Panics
-/// This function requires that `point` has length at least as big as the number of rows in `M` that is created by `a`.
-pub(super) fn compute_dynamic_vecs(point: &[F]) -> (Vec<F>, Vec<F>) {
-    let nu = point.len() / 2 + 1;
-    let mut lo_vec = vec![F::ZERO; 1 << nu];
-    let mut hi_vec = vec![F::ZERO; 1 << nu];
-    lo_vec[0] = point.iter().take(nu).map(|b| F::ONE - b).product();
-    hi_vec[0] = point.iter().skip(nu).map(|b| F::ONE - b).product();
-    let standard_basis_point = point
-        .iter()
-        .map(|b| {
-            (F::ONE - b)
-                .inverse()
-                .expect("Values in point cannot be 1.")
-                - F::ONE
-        })
-        .collect_vec();
-    compute_dynamic_standard_basis_vecs(&standard_basis_point, &mut lo_vec, &mut hi_vec);
-    (lo_vec, hi_vec)
 }
 
 /// Folds the `s1` and `s2` tensors:
