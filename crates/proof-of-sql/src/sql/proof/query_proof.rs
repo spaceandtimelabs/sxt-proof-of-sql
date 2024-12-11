@@ -228,6 +228,10 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 Err(ProofError::VerificationError {
                     error: "invalid bit distributions",
                 })?;
+            } else if !dist.is_within_acceptable_range() {
+                Err(ProofError::VerificationError {
+                    error: "bit distribution outside of acceptable range",
+                })?;
             }
         }
 

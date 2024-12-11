@@ -1,22 +1,4 @@
 use crate::base::{bit::BitDistribution, proof::ProofError, scalar::Scalar};
-/// In order to avoid cases with large numbers where there can be both a positive and negative
-/// representation, we restrict the range of bit distributions that we accept.
-///
-/// Currently this is set to be the minimal value that will include the sum of two signed 128-bit
-/// integers. The range will likely be expanded in the future as we support additional expressions.
-pub fn is_within_acceptable_range(dist: &BitDistribution) -> bool {
-    // handle the case of everything zero
-    if dist.num_varying_bits() == 0 && dist.constant_part() == [0; 4] {
-        return true;
-    }
-
-    // signed 128 bit numbers range from
-    //      -2^127 to 2^127-1
-    // the maximum absolute value of the sum of two signed 128-integers is
-    // then
-    //       2 * (2^127) = 2^128
-    dist.most_significant_abs_bit() <= 128
-}
 
 #[allow(
     clippy::missing_panics_doc,
@@ -33,7 +15,7 @@ pub fn verify_constant_sign_decomposition<S: Scalar>(
 ) -> Result<(), ProofError> {
     assert!(
         dist.is_valid()
-            && is_within_acceptable_range(dist)
+            && dist.is_within_acceptable_range()
             && dist.num_varying_bits() == bit_evals.len()
             && !dist.has_varying_sign_bit()
     );
@@ -67,7 +49,7 @@ pub fn verify_constant_abs_decomposition<S: Scalar>(
 ) -> Result<(), ProofError> {
     assert!(
         dist.is_valid()
-            && is_within_acceptable_range(dist)
+            && dist.is_within_acceptable_range()
             && dist.num_varying_bits() == 1
             && dist.has_varying_sign_bit()
     );

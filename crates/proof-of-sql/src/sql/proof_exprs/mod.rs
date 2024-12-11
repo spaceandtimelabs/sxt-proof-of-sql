@@ -21,10 +21,7 @@ use multiply_expr::MultiplyExpr;
 mod multiply_expr_test;
 
 mod bitwise_verification;
-use bitwise_verification::{
-    is_within_acceptable_range, verify_constant_abs_decomposition,
-    verify_constant_sign_decomposition,
-};
+use bitwise_verification::{verify_constant_abs_decomposition, verify_constant_sign_decomposition};
 #[cfg(test)]
 mod bitwise_verification_test;
 

@@ -289,3 +289,26 @@ fn we_can_detect_invalid_bit_distributions() {
     };
     assert!(!dist.is_valid());
 }
+
+#[test]
+fn zero_is_within_range() {
+    let data: Vec<TestScalar> = vec![TestScalar::from(0)];
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
+    assert!(dist.is_within_acceptable_range());
+}
+
+#[test]
+fn the_sum_of_two_signed_128_bit_numbers_is_within_range() {
+    let data: Vec<TestScalar> = vec![TestScalar::from(i128::MIN) + TestScalar::from(i128::MIN)];
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
+    assert!(dist.is_within_acceptable_range());
+}
+
+#[test]
+fn we_reject_distributions_that_are_outside_of_maximum_range() {
+    let data: Vec<TestScalar> = vec![
+        TestScalar::from(u128::MAX) + TestScalar::from(u128::MAX) + TestScalar::from(u128::MAX),
+    ];
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
+    assert!(!dist.is_within_acceptable_range());
+}

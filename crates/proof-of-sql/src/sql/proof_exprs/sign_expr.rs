@@ -1,7 +1,4 @@
-use super::{
-    is_within_acceptable_range, verify_constant_abs_decomposition,
-    verify_constant_sign_decomposition,
-};
+use super::{verify_constant_abs_decomposition, verify_constant_sign_decomposition};
 use crate::{
     base::{
         bit::{compute_varying_bit_matrix, BitDistribution},
@@ -19,11 +16,6 @@ use bumpalo::Bump;
 /// Count the number of components needed to prove a sign decomposition
 pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
     let dist = builder.consume_bit_distribution()?;
-    if !is_within_acceptable_range(&dist) {
-        return Err(ProofError::VerificationError {
-            error: "bit distribution outside of acceptable range",
-        });
-    }
     if dist.num_varying_bits() == 0 {
         return Ok(());
     }
