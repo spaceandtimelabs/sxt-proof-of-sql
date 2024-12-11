@@ -63,6 +63,8 @@ pub(crate) use result_element_serialization::{
 
 mod first_round_builder;
 pub(crate) use first_round_builder::FirstRoundBuilder;
+#[cfg(all(test, feature = "blitzar"))]
+mod first_round_builder_test;
 
 #[cfg(all(test, feature = "arrow"))]
 mod provable_query_result_test;
