@@ -32,7 +32,7 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
             fr_multiplicands_degree1: vec![Zero::zero(); fr.len()],
             fr_multiplicands_rest: vec![],
             zerosum_multiplicands: vec![],
-            fr: fr.to_sumcheck_term(num_sumcheck_variables),
+            fr: fr.to_sumcheck_term(num_sumcheck_variables).into(),
             mles: IndexMap::default(),
         }
     }
@@ -89,8 +89,8 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
                 deduplicated_terms.push(cached_term.clone());
             } else {
                 let new_term = term.to_sumcheck_term(self.num_sumcheck_variables);
-                self.mles.insert(id, new_term.clone());
-                deduplicated_terms.push(new_term);
+                self.mles.insert(id, new_term.clone().into());
+                deduplicated_terms.push(new_term.into());
             }
         }
         deduplicated_terms
@@ -103,7 +103,9 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
         res.add_product(
             [
                 self.fr.clone(),
-                (&self.fr_multiplicands_degree1).to_sumcheck_term(self.num_sumcheck_variables),
+                (&self.fr_multiplicands_degree1)
+                    .to_sumcheck_term(self.num_sumcheck_variables)
+                    .into(),
             ],
             One::one(),
         );
