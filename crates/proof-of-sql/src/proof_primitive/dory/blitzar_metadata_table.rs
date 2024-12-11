@@ -57,6 +57,10 @@ pub fn signed_commits(
     all_sub_commits: &Vec<G1Affine>,
     committable_columns: &[CommittableColumn],
 ) -> Vec<G1Affine> {
+    if committable_columns.is_empty() {
+        return vec![];
+    }
+
     if_rayon!(
         all_sub_commits.par_chunks_exact(committable_columns.len() * 2),
         all_sub_commits.chunks_exact(committable_columns.len() * 2)
@@ -143,6 +147,10 @@ pub fn create_blitzar_metadata_tables(
     committable_columns: &[CommittableColumn],
     offset: usize,
 ) -> (Vec<u32>, Vec<u32>, Vec<u8>) {
+    if committable_columns.is_empty() {
+        return (vec![], vec![], vec![]);
+    }
+
     // Keep track of the lengths of the columns to handled signed data columns.
     let ones_columns_lengths = committable_columns
         .iter()
@@ -296,6 +304,11 @@ mod tests {
             scalars, expected_scalars,
             "Scalars mismatch for offset {offset}"
         );
+    }
+
+    #[test]
+    fn we_can_handle_empty_committable_columns_in_blitzar_metadata_tables() {
+        assert_blitzar_metadata(&[], 0, &[], &[], &[]);
     }
 
     #[test]
