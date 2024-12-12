@@ -5,9 +5,13 @@ use super::{
 use crate::base::{
     commitment::{CommitmentEvaluationProof, VecCommitmentExt},
     map::IndexMap,
+    sqlparser::normalize_ident,
 };
+use proof_of_sql_parser::{Identifier, ResourceId};
 use alloc::vec::Vec;
 use sqlparser::ast::Ident;
+use ark_std::hash::BuildHasherDefault;
+
 
 /// A test accessor that uses [`Table`] as the underlying table type.
 /// Note: this is intended for testing and examples. It is not optimized for performance, so should not be used for benchmarks or production use-cases.
@@ -42,7 +46,31 @@ impl<'a, CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment> for TableTe
     }
 
     fn add_table(&mut self, table_ref: TableRef, data: Self::Table, table_offset: usize) {
-        self.tables.insert(table_ref, (data, table_offset));
+        // Normalize the table reference (schema and object name)
+        let normalized_table_ref = TableRef::new(ResourceId::new(
+            Identifier::try_from(Ident::new(normalize_ident(
+                table_ref.resource_id().schema().into(),
+            )))
+            .expect("Failed to convert Ident to Identifier"),
+            Identifier::try_from(Ident::new(normalize_ident(
+                table_ref.resource_id().object_name().into(),
+            )))
+            .expect("Failed to convert Ident to Identifier"),
+        ));
+
+        // Normalize column names within the table
+        let normalized_data = {
+            let mut normalized_table =
+                IndexMap::with_capacity_and_hasher(0, BuildHasherDefault::default());
+            for (ident, column) in data.into_inner() {
+                let normalized_ident = Ident::new(normalize_ident(ident));
+                normalized_table.insert(normalized_ident, column);
+            }
+            Table::try_new(normalized_table)
+                .expect("Column lengths must match")
+        };
+        self.tables
+            .insert(normalized_table_ref, (normalized_data, table_offset));
     }
     ///
     /// # Panics
