@@ -1,12 +1,12 @@
-use super::{
-    dynamic_dory_structure::{
-        full_width_of_row, index_from_row_and_column, matrix_size, row_and_column_from_index,
-    },
-    G1Affine, F,
-};
+use super::{G1Affine, F};
 use crate::{
     base::{commitment::CommittableColumn, database::ColumnType, if_rayon},
-    proof_primitive::dory::offset_to_bytes::OffsetToBytes,
+    proof_primitive::{
+        dory::offset_to_bytes::OffsetToBytes,
+        dynamic_matrix_utils::matrix_structure::{
+            full_width_of_row, index_from_row_and_column, matrix_size, row_and_column_from_index,
+        },
+    },
 };
 use alloc::{vec, vec::Vec};
 use ark_ec::CurveGroup;

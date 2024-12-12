@@ -1,8 +1,10 @@
-use super::{
-    dynamic_dory_structure::{full_width_of_row, row_and_column_from_index, row_start_index},
-    pairings, DoryScalar, DynamicDoryCommitment, G1Projective, ProverSetup, GT,
+use super::{pairings, DoryScalar, DynamicDoryCommitment, G1Projective, ProverSetup, GT};
+use crate::{
+    base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast},
+    proof_primitive::dynamic_matrix_utils::matrix_structure::{
+        full_width_of_row, row_and_column_from_index, row_start_index,
+    },
 };
-use crate::base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast};
 use alloc::vec::Vec;
 use ark_ec::VariableBaseMSM;
 use bytemuck::TransparentWrapper;
