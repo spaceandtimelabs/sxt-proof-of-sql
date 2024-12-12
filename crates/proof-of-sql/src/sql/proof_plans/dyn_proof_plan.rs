@@ -7,8 +7,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{
-        CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
-        VerificationBuilder,
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
     },
 };
 use alloc::vec::Vec;

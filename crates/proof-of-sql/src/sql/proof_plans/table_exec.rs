@@ -6,8 +6,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{
-        CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
-        VerificationBuilder,
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
     },
 };
 use alloc::vec::Vec;
@@ -34,10 +33,6 @@ impl TableExec {
 }
 
 impl ProofPlan for TableExec {
-    fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
-        Ok(())
-    }
-
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,

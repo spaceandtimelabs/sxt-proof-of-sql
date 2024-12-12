@@ -12,8 +12,8 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, HonestProver, ProofPlan,
-            ProverEvaluate, ProverHonestyMarker, SumcheckSubpolynomialType, VerificationBuilder,
+            FinalRoundBuilder, FirstRoundBuilder, HonestProver, ProofPlan, ProverEvaluate,
+            ProverHonestyMarker, SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
     },
@@ -59,19 +59,6 @@ impl<H: ProverHonestyMarker> ProofPlan for OstensibleFilterExec<H>
 where
     OstensibleFilterExec<H>: ProverEvaluate,
 {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.where_clause.count(builder)?;
-        for aliased_expr in &self.aliased_results {
-            aliased_expr.expr.count(builder)?;
-            builder.count_intermediate_mles(1);
-        }
-        builder.count_intermediate_mles(2);
-        builder.count_subpolynomials(3);
-        builder.count_degree(3);
-        builder.count_post_result_challenges(2);
-        Ok(())
-    }
-
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
@@ -99,13 +86,14 @@ where
                 .collect::<Result<Vec<_>, _>>()?,
         );
         // 3. filtered_columns
-        let filtered_columns_evals = builder.consume_mle_evaluations(self.aliased_results.len());
+        let filtered_columns_evals =
+            builder.try_consume_mle_evaluations(self.aliased_results.len())?;
         assert!(filtered_columns_evals.len() == self.aliased_results.len());
 
-        let alpha = builder.consume_post_result_challenge();
-        let beta = builder.consume_post_result_challenge();
+        let alpha = builder.try_consume_post_result_challenge()?;
+        let beta = builder.try_consume_post_result_challenge()?;
 
-        let output_one_eval = builder.consume_one_evaluation();
+        let output_one_eval = builder.try_consume_one_evaluation()?;
 
         verify_filter(
             builder,
@@ -260,26 +248,29 @@ pub(super) fn verify_filter<S: Scalar>(
 ) -> Result<(), ProofError> {
     let c_fold_eval = alpha * fold_vals(beta, c_evals);
     let d_fold_eval = alpha * fold_vals(beta, d_evals);
-    let c_star_eval = builder.consume_mle_evaluation();
-    let d_star_eval = builder.consume_mle_evaluation();
+    let c_star_eval = builder.try_consume_mle_evaluation()?;
+    let d_star_eval = builder.try_consume_mle_evaluation()?;
 
     // sum c_star * s - d_star = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::ZeroSum,
         c_star_eval * s_eval - d_star_eval,
-    );
+        2,
+    )?;
 
     // c_star + c_fold * c_star - input_ones = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         c_star_eval + c_fold_eval * c_star_eval - one_eval,
-    );
+        2,
+    )?;
 
     // d_star + d_fold * d_star - chi = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         d_star_eval + d_fold_eval * d_star_eval - chi_eval,
-    );
+        2,
+    )?;
 
     Ok(())
 }

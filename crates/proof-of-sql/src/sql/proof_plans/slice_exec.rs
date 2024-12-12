@@ -13,8 +13,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{
-        CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
-        VerificationBuilder,
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
     },
 };
 use alloc::{boxed::Box, vec::Vec};
@@ -55,16 +54,6 @@ impl ProofPlan for SliceExec
 where
     SliceExec: ProverEvaluate,
 {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.input.count(builder)?;
-        builder.count_intermediate_mles(self.input.get_column_result_fields().len());
-        builder.count_intermediate_mles(2);
-        builder.count_subpolynomials(3);
-        builder.count_degree(3);
-        builder.count_post_result_challenges(2);
-        Ok(())
-    }
-
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
@@ -77,17 +66,17 @@ where
         let input_table_eval =
             self.input
                 .verifier_evaluate(builder, accessor, None, one_eval_map)?;
-        let output_one_eval = builder.consume_one_evaluation();
+        let output_one_eval = builder.try_consume_one_evaluation()?;
         let columns_evals = input_table_eval.column_evals();
         // 2. selection
         // The selected range is (offset_index, max_index]
-        let offset_one_eval = builder.consume_one_evaluation();
-        let max_one_eval = builder.consume_one_evaluation();
+        let offset_one_eval = builder.try_consume_one_evaluation()?;
+        let max_one_eval = builder.try_consume_one_evaluation()?;
         let selection_eval = max_one_eval - offset_one_eval;
         // 3. filtered_columns
-        let filtered_columns_evals = builder.consume_mle_evaluations(columns_evals.len());
-        let alpha = builder.consume_post_result_challenge();
-        let beta = builder.consume_post_result_challenge();
+        let filtered_columns_evals = builder.try_consume_mle_evaluations(columns_evals.len())?;
+        let alpha = builder.try_consume_post_result_challenge()?;
+        let beta = builder.try_consume_post_result_challenge()?;
 
         verify_filter(
             builder,

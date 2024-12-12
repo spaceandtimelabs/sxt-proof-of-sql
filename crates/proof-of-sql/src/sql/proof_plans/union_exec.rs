@@ -12,8 +12,8 @@ use crate::{
         slice_ops,
     },
     sql::proof::{
-        CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
-        SumcheckSubpolynomialType, VerificationBuilder,
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, SumcheckSubpolynomialType,
+        VerificationBuilder,
     },
 };
 use alloc::{boxed::Box, vec, vec::Vec};
@@ -47,18 +47,6 @@ impl ProofPlan for UnionExec
 where
     UnionExec: ProverEvaluate,
 {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        let num_parts = self.inputs.len();
-        self.inputs
-            .iter()
-            .try_for_each(|input| input.count(builder))?;
-        builder.count_intermediate_mles(num_parts + self.schema.len() + 1);
-        builder.count_subpolynomials(num_parts + 2);
-        builder.count_degree(3);
-        builder.count_post_result_challenges(2);
-        Ok(())
-    }
-
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
@@ -77,14 +65,14 @@ where
             .iter()
             .map(TableEvaluation::column_evals)
             .collect::<Vec<_>>();
-        let output_column_evals = builder.consume_mle_evaluations(self.schema.len());
+        let output_column_evals = builder.try_consume_mle_evaluations(self.schema.len())?;
         let input_one_evals = input_table_evals
             .iter()
             .map(TableEvaluation::one_eval)
             .collect::<Vec<_>>();
-        let output_one_eval = builder.consume_one_evaluation();
-        let gamma = builder.consume_post_result_challenge();
-        let beta = builder.consume_post_result_challenge();
+        let output_one_eval = builder.try_consume_one_evaluation()?;
+        let gamma = builder.try_consume_post_result_challenge()?;
+        let beta = builder.try_consume_post_result_challenge()?;
         verify_union(
             builder,
             gamma,
@@ -93,7 +81,7 @@ where
             &output_column_evals,
             &input_one_evals,
             output_one_eval,
-        );
+        )?;
         Ok(TableEvaluation::new(output_column_evals, output_one_eval))
     }
 
@@ -189,41 +177,45 @@ fn verify_union<S: Scalar>(
     output_eval: &[S],
     input_one_evals: &[S],
     output_one_eval: S,
-) {
+) -> Result<(), ProofError> {
     assert_eq!(input_evals.len(), input_one_evals.len());
     let c_star_evals = input_evals
         .iter()
         .zip(input_one_evals)
-        .map(|(&input_eval, &input_one_eval)| {
+        .map(|(&input_eval, &input_one_eval)| -> Result<_, ProofError> {
             let c_fold_eval = gamma * fold_vals(beta, input_eval);
-            let c_star_eval = builder.consume_mle_evaluation();
+            let c_star_eval = builder.try_consume_mle_evaluation()?;
             // c_star + c_fold * c_star - input_ones = 0
-            builder.produce_sumcheck_subpolynomial_evaluation(
+            builder.try_produce_sumcheck_subpolynomial_evaluation(
                 SumcheckSubpolynomialType::Identity,
                 c_star_eval + c_fold_eval * c_star_eval - input_one_eval,
-            );
-            c_star_eval
+                2,
+            )?;
+            Ok(c_star_eval)
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
 
     let d_bar_fold_eval = gamma * fold_vals(beta, output_eval);
-    let d_star_eval = builder.consume_mle_evaluation();
+    let d_star_eval = builder.try_consume_mle_evaluation()?;
 
     // d_star + d_bar_fold * d_star - output_ones = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         d_star_eval + d_bar_fold_eval * d_star_eval - output_one_eval,
-    );
+        2,
+    )?;
 
     // sum (sum c_star) - d_star = 0
     let zero_sum_terms_eval = c_star_evals
         .into_iter()
         .chain(core::iter::once(-d_star_eval))
         .sum::<S>();
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::ZeroSum,
         zero_sum_terms_eval,
-    );
+        1,
+    )?;
+    Ok(())
 }
 
 /// Proves the union of tables.

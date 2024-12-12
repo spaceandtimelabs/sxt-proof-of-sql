@@ -6,7 +6,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
@@ -27,13 +27,6 @@ impl OrExpr {
 }
 
 impl ProofExpr for OrExpr {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.lhs.count(builder)?;
-        self.rhs.count(builder)?;
-        count_or(builder);
-        Ok(())
-    }
-
     fn data_type(&self) -> ColumnType {
         ColumnType::Boolean
     }
@@ -74,7 +67,7 @@ impl ProofExpr for OrExpr {
         let lhs = self.lhs.verifier_evaluate(builder, accessor, one_eval)?;
         let rhs = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
 
-        Ok(verifier_evaluate_or(builder, &lhs, &rhs))
+        verifier_evaluate_or(builder, &lhs, &rhs)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
@@ -132,22 +125,17 @@ pub fn verifier_evaluate_or<S: Scalar>(
     builder: &mut VerificationBuilder<S>,
     lhs: &S,
     rhs: &S,
-) -> S {
+) -> Result<S, ProofError> {
     // lhs_and_rhs
-    let lhs_and_rhs = builder.consume_mle_evaluation();
+    let lhs_and_rhs = builder.try_consume_mle_evaluation()?;
 
     // subpolynomial: lhs_and_rhs - lhs * rhs
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         lhs_and_rhs - *lhs * *rhs,
-    );
+        2,
+    )?;
 
     // selection
-    *lhs + *rhs - lhs_and_rhs
-}
-
-pub fn count_or(builder: &mut CountBuilder) {
-    builder.count_subpolynomials(1);
-    builder.count_intermediate_mles(1);
-    builder.count_degree(3);
+    Ok(*lhs + *rhs - lhs_and_rhs)
 }

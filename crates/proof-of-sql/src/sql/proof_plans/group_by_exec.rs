@@ -14,7 +14,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
             SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
@@ -67,25 +67,6 @@ impl GroupByExec {
 }
 
 impl ProofPlan for GroupByExec {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.where_clause.count(builder)?;
-        for expr in &self.group_by_exprs {
-            expr.count(builder)?;
-            builder.count_intermediate_mles(1);
-        }
-        for aliased_expr in &self.sum_expr {
-            aliased_expr.expr.count(builder)?;
-            builder.count_intermediate_mles(1);
-        }
-        // For the count col
-        builder.count_intermediate_mles(1);
-        builder.count_intermediate_mles(2);
-        builder.count_subpolynomials(3);
-        builder.count_degree(3);
-        builder.count_post_result_challenges(2);
-        Ok(())
-    }
-
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
@@ -118,13 +99,13 @@ impl ProofPlan for GroupByExec {
             .collect::<Result<Vec<_>, _>>()?;
         // 3. filtered_columns
         let group_by_result_columns_evals =
-            builder.consume_mle_evaluations(self.group_by_exprs.len());
-        let sum_result_columns_evals = builder.consume_mle_evaluations(self.sum_expr.len());
-        let count_column_eval = builder.consume_mle_evaluation();
+            builder.try_consume_mle_evaluations(self.group_by_exprs.len())?;
+        let sum_result_columns_evals = builder.try_consume_mle_evaluations(self.sum_expr.len())?;
+        let count_column_eval = builder.try_consume_mle_evaluation()?;
 
-        let alpha = builder.consume_post_result_challenge();
-        let beta = builder.consume_post_result_challenge();
-        let output_one_eval = builder.consume_one_evaluation();
+        let alpha = builder.try_consume_post_result_challenge()?;
+        let beta = builder.try_consume_post_result_challenge()?;
+        let output_one_eval = builder.try_consume_one_evaluation()?;
 
         verify_group_by(
             builder,
@@ -354,26 +335,29 @@ fn verify_group_by<S: Scalar>(
     // sum_out_fold = count_out + sum beta^(j+1) * sum_out[j]
     let sum_out_fold_eval = count_out_eval + beta * fold_vals(beta, &sum_out_evals);
 
-    let g_in_star_eval = builder.consume_mle_evaluation();
-    let g_out_star_eval = builder.consume_mle_evaluation();
+    let g_in_star_eval = builder.try_consume_mle_evaluation()?;
+    let g_out_star_eval = builder.try_consume_mle_evaluation()?;
 
     // sum g_in_star * sel_in * sum_in_fold - g_out_star * sum_out_fold = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::ZeroSum,
         g_in_star_eval * sel_in_eval * sum_in_fold_eval - g_out_star_eval * sum_out_fold_eval,
-    );
+        3,
+    )?;
 
     // g_in_star + g_in_star * g_in_fold - input_ones = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         g_in_star_eval + g_in_star_eval * g_in_fold_eval - input_one_eval,
-    );
+        2,
+    )?;
 
     // g_out_star + g_out_star * g_out_fold - output_ones = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         g_out_star_eval + g_out_star_eval * g_out_fold_eval - output_one_eval,
-    );
+        2,
+    )?;
 
     Ok(())
 }

@@ -1,5 +1,5 @@
 use super::{SumcheckMleEvaluations, SumcheckSubpolynomialType};
-use crate::base::{bit::BitDistribution, scalar::Scalar};
+use crate::base::{bit::BitDistribution, proof::ProofSizeMismatch, scalar::Scalar};
 use alloc::vec::Vec;
 use core::iter;
 
@@ -22,6 +22,7 @@ pub struct VerificationBuilder<'a, S: Scalar> {
     /// challenge is the last entry in the vector.
     post_result_challenges: Vec<S>,
     one_evaluation_length_queue: Vec<usize>,
+    subpolynomial_max_multiplicands: usize,
 }
 
 impl<'a, S: Scalar> VerificationBuilder<'a, S> {
@@ -36,6 +37,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         subpolynomial_multipliers: &'a [S],
         post_result_challenges: Vec<S>,
         one_evaluation_length_queue: Vec<usize>,
+        subpolynomial_max_multiplicands: usize,
     ) -> Self {
         Self {
             mle_evaluations,
@@ -48,6 +50,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             produced_subpolynomials: 0,
             post_result_challenges,
             one_evaluation_length_queue,
+            subpolynomial_max_multiplicands,
         }
     }
 
@@ -55,15 +58,19 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     ///
     /// # Panics
     /// It should never panic, as the length of the one evaluation is guaranteed to be present
-    pub fn consume_one_evaluation(&mut self) -> S {
+    pub fn try_consume_one_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         let index = self.consumed_one_evaluations;
-        let length = self.one_evaluation_length_queue[index];
+        let length = self
+            .one_evaluation_length_queue
+            .get(index)
+            .copied()
+            .ok_or(ProofSizeMismatch::TooFewOneLengths)?;
         self.consumed_one_evaluations += 1;
-        *self
+        Ok(*self
             .mle_evaluations
             .one_evaluations
             .get(&length)
-            .expect("One evaluation not found")
+            .expect("One evaluation not found"))
     }
 
     pub fn generator_offset(&self) -> usize {
@@ -73,41 +80,66 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment
-    pub fn consume_mle_evaluation(&mut self) -> S {
+    pub fn try_consume_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         let index = self.consumed_pcs_proof_mles;
         self.consumed_pcs_proof_mles += 1;
-        self.mle_evaluations.pcs_proof_evaluations[index]
+        self.mle_evaluations
+            .pcs_proof_evaluations
+            .get(index)
+            .copied()
+            .ok_or(ProofSizeMismatch::TooFewMLEEvaluations)
     }
 
     /// Consume multiple MLE evaluations
-    pub fn consume_mle_evaluations(&mut self, count: usize) -> Vec<S> {
-        iter::repeat_with(|| self.consume_mle_evaluation())
+    pub fn try_consume_mle_evaluations(
+        &mut self,
+        count: usize,
+    ) -> Result<Vec<S>, ProofSizeMismatch> {
+        iter::repeat_with(|| self.try_consume_mle_evaluation())
             .take(count)
             .collect()
     }
 
     /// Consume a bit distribution that describes which bits are constant
     /// and which bits varying in a column of data
-    pub fn consume_bit_distribution(&mut self) -> BitDistribution {
-        let res = self.bit_distributions[0].clone();
+    pub fn try_consume_bit_distribution(&mut self) -> Result<BitDistribution, ProofSizeMismatch> {
+        let res = self
+            .bit_distributions
+            .first()
+            .cloned()
+            .ok_or(ProofSizeMismatch::TooFewBitDistributions)?;
         self.bit_distributions = &self.bit_distributions[1..];
-        res
+        Ok(res)
     }
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
-    pub fn produce_sumcheck_subpolynomial_evaluation(
+    pub fn try_produce_sumcheck_subpolynomial_evaluation(
         &mut self,
         subpolynomial_type: SumcheckSubpolynomialType,
         eval: S,
-    ) {
-        self.sumcheck_evaluation += self.subpolynomial_multipliers[self.produced_subpolynomials]
+        degree: usize,
+    ) -> Result<(), ProofSizeMismatch> {
+        self.sumcheck_evaluation += self
+            .subpolynomial_multipliers
+            .get(self.produced_subpolynomials)
+            .copied()
+            .ok_or(ProofSizeMismatch::ConstraintCountMismatch)?
             * match subpolynomial_type {
                 SumcheckSubpolynomialType::Identity => {
+                    if degree + 1 > self.subpolynomial_max_multiplicands {
+                        Err(ProofSizeMismatch::SumcheckProofTooSmall)?;
+                    }
                     eval * self.mle_evaluations.random_evaluation
                 }
-                SumcheckSubpolynomialType::ZeroSum => eval,
+                SumcheckSubpolynomialType::ZeroSum => {
+                    if degree > self.subpolynomial_max_multiplicands {
+                        Err(ProofSizeMismatch::SumcheckProofTooSmall)?;
+                    }
+                    eval
+                }
             };
         self.produced_subpolynomials += 1;
+        Ok(())
     }
 
     #[allow(
@@ -141,7 +173,9 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     /// # Panics
     /// This function will panic if `post_result_challenges` is empty,
     /// as it attempts to pop an element from the vector and unwraps the result.
-    pub fn consume_post_result_challenge(&mut self) -> S {
-        self.post_result_challenges.pop().unwrap()
+    pub fn try_consume_post_result_challenge(&mut self) -> Result<S, ProofSizeMismatch> {
+        self.post_result_challenges
+            .pop()
+            .ok_or(ProofSizeMismatch::PostResultCountMismatch)
     }
 }

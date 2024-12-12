@@ -1,7 +1,4 @@
-use super::{
-    is_within_acceptable_range, verify_constant_abs_decomposition,
-    verify_constant_sign_decomposition,
-};
+use super::{verify_constant_abs_decomposition, verify_constant_sign_decomposition};
 use crate::{
     base::{
         bit::{compute_varying_bit_matrix, BitDistribution},
@@ -9,32 +6,12 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{
-        CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
+        FinalRoundBuilder, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
         VerificationBuilder,
     },
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
-
-/// Count the number of components needed to prove a sign decomposition
-pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
-    let dist = builder.consume_bit_distribution()?;
-    if !is_within_acceptable_range(&dist) {
-        return Err(ProofError::VerificationError {
-            error: "bit distribution outside of acceptable range",
-        });
-    }
-    if dist.num_varying_bits() == 0 {
-        return Ok(());
-    }
-    builder.count_intermediate_mles(dist.num_varying_bits());
-    builder.count_subpolynomials(dist.num_varying_bits());
-    builder.count_degree(3);
-    if dist.has_varying_sign_bit() && dist.num_varying_bits() > 1 {
-        builder.count_subpolynomials(1);
-    }
-    Ok(())
-}
 
 /// Compute the sign bit for a column of scalars.
 ///
@@ -129,19 +106,19 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     one_eval: S,
 ) -> Result<S, ProofError> {
     // bit_distribution
-    let dist = builder.consume_bit_distribution();
+    let dist = builder.try_consume_bit_distribution()?;
     let num_varying_bits = dist.num_varying_bits();
 
     // extract evaluations and commitmens of the multilinear extensions for the varying
     // bits of the expression
     let mut bit_evals = Vec::with_capacity(num_varying_bits);
     for _ in 0..num_varying_bits {
-        let eval = builder.consume_mle_evaluation();
+        let eval = builder.try_consume_mle_evaluation()?;
         bit_evals.push(eval);
     }
 
     // establish that the bits are binary
-    verify_bits_are_binary(builder, &bit_evals);
+    verify_bits_are_binary(builder, &bit_evals)?;
 
     // handle the special case of the sign bit being constant
     if !dist.has_varying_sign_bit() {
@@ -152,7 +129,7 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     if dist.num_varying_bits() == 1 {
         verify_constant_abs_decomposition(&dist, eval, one_eval, bit_evals[0])?;
     } else {
-        verify_bit_decomposition(builder, eval, one_eval, &bit_evals, &dist);
+        verify_bit_decomposition(builder, eval, one_eval, &bit_evals, &dist)?;
     }
 
     Ok(*bit_evals.last().unwrap())
@@ -188,13 +165,18 @@ fn prove_bits_are_binary<'a, S: Scalar>(
     }
 }
 
-fn verify_bits_are_binary<S: Scalar>(builder: &mut VerificationBuilder<S>, bit_evals: &[S]) {
+fn verify_bits_are_binary<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    bit_evals: &[S],
+) -> Result<(), ProofError> {
     for bit_eval in bit_evals {
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             *bit_eval - *bit_eval * *bit_eval,
-        );
+            2,
+        )?;
     }
+    Ok(())
 }
 
 /// # Panics
@@ -244,7 +226,7 @@ fn verify_bit_decomposition<S: Scalar>(
     one_eval: S,
     bit_evals: &[S],
     dist: &BitDistribution,
-) {
+) -> Result<(), ProofError> {
     let mut eval = expr_eval;
     let sign_eval = bit_evals.last().unwrap();
     let sign_eval = one_eval - S::TWO * *sign_eval;
@@ -257,5 +239,10 @@ fn verify_bit_decomposition<S: Scalar>(
         eval -= S::from(mult) * sign_eval * bit_eval;
         vary_index += 1;
     });
-    builder.produce_sumcheck_subpolynomial_evaluation(SumcheckSubpolynomialType::Identity, eval);
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
+        SumcheckSubpolynomialType::Identity,
+        eval,
+        2,
+    )?;
+    Ok(())
 }

@@ -6,7 +6,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -26,10 +26,6 @@ impl NotExpr {
 }
 
 impl ProofExpr for NotExpr {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.expr.count(builder)
-    }
-
     fn data_type(&self) -> ColumnType {
         ColumnType::Boolean
     }

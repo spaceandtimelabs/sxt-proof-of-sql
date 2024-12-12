@@ -6,7 +6,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -30,10 +30,7 @@ impl AggregateExpr {
 }
 
 impl ProofExpr for AggregateExpr {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        self.expr.count(builder)
-    }
-
+    // Remove the count method
     fn data_type(&self) -> ColumnType {
         match self.op {
             AggregationOperator::Count => ColumnType::BigInt,

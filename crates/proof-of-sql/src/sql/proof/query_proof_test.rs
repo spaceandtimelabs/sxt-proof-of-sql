@@ -1,8 +1,7 @@
-use super::{
-    CountBuilder, FinalRoundBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder,
-};
+use super::{FinalRoundBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder};
 use crate::{
     base::{
+        bit::BitDistribution,
         commitment::InnerProductProof,
         database::{
             owned_table_utility::{bigint, owned_table},
@@ -28,7 +27,8 @@ struct TrivialTestProofPlan {
     offset: usize,
     column_fill_value: i64,
     evaluation: i64,
-    anchored_mle_count: usize,
+    produce_length: bool,
+    bit_distribution: Option<BitDistribution>,
 }
 impl Default for TrivialTestProofPlan {
     fn default() -> Self {
@@ -37,7 +37,11 @@ impl Default for TrivialTestProofPlan {
             offset: 0,
             column_fill_value: 0,
             evaluation: 0,
-            anchored_mle_count: 0,
+            produce_length: true,
+            bit_distribution: Some(BitDistribution {
+                or_all: [0; 4],
+                vary_mask: [0; 4],
+            }),
         }
     }
 }
@@ -49,7 +53,9 @@ impl ProverEvaluate for TrivialTestProofPlan {
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         let col = vec![self.column_fill_value; self.length];
-        builder.produce_one_evaluation_length(self.length);
+        if self.produce_length {
+            builder.produce_one_evaluation_length(self.length);
+        }
         table([borrowed_bigint("a1", col, alloc)])
     }
 
@@ -65,6 +71,9 @@ impl ProverEvaluate for TrivialTestProofPlan {
             SumcheckSubpolynomialType::Identity,
             vec![(S::ONE, vec![Box::new(col as &[_])])],
         );
+        if let Some(bit_distribution) = &self.bit_distribution {
+            builder.produce_bit_distribution(bit_distribution.clone());
+        }
         table([borrowed_bigint(
             "a1",
             vec![self.column_fill_value; self.length],
@@ -73,13 +82,6 @@ impl ProverEvaluate for TrivialTestProofPlan {
     }
 }
 impl ProofPlan for TrivialTestProofPlan {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_degree(2);
-        builder.count_intermediate_mles(1);
-        builder.count_subpolynomials(1);
-        builder.count_anchored_mles(self.anchored_mle_count);
-        Ok(())
-    }
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,
@@ -87,14 +89,16 @@ impl ProofPlan for TrivialTestProofPlan {
         _result: Option<&OwnedTable<S>>,
         _one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        assert_eq!(builder.consume_mle_evaluation(), S::ZERO);
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        assert_eq!(builder.try_consume_mle_evaluation()?, S::ZERO);
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::ZeroSum,
             S::from(self.evaluation),
-        );
+            1,
+        )?;
+        let _ = builder.try_consume_bit_distribution()?;
         Ok(TableEvaluation::new(
             vec![S::ZERO],
-            builder.consume_one_evaluation(),
+            builder.try_consume_one_evaluation()?,
         ))
     }
     ///
@@ -192,7 +196,42 @@ fn verify_fails_if_counts_dont_match() {
     // prove and verify an artificial polynomial where we try to prove
     // that every entry in the result is zero
     let expr = TrivialTestProofPlan {
-        anchored_mle_count: 1,
+        produce_length: false,
+        ..Default::default()
+    };
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [0_i64; 2])]),
+        0,
+        (),
+    );
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
+    assert!(proof.verify(&expr, &accessor, result, &()).is_err());
+}
+
+#[test]
+fn verify_fails_if_the_number_of_bit_distributions_is_not_enough() {
+    let expr = TrivialTestProofPlan {
+        bit_distribution: None,
+        ..Default::default()
+    };
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [0_i64; 2])]),
+        0,
+        (),
+    );
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
+    assert!(proof.verify(&expr, &accessor, result, &()).is_err());
+}
+
+#[test]
+fn verify_fails_if_a_bit_distribution_is_invalid() {
+    let expr = TrivialTestProofPlan {
+        bit_distribution: Some(BitDistribution {
+            or_all: [1; 4],
+            vary_mask: [1; 4],
+        }),
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
@@ -257,12 +296,6 @@ impl ProverEvaluate for SquareTestProofPlan {
     }
 }
 impl ProofPlan for SquareTestProofPlan {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_degree(3);
-        builder.count_intermediate_mles(1);
-        builder.count_subpolynomials(1);
-        Ok(())
-    }
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,
@@ -278,14 +311,15 @@ impl ProofPlan for SquareTestProofPlan {
                     ColumnType::BigInt,
                 ))
                 .unwrap();
-        let res_eval = builder.consume_mle_evaluation();
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        let res_eval = builder.try_consume_mle_evaluation()?;
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             res_eval - x_eval * x_eval,
-        );
+            2,
+        )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
-            builder.consume_one_evaluation(),
+            builder.try_consume_one_evaluation()?,
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -454,12 +488,6 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
     }
 }
 impl ProofPlan for DoubleSquareTestProofPlan {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_degree(3);
-        builder.count_intermediate_mles(2);
-        builder.count_subpolynomials(2);
-        Ok(())
-    }
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,
@@ -474,23 +502,25 @@ impl ProofPlan for DoubleSquareTestProofPlan {
                 ColumnType::BigInt,
             ))
             .unwrap();
-        let z_eval = builder.consume_mle_evaluation();
-        let res_eval = builder.consume_mle_evaluation();
+        let z_eval = builder.try_consume_mle_evaluation()?;
+        let res_eval = builder.try_consume_mle_evaluation()?;
 
         // poly1
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             z_eval - x_eval * x_eval,
-        );
+            2,
+        )?;
 
         // poly2
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             res_eval - z_eval * z_eval,
-        );
+            2,
+        )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
-            builder.consume_one_evaluation(),
+            builder.try_consume_one_evaluation()?,
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -658,13 +688,6 @@ impl ProverEvaluate for ChallengeTestProofPlan {
     }
 }
 impl ProofPlan for ChallengeTestProofPlan {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_degree(3);
-        builder.count_intermediate_mles(1);
-        builder.count_subpolynomials(1);
-        builder.count_post_result_challenges(2);
-        Ok(())
-    }
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,
@@ -672,8 +695,8 @@ impl ProofPlan for ChallengeTestProofPlan {
         _result: Option<&OwnedTable<S>>,
         _one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        let alpha = builder.consume_post_result_challenge();
-        let _beta = builder.consume_post_result_challenge();
+        let alpha = builder.try_consume_post_result_challenge()?;
+        let _beta = builder.try_consume_post_result_challenge()?;
         let x_eval = *accessor
             .get(&ColumnRef::new(
                 "sxt.test".parse().unwrap(),
@@ -681,14 +704,15 @@ impl ProofPlan for ChallengeTestProofPlan {
                 ColumnType::BigInt,
             ))
             .unwrap();
-        let res_eval = builder.consume_mle_evaluation();
-        builder.produce_sumcheck_subpolynomial_evaluation(
+        let res_eval = builder.try_consume_mle_evaluation()?;
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             alpha * res_eval - alpha * x_eval * x_eval,
-        );
+            2,
+        )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
-            builder.consume_one_evaluation(),
+            builder.try_consume_one_evaluation()?,
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

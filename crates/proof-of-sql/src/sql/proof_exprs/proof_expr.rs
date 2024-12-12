@@ -5,7 +5,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use core::fmt::Debug;
@@ -13,9 +13,6 @@ use core::fmt::Debug;
 /// Provable AST column expression that evaluates to a `Column`
 #[enum_dispatch::enum_dispatch(DynProofExpr)]
 pub trait ProofExpr: Debug + Send + Sync {
-    /// Count the number of proof terms needed for this expression
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError>;
-
     /// Get the data type of the expression
     fn data_type(&self) -> ColumnType;
 

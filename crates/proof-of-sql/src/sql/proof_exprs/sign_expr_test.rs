@@ -1,9 +1,8 @@
-use super::{count_sign, prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
+use super::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
 use crate::{
     base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Curve25519Scalar},
     sql::proof::{
-        CountBuilder, FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
-        VerificationBuilder,
+        FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -34,21 +33,6 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_colum
 }
 
 #[test]
-fn count_fails_if_a_bit_distribution_is_out_of_range() {
-    let dists = [BitDistribution::new::<Curve25519Scalar, _>(&[
-        Curve25519Scalar::from(3) * Curve25519Scalar::from(u128::MAX),
-    ])];
-    let mut builder = CountBuilder::new(&dists);
-    assert!(count_sign(&mut builder).is_err());
-}
-
-#[test]
-fn count_fails_if_no_bit_distribution_is_available() {
-    let mut builder = CountBuilder::new(&[]);
-    assert!(count_sign(&mut builder).is_err());
-}
-
-#[test]
 fn we_can_verify_a_constant_decomposition() {
     let data = [123_i64, 123, 123];
 
@@ -66,8 +50,15 @@ fn we_can_verify_a_constant_decomposition() {
     let one_evals = sumcheck_evaluations.one_evaluations.clone();
     let one_eval = one_evals.values().next().unwrap();
 
-    let mut builder =
-        VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], Vec::new(), Vec::new());
+    let mut builder = VerificationBuilder::new(
+        0,
+        sumcheck_evaluations,
+        &dists,
+        &[],
+        Vec::new(),
+        Vec::new(),
+        3,
+    );
     let data_eval = (&data).evaluate_at_point(&evaluation_point);
     let eval = verifier_evaluate_sign(&mut builder, data_eval, *one_eval).unwrap();
     assert_eq!(eval, Curve25519Scalar::zero());
@@ -91,8 +82,15 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     let one_evals = sumcheck_evaluations.one_evaluations.clone();
     let one_eval = one_evals.values().next().unwrap();
 
-    let mut builder =
-        VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], Vec::new(), Vec::new());
+    let mut builder = VerificationBuilder::new(
+        0,
+        sumcheck_evaluations,
+        &dists,
+        &[],
+        Vec::new(),
+        Vec::new(),
+        3,
+    );
     let data_eval = Curve25519Scalar::from(2) * (&data).evaluate_at_point(&evaluation_point);
     assert!(verifier_evaluate_sign(&mut builder, data_eval, *one_eval).is_err());
 }

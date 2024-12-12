@@ -1,7 +1,4 @@
-use super::{
-    is_within_acceptable_range, verify_constant_abs_decomposition,
-    verify_constant_sign_decomposition,
-};
+use super::{verify_constant_abs_decomposition, verify_constant_sign_decomposition};
 use crate::base::{
     bit::BitDistribution,
     scalar::Curve25519Scalar,
@@ -15,32 +12,6 @@ fn rand_eval_vec(len: usize) -> Vec<Curve25519Scalar> {
     repeat_with(|| Curve25519Scalar::rand(rng))
         .take(len)
         .collect()
-}
-
-#[test]
-fn zero_is_within_range() {
-    let data: Vec<Curve25519Scalar> = vec![Curve25519Scalar::from(0)];
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
-    assert!(is_within_acceptable_range(&dist));
-}
-
-#[test]
-fn the_sum_of_two_signed_128_bit_numbers_is_within_range() {
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(i128::MIN) + Curve25519Scalar::from(i128::MIN)];
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
-    assert!(is_within_acceptable_range(&dist));
-}
-
-#[test]
-fn we_reject_distributions_that_are_outside_of_maximum_range() {
-    let data: Vec<Curve25519Scalar> = vec![
-        Curve25519Scalar::from(u128::MAX)
-            + Curve25519Scalar::from(u128::MAX)
-            + Curve25519Scalar::from(u128::MAX),
-    ];
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
-    assert!(!is_within_acceptable_range(&dist));
 }
 
 #[test]

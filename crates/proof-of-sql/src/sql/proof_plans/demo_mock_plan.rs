@@ -6,8 +6,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{
-        CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
-        VerificationBuilder,
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
     },
 };
 use alloc::vec::Vec;
@@ -20,12 +19,6 @@ pub(crate) struct DemoMockPlan {
 }
 
 impl ProofPlan for DemoMockPlan {
-    fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
-        // place verification logic you want to test here
-
-        Ok(())
-    }
-
     fn verifier_evaluate<S: Scalar>(
         &self,
         _builder: &mut VerificationBuilder<S>,

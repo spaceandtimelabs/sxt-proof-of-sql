@@ -1,4 +1,4 @@
-use super::{CountBuilder, FinalRoundBuilder, FirstRoundBuilder, VerificationBuilder};
+use super::{FinalRoundBuilder, FirstRoundBuilder, VerificationBuilder};
 use crate::base::{
     database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
     map::{IndexMap, IndexSet},
@@ -12,9 +12,6 @@ use core::fmt::Debug;
 /// Provable nodes in the provable AST.
 #[enum_dispatch::enum_dispatch(DynProofPlan)]
 pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
-    /// Count terms used within the Query's proof
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError>;
-
     /// Form components needed to verify and proof store into `VerificationBuilder`
     fn verifier_evaluate<S: Scalar>(
         &self,

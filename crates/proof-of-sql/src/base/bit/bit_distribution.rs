@@ -67,6 +67,25 @@ impl BitDistribution {
         true
     }
 
+    /// In order to avoid cases with large numbers where there can be both a positive and negative
+    /// representation, we restrict the range of bit distributions that we accept.
+    ///
+    /// Currently this is set to be the minimal value that will include the sum of two signed 128-bit
+    /// integers. The range will likely be expanded in the future as we support additional expressions.
+    pub fn is_within_acceptable_range(&self) -> bool {
+        // handle the case of everything zero
+        if self.num_varying_bits() == 0 && self.constant_part() == [0; 4] {
+            return true;
+        }
+
+        // signed 128 bit numbers range from
+        //      -2^127 to 2^127-1
+        // the maximum absolute value of the sum of two signed 128-integers is
+        // then
+        //       2 * (2^127) = 2^128
+        self.most_significant_abs_bit() <= 128
+    }
+
     /// If `{b_i}` represents the non-varying 1-bits of the absolute values, return the value
     ///    `sum_i b_i 2 ^ i`
     pub fn constant_part(&self) -> [u64; 4] {

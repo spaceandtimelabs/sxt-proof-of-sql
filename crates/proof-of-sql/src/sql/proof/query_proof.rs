@@ -1,7 +1,7 @@
 use super::{
-    make_sumcheck_state::make_sumcheck_prover_state, CountBuilder, FinalRoundBuilder,
-    FirstRoundBuilder, ProofCounts, ProofPlan, QueryData, QueryResult, SumcheckMleEvaluations,
-    SumcheckRandomScalars, VerificationBuilder,
+    make_sumcheck_state::make_sumcheck_prover_state, FinalRoundBuilder, FirstRoundBuilder,
+    ProofPlan, QueryData, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars,
+    VerificationBuilder,
 };
 use crate::{
     base::{
@@ -66,6 +66,8 @@ pub(super) struct QueryProof<CP: CommitmentEvaluationProof> {
     pub evaluation_proof: CP,
     /// Length of the range of generators we use
     pub range_length: usize,
+    pub subpolynomial_constraint_count: usize,
+    pub post_result_challenge_count: usize,
 }
 
 impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
@@ -110,6 +112,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
         assert!(num_sumcheck_variables > 0);
+        let post_result_challenge_count = first_round_builder.num_post_result_challenges();
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript = make_transcript(
@@ -118,6 +121,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             range_length,
             min_row_num,
             one_evaluation_lengths,
+            post_result_challenge_count,
         );
 
         // These are the challenges that will be consumed by the proof
@@ -127,7 +131,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // Note: the last challenge in the vec is the first one that is consumed.
         let post_result_challenges =
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
-                .take(first_round_builder.num_post_result_challenges())
+                .take(post_result_challenge_count)
                 .collect();
 
         let mut builder = FinalRoundBuilder::new(num_sumcheck_variables, post_result_challenges);
@@ -151,7 +155,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         );
 
         // construct the sumcheck polynomial
-        let num_random_scalars = num_sumcheck_variables + builder.num_sumcheck_subpolynomials();
+        let subpolynomial_constraint_count = builder.num_sumcheck_subpolynomials();
+        let num_random_scalars = num_sumcheck_variables + subpolynomial_constraint_count;
         let random_scalars: Vec<_> =
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
                 .take(num_random_scalars)
@@ -204,6 +209,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             pcs_proof_evaluations,
             evaluation_proof,
             range_length,
+            subpolynomial_constraint_count,
+            post_result_challenge_count,
         };
         (proof, provable_result)
     }
@@ -228,23 +235,14 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 Err(ProofError::VerificationError {
                     error: "invalid bit distributions",
                 })?;
+            } else if !dist.is_within_acceptable_range() {
+                Err(ProofError::VerificationError {
+                    error: "bit distribution outside of acceptable range",
+                })?;
             }
         }
 
         let column_references = expr.get_column_references();
-        // count terms
-
-        let mut builder = CountBuilder::new(&self.bit_distributions);
-        builder.count_anchored_mles(column_references.len());
-        expr.count(&mut builder)?;
-        let counts = builder.counts()?;
-
-        // verify sizes
-        if !self.validate_sizes(&counts) {
-            Err(ProofError::VerificationError {
-                error: "invalid proof size",
-            })?;
-        }
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript = make_transcript(
@@ -253,6 +251,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             self.range_length,
             min_row_num,
             &self.one_evaluation_lengths,
+            self.post_result_challenge_count,
         );
 
         // These are the challenges that will be consumed by the proof
@@ -262,7 +261,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // Note: the last challenge in the vec is the first one that is consumed.
         let post_result_challenges =
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
-                .take(counts.post_result_challenges)
+                .take(self.post_result_challenge_count)
                 .collect();
 
         // add the commitments and bit disctibutions to the proof
@@ -273,7 +272,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         );
 
         // draw the random scalars for sumcheck
-        let num_random_scalars = num_sumcheck_variables + counts.sumcheck_subpolynomials;
+        let num_random_scalars = num_sumcheck_variables + self.subpolynomial_constraint_count;
         let random_scalars: Vec<_> =
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
                 .take(num_random_scalars)
@@ -286,7 +285,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &mut transcript,
             // This needs to be at least 2 since `CompositePolynomialBuilder::make_composite_polynomial`
             // always adds a degree 2 term.
-            core::cmp::max(counts.sumcheck_max_multiplicands, 2),
             num_sumcheck_variables,
             &Zero::zero(),
         )?;
@@ -331,6 +329,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             sumcheck_random_scalars.subpolynomial_multipliers,
             post_result_challenges,
             self.one_evaluation_lengths.clone(),
+            subclaim.max_multiplicands,
         );
 
         let pcs_proof_commitments: Vec<_> = column_references
@@ -340,8 +339,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .collect();
         let evaluation_accessor: IndexMap<_, _> = column_references
             .into_iter()
-            .map(|col| (col, builder.consume_mle_evaluation()))
-            .collect();
+            .map(|col| Ok((col, builder.try_consume_mle_evaluation()?)))
+            .collect::<Result<_, ProofError>>()?;
 
         let verifier_evaluations = expr.verifier_evaluate(
             &mut builder,
@@ -387,11 +386,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             verification_hash,
         })
     }
-
-    fn validate_sizes(&self, counts: &ProofCounts) -> bool {
-        self.commitments.len() == counts.intermediate_mles
-            && self.pcs_proof_evaluations.len() == counts.intermediate_mles + counts.anchored_mles
-    }
 }
 
 /// Constructs a transcript for the proof process.
@@ -417,6 +411,7 @@ fn make_transcript<S: Scalar, T: Transcript>(
     range_length: usize,
     min_row_num: usize,
     one_evaluation_lengths: &[usize],
+    post_result_challenge_count: usize,
 ) -> T {
     let mut transcript = T::new();
     extend_transcript_with_owned_table(&mut transcript, result);
@@ -424,6 +419,7 @@ fn make_transcript<S: Scalar, T: Transcript>(
     transcript.extend_serialize_as_le(&range_length);
     transcript.extend_serialize_as_le(&min_row_num);
     transcript.extend_serialize_as_le(one_evaluation_lengths);
+    transcript.extend_serialize_as_le(&post_result_challenge_count);
     transcript
 }
 

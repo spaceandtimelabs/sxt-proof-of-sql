@@ -6,7 +6,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
@@ -35,10 +35,6 @@ impl LiteralExpr {
 }
 
 impl ProofExpr for LiteralExpr {
-    fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
-        Ok(())
-    }
-
     fn data_type(&self) -> ColumnType {
         self.value.column_type()
     }
