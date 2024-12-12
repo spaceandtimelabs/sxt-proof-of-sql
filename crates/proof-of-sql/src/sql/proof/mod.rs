@@ -73,3 +73,5 @@ pub(crate) use first_round_builder::FirstRoundBuilder;
 mod provable_query_result_test;
 
 mod make_sumcheck_state;
+
+mod sumcheck_term_optimizer;
