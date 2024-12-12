@@ -22,6 +22,8 @@ pub struct QueryContextBuilder<'a> {
     context: QueryContext,
     schema_accessor: &'a dyn SchemaAccessor,
 }
+use crate::base::sqlparser::normalize_ident;
+use sqlparser::ast::Ident;
 
 // Public interface
 impl<'a> QueryContextBuilder<'a> {
@@ -36,15 +38,16 @@ impl<'a> QueryContextBuilder<'a> {
     pub fn visit_table_expr(
         mut self,
         table_expr: &[Box<TableExpression>],
-        default_schema: Identifier,
+        default_schema: Ident,
     ) -> Self {
         assert_eq!(table_expr.len(), 1);
         match *table_expr[0] {
             TableExpression::Named { table, schema } => {
-                self.context.set_table_ref(TableRef::new(ResourceId::new(
-                    schema.unwrap_or(default_schema),
-                    table,
-                )));
+                let default_schema_identifier = Identifier::try_from(default_schema)
+                    .expect("Failed to convert default_schema Ident to Identifier");
+                let schema_identifier = schema.unwrap_or(default_schema_identifier);
+                self.context
+                    .set_table_ref(TableRef::new(ResourceId::new(schema_identifier, table)));
             }
         }
         self
@@ -87,12 +90,9 @@ impl<'a> QueryContextBuilder<'a> {
         self
     }
 
-    pub fn visit_group_by_exprs(
-        mut self,
-        group_by_exprs: Vec<Identifier>,
-    ) -> ConversionResult<Self> {
+    pub fn visit_group_by_exprs(mut self, group_by_exprs: Vec<Ident>) -> ConversionResult<Self> {
         for id in &group_by_exprs {
-            self.visit_column_identifier(*id)?;
+            self.visit_column_identifier(id)?;
         }
         self.context.set_group_by_exprs(group_by_exprs);
         Ok(self)
@@ -110,17 +110,27 @@ impl<'a> QueryContextBuilder<'a> {
         clippy::missing_panics_doc,
         reason = "The assertion ensures there is at least one column, and this is a fundamental requirement for schema retrieval."
     )]
-    fn lookup_schema(&self) -> Vec<(Identifier, ColumnType)> {
+    fn lookup_schema(&self) -> Vec<(Ident, ColumnType)> {
         let table_ref = self.context.get_table_ref();
-        let columns = self.schema_accessor.lookup_schema(*table_ref);
+        let mut columns = self.schema_accessor.lookup_schema(*table_ref);
         assert!(!columns.is_empty(), "At least one column must exist");
+        // Normalize all column names
+        for (ident, _) in &mut columns {
+            let normalized_name = normalize_ident(ident.clone());
+            *ident = Ident::new(normalized_name);
+        }
+
         columns
     }
 
+    /// # Panics
+    /// This function will panic if the conversion from `Ident` to `Identifier` fails.
     fn visit_select_all_expr(&mut self) -> ConversionResult<()> {
         for (column_name, _) in self.lookup_schema() {
-            let col_expr = Expression::Column(column_name);
-            self.visit_aliased_expr(AliasedResultExpr::new(col_expr, column_name))?;
+            let column_identifier =
+                Identifier::try_from(column_name).expect("Failed to convert Ident to Identifier");
+            let col_expr = Expression::Column(column_identifier);
+            self.visit_aliased_expr(AliasedResultExpr::new(col_expr, column_identifier))?;
         }
         Ok(())
     }
@@ -153,7 +163,7 @@ impl<'a> QueryContextBuilder<'a> {
             _ => panic!("Must be a column expression"),
         };
 
-        self.visit_column_identifier(identifier)
+        self.visit_column_identifier(&identifier.into())
     }
 
     fn visit_binary_expr(
@@ -255,18 +265,22 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
-    fn visit_column_identifier(&mut self, column_name: Identifier) -> ConversionResult<ColumnType> {
+    fn visit_column_identifier(&mut self, column_name: &Ident) -> ConversionResult<ColumnType> {
         let table_ref = self.context.get_table_ref();
-        let column_type = self.schema_accessor.lookup_column(*table_ref, column_name);
+        // Normalize the column name before looking it up
+        let normalized_column_name = Ident::new(normalize_ident(column_name.clone()));
+        let column_type = self
+            .schema_accessor
+            .lookup_column(*table_ref, normalized_column_name.clone());
 
         let column_type = column_type.ok_or_else(|| ConversionError::MissingColumn {
-            identifier: Box::new(column_name),
+            identifier: Box::new(column_name.clone()),
             resource_id: Box::new(table_ref.resource_id()),
         })?;
 
-        let column = ColumnRef::new(*table_ref, column_name, column_type);
+        let column = ColumnRef::new(*table_ref, normalized_column_name.clone(), column_type);
 
-        self.context.push_column_ref(column_name, column);
+        self.context.push_column_ref(normalized_column_name, column);
 
         Ok(column_type)
     }

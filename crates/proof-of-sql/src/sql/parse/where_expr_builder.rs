@@ -7,7 +7,8 @@ use crate::{
     sql::proof_exprs::{DynProofExpr, ProofExpr},
 };
 use alloc::boxed::Box;
-use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
+use proof_of_sql_parser::intermediate_ast::Expression;
+use sqlparser::ast::Ident;
 
 /// Builder that enables building a `proof_of_sql::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
 /// intended to be used as the where clause in a filter expression or group by expression.
@@ -16,7 +17,7 @@ pub struct WhereExprBuilder<'a> {
 }
 impl<'a> WhereExprBuilder<'a> {
     /// Creates a new `WhereExprBuilder` with the given column mapping.
-    pub fn new(column_mapping: &'a IndexMap<Identifier, ColumnRef>) -> Self {
+    pub fn new(column_mapping: &'a IndexMap<Ident, ColumnRef>) -> Self {
         Self {
             builder: DynProofExprBuilder::new(column_mapping),
         }

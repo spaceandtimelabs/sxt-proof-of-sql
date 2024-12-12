@@ -5,13 +5,14 @@ use crate::base::{
     scalar::Scalar,
 };
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
+use sqlparser::ast::Ident;
 
 /// # Panics
 /// Panics if:
 /// - `name.parse()` fails, which means the provided string could not be parsed into the expected type (usually an `Identifier`).
 pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
-    let name = name.parse().unwrap();
-    let type_col = accessor.lookup_column(tab, name).unwrap();
+    let name: Ident = name.into();
+    let type_col = accessor.lookup_column(tab, name.clone()).unwrap();
     ColumnRef::new(tab, name, type_col)
 }
 
@@ -20,8 +21,8 @@ pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> Col
 /// - `name.parse()` fails to parse the column name.
 /// - `accessor.lookup_column()` returns `None`, indicating the column is not found.
 pub fn column(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> DynProofExpr {
-    let name = name.parse().unwrap();
-    let type_col = accessor.lookup_column(tab, name).unwrap();
+    let name: Ident = name.into();
+    let type_col = accessor.lookup_column(tab, name.clone()).unwrap();
     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(tab, name, type_col)))
 }
 
@@ -138,7 +139,7 @@ pub fn tab(tab: TableRef) -> TableExpr {
 pub fn aliased_plan(expr: DynProofExpr, alias: &str) -> AliasedDynProofExpr {
     AliasedDynProofExpr {
         expr,
-        alias: alias.parse().unwrap(),
+        alias: alias.into(),
     }
 }
 
@@ -154,7 +155,7 @@ pub fn aliased_col_expr_plan(
 ) -> AliasedDynProofExpr {
     AliasedDynProofExpr {
         expr: DynProofExpr::Column(ColumnExpr::new(col_ref(tab, old_name, accessor))),
-        alias: new_name.parse().unwrap(),
+        alias: new_name.into(),
     }
 }
 
@@ -169,7 +170,7 @@ pub fn col_expr_plan(
 ) -> AliasedDynProofExpr {
     AliasedDynProofExpr {
         expr: DynProofExpr::Column(ColumnExpr::new(col_ref(tab, name, accessor))),
-        alias: name.parse().unwrap(),
+        alias: name.into(),
     }
 }
 
@@ -212,6 +213,6 @@ pub fn cols_expr(tab: TableRef, names: &[&str], accessor: &impl SchemaAccessor) 
 pub fn sum_expr(expr: DynProofExpr, alias: &str) -> AliasedDynProofExpr {
     AliasedDynProofExpr {
         expr: DynProofExpr::new_aggregate(AggregationOperator::Sum, expr),
-        alias: alias.parse().unwrap(),
+        alias: alias.into(),
     }
 }

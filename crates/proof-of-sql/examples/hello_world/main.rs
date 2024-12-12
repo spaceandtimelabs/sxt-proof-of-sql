@@ -64,7 +64,7 @@ fn main() {
     let timer = start_timer("Parsing Query");
     let query = QueryExpr::try_new(
         "SELECT b FROM table WHERE a = 2".parse().unwrap(),
-        "sxt".parse().unwrap(),
+        "sxt".into(),
         &accessor,
     )
     .unwrap();

@@ -7,16 +7,6 @@ use crate::{
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 
-///
-/// # Panics
-///
-/// This function will panic if`name`(if provided) cannot be parsed.
-/// Construct an identifier from a str
-#[must_use]
-pub fn ident(name: &str) -> Identifier {
-    name.parse().unwrap()
-}
-
 /// Construct a new boxed `Expression` A == B
 #[must_use]
 pub fn equal(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {

@@ -7,7 +7,7 @@ use crate::base::{
     map::IndexMap,
 };
 use alloc::vec::Vec;
-use proof_of_sql_parser::Identifier;
+use sqlparser::ast::Ident;
 
 /// A test accessor that uses [`Table`] as the underlying table type.
 /// Note: this is intended for testing and examples. It is not optimized for performance, so should not be used for benchmarks or production use-cases.
@@ -55,7 +55,7 @@ impl<'a, CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment> for TableTe
             .unwrap()
             .0
             .column_names()
-            .map(proof_of_sql_parser::Identifier::as_str)
+            .map(|ident| ident.value.as_str())
             .collect()
     }
 
@@ -122,7 +122,7 @@ impl<CP: CommitmentEvaluationProof> MetadataAccessor for TableTestAccessor<'_, C
     }
 }
 impl<CP: CommitmentEvaluationProof> SchemaAccessor for TableTestAccessor<'_, CP> {
-    fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType> {
+    fn lookup_column(&self, table_ref: TableRef, column_id: Ident) -> Option<ColumnType> {
         Some(
             self.tables
                 .get(&table_ref)?
@@ -136,14 +136,14 @@ impl<CP: CommitmentEvaluationProof> SchemaAccessor for TableTestAccessor<'_, CP>
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
-    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
+    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Ident, ColumnType)> {
         self.tables
             .get(&table_ref)
             .unwrap()
             .0
             .inner_table()
             .iter()
-            .map(|(&id, col)| (id, col.column_type()))
+            .map(|(id, col)| (id.clone(), col.column_type()))
             .collect()
     }
 }

@@ -8,17 +8,14 @@ use crate::base::{
     scalar::Scalar,
 };
 use alloc::{format, string::ToString, vec};
-use proof_of_sql_parser::{
-    intermediate_ast::{Expression, Literal},
-    Identifier,
-};
-use sqlparser::ast::{BinaryOperator, UnaryOperator};
+use proof_of_sql_parser::intermediate_ast::{Expression, Literal};
+use sqlparser::ast::{BinaryOperator, Ident, UnaryOperator};
 
 impl<S: Scalar> OwnedTable<S> {
     /// Evaluate an expression on the table.
     pub fn evaluate(&self, expr: &Expression) -> ExpressionEvaluationResult<OwnedColumn<S>> {
         match expr {
-            Expression::Column(identifier) => self.evaluate_column(identifier),
+            Expression::Column(identifier) => self.evaluate_column(&Ident::from(*identifier)),
             Expression::Literal(lit) => self.evaluate_literal(lit),
             Expression::Binary { op, left, right } => {
                 self.evaluate_binary_expr(&(*op).into(), left, right)
@@ -30,10 +27,7 @@ impl<S: Scalar> OwnedTable<S> {
         }
     }
 
-    fn evaluate_column(
-        &self,
-        identifier: &Identifier,
-    ) -> ExpressionEvaluationResult<OwnedColumn<S>> {
+    fn evaluate_column(&self, identifier: &Ident) -> ExpressionEvaluationResult<OwnedColumn<S>> {
         Ok(self
             .inner_table()
             .get(identifier)

@@ -130,18 +130,6 @@ fn we_can_convert_between_owned_table_and_record_batch() {
 }
 
 #[test]
-fn we_cannot_convert_a_record_batch_if_it_has_repeated_column_names() {
-    let record_batch = record_batch!(
-        "a" => [0_i64; 0],
-        "A" => [0_i128; 0],
-    );
-    assert!(matches!(
-        OwnedTable::<TestScalar>::try_from(record_batch),
-        Err(OwnedArrowConversionError::DuplicateIdentifiers)
-    ));
-}
-
-#[test]
 #[should_panic(expected = "not implemented: Cannot convert Scalar type to arrow type")]
 fn we_panic_when_converting_an_owned_table_with_a_scalar_column() {
     let owned_table = owned_table::<TestScalar>([scalar("a", [0; 0])]);

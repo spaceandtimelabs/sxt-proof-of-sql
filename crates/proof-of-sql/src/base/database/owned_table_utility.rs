@@ -16,11 +16,8 @@
 use super::{OwnedColumn, OwnedTable};
 use crate::base::scalar::Scalar;
 use alloc::string::String;
-use core::ops::Deref;
-use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    Identifier,
-};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use sqlparser::ast::Ident;
 
 /// Creates an [`OwnedTable`] from a list of `(Identifier, OwnedColumn)` pairs.
 /// This is a convenience wrapper around [`OwnedTable::try_from_iter`] primarily for use in tests and
@@ -43,7 +40,7 @@ use proof_of_sql_parser::{
 /// # Panics
 /// - Panics if converting the iterator into an `OwnedTable<S>` fails.
 pub fn owned_table<S: Scalar>(
-    iter: impl IntoIterator<Item = (Identifier, OwnedColumn<S>)>,
+    iter: impl IntoIterator<Item = (Ident, OwnedColumn<S>)>,
 ) -> OwnedTable<S> {
     OwnedTable::try_from_iter(iter).unwrap()
 }
@@ -60,11 +57,11 @@ pub fn owned_table<S: Scalar>(
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn tinyint<S: Scalar>(
-    name: impl Deref<Target = str>,
+    name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i8>>,
-) -> (Identifier, OwnedColumn<S>) {
+) -> (Ident, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        name.into(),
         OwnedColumn::TinyInt(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -81,11 +78,11 @@ pub fn tinyint<S: Scalar>(
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn smallint<S: Scalar>(
-    name: impl Deref<Target = str>,
+    name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i16>>,
-) -> (Identifier, OwnedColumn<S>) {
+) -> (Ident, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        name.into(),
         OwnedColumn::SmallInt(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -102,11 +99,11 @@ pub fn smallint<S: Scalar>(
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn int<S: Scalar>(
-    name: impl Deref<Target = str>,
+    name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i32>>,
-) -> (Identifier, OwnedColumn<S>) {
+) -> (Ident, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        name.into(),
         OwnedColumn::Int(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -122,11 +119,11 @@ pub fn int<S: Scalar>(
 /// ```
 #[allow(clippy::missing_panics_doc)]
 pub fn bigint<S: Scalar>(
-    name: impl Deref<Target = str>,
+    name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i64>>,
-) -> (Identifier, OwnedColumn<S>) {
+) -> (Ident, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        name.into(),
         OwnedColumn::BigInt(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -144,11 +141,11 @@ pub fn bigint<S: Scalar>(
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn boolean<S: Scalar>(
-    name: impl Deref<Target = str>,
+    name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<bool>>,
-) -> (Identifier, OwnedColumn<S>) {
+) -> (Ident, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        name.into(),
         OwnedColumn::Boolean(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -166,11 +163,11 @@ pub fn boolean<S: Scalar>(
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn int128<S: Scalar>(
-    name: impl Deref<Target = str>,
+    name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i128>>,
-) -> (Identifier, OwnedColumn<S>) {
+) -> (Ident, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        name.into(),
         OwnedColumn::Int128(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -188,11 +185,11 @@ pub fn int128<S: Scalar>(
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn scalar<S: Scalar>(
-    name: impl Deref<Target = str>,
+    name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<S>>,
-) -> (Identifier, OwnedColumn<S>) {
+) -> (Ident, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        name.into(),
         OwnedColumn::Scalar(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -210,11 +207,11 @@ pub fn scalar<S: Scalar>(
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn varchar<S: Scalar>(
-    name: impl Deref<Target = str>,
+    name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<String>>,
-) -> (Identifier, OwnedColumn<S>) {
+) -> (Ident, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        name.into(),
         OwnedColumn::VarChar(data.into_iter().map(Into::into).collect()),
     )
 }
@@ -233,13 +230,13 @@ pub fn varchar<S: Scalar>(
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 /// - Panics if creating the `Precision` from the specified precision value fails.
 pub fn decimal75<S: Scalar>(
-    name: impl Deref<Target = str>,
+    name: impl Into<Ident>,
     precision: u8,
     scale: i8,
     data: impl IntoIterator<Item = impl Into<S>>,
-) -> (Identifier, OwnedColumn<S>) {
+) -> (Ident, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        name.into(),
         OwnedColumn::Decimal75(
             crate::base::math::decimal::Precision::new(precision).unwrap(),
             scale,
@@ -273,13 +270,13 @@ pub fn decimal75<S: Scalar>(
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn timestamptz<S: Scalar>(
-    name: impl Deref<Target = str>,
+    name: impl Into<Ident>,
     time_unit: PoSQLTimeUnit,
     timezone: PoSQLTimeZone,
     data: impl IntoIterator<Item = i64>,
-) -> (Identifier, OwnedColumn<S>) {
+) -> (Ident, OwnedColumn<S>) {
     (
-        name.parse().unwrap(),
+        name.into(),
         OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
     )
 }

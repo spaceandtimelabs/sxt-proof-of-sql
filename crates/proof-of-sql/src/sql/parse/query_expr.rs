@@ -11,8 +11,9 @@ use crate::{
     },
 };
 use alloc::{fmt, vec, vec::Vec};
-use proof_of_sql_parser::{intermediate_ast::SetExpression, Identifier, SelectStatement};
+use proof_of_sql_parser::{intermediate_ast::SetExpression, SelectStatement};
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 #[derive(PartialEq, Serialize, Deserialize)]
 /// A `QueryExpr` represents a Proof of SQL query that can be executed against a database.
@@ -47,7 +48,7 @@ impl QueryExpr {
     /// Parse an intermediate AST `SelectStatement` into a `QueryExpr`.
     pub fn try_new(
         ast: SelectStatement,
-        default_schema: Identifier,
+        default_schema: Ident,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Self> {
         let context = match *ast.expr {
@@ -58,7 +59,7 @@ impl QueryExpr {
                 group_by,
             } => QueryContextBuilder::new(schema_accessor)
                 .visit_table_expr(&from, default_schema)
-                .visit_group_by_exprs(group_by)?
+                .visit_group_by_exprs(group_by.into_iter().map(Ident::from).collect())?
                 .visit_result_exprs(result_exprs)?
                 .visit_where_expr(where_expr)?
                 .visit_order_by_exprs(ast.order_by)

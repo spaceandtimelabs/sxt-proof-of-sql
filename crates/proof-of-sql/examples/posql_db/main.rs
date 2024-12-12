@@ -203,7 +203,7 @@ fn main() {
                 commit_accessor
                     .lookup_schema(table_name)
                     .iter()
-                    .map(|(i, t)| Field::new(i.as_str(), t.into(), false))
+                    .map(|(i, t)| Field::new(i.value.as_str(), t.into(), false))
                     .collect::<Vec<_>>(),
             );
             let append_batch =
@@ -233,15 +233,14 @@ fn main() {
                     commit_accessor
                         .lookup_schema(table)
                         .iter()
-                        .map(|(i, t)| Field::new(i.as_str(), t.into(), false))
+                        .map(|(i, t)| Field::new(i.value.as_str(), t.into(), false))
                         .collect::<Vec<_>>(),
                 );
                 csv_accessor
                     .load_table(table, schema)
                     .expect("Failed to load table");
             }
-            let query =
-                QueryExpr::try_new(query, "example".parse().unwrap(), &commit_accessor).unwrap();
+            let query = QueryExpr::try_new(query, "example".into(), &commit_accessor).unwrap();
             let timer = start_timer("Generating Proof");
             let proof = VerifiableQueryResult::<DynamicDoryEvaluationProof>::new(
                 query.proof_expr(),
@@ -265,8 +264,7 @@ fn main() {
                     .load_commit(table_name)
                     .expect("Failed to load commit");
             }
-            let query =
-                QueryExpr::try_new(query, "example".parse().unwrap(), &commit_accessor).unwrap();
+            let query = QueryExpr::try_new(query, "example".into(), &commit_accessor).unwrap();
             let result: VerifiableQueryResult<DynamicDoryEvaluationProof> =
                 postcard::from_bytes(&fs::read(file).expect("Failed to read proof"))
                     .expect("Failed to deserialize proof");

@@ -5,9 +5,9 @@ use crate::base::{
 };
 use alloc::{vec, vec::Vec};
 use itertools::{EitherOrBoth, Itertools};
-use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
+use sqlparser::ast::Ident;
 
 /// An error that occurs when working with tables.
 #[derive(Snafu, Debug, PartialEq, Eq)]
@@ -37,11 +37,11 @@ pub(crate) enum TableCoercionError {
 /// This is the analog of an arrow [`RecordBatch`](arrow::record_batch::RecordBatch).
 #[derive(Debug, Clone, Eq, Serialize, Deserialize)]
 pub struct OwnedTable<S: Scalar> {
-    table: IndexMap<Identifier, OwnedColumn<S>>,
+    table: IndexMap<Ident, OwnedColumn<S>>,
 }
 impl<S: Scalar> OwnedTable<S> {
     /// Creates a new [`OwnedTable`].
-    pub fn try_new(table: IndexMap<Identifier, OwnedColumn<S>>) -> Result<Self, OwnedTableError> {
+    pub fn try_new(table: IndexMap<Ident, OwnedColumn<S>>) -> Result<Self, OwnedTableError> {
         if table.is_empty() {
             return Ok(Self { table });
         }
@@ -53,7 +53,7 @@ impl<S: Scalar> OwnedTable<S> {
         }
     }
     /// Creates a new [`OwnedTable`].
-    pub fn try_from_iter<T: IntoIterator<Item = (Identifier, OwnedColumn<S>)>>(
+    pub fn try_from_iter<T: IntoIterator<Item = (Ident, OwnedColumn<S>)>>(
         iter: T,
     ) -> Result<Self, OwnedTableError> {
         Self::try_new(IndexMap::from_iter(iter))
@@ -118,16 +118,16 @@ impl<S: Scalar> OwnedTable<S> {
     }
     /// Returns the columns of this table as an `IndexMap`
     #[must_use]
-    pub fn into_inner(self) -> IndexMap<Identifier, OwnedColumn<S>> {
+    pub fn into_inner(self) -> IndexMap<Ident, OwnedColumn<S>> {
         self.table
     }
     /// Returns the columns of this table as an `IndexMap`
     #[must_use]
-    pub fn inner_table(&self) -> &IndexMap<Identifier, OwnedColumn<S>> {
+    pub fn inner_table(&self) -> &IndexMap<Ident, OwnedColumn<S>> {
         &self.table
     }
     /// Returns the columns of this table as an Iterator
-    pub fn column_names(&self) -> impl Iterator<Item = &Identifier> {
+    pub fn column_names(&self) -> impl Iterator<Item = &Ident> {
         self.table.keys()
     }
 
@@ -158,9 +158,7 @@ impl<S: Scalar> PartialEq for OwnedTable<S> {
 impl<S: Scalar> core::ops::Index<&str> for OwnedTable<S> {
     type Output = OwnedColumn<S>;
     fn index(&self, index: &str) -> &Self::Output {
-        self.table
-            .get(&index.parse::<Identifier>().unwrap())
-            .unwrap()
+        self.table.get(&Ident::new(index)).unwrap()
     }
 }
 
@@ -170,7 +168,7 @@ impl<'a, S: Scalar> From<&Table<'a, S>> for OwnedTable<S> {
             value
                 .inner_table()
                 .iter()
-                .map(|(name, column)| (*name, OwnedColumn::from(column))),
+                .map(|(name, column)| (name.clone(), OwnedColumn::from(column))),
         )
         .expect("Tables should not have columns with differing lengths")
     }
@@ -301,8 +299,8 @@ mod tests {
         ]);
 
         let fields = vec![
-            ColumnField::new("bigint".parse().unwrap(), ColumnType::BigInt),
-            ColumnField::new("scalar".parse().unwrap(), ColumnType::Int),
+            ColumnField::new("bigint".into(), ColumnType::BigInt),
+            ColumnField::new("scalar".into(), ColumnType::Int),
         ];
 
         let coerced_table = table.clone().try_coerce_with_fields(fields).unwrap();
@@ -325,8 +323,8 @@ mod tests {
         ]);
 
         let fields = vec![
-            ColumnField::new("bigint".parse().unwrap(), ColumnType::BigInt),
-            ColumnField::new("mismatch".parse().unwrap(), ColumnType::Int),
+            ColumnField::new("bigint".into(), ColumnType::BigInt),
+            ColumnField::new("mismatch".into(), ColumnType::Int),
         ];
 
         let result = table.clone().try_coerce_with_fields(fields);
@@ -343,10 +341,7 @@ mod tests {
             scalar("scalar", [0, 1, 2, 3, 4, 5, 6, 7, 8]),
         ]);
 
-        let fields = vec![ColumnField::new(
-            "bigint".parse().unwrap(),
-            ColumnType::BigInt,
-        )];
+        let fields = vec![ColumnField::new("bigint".into(), ColumnType::BigInt)];
 
         let result = table.clone().try_coerce_with_fields(fields);
 
@@ -366,8 +361,8 @@ mod tests {
         ]);
 
         let fields = vec![
-            ColumnField::new("bigint".parse().unwrap(), ColumnType::BigInt),
-            ColumnField::new("scalar".parse().unwrap(), ColumnType::TinyInt),
+            ColumnField::new("bigint".into(), ColumnType::BigInt),
+            ColumnField::new("scalar".into(), ColumnType::TinyInt),
         ];
 
         let result = table.clone().try_coerce_with_fields(fields);

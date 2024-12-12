@@ -5,8 +5,9 @@ use crate::base::{
     scalar::Scalar,
 };
 use alloc::vec::Vec;
-use proof_of_sql_parser::{intermediate_ast::AliasedResultExpr, Identifier};
+use proof_of_sql_parser::intermediate_ast::AliasedResultExpr;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 /// The select expression used to select, reorder, and apply alias transformations
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -28,13 +29,13 @@ impl SelectPostprocessing {
 impl<S: Scalar> PostprocessingStep<S> for SelectPostprocessing {
     /// Apply the select transformation to the given `OwnedTable`.
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
-        let cols: IndexMap<Identifier, OwnedColumn<S>> = self
+        let cols: IndexMap<Ident, OwnedColumn<S>> = self
             .aliased_result_exprs
             .iter()
             .map(
-                |aliased_result_expr| -> PostprocessingResult<(Identifier, OwnedColumn<S>)> {
+                |aliased_result_expr| -> PostprocessingResult<(Ident, OwnedColumn<S>)> {
                     let result_column = owned_table.evaluate(&aliased_result_expr.expr)?;
-                    Ok((aliased_result_expr.alias, result_column))
+                    Ok((aliased_result_expr.alias.into(), result_column))
                 },
             )
             .collect::<PostprocessingResult<_>>()?;

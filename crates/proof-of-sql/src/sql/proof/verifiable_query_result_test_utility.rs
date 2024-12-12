@@ -96,7 +96,7 @@ fn append_single_row_to_table<S: Scalar>(table: &OwnedTable<S>) -> OwnedTable<S>
         table
             .inner_table()
             .iter()
-            .map(|(name, col)| (*name, append_single_row_to_column(col))),
+            .map(|(name, col)| (name.clone(), append_single_row_to_column(col))),
     )
     .expect("Failed to create table")
 }
@@ -122,7 +122,7 @@ fn tamper_first_element_of_table<S: Scalar>(table: &OwnedTable<S>) -> OwnedTable
             .enumerate()
             .map(|(i, (name, col))| {
                 (
-                    *name,
+                    name.clone(),
                     if i == 0 {
                         tamper_first_row_of_column(col)
                     } else {

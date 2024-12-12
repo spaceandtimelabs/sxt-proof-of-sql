@@ -2,6 +2,7 @@ use crate::{
     base::{
         database::{ColumnRef, LiteralValue, TableRef},
         map::{IndexMap, IndexSet},
+        sqlparser::normalize_ident,
     },
     sql::{
         parse::{ConversionError, ConversionResult, DynProofExprBuilder, WhereExprBuilder},
@@ -10,10 +11,10 @@ use crate::{
     },
 };
 use alloc::{borrow::ToOwned, boxed::Box, string::ToString, vec::Vec};
-use proof_of_sql_parser::{
-    intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice},
-    Identifier,
+use proof_of_sql_parser::intermediate_ast::{
+    AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice,
 };
+use sqlparser::ast::Ident;
 
 #[derive(Default, Debug)]
 pub struct QueryContext {
@@ -25,12 +26,12 @@ pub struct QueryContext {
     in_result_scope: bool,
     has_visited_group_by: bool,
     order_by_exprs: Vec<OrderBy>,
-    group_by_exprs: Vec<Identifier>,
+    group_by_exprs: Vec<Ident>,
     where_expr: Option<Box<Expression>>,
-    result_column_set: IndexSet<Identifier>,
+    result_column_set: IndexSet<Ident>,
     res_aliased_exprs: Vec<AliasedResultExpr>,
-    column_mapping: IndexMap<Identifier, ColumnRef>,
-    first_result_col_out_agg_scope: Option<Identifier>,
+    column_mapping: IndexMap<Ident, ColumnRef>,
+    first_result_col_out_agg_scope: Option<Ident>,
 }
 
 impl QueryContext {
@@ -100,15 +101,16 @@ impl QueryContext {
         self.agg_counter > 0 || !self.group_by_exprs.is_empty()
     }
 
-    pub fn push_column_ref(&mut self, column: Identifier, column_ref: ColumnRef) {
+    pub fn push_column_ref(&mut self, column: Ident, column_ref: ColumnRef) {
         self.col_ref_counter += 1;
-        self.push_result_column_ref(column);
-        self.column_mapping.insert(column, column_ref);
+        let normalized_column = Ident::new(normalize_ident(column));
+        self.push_result_column_ref(normalized_column.clone());
+        self.column_mapping.insert(normalized_column, column_ref);
     }
 
-    fn push_result_column_ref(&mut self, column: Identifier) {
+    fn push_result_column_ref(&mut self, column: Ident) {
         if self.is_in_result_scope() {
-            self.result_column_set.insert(column);
+            self.result_column_set.insert(column.clone());
 
             if !self.is_in_agg_scope() && self.first_result_col_out_agg_scope.is_none() {
                 self.first_result_col_out_agg_scope = Some(column);
@@ -124,13 +126,13 @@ impl QueryContext {
         Ok(())
     }
 
-    pub fn set_group_by_exprs(&mut self, exprs: Vec<Identifier>) {
+    pub fn set_group_by_exprs(&mut self, exprs: Vec<Ident>) {
         self.group_by_exprs = exprs;
 
         // Add the group by columns to the result column set
         // to ensure their integrity in the filter expression.
         for group_column in &self.group_by_exprs {
-            self.result_column_set.insert(*group_column);
+            self.result_column_set.insert(group_column.clone());
         }
 
         self.has_visited_group_by = true;
@@ -140,7 +142,7 @@ impl QueryContext {
         self.order_by_exprs = order_by_exprs;
     }
 
-    pub fn is_in_group_by_exprs(&self, column: &Identifier) -> ConversionResult<bool> {
+    pub fn is_in_group_by_exprs(&self, column: &Ident) -> ConversionResult<bool> {
         // Non-aggregated result column references must be included in the group by statement.
         if self.group_by_exprs.is_empty() || self.is_in_agg_scope() || !self.is_in_result_scope() {
             return Ok(false);
@@ -184,7 +186,11 @@ impl QueryContext {
             && self.first_result_col_out_agg_scope.is_some()
         {
             return Err(ConversionError::InvalidGroupByColumnRef {
-                column: self.first_result_col_out_agg_scope.unwrap().to_string(),
+                column: self
+                    .first_result_col_out_agg_scope
+                    .as_ref()
+                    .unwrap()
+                    .to_string(),
             });
         }
 
@@ -209,15 +215,15 @@ impl QueryContext {
         &self.slice_expr
     }
 
-    pub fn get_group_by_exprs(&self) -> &[Identifier] {
+    pub fn get_group_by_exprs(&self) -> &[Ident] {
         &self.group_by_exprs
     }
 
-    pub fn get_result_column_set(&self) -> IndexSet<Identifier> {
+    pub fn get_result_column_set(&self) -> IndexSet<Ident> {
         self.result_column_set.clone()
     }
 
-    pub fn get_column_mapping(&self) -> IndexMap<Identifier, ColumnRef> {
+    pub fn get_column_mapping(&self) -> IndexMap<Ident, ColumnRef> {
         self.column_mapping.clone()
     }
 }
@@ -247,10 +253,10 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
                     .column_mapping
                     .get(expr)
                     .ok_or(ConversionError::MissingColumn {
-                        identifier: Box::new(*expr),
+                        identifier: Box::new((expr).clone()),
                         resource_id: Box::new(resource_id),
                     })
-                    .map(|column_ref| ColumnExpr::new(*column_ref))
+                    .map(|column_ref| ColumnExpr::new(column_ref.clone()))
             })
             .collect::<Result<Vec<ColumnExpr>, ConversionError>>()?;
         // For a query to be provable the result columns must be of one of three kinds below:
@@ -272,7 +278,7 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
             .zip(res_group_by_columns.iter())
             .all(|(ident, res)| {
                 if let Expression::Column(res_ident) = *res.expr {
-                    res_ident == *ident
+                    Ident::from(res_ident) == *ident
                 } else {
                     false
                 }
@@ -292,7 +298,7 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
                     res_dyn_proof_expr
                         .ok()
                         .map(|dyn_proof_expr| AliasedDynProofExpr {
-                            alias: res.alias,
+                            alias: res.alias.into(),
                             expr: dyn_proof_expr,
                         })
                 } else {
@@ -317,7 +323,7 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
         Ok(Some(GroupByExec::new(
             group_by_exprs,
             sum_expr.expect("the none case was just checked"),
-            count_column.alias,
+            count_column.alias.into(),
             table,
             where_clause,
         )))
