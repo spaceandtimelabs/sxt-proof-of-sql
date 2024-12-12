@@ -377,7 +377,7 @@ pub(crate) mod tests {
             lo_vec[0] = alpha;
             hi_vec[0] = beta;
             compute_dynamic_standard_basis_vecs(
-                &point.iter().copied().map(MontScalar).collect_vec(),
+                bytemuck::TransparentWrapper::wrap_slice(&point) as &[DoryScalar],
                 &mut lo_vec,
                 &mut hi_vec,
             );

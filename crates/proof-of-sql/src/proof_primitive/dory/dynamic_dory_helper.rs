@@ -3,7 +3,7 @@ use super::{
     ProverSetup, F,
 };
 use crate::{
-    base::{commitment::CommittableColumn, scalar::MontScalar, slice_ops::slice_cast},
+    base::{commitment::CommittableColumn, slice_ops::slice_cast},
     proof_primitive::{
         dory::DoryScalar,
         dynamic_matrix_utils::{
@@ -116,18 +116,9 @@ pub(super) fn fold_dynamic_tensors(state: &ExtendedVerifierState) -> (F, F) {
         })
         .collect_vec();
     let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(
-        &standard_basis_point
-            .iter()
-            .copied()
-            .map(MontScalar)
-            .collect_vec(),
-        &state.alphas.iter().copied().map(MontScalar).collect_vec(),
-        &state
-            .alpha_invs
-            .iter()
-            .copied()
-            .map(MontScalar)
-            .collect_vec(),
+        bytemuck::TransparentWrapper::wrap_slice(&standard_basis_point) as &[DoryScalar],
+        bytemuck::TransparentWrapper::wrap_slice(&state.alphas) as &[DoryScalar],
+        bytemuck::TransparentWrapper::wrap_slice(&state.alpha_invs) as &[DoryScalar],
     );
     (lo_fold.0 * lo_inv_prod, hi_fold.0 * hi_inv_prod)
 }
@@ -157,15 +148,16 @@ mod tests {
                 .take(nu)
                 .collect_vec();
 
-            let (mut lo_vec, mut hi_vec) =
-                compute_dynamic_vecs(&point.iter().copied().map(MontScalar).collect_vec());
+            let (mut lo_vec, mut hi_vec) = compute_dynamic_vecs(
+                bytemuck::TransparentWrapper::wrap_slice(&point) as &[DoryScalar],
+            );
             naive_fold(
                 &mut lo_vec,
-                &alphas.iter().copied().map(MontScalar).collect_vec(),
+                bytemuck::TransparentWrapper::wrap_slice(&alphas) as &[DoryScalar],
             );
             naive_fold(
                 &mut hi_vec,
-                &alpha_invs.iter().copied().map(MontScalar).collect_vec(),
+                bytemuck::TransparentWrapper::wrap_slice(&alpha_invs) as &[DoryScalar],
             );
 
             let state = ExtendedVerifierState {
