@@ -1,6 +1,7 @@
 use super::{FinalRoundBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder};
 use crate::{
     base::{
+        bit::BitDistribution,
         commitment::InnerProductProof,
         database::{
             owned_table_utility::{bigint, owned_table},
@@ -27,6 +28,7 @@ struct TrivialTestProofPlan {
     column_fill_value: i64,
     evaluation: i64,
     produce_length: bool,
+    bit_distribution: Option<BitDistribution>,
 }
 impl Default for TrivialTestProofPlan {
     fn default() -> Self {
@@ -36,6 +38,10 @@ impl Default for TrivialTestProofPlan {
             column_fill_value: 0,
             evaluation: 0,
             produce_length: true,
+            bit_distribution: Some(BitDistribution {
+                or_all: [0; 4],
+                vary_mask: [0; 4],
+            }),
         }
     }
 }
@@ -65,6 +71,9 @@ impl ProverEvaluate for TrivialTestProofPlan {
             SumcheckSubpolynomialType::Identity,
             vec![(S::ONE, vec![Box::new(col as &[_])])],
         );
+        if let Some(bit_distribution) = &self.bit_distribution {
+            builder.produce_bit_distribution(bit_distribution.clone());
+        }
         table([borrowed_bigint(
             "a1",
             vec![self.column_fill_value; self.length],
@@ -86,6 +95,7 @@ impl ProofPlan for TrivialTestProofPlan {
             S::from(self.evaluation),
             1,
         )?;
+        let _ = builder.try_consume_bit_distribution()?;
         Ok(TableEvaluation::new(
             vec![S::ZERO],
             builder.try_consume_one_evaluation()?,
@@ -187,6 +197,41 @@ fn verify_fails_if_counts_dont_match() {
     // that every entry in the result is zero
     let expr = TrivialTestProofPlan {
         produce_length: false,
+        ..Default::default()
+    };
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [0_i64; 2])]),
+        0,
+        (),
+    );
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
+    assert!(proof.verify(&expr, &accessor, result, &()).is_err());
+}
+
+#[test]
+fn verify_fails_if_the_number_of_bit_distributions_is_not_enough() {
+    let expr = TrivialTestProofPlan {
+        bit_distribution: None,
+        ..Default::default()
+    };
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [0_i64; 2])]),
+        0,
+        (),
+    );
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
+    assert!(proof.verify(&expr, &accessor, result, &()).is_err());
+}
+
+#[test]
+fn verify_fails_if_a_bit_distribution_is_invalid() {
+    let expr = TrivialTestProofPlan {
+        bit_distribution: Some(BitDistribution {
+            or_all: [1; 4],
+            vary_mask: [1; 4],
+        }),
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
