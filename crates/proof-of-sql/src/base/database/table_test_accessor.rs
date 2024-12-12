@@ -7,11 +7,10 @@ use crate::base::{
     map::IndexMap,
     sqlparser::normalize_ident,
 };
-use proof_of_sql_parser::{Identifier, ResourceId};
 use alloc::vec::Vec;
-use sqlparser::ast::Ident;
 use ark_std::hash::BuildHasherDefault;
-
+use proof_of_sql_parser::{Identifier, ResourceId};
+use sqlparser::ast::Ident;
 
 /// A test accessor that uses [`Table`] as the underlying table type.
 /// Note: this is intended for testing and examples. It is not optimized for performance, so should not be used for benchmarks or production use-cases.
@@ -66,8 +65,7 @@ impl<'a, CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment> for TableTe
                 let normalized_ident = Ident::new(normalize_ident(ident));
                 normalized_table.insert(normalized_ident, column);
             }
-            Table::try_new(normalized_table)
-                .expect("Column lengths must match")
+            Table::try_new(normalized_table).expect("Column lengths must match")
         };
         self.tables
             .insert(normalized_table_ref, (normalized_data, table_offset));
