@@ -274,11 +274,11 @@ fn prove_word_values<'a, S: Scalar + 'a>(
 /// multiplied by the inverted word value, is zero.
 ///
 /// ```text
-/// ∑ (I₀ + I₁ + I₂ + I₃ - (C * IN)) = 0
+/// ∑ (I₀ + I₁ + I₂ ... Iₙ - (C * IN)) = 0
 /// ```
 ///
 /// Where:
-/// - `I₀, I₁, I₂, I₃` are the inverted word columns.
+/// - `I₀ + I₁ + I₂ ... Iₙ` are the inverted word columns.
 /// - `C` is the count of each word.
 /// - `IN` is the inverted word values column.
 #[allow(clippy::missing_panics_doc)]
