@@ -3,4 +3,5 @@ pub mod parse;
 pub mod postprocessing;
 pub mod proof;
 pub mod proof_exprs;
+pub mod proof_gadgets;
 pub mod proof_plans;

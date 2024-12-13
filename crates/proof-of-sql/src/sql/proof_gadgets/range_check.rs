@@ -403,11 +403,11 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::{
         base::scalar::{Curve25519Scalar as S, Scalar},
         sql::{
             proof::FinalRoundBuilder,
-            proof_plans::range_check::{decompose_scalar_to_words, get_logarithmic_derivative},
         },
     };
     use bumpalo::Bump;

@@ -92,14 +92,14 @@ impl ProofPlan for RangeCheckTestPlan {
 
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
-
+    use super::*;
     use crate::{
         base::database::{
             owned_table_utility::{owned_table, scalar},
             ColumnRef, ColumnType, OwnedTableTestAccessor,
         },
         sql::{
-            proof::VerifiableQueryResult, proof_plans::range_check_test_plan::RangeCheckTestPlan,
+            proof::VerifiableQueryResult,
         },
     };
     use blitzar::proof::InnerProductProof;

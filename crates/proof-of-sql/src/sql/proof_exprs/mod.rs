@@ -20,11 +20,6 @@ use multiply_expr::MultiplyExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod multiply_expr_test;
 
-mod bitwise_verification;
-use bitwise_verification::{verify_constant_abs_decomposition, verify_constant_sign_decomposition};
-#[cfg(test)]
-mod bitwise_verification_test;
-
 mod dyn_proof_expr;
 pub(crate) use dyn_proof_expr::DynProofExpr;
 
@@ -68,11 +63,6 @@ use equals_expr::{
 };
 #[cfg(all(test, feature = "blitzar"))]
 mod equals_expr_test;
-
-mod sign_expr;
-use sign_expr::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
-#[cfg(all(test, feature = "blitzar"))]
-mod sign_expr_test;
 
 mod table_expr;
 pub(crate) use table_expr::TableExpr;

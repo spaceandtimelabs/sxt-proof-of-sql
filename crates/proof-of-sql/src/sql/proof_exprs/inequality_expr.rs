@@ -1,8 +1,7 @@
 use super::{
-    prover_evaluate_equals_zero, prover_evaluate_or, prover_evaluate_sign,
-    result_evaluate_equals_zero, result_evaluate_or, result_evaluate_sign,
-    scale_and_add_subtract_eval, scale_and_subtract, verifier_evaluate_equals_zero,
-    verifier_evaluate_or, verifier_evaluate_sign, DynProofExpr, ProofExpr,
+    prover_evaluate_equals_zero, prover_evaluate_or, result_evaluate_equals_zero,
+    result_evaluate_or, scale_and_add_subtract_eval, scale_and_subtract,
+    verifier_evaluate_equals_zero, verifier_evaluate_or, DynProofExpr, ProofExpr,
 };
 use crate::{
     base::{
@@ -11,7 +10,10 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, VerificationBuilder},
+        proof_gadgets::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign},
+    },
     utils::log,
 };
 use alloc::boxed::Box;
