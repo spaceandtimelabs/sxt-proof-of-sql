@@ -2,7 +2,10 @@ use super::{
     pairings, DeferredG2, DoryMessages, ExtendedProverState, ExtendedVerifierState, G1Projective,
     ProverSetup, VMVProverState, VMVVerifierState, VerifierSetup,
 };
-use crate::base::{if_rayon, proof::Transcript};
+use crate::{
+    base::{if_rayon, proof::Transcript},
+    utils::log,
+};
 use alloc::vec::Vec;
 use ark_ec::VariableBaseMSM;
 #[cfg(feature = "rayon")]
@@ -23,6 +26,8 @@ pub fn eval_vmv_re_prove(
     state: VMVProverState,
     setup: &ProverSetup,
 ) -> ExtendedProverState {
+    log::log_memory_usage("Start");
+
     let C = pairings::pairing(
         G1Projective::msm_unchecked(&state.T_vec_prime, &state.v_vec),
         setup.Gamma_2_fin,
@@ -39,7 +44,11 @@ pub fn eval_vmv_re_prove(
     let v2 = if_rayon!(state.v_vec.par_iter(), state.v_vec.iter())
         .map(|c| (Gamma_2_fin * c).into())
         .collect::<Vec<_>>();
-    ExtendedProverState::from_vmv_prover_state(state, v2)
+    let res = ExtendedProverState::from_vmv_prover_state(state, v2);
+
+    log::log_memory_usage("End");
+
+    res
 }
 
 /// This is the verifier side of the Eval-VMV-RE algorithm in section 5 of <https://eprint.iacr.org/2020/1274.pdf>.

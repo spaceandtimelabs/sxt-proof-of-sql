@@ -1,3 +1,4 @@
+use crate::utils::log;
 use alloc::{vec, vec::Vec};
 use ark_ec::VariableBaseMSM;
 use core::ops::{Add, AddAssign, Mul, MulAssign};
@@ -24,12 +25,18 @@ impl<G, F: One> DeferredMSM<G, F> {
     /// Collapse/compute the MSM into a single group element
     #[tracing::instrument(name = "DeferredMSM::compute", level = "debug", skip_all)]
     pub fn compute<V: VariableBaseMSM<MulBase = G, ScalarField = F>>(self) -> V {
+        log::log_memory_usage("Start");
+
         let (bases, scalars): (Vec<_>, Vec<_>) = self
             .pairs
             .into_iter()
             .map(|(gt, f)| (gt, f.unwrap_or(F::one())))
             .unzip();
-        V::msm_unchecked(&bases, &scalars)
+        let res = V::msm_unchecked(&bases, &scalars);
+
+        log::log_memory_usage("End");
+
+        res
     }
 }
 

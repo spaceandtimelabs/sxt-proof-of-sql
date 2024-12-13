@@ -19,6 +19,7 @@ use crate::{
             ProofExpr,
         },
     },
+    utils::log,
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
@@ -40,6 +41,8 @@ impl ProverEvaluate for DishonestFilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
+        log::log_memory_usage("Start");
+
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -68,6 +71,9 @@ impl ProverEvaluate for DishonestFilterExec {
         .expect("Failed to create table from iterator");
         builder.request_post_result_challenges(2);
         builder.produce_one_evaluation_length(output_length);
+
+        log::log_memory_usage("End");
+
         res
     }
 
@@ -83,6 +89,8 @@ impl ProverEvaluate for DishonestFilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
+        log::log_memory_usage("Start");
+
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -121,14 +129,18 @@ impl ProverEvaluate for DishonestFilterExec {
             table.num_rows(),
             result_len,
         );
-        Table::<'a, S>::try_from_iter_with_options(
+        let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results
                 .iter()
                 .map(|expr| expr.alias)
                 .zip(filtered_columns),
             TableOptions::new(Some(output_length)),
         )
-        .expect("Failed to create table from iterator")
+        .expect("Failed to create table from iterator");
+
+        log::log_memory_usage("End");
+
+        res
     }
 }
 

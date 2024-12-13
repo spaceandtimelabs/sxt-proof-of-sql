@@ -1,4 +1,4 @@
-use crate::proof_primitive::dory::offset_to_bytes::OffsetToBytes;
+use crate::{proof_primitive::dory::offset_to_bytes::OffsetToBytes, utils::log};
 use alloc::{vec, vec::Vec};
 
 #[tracing::instrument(name = "transpose_for_fixed_msm (gpu)", level = "debug", skip_all)]
@@ -9,6 +9,8 @@ pub fn transpose_for_fixed_msm<const LEN: usize, T: OffsetToBytes<LEN>>(
     cols: usize,
     data_size: usize,
 ) -> Vec<u8> {
+    log::log_memory_usage("Start");
+
     let total_length_bytes = data_size * rows * cols;
     let mut transpose = vec![0_u8; total_length_bytes];
     for n in offset..(column.len() + offset) {
@@ -20,6 +22,9 @@ pub fn transpose_for_fixed_msm<const LEN: usize, T: OffsetToBytes<LEN>>(
         transpose[t_idx..t_idx + data_size]
             .copy_from_slice(column[p_idx].offset_to_bytes().as_slice());
     }
+
+    log::log_memory_usage("End");
+
     transpose
 }
 

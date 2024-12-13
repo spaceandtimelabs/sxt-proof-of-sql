@@ -19,6 +19,7 @@ use crate::{
         },
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
     },
+    utils::log,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
@@ -196,6 +197,8 @@ impl ProverEvaluate for GroupByExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
+        log::log_memory_usage("Start");
+
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -240,6 +243,9 @@ impl ProverEvaluate for GroupByExec {
         .expect("Failed to create table from column references");
         builder.request_post_result_challenges(2);
         builder.produce_one_evaluation_length(count_column.len());
+
+        log::log_memory_usage("End");
+
         res
     }
 
@@ -251,6 +257,8 @@ impl ProverEvaluate for GroupByExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
+        log::log_memory_usage("Start");
+
         let table = table_map
             .get(&self.table.table_ref)
             .expect("Table not found");
@@ -312,6 +320,9 @@ impl ProverEvaluate for GroupByExec {
             (&group_by_result_columns, &sum_result_columns, count_column),
             table.num_rows(),
         );
+
+        log::log_memory_usage("End");
+
         res
     }
 }

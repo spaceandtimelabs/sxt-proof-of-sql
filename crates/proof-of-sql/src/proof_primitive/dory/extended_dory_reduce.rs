@@ -10,7 +10,7 @@ use super::{
     extended_state::{ExtendedProverState, ExtendedVerifierState},
     DoryMessages, ProverSetup, VerifierSetup,
 };
-use crate::base::proof::Transcript;
+use crate::{base::proof::Transcript, utils::log};
 
 /// This is the prover side of the extended Dory-Reduce algorithm in section 3.2 & 4.2 of https://eprint.iacr.org/2020/1274.pdf.
 #[tracing::instrument(level = "debug", skip_all)]
@@ -20,6 +20,8 @@ pub fn extended_dory_reduce_prove(
     state: &mut ExtendedProverState,
     setup: &ProverSetup,
 ) {
+    log::log_memory_usage("Start");
+
     assert!(state.base_state.nu > 0);
     let half_n = 1usize << (state.base_state.nu - 1);
     let (D_1L, D_1R, D_2L, D_2R) = dory_reduce_prove_compute_Ds(&state.base_state, setup, half_n);
@@ -45,6 +47,8 @@ pub fn extended_dory_reduce_prove(
     dory_reduce_prove_fold_v_vecs(&mut state.base_state, alphas, half_n);
     extended_dory_reduce_prove_fold_s_vecs(state, alphas, half_n);
     state.base_state.nu -= 1;
+
+    log::log_memory_usage("End");
 }
 
 /// This is the verifier side of the extended Dory-Reduce algorithm in section 3.2 & 4.2 of https://eprint.iacr.org/2020/1274.pdf.
@@ -55,6 +59,8 @@ pub fn extended_dory_reduce_verify(
     state: &mut ExtendedVerifierState,
     setup: &VerifierSetup,
 ) -> bool {
+    log::log_memory_usage("Start");
+
     assert!(state.base_state.nu > 0);
     if messages.GT_messages.len() < 6
         || messages.G1_messages.len() < 3
@@ -100,5 +106,8 @@ pub fn extended_dory_reduce_verify(
     state.alphas[state.base_state.nu - 1] = alphas.0;
     state.alpha_invs[state.base_state.nu - 1] = alphas.1;
     state.base_state.nu -= 1;
+
+    log::log_memory_usage("End");
+
     true
 }

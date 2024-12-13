@@ -7,6 +7,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    utils::log,
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -65,16 +66,22 @@ impl ProofExpr for AddSubtractExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
+        log::log_memory_usage("Start");
+
         let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
         let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
-        Column::Scalar(add_subtract_columns(
+        let res = Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,
             self.lhs.data_type().scale().unwrap_or(0),
             self.rhs.data_type().scale().unwrap_or(0),
             alloc,
             self.is_subtract,
-        ))
+        ));
+
+        log::log_memory_usage("End");
+
+        res
     }
 
     fn verifier_evaluate<S: Scalar>(

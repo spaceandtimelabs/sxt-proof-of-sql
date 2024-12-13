@@ -1,4 +1,4 @@
-use crate::base::if_rayon;
+use crate::{base::if_rayon, utils::log};
 #[cfg(feature = "rayon")]
 use ark_ec::pairing::MillerLoopOutput;
 use ark_ec::pairing::{Pairing, PairingOutput};
@@ -18,6 +18,8 @@ pub fn multi_pairing<P: Pairing>(
     a: impl IntoIterator<Item = impl Into<P::G1Prepared> + Send> + Send,
     b: impl IntoIterator<Item = impl Into<P::G2Prepared> + Send> + Send,
 ) -> PairingOutput<P> {
+    log::log_memory_usage("Start");
+
     multi_pairing_impl(a, b)
 }
 #[tracing::instrument(level = "debug", skip_all)]
@@ -32,6 +34,8 @@ pub fn multi_pairing_2<P: Pairing>(
         impl IntoIterator<Item = impl Into<P::G2Prepared> + Send> + Send,
     ),
 ) -> (PairingOutput<P>, PairingOutput<P>) {
+    log::log_memory_usage("Start");
+
     multi_pairing_2_impl((a0, b0), (a1, b1))
 }
 #[tracing::instrument(level = "debug", skip_all)]
@@ -59,6 +63,8 @@ pub fn multi_pairing_4<P: Pairing>(
     PairingOutput<P>,
     PairingOutput<P>,
 ) {
+    log::log_memory_usage("Start");
+
     multi_pairing_4_impl((a0, b0), (a1, b1), (a2, b2), (a3, b3))
 }
 /// # Panics

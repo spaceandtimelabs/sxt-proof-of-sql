@@ -6,6 +6,7 @@
 use crate::{
     base::{if_rayon, scalar::Scalar},
     proof_primitive::sumcheck::ProverState,
+    utils::log,
 };
 use alloc::{vec, vec::Vec};
 #[cfg(feature = "rayon")]
@@ -13,6 +14,8 @@ use rayon::prelude::*;
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Option<S>) -> Vec<S> {
+    log::log_memory_usage("Start");
+
     if let Some(r) = r_maybe {
         assert!(
             prover_state.round != 0,
@@ -91,10 +94,14 @@ pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Optio
             products_iter.fold(vec![S::zero(); degree + 1], vec_elementwise_add)
         )
     });
-    if_rayon!(
+    let res = if_rayon!(
         sums_iter.reduce(|| vec![S::zero(); degree + 1], vec_elementwise_add),
         sums_iter.fold(vec![S::zero(); degree + 1], vec_elementwise_add)
-    )
+    );
+
+    log::log_memory_usage("End");
+
+    res
 }
 
 /// This is equivalent to
