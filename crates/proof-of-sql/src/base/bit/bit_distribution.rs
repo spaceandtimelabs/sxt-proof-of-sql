@@ -59,13 +59,13 @@ impl BitDistribution {
         self.vary_mask().count_ones().try_into().unwrap()
     }
 
-    pub fn sign_eval<S: ScalarExt>(&self, bit_evals: &[S]) -> S {
+    pub fn leading_bit_eval<S: ScalarExt>(&self, bit_evals: &[S], one_eval: S) -> S {
         if U256::from(self.vary_mask) & (U256::ONE << 255) != U256::ZERO {
             *bit_evals.last().expect("bit_evals should be non-empty")
         } else if U256::from(self.sign_mask) & (U256::ONE << 255) == U256::ZERO {
             S::ZERO
         } else {
-            S::ONE
+            one_eval
         }
     }
 

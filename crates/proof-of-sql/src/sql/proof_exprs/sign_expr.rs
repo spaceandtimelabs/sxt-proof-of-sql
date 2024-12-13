@@ -6,13 +6,14 @@ use crate::{
             compute_varying_bit_matrix, BitDistribution,
         },
         proof::ProofError,
-        scalar::{Scalar, ScalarExt},
+        scalar::{MontScalar, Scalar, ScalarExt},
     },
     sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use bnum::types::U256;
 use bumpalo::Bump;
+use core::str::FromStr;
 use num_traits::sign;
 
 /// Count the number of components needed to prove a sign decomposition
@@ -118,7 +119,7 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     verify_bits_are_binary(builder, &bit_evals);
 
     verify_bit_decomposition(eval, one_eval, &bit_evals, &dist)
-        .then(|| dist.sign_eval(&bit_evals))
+        .then(|| one_eval - dist.leading_bit_eval(&bit_evals, one_eval))
         .ok_or(ProofError::VerificationError {
             error: "invalid bit_decomposition",
         })
@@ -159,13 +160,21 @@ fn verify_bit_decomposition<S: ScalarExt>(
     bit_evals: &[S],
     dist: &BitDistribution,
 ) -> bool {
-    let sign_eval = dist.sign_eval(bit_evals);
+    dbg!(&bit_evals);
+
+    let sign_eval = dist.leading_bit_eval(bit_evals, one_eval);
     let mut rhs = sign_eval * S::from_wrapping(dist.sign_mask())
         + (one_eval - sign_eval) * S::from_wrapping(dist.inverse_sign_mask())
         - one_eval * S::from_wrapping(U256::ONE << 255);
 
-    println!("Binary representation (64 bits) of sign_mask: {:0256b}", dist.sign_mask());
-    println!("Binary representation (64 bits) of inverse_sign_mask: {:0256b}", dist.inverse_sign_mask());
+    println!(
+        "Binary representation (64 bits) of sign_mask: {:0256b}",
+        dist.sign_mask()
+    );
+    println!(
+        "Binary representation (64 bits) of inverse_sign_mask: {:0256b}",
+        dist.inverse_sign_mask()
+    );
     dbg!(&dist);
 
     dist.for_enumerated_vary_mask(|vary_index, bit_index: u8| {
@@ -182,10 +191,12 @@ fn verify_bit_decomposition<S: ScalarExt>(
 
 #[cfg(test)]
 mod tests {
+    use core::str::FromStr;
+
     use crate::{
         base::{
             bit::BitDistribution,
-            scalar::{test_scalar::TestScalar, Scalar},
+            scalar::{test_scalar::TestScalar, Scalar, ScalarExt},
         },
         sql::proof_exprs::sign_expr::verify_bit_decomposition,
     };
@@ -194,12 +205,55 @@ mod tests {
     #[test]
     fn we_can_verify_bit_decomposition() {
         let dist = BitDistribution {
-            vary_mask: (((U256::ONE) << 255 | (U256::ONE << 3) | (U256::ONE)) as U256).into(),
-            sign_mask: (((U256::ONE) << 255 | (U256::ONE << 1)) as U256).into(),
+            // vary_mask: (((U256::ZERO) << 255 | (U256::ONE << 3) | (U256::ONE)) as U256).into(),
+            vary_mask: [629, 0, 0, 0],
+            sign_mask: [2, 0, 0, 9223372036854775808],
+            // sign_mask: (((U256::ONE) << 255 | (U256::ONE << 1)) as U256).into(),
         };
         let one_eval = TestScalar::ONE;
-        let bit_evals = [0, 1, 0].map(TestScalar::from);
-        let expr_eval = TestScalar::from(-4);
+        let bit_evals = [0, 0, 1, 1, 0, 1].map(TestScalar::from);
+        let expr_eval = TestScalar::from(562);
+        assert!(verify_bit_decomposition(
+            expr_eval, one_eval, &bit_evals, &dist,
+        ));
+    }
+
+    #[test]
+    fn we_can_verify_bit_decomposition_constant_sign() {
+        let dist = BitDistribution {
+            // vary_mask: (((U256::ZERO) << 255 | (U256::ONE << 3) | (U256::ONE)) as U256).into(),
+            vary_mask: [629, 0, 0, 0],
+            sign_mask: [2, 0, 0, 9223372036854775808],
+            // sign_mask: (((U256::ONE) << 255 | (U256::ONE << 1)) as U256).into(),
+        };
+        let a = TestScalar::ONE;
+        let b = TestScalar::ONE;
+        let expr_eval = TestScalar::from(118) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+            + TestScalar::from(562) * a * (TestScalar::ONE - b)
+            + TestScalar::from(3) * (TestScalar::ONE - a) * b;
+        let one_eval = TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+            + TestScalar::from(1) * a * (TestScalar::ONE - b)
+            + TestScalar::from(1) * (TestScalar::ONE - a) * b;
+        let bit_evals = [
+            TestScalar::from(0) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(0) * a * (TestScalar::ONE - b)
+                + TestScalar::from(1) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(0) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(1) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(1) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(0) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(0) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(1) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+        ];
         assert!(verify_bit_decomposition(
             expr_eval, one_eval, &bit_evals, &dist,
         ));

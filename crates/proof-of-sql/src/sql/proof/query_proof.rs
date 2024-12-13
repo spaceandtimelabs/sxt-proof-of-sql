@@ -165,6 +165,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // create the sumcheck proof -- this is the main part of proving a query
         let mut evaluation_point = vec![Zero::zero(); state.num_vars];
         let sumcheck_proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, state);
+        dbg!(&evaluation_point);
 
         // evaluate the MLEs used in sumcheck except for the result columns
         let mut evaluation_vec = vec![Zero::zero(); range_length];
