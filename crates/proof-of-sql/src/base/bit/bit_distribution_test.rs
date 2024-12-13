@@ -1,31 +1,28 @@
 use super::*;
-use crate::base::scalar::test_scalar::TestScalar;
-use num_traits::{One, Zero};
+use crate::base::scalar::{test_scalar::TestScalar, ScalarExt};
+use bnum::types::U256;
 
 #[test]
 fn we_can_compute_the_bit_distribution_of_an_empty_slice() {
     let data: Vec<i64> = vec![];
     let dist = BitDistribution::new::<TestScalar, _>(&data);
     assert_eq!(dist.num_varying_bits(), 0);
-    assert!(!dist.has_varying_sign_bit());
-    assert!(!dist.sign_bit());
     assert!(dist.is_valid());
-    assert_eq!(TestScalar::from(dist.constant_part()), TestScalar::zero());
+    assert_eq!(
+        TestScalar::from_wrapping(dist.sign_mask()),
+        TestScalar::from_wrapping(U256::MAX)
+    );
+    assert_eq!(
+        TestScalar::from_wrapping(dist.inverse_sign_mask()),
+        TestScalar::from(0)
+    );
+    assert_eq!(
+        TestScalar::from_wrapping(dist.vary_mask()),
+        TestScalar::from(0)
+    );
 
     let mut cnt = 0;
-    dist.for_each_abs_constant_bit(|_i: usize, _pos: usize| {
-        cnt += 1;
-    });
-    assert_eq!(cnt, 0);
-
-    let mut cnt = 0;
-    dist.for_each_abs_varying_bit(|_i: usize, _pos: usize| {
-        cnt += 1;
-    });
-    assert_eq!(cnt, 0);
-
-    let mut cnt = 0;
-    dist.for_each_varying_bit(|_i: usize, _pos: usize| {
+    dist.for_enumerated_vary_mask(|_i, _j| {
         cnt += 1;
     });
     assert_eq!(cnt, 0);
@@ -37,31 +34,22 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_a_single_element() {
     let data: Vec<i64> = vec![val];
     let dist = BitDistribution::new::<TestScalar, _>(&data);
     assert_eq!(dist.num_varying_bits(), 0);
-    assert!(!dist.has_varying_sign_bit());
-    assert!(!dist.sign_bit());
     assert!(dist.is_valid());
     assert_eq!(
-        TestScalar::from(dist.constant_part()),
-        TestScalar::from(val)
+        TestScalar::from_wrapping(dist.sign_mask()),
+        TestScalar::from_wrapping((U256::ONE << 2) | (U256::ONE << 10) | (U256::ONE << 255))
     );
-    assert_eq!(dist.most_significant_abs_bit(), 10);
+    assert_eq!(
+        TestScalar::from_wrapping(dist.vary_mask()),
+        TestScalar::from(0)
+    );
+    assert_eq!(
+        dist.inverse_sign_mask(),
+        ((U256::ONE << 2) | (U256::ONE << 10) | (U256::ONE << 255)) ^ U256::MAX
+    );
 
     let mut cnt = 0;
-    dist.for_each_abs_constant_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 0);
-        assert!(pos == 2 || pos == 10);
-        cnt += 1;
-    });
-    assert_eq!(cnt, 2);
-
-    let mut cnt = 0;
-    dist.for_each_abs_varying_bit(|_i: usize, _pos: usize| {
-        cnt += 1;
-    });
-    assert_eq!(cnt, 0);
-
-    let mut cnt = 0;
-    dist.for_each_varying_bit(|_i: usize, _pos: usize| {
+    dist.for_enumerated_vary_mask(|_i, _j| {
         cnt += 1;
     });
     assert_eq!(cnt, 0);
@@ -72,35 +60,21 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_one_varying_bits() {
     let data: Vec<i64> = vec![(1 << 2) | (1 << 10), (1 << 2) | (1 << 10) | (1 << 21)];
     let dist = BitDistribution::new::<TestScalar, _>(&data);
     assert_eq!(dist.num_varying_bits(), 1);
-    assert!(!dist.has_varying_sign_bit());
-    assert!(!dist.sign_bit());
     assert!(dist.is_valid());
     assert_eq!(
-        TestScalar::from(dist.constant_part()),
-        TestScalar::from((1 << 10) | (1 << 2))
+        TestScalar::from_wrapping(dist.sign_mask()),
+        TestScalar::from_wrapping((U256::ONE << 2) | (U256::ONE << 10) | (U256::ONE << 255))
     );
-    assert_eq!(dist.most_significant_abs_bit(), 21);
+    assert_eq!(
+        TestScalar::from_wrapping(dist.inverse_sign_mask()),
+        TestScalar::from_wrapping(
+            (U256::FOUR | (U256::ONE << 10) | (U256::ONE << 21) | (U256::ONE << 255)) ^ U256::MAX
+        )
+    );
 
     let mut cnt = 0;
-    dist.for_each_abs_constant_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 0);
-        assert!(pos == 2 || pos == 10);
-        cnt += 1;
-    });
-    assert_eq!(cnt, 2);
-
-    let mut cnt = 0;
-    dist.for_each_abs_varying_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 0);
-        assert_eq!(pos, 21);
-        cnt += 1;
-    });
-    assert_eq!(cnt, 1);
-
-    let mut cnt = 0;
-    dist.for_each_varying_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 0);
-        assert_eq!(pos, 21);
+    dist.for_enumerated_vary_mask(|_index, i: u8| {
+        assert_eq!(i, 21);
         cnt += 1;
     });
     assert_eq!(cnt, 1);
@@ -115,35 +89,28 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_multiple_varying_bits() {
     ];
     let dist = BitDistribution::new::<TestScalar, _>(&data);
     assert_eq!(dist.num_varying_bits(), 4);
-    assert!(!dist.has_varying_sign_bit());
-    assert!(!dist.sign_bit());
     assert!(dist.is_valid());
+
     assert_eq!(
-        TestScalar::from(dist.constant_part()),
-        TestScalar::from(1 << 10)
+        TestScalar::from_wrapping(dist.sign_mask()),
+        TestScalar::from_wrapping((U256::ONE << 10) | (U256::ONE << 255))
     );
-    assert_eq!(dist.most_significant_abs_bit(), 50);
+    assert_eq!(
+        TestScalar::from_wrapping(dist.inverse_sign_mask()),
+        TestScalar::from_wrapping(
+            (U256::FOUR
+                | U256::EIGHT
+                | (U256::ONE << 10)
+                | (U256::ONE << 21)
+                | (U256::ONE << 50)
+                | (U256::ONE << 255))
+                ^ U256::MAX
+        )
+    );
 
     let mut cnt = 0;
-    dist.for_each_abs_constant_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 0);
-        assert_eq!(pos, 10);
-        cnt += 1;
-    });
-    assert_eq!(cnt, 1);
-
-    let mut cnt = 0;
-    dist.for_each_abs_varying_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 0);
-        assert!(pos == 2 || pos == 3 || pos == 21 || pos == 50);
-        cnt += 1;
-    });
-    assert_eq!(cnt, 4);
-
-    let mut cnt = 0;
-    dist.for_each_varying_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 0);
-        assert!(pos == 2 || pos == 3 || pos == 21 || pos == 50);
+    dist.for_enumerated_vary_mask(|_index, i: u8| {
+        assert!(i == 2 || i == 3 || i == 21 || i == 50);
         cnt += 1;
     });
     assert_eq!(cnt, 4);
@@ -154,28 +121,18 @@ fn we_can_compute_the_bit_distribution_of_negative_values() {
     let data: Vec<i64> = vec![-1];
     let dist = BitDistribution::new::<TestScalar, _>(&data);
     assert_eq!(dist.num_varying_bits(), 0);
-    assert!(!dist.has_varying_sign_bit());
-    assert!(dist.sign_bit());
     assert!(dist.is_valid());
-    assert_eq!(TestScalar::from(dist.constant_part()), TestScalar::one());
-    assert_eq!(dist.most_significant_abs_bit(), 0);
+    assert_eq!(
+        TestScalar::from_wrapping(dist.sign_mask()),
+        TestScalar::from_wrapping(U256::ONE << 255)
+    );
+    assert_eq!(
+        TestScalar::from_wrapping(dist.inverse_sign_mask()),
+        TestScalar::from_wrapping(U256::MAX ^ (U256::ONE << 255))
+    );
 
     let mut cnt = 0;
-    dist.for_each_abs_constant_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 0);
-        assert_eq!(pos, 0);
-        cnt += 1;
-    });
-    assert_eq!(cnt, 1);
-
-    let mut cnt = 0;
-    dist.for_each_abs_varying_bit(|_i: usize, _pos: usize| {
-        cnt += 1;
-    });
-    assert_eq!(cnt, 0);
-
-    let mut cnt = 0;
-    dist.for_each_varying_bit(|_i: usize, _pos: usize| {
+    dist.for_enumerated_vary_mask(|_i, _j| {
         cnt += 1;
     });
     assert_eq!(cnt, 0);
@@ -185,32 +142,22 @@ fn we_can_compute_the_bit_distribution_of_negative_values() {
 fn we_can_compute_the_bit_distribution_of_values_with_different_signs() {
     let data: Vec<i64> = vec![-1, 1];
     let dist = BitDistribution::new::<TestScalar, _>(&data);
-    assert_eq!(dist.num_varying_bits(), 1);
-    assert!(dist.has_varying_sign_bit());
-    assert_eq!(TestScalar::from(dist.constant_part()), TestScalar::one());
-    assert_eq!(dist.most_significant_abs_bit(), 0);
+    assert_eq!(dist.num_varying_bits(), 2);
+    assert_eq!(
+        TestScalar::from_wrapping(dist.sign_mask()),
+        TestScalar::from_wrapping(U256::ONE << 255)
+    );
+    assert_eq!(
+        TestScalar::from_wrapping(dist.inverse_sign_mask()),
+        TestScalar::from_wrapping(U256::MAX ^ (U256::ONE | (U256::ONE << 255)))
+    );
 
     let mut cnt = 0;
-    dist.for_each_abs_constant_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 0);
-        assert_eq!(pos, 0);
+    dist.for_enumerated_vary_mask(|_index, i: u8| {
+        assert!(i == 0 || i == 255);
         cnt += 1;
     });
-    assert_eq!(cnt, 1);
-
-    let mut cnt = 0;
-    dist.for_each_abs_varying_bit(|_i: usize, _pos: usize| {
-        cnt += 1;
-    });
-    assert_eq!(cnt, 0);
-
-    let mut cnt = 0;
-    dist.for_each_varying_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 3);
-        assert_eq!(pos, 63);
-        cnt += 1;
-    });
-    assert_eq!(cnt, 1);
+    assert_eq!(cnt, 2);
 }
 
 #[test]
@@ -218,28 +165,19 @@ fn we_can_compute_the_bit_distribution_of_values_with_different_signs_and_values
     let data: Vec<i64> = vec![4, -1, 1];
     let dist = BitDistribution::new::<TestScalar, _>(&data);
     assert_eq!(dist.num_varying_bits(), 3);
-    assert!(dist.has_varying_sign_bit());
     assert!(dist.is_valid());
-    assert_eq!(TestScalar::from(dist.constant_part()), TestScalar::zero());
-    assert_eq!(dist.most_significant_abs_bit(), 2);
+    assert_eq!(
+        TestScalar::from_wrapping(dist.sign_mask()),
+        TestScalar::from_wrapping(U256::ONE << 255)
+    );
+    assert_eq!(
+        TestScalar::from_wrapping(dist.inverse_sign_mask()),
+        TestScalar::from_wrapping(U256::MAX ^ (U256::FIVE | (U256::ONE << 255)))
+    );
 
     let mut cnt = 0;
-    dist.for_each_abs_constant_bit(|_i: usize, _pos: usize| {
-        cnt += 1;
-    });
-    assert_eq!(cnt, 0);
-
-    let mut cnt = 0;
-    dist.for_each_abs_varying_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 0);
-        assert!(pos == 0 || pos == 2);
-        cnt += 1;
-    });
-    assert_eq!(cnt, 2);
-
-    let mut cnt = 0;
-    dist.for_each_varying_bit(|i: usize, pos: usize| {
-        assert!((i == 0 && (pos == 0 || pos == 2)) || (i == 3 && pos == 63));
+    dist.for_enumerated_vary_mask(|_index, i: u8| {
+        assert!(i == 0 || i == 2 || i == 255);
         cnt += 1;
     });
     assert_eq!(cnt, 3);
@@ -252,40 +190,19 @@ fn we_can_compute_the_bit_distribution_of_values_larger_than_64_bit_integers() {
     let data: Vec<TestScalar> = vec![TestScalar::from_bigint(val)];
     let dist = BitDistribution::new::<TestScalar, _>(&data);
     assert_eq!(dist.num_varying_bits(), 0);
-    assert!(!dist.has_varying_sign_bit());
     assert!(dist.is_valid());
     assert_eq!(
-        TestScalar::from(dist.constant_part()),
-        TestScalar::from_bigint(val)
+        TestScalar::from_wrapping(dist.sign_mask()),
+        TestScalar::from_wrapping((U256::ONE << 203) | (U256::ONE << 255))
     );
-    assert_eq!(dist.most_significant_abs_bit(), 64 * 3 + 11);
+    assert_eq!(
+        TestScalar::from_wrapping(dist.inverse_sign_mask()),
+        TestScalar::from_wrapping(U256::MAX ^ ((U256::ONE << 203) | (U256::ONE << 255)))
+    );
 
     let mut cnt = 0;
-    dist.for_each_abs_constant_bit(|i: usize, pos: usize| {
-        assert_eq!(i, 3);
-        assert_eq!(pos, 11);
-        cnt += 1;
-    });
-    assert_eq!(cnt, 1);
-
-    let mut cnt = 0;
-    dist.for_each_abs_varying_bit(|_i: usize, _pos: usize| {
+    dist.for_enumerated_vary_mask(|_i, _j| {
         cnt += 1;
     });
     assert_eq!(cnt, 0);
-
-    let mut cnt = 0;
-    dist.for_each_varying_bit(|_i: usize, _pos: usize| {
-        cnt += 1;
-    });
-    assert_eq!(cnt, 0);
-}
-
-#[test]
-fn we_can_detect_invalid_bit_distributions() {
-    let dist = BitDistribution {
-        or_all: [0, 0, 0, 0],
-        vary_mask: [1, 0, 0, 0],
-    };
-    assert!(!dist.is_valid());
 }

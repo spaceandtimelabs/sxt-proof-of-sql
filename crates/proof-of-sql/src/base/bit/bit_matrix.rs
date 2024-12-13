@@ -1,8 +1,7 @@
-use crate::base::{
-    bit::{make_abs_bit_mask, BitDistribution},
-    scalar::Scalar,
-};
+use super::bit_mask_utils::make_bit_mask;
+use crate::base::{bit::BitDistribution, scalar::Scalar};
 use alloc::vec::Vec;
+use bnum::types::U256;
 use bumpalo::Bump;
 
 /// Let `x1, ..., xn` denote the values of a data column. Let
@@ -17,25 +16,24 @@ pub fn compute_varying_bit_matrix<'a, S: Scalar>(
     vals: &[S],
     dist: &BitDistribution,
 ) -> Vec<&'a [bool]> {
-    let n = vals.len();
+    let number_of_scalars = vals.len();
     let num_varying_bits = dist.num_varying_bits();
-    let data: &'a mut [bool] = alloc.alloc_slice_fill_default(n * num_varying_bits);
+    let data: &'a mut [bool] = alloc.alloc_slice_fill_default(number_of_scalars * num_varying_bits);
 
     // decompose
-    for (i, val) in vals.iter().enumerate() {
-        let mask = make_abs_bit_mask(*val);
-        let mut offset = i;
-        dist.for_each_varying_bit(|int_index: usize, bit_index: usize| {
-            data[offset] = (mask[int_index] & (1u64 << bit_index)) != 0;
-            offset += n;
+    for (scalar_index, val) in vals.iter().enumerate() {
+        let mask = make_bit_mask(*val);
+        dist.for_enumerated_vary_mask(|vary_index: usize, bit_index: u8| {
+            data[scalar_index + vary_index * number_of_scalars] =
+                (mask & (U256::ONE << bit_index)) != U256::ZERO;
         });
     }
 
     // make result
     let mut res = Vec::with_capacity(num_varying_bits);
     for bit_index in 0..num_varying_bits {
-        let first = n * bit_index;
-        let last = n * (bit_index + 1);
+        let first = number_of_scalars * bit_index;
+        let last = number_of_scalars * (bit_index + 1);
         res.push(&data[first..last]);
     }
     res
