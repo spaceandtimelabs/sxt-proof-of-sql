@@ -98,9 +98,7 @@ mod tests {
             owned_table_utility::{owned_table, scalar},
             ColumnRef, ColumnType, OwnedTableTestAccessor,
         },
-        sql::{
-            proof::VerifiableQueryResult,
-        },
+        sql::proof::VerifiableQueryResult,
     };
     use blitzar::proof::InnerProductProof;
 

@@ -406,9 +406,7 @@ mod tests {
     use super::*;
     use crate::{
         base::scalar::{Curve25519Scalar as S, Scalar},
-        sql::{
-            proof::FinalRoundBuilder,
-        },
+        sql::proof::FinalRoundBuilder,
     };
     use bumpalo::Bump;
     use num_traits::Inv;
