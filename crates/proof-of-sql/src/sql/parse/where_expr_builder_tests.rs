@@ -3,6 +3,7 @@ use crate::{
         database::{ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
         map::{indexmap, IndexMap},
         math::decimal::Precision,
+        sqlparser::ident,
     },
     sql::{
         parse::{ConversionError, QueryExpr, WhereExprBuilder},
@@ -14,8 +15,9 @@ use core::str::FromStr;
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
     utility::*,
-    Identifier, SelectStatement,
+    SelectStatement,
 };
+use sqlparser::ast::Ident;
 
 /// # Panics
 ///
@@ -26,7 +28,7 @@ use proof_of_sql_parser::{
 /// - The precision used for creating the `Decimal75` column type fails. The `Precision::new(7)`
 ///   call is expected to succeed; however, if it encounters an invalid precision value, it will
 ///   cause a panic when `unwrap()` is called.
-fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
+fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
     let tab_ref = "sxt.sxt_tab".parse().unwrap();
     let mut column_mapping = IndexMap::default();
     // Setup column mapping
@@ -302,7 +304,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::VarChar,
+            "b".into() => ColumnType::VarChar,
         },
     });
 
@@ -321,7 +323,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::VarChar,
+            "b".into() => ColumnType::VarChar,
         },
     });
 
@@ -340,7 +342,7 @@ fn we_do_not_expect_an_error_while_trying_to_check_int128_column_eq_decimal_with
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::Int128,
+            "b".into() => ColumnType::Int128,
         },
     });
 
@@ -357,7 +359,7 @@ fn we_do_not_expect_an_error_while_trying_to_check_bigint_column_eq_decimal_with
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = TestSchemaAccessor::new(indexmap! {
         t => indexmap! {
-            "b".parse().unwrap() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
         },
     });
 

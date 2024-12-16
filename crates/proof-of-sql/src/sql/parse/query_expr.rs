@@ -5,14 +5,15 @@ use crate::{
         parse::ConversionResult,
         postprocessing::{
             GroupByPostprocessing, OrderByPostprocessing, OwnedTablePostprocessing,
-            SelectPostprocessing, SlicePostprocessing,
+            PostprocessingError, SelectPostprocessing, SlicePostprocessing,
         },
         proof_plans::{DynProofPlan, GroupByExec},
     },
 };
-use alloc::{fmt, vec, vec::Vec};
+use alloc::{fmt, format, vec, vec::Vec};
 use proof_of_sql_parser::{intermediate_ast::SetExpression, Identifier, SelectStatement};
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 #[derive(PartialEq, Serialize, Deserialize)]
 /// A `QueryExpr` represents a Proof of SQL query that can be executed against a database.
@@ -34,6 +35,12 @@ impl fmt::Debug for QueryExpr {
     }
 }
 
+pub fn convert_ident_to_identifier(ident: Ident) -> Result<Identifier, PostprocessingError> {
+    Identifier::try_from(ident).map_err(|e| PostprocessingError::IdentifierConversionError {
+        error: format!("Failed to convert Ident to Identifier: {e}"),
+    })
+}
+
 impl QueryExpr {
     /// Creates a new `QueryExpr` with the given `DynProofPlan` and `OwnedTablePostprocessing`.
     #[must_use]
@@ -47,7 +54,7 @@ impl QueryExpr {
     /// Parse an intermediate AST `SelectStatement` into a `QueryExpr`.
     pub fn try_new(
         ast: SelectStatement,
-        default_schema: Identifier,
+        default_schema: Ident,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Self> {
         let context = match *ast.expr {
@@ -57,8 +64,8 @@ impl QueryExpr {
                 where_expr,
                 group_by,
             } => QueryContextBuilder::new(schema_accessor)
-                .visit_table_expr(&from, default_schema)
-                .visit_group_by_exprs(group_by)?
+                .visit_table_expr(&from, convert_ident_to_identifier(default_schema)?)
+                .visit_group_by_exprs(group_by.into_iter().map(Ident::from).collect())?
                 .visit_result_exprs(result_exprs)?
                 .visit_where_expr(where_expr)?
                 .visit_order_by_exprs(ast.order_by)
@@ -67,7 +74,6 @@ impl QueryExpr {
         };
         let result_aliased_exprs = context.get_aliased_result_exprs()?.to_vec();
         let group_by = context.get_group_by_exprs();
-
         // Figure out the basic postprocessing steps.
         let mut postprocessing = vec![];
         let order_bys = context.get_order_by_exprs()?;

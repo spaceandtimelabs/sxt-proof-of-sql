@@ -19,6 +19,7 @@ mod serialize;
 pub(crate) use serialize::{impl_serde_for_ark_serde_checked, impl_serde_for_ark_serde_unchecked};
 pub(crate) mod map;
 pub(crate) mod slice_ops;
+pub(crate) mod sqlparser;
 
 mod rayon_cfg;
 pub(crate) use rayon_cfg::if_rayon;

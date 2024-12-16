@@ -13,6 +13,7 @@ use crate::{
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
+        sqlparser::ident,
     },
     sql::proof::{FirstRoundBuilder, QueryData},
 };
@@ -34,7 +35,8 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         let zeros = vec![0_i64; self.length];
         builder.produce_one_evaluation_length(self.length);
         table_with_row_count(
-            (1..=self.columns).map(|i| borrowed_bigint(format!("a{i}"), zeros.clone(), alloc)),
+            (1..=self.columns)
+                .map(|i| borrowed_bigint(ident(format!("a{i}").as_str()), zeros.clone(), alloc)),
             self.length,
         )
     }
@@ -51,7 +53,8 @@ impl ProverEvaluate for EmptyTestQueryExpr {
             .take(self.columns)
             .collect::<Vec<_>>();
         table_with_row_count(
-            (1..=self.columns).map(|i| borrowed_bigint(format!("a{i}"), zeros.clone(), alloc)),
+            (1..=self.columns)
+                .map(|i| borrowed_bigint(ident(format!("a{i}").as_str()), zeros.clone(), alloc)),
             self.length,
         )
     }
@@ -76,7 +79,7 @@ impl ProofPlan for EmptyTestQueryExpr {
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         (1..=self.columns)
-            .map(|i| ColumnField::new(format!("a{i}").parse().unwrap(), ColumnType::BigInt))
+            .map(|i| ColumnField::new(format!("a{i}").as_str().into(), ColumnType::BigInt))
             .collect()
     }
 

@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub fn column_field(name: &str, column_type: ColumnType) -> ColumnField {
-    ColumnField::new(name.parse().unwrap(), column_type)
+    ColumnField::new(name.into(), column_type)
 }
 
 pub fn empty_exec() -> DynProofPlan {
@@ -44,7 +44,7 @@ pub fn group_by(
     DynProofPlan::GroupBy(GroupByExec::new(
         group_by_exprs,
         sum_expr,
-        count_alias.parse().unwrap(),
+        count_alias.into(),
         table,
         where_clause,
     ))

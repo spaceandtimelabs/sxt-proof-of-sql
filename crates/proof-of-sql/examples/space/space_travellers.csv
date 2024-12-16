@@ -1,4 +1,4 @@
-Number,Name,Nationality,Date,Flight
+number,name,nationality,date,flight
 1,Yuri Gagarin,Soviet Union,1961-04-12T00:00:00Z,Vostok 1
 2,Alan Shepard,United States,1961-05-05,Freedom 7
 3,Virgil Grissom,United States,1961-07-21,Liberty Bell 7

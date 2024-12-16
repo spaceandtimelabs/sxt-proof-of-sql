@@ -44,7 +44,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
         "SELECT times FROM table WHERE times = timestamp '1970-01-01T00:00:00Z';"
             .parse()
             .unwrap(),
-        "sxt".parse().unwrap(),
+        "sxt".into(),
         &accessor,
     )
     .unwrap();
@@ -88,12 +88,7 @@ fn run_timestamp_query_test(
     );
 
     // Parse and execute the query
-    let query = QueryExpr::try_new(
-        query_str.parse().unwrap(),
-        "sxt".parse().unwrap(),
-        &accessor,
-    )
-    .unwrap();
+    let query = QueryExpr::try_new(query_str.parse().unwrap(), "sxt".into(), &accessor).unwrap();
 
     let proof = VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
 
@@ -435,7 +430,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
         "select *, a <= b as res from TABLE where a <= b"
             .parse()
             .unwrap(),
-        "sxt".parse().unwrap(),
+        "sxt".into(),
         &accessor,
     )
     .unwrap();

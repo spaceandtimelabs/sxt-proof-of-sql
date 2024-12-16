@@ -70,7 +70,7 @@ mod tests {
     #[test]
     fn we_can_generate_serialized_proof_plan_for_query_expr() {
         let table_ref = "namespace.table".parse().unwrap();
-        let identifier_alias = "alias".parse().unwrap();
+        let identifier_alias = "alias".into();
 
         let plan = DynProofPlan::Filter(FilterExec::new(
             vec![AliasedDynProofExpr {
@@ -121,9 +121,9 @@ mod tests {
     #[test]
     fn we_can_generate_serialized_proof_plan_for_simple_filter() {
         let table_ref = "namespace.table".parse().unwrap();
-        let identifier_a = "a".parse().unwrap();
-        let identifier_b = "b".parse().unwrap();
-        let identifier_alias = "alias".parse().unwrap();
+        let identifier_a = "a".into();
+        let identifier_b = "b".into();
+        let identifier_alias = "alias".into();
 
         let column_ref_a = ColumnRef::new(table_ref, identifier_a, ColumnType::BigInt);
         let column_ref_b = ColumnRef::new(table_ref, identifier_b, ColumnType::BigInt);

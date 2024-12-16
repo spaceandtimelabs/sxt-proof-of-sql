@@ -87,12 +87,12 @@ mod tests {
         let table_ref_1: TableRef = "namespace.table1".parse().unwrap();
         let table_ref_2: TableRef = "namespace.table2".parse().unwrap();
         let column_ref_1: ColumnRef =
-            ColumnRef::new(table_ref_1, "column1".parse().unwrap(), ColumnType::BigInt);
+            ColumnRef::new(table_ref_1, "column1".into(), ColumnType::BigInt);
         let column_ref_2: ColumnRef =
-            ColumnRef::new(table_ref_2, "column2".parse().unwrap(), ColumnType::BigInt);
+            ColumnRef::new(table_ref_2, "column2".into(), ColumnType::BigInt);
 
         let table_refs = indexset! { table_ref_1, table_ref_2 };
-        let column_refs = indexset! { column_ref_1, column_ref_2 };
+        let column_refs = indexset! { column_ref_1.clone(), column_ref_2.clone() };
         let serializer =
             DynProofPlanSerializer::<TestScalar>::try_new(table_refs, column_refs).unwrap();
         assert_eq!(
@@ -125,7 +125,7 @@ mod tests {
             .map(|i| {
                 ColumnRef::new(
                     table_ref,
-                    format!("column{i}").parse().unwrap(),
+                    format!("column{i}").as_str().into(),
                     ColumnType::BigInt,
                 )
             })

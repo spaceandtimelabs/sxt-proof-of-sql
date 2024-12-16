@@ -4,7 +4,8 @@ use core::{
     fmt::{Display, Formatter},
     str::FromStr,
 };
-use proof_of_sql_parser::{impl_serde_from_str, Identifier, ResourceId};
+use proof_of_sql_parser::{impl_serde_from_str, ResourceId};
+use sqlparser::ast::Ident;
 
 /// Expression for an SQL table
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
@@ -21,14 +22,14 @@ impl TableRef {
 
     /// Returns the identifier of the schema
     #[must_use]
-    pub fn schema_id(&self) -> Identifier {
-        self.resource_id.schema()
+    pub fn schema_id(&self) -> Ident {
+        self.resource_id.schema().into()
     }
 
     /// Returns the identifier of the table
     #[must_use]
-    pub fn table_id(&self) -> Identifier {
-        self.resource_id.object_name()
+    pub fn table_id(&self) -> Ident {
+        self.resource_id.object_name().into()
     }
 
     /// Returns the underlying resource id of the table

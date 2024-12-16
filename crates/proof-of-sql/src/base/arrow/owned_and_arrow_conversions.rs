@@ -32,9 +32,10 @@ use arrow::{
 };
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
-    Identifier, ParseError,
+    ParseError,
 };
 use snafu::Snafu;
+use sqlparser::ast::Ident;
 
 #[derive(Snafu, Debug)]
 #[non_exhaustive]
@@ -123,7 +124,9 @@ impl<S: Scalar> TryFrom<OwnedTable<S>> for RecordBatch {
                 value
                     .into_inner()
                     .into_iter()
-                    .map(|(identifier, owned_column)| (identifier, ArrayRef::from(owned_column))),
+                    .map(|(identifier, owned_column)| {
+                        (identifier.value, ArrayRef::from(owned_column))
+                    }),
             )
         }
     }
@@ -300,7 +303,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
             .zip(value.columns())
             .map(|(field, array_ref)| {
                 let owned_column = OwnedColumn::try_from(array_ref)?;
-                let identifier = Identifier::try_new(field.name())?; //This may always succeed.
+                let identifier = Ident::new(field.name());
                 Ok((identifier, owned_column))
             })
             .collect();

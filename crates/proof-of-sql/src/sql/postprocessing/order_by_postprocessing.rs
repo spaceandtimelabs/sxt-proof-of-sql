@@ -34,10 +34,11 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
             .iter()
             .map(
                 |order_by| -> PostprocessingResult<(OwnedColumn<S>, OrderByDirection)> {
+                    let identifier: sqlparser::ast::Ident = order_by.expr.into();
                     Ok((
                         owned_table
                             .inner_table()
-                            .get(&order_by.expr)
+                            .get(&identifier)
                             .ok_or(PostprocessingError::ColumnNotFound {
                                 column: order_by.expr.to_string(),
                             })?

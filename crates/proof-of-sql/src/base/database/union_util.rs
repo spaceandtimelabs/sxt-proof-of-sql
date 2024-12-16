@@ -307,16 +307,16 @@ mod tests {
         // Column names don't matter
         let table0 = Table::<'_, TestScalar>::try_new_with_options(
             IndexMap::from_iter(vec![
-                ("a".parse().unwrap(), Column::BigInt(&[1, 2, 3])),
-                ("b".parse().unwrap(), Column::BigInt(&[4, 5, 6])),
+                ("a".into(), Column::BigInt(&[1, 2, 3])),
+                ("b".into(), Column::BigInt(&[4, 5, 6])),
             ]),
             TableOptions::new(Some(3)),
         )
         .unwrap();
         let table1 = Table::<'_, TestScalar>::try_new_with_options(
             IndexMap::from_iter(vec![
-                ("c".parse().unwrap(), Column::BigInt(&[7, 8, 9])),
-                ("d".parse().unwrap(), Column::BigInt(&[10, 11, 12])),
+                ("c".into(), Column::BigInt(&[7, 8, 9])),
+                ("d".into(), Column::BigInt(&[10, 11, 12])),
             ]),
             TableOptions::new(Some(3)),
         )
@@ -325,8 +325,8 @@ mod tests {
             &[table0, table1],
             &alloc,
             vec![
-                ColumnField::new("e".parse().unwrap(), ColumnType::BigInt),
-                ColumnField::new("f".parse().unwrap(), ColumnType::BigInt),
+                ColumnField::new("e".into(), ColumnType::BigInt),
+                ColumnField::new("f".into(), ColumnType::BigInt),
             ],
         )
         .unwrap();
@@ -334,8 +334,8 @@ mod tests {
             result,
             Table::<'_, TestScalar>::try_new_with_options(
                 IndexMap::from_iter(vec![
-                    ("e".parse().unwrap(), Column::BigInt(&[1, 2, 3, 7, 8, 9])),
-                    ("f".parse().unwrap(), Column::BigInt(&[4, 5, 6, 10, 11, 12])),
+                    ("e".into(), Column::BigInt(&[1, 2, 3, 7, 8, 9])),
+                    ("f".into(), Column::BigInt(&[4, 5, 6, 10, 11, 12])),
                 ]),
                 TableOptions::new(Some(6)),
             )
@@ -350,16 +350,16 @@ mod tests {
         // regardless of whether the tables have the same schema
         let table0 = Table::<'_, TestScalar>::try_new_with_options(
             IndexMap::from_iter(vec![
-                ("a".parse().unwrap(), Column::BigInt(&[1, 2, 3])),
-                ("b".parse().unwrap(), Column::BigInt(&[4, 5, 6])),
+                ("a".into(), Column::BigInt(&[1, 2, 3])),
+                ("b".into(), Column::BigInt(&[4, 5, 6])),
             ]),
             TableOptions::new(Some(3)),
         )
         .unwrap();
         let table1 = Table::<'_, TestScalar>::try_new_with_options(
             IndexMap::from_iter(vec![
-                ("c".parse().unwrap(), Column::BigInt(&[7, 8, 9])),
-                ("d".parse().unwrap(), Column::BigInt(&[10, 11, 12])),
+                ("c".into(), Column::BigInt(&[7, 8, 9])),
+                ("d".into(), Column::BigInt(&[10, 11, 12])),
             ]),
             TableOptions::new(Some(3)),
         )
@@ -368,8 +368,8 @@ mod tests {
             &[table0, table1],
             &alloc,
             vec![
-                ColumnField::new("e".parse().unwrap(), ColumnType::BigInt),
-                ColumnField::new("f".parse().unwrap(), ColumnType::Int),
+                ColumnField::new("e".into(), ColumnType::BigInt),
+                ColumnField::new("f".into(), ColumnType::Int),
             ],
         );
         assert!(matches!(

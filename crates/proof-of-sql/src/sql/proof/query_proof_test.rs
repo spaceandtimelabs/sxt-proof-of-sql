@@ -16,8 +16,8 @@ use crate::{
     sql::proof::{FirstRoundBuilder, QueryData, SumcheckSubpolynomialType},
 };
 use bumpalo::Bump;
-use proof_of_sql_parser::Identifier;
 use serde::Serialize;
+use sqlparser::ast::Ident;
 
 /// Type to allow us to prove and verify an artificial polynomial where we prove
 /// that every entry in the result is zero
@@ -106,7 +106,7 @@ impl ProofPlan for TrivialTestProofPlan {
     ///
     /// This method will panic if the `ColumnField` cannot be created from the provided column name (e.g., if the name parsing fails).
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
+        vec![ColumnField::new("a1".into(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {}
@@ -281,7 +281,7 @@ impl ProverEvaluate for SquareTestProofPlan {
             .get(&TableRef::new("sxt.test".parse().unwrap()))
             .unwrap()
             .inner_table()
-            .get(&"x".parse::<Identifier>().unwrap())
+            .get(&Ident::new("x"))
             .unwrap();
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         builder.produce_intermediate_mle(res);
@@ -307,7 +307,7 @@ impl ProofPlan for SquareTestProofPlan {
             * *accessor
                 .get(&ColumnRef::new(
                     "sxt.test".parse().unwrap(),
-                    "x".parse().unwrap(),
+                    "x".into(),
                     ColumnType::BigInt,
                 ))
                 .unwrap();
@@ -323,12 +323,12 @@ impl ProofPlan for SquareTestProofPlan {
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
+        vec![ColumnField::new("a1".into(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {ColumnRef::new(
             "sxt.test".parse().unwrap(),
-            "x".parse().unwrap(),
+            "x".into(),
             ColumnType::BigInt,
         )}
     }
@@ -460,7 +460,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
             .get(&TableRef::new("sxt.test".parse().unwrap()))
             .unwrap()
             .inner_table()
-            .get(&"x".parse::<Identifier>().unwrap())
+            .get(&Ident::new("x"))
             .unwrap();
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         let z: &[_] = alloc.alloc_slice_copy(&self.z);
@@ -498,7 +498,7 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         let x_eval = *accessor
             .get(&ColumnRef::new(
                 "sxt.test".parse().unwrap(),
-                "x".parse().unwrap(),
+                "x".into(),
                 ColumnType::BigInt,
             ))
             .unwrap();
@@ -524,12 +524,12 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
+        vec![ColumnField::new("a1".into(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {ColumnRef::new(
             "sxt.test".parse().unwrap(),
-            "x".parse().unwrap(),
+            "x".into(),
             ColumnType::BigInt,
         )}
     }
@@ -671,7 +671,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
             .get(&TableRef::new("sxt.test".parse().unwrap()))
             .unwrap()
             .inner_table()
-            .get(&"x".parse::<Identifier>().unwrap())
+            .get(&Ident::new("x"))
             .unwrap();
         let res: &[_] = alloc.alloc_slice_copy(&[9, 25]);
         let alpha = builder.consume_post_result_challenge();
@@ -700,7 +700,7 @@ impl ProofPlan for ChallengeTestProofPlan {
         let x_eval = *accessor
             .get(&ColumnRef::new(
                 "sxt.test".parse().unwrap(),
-                "x".parse().unwrap(),
+                "x".into(),
                 ColumnType::BigInt,
             ))
             .unwrap();
@@ -716,12 +716,12 @@ impl ProofPlan for ChallengeTestProofPlan {
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
+        vec![ColumnField::new("a1".into(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {ColumnRef::new(
             "sxt.test".parse().unwrap(),
-            "x".parse().unwrap(),
+            "x".into(),
             ColumnType::BigInt,
         )}
     }

@@ -50,7 +50,7 @@ serde = { workspace = true, features = ["serde_derive"] }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 snafu = { workspace = true }
-sqlparser = { workspace = true }
+sqlparser = { workspace = true, features = ["serde"]  }
 sysinfo = {workspace = true }
 tiny-keccak = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }

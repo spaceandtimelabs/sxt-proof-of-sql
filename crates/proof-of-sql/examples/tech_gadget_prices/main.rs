@@ -14,6 +14,7 @@ use proof_of_sql::{
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
 use rand::{rngs::StdRng, SeedableRng};
+use sqlparser::ast::Ident;
 use std::{error::Error, fs::File, time::Instant};
 
 const DORY_SETUP_MAX_NU: usize = 8;
@@ -27,7 +28,7 @@ fn prove_and_verify_query(
 ) -> Result<(), Box<dyn Error>> {
     println!("Parsing the query: {sql}...");
     let now = Instant::now();
-    let query_plan = QueryExpr::try_new(sql.parse()?, "tech_gadget_prices".parse()?, accessor)?;
+    let query_plan = QueryExpr::try_new(sql.parse()?, Ident::new("tech_gadget_prices"), accessor)?;
     println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
     print!("Generating proof...");

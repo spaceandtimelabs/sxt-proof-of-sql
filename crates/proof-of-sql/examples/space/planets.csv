@@ -1,4 +1,4 @@
-Name,Distance,Dwarf,Density
+name,distance,dwarf,density
 Mercury,36,FALSE,5400
 Venus,67,FALSE,5200
 Earth,93,FALSE,5500

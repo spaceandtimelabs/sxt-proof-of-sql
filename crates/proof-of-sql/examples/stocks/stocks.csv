@@ -1,4 +1,4 @@
-Symbol,Company,Sector,Price,Volume,MarketCap,PE_Ratio,DividendYield
+symbol,company,sector,price,volume,marketcap,pe_ratio,dividendyield
 AAPL,Apple Inc.,Technology,175.50,52000000,2850.25,28.5,0.5
 MSFT,Microsoft Corporation,Technology,325.75,25000000,2425.80,32.8,0.8
 GOOGL,Alphabet Inc.,Technology,135.20,18000000,1720.40,25.2,0.0
