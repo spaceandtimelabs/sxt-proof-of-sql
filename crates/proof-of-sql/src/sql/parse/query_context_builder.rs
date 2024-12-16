@@ -114,12 +114,13 @@ impl<'a> QueryContextBuilder<'a> {
         columns
     }
 
-    /// # Panics
-    /// This function will panic if the conversion from `Ident` to `Identifier` fails.
     fn visit_select_all_expr(&mut self) -> ConversionResult<()> {
         for (column_name, _) in self.lookup_schema() {
-            let column_identifier =
-                Identifier::try_from(column_name).expect("Failed to convert Ident to Identifier");
+            let column_identifier = Identifier::try_from(column_name).map_err(|e| {
+                ConversionError::IdentifierConversionError {
+                    error: format!("Failed to convert Ident to Identifier: {e}"),
+                }
+            })?;
             let col_expr = Expression::Column(column_identifier);
             self.visit_aliased_expr(AliasedResultExpr::new(col_expr, column_identifier))?;
         }

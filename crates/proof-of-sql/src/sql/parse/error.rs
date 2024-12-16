@@ -147,6 +147,12 @@ pub enum ConversionError {
         /// The operator that is unsupported
         message: String,
     },
+    /// Errors in converting `Ident` to `Identifier`
+    #[snafu(display("Failed to convert `Ident` to `Identifier`: {error}"))]
+    IdentifierConversionError {
+        /// The underlying error message
+        error: String,
+    },
 }
 
 impl From<String> for ConversionError {

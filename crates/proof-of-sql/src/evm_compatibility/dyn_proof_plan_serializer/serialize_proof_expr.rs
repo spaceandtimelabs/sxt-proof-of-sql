@@ -80,14 +80,14 @@ mod tests {
     fn we_can_serialize_a_column_expr() {
         let table_ref: TableRef = "namespace.table".parse().unwrap();
         let column_0_ref: ColumnRef =
-            ColumnRef::new(table_ref, "column_0".parse().unwrap(), ColumnType::BigInt);
+            ColumnRef::new(table_ref, "column_0".into(), ColumnType::BigInt);
         let column_1_ref: ColumnRef =
-            ColumnRef::new(table_ref, "column_1".parse().unwrap(), ColumnType::BigInt);
+            ColumnRef::new(table_ref, "column_1".into(), ColumnType::BigInt);
         let column_2_ref: ColumnRef =
-            ColumnRef::new(table_ref, "column_2".parse().unwrap(), ColumnType::BigInt);
+            ColumnRef::new(table_ref, "column_2".into(), ColumnType::BigInt);
         let serializer = DynProofPlanSerializer::<TestScalar>::try_new(
             indexset! {},
-            indexset! { column_0_ref, column_1_ref },
+            indexset! { column_0_ref.clone(), column_1_ref.clone() },
         )
         .unwrap();
 
@@ -178,10 +178,12 @@ mod tests {
     fn we_can_serialize_an_equals_expr() {
         let table_ref: TableRef = "namespace.table".parse().unwrap();
         let column_0_ref: ColumnRef =
-            ColumnRef::new(table_ref, "column_0".parse().unwrap(), ColumnType::BigInt);
-        let serializer =
-            DynProofPlanSerializer::<TestScalar>::try_new(indexset! {}, indexset! { column_0_ref })
-                .unwrap();
+            ColumnRef::new(table_ref, "column_0".into(), ColumnType::BigInt);
+        let serializer = DynProofPlanSerializer::<TestScalar>::try_new(
+            indexset! {},
+            indexset! { column_0_ref.clone() },
+        )
+        .unwrap();
 
         let lhs = DynProofExpr::Column(ColumnExpr::new(column_0_ref));
         let rhs = DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(4200)));
@@ -229,10 +231,12 @@ mod tests {
     fn we_cannot_serialize_an_unsupported_expr() {
         let table_ref: TableRef = "namespace.table".parse().unwrap();
         let column_0_ref: ColumnRef =
-            ColumnRef::new(table_ref, "column_0".parse().unwrap(), ColumnType::BigInt);
-        let serializer =
-            DynProofPlanSerializer::<TestScalar>::try_new(indexset! {}, indexset! { column_0_ref })
-                .unwrap();
+            ColumnRef::new(table_ref, "column_0".into(), ColumnType::BigInt);
+        let serializer = DynProofPlanSerializer::<TestScalar>::try_new(
+            indexset! {},
+            indexset! { column_0_ref.clone() },
+        )
+        .unwrap();
 
         let lhs = DynProofExpr::Column(ColumnExpr::new(column_0_ref));
         let rhs = DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(4200)));

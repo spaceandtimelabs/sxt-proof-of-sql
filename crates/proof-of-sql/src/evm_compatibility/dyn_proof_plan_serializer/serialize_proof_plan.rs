@@ -89,7 +89,7 @@ mod tests {
 
         let aliased_expr = AliasedDynProofExpr {
             expr: expr.clone(),
-            alias: "alias".parse().unwrap(),
+            alias: "alias".into(),
         };
         let bytes = serializer
             .clone()
@@ -155,11 +155,11 @@ mod tests {
         let expr_c = DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(4200)));
         let aliased_expr_0 = AliasedDynProofExpr {
             expr: expr_a.clone(),
-            alias: "alias_0".parse().unwrap(),
+            alias: "alias_0".into(),
         };
         let aliased_expr_1 = AliasedDynProofExpr {
             expr: expr_b.clone(),
-            alias: "alias_1".parse().unwrap(),
+            alias: "alias_1".into(),
         };
         let table_expr = TableExpr { table_ref };
 
