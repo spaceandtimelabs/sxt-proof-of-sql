@@ -19,7 +19,11 @@ pub struct SelectStatement {
 
 impl fmt::Debug for SelectStatement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SelectStatement \n[{:#?},\n{:#?},\n{:#?}\n]", self.expr, self.order_by, self.slice)
+        write!(
+            f,
+            "SelectStatement \n[{:#?},\n{:#?},\n{:#?}\n]",
+            self.expr, self.order_by, self.slice
+        )
     }
 }
 
@@ -27,11 +31,8 @@ impl SelectStatement {
     /// Returns the tables referenced in the query as resource ids.
     #[must_use]
     pub fn get_table_references(&self, default_schema: Identifier) -> Vec<ResourceId> {
-        if let SetExpression::Query { from, .. } = &*self.expr {
-            convert_table_expr_to_resource_id_vector(from, default_schema)
-        } else {
-            Vec::new() // Or handle other SetExpression cases
-        }
+        let SetExpression::Query { from, .. } = &*self.expr;
+        convert_table_expr_to_resource_id_vector(from, default_schema)
     }
 }
 
@@ -41,7 +42,7 @@ impl FromStr for SelectStatement {
     fn from_str(query: &str) -> ParseResult<Self> {
         SelectStatementParser::new()
             .parse(query)
-            .map_err(|e| ParseError::QueryParseError(e.to_string()))
+            .map_err(|e| ParseError::QueryParseError { error: e.to_string() })
     }
 }
 
@@ -50,18 +51,17 @@ fn convert_table_expr_to_resource_id_vector(
     table_expressions: &[Box<TableExpression>],
     default_schema: Identifier,
 ) -> Vec<ResourceId> {
-    table_expressions.iter().map(|table_expression| {
-        if let TableExpression::Named { table, schema } = table_expression.as_ref() {
+    table_expressions
+        .iter()
+        .map(|table_expression| {
+            let TableExpression::Named { table, schema } = table_expression.as_ref();
             let schema = schema.as_ref().map_or_else(
                 || default_schema.name(),
-                super::identifier::Identifier::as_str
+                super::identifier::Identifier::as_str,
             );
-            ResourceId::try_new(schema, table.as_str()).unwrap() // Handle potential errors more gracefully
-        } else {
-            // Handle other cases if necessary
-            unimplemented!()
-        }
-    }).collect()
+            ResourceId::try_new(schema, table.as_str()).unwrap()
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -70,7 +70,7 @@ mod tests {
     use crate::sql::SelectStatementParser;
 
     #[test]
-    fn we_can_get_the_correct_table_references_using_a_default_schema() {
+    fn correct_table_references_with_default_schema() {
         let parsed_query_ast = SelectStatementParser::new()
             .parse("SELECT A FROM TAB WHERE C = 3")
             .unwrap();
@@ -80,7 +80,7 @@ mod tests {
     }
 
     #[test]
-    fn we_can_get_the_correct_table_references_in_case_the_default_schema_equals_the_original_schema() {
+    fn correct_table_references_with_same_default_and_original_schema() {
         let parsed_query_ast = SelectStatementParser::new()
             .parse("SELECT A FROM SCHEMA.TAB WHERE C = 3")
             .unwrap();
@@ -90,7 +90,7 @@ mod tests {
     }
 
     #[test]
-    fn we_can_get_the_correct_table_references_in_case_the_default_schema_differs_from_the_original_schema() {
+    fn correct_table_references_with_different_default_and_original_schema() {
         let parsed_query_ast = SelectStatementParser::new()
             .parse("SELECT A FROM SCHEMA.TAB WHERE C = 3")
             .unwrap();
