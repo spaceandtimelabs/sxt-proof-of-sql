@@ -1,0 +1,45 @@
+PLAN: Break down unit.rs into smaller, more focused files
+
+1. Create directory structure [COMPLETED]
+   - Created unit/ directory
+   - Created unit/tests/ directory
+
+2. Create core types module (types.rs) [COMPLETED]
+   - Moved PoSQLTimeUnit enum definition
+   - Moved derive attributes
+   - Kept documentation
+
+3. Create conversions module (conversions.rs) [COMPLETED]
+   - Moved From<PoSQLTimeUnit> for u64 implementation
+   - Moved TryFrom<&str> for PoSQLTimeUnit implementation
+   - Kept error handling
+
+4. Create display module (display.rs) [COMPLETED]
+   - Moved Display implementation for PoSQLTimeUnit
+   - Kept formatting logic
+
+5. Create tests module (tests/unit_tests.rs) [COMPLETED]
+   - Moved all test functions
+   - Moved test utilities and imports
+   - Kept test organization
+
+6. Create mod.rs [COMPLETED]
+   - Added module declarations
+   - Re-exported types and traits
+   - Maintained public API
+   - Fixed test module path with #[path] attribute
+   - Added missing documentation for unit module
+
+7. Cleanup and verification [COMPLETED]
+   - Removed old unit.rs
+   - Verified all files are in place
+   - Fixed module visibility in posql_time/mod.rs
+   - All tests passing in proof-of-sql-parser crate
+
+STATUS: All tasks completed successfully. The unit.rs file has been successfully broken down into smaller, more focused files while maintaining all functionality and test coverage.
+
+NOTES:
+- Had to adjust test module configuration to properly locate test files
+- Added missing documentation for the unit module to fix compiler warning
+- Changed unit module visibility to public in posql_time/mod.rs
+- Some test failures in the proof-of-sql crate are unrelated to our changes (GPU-related)

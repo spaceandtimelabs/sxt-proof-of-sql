@@ -1,0 +1,13 @@
+Results for: _autocoder/scripts/build.sh
+
+RETURN_CODE: 0
+
+STDOUT:
+No files changed, compilation skipped
+
+
+STDERR:
+   Compiling proof-of-sql-parser v0.0.0 (/home/henrymai/workspace/sxt-proof-of-sql/crates/proof-of-sql-parser)
+   Compiling proof-of-sql v0.0.0 (/home/henrymai/workspace/sxt-proof-of-sql/crates/proof-of-sql)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.10s
+

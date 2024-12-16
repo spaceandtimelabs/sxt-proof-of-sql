@@ -1,0 +1,3 @@
+Break the crates/proof-of-sql-parser/src/posql_time/unit.rs into smaller pieces while retaining the exact same functionality.
+
+Make sure you investigate and research the project files while coming up with the plan and also output NOTES.txt and QUESTIONS.txt. The NOTES.txt will be used by you to solve the task later and QUESTIONS.txt are for me to understand what you need more context on.

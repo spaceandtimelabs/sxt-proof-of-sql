@@ -1,0 +1,15 @@
+1. Are there any specific performance requirements for the conversions that need to be maintained?
+
+2. Are there any specific requirements around error handling that need to be preserved?
+
+3. Should we consider adding any additional time units in the future, and if so, should we design the structure to be more extensible?
+
+4. Are there any specific requirements around serialization/deserialization that need to be maintained beyond the current serde implementation?
+
+5. Are there any specific requirements around documentation that need to be maintained or improved?
+
+6. Are there any specific requirements around testing beyond the current test coverage?
+
+7. Should we consider adding any validation or constraints on the time unit values beyond what's currently implemented?
+
+8. Are there any specific requirements around backward compatibility that need to be maintained?

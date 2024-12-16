@@ -1,0 +1,31 @@
+Results for: _autocoder/scripts/test.sh
+
+RETURN_CODE: 101
+
+STDOUT:
+
+
+STDERR:
+   Compiling proof-of-sql-parser v0.0.0 (/home/henrymai/workspace/sxt-proof-of-sql/crates/proof-of-sql-parser)
+error[E0583]: file not found for module `tests`
+ --> crates/proof-of-sql-parser/src/posql_time/unit/mod.rs:7:1
+  |
+7 | mod tests;
+  | ^^^^^^^^^^
+  |
+  = help: to create the module `tests`, create file "crates/proof-of-sql-parser/src/posql_time/unit/tests.rs" or "crates/proof-of-sql-parser/src/posql_time/unit/tests/mod.rs"
+  = note: if there is a `mod tests` elsewhere in the crate already, import it with `use crate::...` instead
+
+warning: missing documentation for a module
+  --> crates/proof-of-sql-parser/src/posql_time/mod.rs:10:1
+   |
+10 | pub mod unit;
+   | ^^^^^^^^^^^^
+   |
+   = note: requested on the command line with `-W missing-docs`
+
+For more information about this error, try `rustc --explain E0583`.
+error: could not compile `proof-of-sql-parser` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+warning: `proof-of-sql-parser` (lib) generated 1 warning
+

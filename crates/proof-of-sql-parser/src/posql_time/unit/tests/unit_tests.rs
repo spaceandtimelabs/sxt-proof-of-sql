@@ -1,66 +1,13 @@
-use super::PoSQLTimestampError;
-use core::fmt;
-use serde::{Deserialize, Serialize};
-
-/// An intermediate type representing the time units from a parsed query
-#[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize, PartialEq, Eq)]
-pub enum PoSQLTimeUnit {
-    /// Represents seconds with precision 0: ex "2024-06-20 12:34:56"
-    Second,
-    /// Represents milliseconds with precision 3: ex "2024-06-20 12:34:56.123"
-    Millisecond,
-    /// Represents microseconds with precision 6: ex "2024-06-20 12:34:56.123456"
-    Microsecond,
-    /// Represents nanoseconds with precision 9: ex "2024-06-20 12:34:56.123456789"
-    Nanosecond,
-}
-
-impl From<PoSQLTimeUnit> for u64 {
-    fn from(value: PoSQLTimeUnit) -> u64 {
-        match value {
-            PoSQLTimeUnit::Second => 0,
-            PoSQLTimeUnit::Millisecond => 3,
-            PoSQLTimeUnit::Microsecond => 6,
-            PoSQLTimeUnit::Nanosecond => 9,
-        }
-    }
-}
-
-impl TryFrom<&str> for PoSQLTimeUnit {
-    type Error = PoSQLTimestampError;
-    fn try_from(value: &str) -> Result<Self, PoSQLTimestampError> {
-        match value {
-            "0" => Ok(PoSQLTimeUnit::Second),
-            "3" => Ok(PoSQLTimeUnit::Millisecond),
-            "6" => Ok(PoSQLTimeUnit::Microsecond),
-            "9" => Ok(PoSQLTimeUnit::Nanosecond),
-            _ => Err(PoSQLTimestampError::UnsupportedPrecision {
-                error: value.into(),
-            }),
-        }
-    }
-}
-
-impl fmt::Display for PoSQLTimeUnit {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            PoSQLTimeUnit::Second => write!(f, "seconds (precision: 0)"),
-            PoSQLTimeUnit::Millisecond => write!(f, "milliseconds (precision: 3)"),
-            PoSQLTimeUnit::Microsecond => write!(f, "microseconds (precision: 6)"),
-            PoSQLTimeUnit::Nanosecond => write!(f, "nanoseconds (precision: 9)"),
-        }
-    }
-}
+use crate::posql_time::{PoSQLTimestamp, PoSQLTimestampError};
+use crate::posql_time::unit::PoSQLTimeUnit;
+use chrono::{TimeZone, Utc};
 
 // allow(deprecated) for the sole purpose of testing that
 // timestamp precision is parsed correctly.
-#[cfg(test)]
 #[allow(deprecated, clippy::missing_panics_doc)]
-mod time_unit_tests {
+#[cfg(test)]
+mod tests {
     use super::*;
-    use crate::posql_time::{PoSQLTimestamp, PoSQLTimestampError};
-    use chrono::{TimeZone, Utc};
 
     #[test]
     fn test_valid_precisions() {
@@ -107,6 +54,7 @@ mod time_unit_tests {
             expected.timestamp_micros()
         );
     }
+
     #[test]
     fn test_rfc3339_timestamp_with_nanoseconds() {
         let input = "2023-06-26T12:34:56.123456789Z";

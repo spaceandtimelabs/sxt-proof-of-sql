@@ -1,0 +1,27 @@
+Results for: _autocoder/scripts/build.sh
+
+RETURN_CODE: 101
+
+STDOUT:
+
+
+STDERR:
+   Compiling proof-of-sql-parser v0.0.0 (/home/henrymai/workspace/sxt-proof-of-sql/crates/proof-of-sql-parser)
+error[E0761]: file for module `unit` found at both "crates/proof-of-sql-parser/src/posql_time/unit.rs" and "crates/proof-of-sql-parser/src/posql_time/unit/mod.rs"
+  --> crates/proof-of-sql-parser/src/posql_time/mod.rs:10:1
+   |
+10 | pub mod unit;
+   | ^^^^^^^^^^^^^
+   |
+   = help: delete or rename one of them to remove the ambiguity
+
+error[E0432]: unresolved import `unit::PoSQLTimeUnit`
+  --> crates/proof-of-sql-parser/src/posql_time/mod.rs:12:9
+   |
+12 | pub use unit::PoSQLTimeUnit;
+   |         ^^^^^^^^^^^^^^^^^^^ no `PoSQLTimeUnit` in `posql_time::unit`
+
+Some errors have detailed explanations: E0432, E0761.
+For more information about an error, try `rustc --explain E0432`.
+error: could not compile `proof-of-sql-parser` (lib) due to 2 previous errors
+

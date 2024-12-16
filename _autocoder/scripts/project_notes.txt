@@ -1,0 +1,46 @@
+Project Analysis Notes:
+
+1. Project Type:
+- This is a Rust project (evidenced by Cargo.toml files and .rs source files)
+- Uses a workspace structure with multiple crates:
+  - proof-of-sql-parser
+  - proof-of-sql
+- Also contains Solidity smart contracts that are tested with Foundry
+
+2. Build System:
+- Uses Cargo (Rust's package manager and build tool)
+- Has a rust-toolchain.toml file indicating specific Rust version requirements
+- Build commands from CI:
+  - cargo check (various feature combinations)
+  - cargo build (implicit in cargo test)
+- Dependencies required:
+  - clang
+  - lld
+
+3. Testing:
+- Uses cargo test
+- Commands from CI:
+  - cargo test --all-features (main test command)
+  - cargo test --no-default-features --features="arrow blitzar" (without rayon)
+  - Also runs various examples as integration tests
+- Also has Solidity tests:
+  - Uses Foundry/forge for testing
+  - forge test --root=crates/proof-of-sql --summary --detailed
+
+4. Linting:
+- Uses multiple linters:
+  - Clippy (Rust linter):
+    - Command: cargo clippy -- -D warnings
+  - Rustfmt (Rust formatter):
+    - Command: cargo fmt --check
+  - Solhint (Solidity linter):
+    - Command: solhint -c 'crates/proof-of-sql/.solhint.json' 'crates/proof-of-sql/**/*.sol' -w 0
+
+5. Dependencies needed in container:
+- From CI file:
+  - clang
+  - lld
+- For Solidity:
+  - nodejs/npm (for solhint)
+  - foundry-rs toolchain
+- Rust toolchain

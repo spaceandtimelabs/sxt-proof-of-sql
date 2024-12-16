@@ -1,0 +1,187 @@
+Results for: _autocoder/scripts/test.sh
+
+RETURN_CODE: 101
+
+STDOUT:
+
+running 1182 tests
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_build_an_empty_column_from_an_empty_range_int16 ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_build_an_empty_column_from_an_empty_range_decimal128 ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_build_an_empty_column_from_an_empty_range_boolean ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_build_an_empty_column_from_an_empty_range_int32 ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_build_an_empty_column_from_an_empty_range_int64 ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_build_an_empty_column_from_an_empty_range_int8 ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_boolean_array_with_nulls ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_build_an_empty_column_from_an_empty_range_utf8 ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_build_an_empty_column_from_an_empty_range_timestamp ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_boolean_array_empty_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_decimal128_array_empty_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_decimal128_array_normal_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_decimal128_array_with_nulls ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_int16_array_empty_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_decimal256_array_empty_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_decimal256_array_with_nulls ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_decimal256_array_normal_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_int16_array_normal_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_int16_array_with_nulls ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_int32_array_normal_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_int32_array_empty_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_int32_array_with_nulls ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_int8_array_empty_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_int8_array_normal_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_int8_array_with_nulls ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_timestamp_array_empty_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_timestamp_array_normal_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_utf8_array_empty_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_utf8_array_with_nulls ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_timestamp_array_with_nulls ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_valid_boolean_array_refs_into_valid_columns ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_valid_boolean_array_refs_into_valid_columns_using_ranges_smaller_than_arrays ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_utf8_array_with_precomputed_scalars ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_valid_integer_array_refs_into_valid_columns ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_valid_integer_array_refs_into_valid_columns_using_ranges_smaller_than_arrays ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_valid_string_array_refs_into_valid_columns ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_utf8_array_normal_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_valid_string_array_refs_into_valid_columns_using_ranges_with_zero_size ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_valid_timestamp_array_refs_into_valid_columns ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_valid_string_array_refs_into_valid_columns_using_ranges_smaller_than_arrays ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_valid_timestamp_array_refs_into_valid_columns_using_ranges_smaller_than_arrays ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_valid_string_array_refs_into_valid_columns_using_precomputed_scalars ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_convert_boolean_array_oob_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_convert_decimal128_array_oob_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_build_a_column_from_an_array_with_nulls_utf8 ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_convert_decimal256_array_oob_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_convert_int16_array_oob_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_convert_valid_string_array_refs_into_valid_columns_using_out_of_ranges_sizes ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_we_can_convert_boolean_array_normal_range ... ok
+test base::arrow::record_batch_utility::tests::we_can_create_a_record_batch_with_i128_values ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_can_convert_valid_timestamp_array_refs_into_valid_columns_using_ranges_with_zero_size ... ok
+test base::arrow::owned_and_arrow_conversions_test::we_can_convert_between_owned_column_and_array_ref ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_convert_int32_array_oob_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_convert_decimal256_array_with_high_precision ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_convert_int8_array_oob_range ... ok
+test base::arrow::owned_and_arrow_conversions_test::we_get_an_unsupported_type_error_when_trying_to_convert_from_a_float32_array_ref_to_an_owned_column ... ok
+test base::arrow::scalar_and_i256_conversions::tests::test_i256_testscalar_max_signed ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_index_on_empty_oob_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_index_on_oob_range ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_convert_timestamp_array_oob_range ... ok
+test base::arrow::record_batch_utility::tests::test_record_batch_macro ... ok
+test base::arrow::scalar_and_i256_conversions::tests::test_i256_testscalar_negative ... ok
+test base::arrow::scalar_and_i256_conversions::tests::test_i256_testscalar_positive ... ok
+test base::arrow::scalar_and_i256_conversions::tests::test_i256_testscalar_min_signed ... ok
+test base::arrow::scalar_and_i256_conversions::tests::test_testscalar_i256_overflow_and_underflow ... ok
+test base::arrow::scalar_and_i256_conversions::tests::test_testscalar_to_i256_conversion ... ok
+test base::bit::bit_distribution_test::we_can_compute_the_bit_distribution_of_an_empty_slice ... ok
+test base::arrow::arrow_array_to_column_conversion::tests::we_cannot_convert_utf8_array_oob_range ... ok
+test base::bit::bit_distribution_test::we_can_compute_the_bit_distribution_of_a_slice_with_a_single_element ... ok
+test base::bit::bit_distribution_test::we_can_compute_the_bit_distribution_of_a_slice_with_one_varying_bits ... ok
+test base::bit::bit_distribution_test::we_can_compute_the_bit_distribution_of_negative_values ... ok
+test base::bit::bit_distribution_test::the_sum_of_two_signed_128_bit_numbers_is_within_range ... ok
+test base::bit::bit_distribution_test::we_can_compute_the_bit_distribution_of_a_slice_with_multiple_varying_bits ... ok
+test base::arrow::scalar_and_i256_conversions::tests::test_i256_testscalar_zero ... ok
+test base::bit::bit_distribution_test::we_can_detect_invalid_bit_distributions ... ok
+test base::bit::bit_distribution_test::we_can_compute_the_bit_distribution_of_values_with_different_signs ... ok
+test base::bit::bit_distribution_test::zero_is_within_range ... ok
+test base::bit::bit_distribution_test::we_can_compute_the_bit_distribution_of_values_with_different_signs_and_values ... ok
+test base::bit::bit_distribution_test::we_reject_distributions_that_are_outside_of_maximum_range ... ok
+test base::bit::bit_matrix_test::we_can_compute_the_bit_matrix_for_a_single_element ... ok
+test base::bit::bit_matrix_test::we_can_compute_the_bit_matrix_for_data_with_a_single_varying_bit ... ok
+test base::bit::bit_distribution_test::we_can_compute_the_bit_distribution_of_values_larger_than_64_bit_integers ... ok
+test base::bit::bit_matrix_test::we_can_compute_the_bit_matrix_for_data_with_a_varying_sign_bit ... ok
+test base::bit::bit_matrix_test::we_can_compute_the_bit_matrix_of_empty_data ... ok
+test base::bit::bit_matrix_test::we_can_compute_the_bit_matrix_for_data_with_varying_bits_in_different_positions ... ok
+test base::commitment::column_bounds::tests::difference_of_overlapping_bounds_is_bounded ... ok
+test base::commitment::column_bounds::tests::difference_with_bounded_minuend_is_bounded ... ok
+test base::bit::bit_matrix_test::we_can_compute_the_bit_matrix_for_data_entries_bigger_than_64_bit_integers ... ok
+test base::commitment::column_bounds::tests::we_can_construct_bounds_by_method ... ok
+test base::bit::bit_matrix_test::we_can_compute_the_bit_matrix_for_data_with_varying_bits_and_constant_bits ... ok
+test base::commitment::column_bounds::tests::we_can_take_difference_of_disjoint_bounds ... ok
+test base::commitment::column_bounds::tests::we_can_union_column_bounds_with_matching_variant ... ok
+test base::commitment::column_bounds::tests::we_can_construct_bounds_from_iterator ... ok
+test base::commitment::column_bounds::tests::we_can_union_sharp_and_empty_bounds ... ok
+test base::commitment::column_bounds::tests::we_can_union_sharp_bounds ... ok
+test base::commitment::column_bounds::tests::we_can_construct_column_bounds_from_column ... ok
+test base::commitment::column_bounds::tests::we_cannot_construct_negative_bounds ... ok
+test base::commitment::column_bounds::tests::we_cannot_difference_mismatched_column_bounds ... ok
+test base::commitment::column_bounds::tests::we_can_determine_if_bounds_surround_value ... ok
+test base::commitment::column_bounds::tests::we_cannot_union_mismatched_column_bounds ... ok
+test base::commitment::column_bounds::tests::union_of_bounded_bounds_is_bounded ... ok
+test base::commitment::column_bounds::tests::we_can_difference_column_bounds_with_matching_variant ... ok
+test base::commitment::column_commitment_metadata::tests::we_can_construct_metadata ... ok
+test base::commitment::column_commitment_metadata::tests::we_can_difference_bigint_matching_metadata ... ok
+test base::commitment::column_commitment_metadata::tests::we_can_difference_int_matching_metadata ... ok
+test base::commitment::column_commitment_metadata::tests::we_can_difference_smallint_matching_metadata ... ok
+test base::commitment::column_commitment_metadata::tests::we_can_difference_timestamp_tz_matching_metadata ... ok
+test base::commitment::column_commitment_metadata::tests::we_can_difference_tinyint_matching_metadata ... ok
+test base::commitment::column_commitment_metadata::tests::we_cannot_construct_metadata_with_type_bounds_mismatch ... ok
+test base::commitment::column_commitment_metadata::tests::we_can_union_matching_metadata ... ok
+test base::commitment::column_commitment_metadata::tests::we_cannot_perform_arithmetic_on_mismatched_metadata ... ok
+test base::commitment::column_commitment_metadata::tests::we_can_construct_metadata_from_column ... ok
+test base::arrow::owned_and_arrow_conversions_test::we_panic_when_converting_an_owned_table_with_a_scalar_column - should panic ... ok
+test base::arrow::owned_and_arrow_conversions_test::we_cannot_convert_a_record_batch_if_it_has_repeated_column_names ... ok
+test base::arrow::scalar_and_i256_conversions::tests::test_i256_testscalar_random ... ok
+test base::commitment::column_commitment_metadata_map::tests::we_can_construct_metadata_map_from_columns ... ok
+test base::commitment::column_commitments::tests::we_cannot_construct_commitments_with_duplicate_identifiers ... ok
+test base::commitment::column_commitments::tests::we_can_construct_column_commitments_from_iter ... ok
+test base::commitment::column_commitments::tests::we_can_construct_column_commitments_from_columns_and_identifiers ... ok
+test base::commitment::column_commitments::tests::we_can_iterate_over_column_commitments ... ok
+test base::commitment::column_commitment_metadata_map::tests::we_cannot_perform_arithmetic_on_metadata_maps_with_different_column_counts ... ok
+test base::commitment::column_commitments::tests::we_cannot_sub_mismatched_column_commitments ... ok
+test base::commitment::column_commitments::tests::we_can_extend_columns_to_column_commitments ... ok
+test base::commitment::column_commitments::tests::we_cannot_add_mismatched_column_commitments ... ok
+test base::commitment::column_commitment_metadata_map::tests::we_can_difference_matching_metadata_maps ... ok
+test base::commitment::column_commitments::tests::we_cannot_append_rows_to_mismatched_column_commitments ... ok
+test base::commitment::column_commitments::tests::we_can_sub_column_commitments ... ok
+test base::commitment::column_commitment_metadata_map::tests::we_can_union_matching_metadata_maps ... ok
+test base::commitment::column_commitment_metadata_map::tests::we_cannot_perform_arithmetic_on_mismatched_metadata_maps_with_same_column_counts ... ok
+test base::commitment::column_commitments::tests::we_can_append_rows_to_column_commitments ... ok
+test base::commitment::column_commitments::tests::we_can_add_column_commitments ... ok
+test base::arrow::owned_and_arrow_conversions_test::we_can_convert_between_owned_table_and_record_batch ... ok
+test base::commitment::committable_column::tests::we_can_commit_to_int128_column_through_committable_column ... ignored
+
+
+STDERR:
+   Compiling proof-of-sql-parser v0.0.0 (/home/henrymai/workspace/sxt-proof-of-sql/crates/proof-of-sql-parser)
+warning: missing documentation for a module
+  --> crates/proof-of-sql-parser/src/posql_time/mod.rs:10:1
+   |
+10 | pub mod unit;
+   | ^^^^^^^^^^^^
+   |
+   = note: requested on the command line with `-W missing-docs`
+
+   Compiling proof-of-sql v0.0.0 (/home/henrymai/workspace/sxt-proof-of-sql/crates/proof-of-sql)
+warning: `proof-of-sql-parser` (lib) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 27.39s
+     Running unittests src/lib.rs (target/debug/deps/proof_of_sql-ff91de91586f94b5)
+cbindings/backend.cc:62 panic: no supported GPUs found
+ 0# sxt::baser::stacktrace() in /home/henrymai/workspace/sxt-proof-of-sql/target/debug/build/blitzar-sys-a5b6969bc28625fb/out/libblitzar-linux-x86_64.so
+ 1# sxt::baser::panic(sxt::baser::panic_message) in /home/henrymai/workspace/sxt-proof-of-sql/target/debug/build/blitzar-sys-a5b6969bc28625fb/out/libblitzar-linux-x86_64.so
+ 2# sxt_init in /home/henrymai/workspace/sxt-proof-of-sql/target/debug/build/blitzar-sys-a5b6969bc28625fb/out/libblitzar-linux-x86_64.so
+ 3# blitzar::compute::backend::init_backend::_$u7b$$u7b$closure$u7d$$u7d$::hc2cec7a3d61e92b9 at src/compute/backend.rs:63
+ 4# std::sync::once::Once::call_once::_$u7b$$u7b$closure$u7d$$u7d$::hb7102eedfbb37d6e at /rustc/eeb90cda1969383f56a2637cbd3037bdf598841c/library/std/src/sync/once.rs:158
+ 5# std::sys::sync::once::futex::Once::call::hd4bcd0aca0203588 at /rustc/eeb90cda1969383f56a2637cbd3037bdf598841c/library/std/src/sys/sync/once/futex.rs:124
+ 6# std::sync::once::Once::call_once::h5bbf7bfd1a0edfdc at /rustc/eeb90cda1969383f56a2637cbd3037bdf598841c/library/std/src/sync/once.rs:158
+ 7# blitzar::compute::backend::init_backend::hf2ece02d746c3add at src/compute/backend.rs:66
+ 8# blitzar::compute::commitments::compute_curve25519_commitments::h2cdd066cac284a75 at src/compute/commitments.rs:43
+ 9# _$LT$curve25519_dalek..ristretto..RistrettoPoint$u20$as$u20$proof_of_sql..base..commitment..Commitment$GT$::compute_commitments::hea217c7c1a951a2f at crates/proof-of-sql/src/base/commitment/mod.rs:115
+10# _$LT$alloc..vec..Vec$LT$C$GT$$u20$as$u20$proof_of_sql..base..commitment..vec_commitment_ext..VecCommitmentExt$GT$::from_commitable_columns_with_offset::h03b336fb1e30f7cd at crates/proof-of-sql/src/base/commitment/vec_commitment_ext.rs:105
+11# _$LT$alloc..vec..Vec$LT$C$GT$$u20$as$u20$proof_of_sql..base..commitment..vec_commitment_ext..VecCommitmentExt$GT$::from_columns_with_offset::h0051f68bf9904a9f at crates/proof-of-sql/src/base/commitment/vec_commitment_ext.rs:97
+12# proof_of_sql::base::commitment::column_commitments::ColumnCommitments$LT$C$GT$::try_from_columns_with_offset::h564fe751bf992e61 at crates/proof-of-sql/src/base/commitment/column_commitments.rs:156
+13# proof_of_sql::base::commitment::table_commitment::TableCommitment$LT$C$GT$::try_from_columns_with_offset::h32aa973e8833ac68 at crates/proof-of-sql/src/base/commitment/table_commitment.rs:178
+14# proof_of_sql::base::arrow::record_batch_conversion::tests::we_can_create_and_append_table_commitments_with_record_batchs::h7d8a8c4bc10d0abf at crates/proof-of-sql/src/base/arrow/record_batch_conversion.rs:129
+15# proof_of_sql::base::arrow::record_batch_conversion::tests::we_can_create_and_append_table_commitments_with_record_batchs::_$u7b$$u7b$closure$u7d$$u7d$::h1614cd2cfae73f27 at crates/proof-of-sql/src/base/arrow/record_batch_conversion.rs:109
+16# core::ops::function::FnOnce::call_once::h0eb2e50a112922fd at /rustc/eeb90cda1969383f56a2637cbd3037bdf598841c/library/core/src/ops/function.rs:250
+17# test::__rust_begin_short_backtrace::h919c79c8b896f9e2 at library/test/src/lib.rs:628
+18# test::run_test::_$u7b$$u7b$closure$u7d$$u7d$::h974e632522c0fbcf at library/test/src/lib.rs:568
+19# std::sys::backtrace::__rust_begin_short_backtrace::h342cb8e53aeb2076 at library/std/src/sys/backtrace.rs:152
+20# core::ops::function::FnOnce::call_once$u7b$$u7b$vtable.shim$u7d$$u7d$::h42193b008049ba94 at library/core/src/ops/function.rs:250
+21# std::sys::pal::unix::thread::Thread::new::thread_start::ha8af9c992ef0b208 at library/std/src/sys/pal/unix/thread.rs:108
+22# 0x000079B769E8AA94 in /usr/lib/x86_64-linux-gnu/libc.so.6
+23# __clone in /usr/lib/x86_64-linux-gnu/libc.so.6
+
+error: test failed, to rerun pass `-p proof-of-sql --lib`
+
+Caused by:
+  process didn't exit successfully: `/home/henrymai/workspace/sxt-proof-of-sql/target/debug/deps/proof_of_sql-ff91de91586f94b5` (signal: 6, SIGABRT: process abort signal)
+

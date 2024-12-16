@@ -1,0 +1,22 @@
+Results for: _autocoder/scripts/build.sh
+
+RETURN_CODE: 0
+
+STDOUT:
+No files changed, compilation skipped
+
+
+STDERR:
+   Compiling proof-of-sql-parser v0.0.0 (/home/henrymai/workspace/sxt-proof-of-sql/crates/proof-of-sql-parser)
+warning: missing documentation for a module
+  --> crates/proof-of-sql-parser/src/posql_time/mod.rs:10:1
+   |
+10 | pub mod unit;
+   | ^^^^^^^^^^^^
+   |
+   = note: requested on the command line with `-W missing-docs`
+
+   Compiling proof-of-sql v0.0.0 (/home/henrymai/workspace/sxt-proof-of-sql/crates/proof-of-sql)
+warning: `proof-of-sql-parser` (lib) generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.92s
+

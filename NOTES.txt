@@ -1,0 +1,36 @@
+COMPONENTS TO EXTRACT:
+
+1. Core Types (types.rs):
+   - PoSQLTimeUnit enum
+   - Basic trait implementations (Debug, Clone, etc.)
+
+2. Conversions (conversions.rs):
+   - From<PoSQLTimeUnit> for u64
+   - TryFrom<&str> for PoSQLTimeUnit
+
+3. Display/Formatting (display.rs):
+   - Display implementation for PoSQLTimeUnit
+
+4. Tests (tests/unit_tests.rs):
+   - All test functions
+   - Test utilities and imports
+
+STRUCTURE:
+crates/proof-of-sql-parser/src/posql_time/unit/
+├── mod.rs (main module file)
+├── types.rs
+├── conversions.rs
+├── display.rs
+└── tests/
+    └── unit_tests.rs
+
+DEPENDENCIES TO MAINTAIN:
+- serde = { version = "1.0", features = ["derive"] }
+- core::fmt
+- super::PoSQLTimestampError
+
+FEATURES TO PRESERVE:
+- All derive macros (#[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize, PartialEq, Eq)])
+- Clippy allowances
+- Error handling with PoSQLTimestampError
+- Complete test coverage
