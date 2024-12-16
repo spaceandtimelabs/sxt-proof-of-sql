@@ -62,7 +62,7 @@ impl ProofPlan for RangeCheckTestPlan {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        indexset! {self.column}
+        indexset! {self.column.clone()}
     }
 
     #[doc = " Return all the tables referenced in the Query"]
@@ -113,7 +113,7 @@ mod tests {
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
         let ast = RangeCheckTestPlan {
-            column: ColumnRef::new(t, "a".parse().unwrap(), ColumnType::Scalar),
+            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let _ = verifiable_res.verify(&ast, &accessor, &());
@@ -125,7 +125,7 @@ mod tests {
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
         let ast = RangeCheckTestPlan {
-            column: ColumnRef::new(t, "a".parse().unwrap(), ColumnType::Scalar),
+            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let res: Result<
@@ -145,7 +145,7 @@ mod tests {
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
         let ast = RangeCheckTestPlan {
-            column: ColumnRef::new(t, "a".parse().unwrap(), ColumnType::Scalar),
+            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let res: Result<

@@ -1,4 +1,4 @@
-Name,Code,Density,Biodegradable
+name,code,density,biodegradable
 Polyethylene Terephthalate (PET),1,1.38,FALSE
 High-Density Polyethylene (HDPE),2,0.97,FALSE
 Polyvinyl Chloride (PVC),3,1.40,FALSE

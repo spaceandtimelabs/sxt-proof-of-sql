@@ -87,42 +87,42 @@ fn main() {
     );
 
     prove_and_verify_query(
-        "SELECT COUNT(*) FROM fish WHERE nameEn = 'Tuna'",
+        "SELECT COUNT(*) FROM fish WHERE name_En = 'Tuna'",
         &accessor,
         &prover_setup,
         &verifier_setup,
     );
 
     prove_and_verify_query(
-        "SELECT kindEn FROM fish WHERE kindJa = 'Otoro'",
+        "SELECT kind_En FROM fish WHERE kind_Ja = 'Otoro'",
         &accessor,
         &prover_setup,
         &verifier_setup,
     );
 
     prove_and_verify_query(
-        "SELECT kindEn FROM fish WHERE kindJa = 'Otoro'",
+        "SELECT kind_En FROM fish WHERE kind_Ja = 'Otoro'",
         &accessor,
         &prover_setup,
         &verifier_setup,
     );
 
     prove_and_verify_query(
-        "SELECT * FROM fish WHERE pricePerPound > 25 AND pricePerPound < 75",
+        "SELECT * FROM fish WHERE price_Per_Pound > 25 AND price_Per_Pound < 75",
         &accessor,
         &prover_setup,
         &verifier_setup,
     );
 
     prove_and_verify_query(
-        "SELECT kindJa, COUNT(*) FROM fish GROUP BY kindJa",
+        "SELECT kind_Ja, COUNT(*) FROM fish GROUP BY kind_Ja",
         &accessor,
         &prover_setup,
         &verifier_setup,
     );
 
     prove_and_verify_query(
-        "SELECT kindJa, pricePerPound FROM fish WHERE nameEn = 'Tuna' ORDER BY pricePerPound ASC",
+        "SELECT kind_Ja, price_Per_Pound FROM fish WHERE name_En = 'Tuna' ORDER BY price_Per_Pound ASC",
         &accessor,
         &prover_setup,
         &verifier_setup,
