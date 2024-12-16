@@ -146,9 +146,9 @@ mod tests {
         let bytes = serialize_query_expr::<TestScalar>(&query_expr).unwrap();
         let expected_bytes = iter::empty::<u8>()
             .chain([FILTER_EXEC_NUM, 0, 1]) // filter expr, table number, result count
-            .chain([COLUMN_EXPR_NUM, 0]) // column expr, column a (#0)
+            .chain([COLUMN_EXPR_NUM, 0]) // column expr, column b (#0)
             .chain([EQUALS_EXPR_NUM]) // equals expr
-            .chain([COLUMN_EXPR_NUM, 1]) // column expr, column b (#1)
+            .chain([COLUMN_EXPR_NUM, 1]) // column expr, column a (#1)
             .chain([LITERAL_EXPR_NUM, BIGINT_TYPE_NUM]) // literal expr, literal type
             .chain([0; 31]) // leading 0s of literal value
             .chain([5]) // literal value
