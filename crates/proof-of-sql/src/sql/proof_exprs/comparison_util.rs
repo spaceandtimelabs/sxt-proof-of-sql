@@ -1,35 +1,16 @@
 use crate::{
     base::{
         database::{Column, ColumnarValue, LiteralValue},
-        if_rayon,
         math::decimal::{DecimalError, Precision},
         scalar::{Scalar, ScalarExt},
+        slice_ops,
     },
     sql::parse::{type_check_binary_operation, ConversionError, ConversionResult},
 };
 use alloc::string::ToString;
 use bumpalo::Bump;
 use core::cmp::{max, Ordering};
-#[cfg(feature = "rayon")]
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use sqlparser::ast::BinaryOperator;
-
-#[allow(clippy::unnecessary_wraps)]
-fn unchecked_subtract_impl<'a, S: Scalar>(
-    alloc: &'a Bump,
-    lhs: &[S],
-    rhs: &[S],
-    table_length: usize,
-) -> ConversionResult<&'a [S]> {
-    let result = alloc.alloc_slice_fill_default(table_length);
-    if_rayon!(result.par_iter_mut(), result.iter_mut())
-        .zip(lhs)
-        .zip(rhs)
-        .for_each(|((a, l), r)| {
-            *a = *l - *r;
-        });
-    Ok(result)
-}
 
 /// Scale LHS and RHS to the same scale if at least one of them is decimal
 /// and take the difference. This function is used for comparisons.
@@ -155,12 +136,13 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
             }
         })?;
     }
-    unchecked_subtract_impl(
-        alloc,
+    let result = alloc.alloc_slice_fill_default(lhs_len);
+    slice_ops::sub(
+        result,
         &lhs.to_scalar_with_scaling(lhs_upscale),
         &rhs.to_scalar_with_scaling(rhs_upscale),
-        lhs_len,
-    )
+    );
+    Ok(result)
 }
 
 #[allow(clippy::cast_sign_loss)]
