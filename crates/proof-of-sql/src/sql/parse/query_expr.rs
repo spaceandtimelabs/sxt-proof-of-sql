@@ -10,7 +10,7 @@ use crate::{
         proof_plans::{DynProofPlan, GroupByExec},
     },
 };
-use alloc::{fmt, vec, vec::Vec};
+use alloc::{fmt, format, vec, vec::Vec};
 use proof_of_sql_parser::{intermediate_ast::SetExpression, Identifier, SelectStatement};
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::Ident;
@@ -36,10 +36,8 @@ impl fmt::Debug for QueryExpr {
 }
 
 pub fn convert_ident_to_identifier(ident: Ident) -> Result<Identifier, PostprocessingError> {
-    Identifier::try_from(ident).map_err(|e| {
-        PostprocessingError::IdentifierConversionError {
-            error: format!("Failed to convert Ident to Identifier: {e}"),
-        }
+    Identifier::try_from(ident).map_err(|e| PostprocessingError::IdentifierConversionError {
+        error: format!("Failed to convert Ident to Identifier: {e}"),
     })
 }
 
