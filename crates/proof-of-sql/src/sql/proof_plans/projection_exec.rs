@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 /// ```ignore
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table>
 /// ```
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ProjectionExec {
     pub(super) aliased_results: Vec<AliasedDynProofExpr>,
     pub(super) table: TableExpr,

@@ -61,6 +61,6 @@ pub trait ProverEvaluate {
 pub trait ProverHonestyMarker: Debug + Send + Sync + PartialEq + 'static {}
 
 /// [`ProverHonestyMarker`] for generic [`ProofPlan`] types whose implementation is canonical/honest.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct HonestProver;
 impl ProverHonestyMarker for HonestProver {}

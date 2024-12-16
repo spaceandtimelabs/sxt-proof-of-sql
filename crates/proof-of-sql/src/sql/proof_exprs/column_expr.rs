@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 /// Note: this is currently limited to named column expressions.
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct ColumnExpr {
-    column_ref: ColumnRef,
+    pub(crate) column_ref: ColumnRef,
 }
 
 impl ColumnExpr {

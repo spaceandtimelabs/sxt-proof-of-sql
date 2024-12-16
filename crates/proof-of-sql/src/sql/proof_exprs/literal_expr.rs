@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 /// changes, and the performance is sufficient for present.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LiteralExpr {
-    value: LiteralValue,
+    pub(crate) value: LiteralValue,
 }
 
 impl LiteralExpr {

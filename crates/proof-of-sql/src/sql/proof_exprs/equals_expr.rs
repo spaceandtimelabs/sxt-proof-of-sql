@@ -17,8 +17,8 @@ use serde::{Deserialize, Serialize};
 /// Provable AST expression for an equals expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EqualsExpr {
-    lhs: Box<DynProofExpr>,
-    rhs: Box<DynProofExpr>,
+    pub(crate) lhs: Box<DynProofExpr>,
+    pub(crate) rhs: Box<DynProofExpr>,
 }
 
 impl EqualsExpr {

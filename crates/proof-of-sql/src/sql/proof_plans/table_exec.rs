@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 /// Source [`ProofPlan`] for (sub)queries with table source such as `SELECT col from tab;`
 /// Inspired by `DataFusion` data source [`ExecutionPlan`]s such as [`ArrowExec`] and [`CsvExec`].
 /// Note that we only need to load the columns we use.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TableExec {
     /// Table reference
     pub table_ref: TableRef,

@@ -30,7 +30,7 @@ use serde::{Deserialize, Serialize};
 ///     UNION ALL
 ///     <ProofPlan>
 /// ```
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct UnionExec {
     pub(super) inputs: Vec<DynProofPlan>,
     pub(super) schema: Vec<ColumnField>,
