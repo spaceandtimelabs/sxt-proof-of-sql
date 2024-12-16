@@ -1,5 +1,4 @@
 use super::*;
-use crate::base::sqlparser::ident;
 use proof_of_sql_parser::intermediate_ast::{AliasedResultExpr, OrderBy, OrderByDirection};
 use sqlparser::ast::Ident;
 
@@ -8,7 +7,7 @@ pub fn group_by_postprocessing(
     cols: &[&str],
     result_exprs: &[AliasedResultExpr],
 ) -> OwnedTablePostprocessing {
-    let ids: Vec<Ident> = cols.iter().map(|col| ident(col)).collect();
+    let ids: Vec<Ident> = cols.iter().map(|col| (*col).into()).collect();
     OwnedTablePostprocessing::new_group_by(
         GroupByPostprocessing::try_new(ids, result_exprs.to_vec()).unwrap(),
     )

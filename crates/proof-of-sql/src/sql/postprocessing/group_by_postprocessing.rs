@@ -354,7 +354,6 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::sqlparser::ident;
     use proof_of_sql_parser::utility::*;
 
     #[test]
@@ -400,13 +399,13 @@ mod tests {
 
         // a + b + 1
         let expr = add(add(col("a"), col("b")), lit(1));
-        let expected: IndexSet<Ident> = [ident("a"), ident("b")].into_iter().collect();
+        let expected: IndexSet<Ident> = ["a".into(), "b".into()].into_iter().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // ! (a == b || c >= a)
         let expr = not(or(equal(col("a"), col("b")), ge(col("c"), col("a"))));
-        let expected: IndexSet<Ident> = [ident("a"), ident("b"), ident("c")].into_iter().collect();
+        let expected: IndexSet<Ident> = ["a".into(), "b".into(), "c".into()].into_iter().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
@@ -418,7 +417,7 @@ mod tests {
 
         // (COUNT(a + b) + c) * d
         let expr = mul(add(count(add(col("a"), col("b"))), col("c")), col("d"));
-        let expected: IndexSet<Ident> = [ident("c"), ident("d")].into_iter().collect();
+        let expected: IndexSet<Ident> = ["c".into(), "d".into()].into_iter().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
     }
@@ -433,7 +432,7 @@ mod tests {
             get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
         assert_eq!(
             aggregation_expr_map[&(AggregationOperator::Sum, *col("a"))],
-            ident("__col_agg_0")
+            "__col_agg_0".into()
         );
         assert_eq!(remainder_expr, Ok(*add(col("__col_agg_0"), col("b"))));
         assert_eq!(aggregation_expr_map.len(), 1);
@@ -444,11 +443,11 @@ mod tests {
             get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
         assert_eq!(
             aggregation_expr_map[&(AggregationOperator::Sum, *col("a"))],
-            ident("__col_agg_0")
+            "__col_agg_0".into()
         );
         assert_eq!(
             aggregation_expr_map[&(AggregationOperator::Sum, *col("b"))],
-            ident("__col_agg_1")
+            "__col_agg_1".into()
         );
         assert_eq!(
             remainder_expr,
@@ -468,14 +467,14 @@ mod tests {
             get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
         assert_eq!(
             aggregation_expr_map[&(AggregationOperator::Max, *add(col("a"), lit(1)))],
-            ident("__col_agg_2")
+            "__col_agg_2".into()
         );
         assert_eq!(
             aggregation_expr_map[&(
                 AggregationOperator::Min,
                 *sub(mul(lit(2), col("b")), lit(4))
             )],
-            ident("__col_agg_3")
+            "__col_agg_3".into()
         );
         assert_eq!(
             remainder_expr,
@@ -492,7 +491,7 @@ mod tests {
             get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
         assert_eq!(
             aggregation_expr_map[&(AggregationOperator::Count, *mul(lit(2), col("a")))],
-            ident("__col_agg_4")
+            "__col_agg_4".into()
         );
         assert_eq!(
             remainder_expr,

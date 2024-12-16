@@ -2,7 +2,6 @@ use crate::{
     base::{
         database::{owned_table_utility::*, OwnedTable},
         scalar::Curve25519Scalar,
-        sqlparser::ident,
     },
     sql::postprocessing::{
         apply_postprocessing_steps, group_by_postprocessing::*, test_utility::*,
@@ -15,7 +14,7 @@ use proof_of_sql_parser::{intermediate_ast::AggregationOperator, utility::*};
 fn we_cannot_have_invalid_group_bys() {
     // Column in result but not in group by or aggregation
     let expr = add(sum(col("a")), col("b")); // b is not in group by or aggregation
-    let res = GroupByPostprocessing::try_new(vec![ident("a")], vec![aliased_expr(expr, "res")]);
+    let res = GroupByPostprocessing::try_new(vec!["a".into()], vec![aliased_expr(expr, "res")]);
     assert!(matches!(
         res,
         Err(PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. })
@@ -23,7 +22,7 @@ fn we_cannot_have_invalid_group_bys() {
 
     // Nested aggregation
     let expr = sum(max(col("a"))); // Nested aggregation
-    let res = GroupByPostprocessing::try_new(vec![ident("a")], vec![aliased_expr(expr, "res")]);
+    let res = GroupByPostprocessing::try_new(vec!["a".into()], vec![aliased_expr(expr, "res")]);
     assert!(matches!(
         res,
         Err(PostprocessingError::NestedAggregationInGroupByClause { .. })
@@ -34,14 +33,14 @@ fn we_cannot_have_invalid_group_bys() {
 fn we_can_make_group_by_postprocessing() {
     // SELECT SUM(a) + 2 as c0, SUM(b + a) as c1 FROM tab GROUP BY a, b
     let res = GroupByPostprocessing::try_new(
-        vec![ident("a"), ident("b")],
+        vec!["a".into(), "b".into()],
         vec![
             aliased_expr(add(sum(col("a")), lit(2)), "c0"),
             aliased_expr(sum(add(col("b"), col("a"))), "c1"),
         ],
     )
     .unwrap();
-    assert_eq!(res.group_by(), &[ident("a"), ident("b")]);
+    assert_eq!(res.group_by(), &["a".into(), "b".into()]);
     assert_eq!(
         res.remainder_exprs(),
         &[
@@ -52,11 +51,11 @@ fn we_can_make_group_by_postprocessing() {
     assert_eq!(
         res.aggregation_exprs(),
         &[
-            (AggregationOperator::Sum, *col("a"), ident("__col_agg_0")),
+            (AggregationOperator::Sum, *col("a"), "__col_agg_0".into()),
             (
                 AggregationOperator::Sum,
                 *add(col("b"), col("a")),
-                ident("__col_agg_1")
+                "__col_agg_1".into()
             ),
         ]
     );
