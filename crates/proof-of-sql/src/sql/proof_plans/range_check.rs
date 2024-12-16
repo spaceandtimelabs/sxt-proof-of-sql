@@ -239,7 +239,6 @@ fn prove_word_values<'a, S: Scalar + 'a>(
     // Allocate from 0 to 255 and pertrub with verifier challenge
     let word_values: &mut [S] =
         alloc.alloc_slice_fill_with(max(256, scalars.len()), |i| S::from(&(i as u8)));
-    builder.produce_intermediate_mle(word_values as &[_]);
 
     // Now produce an intermediate MLE over the inverted word values + verifier challenge alpha
     let word_vals_inv: &mut [S] = alloc.alloc_slice_fill_with(256, |i| {
@@ -378,7 +377,12 @@ where
         "Range check failed, column contains values outside of the selected range"
     );
 
-    let word_vals_eval = builder.try_consume_mle_evaluation()?;
+    let word_vals_eval = builder
+        .mle_evaluations
+        .rho_256_evaluation
+        .ok_or(ProofSizeMismatch::TooFewSumcheckVariables)?;
+    // Ensures that we have enough sumcheck variables
+    let _ = builder.try_consume_one_evaluation()?;
     let word_vals_plus_alpha_inv = builder.try_consume_mle_evaluation()?;
     let word_value_constraint = word_vals_plus_alpha_inv * (word_vals_eval + alpha);
 
