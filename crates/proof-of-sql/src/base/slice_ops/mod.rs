@@ -24,6 +24,7 @@ pub use add_const::*;
 pub use inner_product::*;
 pub use mul_add_assign::*;
 pub use slice_cast::*;
+#[allow(unused_imports)]
 pub use sub::*;
 
 mod batch_inverse;
