@@ -39,7 +39,7 @@ use serde::{Deserialize, Serialize};
 /// ```
 ///
 /// Note: if `group_by_exprs` is empty, then the query is equivalent to removing the `GROUP BY` clause.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct GroupByExec {
     pub(super) group_by_exprs: Vec<ColumnExpr>,
     pub(super) sum_expr: Vec<AliasedDynProofExpr>,

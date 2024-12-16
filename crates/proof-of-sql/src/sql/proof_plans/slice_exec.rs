@@ -27,7 +27,7 @@ use serde::{Deserialize, Serialize};
 /// ```ignore
 ///     <ProofPlan> LIMIT <fetch> [OFFSET <skip>]
 /// ```
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct SliceExec {
     pub(super) input: Box<DynProofPlan>,
     pub(super) skip: usize,

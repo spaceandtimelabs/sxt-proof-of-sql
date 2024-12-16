@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 
 /// Source [`ProofPlan`] for (sub)queries without table source such as `SELECT "No table here" as msg;`
 /// Inspired by [`DataFusion EmptyExec`](https://docs.rs/datafusion/latest/datafusion/physical_plan/empty/struct.EmptyExec.html)
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct EmptyExec {}
 
 impl Default for EmptyExec {
