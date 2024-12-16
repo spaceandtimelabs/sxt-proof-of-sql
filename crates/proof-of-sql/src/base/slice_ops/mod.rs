@@ -18,11 +18,13 @@ mod mul_add_assign_test;
 mod slice_cast;
 #[cfg(test)]
 mod slice_cast_test;
+mod sub;
 
 pub use add_const::*;
 pub use inner_product::*;
 pub use mul_add_assign::*;
 pub use slice_cast::*;
+pub use sub::*;
 
 mod batch_inverse;
 pub use batch_inverse::*;
