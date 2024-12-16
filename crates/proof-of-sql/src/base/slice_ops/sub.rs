@@ -1,4 +1,5 @@
 use crate::base::if_rayon;
+use core::ops::Sub;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
@@ -9,7 +10,7 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelI
 /// Panics if the length of `lhs` and `rhs` are not equal.
 pub fn sub<T>(result: &mut [T], lhs: &[T], rhs: &[T])
 where
-    T: Send + Sync + std::ops::Sub<Output = T> + Copy,
+    T: Send + Sync + Sub<Output = T> + Copy,
 {
     assert!(
         lhs.len() == rhs.len(),
