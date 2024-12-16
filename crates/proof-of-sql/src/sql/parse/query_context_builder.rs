@@ -22,7 +22,6 @@ pub struct QueryContextBuilder<'a> {
     context: QueryContext,
     schema_accessor: &'a dyn SchemaAccessor,
 }
-use crate::base::sqlparser::normalize_ident;
 use sqlparser::ast::Ident;
 
 // Public interface
@@ -38,14 +37,12 @@ impl<'a> QueryContextBuilder<'a> {
     pub fn visit_table_expr(
         mut self,
         table_expr: &[Box<TableExpression>],
-        default_schema: Ident,
+        default_schema: Identifier,
     ) -> Self {
         assert_eq!(table_expr.len(), 1);
         match *table_expr[0] {
             TableExpression::Named { table, schema } => {
-                let default_schema_identifier = Identifier::try_from(default_schema)
-                    .expect("Failed to convert default_schema Ident to Identifier");
-                let schema_identifier = schema.unwrap_or(default_schema_identifier);
+                let schema_identifier = schema.unwrap_or(default_schema);
                 self.context
                     .set_table_ref(TableRef::new(ResourceId::new(schema_identifier, table)));
             }
@@ -261,20 +258,18 @@ impl<'a> QueryContextBuilder<'a> {
 
     fn visit_column_identifier(&mut self, column_name: &Ident) -> ConversionResult<ColumnType> {
         let table_ref = self.context.get_table_ref();
-        // Normalize the column name before looking it up
-        let normalized_column_name = Ident::new(normalize_ident(column_name.clone()));
         let column_type = self
             .schema_accessor
-            .lookup_column(*table_ref, normalized_column_name.clone());
+            .lookup_column(*table_ref, column_name.clone());
 
         let column_type = column_type.ok_or_else(|| ConversionError::MissingColumn {
             identifier: Box::new(column_name.clone()),
             resource_id: Box::new(table_ref.resource_id()),
         })?;
 
-        let column = ColumnRef::new(*table_ref, normalized_column_name.clone(), column_type);
+        let column = ColumnRef::new(*table_ref, column_name.clone(), column_type);
 
-        self.context.push_column_ref(normalized_column_name, column);
+        self.context.push_column_ref(column_name.clone(), column);
 
         Ok(column_type)
     }

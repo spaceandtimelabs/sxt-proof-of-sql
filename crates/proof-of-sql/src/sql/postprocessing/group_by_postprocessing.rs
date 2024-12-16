@@ -72,25 +72,32 @@ fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Ident> {
 fn get_aggregate_and_remainder_expressions(
     expr: Expression,
     aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expression), Ident>,
-) -> Expression {
+) -> Result<Expression, PostprocessingError> {
     match expr {
-        Expression::Column(_) | Expression::Literal(_) | Expression::Wildcard => expr,
+        Expression::Column(_) | Expression::Literal(_) | Expression::Wildcard => Ok(expr),
         Expression::Aggregation { op, expr } => {
             let key = (op, (*expr));
             if let Some(ident) = aggregation_expr_map.get(&key) {
-                Expression::Column(
-                    Identifier::try_from(ident.clone())
-                        .expect("Failed to convert new Ident to Identifier"),
-                )
+                let identifier = Identifier::try_from(ident.clone()).map_err(|e| {
+                    PostprocessingError::IdentifierConversionError {
+                        error: format!("Failed to convert Ident to Identifier: {e}"),
+                    }
+                })?;
+                Ok(Expression::Column(identifier))
             } else {
                 let new_ident = Ident {
                     value: format!("__col_agg_{}", aggregation_expr_map.len()),
                     quote_style: None,
                 };
-                let new_identifier = Identifier::try_from(new_ident.clone())
-                    .expect("Failed to convert new Ident to Identifier");
+
+                let new_identifier = Identifier::try_from(new_ident.clone()).map_err(|e| {
+                    PostprocessingError::IdentifierConversionError {
+                        error: format!("Failed to convert Ident to Identifier: {e}"),
+                    }
+                })?;
+
                 aggregation_expr_map.insert(key, new_ident);
-                Expression::Column(new_identifier)
+                Ok(Expression::Column(new_identifier))
             }
         }
         Expression::Binary { op, left, right } => {
@@ -98,18 +105,18 @@ fn get_aggregate_and_remainder_expressions(
                 get_aggregate_and_remainder_expressions(*left, aggregation_expr_map);
             let right_remainder =
                 get_aggregate_and_remainder_expressions(*right, aggregation_expr_map);
-            Expression::Binary {
+            Ok(Expression::Binary {
                 op,
-                left: Box::new(left_remainder),
-                right: Box::new(right_remainder),
-            }
+                left: Box::new(left_remainder?),
+                right: Box::new(right_remainder?),
+            })
         }
         Expression::Unary { op, expr } => {
             let remainder = get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
-            Expression::Unary {
+            Ok(Expression::Unary {
                 op,
-                expr: Box::new(remainder),
-            }
+                expr: Box::new(remainder?),
+            })
         }
     }
 }
@@ -137,7 +144,7 @@ fn check_and_get_aggregation_and_remainder(
         let remainder = get_aggregate_and_remainder_expressions(*expr.expr, aggregation_expr_map);
         Ok(AliasedResultExpr {
             alias: expr.alias,
-            expr: Box::new(remainder),
+            expr: Box::new(remainder?),
         })
     } else {
         let diff = free_identifiers
@@ -428,7 +435,7 @@ mod tests {
             aggregation_expr_map[&(AggregationOperator::Sum, *col("a"))],
             ident("__col_agg_0")
         );
-        assert_eq!(remainder_expr, *add(col("__col_agg_0"), col("b")));
+        assert_eq!(remainder_expr, Ok(*add(col("__col_agg_0"), col("b"))));
         assert_eq!(aggregation_expr_map.len(), 1);
 
         // SUM(a) + SUM(b)
@@ -443,7 +450,10 @@ mod tests {
             aggregation_expr_map[&(AggregationOperator::Sum, *col("b"))],
             ident("__col_agg_1")
         );
-        assert_eq!(remainder_expr, *add(col("__col_agg_0"), col("__col_agg_1")));
+        assert_eq!(
+            remainder_expr,
+            Ok(*add(col("__col_agg_0"), col("__col_agg_1")))
+        );
         assert_eq!(aggregation_expr_map.len(), 2);
 
         // MAX(a + 1) + MIN(2 * b - 4) + c
@@ -469,7 +479,7 @@ mod tests {
         );
         assert_eq!(
             remainder_expr,
-            *add(add(col("__col_agg_2"), col("__col_agg_3")), col("c"))
+            Ok(*add(add(col("__col_agg_2"), col("__col_agg_3")), col("c")))
         );
         assert_eq!(aggregation_expr_map.len(), 4);
 
@@ -486,10 +496,10 @@ mod tests {
         );
         assert_eq!(
             remainder_expr,
-            *add(
+            Ok(*add(
                 add(mul(col("__col_agg_4"), lit(2)), col("__col_agg_1")),
                 lit(1)
-            )
+            ))
         );
         assert_eq!(aggregation_expr_map.len(), 5);
     }

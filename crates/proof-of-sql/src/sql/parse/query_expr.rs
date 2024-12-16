@@ -5,13 +5,13 @@ use crate::{
         parse::ConversionResult,
         postprocessing::{
             GroupByPostprocessing, OrderByPostprocessing, OwnedTablePostprocessing,
-            SelectPostprocessing, SlicePostprocessing,
+            PostprocessingError, SelectPostprocessing, SlicePostprocessing,
         },
         proof_plans::{DynProofPlan, GroupByExec},
     },
 };
 use alloc::{fmt, vec, vec::Vec};
-use proof_of_sql_parser::{intermediate_ast::SetExpression, SelectStatement};
+use proof_of_sql_parser::{intermediate_ast::SetExpression, Identifier, SelectStatement};
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::Ident;
 
@@ -33,6 +33,14 @@ impl fmt::Debug for QueryExpr {
             self.proof_expr, self.postprocessing
         )
     }
+}
+
+pub fn convert_ident_to_identifier(ident: Ident) -> Result<Identifier, PostprocessingError> {
+    Identifier::try_from(ident).map_err(|e| {
+        PostprocessingError::IdentifierConversionError {
+            error: format!("Failed to convert Ident to Identifier: {e}"),
+        }
+    })
 }
 
 impl QueryExpr {
@@ -58,7 +66,7 @@ impl QueryExpr {
                 where_expr,
                 group_by,
             } => QueryContextBuilder::new(schema_accessor)
-                .visit_table_expr(&from, default_schema)
+                .visit_table_expr(&from, convert_ident_to_identifier(default_schema)?)
                 .visit_group_by_exprs(group_by.into_iter().map(Ident::from).collect())?
                 .visit_result_exprs(result_exprs)?
                 .visit_where_expr(where_expr)?
@@ -68,7 +76,6 @@ impl QueryExpr {
         };
         let result_aliased_exprs = context.get_aliased_result_exprs()?.to_vec();
         let group_by = context.get_group_by_exprs();
-
         // Figure out the basic postprocessing steps.
         let mut postprocessing = vec![];
         let order_bys = context.get_order_by_exprs()?;

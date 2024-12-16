@@ -35,6 +35,12 @@ pub enum PostprocessingError {
         /// The column identifier
         column: Ident,
     },
+    /// Errors in converting `Ident` to `Identifier`
+    #[snafu(display("Failed to convert `Ident` to `Identifier`: {error}"))]
+    IdentifierConversionError {
+        /// The underlying error message
+        error: String,
+    },
     /// Errors in aggregate columns
     #[snafu(transparent)]
     AggregateColumnsError {
