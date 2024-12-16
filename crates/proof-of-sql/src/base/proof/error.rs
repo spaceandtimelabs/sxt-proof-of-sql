@@ -43,4 +43,7 @@ pub enum ProofSizeMismatch {
     /// This error occurs when the proof has too few one lengths.
     #[snafu(display("Proof has too few one lengths"))]
     TooFewOneLengths,
+    /// This error occurs when the proof has too few sumcheck variables.
+    #[snafu(display("Proof has too few sumcheck variables"))]
+    TooFewSumcheckVariables,
 }
