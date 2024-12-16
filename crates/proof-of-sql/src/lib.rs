@@ -13,3 +13,6 @@ pub mod utils;
 
 #[cfg(test)]
 mod tests;
+
+/// Module for converting Proof of SQL components to EVM compatible format
+pub mod evm_compatibility;
