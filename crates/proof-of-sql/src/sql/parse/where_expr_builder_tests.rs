@@ -3,7 +3,6 @@ use crate::{
         database::{ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
         map::{indexmap, IndexMap},
         math::decimal::Precision,
-        sqlparser::ident,
     },
     sql::{
         parse::{ConversionError, QueryExpr, WhereExprBuilder},
@@ -33,59 +32,59 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
     let mut column_mapping = IndexMap::default();
     // Setup column mapping
     column_mapping.insert(
-        ident("boolean_column"),
-        ColumnRef::new(tab_ref, ident("boolean_column"), ColumnType::Boolean),
+        "boolean_column".into(),
+        ColumnRef::new(tab_ref, "boolean_column".into(), ColumnType::Boolean),
     );
     column_mapping.insert(
-        ident("decimal_column"),
+        "decimal_column".into(),
         ColumnRef::new(
             tab_ref,
-            ident("decimal_column"),
+            "decimal_column".into(),
             ColumnType::Decimal75(Precision::new(7).unwrap(), 2),
         ),
     );
     column_mapping.insert(
-        ident("int128_column"),
-        ColumnRef::new(tab_ref, ident("int128_column"), ColumnType::Int128),
+        "int128_column".into(),
+        ColumnRef::new(tab_ref, "int128_column".into(), ColumnType::Int128),
     );
     column_mapping.insert(
-        ident("bigint_column"),
-        ColumnRef::new(tab_ref, ident("bigint_column"), ColumnType::BigInt),
+        "bigint_column".into(),
+        ColumnRef::new(tab_ref, "bigint_column".into(), ColumnType::BigInt),
     );
 
     column_mapping.insert(
-        ident("varchar_column"),
-        ColumnRef::new(tab_ref, ident("varchar_column"), ColumnType::VarChar),
+        "varchar_column".into(),
+        ColumnRef::new(tab_ref, "varchar_column".into(), ColumnType::VarChar),
     );
     column_mapping.insert(
-        ident("timestamp_second_column"),
+        "timestamp_second_column".into(),
         ColumnRef::new(
             tab_ref,
-            ident("timestamp_second_column"),
+            "timestamp_second_column".into(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
         ),
     );
     column_mapping.insert(
-        ident("timestamp_millisecond_column"),
+        "timestamp_millisecond_column".into(),
         ColumnRef::new(
             tab_ref,
-            ident("timestamp_millisecond_column"),
+            "timestamp_millisecond_column".into(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::utc()),
         ),
     );
     column_mapping.insert(
-        ident("timestamp_microsecond_column"),
+        "timestamp_microsecond_column".into(),
         ColumnRef::new(
             tab_ref,
-            ident("timestamp_microsecond_column"),
+            "timestamp_microsecond_column".into(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Microsecond, PoSQLTimeZone::utc()),
         ),
     );
     column_mapping.insert(
-        ident("timestamp_nanosecond_column"),
+        "timestamp_nanosecond_column".into(),
         ColumnRef::new(
             tab_ref,
-            ident("timestamp_nanosecond_column"),
+            "timestamp_nanosecond_column".into(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::utc()),
         ),
     );
@@ -147,7 +146,7 @@ fn we_can_directly_check_whether_bigint_columns_ge_int128() {
     let expected = DynProofExpr::try_new_inequality(
         DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
             "sxt.sxt_tab".parse().unwrap(),
-            ident("bigint_column"),
+            "bigint_column".into(),
             ColumnType::BigInt,
         ))),
         DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
@@ -169,7 +168,7 @@ fn we_can_directly_check_whether_bigint_columns_le_int128() {
     let expected = DynProofExpr::try_new_inequality(
         DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
             "sxt.sxt_tab".parse().unwrap(),
-            ident("bigint_column"),
+            "bigint_column".into(),
             ColumnType::BigInt,
         ))),
         DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),

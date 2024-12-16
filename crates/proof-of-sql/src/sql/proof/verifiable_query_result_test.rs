@@ -13,7 +13,6 @@ use crate::{
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
-        sqlparser::ident,
     },
     sql::proof::{FirstRoundBuilder, QueryData},
 };
@@ -36,7 +35,7 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         builder.produce_one_evaluation_length(self.length);
         table_with_row_count(
             (1..=self.columns)
-                .map(|i| borrowed_bigint(ident(format!("a{i}").as_str()), zeros.clone(), alloc)),
+                .map(|i| borrowed_bigint(format!("a{i}").as_str(), zeros.clone(), alloc)),
             self.length,
         )
     }
@@ -54,7 +53,7 @@ impl ProverEvaluate for EmptyTestQueryExpr {
             .collect::<Vec<_>>();
         table_with_row_count(
             (1..=self.columns)
-                .map(|i| borrowed_bigint(ident(format!("a{i}").as_str()), zeros.clone(), alloc)),
+                .map(|i| borrowed_bigint(format!("a{i}").as_str(), zeros.clone(), alloc)),
             self.length,
         )
     }
