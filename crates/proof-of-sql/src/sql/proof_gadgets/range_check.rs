@@ -239,7 +239,6 @@ fn prove_word_values<'a, S: Scalar + 'a>(
     // Allocate from 0 to 255 and pertrub with verifier challenge
     let word_values: &mut [S] =
         alloc.alloc_slice_fill_with(max(256, scalars.len()), |i| S::from(&(i as u8)));
-    builder.produce_intermediate_mle(word_values as &[_]);
 
     // Now produce an intermediate MLE over the inverted word values + verifier challenge alpha
     let word_vals_inv: &mut [S] = alloc.alloc_slice_fill_with(256, |i| {
@@ -274,11 +273,11 @@ fn prove_word_values<'a, S: Scalar + 'a>(
 /// multiplied by the inverted word value, is zero.
 ///
 /// ```text
-/// ∑ (I₀ + I₁ + I₂ + I₃ - (C * IN)) = 0
+/// ∑ (I₀ + I₁ + I₂ ... Iₙ - (C * IN)) = 0
 /// ```
 ///
 /// Where:
-/// - `I₀, I₁, I₂, I₃` are the inverted word columns.
+/// - `I₀ + I₁ + I₂ ... Iₙ` are the inverted word columns.
 /// - `C` is the count of each word.
 /// - `IN` is the inverted word values column.
 #[allow(clippy::missing_panics_doc)]
@@ -378,7 +377,12 @@ where
         "Range check failed, column contains values outside of the selected range"
     );
 
-    let word_vals_eval = builder.try_consume_mle_evaluation()?;
+    let word_vals_eval = builder
+        .mle_evaluations
+        .rho_256_evaluation
+        .ok_or(ProofSizeMismatch::TooFewSumcheckVariables)?;
+    // Ensures that we have enough sumcheck variables
+    let _ = builder.try_consume_one_evaluation()?;
     let word_vals_plus_alpha_inv = builder.try_consume_mle_evaluation()?;
     let word_value_constraint = word_vals_plus_alpha_inv * (word_vals_eval + alpha);
 
