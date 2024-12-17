@@ -8,6 +8,8 @@ pub struct FirstRoundBuilder {
     num_post_result_challenges: usize,
     /// The extra one evaluation lengths used in the proof.
     one_evaluation_lengths: Vec<usize>,
+    /// The extra sumcheck range lengths used in the proof.
+    sumcheck_range_lengths: Vec<usize>,
 }
 
 impl Default for FirstRoundBuilder {
@@ -21,12 +23,19 @@ impl FirstRoundBuilder {
         Self {
             num_post_result_challenges: 0,
             one_evaluation_lengths: Vec::new(),
+            sumcheck_range_lengths: Vec::new(),
         }
     }
 
     /// Get the one evaluation lengths used in the proof.
+    #[allow(dead_code)]
     pub(crate) fn one_evaluation_lengths(&self) -> &[usize] {
         &self.one_evaluation_lengths
+    }
+
+    /// Get the sumcheck range lengths used in the proof.
+    pub(crate) fn sumcheck_range_lengths(&self) -> &[usize] {
+        &self.sumcheck_range_lengths
     }
 
     /// Append the length to the list of one evaluation lengths.
