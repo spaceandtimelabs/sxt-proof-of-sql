@@ -57,7 +57,7 @@ impl<C: Commitment> TableCommitment<C> {
                 panic!("RecordBatches cannot have columns of mixed length")
             }
             Err(AppendTableCommitmentError::AppendColumnCommitments {
-                source: AppendColumnCommitmentsError::DuplicateIdentifiers { .. },
+                source: AppendColumnCommitmentsError::DuplicateIdents { .. },
             }) => {
                 panic!("RecordBatches cannot have duplicate identifiers")
             }
@@ -92,7 +92,7 @@ impl<C: Commitment> TableCommitment<C> {
             Err(TableCommitmentFromColumnsError::MixedLengthColumns { .. }) => {
                 panic!("RecordBatches cannot have columns of mixed length")
             }
-            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers { .. }) => {
+            Err(TableCommitmentFromColumnsError::DuplicateIdents { .. }) => {
                 panic!("RecordBatches cannot have duplicate identifiers")
             }
         }

@@ -90,7 +90,7 @@ Parsing Query... 1.870256ms
 Generating Proof... 467.45371ms
 Verifying Proof... 7.106864ms
 Valid proof!
-Query result: OwnedTable { table: {Identifier { name: "b" }: VarChar(["hello", "world"])} }
+Query result: OwnedTable { table: {Ident { value: "b", quote_style: None }: VarChar(["hello", "world"])} }
 ```
 
 For a detailed explanation of the example and its implementation, refer to the [README](https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/crates/proof-of-sql/examples/hello_world/README.md) and source code in [hello_world/main.rs](https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/crates/proof-of-sql/examples/hello_world/main.rs).

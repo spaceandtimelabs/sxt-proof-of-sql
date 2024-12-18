@@ -30,7 +30,7 @@ pub(crate) enum TableCoercionError {
     ColumnCountMismatch,
 }
 
-/// A table of data, with schema included. This is simply a map from `Identifier` to `OwnedColumn`,
+/// A table of data, with schema included. This is simply a map from `Ident` to `OwnedColumn`,
 /// where columns order matters.
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.

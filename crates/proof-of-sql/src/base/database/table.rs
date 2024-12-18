@@ -35,7 +35,7 @@ pub enum TableError {
     #[snafu(display("Table is empty and no row count is specified"))]
     EmptyTableWithoutSpecifiedRowCount,
 }
-/// A table of data, with schema included. This is simply a map from `Identifier` to `Column`,
+/// A table of data, with schema included. This is simply a map from `Ident` to `Column`,
 /// where columns order matters.
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
@@ -77,14 +77,14 @@ impl<'a, S: Scalar> Table<'a, S> {
         }
     }
 
-    /// Creates a new [`Table`] from an iterator of `(Identifier, Column)` pairs with default [`TableOptions`].
+    /// Creates a new [`Table`] from an iterator of `(Ident, Column)` pairs with default [`TableOptions`].
     pub fn try_from_iter<T: IntoIterator<Item = (Ident, Column<'a, S>)>>(
         iter: T,
     ) -> Result<Self, TableError> {
         Self::try_from_iter_with_options(iter, TableOptions::default())
     }
 
-    /// Creates a new [`Table`] from an iterator of `(Identifier, Column)` pairs with [`TableOptions`].
+    /// Creates a new [`Table`] from an iterator of `(Ident, Column)` pairs with [`TableOptions`].
     pub fn try_from_iter_with_options<T: IntoIterator<Item = (Ident, Column<'a, S>)>>(
         iter: T,
         options: TableOptions,

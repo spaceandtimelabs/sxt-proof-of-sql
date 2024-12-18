@@ -1,6 +1,6 @@
 use super::{
     committable_column::CommittableColumn, AppendColumnCommitmentsError, ColumnCommitments,
-    ColumnCommitmentsMismatch, Commitment, DuplicateIdentifiers,
+    ColumnCommitmentsMismatch, Commitment, DuplicateIdents,
 };
 use crate::base::{
     database::{ColumnField, CommitmentAccessor, OwnedTable, TableRef},
@@ -31,11 +31,11 @@ pub enum TableCommitmentFromColumnsError {
         /// The underlying source error
         source: MixedLengthColumns,
     },
-    /// Cannot construct [`TableCommitment`] from columns with duplicate identifiers.
+    /// Cannot construct [`TableCommitment`] from columns with duplicate idents.
     #[snafu(transparent)]
-    DuplicateIdentifiers {
+    DuplicateIdents {
         /// The underlying source error
-        source: DuplicateIdentifiers,
+        source: DuplicateIdents,
     },
 }
 
@@ -158,7 +158,7 @@ impl<C: Commitment> TableCommitment<C> {
 
     /// Returns a [`TableCommitment`] to the provided columns with the given row offset.
     ///
-    /// Provided columns must have the same length and no duplicate identifiers.
+    /// Provided columns must have the same length and no duplicate idents.
     pub fn try_from_columns_with_offset<'a, COL>(
         columns: impl IntoIterator<Item = (&'a Ident, COL)>,
         offset: usize,
@@ -189,7 +189,7 @@ impl<C: Commitment> TableCommitment<C> {
     /// Returns a [`TableCommitment`] to the provided table with the given row offset.
     #[allow(
         clippy::missing_panics_doc,
-        reason = "since OwnedTables cannot have columns of mixed length or duplicate identifiers"
+        reason = "since OwnedTables cannot have columns of mixed length or duplicate idents"
     )]
     pub fn from_owned_table_with_offset<S>(
         owned_table: &OwnedTable<S>,
@@ -200,7 +200,7 @@ impl<C: Commitment> TableCommitment<C> {
         S: Scalar,
     {
         Self::try_from_columns_with_offset(owned_table.inner_table(), offset, setup)
-            .expect("OwnedTables cannot have columns of mixed length or duplicate identifiers")
+            .expect("OwnedTables cannot have columns of mixed length or duplicate idents")
     }
 
     /// Append rows of data from the provided columns to the existing [`TableCommitment`].
@@ -238,7 +238,7 @@ impl<C: Commitment> TableCommitment<C> {
     /// Will error on a variety of mismatches.
     /// See [`ColumnCommitmentsMismatch`] for an enumeration of these errors.
     /// # Panics
-    /// Panics if `owned_table` has duplicate identifiers.
+    /// Panics if `owned_table` has duplicate idents.
     /// Panics if `owned_table` contains columns of mixed length.
     pub fn append_owned_table<S>(
         &mut self,
@@ -252,8 +252,8 @@ impl<C: Commitment> TableCommitment<C> {
             .map_err(|e| match e {
                 AppendTableCommitmentError::AppendColumnCommitments { source: e } => match e {
                     AppendColumnCommitmentsError::Mismatch { source: e } => e,
-                    AppendColumnCommitmentsError::DuplicateIdentifiers { .. } => {
-                        panic!("OwnedTables cannot have duplicate identifiers");
+                    AppendColumnCommitmentsError::DuplicateIdents { .. } => {
+                        panic!("OwnedTables cannot have duplicate idents");
                     }
                 },
                 AppendTableCommitmentError::MixedLengthColumns { .. } => {
@@ -264,7 +264,7 @@ impl<C: Commitment> TableCommitment<C> {
 
     /// Add new columns to this [`TableCommitment`].
     ///
-    /// Columns must have the same length as the current commitment and no duplicate identifiers.
+    /// Columns must have the same length as the current commitment and no duplicate idents.
     pub fn try_extend_columns<'a, COL>(
         &mut self,
         columns: impl IntoIterator<Item = (&'a Ident, COL)>,
@@ -480,7 +480,7 @@ mod tests {
         );
         assert!(matches!(
             from_columns_result,
-            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers { .. })
+            Err(TableCommitmentFromColumnsError::DuplicateIdents { .. })
         ));
 
         let mut table_commitment =
@@ -499,7 +499,7 @@ mod tests {
             table_commitment.try_extend_columns([(&duplicate_identifier_a, &empty_column)], &());
         assert!(matches!(
             extend_columns_result,
-            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers { .. })
+            Err(TableCommitmentFromColumnsError::DuplicateIdents { .. })
         ));
 
         let extend_columns_result = table_commitment.try_extend_columns(
@@ -511,7 +511,7 @@ mod tests {
         );
         assert!(matches!(
             extend_columns_result,
-            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers { .. })
+            Err(TableCommitmentFromColumnsError::DuplicateIdents { .. })
         ));
 
         // make sure the commitment wasn't mutated
@@ -689,7 +689,7 @@ mod tests {
         assert!(matches!(
             append_column_result,
             Err(AppendTableCommitmentError::AppendColumnCommitments {
-                source: AppendColumnCommitmentsError::DuplicateIdentifiers { .. }
+                source: AppendColumnCommitmentsError::DuplicateIdents { .. }
             })
         ));
 

@@ -19,7 +19,7 @@ use alloc::string::String;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use sqlparser::ast::Ident;
 
-/// Creates an [`OwnedTable`] from a list of `(Identifier, OwnedColumn)` pairs.
+/// Creates an [`OwnedTable`] from a list of `(Ident, OwnedColumn)` pairs.
 /// This is a convenience wrapper around [`OwnedTable::try_from_iter`] primarily for use in tests and
 /// intended to be used along with the other methods in this module (e.g. [bigint], [boolean], etc).
 /// The function will panic under a variety of conditions. See [`OwnedTable::try_from_iter`] for more details.
@@ -36,7 +36,7 @@ use sqlparser::ast::Ident;
 ///     decimal75("f", 12, 1, [1, 2, 3]),
 /// ]);
 /// ```
-///
+/// ///
 /// # Panics
 /// - Panics if converting the iterator into an `OwnedTable<S>` fails.
 pub fn owned_table<S: Scalar>(
@@ -45,7 +45,7 @@ pub fn owned_table<S: Scalar>(
     OwnedTable::try_from_iter(iter).unwrap()
 }
 
-/// Creates a (Identifier, `OwnedColumn`) pair for a tinyint column.
+/// Creates a (Ident, `OwnedColumn`) pair for a tinyint column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
@@ -54,8 +54,6 @@ pub fn owned_table<S: Scalar>(
 ///     tinyint("a", [1_i8, 2, 3]),
 /// ]);
 ///```
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn tinyint<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i8>>,
@@ -66,7 +64,7 @@ pub fn tinyint<S: Scalar>(
     )
 }
 
-/// Creates a `(Identifier, OwnedColumn)` pair for a smallint column.
+/// Creates a `(Ident, OwnedColumn)` pair for a smallint column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```rust
@@ -75,8 +73,6 @@ pub fn tinyint<S: Scalar>(
 ///     smallint("a", [1_i16, 2, 3]),
 /// ]);
 /// ```
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn smallint<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i16>>,
@@ -87,7 +83,7 @@ pub fn smallint<S: Scalar>(
     )
 }
 
-/// Creates a `(Identifier, OwnedColumn)` pair for an int column.
+/// Creates a `(Ident, OwnedColumn)` pair for an int column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```rust
@@ -96,8 +92,6 @@ pub fn smallint<S: Scalar>(
 ///     int("a", [1, 2, 3]),
 /// ]);
 /// ```
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn int<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i32>>,
@@ -108,7 +102,7 @@ pub fn int<S: Scalar>(
     )
 }
 
-/// Creates a `(Identifier, OwnedColumn)` pair for a bigint column.
+/// Creates a `(Ident, OwnedColumn)` pair for a bigint column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```rust
@@ -128,7 +122,7 @@ pub fn bigint<S: Scalar>(
     )
 }
 
-/// Creates a `(Identifier, OwnedColumn)` pair for a boolean column.
+/// Creates a `(Ident, OwnedColumn)` pair for a boolean column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
@@ -137,9 +131,6 @@ pub fn bigint<S: Scalar>(
 ///     boolean("a", [true, false, true]),
 /// ]);
 /// ```
-///
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn boolean<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<bool>>,
@@ -150,7 +141,7 @@ pub fn boolean<S: Scalar>(
     )
 }
 
-/// Creates a `(Identifier, OwnedColumn)` pair for a int128 column.
+/// Creates a `(Ident, OwnedColumn)` pair for a int128 column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
@@ -159,9 +150,6 @@ pub fn boolean<S: Scalar>(
 ///     int128("a", [1, 2, 3]),
 /// ]);
 /// ```
-///
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn int128<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i128>>,
@@ -172,7 +160,7 @@ pub fn int128<S: Scalar>(
     )
 }
 
-/// Creates a `(Identifier, OwnedColumn)` pair for a scalar column.
+/// Creates a `(Ident, OwnedColumn)` pair for a scalar column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
@@ -181,9 +169,7 @@ pub fn int128<S: Scalar>(
 ///     scalar("a", [1, 2, 3]),
 /// ]);
 /// ```
-///
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+
 pub fn scalar<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<S>>,
@@ -194,7 +180,7 @@ pub fn scalar<S: Scalar>(
     )
 }
 
-/// Creates a `(Identifier, OwnedColumn)` pair for a varchar column.
+/// Creates a `(Ident, OwnedColumn)` pair for a varchar column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
@@ -203,9 +189,7 @@ pub fn scalar<S: Scalar>(
 ///     varchar("a", ["a", "b", "c"]),
 /// ]);
 /// ```
-///
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+
 pub fn varchar<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<String>>,
@@ -216,7 +200,7 @@ pub fn varchar<S: Scalar>(
     )
 }
 
-/// Creates a `(Identifier, OwnedColumn)` pair for a decimal75 column.
+/// Creates a `(Ident, OwnedColumn)` pair for a decimal75 column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
@@ -227,7 +211,6 @@ pub fn varchar<S: Scalar>(
 /// ```
 ///
 /// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 /// - Panics if creating the `Precision` from the specified precision value fails.
 pub fn decimal75<S: Scalar>(
     name: impl Into<Ident>,
@@ -245,7 +228,7 @@ pub fn decimal75<S: Scalar>(
     )
 }
 
-/// Creates a `(Identifier, OwnedColumn)` pair for a timestamp column.
+/// Creates a `(Ident, OwnedColumn)` pair for a timestamp column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 ///
 /// # Parameters
@@ -266,9 +249,7 @@ pub fn decimal75<S: Scalar>(
 ///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), vec![1625072400, 1625076000, 1625079600]),
 /// ]);
 /// ```
-///
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+
 pub fn timestamptz<S: Scalar>(
     name: impl Into<Ident>,
     time_unit: PoSQLTimeUnit,

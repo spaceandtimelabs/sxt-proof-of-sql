@@ -1582,7 +1582,7 @@ fn we_cannot_use_non_grouped_columns_outside_agg() {
         assert!(matches!(
             result,
             Err(ConversionError::PostprocessingError {
-                source: PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. }
+                source: PostprocessingError::IdentNotInAggregationOperatorOrGroupByClause { .. }
             })
         ));
     }

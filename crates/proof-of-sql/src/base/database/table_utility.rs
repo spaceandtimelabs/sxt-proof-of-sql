@@ -22,7 +22,7 @@ use bumpalo::Bump;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use sqlparser::ast::Ident;
 
-/// Creates an [`Table`] from a list of `(Identifier, Column)` pairs.
+/// Creates an [`Table`] from a list of `(Ident, Column)` pairs.
 /// This is a convenience wrapper around [`Table::try_from_iter`] primarily for use in tests and
 /// intended to be used along with the other methods in this module (e.g. [`borrowed_bigint`],
 /// [`borrowed_boolean`], etc).
@@ -51,7 +51,7 @@ pub fn table<'a, S: Scalar>(
     Table::try_from_iter(iter).unwrap()
 }
 
-/// Creates an [`Table`] from a list of `(Identifier, Column)` pairs with a specified row count.
+/// Creates an [`Table`] from a list of `(Ident, Column)` pairs with a specified row count.
 /// The main reason for this function is to allow for creating tables that may potentially have
 /// no columns, but still have a specified row count.
 ///
@@ -64,7 +64,7 @@ pub fn table_with_row_count<'a, S: Scalar>(
     Table::try_from_iter_with_options(iter, TableOptions::new(Some(row_count))).unwrap()
 }
 
-/// Creates a (Identifier, `Column`) pair for a tinyint column.
+/// Creates a (Ident, `Column`) pair for a tinyint column.
 /// This is primarily intended for use in conjunction with [`table`].
 /// # Example
 /// ```
@@ -75,8 +75,6 @@ pub fn table_with_row_count<'a, S: Scalar>(
 ///     borrowed_tinyint("a", [1_i8, 2, 3], &alloc),
 /// ]);
 ///```
-/// # Panics
-/// - Panics if `name.parse()()` fails to convert the name into an `Identifier`.
 pub fn borrowed_tinyint<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i8>>,
@@ -87,7 +85,7 @@ pub fn borrowed_tinyint<S: Scalar>(
     (name.into(), Column::TinyInt(alloc_data))
 }
 
-/// Creates a `(Identifier, Column)` pair for a smallint column.
+/// Creates a `(Ident, Column)` pair for a smallint column.
 /// This is primarily intended for use in conjunction with [`table`].
 ///
 /// # Example
@@ -100,8 +98,6 @@ pub fn borrowed_tinyint<S: Scalar>(
 /// ]);
 /// ```
 ///
-/// # Panics
-/// - Panics if `name.parse()()` fails to convert the name into an `Identifier`.
 pub fn borrowed_smallint<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i16>>,
@@ -112,7 +108,7 @@ pub fn borrowed_smallint<S: Scalar>(
     (name.into(), Column::SmallInt(alloc_data))
 }
 
-/// Creates a `(Identifier, Column)` pair for an int column.
+/// Creates a `(Ident, Column)` pair for an int column.
 /// This is primarily intended for use in conjunction with [`table`].
 ///
 /// # Example
@@ -125,8 +121,6 @@ pub fn borrowed_smallint<S: Scalar>(
 /// ]);
 /// ```
 ///
-/// # Panics
-/// - Panics if `name.parse()()` fails to convert the name into an `Identifier`.
 pub fn borrowed_int<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i32>>,
@@ -137,7 +131,7 @@ pub fn borrowed_int<S: Scalar>(
     (name.into(), Column::Int(alloc_data))
 }
 
-/// Creates a `(Identifier, Column)` pair for a bigint column.
+/// Creates a `(Ident, Column)` pair for a bigint column.
 /// This is primarily intended for use in conjunction with [`table`].
 ///
 /// # Example
@@ -149,9 +143,7 @@ pub fn borrowed_int<S: Scalar>(
 ///     borrowed_bigint("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
-///
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+
 pub fn borrowed_bigint<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i64>>,
@@ -162,7 +154,7 @@ pub fn borrowed_bigint<S: Scalar>(
     (name.into(), Column::BigInt(alloc_data))
 }
 
-/// Creates a `(Identifier, Column)` pair for a boolean column.
+/// Creates a `(Ident, Column)` pair for a boolean column.
 /// This is primarily intended for use in conjunction with [`table`].
 ///
 /// # Example
@@ -174,9 +166,7 @@ pub fn borrowed_bigint<S: Scalar>(
 ///     borrowed_boolean("a", [true, false, true], &alloc),
 /// ]);
 /// ```
-///
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+
 pub fn borrowed_boolean<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<bool>>,
@@ -187,7 +177,7 @@ pub fn borrowed_boolean<S: Scalar>(
     (name.into(), Column::Boolean(alloc_data))
 }
 
-/// Creates a `(Identifier, Column)` pair for an int128 column.
+/// Creates a `(Ident, Column)` pair for an int128 column.
 /// This is primarily intended for use in conjunction with [`table`].
 ///
 /// # Example
@@ -199,9 +189,7 @@ pub fn borrowed_boolean<S: Scalar>(
 ///     borrowed_int128("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
-///
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+
 pub fn borrowed_int128<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i128>>,
@@ -212,7 +200,7 @@ pub fn borrowed_int128<S: Scalar>(
     (name.into(), Column::Int128(alloc_data))
 }
 
-/// Creates a `(Identifier, Column)` pair for a scalar column.
+/// Creates a `(Ident, Column)` pair for a scalar column.
 /// This is primarily intended for use in conjunction with [`table`].
 ///
 /// # Example
@@ -224,9 +212,7 @@ pub fn borrowed_int128<S: Scalar>(
 ///     borrowed_scalar("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
-///
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+
 pub fn borrowed_scalar<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<S>>,
@@ -237,7 +223,7 @@ pub fn borrowed_scalar<S: Scalar>(
     (name.into(), Column::Scalar(alloc_data))
 }
 
-/// Creates a `(Identifier, Column)` pair for a varchar column.
+/// Creates a `(Ident, Column)` pair for a varchar column.
 /// This is primarily intended for use in conjunction with [`table`].
 /// # Example
 /// ```
@@ -248,9 +234,7 @@ pub fn borrowed_scalar<S: Scalar>(
 ///     borrowed_varchar("a", ["a", "b", "c"], &alloc),
 /// ]);
 /// ```
-///
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+
 pub fn borrowed_varchar<'a, S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<String>>,
@@ -269,7 +253,7 @@ pub fn borrowed_varchar<'a, S: Scalar>(
     (name.into(), Column::VarChar((alloc_strings, alloc_scalars)))
 }
 
-/// Creates a `(Identifier, Column)` pair for a decimal75 column.
+/// Creates a `(Ident, Column)` pair for a decimal75 column.
 /// This is primarily intended for use in conjunction with [`table`].
 /// # Example
 /// ```
@@ -280,9 +264,7 @@ pub fn borrowed_varchar<'a, S: Scalar>(
 ///     borrowed_decimal75("a", 12, 1, [1, 2, 3], &alloc),
 /// ]);
 /// ```
-///
 /// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 /// - Panics if creating the `Precision` from the specified precision value fails.
 pub fn borrowed_decimal75<S: Scalar>(
     name: impl Into<Ident>,
@@ -303,7 +285,7 @@ pub fn borrowed_decimal75<S: Scalar>(
     )
 }
 
-/// Creates a `(Identifier, Column)` pair for a timestamp column.
+/// Creates a `(Ident, Column)` pair for a timestamp column.
 /// This is primarily intended for use in conjunction with [`table`].
 ///
 /// # Parameters
@@ -327,9 +309,7 @@ pub fn borrowed_decimal75<S: Scalar>(
 ///     borrowed_timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), vec![1625072400, 1625076000, 1625079600], &alloc),
 /// ]);
 /// ```
-///
-/// # Panics
-/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+
 pub fn borrowed_timestamptz<S: Scalar>(
     name: impl Into<Ident>,
     time_unit: PoSQLTimeUnit,

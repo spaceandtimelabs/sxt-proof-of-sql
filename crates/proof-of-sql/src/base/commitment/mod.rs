@@ -28,9 +28,7 @@ pub use column_commitment_metadata_map::{
 };
 
 mod column_commitments;
-pub use column_commitments::{
-    AppendColumnCommitmentsError, ColumnCommitments, DuplicateIdentifiers,
-};
+pub use column_commitments::{AppendColumnCommitmentsError, ColumnCommitments, DuplicateIdents};
 
 mod table_commitment;
 pub use table_commitment::{

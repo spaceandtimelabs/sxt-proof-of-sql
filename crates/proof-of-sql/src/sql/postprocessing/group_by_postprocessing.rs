@@ -152,7 +152,7 @@ fn check_and_get_aggregation_and_remainder(
             .next()
             .unwrap();
         Err(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause {
+            PostprocessingError::IdentNotInAggregationOperatorOrGroupByClause {
                 column: diff.clone(),
             },
         )
