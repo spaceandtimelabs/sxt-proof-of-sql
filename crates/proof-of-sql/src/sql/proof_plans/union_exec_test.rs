@@ -272,7 +272,7 @@ fn we_can_get_result_from_union_using_first_round_evaluate() {
         ],
         fields.clone(),
     );
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(0);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(ast.first_round_evaluate(
         first_round_builder,
         &alloc,

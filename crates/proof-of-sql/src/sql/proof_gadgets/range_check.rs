@@ -22,12 +22,19 @@
 //! * Parallelization: Single-threaded execution of these operations is a performance bottleneck
 use crate::{
     base::{polynomial::MultilinearExtension, proof::ProofSizeMismatch, scalar::Scalar, slice_ops},
-    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    sql::proof::{
+        FinalRoundBuilder, FirstRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder,
+    },
 };
 use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use bytemuck::cast_slice;
 use core::{cmp::max, iter::repeat};
+
+/// Update the max range length for the range check.
+pub fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(builder: &mut FirstRoundBuilder) {
+    builder.update_range_length(256);
+}
 
 /// Prove that a word-wise decomposition of a collection of scalars
 /// are all within the range 0 to 2^248.
@@ -382,7 +389,6 @@ where
         .rho_256_evaluation
         .ok_or(ProofSizeMismatch::TooFewSumcheckVariables)?;
     // Ensures that we have enough sumcheck variables
-    let _ = builder.try_consume_one_evaluation()?;
     let word_vals_plus_alpha_inv = builder.try_consume_mle_evaluation()?;
     let word_value_constraint = word_vals_plus_alpha_inv * (word_vals_eval + alpha);
 

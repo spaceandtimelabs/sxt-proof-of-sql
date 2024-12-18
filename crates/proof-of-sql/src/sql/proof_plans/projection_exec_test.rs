@@ -174,7 +174,7 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_fi
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(0);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -211,7 +211,7 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
     accessor.add_table(t, data, 0);
     let expr: DynProofPlan = projection(cols_expr_plan(t, &[], &accessor), tab(t));
     let fields = &[];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(0);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -260,7 +260,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_first_round_evalu
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(0);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,

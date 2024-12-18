@@ -27,7 +27,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         builder.request_post_result_challenges(1);
-        builder.produce_one_evaluation_length(256);
+        builder.update_range_length(256);
         table_map[&self.column.table_ref()].clone()
     }
 

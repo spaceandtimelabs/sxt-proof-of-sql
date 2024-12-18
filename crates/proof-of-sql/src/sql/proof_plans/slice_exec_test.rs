@@ -102,7 +102,7 @@ fn we_can_get_an_empty_result_from_a_slice_on_an_empty_table_using_first_round_e
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(0);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -156,7 +156,7 @@ fn we_can_get_an_empty_result_from_a_slice_using_first_round_evaluate() {
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(0);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -197,7 +197,7 @@ fn we_can_get_no_columns_from_a_slice_with_empty_input_using_first_round_evaluat
         None,
     );
     let fields = &[];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(0);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -244,7 +244,7 @@ fn we_can_get_the_correct_result_from_a_slice_using_first_round_evaluate() {
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(0);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,

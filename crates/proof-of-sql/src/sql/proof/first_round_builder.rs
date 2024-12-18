@@ -8,19 +8,34 @@ pub struct FirstRoundBuilder {
     num_post_result_challenges: usize,
     /// The extra one evaluation lengths used in the proof.
     one_evaluation_lengths: Vec<usize>,
+    /// The range length used in the proof.
+    range_length: usize,
 }
 
 impl Default for FirstRoundBuilder {
     fn default() -> Self {
-        Self::new()
+        Self::new(0)
     }
 }
 
 impl FirstRoundBuilder {
-    pub fn new() -> Self {
+    pub fn new(initial_range_length: usize) -> Self {
         Self {
             num_post_result_challenges: 0,
             one_evaluation_lengths: Vec::new(),
+            range_length: initial_range_length,
+        }
+    }
+
+    /// Get the range length used in the proof.
+    pub(crate) fn range_length(&self) -> usize {
+        self.range_length
+    }
+
+    /// Update the range length used in the proof.
+    pub(crate) fn update_range_length(&mut self, new_range_length: usize) {
+        if new_range_length > self.range_length {
+            self.range_length = new_range_length;
         }
     }
 
