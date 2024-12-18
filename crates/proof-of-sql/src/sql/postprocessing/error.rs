@@ -31,8 +31,8 @@ pub enum PostprocessingError {
     },
     /// GROUP BY clause references a column not in a group by expression outside aggregate functions
     #[snafu(display("Invalid group by: column '{column}' must not appear outside aggregate functions or `GROUP BY` clause."))]
-    IdentifierNotInAggregationOperatorOrGroupByClause {
-        /// The column identifier
+    IdentNotInAggregationOperatorOrGroupByClause {
+        /// The column ident
         column: Ident,
     },
     /// Errors in converting `Ident` to `Identifier`

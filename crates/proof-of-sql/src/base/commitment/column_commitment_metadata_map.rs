@@ -7,7 +7,7 @@ use alloc::string::{String, ToString};
 use snafu::Snafu;
 use sqlparser::ast::Ident;
 
-/// Mapping of column identifiers to column metadata used to associate metadata with commitments.
+/// Mapping of column idents to column metadata used to associate metadata with commitments.
 pub type ColumnCommitmentMetadataMap = IndexMap<Ident, ColumnCommitmentMetadata>;
 
 /// During commitment operation, metadata indicates that operand tables cannot be the same.
@@ -22,16 +22,14 @@ pub enum ColumnCommitmentsMismatch {
     /// Commitments with different column counts cannot operate with each other.
     #[snafu(display("commitments with different column counts cannot operate with each other"))]
     NumColumns,
-    /// Columns with mismatched identifiers cannot operate with each other.
+    /// Columns with mismatched idents cannot operate with each other.
     ///
-    /// Strings are used here instead of Identifiers to decrease the size of this variant
-    #[snafu(display(
-        "column with identifier {id_a} cannot operate with column with identifier {id_b}"
-    ))]
+    /// Strings are used here instead of Idents to decrease the size of this variant
+    #[snafu(display("column with ident {id_a} cannot operate with column with ident {id_b}"))]
     Ident {
-        /// The first column identifier
+        /// The first column ident
         id_a: String,
-        /// The second column identifier
+        /// The second column ident
         id_b: String,
     },
 }
@@ -42,7 +40,7 @@ pub trait ColumnCommitmentMetadataMapExt {
     /// the widest possible bounds for the column type.
     fn from_column_fields_with_max_bounds(columns: &[ColumnField]) -> Self;
 
-    /// Construct this mapping from an iterator of column identifiers and columns.
+    /// Construct this mapping from an iterator of column ident and columns.
     fn from_columns<'a>(
         columns: impl IntoIterator<Item = (&'a Ident, &'a CommittableColumn<'a>)>,
     ) -> Self

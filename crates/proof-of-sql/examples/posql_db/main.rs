@@ -25,7 +25,8 @@ use proof_of_sql::{
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
-use proof_of_sql_parser::{Identifier, SelectStatement};
+use proof_of_sql_parser::SelectStatement;
+use sqlparser::ast::Ident;
 use std::{
     fs,
     io::{prelude::Write, stdout},
@@ -78,7 +79,7 @@ enum Commands {
         table: TableRef,
         /// The comma delimited column names of the table.
         #[arg(short, long, value_parser, num_args = 0.., value_delimiter = ',')]
-        columns: Vec<Identifier>,
+        columns: Vec<Ident>,
         /// The comma delimited data types of the columns.
         #[arg(short, long, value_parser, num_args = 0.., value_delimiter = ',')]
         data_types: Vec<CsvDataType>,
@@ -175,7 +176,9 @@ fn main() {
                 columns
                     .iter()
                     .zip_eq(data_types.iter())
-                    .map(|(name, data_type)| Field::new(name.as_str(), data_type.into(), false))
+                    .map(|(name, data_type)| {
+                        Field::new(name.value.as_str(), data_type.into(), false)
+                    })
                     .collect::<Vec<_>>(),
             );
             let batch = RecordBatch::new_empty(Arc::new(schema));

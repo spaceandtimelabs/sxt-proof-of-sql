@@ -49,10 +49,10 @@ pub enum OwnedArrowConversionError {
         /// The unsupported datatype
         datatype: DataType,
     },
-    /// This error occurs when trying to convert from a record batch with duplicate identifiers (e.g. `"a"` and `"A"`).
-    #[snafu(display("conversion resulted in duplicate identifiers"))]
-    DuplicateIdentifiers,
-    /// This error occurs when convering from a record batch name to an identifier fails. (Which may my impossible.)
+    /// This error occurs when trying to convert from a record batch with duplicate idents(e.g. `"a"` and `"A"`).
+    #[snafu(display("conversion resulted in duplicate idents"))]
+    DuplicateIdents,
+    /// This error occurs when convering from a record batch name to an idents fails. (Which may my impossible.)
     #[snafu(transparent)]
     FieldParseFail {
         /// The underlying source error
@@ -311,7 +311,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
         if num_columns == owned_table.num_columns() {
             Ok(owned_table)
         } else {
-            Err(OwnedArrowConversionError::DuplicateIdentifiers)
+            Err(OwnedArrowConversionError::DuplicateIdents)
         }
     }
 }

@@ -16,10 +16,10 @@ use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use sqlparser::ast::Ident;
 
-/// Cannot create commitments with duplicate identifier.
+/// Cannot create commitments with duplicate ident.
 #[derive(Debug, Snafu)]
-#[snafu(display("cannot create commitments with duplicate identifier: {id}"))]
-pub struct DuplicateIdentifiers {
+#[snafu(display("cannot create commitments with duplicate ident: {id}"))]
+pub struct DuplicateIdents {
     id: String,
 }
 
@@ -32,11 +32,11 @@ pub enum AppendColumnCommitmentsError {
         /// The underlying source error
         source: ColumnCommitmentsMismatch,
     },
-    /// New columns have duplicate identifiers.
+    /// New columns have duplicate idents.
     #[snafu(transparent)]
-    DuplicateIdentifiers {
+    DuplicateIdents {
         /// The underlying source error
-        source: DuplicateIdentifiers,
+        source: DuplicateIdents,
     },
 }
 
@@ -97,7 +97,7 @@ impl<C: Commitment> ColumnCommitments<C> {
         self.column_metadata.is_empty()
     }
 
-    /// Returns the commitment with the given identifier.
+    /// Returns the commitment with the given ident.
     #[must_use]
     pub fn get_commitment(&self, identifier: &Ident) -> Option<C> {
         self.column_metadata
@@ -105,7 +105,7 @@ impl<C: Commitment> ColumnCommitments<C> {
             .map(|index| self.commitments[index].clone())
     }
 
-    /// Returns the metadata for the commitment with the given identifier.
+    /// Returns the metadata for the commitment with the given ident.
     #[must_use]
     pub fn get_metadata(&self, identifier: &Ident) -> Option<&ColumnCommitmentMetadata> {
         self.column_metadata.get(identifier)
@@ -121,11 +121,11 @@ impl<C: Commitment> ColumnCommitments<C> {
         columns: impl IntoIterator<Item = (&'a Ident, COL)>,
         offset: usize,
         setup: &C::PublicSetup<'_>,
-    ) -> Result<ColumnCommitments<C>, DuplicateIdentifiers>
+    ) -> Result<ColumnCommitments<C>, DuplicateIdents>
     where
         COL: Into<CommittableColumn<'a>>,
     {
-        // Check for duplicate identifiers
+        // Check for duplicate idents
         let mut unique_identifiers = IndexSet::default();
         let unique_columns = columns
             .into_iter()
@@ -133,7 +133,7 @@ impl<C: Commitment> ColumnCommitments<C> {
                 if unique_identifiers.insert(identifier) {
                     Ok((identifier, column))
                 } else {
-                    Err(DuplicateIdentifiers {
+                    Err(DuplicateIdents {
                         id: identifier.to_string(),
                     })
                 }
@@ -178,7 +178,7 @@ impl<C: Commitment> ColumnCommitments<C> {
     where
         COL: Into<CommittableColumn<'a>>,
     {
-        // Check for duplicate identifiers.
+        // Check for duplicate idents.
         let mut unique_identifiers = IndexSet::default();
         let unique_columns = columns
             .into_iter()
@@ -186,7 +186,7 @@ impl<C: Commitment> ColumnCommitments<C> {
                 if unique_identifiers.insert(identifier) {
                     Ok((identifier, column))
                 } else {
-                    Err(DuplicateIdentifiers {
+                    Err(DuplicateIdents {
                         id: identifier.to_string(),
                     })
                 }
@@ -221,7 +221,7 @@ impl<C: Commitment> ColumnCommitments<C> {
         columns: impl IntoIterator<Item = (&'a Ident, COL)>,
         offset: usize,
         setup: &C::PublicSetup<'_>,
-    ) -> Result<(), DuplicateIdentifiers>
+    ) -> Result<(), DuplicateIdents>
     where
         COL: Into<CommittableColumn<'a>>,
     {
@@ -236,7 +236,7 @@ impl<C: Commitment> ColumnCommitments<C> {
             .into_iter()
             .map(|(identifier, column)| {
                 if self.column_metadata.contains_key(identifier) {
-                    Err(DuplicateIdentifiers {
+                    Err(DuplicateIdents {
                         id: identifier.to_string(),
                     })
                 } else {
@@ -498,10 +498,7 @@ mod tests {
                 0,
                 &(),
             );
-        assert!(matches!(
-            from_columns_result,
-            Err(DuplicateIdentifiers { .. })
-        ));
+        assert!(matches!(from_columns_result, Err(DuplicateIdents { .. })));
 
         let mut existing_column_commitments =
             ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
@@ -518,7 +515,7 @@ mod tests {
             .try_extend_columns_with_offset([(&duplicate_identifier_a, &empty_column)], 0, &());
         assert!(matches!(
             extend_with_existing_column_result,
-            Err(DuplicateIdentifiers { .. })
+            Err(DuplicateIdents { .. })
         ));
 
         let extend_with_duplicate_columns_result = existing_column_commitments
@@ -532,7 +529,7 @@ mod tests {
             );
         assert!(matches!(
             extend_with_duplicate_columns_result,
-            Err(DuplicateIdentifiers { .. })
+            Err(DuplicateIdents { .. })
         ));
 
         let append_result = existing_column_commitments.try_append_rows_with_offset(
@@ -546,7 +543,7 @@ mod tests {
         );
         assert!(matches!(
             append_result,
-            Err(AppendColumnCommitmentsError::DuplicateIdentifiers { .. })
+            Err(AppendColumnCommitmentsError::DuplicateIdents { .. })
         ));
     }
 

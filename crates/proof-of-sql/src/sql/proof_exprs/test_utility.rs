@@ -7,9 +7,6 @@ use crate::base::{
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use sqlparser::ast::Ident;
 
-/// # Panics
-/// Panics if:
-/// - `name.parse()` fails, which means the provided string could not be parsed into the expected type (usually an `Identifier`).
 pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name: Ident = name.into();
     let type_col = accessor.lookup_column(tab, name.clone()).unwrap();
@@ -18,7 +15,6 @@ pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> Col
 
 /// # Panics
 /// Panics if:
-/// - `name.parse()` fails to parse the column name.
 /// - `accessor.lookup_column()` returns `None`, indicating the column is not found.
 pub fn column(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> DynProofExpr {
     let name: Ident = name.into();
