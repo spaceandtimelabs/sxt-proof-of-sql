@@ -102,15 +102,16 @@ fn get_sort_merge_join_indexes<'a, S: Scalar>(
                     })
                     .collect();
 
-                // Generate all pairs (Cartesian product)
-                let pairs: Vec<_> = left_group
-                    .iter()
-                    .flat_map(|&l| right_group.iter().map(move |&r| (l, r)))
-                    .collect();
-
                 // Advance the iterators
                 left_iter.nth(left_group.len() - 1);
                 right_iter.nth(right_group.len() - 1);
+
+                // Generate all pairs (Cartesian product)
+                let pairs: Vec<_> = left_group
+                    .iter()
+                    .cartesian_product(right_group.iter())
+                    .map(|(&lidx, &ridx)| (lidx, ridx))
+                    .collect();
 
                 Some(pairs)
             }
