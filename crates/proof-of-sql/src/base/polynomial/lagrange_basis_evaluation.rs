@@ -74,6 +74,10 @@ where
 
 /// Given the point `point` (or `a`) with length nu, we can evaluate the lagrange basis of length 2^nu at that point.
 /// This is what [`super::compute_evaluation_vector`] does.
+///
+/// NOTE: if length is greater than 2^nu, this function will pad `point` with 0s, which
+/// will result in padding the basis with 0s.
+///
 /// Call the resulting evaluation vector A. This function computes `sum A[i] for i in 0..length`. That is:
 /// ```text
 /// (1-a[0])(1-a[1])...(1-a[nu-1]) +
@@ -81,40 +85,22 @@ where
 /// (1-a[0])(a[1])...(1-a[nu-1]) +
 /// (a[0])(a[1])...(1-a[nu-1]) + ...
 /// ```
-/// # Panics
-/// Panics if:
-/// - The length is greater than `1` when `point` is empty.
-/// - The length is greater than the maximum allowed for the given number of points, which is `2^(nu - 1)`
-///   where `nu` is the number of elements in `point`.
 pub fn compute_truncated_lagrange_basis_sum<F>(length: usize, point: &[F]) -> F
 where
-    F: One + Zero + Mul<Output = F> + Add<Output = F> + Sub<Output = F> + Copy,
+    F: One + Zero + Mul<Output = F> + Sub<Output = F> + Copy,
 {
-    let nu = point.len();
-    if nu == 0 {
-        assert!(length <= 1);
-        if length == 1 {
-            F::one()
-        } else {
-            F::zero()
-        }
+    if length >= 1 << point.len() {
+        F::one()
     } else {
-        // Note: this is essentially the same as the inner production version.
-        // The only different is that the full sum is always 1, regardless of any inputs.
-
-        let first_half_term = F::one() - point[nu - 1];
-        let second_half_term = point[nu - 1];
-        let half_full_length = 1 << (nu - 1);
-        let sub_part_length = if length >= half_full_length {
-            length - half_full_length
-        } else {
-            length
-        };
-        let sub_part = compute_truncated_lagrange_basis_sum(sub_part_length, &point[..nu - 1]);
-        if length >= half_full_length {
-            first_half_term + sub_part * second_half_term
-        } else {
-            sub_part * first_half_term
-        }
+        point
+            .iter()
+            .enumerate()
+            .fold(F::zero(), |chi, (i, &alpha)| {
+                if (length >> i) & 1 == 0 {
+                    chi * (F::one() - alpha)
+                } else {
+                    F::one() - (F::one() - chi) * alpha
+                }
+            })
     }
 }
