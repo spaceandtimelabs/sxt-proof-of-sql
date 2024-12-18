@@ -846,10 +846,10 @@ impl ProofPlan for FirstRoundSquareTestProofPlan {
                 .unwrap();
         let first_round_res_eval = builder.try_consume_mle_evaluation()?;
         let final_round_res_eval = builder.try_consume_mle_evaluation()?;
-        //assert_eq!(first_round_res_eval, final_round_res_eval);
+        assert_eq!(first_round_res_eval, final_round_res_eval);
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
-            first_round_res_eval - x_eval * x_eval,
+            final_round_res_eval - x_eval * x_eval,
             2,
         )?;
         Ok(TableEvaluation::new(
