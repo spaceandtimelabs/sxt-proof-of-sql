@@ -104,6 +104,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let query_result = expr.first_round_evaluate(&mut first_round_builder, &alloc, &table_map);
         let owned_table_result = OwnedTable::from(&query_result);
         let provable_result = query_result.into();
+
+        let one_evaluation_lengths = first_round_builder.one_evaluation_lengths();
         let range_evaluation_lengths = first_round_builder.sumcheck_range_lengths();
 
         let range_length = range_evaluation_lengths
@@ -123,7 +125,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &owned_table_result,
             range_length,
             min_row_num,
-            range_evaluation_lengths,
+            one_evaluation_lengths,
             post_result_challenge_count,
         );
 
@@ -206,7 +208,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let proof = Self {
             bit_distributions: builder.bit_distributions().to_vec(),
-            one_evaluation_lengths: range_evaluation_lengths.to_vec(),
+            one_evaluation_lengths: one_evaluation_lengths.to_vec(),
             commitments,
             sumcheck_proof,
             pcs_proof_evaluations,
