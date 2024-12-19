@@ -19,6 +19,7 @@ fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {
         &evaluation_point,
         &sumcheck_random_scalars,
         &pcs_proof_evaluations,
+        &[],
     );
     let expected_eval = (Curve25519Scalar::one() - evaluation_point[0])
         * (Curve25519Scalar::one() - evaluation_point[1])

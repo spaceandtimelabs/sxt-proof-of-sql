@@ -76,7 +76,7 @@ impl ProverEvaluate for TableExec {
     #[tracing::instrument(name = "TableExec::first_round_evaluate", level = "debug", skip_all)]
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
-        _builder: &mut FirstRoundBuilder,
+        _builder: &mut FirstRoundBuilder<'a, S>,
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
