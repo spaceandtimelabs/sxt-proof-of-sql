@@ -171,6 +171,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_first_
         borrowed_varchar("d", [""; 0], &alloc),
         borrowed_scalar("e", [0; 0], &alloc),
     ]);
+    let data_length = data.num_rows();
     let t = "sxt.t".parse().unwrap();
     let table_map = indexmap! {
         t => data.clone()
@@ -192,7 +193,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_first_
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -241,7 +242,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_first_round_evaluate() {
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(0);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -278,7 +279,7 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_firs
     let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(5));
     let expr = filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause);
     let fields = &[];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(0);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -321,7 +322,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_first_round_evaluate(
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(0);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,

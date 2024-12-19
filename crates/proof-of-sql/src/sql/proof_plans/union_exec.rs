@@ -120,6 +120,7 @@ impl ProverEvaluate for UnionExec {
         let res = table_union(&inputs, alloc, self.schema.clone()).expect("Failed to union tables");
         builder.request_post_result_challenges(2);
         builder.produce_one_evaluation_length(res.num_rows());
+        builder.update_range_length(res.num_rows());
         res
     }
 

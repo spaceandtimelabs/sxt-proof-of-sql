@@ -248,6 +248,7 @@ fn we_can_get_result_from_union_using_first_round_evaluate() {
         borrowed_bigint("a0", [1_i64, 2, 3, 4, 5], &alloc),
         borrowed_varchar("b0", ["1", "2", "3", "4", "5"], &alloc),
     ]);
+    let len_0 = data0.num_rows();
     let t0 = "sxt.t0".parse().unwrap();
     let data1 = table([
         borrowed_bigint("a1", [2_i64, 3, 4, 5, 6], &alloc),
@@ -258,6 +259,11 @@ fn we_can_get_result_from_union_using_first_round_evaluate() {
         t0 => data0.clone(),
         t1 => data1.clone()
     };
+
+    let len_1 = data1.num_rows();
+
+    let data_length = std::cmp::max(len_0, len_1);
+
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t0, data0, 0);
     accessor.add_table(t1, data1, 0);
@@ -272,7 +278,7 @@ fn we_can_get_result_from_union_using_first_round_evaluate() {
         ],
         fields.clone(),
     );
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(ast.first_round_evaluate(
         first_round_builder,
         &alloc,
