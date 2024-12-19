@@ -27,7 +27,7 @@ pub(super) struct EmptyTestQueryExpr {
 impl ProverEvaluate for EmptyTestQueryExpr {
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
@@ -67,7 +67,7 @@ impl ProofPlan for EmptyTestQueryExpr {
         _one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         assert_eq!(
-            builder.try_consume_mle_evaluations(self.columns)?,
+            builder.try_consume_final_round_mle_evaluations(self.columns)?,
             vec![S::ZERO; self.columns]
         );
         Ok(TableEvaluation::new(

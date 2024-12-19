@@ -100,9 +100,10 @@ impl ProofPlan for GroupByExec {
             .collect::<Result<Vec<_>, _>>()?;
         // 3. filtered_columns
         let group_by_result_columns_evals =
-            builder.try_consume_mle_evaluations(self.group_by_exprs.len())?;
-        let sum_result_columns_evals = builder.try_consume_mle_evaluations(self.sum_expr.len())?;
-        let count_column_eval = builder.try_consume_mle_evaluation()?;
+            builder.try_consume_final_round_mle_evaluations(self.group_by_exprs.len())?;
+        let sum_result_columns_evals =
+            builder.try_consume_final_round_mle_evaluations(self.sum_expr.len())?;
+        let count_column_eval = builder.try_consume_final_round_mle_evaluation()?;
 
         let alpha = builder.try_consume_post_result_challenge()?;
         let beta = builder.try_consume_post_result_challenge()?;
@@ -193,7 +194,7 @@ impl ProverEvaluate for GroupByExec {
     #[tracing::instrument(name = "GroupByExec::first_round_evaluate", level = "debug", skip_all)]
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
@@ -346,8 +347,8 @@ fn verify_group_by<S: Scalar>(
     // sum_out_fold = count_out + sum beta^(j+1) * sum_out[j]
     let sum_out_fold_eval = count_out_eval + beta * fold_vals(beta, &sum_out_evals);
 
-    let g_in_star_eval = builder.try_consume_mle_evaluation()?;
-    let g_out_star_eval = builder.try_consume_mle_evaluation()?;
+    let g_in_star_eval = builder.try_consume_final_round_mle_evaluation()?;
+    let g_out_star_eval = builder.try_consume_final_round_mle_evaluation()?;
 
     // sum g_in_star * sel_in * sum_in_fold - g_out_star * sum_out_fold = 0
     builder.try_produce_sumcheck_subpolynomial_evaluation(

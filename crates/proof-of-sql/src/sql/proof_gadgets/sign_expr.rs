@@ -113,7 +113,7 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     // bits of the expression
     let mut bit_evals = Vec::with_capacity(num_varying_bits);
     for _ in 0..num_varying_bits {
-        let eval = builder.try_consume_mle_evaluation()?;
+        let eval = builder.try_consume_final_round_mle_evaluation()?;
         bit_evals.push(eval);
     }
 
