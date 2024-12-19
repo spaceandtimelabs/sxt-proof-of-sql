@@ -45,6 +45,9 @@ pub(crate) use union_exec::UnionExec;
 #[cfg(all(test, feature = "blitzar"))]
 mod union_exec_test;
 
+mod cross_join_exec;
+pub(crate) use cross_join_exec::CrossJoinExec;
+
 mod dyn_proof_plan;
 pub use dyn_proof_plan::DynProofPlan;
 

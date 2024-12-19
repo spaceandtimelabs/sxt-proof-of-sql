@@ -1,4 +1,4 @@
-use super::{EmptyExec, FilterExec, GroupByExec, ProjectionExec, SliceExec, TableExec, UnionExec};
+use super::{CrossJoinExec, EmptyExec, FilterExec, GroupByExec, ProjectionExec, SliceExec, TableExec, UnionExec};
 use crate::{
     base::{
         database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
@@ -57,4 +57,9 @@ pub enum DynProofPlan {
     ///     <ProofPlan>
     /// ```
     Union(UnionExec),
+    /// [`ProofPlan`] for queries of the form
+    /// ```ignore
+    ///     <ProofPlan> JOIN <ProofPlan>
+    /// ```
+    CrossJoin(CrossJoinExec),
 }
