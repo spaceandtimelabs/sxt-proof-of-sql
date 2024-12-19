@@ -7,9 +7,7 @@ contract LagrangeBasisEvaluation {
         pure
         returns (uint256 result0)
     {
-        // solhint-disable-next-line no-inline-assembly
         assembly {
-            // START-YUL compute_truncated_lagrange_basis_sum
             function compute_truncated_lagrange_basis_sum(length, point, num_vars, modulus) -> result {
                 let ONE := add(modulus, 1)
                 // result := 0 // implicitly set by the EVM
@@ -29,7 +27,6 @@ contract LagrangeBasisEvaluation {
                 case 0 { result := mod(result, modulus) }
                 default { result := 1 }
             }
-            // END-YUL
             result0 := compute_truncated_lagrange_basis_sum(length0, add(point0, 32), numVars0, modulus0)
         }
     }
