@@ -11,7 +11,8 @@ pub struct VerificationBuilder<'a, S: Scalar> {
     sumcheck_evaluation: S,
     bit_distributions: &'a [BitDistribution],
     consumed_one_evaluations: usize,
-    consumed_pcs_proof_mles: usize,
+    consumed_first_round_pcs_proof_mles: usize,
+    consumed_final_round_pcs_proof_mles: usize,
     produced_subpolynomials: usize,
     /// The challenges used in creation of the constraints in the proof.
     /// Specifically, these are the challenges that the verifier sends to
@@ -46,7 +47,8 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             subpolynomial_multipliers,
             sumcheck_evaluation: S::zero(),
             consumed_one_evaluations: 0,
-            consumed_pcs_proof_mles: 0,
+            consumed_first_round_pcs_proof_mles: 0,
+            consumed_final_round_pcs_proof_mles: 0,
             produced_subpolynomials: 0,
             post_result_challenges,
             one_evaluation_length_queue,
@@ -77,25 +79,44 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         self.generator_offset
     }
 
-    /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE
-    ///
-    /// An anchored MLE is an MLE where the verifier has access to the commitment
-    pub fn try_consume_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
-        let index = self.consumed_pcs_proof_mles;
-        self.consumed_pcs_proof_mles += 1;
+    /// Consume the evaluation of a first round MLE used in sumcheck and provide the commitment of the MLE
+    pub fn try_consume_first_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
+        let index = self.consumed_first_round_pcs_proof_mles;
+        self.consumed_first_round_pcs_proof_mles += 1;
         self.mle_evaluations
-            .pcs_proof_evaluations
+            .first_round_pcs_proof_evaluations
             .get(index)
             .copied()
             .ok_or(ProofSizeMismatch::TooFewMLEEvaluations)
     }
 
-    /// Consume multiple MLE evaluations
-    pub fn try_consume_mle_evaluations(
+    /// Consume multiple first round MLE evaluations
+    pub fn try_consume_first_round_mle_evaluations(
         &mut self,
         count: usize,
     ) -> Result<Vec<S>, ProofSizeMismatch> {
-        iter::repeat_with(|| self.try_consume_mle_evaluation())
+        iter::repeat_with(|| self.try_consume_first_round_mle_evaluation())
+            .take(count)
+            .collect()
+    }
+
+    /// Consume the evaluation of a final round MLE used in sumcheck and provide the commitment of the MLE
+    pub fn try_consume_final_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
+        let index = self.consumed_final_round_pcs_proof_mles;
+        self.consumed_final_round_pcs_proof_mles += 1;
+        self.mle_evaluations
+            .final_round_pcs_proof_evaluations
+            .get(index)
+            .copied()
+            .ok_or(ProofSizeMismatch::TooFewMLEEvaluations)
+    }
+
+    /// Consume multiple final round MLE evaluations
+    pub fn try_consume_final_round_mle_evaluations(
+        &mut self,
+        count: usize,
+    ) -> Result<Vec<S>, ProofSizeMismatch> {
+        iter::repeat_with(|| self.try_consume_final_round_mle_evaluation())
             .take(count)
             .collect()
     }
@@ -156,7 +177,10 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     fn completed(&self) -> bool {
         self.bit_distributions.is_empty()
             && self.produced_subpolynomials == self.subpolynomial_multipliers.len()
-            && self.consumed_pcs_proof_mles == self.mle_evaluations.pcs_proof_evaluations.len()
+            && self.consumed_first_round_pcs_proof_mles
+                == self.mle_evaluations.first_round_pcs_proof_evaluations.len()
+            && self.consumed_final_round_pcs_proof_mles
+                == self.mle_evaluations.final_round_pcs_proof_evaluations.len()
             && self.post_result_challenges.is_empty()
     }
 
