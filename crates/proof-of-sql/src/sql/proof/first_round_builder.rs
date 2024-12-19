@@ -8,7 +8,7 @@ pub struct FirstRoundBuilder {
     num_post_result_challenges: usize,
     /// The extra one evaluation lengths used in the proof.
     one_evaluation_lengths: Vec<usize>,
-    /// The max of all `range_lengths` used in sumcheck.
+    // The range_length used in sumcheck which is max of all possible ones.
     range_length: usize,
 }
 
