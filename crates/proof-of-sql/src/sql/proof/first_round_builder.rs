@@ -8,14 +8,8 @@ pub struct FirstRoundBuilder {
     num_post_result_challenges: usize,
     /// The extra one evaluation lengths used in the proof.
     one_evaluation_lengths: Vec<usize>,
-    /// The range length used in the proof.
+    /// The max of all `range_lengths` used in sumcheck.
     range_length: usize,
-}
-
-impl Default for FirstRoundBuilder {
-    fn default() -> Self {
-        Self::new(0)
-    }
 }
 
 impl FirstRoundBuilder {
@@ -32,7 +26,7 @@ impl FirstRoundBuilder {
         self.range_length
     }
 
-    /// Update the range length used in the proof.
+    /// Update the range length used in the proof only if the new range is larger than the existing range.
     pub(crate) fn update_range_length(&mut self, new_range_length: usize) {
         if new_range_length > self.range_length {
             self.range_length = new_range_length;
