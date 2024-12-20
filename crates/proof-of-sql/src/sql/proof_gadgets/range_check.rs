@@ -32,7 +32,7 @@ use bytemuck::cast_slice;
 use core::{cmp::max, iter::repeat};
 
 /// Update the max range length for the range check.
-pub fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(builder: &mut FirstRoundBuilder) {
+pub fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(builder: &mut FirstRoundBuilder<S>) {
     builder.update_range_length(256);
 }
 
@@ -389,7 +389,7 @@ where
         .rho_256_evaluation
         .ok_or(ProofSizeMismatch::TooFewSumcheckVariables)?;
     // Ensures that we have enough sumcheck variables
-    let word_vals_plus_alpha_inv = builder.try_consume_mle_evaluation()?;
+    let word_vals_plus_alpha_inv = builder.try_consume_final_round_mle_evaluation()?;
     let word_value_constraint = word_vals_plus_alpha_inv * (word_vals_eval + alpha);
 
     builder.try_produce_sumcheck_subpolynomial_evaluation(

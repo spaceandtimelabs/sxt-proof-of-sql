@@ -8,7 +8,7 @@ use crate::{
 };
 use alloc::{boxed::Box, vec::Vec};
 /// Track the result created by a query
-pub struct FirstRoundBuilder<'a, S> {
+pub struct FirstRoundBuilder<'a, S: Scalar> {
     commitment_descriptor: Vec<CommittableColumn<'a>>,
     pcs_proof_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
     /// The number of challenges used in the proof.
@@ -22,7 +22,7 @@ pub struct FirstRoundBuilder<'a, S> {
     range_length: usize,
 }
 
-impl FirstRoundBuilder {
+impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
     pub fn new(initial_range_length: usize) -> Self {
         Self {
             commitment_descriptor: Vec::new(),
