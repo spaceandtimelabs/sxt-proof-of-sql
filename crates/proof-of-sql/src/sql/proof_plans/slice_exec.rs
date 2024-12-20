@@ -75,7 +75,8 @@ where
         let max_one_eval = builder.try_consume_one_evaluation()?;
         let selection_eval = max_one_eval - offset_one_eval;
         // 3. filtered_columns
-        let filtered_columns_evals = builder.try_consume_mle_evaluations(columns_evals.len())?;
+        let filtered_columns_evals =
+            builder.try_consume_final_round_mle_evaluations(columns_evals.len())?;
         let alpha = builder.try_consume_post_result_challenge()?;
         let beta = builder.try_consume_post_result_challenge()?;
 
@@ -112,7 +113,7 @@ impl ProverEvaluate for SliceExec {
     #[tracing::instrument(name = "SliceExec::first_round_evaluate", level = "debug", skip_all)]
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {

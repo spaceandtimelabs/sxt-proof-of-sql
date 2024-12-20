@@ -60,7 +60,8 @@ impl ProofPlan for ProjectionExec {
                     .verifier_evaluate(builder, accessor, one_eval)
             })
             .collect::<Result<Vec<_>, _>>()?;
-        let column_evals = builder.try_consume_mle_evaluations(self.aliased_results.len())?;
+        let column_evals =
+            builder.try_consume_final_round_mle_evaluations(self.aliased_results.len())?;
         Ok(TableEvaluation::new(column_evals, one_eval))
     }
 
@@ -94,7 +95,7 @@ impl ProverEvaluate for ProjectionExec {
     )]
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
-        _builder: &mut FirstRoundBuilder,
+        _builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {

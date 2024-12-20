@@ -140,7 +140,7 @@ pub fn verifier_evaluate_or<S: Scalar>(
     rhs: &S,
 ) -> Result<S, ProofError> {
     // lhs_and_rhs
-    let lhs_and_rhs = builder.try_consume_mle_evaluation()?;
+    let lhs_and_rhs = builder.try_consume_final_round_mle_evaluation()?;
 
     // subpolynomial: lhs_and_rhs - lhs * rhs
     builder.try_produce_sumcheck_subpolynomial_evaluation(
