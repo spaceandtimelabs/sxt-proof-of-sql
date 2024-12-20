@@ -235,8 +235,8 @@ jobs:
           version: nightly
       - name: Run tests
         run: |
-          cargo run --bin yul_preprocessor crates/proof-of-sql
-          forge test --root=crates/proof-of-sql --summary --detailed
+          crates/proof-of-sql/sol_src/utils/process_imports.sh crates/proof-of-sql/sol_src
+          forge test --root=crates/proof-of-sql --no-match-path=**/*.pre.sol
 
   solhint:
     name: solhint
@@ -247,4 +247,4 @@ jobs:
       - name: Install solhint
         run: npm install -g solhint
       - name: Run tests
-        run: solhint -c 'crates/proof-of-sql/.solhint.json' 'crates/proof-of-sql/**/*.sol' 'crates/proof-of-sql/**/*.psol' -w 0
+        run: solhint -c 'crates/proof-of-sql/.solhint.json' 'crates/proof-of-sql/**/*.sol' -w 0

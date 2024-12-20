@@ -9,6 +9,8 @@
         "gas-named-return-values": "warn",
         "gas-small-strings": "warn",
         "gas-strict-inequalities": "warn",
-        "gas-struct-packing": "warn"
+        "gas-struct-packing": "warn",
+        "no-inline-assembly": "off",
+        "no-empty-blocks": "off"
     }
 }
