@@ -1,0 +1,152 @@
+use crate::{
+    base::{database::Column, proof::ProofError, scalar::Scalar, slice_ops},
+    sql::{
+        proof::{
+            FinalRoundBuilder, FirstRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder,
+        },
+        proof_plans::{fold_columns, fold_vals},
+    },
+};
+use alloc::{boxed::Box, vec, vec::Vec};
+use bumpalo::Bump;
+use itertools::Itertools;
+use num_traits::{One, Zero};
+
+/// Perform first round evaluation of the membership check.
+#[allow(dead_code)]
+pub(crate) fn first_round_evaluate_membership_check<'a, S: Scalar>(
+    builder: &mut FirstRoundBuilder<'a, S>,
+    indexes: &[usize],
+    num_rows: usize,
+    alloc: &'a Bump,
+) {
+    let multiplicity_map = indexes.into_iter().counts();
+    let multiplicities = (0..num_rows - 1)
+        .map(|i| multiplicity_map.get(&i).copied().unwrap_or(0) as i128)
+        .collect::<Vec<_>>();
+    let alloc_multiplicities = alloc.alloc_slice_copy(&multiplicities);
+    builder.produce_intermediate_mle(alloc_multiplicities as &[_]);
+    builder.request_post_result_challenges(2);
+}
+
+/// Perform final round evaluation of the membership check.
+#[allow(dead_code)]
+pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
+    builder: &mut FinalRoundBuilder<'a, S>,
+    alloc: &'a Bump,
+    alpha: S,
+    beta: S,
+    columns: &[Column<'a, S>],
+    candidate_subset: &[Column<'a, S>],
+    indexes: &[usize],
+    num_rows: usize,
+    candidate_num_rows: usize,
+) {
+    // 1. Get multiplicity of each index
+    let multiplicity_map = indexes.into_iter().counts();
+    let multiplicities = (0..num_rows - 1)
+        .map(|i| multiplicity_map.get(&i).copied().unwrap_or(0) as i128)
+        .collect::<Vec<_>>();
+    let alloc_multiplicities = alloc.alloc_slice_copy(&multiplicities);
+    builder.produce_intermediate_mle(alloc_multiplicities as &[_]);
+    // 2. Fold the columns
+    let input_ones = alloc.alloc_slice_fill_copy(num_rows, true);
+    let candidate_ones = alloc.alloc_slice_fill_copy(candidate_num_rows, true);
+
+    let c_fold = alloc.alloc_slice_fill_copy(num_rows, Zero::zero());
+    fold_columns(c_fold, alpha, beta, columns);
+    let d_fold = alloc.alloc_slice_fill_copy(candidate_num_rows, Zero::zero());
+    fold_columns(d_fold, alpha, beta, candidate_subset);
+
+    let c_star = alloc.alloc_slice_copy(c_fold);
+    slice_ops::add_const::<S, S>(c_star, One::one());
+    slice_ops::batch_inversion(c_star);
+
+    let d_star = alloc.alloc_slice_copy(d_fold);
+    slice_ops::add_const::<S, S>(d_star, One::one());
+    slice_ops::batch_inversion(d_star);
+
+    builder.produce_intermediate_mle(c_star as &[_]);
+    builder.produce_intermediate_mle(d_star as &[_]);
+
+    // sum c_star * multiplicities - d_star = 0
+    builder.produce_sumcheck_subpolynomial(
+        SumcheckSubpolynomialType::ZeroSum,
+        vec![
+            (
+                S::one(),
+                vec![
+                    Box::new(c_star as &[_]),
+                    Box::new(alloc_multiplicities as &[_]),
+                ],
+            ),
+            (-S::one(), vec![Box::new(d_star as &[_])]),
+        ],
+    );
+
+    // c_star + c_fold * c_star - input_ones = 0
+    builder.produce_sumcheck_subpolynomial(
+        SumcheckSubpolynomialType::Identity,
+        vec![
+            (S::one(), vec![Box::new(c_star as &[_])]),
+            (
+                S::one(),
+                vec![Box::new(c_star as &[_]), Box::new(c_fold as &[_])],
+            ),
+            (-S::one(), vec![Box::new(input_ones as &[_])]),
+        ],
+    );
+
+    // d_star + d_fold * d_star - candidate_ones = 0
+    builder.produce_sumcheck_subpolynomial(
+        SumcheckSubpolynomialType::Identity,
+        vec![
+            (S::one(), vec![Box::new(d_star as &[_])]),
+            (
+                S::one(),
+                vec![Box::new(d_star as &[_]), Box::new(d_fold as &[_])],
+            ),
+            (-S::one(), vec![Box::new(candidate_ones as &[_])]),
+        ],
+    );
+}
+
+#[allow(dead_code)]
+pub(crate) fn verify_membership_check<S: Scalar>(
+    builder: &mut VerificationBuilder<S>,
+    alpha: S,
+    beta: S,
+    input_one_eval: S,
+    candidate_one_eval: S,
+    column_evals: &[S],
+    candidate_evals: &[S],
+    multiplicity_eval: S,
+) -> Result<(), ProofError> {
+    let c_fold_eval = alpha * fold_vals(beta, column_evals);
+    let d_fold_eval = alpha * fold_vals(beta, candidate_evals);
+    let c_star_eval = builder.try_consume_final_round_mle_evaluation()?;
+    let d_star_eval = builder.try_consume_final_round_mle_evaluation()?;
+
+    // sum c_star * multiplicities - d_star = 0
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
+        SumcheckSubpolynomialType::ZeroSum,
+        c_star_eval * multiplicity_eval - d_star_eval,
+        2,
+    )?;
+
+    // c_star + c_fold * c_star - input_ones = 0
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
+        SumcheckSubpolynomialType::Identity,
+        c_star_eval + c_fold_eval * c_star_eval - input_one_eval,
+        2,
+    )?;
+
+    // d_star + d_fold * d_star - candidate_ones = 0
+    builder.try_produce_sumcheck_subpolynomial_evaluation(
+        SumcheckSubpolynomialType::Identity,
+        d_star_eval + d_fold_eval * d_star_eval - candidate_one_eval,
+        2,
+    )?;
+
+    Ok(())
+}
