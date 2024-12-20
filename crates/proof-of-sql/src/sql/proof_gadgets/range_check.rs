@@ -346,8 +346,8 @@ where
 
     let (sum, w_plus_alpha_inv_evals) = (0..31)
         .map(|i| {
-            let w_eval = builder.try_consume_mle_evaluation()?;
-            let words_inv = builder.try_consume_mle_evaluation()?;
+            let w_eval = builder.try_consume_final_round_mle_evaluation()?;
+            let words_inv = builder.try_consume_final_round_mle_evaluation()?;
 
             let word_eval = words_inv * (w_eval + alpha);
             let power = (0..i).fold(C::from(1), |acc, _| acc * C::from(256));
@@ -383,7 +383,7 @@ where
         .ok_or(ProofSizeMismatch::TooFewSumcheckVariables)?;
     // Ensures that we have enough sumcheck variables
     let _ = builder.try_consume_one_evaluation()?;
-    let word_vals_plus_alpha_inv = builder.try_consume_mle_evaluation()?;
+    let word_vals_plus_alpha_inv = builder.try_consume_final_round_mle_evaluation()?;
     let word_value_constraint = word_vals_plus_alpha_inv * (word_vals_eval + alpha);
 
     builder.try_produce_sumcheck_subpolynomial_evaluation(
@@ -392,7 +392,7 @@ where
         2,
     )?;
 
-    let count_eval = builder.try_consume_mle_evaluation()?;
+    let count_eval = builder.try_consume_final_round_mle_evaluation()?;
     let row_sum_eval: C = w_plus_alpha_inv_evals.iter().copied().sum();
     let count_value_product_eval = count_eval * word_vals_plus_alpha_inv;
 

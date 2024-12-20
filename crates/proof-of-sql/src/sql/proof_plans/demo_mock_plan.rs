@@ -53,7 +53,7 @@ impl ProofPlan for DemoMockPlan {
 impl ProverEvaluate for DemoMockPlan {
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
-        _builder: &mut FirstRoundBuilder,
+        _builder: &mut FirstRoundBuilder<'a, S>,
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
