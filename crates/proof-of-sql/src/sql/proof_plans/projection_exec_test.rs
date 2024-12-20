@@ -204,6 +204,7 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
         borrowed_varchar("d", ["1", "2", "3", "4", "5"], &alloc),
         borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
+    let data_length = data.num_rows();
     let t = "sxt.t".parse().unwrap();
     let table_map = indexmap! {
         t => data.clone()
@@ -212,7 +213,7 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
     accessor.add_table(t, data, 0);
     let expr: DynProofPlan = projection(cols_expr_plan(t, &[], &accessor), tab(t));
     let fields = &[];
-    let first_round_builder = &mut FirstRoundBuilder::new(0);
+    let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -234,6 +235,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_first_round_evalu
         borrowed_varchar("d", ["1", "2", "3", "4", "5"], &alloc),
         borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
+    let data_length = data.num_rows();
     let t = "sxt.t".parse().unwrap();
     let table_map = indexmap! {
         t => data.clone()
@@ -261,7 +263,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_first_round_evalu
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new(0);
+    let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,

@@ -40,6 +40,7 @@ impl FirstRoundBuilder {
 
     /// Append the length to the list of one evaluation lengths.
     pub(crate) fn produce_one_evaluation_length(&mut self, length: usize) {
+        self.update_range_length(length);
         self.one_evaluation_lengths.push(length);
     }
 
