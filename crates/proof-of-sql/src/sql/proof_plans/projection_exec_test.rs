@@ -19,12 +19,11 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
-use proof_of_sql_parser::ResourceId;
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Ident, ObjectName};
 
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
-    let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
+    let table_ref = TableRef::new(ObjectName::try_new("sxt", "sxt_tab").unwrap());
     let a = Ident::new("a");
     let b = Ident::new("b");
     let provable_ast = ProjectionExec::new(
@@ -60,7 +59,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
 
 #[test]
 fn we_can_correctly_fetch_all_the_referenced_columns() {
-    let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
+    let table_ref = TableRef::new(ObjectName::try_new("sxt", "sxt_tab").unwrap());
     let a = Ident::new("a");
     let f = Ident::new("f");
     let provable_ast = ProjectionExec::new(

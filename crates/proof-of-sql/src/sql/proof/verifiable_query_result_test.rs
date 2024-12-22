@@ -18,6 +18,7 @@ use crate::{
 };
 use bumpalo::Bump;
 use serde::Serialize;
+use proof_of_sql_parser::sqlparser::object_name_from;
 
 #[derive(Debug, Serialize, Default)]
 pub(super) struct EmptyTestQueryExpr {
@@ -87,7 +88,7 @@ impl ProofPlan for EmptyTestQueryExpr {
     }
 
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        indexset! {TableRef::new("sxt.test".parse().unwrap())}
+        indexset! {TableRef::new(object_name_from("sxt.test"))}
     }
 }
 

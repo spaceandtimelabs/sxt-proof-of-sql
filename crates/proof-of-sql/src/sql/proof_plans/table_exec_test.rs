@@ -8,11 +8,12 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
+use proof_of_sql_parser::sqlparser::object_name_from;
 
 #[test]
 fn we_can_create_and_prove_an_empty_table_exec() {
     let alloc = Bump::new();
-    let table_ref = TableRef::new("namespace.table_name".parse().unwrap());
+    let table_ref = TableRef::new(object_name_from("namespace.table_name"));
     let plan = table_exec(
         table_ref,
         vec![ColumnField::new("a".into(), ColumnType::BigInt)],
@@ -33,7 +34,7 @@ fn we_can_create_and_prove_an_empty_table_exec() {
 #[test]
 fn we_can_create_and_prove_a_table_exec() {
     let alloc = Bump::new();
-    let table_ref = TableRef::new("namespace.table_name".parse().unwrap());
+    let table_ref = TableRef::new(object_name_from("namespace.table_name"));
     let plan = table_exec(
         table_ref,
         vec![

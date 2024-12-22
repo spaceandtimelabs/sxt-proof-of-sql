@@ -4,38 +4,38 @@ use core::{
     fmt::{Display, Formatter},
     str::FromStr,
 };
-use proof_of_sql_parser::{impl_serde_from_str, ResourceId};
-use sqlparser::ast::Ident;
+use proof_of_sql_parser::{impl_serde_from_str, sqlparser::object_name_from};
+use sqlparser::ast::{Ident, ObjectName};
 
 /// Expression for an SQL table
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TableRef {
-    resource_id: ResourceId,
+    object_name: ObjectName,
 }
 
 impl TableRef {
     /// Creates a new table reference from a resource id
     #[must_use]
-    pub fn new(resource_id: ResourceId) -> Self {
-        Self { resource_id }
+    pub fn new(object_name: ObjectName) -> Self {
+        Self { object_name: object_name.clone() }
     }
 
     /// Returns the identifier of the schema
     #[must_use]
     pub fn schema_id(&self) -> Ident {
-        self.resource_id.schema().into()
+        self.object_name.0.get(0).clone()
     }
 
     /// Returns the identifier of the table
     #[must_use]
     pub fn table_id(&self) -> Ident {
-        self.resource_id.object_name().into()
+        self.object_name.0.get(1).clone()
     }
 
     /// Returns the underlying resource id of the table
     #[must_use]
-    pub fn resource_id(&self) -> ResourceId {
-        self.resource_id
+    pub fn object_name(&self) -> ObjectName {
+        self.object_name.clone()
     }
 }
 
@@ -43,13 +43,13 @@ impl FromStr for TableRef {
     type Err = proof_of_sql_parser::ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::new(s.parse()?))
+        Ok(Self::new(object_name_from(s)))
     }
 }
 
 impl Display for TableRef {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.resource_id.fmt(f)
+        self.object_name.clone().fmt(f)
     }
 }
 

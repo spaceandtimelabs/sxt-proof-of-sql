@@ -1,6 +1,7 @@
 use super::{ColumnType, SchemaAccessor, TableRef};
 use crate::base::map::IndexMap;
 use sqlparser::ast::Ident;
+
 /// A simple in-memory `SchemaAccessor` for testing intermediate AST -> Provable AST conversion.
 pub struct TestSchemaAccessor {
     schemas: IndexMap<TableRef, IndexMap<Ident, ColumnType>>,
@@ -32,10 +33,11 @@ impl SchemaAccessor for TestSchemaAccessor {
 mod tests {
     use super::*;
     use crate::base::map::indexmap;
+    use proof_of_sql_parser::sqlparser::object_name_from;
 
     fn sample_test_schema_accessor() -> TestSchemaAccessor {
-        let table1: TableRef = TableRef::new("schema.table1".parse().unwrap());
-        let table2: TableRef = TableRef::new("schema.table2".parse().unwrap());
+        let table1: TableRef = TableRef::new(object_name_from("schema.table1"));
+        let table2: TableRef = TableRef::new(object_name_from("schema.table2"));
         TestSchemaAccessor::new(indexmap! {
             table1 => indexmap! {
                 "col1".into() => ColumnType::BigInt,
@@ -50,9 +52,9 @@ mod tests {
     #[test]
     fn test_lookup_column() {
         let accessor = sample_test_schema_accessor();
-        let table1: TableRef = TableRef::new("schema.table1".parse().unwrap());
-        let table2: TableRef = TableRef::new("schema.table2".parse().unwrap());
-        let not_a_table: TableRef = TableRef::new("schema.not_a_table".parse().unwrap());
+        let table1: TableRef = TableRef::new(object_name_from("schema.table1"));
+        let table2: TableRef = TableRef::new(object_name_from("schema.table2"));
+        let not_a_table: TableRef = TableRef::new(object_name_from("schema.not_a_table"));
         assert_eq!(
             accessor.lookup_column(table1, "col1".into()),
             Some(ColumnType::BigInt)
@@ -78,9 +80,9 @@ mod tests {
     #[test]
     fn test_lookup_schema() {
         let accessor = sample_test_schema_accessor();
-        let table1: TableRef = TableRef::new("schema.table1".parse().unwrap());
-        let table2: TableRef = TableRef::new("schema.table2".parse().unwrap());
-        let not_a_table: TableRef = TableRef::new("schema.not_a_table".parse().unwrap());
+        let table1: TableRef = TableRef::new(object_name_from("schema.table1"));
+        let table2: TableRef = TableRef::new(object_name_from("schema.table2"));
+        let not_a_table: TableRef = TableRef::new(object_name_from("schema.not_a_table"));
         assert_eq!(
             accessor.lookup_schema(table1),
             vec![

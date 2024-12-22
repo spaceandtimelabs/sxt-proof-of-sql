@@ -242,7 +242,7 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
                 expression: "QueryContext has no table_ref".to_owned(),
             },
         )?;
-        let resource_id = table.table_ref.resource_id();
+        let object_name = table.table_ref.object_name();
         let group_by_exprs = value
             .group_by_exprs
             .iter()
@@ -252,7 +252,7 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
                     .get(expr)
                     .ok_or(ConversionError::MissingColumn {
                         identifier: Box::new((expr).clone()),
-                        resource_id: Box::new(resource_id),
+                        object_name: Box::new(object_name),
                     })
                     .map(|column_ref| ColumnExpr::new(column_ref.clone()))
             })

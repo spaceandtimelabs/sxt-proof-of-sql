@@ -102,7 +102,7 @@ impl QueryExpr {
                     })
                     .collect::<Vec<_>>();
                 let filter = FilterExecBuilder::new(context.get_column_mapping())
-                    .add_table_expr(*context.get_table_ref())
+                    .add_table_expr(context.get_table_ref().clone())
                     .add_where_expr(context.get_where_expr().clone())?
                     .add_result_columns(&raw_enriched_exprs)
                     .build();
@@ -144,7 +144,7 @@ impl QueryExpr {
                 .map(|enriched_expr| enriched_expr.residue_expression.clone())
                 .collect::<Vec<_>>();
             let filter = FilterExecBuilder::new(context.get_column_mapping())
-                .add_table_expr(*context.get_table_ref())
+                .add_table_expr(context.get_table_ref().clone())
                 .add_where_expr(context.get_where_expr().clone())?
                 .add_result_columns(&enriched_exprs)
                 .build();

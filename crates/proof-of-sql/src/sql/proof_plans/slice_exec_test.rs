@@ -20,6 +20,7 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
+use proof_of_sql_parser::sqlparser::object_name_from;
 
 #[test]
 fn we_can_prove_and_get_the_correct_result_from_a_slice_exec() {
@@ -460,7 +461,7 @@ fn we_can_prove_another_nested_slice_exec_with_no_rows() {
 #[test]
 fn we_can_create_and_prove_a_slice_exec_on_top_of_a_table_exec() {
     let alloc = Bump::new();
-    let table_ref = TableRef::new("namespace.table_name".parse().unwrap());
+    let table_ref = TableRef::new(object_name_from("namespace.table_name"));
     let plan = slice_exec(
         table_exec(
             table_ref,

@@ -49,11 +49,11 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
             .into_iter()
             .map(|(table_ref, columns)| {
                 (
-                    table_ref,
+                    table_ref.clone(),
                     TableCommitment::from_accessor_with_max_bounds(
-                        table_ref,
+                        table_ref.clone(),
                         accessor
-                            .lookup_schema(table_ref)
+                            .lookup_schema(table_ref.clone())
                             .iter()
                             .filter_map(|c| {
                                 columns.iter().find(|x| x.name() == c.0.clone()).cloned()

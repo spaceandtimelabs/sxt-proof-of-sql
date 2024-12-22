@@ -40,6 +40,16 @@ impl From<ResourceId> for ObjectName {
     }
 }
 
+/// Converts a dot-separated string into an `ObjectName`.
+#[must_use]
+pub fn object_name_from(s: &str) -> ObjectName {
+    ObjectName(
+        s.split('.')
+            .map(|part| Ident::new(part.to_string()))
+            .collect(),
+    )
+}
+
 impl From<TableExpression> for TableFactor {
     fn from(table: TableExpression) -> Self {
         match table {

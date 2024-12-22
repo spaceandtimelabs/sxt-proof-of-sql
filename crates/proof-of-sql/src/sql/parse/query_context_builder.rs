@@ -15,14 +15,14 @@ use proof_of_sql_parser::{
         AggregationOperator, AliasedResultExpr, Expression, Literal, OrderBy, SelectResultExpr,
         Slice, TableExpression,
     },
-    Identifier, ResourceId,
+    Identifier,
 };
 use sqlparser::ast::{BinaryOperator, UnaryOperator};
 pub struct QueryContextBuilder<'a> {
     context: QueryContext,
     schema_accessor: &'a dyn SchemaAccessor,
 }
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Ident, ObjectName};
 
 // Public interface
 impl<'a> QueryContextBuilder<'a> {
@@ -44,7 +44,7 @@ impl<'a> QueryContextBuilder<'a> {
             TableExpression::Named { table, schema } => {
                 let schema_identifier = schema.unwrap_or(default_schema);
                 self.context
-                    .set_table_ref(TableRef::new(ResourceId::new(schema_identifier, table)));
+                    .set_table_ref(TableRef::new(ObjectName::new(schema_identifier, table)));
             }
         }
         self
@@ -109,7 +109,7 @@ impl<'a> QueryContextBuilder<'a> {
     )]
     fn lookup_schema(&self) -> Vec<(Ident, ColumnType)> {
         let table_ref = self.context.get_table_ref();
-        let columns = self.schema_accessor.lookup_schema(*table_ref);
+        let columns = self.schema_accessor.lookup_schema(table_ref.clone());
         assert!(!columns.is_empty(), "At least one column must exist");
         columns
     }
@@ -265,7 +265,7 @@ impl<'a> QueryContextBuilder<'a> {
 
         let column_type = column_type.ok_or_else(|| ConversionError::MissingColumn {
             identifier: Box::new(column_name.clone()),
-            resource_id: Box::new(table_ref.resource_id()),
+            object_name: Box::new(table_ref.object_name()),
         })?;
 
         let column = ColumnRef::new(*table_ref, column_name.clone(), column_type);

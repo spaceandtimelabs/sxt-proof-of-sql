@@ -18,6 +18,7 @@ use crate::{
 use bumpalo::Bump;
 use serde::Serialize;
 use sqlparser::ast::Ident;
+use proof_of_sql_parser::sqlparser::object_name_from;
 
 /// Type to allow us to prove and verify an artificial polynomial where we prove
 /// that every entry in the result is zero
@@ -112,7 +113,7 @@ impl ProofPlan for TrivialTestProofPlan {
         indexset! {}
     }
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        indexset! {TableRef::new("sxt.test".parse().unwrap())}
+        indexset! {TableRef::new(object_name_from("sxt.test"))}
     }
 }
 
@@ -278,7 +279,7 @@ impl ProverEvaluate for SquareTestProofPlan {
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         let x = *table_map
-            .get(&TableRef::new("sxt.test".parse().unwrap()))
+            .get(&TableRef::new(object_name_from("sxt.test")))
             .unwrap()
             .inner_table()
             .get(&Ident::new("x"))
@@ -333,7 +334,7 @@ impl ProofPlan for SquareTestProofPlan {
         )}
     }
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        indexset! {TableRef::new("sxt.test".parse().unwrap())}
+        indexset! {TableRef::new(object_name_from("sxt.test"))}
     }
 }
 
@@ -457,7 +458,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         let x = *table_map
-            .get(&TableRef::new("sxt.test".parse().unwrap()))
+            .get(&TableRef::new(object_name_from("sxt.test")))
             .unwrap()
             .inner_table()
             .get(&Ident::new("x"))
@@ -534,7 +535,7 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         )}
     }
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        indexset! {TableRef::new("sxt.test".parse().unwrap())}
+        indexset! {TableRef::new(object_name_from("sxt.test"))}
     }
 }
 
@@ -669,7 +670,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         let x = *table_map
-            .get(&TableRef::new("sxt.test".parse().unwrap()))
+            .get(&TableRef::new(object_name_from("sxt.test")))
             .unwrap()
             .inner_table()
             .get(&Ident::new("x"))
@@ -727,7 +728,7 @@ impl ProofPlan for ChallengeTestProofPlan {
         )}
     }
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        indexset! {TableRef::new("sxt.test".parse().unwrap())}
+        indexset! {TableRef::new(object_name_from("sxt.test"))}
     }
 }
 
@@ -811,7 +812,7 @@ impl ProverEvaluate for FirstRoundSquareTestProofPlan {
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         let x = *table_map
-            .get(&TableRef::new("sxt.test".parse().unwrap()))
+            .get(&TableRef::new(object_name_from("sxt.test")))
             .unwrap()
             .inner_table()
             .get(&Ident::new("x"))
@@ -868,7 +869,7 @@ impl ProofPlan for FirstRoundSquareTestProofPlan {
         )}
     }
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        indexset! {TableRef::new("sxt.test".parse().unwrap())}
+        indexset! {TableRef::new(object_name_from("sxt.test"))}
     }
 }
 
