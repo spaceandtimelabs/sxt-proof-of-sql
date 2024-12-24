@@ -16,9 +16,9 @@ use crate::{
     sql::proof::{FirstRoundBuilder, QueryData, SumcheckSubpolynomialType},
 };
 use bumpalo::Bump;
+use proof_of_sql_parser::sqlparser::object_name_from;
 use serde::Serialize;
 use sqlparser::ast::Ident;
-use proof_of_sql_parser::sqlparser::object_name_from;
 
 /// Type to allow us to prove and verify an artificial polynomial where we prove
 /// that every entry in the result is zero

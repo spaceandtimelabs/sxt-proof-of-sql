@@ -125,15 +125,17 @@ mod tests {
         let identifier_b = "b".into();
         let identifier_alias = "alias".into();
 
-        let column_ref_a = ColumnRef::new(table_ref, identifier_a, ColumnType::BigInt);
-        let column_ref_b = ColumnRef::new(table_ref, identifier_b, ColumnType::BigInt);
+        let column_ref_a = ColumnRef::new(&table_ref, identifier_a, ColumnType::BigInt);
+        let column_ref_b = ColumnRef::new(&table_ref, identifier_b, ColumnType::BigInt);
 
         let plan = DynProofPlan::Filter(FilterExec::new(
             vec![AliasedDynProofExpr {
                 expr: DynProofExpr::Column(ColumnExpr::new(column_ref_b)),
                 alias: identifier_alias,
             }],
-            TableExpr { table_ref },
+            TableExpr {
+                table_ref: &table_ref,
+            },
             DynProofExpr::Equals(EqualsExpr::new(
                 Box::new(DynProofExpr::Column(ColumnExpr::new(column_ref_a))),
                 Box::new(DynProofExpr::Literal(LiteralExpr::new(

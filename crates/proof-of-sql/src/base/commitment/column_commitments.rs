@@ -60,7 +60,9 @@ impl<C: Commitment> ColumnCommitments<C> {
             ColumnCommitmentMetadataMap::from_column_fields_with_max_bounds(columns);
         let commitments = columns
             .iter()
-            .map(|c| accessor.get_commitment(ColumnRef::new(table.clone(), c.name(), c.data_type())))
+            .map(|c| {
+                accessor.get_commitment(ColumnRef::new(table.clone(), c.name(), c.data_type()))
+            })
             .collect();
         ColumnCommitments {
             commitments,

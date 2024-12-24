@@ -139,8 +139,7 @@ pub fn borrowed_int<S: Scalar>(
 /// use bumpalo::Bump;
 /// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
-///     borrowed_bigint("a", [1, 2, 3], &alloc),
+/// let result = table::<Curve25519Scalar>([///     borrowed_bigint("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
 

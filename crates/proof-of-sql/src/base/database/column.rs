@@ -491,16 +491,16 @@ impl Display for ColumnType {
 
 /// Reference of a SQL column
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
-pub struct ColumnRef {
+pub struct ColumnRef<'a> {
     column_id: Ident,
-    table_ref: TableRef,
+    table_ref: &'a TableRef,
     column_type: ColumnType,
 }
 
-impl ColumnRef {
+impl<'a> ColumnRef<'a> {
     /// Create a new `ColumnRef` from a table, column identifier and column type
     #[must_use]
-    pub fn new(table_ref: TableRef, column_id: Ident, column_type: ColumnType) -> Self {
+    pub fn new(table_ref: &'a TableRef, column_id: Ident, column_type: ColumnType) -> Self {
         Self {
             column_id,
             table_ref,

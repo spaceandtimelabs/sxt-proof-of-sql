@@ -46,7 +46,8 @@ impl ProofPlan for TableExec {
             .schema
             .iter()
             .map(|field| {
-                let column_ref = ColumnRef::new(self.table_ref.clone(), field.name(), field.data_type());
+                let column_ref =
+                    ColumnRef::new(self.table_ref.clone(), field.name(), field.data_type());
                 *accessor.get(&column_ref).expect("Column does not exist")
             })
             .collect::<Vec<_>>();

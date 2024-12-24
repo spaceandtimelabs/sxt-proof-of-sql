@@ -17,8 +17,8 @@ use crate::{
     sql::proof::{FirstRoundBuilder, QueryData},
 };
 use bumpalo::Bump;
-use serde::Serialize;
 use proof_of_sql_parser::sqlparser::object_name_from;
+use serde::Serialize;
 
 #[derive(Debug, Serialize, Default)]
 pub(super) struct EmptyTestQueryExpr {

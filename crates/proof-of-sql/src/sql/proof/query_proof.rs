@@ -357,7 +357,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         );
         let one_eval_map: IndexMap<TableRef, CP::Scalar> = table_length_map
             .iter()
-            .map(|(table_ref, length)| (**table_ref, sumcheck_evaluations.one_evaluations[length]))
+            .map(|(table_ref, length)| (table_ref, sumcheck_evaluations.one_evaluations[length]))
             .collect();
         let mut builder = VerificationBuilder::new(
             min_row_num,

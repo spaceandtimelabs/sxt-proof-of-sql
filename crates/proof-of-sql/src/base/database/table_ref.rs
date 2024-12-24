@@ -17,19 +17,21 @@ impl TableRef {
     /// Creates a new table reference from a resource id
     #[must_use]
     pub fn new(object_name: ObjectName) -> Self {
-        Self { object_name: object_name.clone() }
+        Self {
+            object_name: object_name.clone(),
+        }
     }
 
     /// Returns the identifier of the schema
     #[must_use]
-    pub fn schema_id(&self) -> Ident {
-        self.object_name.0.get(0).clone()
+    pub fn schema_id(&self) -> Option<Ident> {
+        self.object_name.0.get(0).cloned()
     }
 
     /// Returns the identifier of the table
     #[must_use]
-    pub fn table_id(&self) -> Ident {
-        self.object_name.0.get(1).clone()
+    pub fn table_id(&self) -> Option<Ident> {
+        self.object_name.0.get(1).cloned()
     }
 
     /// Returns the underlying resource id of the table
@@ -44,6 +46,12 @@ impl FromStr for TableRef {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self::new(object_name_from(s)))
+    }
+}
+
+impl From<&str> for TableRef {
+    fn from(s: &str) -> Self {
+        TableRef::new(object_name_from(s))
     }
 }
 
