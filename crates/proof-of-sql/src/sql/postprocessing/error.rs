@@ -17,6 +17,12 @@ pub enum PostprocessingError {
         /// The column which is not found
         column: String,
     },
+    /// Index out of bounds
+    #[snafu(display("Index out of bounds: {index}"))]
+    IndexOutOfBounds {
+        /// The index which is out of bounds
+        index: usize,
+    },
     /// Errors in evaluation of `Expression`s
     #[snafu(transparent)]
     ExpressionEvaluationError {

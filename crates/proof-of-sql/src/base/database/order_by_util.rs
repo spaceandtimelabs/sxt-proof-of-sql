@@ -5,7 +5,6 @@ use crate::base::{
 };
 use alloc::vec::Vec;
 use core::cmp::Ordering;
-use proof_of_sql_parser::intermediate_ast::OrderByDirection;
 
 /// Compares the tuples `(order_by[0][i], order_by[1][i], ...)` and
 /// `(order_by[0][j], order_by[1][j], ...)` in lexicographic order.
@@ -113,7 +112,8 @@ pub(crate) fn compare_indexes_by_owned_columns<S: Scalar>(
 ) -> Ordering {
     let order_by_pairs = order_by
         .iter()
-        .map(|&col| (col.clone(), OrderByDirection::Asc))
+        // ASC is the default direction
+        .map(|&col| (col.clone(), true))
         .collect::<Vec<_>>();
     compare_indexes_by_owned_columns_with_direction(&order_by_pairs, i, j)
 }
@@ -122,13 +122,13 @@ pub(crate) fn compare_indexes_by_owned_columns<S: Scalar>(
 /// `(right[0][j], right[1][j], ...)` in lexicographic order.
 /// Note that direction flips the ordering.
 pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
-    order_by_pairs: &[(OwnedColumn<S>, OrderByDirection)],
+    order_by_pairs: &[(OwnedColumn<S>, bool)],
     i: usize,
     j: usize,
 ) -> Ordering {
     order_by_pairs
         .iter()
-        .map(|(col, direction)| {
+        .map(|(col, is_asc)| {
             let ordering = match col {
                 OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Uint8(col) => col[i].cmp(&col[j]),
@@ -143,9 +143,9 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
                 OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
                 OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
             };
-            match direction {
-                OrderByDirection::Asc => ordering,
-                OrderByDirection::Desc => ordering.reverse(),
+            match is_asc {
+                true => ordering,
+                false => ordering.reverse(),
             }
         })
         .find(|&ord| ord != Ordering::Equal)
