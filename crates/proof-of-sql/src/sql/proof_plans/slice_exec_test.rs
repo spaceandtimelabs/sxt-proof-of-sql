@@ -76,6 +76,7 @@ fn we_can_get_an_empty_result_from_a_slice_on_an_empty_table_using_first_round_e
         borrowed_varchar("d", [""; 0], &alloc),
         borrowed_scalar("e", [0; 0], &alloc),
     ]);
+    let data_length = data.num_rows();
     let t = "sxt.t".parse().unwrap();
     let table_map = indexmap! {
         t => data.clone()
@@ -102,7 +103,7 @@ fn we_can_get_an_empty_result_from_a_slice_on_an_empty_table_using_first_round_e
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -130,6 +131,7 @@ fn we_can_get_an_empty_result_from_a_slice_using_first_round_evaluate() {
         borrowed_varchar("d", ["1", "2", "3", "4", "5"], &alloc),
         borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
+    let data_length = data.num_rows();
     let t = "sxt.t".parse().unwrap();
     let table_map = indexmap! {
         t => data.clone()
@@ -156,7 +158,7 @@ fn we_can_get_an_empty_result_from_a_slice_using_first_round_evaluate() {
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -184,6 +186,7 @@ fn we_can_get_no_columns_from_a_slice_with_empty_input_using_first_round_evaluat
         borrowed_varchar("d", ["1", "2", "3", "4", "5"], &alloc),
         borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
+    let data_length = data.num_rows();
     let t = "sxt.t".parse().unwrap();
     let table_map = indexmap! {
         t => data.clone()
@@ -197,7 +200,7 @@ fn we_can_get_no_columns_from_a_slice_with_empty_input_using_first_round_evaluat
         None,
     );
     let fields = &[];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,
@@ -219,6 +222,7 @@ fn we_can_get_the_correct_result_from_a_slice_using_first_round_evaluate() {
         borrowed_varchar("d", ["1", "2", "3", "4", "5"], &alloc),
         borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
+    let data_length = data.num_rows();
     let t = "sxt.t".parse().unwrap();
     let table_map = indexmap! {
         t => data.clone()
@@ -244,7 +248,7 @@ fn we_can_get_the_correct_result_from_a_slice_using_first_round_evaluate() {
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let first_round_builder = &mut FirstRoundBuilder::new();
+    let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
         first_round_builder,
         &alloc,

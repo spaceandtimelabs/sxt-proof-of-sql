@@ -18,21 +18,30 @@ pub struct FirstRoundBuilder<'a, S> {
     num_post_result_challenges: usize,
     /// The extra one evaluation lengths used in the proof.
     one_evaluation_lengths: Vec<usize>,
-}
-
-impl<'a, S: Scalar> Default for FirstRoundBuilder<'a, S> {
-    fn default() -> Self {
-        Self::new()
-    }
+    // The range_length used in sumcheck which is max of all possible ones.
+    range_length: usize,
 }
 
 impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
-    pub fn new() -> Self {
+    pub fn new(initial_range_length: usize) -> Self {
         Self {
             commitment_descriptor: Vec::new(),
             pcs_proof_mles: Vec::new(),
             num_post_result_challenges: 0,
             one_evaluation_lengths: Vec::new(),
+            range_length: initial_range_length,
+        }
+    }
+
+    /// Get the range length used in the proof.
+    pub(crate) fn range_length(&self) -> usize {
+        self.range_length
+    }
+
+    /// Update the range length used in the proof only if the new range is larger than the existing range.
+    pub(crate) fn update_range_length(&mut self, new_range_length: usize) {
+        if new_range_length > self.range_length {
+            self.range_length = new_range_length;
         }
     }
 
@@ -47,6 +56,7 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
 
     /// Append the length to the list of one evaluation lengths.
     pub(crate) fn produce_one_evaluation_length(&mut self, length: usize) {
+        self.update_range_length(length);
         self.one_evaluation_lengths.push(length);
     }
 

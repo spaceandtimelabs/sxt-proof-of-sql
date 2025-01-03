@@ -104,18 +104,13 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .collect();
 
         // Prover First Round: Evaluate the query && get the right number of post result challenges
-        let mut first_round_builder = FirstRoundBuilder::<CP::Scalar>::new();
+        let mut first_round_builder = FirstRoundBuilder::new(initial_range_length);
         let query_result = expr.first_round_evaluate(&mut first_round_builder, &alloc, &table_map);
         let owned_table_result = OwnedTable::from(&query_result);
         let provable_result = query_result.into();
         let one_evaluation_lengths = first_round_builder.one_evaluation_lengths();
 
-        let range_length = one_evaluation_lengths
-            .iter()
-            .copied()
-            .chain(core::iter::once(initial_range_length))
-            .max()
-            .expect("Will always have at least one element"); // safe to unwrap because we have at least one element
+        let range_length = first_round_builder.range_length();
 
         let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
         assert!(num_sumcheck_variables > 0);
