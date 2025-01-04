@@ -94,7 +94,7 @@ In order to contribute it is necessary to fork the repository. Follow the steps 
      cd sxt-proof-of-sql
      ```
 
-5. Add the original repository as a remote (optional but recommended).
+5. Add the original repository as a remote (optional but recommended):
    - This allows you to keep your fork up to date with changes from the original repository:
      ```bash
      git remote add upstream https://github.com/spaceandtimelabs/sxt-proof-of-sql.git
