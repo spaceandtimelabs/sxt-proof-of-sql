@@ -4,8 +4,9 @@ use crate::base::{
     scalar::Scalar,
 };
 use alloc::string::String;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::TimezoneInfo;
 
 /// Represents a literal value.
 ///
@@ -39,7 +40,7 @@ pub enum LiteralValue {
     Scalar([u64; 4]),
     /// `TimeStamp` defined over a unit (s, ms, ns, etc) and timezone with backing store
     /// mapped to i64, which is time units since unix epoch
-    TimeStampTZ(PoSQLTimeUnit, PoSQLTimeZone, i64),
+    TimeStampTZ(PoSQLTimeUnit, TimezoneInfo, i64),
 }
 
 impl LiteralValue {

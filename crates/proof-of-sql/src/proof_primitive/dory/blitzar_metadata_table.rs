@@ -291,7 +291,8 @@ pub fn create_blitzar_metadata_tables(
 mod tests {
     use super::*;
     use crate::base::math::decimal::Precision;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+    use sqlparser::ast::TimezoneInfo;
 
     fn assert_blitzar_metadata(
         committable_columns: &[CommittableColumn],
@@ -633,7 +634,7 @@ mod tests {
             CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, vec![[6, 0, 0, 0]]),
             CommittableColumn::Scalar(vec![[7, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[8, 0, 0, 0]]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[9]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, &[9]),
             CommittableColumn::Boolean(&[true]),
         ];
 
@@ -667,7 +668,7 @@ mod tests {
             CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, vec![[6, 0, 0, 0]]),
             CommittableColumn::Scalar(vec![[7, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[8, 0, 0, 0]]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[9]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, &[9]),
             CommittableColumn::Boolean(&[true]),
         ];
 
@@ -709,7 +710,7 @@ mod tests {
             CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, vec![[6, 0, 0, 0]]),
             CommittableColumn::Scalar(vec![[7, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[8, 0, 0, 0]]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[9]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, &[9]),
             CommittableColumn::Boolean(&[true]),
         ];
 
