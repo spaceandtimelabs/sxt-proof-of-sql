@@ -312,7 +312,8 @@ mod tests {
     };
     use alloc::{string::String, vec};
     use itertools::Itertools;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+    use sqlparser::ast::TimezoneInfo;
 
     #[test]
     fn we_can_construct_bounds_by_method() {
@@ -563,7 +564,7 @@ mod tests {
 
         let timestamp_column = OwnedColumn::<TestScalar>::TimestampTZ(
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             vec![1_i64, 2, 3, 4],
         );
         let committable_timestamp_column = CommittableColumn::from(&timestamp_column);

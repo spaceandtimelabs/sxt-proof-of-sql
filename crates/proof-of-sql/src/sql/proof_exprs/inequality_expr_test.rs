@@ -16,19 +16,20 @@ use crate::{
 };
 use bumpalo::Bump;
 use itertools::{multizip, MultiUnzip};
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
+use sqlparser::ast::TimezoneInfo;
 
 #[test]
 fn we_can_compare_columns_with_small_timestamp_values_gte() {
     let data: OwnedTable<Curve25519Scalar> = owned_table([timestamptz(
         "a",
         PoSQLTimeUnit::Second,
-        PoSQLTimeZone::utc(),
+        TimezoneInfo::WithTimeZone,
         vec![-1, 0, 1],
     )]);
     let t = "sxt.t".parse().unwrap();
@@ -40,7 +41,7 @@ fn we_can_compare_columns_with_small_timestamp_values_gte() {
             column(t, "a", &accessor),
             DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
                 PoSQLTimeUnit::Nanosecond,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::WithTimeZone,
                 1,
             )),
         ),
@@ -51,7 +52,7 @@ fn we_can_compare_columns_with_small_timestamp_values_gte() {
     let expected_res = owned_table([timestamptz(
         "a",
         PoSQLTimeUnit::Second,
-        PoSQLTimeZone::utc(),
+        TimezoneInfo::WithTimeZone,
         vec![1],
     )]);
     assert_eq!(res, expected_res);
@@ -62,7 +63,7 @@ fn we_can_compare_columns_with_small_timestamp_values_lte() {
     let data: OwnedTable<Curve25519Scalar> = owned_table([timestamptz(
         "a",
         PoSQLTimeUnit::Second,
-        PoSQLTimeZone::utc(),
+        TimezoneInfo::WithTimeZone,
         vec![-1, 0, 1],
     )]);
     let t = "sxt.t".parse().unwrap();
@@ -74,7 +75,7 @@ fn we_can_compare_columns_with_small_timestamp_values_lte() {
             column(t, "a", &accessor),
             DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
                 PoSQLTimeUnit::Nanosecond,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::WithTimeZone,
                 1,
             )),
         ),
@@ -85,7 +86,7 @@ fn we_can_compare_columns_with_small_timestamp_values_lte() {
     let expected_res = owned_table([timestamptz(
         "a",
         PoSQLTimeUnit::Second,
-        PoSQLTimeZone::utc(),
+        TimezoneInfo::WithTimeZone,
         vec![-1, 0],
     )]);
     assert_eq!(res, expected_res);
