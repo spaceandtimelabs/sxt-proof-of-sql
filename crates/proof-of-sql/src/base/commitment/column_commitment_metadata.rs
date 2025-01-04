@@ -186,7 +186,8 @@ mod tests {
         scalar::test_scalar::TestScalar,
     };
     use alloc::string::String;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+    use sqlparser::ast::TimezoneInfo;
 
     #[test]
     fn we_can_construct_metadata() {
@@ -257,12 +258,12 @@ mod tests {
 
         assert_eq!(
             ColumnCommitmentMetadata::try_new(
-                ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
+                ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None),
                 ColumnBounds::TimestampTZ(Bounds::Empty),
             )
             .unwrap(),
             ColumnCommitmentMetadata {
-                column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
+                column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None),
                 bounds: ColumnBounds::TimestampTZ(Bounds::Empty),
             }
         );
@@ -399,7 +400,7 @@ mod tests {
 
         let timestamp_column: OwnedColumn<TestScalar> = OwnedColumn::<TestScalar>::TimestampTZ(
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [1i64, 2, 3, 4, 5].to_vec(),
         );
         let committable_timestamp_column = CommittableColumn::from(&timestamp_column);
@@ -407,7 +408,7 @@ mod tests {
             ColumnCommitmentMetadata::from_column(&committable_timestamp_column);
         assert_eq!(
             timestamp_metadata.column_type(),
-            &ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc())
+            &ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None)
         );
         if let ColumnBounds::TimestampTZ(Bounds::Sharp(bounds)) = timestamp_metadata.bounds() {
             assert_eq!(bounds.min(), &1);
@@ -583,7 +584,7 @@ mod tests {
             1_625_072_400,
             1_625_065_000,
         ];
-        let timezone = PoSQLTimeZone::utc();
+        let timezone = TimezoneInfo::None;
         let timeunit = PoSQLTimeUnit::Second;
         let timestamp_column_a = CommittableColumn::TimestampTZ(timeunit, timezone, &times[..2]);
         let timestamp_metadata_a = ColumnCommitmentMetadata::from_column(&timestamp_column_a);
@@ -609,7 +610,7 @@ mod tests {
             1_625_072_400,
             1_625_065_000,
         ];
-        let timezone = PoSQLTimeZone::utc();
+        let timezone = TimezoneInfo::None;
         let timeunit = PoSQLTimeUnit::Second;
 
         let timestamp_column_a = CommittableColumn::TimestampTZ(timeunit, timezone, &times[..2]);
@@ -960,12 +961,12 @@ mod tests {
             .is_err());
 
         let timestamp_tz_metadata_a = ColumnCommitmentMetadata {
-            column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
+            column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None),
             bounds: ColumnBounds::TimestampTZ(Bounds::Empty),
         };
 
         let timestamp_tz_metadata_b = ColumnCommitmentMetadata {
-            column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::utc()),
+            column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, TimezoneInfo::None),
             bounds: ColumnBounds::TimestampTZ(Bounds::Empty),
         };
 

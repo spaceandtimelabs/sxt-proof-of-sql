@@ -5,9 +5,14 @@ use crate::{
         OrderBy as PoSqlOrderBy, OrderByDirection, SelectResultExpr, SetExpression,
         TableExpression, UnaryOperator as PoSqlUnaryOperator,
     },
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier, ResourceId, SelectStatement,
 };
-use alloc::{boxed::Box, string::ToString, vec};
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+    vec,
+};
 use core::fmt::Display;
 use sqlparser::ast::{
     BinaryOperator, DataType, Expr, Function, FunctionArg, FunctionArgExpr, GroupByExpr, Ident,
@@ -26,6 +31,51 @@ where
 /// Convert an [`Identifier`] into a [`Expr`].
 fn id(id: Identifier) -> Expr {
     Expr::Identifier(id.into())
+}
+
+/// Provides an extension for the `TimezoneInfo` type for offsets.
+pub trait TimezoneInfoExt {
+    /// Retrieve the offset in seconds for `TimezoneInfo`.
+    fn offset(&self, timezone_str: Option<&str>) -> i32;
+}
+
+impl TimezoneInfoExt for TimezoneInfo {
+    fn offset(&self, timezone_str: Option<&str>) -> i32 {
+        match self {
+            TimezoneInfo::None => PoSQLTimeZone::utc().offset(),
+            TimezoneInfo::WithTimeZone => match timezone_str {
+                Some(tz_str) => PoSQLTimeZone::try_from(&Some(tz_str.into()))
+                    .unwrap_or_else(|_| PoSQLTimeZone::utc())
+                    .offset(),
+                None => PoSQLTimeZone::utc().offset(),
+            },
+            _ => panic!("Offsets are not applicable for WithoutTimeZone or Tz variants."),
+        }
+    }
+}
+
+/// Utility function to create a `Timestamp` expression.
+pub fn timestamp_to_expr(
+    value: &str,
+    time_unit: PoSQLTimeUnit,
+    timezone: TimezoneInfo,
+) -> Result<Expr, String> {
+    let time_unit_as_u64 = u64::from(time_unit);
+
+    Ok(Expr::TypedString {
+        data_type: DataType::Timestamp(Some(time_unit_as_u64), timezone),
+        value: value.to_string(),
+    })
+}
+
+/// Parses [`PoSQLTimeZone`] into a `TimezoneInfo`.
+impl From<PoSQLTimeZone> for TimezoneInfo {
+    fn from(posql_timezone: PoSQLTimeZone) -> Self {
+        match posql_timezone.offset() {
+            0 => TimezoneInfo::None,
+            _ => TimezoneInfo::WithTimeZone,
+        }
+    }
 }
 
 impl From<Identifier> for Ident {
@@ -267,6 +317,11 @@ mod test {
         check_posql_intermediate_ast_to_sqlparser_equivalence(
             "select timestamp '2024-11-07T04:55:12.345+03:00' as time from t;",
             "select timestamp(3) '2024-11-07 01:55:12.345 UTC' as time from t;",
+        );
+
+        check_posql_intermediate_ast_to_sqlparser_equivalence(
+            "select timestamp '2024-11-07T04:55:12+00:00' as time from t;",
+            "select timestamp(0) '2024-11-07 04:55:12 UTC' as time from t;",
         );
     }
 

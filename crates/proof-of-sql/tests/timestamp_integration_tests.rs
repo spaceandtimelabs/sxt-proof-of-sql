@@ -11,7 +11,8 @@ use proof_of_sql::{
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+use sqlparser::ast::TimezoneInfo;
 
 #[test]
 fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
@@ -34,7 +35,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
             timestamptz(
                 "times",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 [i64::MIN, 0, i64::MAX],
             ),
         ]),
@@ -60,7 +61,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
     let expected_result = owned_table([timestamptz(
         "times",
         PoSQLTimeUnit::Second,
-        PoSQLTimeZone::utc(),
+        TimezoneInfo::None,
         [0],
     )]);
     assert_eq!(owned_table_result, expected_result);
@@ -81,7 +82,7 @@ fn run_timestamp_query_test(
         owned_table([timestamptz(
             "times",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             test_timestamps,
         )]),
         0,
@@ -100,7 +101,7 @@ fn run_timestamp_query_test(
     let expected_result = owned_table([timestamptz(
         "times",
         PoSQLTimeUnit::Second,
-        PoSQLTimeZone::utc(),
+        TimezoneInfo::None,
         expected_timestamps,
     )]);
 
@@ -396,7 +397,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
             timestamptz(
                 "a",
                 PoSQLTimeUnit::Nanosecond,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 [
                     i64::MIN,
                     2,
@@ -411,7 +412,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
             timestamptz(
                 "b",
                 PoSQLTimeUnit::Nanosecond,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 [
                     i64::MAX,
                     -2,
@@ -447,13 +448,13 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
         timestamptz(
             "a",
             PoSQLTimeUnit::Nanosecond,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [i64::MIN, -1, -2],
         ),
         timestamptz(
             "b",
             PoSQLTimeUnit::Nanosecond,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [i64::MAX, -1, 1],
         ),
         boolean("res", [true, true, true]),

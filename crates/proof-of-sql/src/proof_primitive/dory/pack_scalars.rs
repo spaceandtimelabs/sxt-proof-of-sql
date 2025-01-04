@@ -468,7 +468,8 @@ pub fn bit_table_and_scalars_for_packed_msm(
 mod tests {
     use super::*;
     use crate::base::math::decimal::Precision;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+    use sqlparser::ast::TimezoneInfo;
 
     #[test]
     fn we_can_get_a_bit_table() {
@@ -491,7 +492,7 @@ mod tests {
             CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
             CommittableColumn::Boolean(&[true, false]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[1]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::WithTimeZone, &[1]),
         ];
 
         let offset = 0;
@@ -526,7 +527,7 @@ mod tests {
             CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
             CommittableColumn::Boolean(&[true, false]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[1]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::WithTimeZone, &[1]),
         ];
 
         let offset = 1;
@@ -561,7 +562,7 @@ mod tests {
             CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
             CommittableColumn::Boolean(&[true, false]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[1]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::WithTimeZone, &[1]),
         ];
 
         let offset = 0;
@@ -601,7 +602,7 @@ mod tests {
             CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
             CommittableColumn::Boolean(&[true, false]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[1]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::WithTimeZone, &[1]),
         ];
 
         let offset = 2;
@@ -641,7 +642,7 @@ mod tests {
             CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
             CommittableColumn::Boolean(&[true, false]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[1]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::WithTimeZone, &[1]),
         ];
 
         let offset = 0;
@@ -681,7 +682,7 @@ mod tests {
             CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
             CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
             CommittableColumn::Boolean(&[true, false]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[1]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::WithTimeZone, &[1]),
         ];
 
         let offset = 1;
@@ -1023,7 +1024,7 @@ mod tests {
             CommittableColumn::Boolean(&[true, false, true, false, true]),
             CommittableColumn::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::WithTimeZone,
                 &[1, 2, 3, 4, 5],
             ),
         ];
@@ -1062,7 +1063,7 @@ mod tests {
             CommittableColumn::Boolean(&[true, false, true, false, true]),
             CommittableColumn::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::WithTimeZone,
                 &[1, 2, 3, 4, 5],
             ),
         ];
