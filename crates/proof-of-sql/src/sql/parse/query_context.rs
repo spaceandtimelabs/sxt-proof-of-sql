@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{ColumnRef, LiteralValue, TableRef},
+        database::{ColumnRef, TableRef},
         map::{IndexMap, IndexSet},
     },
     sql::{
@@ -13,7 +13,7 @@ use alloc::{borrow::ToOwned, boxed::Box, string::ToString, vec::Vec};
 use proof_of_sql_parser::intermediate_ast::{
     AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice,
 };
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Expr, Ident, Value};
 
 #[derive(Default, Debug)]
 pub struct QueryContext {
@@ -236,7 +236,7 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
     fn try_from(value: &QueryContext) -> Result<Option<GroupByExec>, Self::Error> {
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
-            .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
+            .unwrap_or_else(|| DynProofExpr::new_literal(Expr::Value(Value::Boolean(true))));
         let table = value.table.map(|table_ref| TableExpr { table_ref }).ok_or(
             ConversionError::InvalidExpression {
                 expression: "QueryContext has no table_ref".to_owned(),

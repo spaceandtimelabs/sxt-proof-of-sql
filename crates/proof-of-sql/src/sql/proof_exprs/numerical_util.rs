@@ -1,15 +1,16 @@
 use crate::base::{
-    database::{Column, ColumnarValue, LiteralValue},
+    database::{literal_value::ToScalar, Column, ColumnError, ColumnarValue},
     scalar::{Scalar, ScalarExt},
 };
 use bumpalo::Bump;
 use core::cmp::Ordering;
+use sqlparser::ast::{DataType, Expr as SqlExpr, ObjectName};
 
 #[allow(clippy::cast_sign_loss)]
 /// Add or subtract two literals together.
 pub(crate) fn add_subtract_literals<S: Scalar>(
-    lhs: &LiteralValue,
-    rhs: &LiteralValue,
+    lhs: &SqlExpr,
+    rhs: &SqlExpr,
     lhs_scale: i8,
     rhs_scale: i8,
     is_subtract: bool,
@@ -73,42 +74,46 @@ pub(crate) fn add_subtract_columnar_values<'a, S: Scalar>(
     rhs_scale: i8,
     alloc: &'a Bump,
     is_subtract: bool,
-) -> ColumnarValue<'a, S> {
+) -> Result<ColumnarValue<'a, S>, ColumnError> {
     match (lhs, rhs) {
         (ColumnarValue::Column(lhs), ColumnarValue::Column(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
+            Ok(ColumnarValue::Column(Column::Scalar(add_subtract_columns(
                 lhs,
                 rhs,
                 lhs_scale,
                 rhs_scale,
                 alloc,
                 is_subtract,
-            )))
+            ))))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
-                Column::from_literal_with_length(&lhs, rhs.len(), alloc),
+            Ok(ColumnarValue::Column(Column::Scalar(add_subtract_columns(
+                Column::from_literal_with_length(&lhs, rhs.len(), alloc)?,
                 rhs,
                 lhs_scale,
                 rhs_scale,
                 alloc,
                 is_subtract,
-            )))
+            ))))
         }
         (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
+            let rhs_column = Column::from_literal_with_length(&rhs, lhs.len(), alloc)?;
+            Ok(ColumnarValue::Column(Column::Scalar(add_subtract_columns(
                 lhs,
-                Column::from_literal_with_length(&rhs, lhs.len(), alloc),
+                rhs_column,
                 lhs_scale,
                 rhs_scale,
                 alloc,
                 is_subtract,
-            )))
+            ))))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
-            ColumnarValue::Literal(LiteralValue::Scalar(
-                add_subtract_literals::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_subtract).into(),
-            ))
+            let result_scalar =
+                add_subtract_literals::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_subtract);
+            Ok(ColumnarValue::Literal(SqlExpr::TypedString {
+                data_type: DataType::Custom(ObjectName(vec![]), vec![]),
+                value: format!("scalar:{result_scalar}"),
+            }))
         }
     }
 }
@@ -146,20 +151,23 @@ pub(crate) fn multiply_columnar_values<'a, S: Scalar>(
             ColumnarValue::Column(Column::Scalar(multiply_columns(lhs, rhs, alloc)))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            let lhs_scalar = lhs.to_scalar::<S>();
+            let lhs_scalar = (*lhs).to_scalar::<S>();
             let result =
                 alloc.alloc_slice_fill_with(rhs.len(), |i| lhs_scalar * rhs.scalar_at(i).unwrap());
             ColumnarValue::Column(Column::Scalar(result))
         }
         (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
-            let rhs_scalar = rhs.to_scalar();
+            let rhs_scalar = (*rhs).to_scalar();
             let result =
                 alloc.alloc_slice_fill_with(lhs.len(), |i| lhs.scalar_at(i).unwrap() * rhs_scalar);
             ColumnarValue::Column(Column::Scalar(result))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
-            let result = lhs.to_scalar::<S>() * rhs.to_scalar();
-            ColumnarValue::Literal(LiteralValue::Scalar(result.into()))
+            let result = (*lhs).to_scalar::<S>() * (*rhs).to_scalar();
+            ColumnarValue::Literal(SqlExpr::TypedString {
+                data_type: DataType::Custom(ObjectName(vec![]), vec![]),
+                value: format!("scalar:{result}"),
+            })
         }
     }
 }

@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{Column, ColumnRef, ColumnType, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -19,7 +19,7 @@ use bumpalo::Bump;
 use core::fmt::Debug;
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::BinaryOperator;
+use sqlparser::ast::{BinaryOperator, Expr as SqlExpr};
 
 /// Enum of AST column expression types that implement `ProofExpr`. Is itself a `ProofExpr`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -69,8 +69,8 @@ impl DynProofExpr {
         Ok(Self::Not(NotExpr::new(Box::new(expr))))
     }
     /// Create CONST expression
-    pub fn new_literal(value: LiteralValue) -> Self {
-        Self::Literal(LiteralExpr::new(value))
+    pub fn new_literal(expr: SqlExpr) -> Self {
+        Self::Literal(LiteralExpr::new(expr))
     }
     /// Create a new equals expression
     pub fn try_new_equals(lhs: DynProofExpr, rhs: DynProofExpr) -> ConversionResult<Self> {

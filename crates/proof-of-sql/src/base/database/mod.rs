@@ -40,8 +40,9 @@ pub use table_operation_error::{TableOperationError, TableOperationResult};
 mod columnar_value;
 pub use columnar_value::ColumnarValue;
 
-mod literal_value;
-pub use literal_value::LiteralValue;
+/// TODO: add docs
+pub mod literal_value;
+pub use literal_value::{ExprExt, ToScalar};
 
 mod table_ref;
 #[cfg(feature = "arrow")]
@@ -126,3 +127,5 @@ mod order_by_util_test;
 
 #[allow(dead_code)]
 pub(crate) mod join_util;
+
+pub use column::ColumnError;

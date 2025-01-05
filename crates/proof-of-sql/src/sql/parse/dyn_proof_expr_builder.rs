@@ -1,28 +1,22 @@
 use super::ConversionError;
 use crate::{
-    base::{
-        database::{ColumnRef, LiteralValue},
-        map::IndexMap,
-        math::{
-            decimal::{DecimalError, Precision},
-            i256::I256,
-            BigDecimalExt,
-        },
-    },
+    base::{database::ColumnRef, map::IndexMap, math::i256::I256},
     sql::{
-        parse::{
-            dyn_proof_expr_builder::DecimalError::{InvalidPrecision, InvalidScale},
-            ConversionError::DecimalConversionError,
-        },
+        // parse::{
+        //     dyn_proof_expr_builder::DecimalError::{InvalidPrecision, InvalidScale},
+        //     ConversionError::DecimalConversionError,
+        // },
         proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
     },
 };
-use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
+use alloc::{boxed::Box, format, string::ToString};
 use proof_of_sql_parser::{
-    intermediate_ast::{AggregationOperator, Expression, Literal},
-    posql_time::{PoSQLTimeUnit, PoSQLTimestampError},
+    intermediate_ast::{AggregationOperator, Expression},
+    posql_time::PoSQLTimeUnit,
 };
-use sqlparser::ast::{BinaryOperator, Ident, UnaryOperator};
+use sqlparser::ast::{
+    BinaryOperator, DataType, ExactNumberInfo, Expr, Ident, ObjectName, UnaryOperator, Value,
+};
 
 /// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
 /// a `proof_of_sql_parser::intermediate_ast::Expression`.
@@ -58,7 +52,10 @@ impl DynProofExprBuilder<'_> {
     fn visit_expr(&self, expr: &Expression) -> Result<DynProofExpr, ConversionError> {
         match expr {
             Expression::Column(identifier) => self.visit_column((*identifier).into()),
-            Expression::Literal(lit) => self.visit_literal(lit),
+            Expression::Literal(lit) => {
+                let expr: Expr = lit.clone().into();
+                self.visit_literal(&expr)
+            }
             Expression::Binary { op, left, right } => {
                 self.visit_binary_expr(&(*op).into(), left, right)
             }
@@ -81,52 +78,89 @@ impl DynProofExprBuilder<'_> {
         )))
     }
 
+    /// Converts a `Expr` into a `DynProofExpr`
+    ///
+    /// # Panics
+    /// - Panics if:
+    ///   - `u8::try_from` for precision fails (precision out of range).
+    ///   - `i8::try_from` for scale fails (scale out of range).
+    ///   - A scalar string does not contain exactly 4 limbs.
+    ///   - Parsing scalar limbs fails.
+    ///
+    /// # Examples
+    /// ```
+    /// let expr = Expr::Value(Value::Boolean(true));
+    /// let dyn_expr = visit_literal(&expr).unwrap();
+    /// ```
     #[allow(clippy::unused_self)]
-    fn visit_literal(&self, lit: &Literal) -> Result<DynProofExpr, ConversionError> {
-        match lit {
-            Literal::Boolean(b) => Ok(DynProofExpr::new_literal(LiteralValue::Boolean(*b))),
-            Literal::BigInt(i) => Ok(DynProofExpr::new_literal(LiteralValue::BigInt(*i))),
-            Literal::Int128(i) => Ok(DynProofExpr::new_literal(LiteralValue::Int128(*i))),
-            Literal::Decimal(d) => {
-                let raw_scale = d.scale();
-                let scale = raw_scale.try_into().map_err(|_| InvalidScale {
-                    scale: raw_scale.to_string(),
-                })?;
-                let precision =
-                    Precision::try_from(d.precision()).map_err(|_| DecimalConversionError {
-                        source: InvalidPrecision {
-                            error: d.precision().to_string(),
-                        },
-                    })?;
-                Ok(DynProofExpr::new_literal(LiteralValue::Decimal75(
-                    precision,
-                    scale,
-                    I256::from_num_bigint(
-                        &d.try_into_bigint_with_precision_and_scale(precision.value(), scale)?,
-                    ),
-                )))
+    fn visit_literal(&self, expr: &Expr) -> Result<DynProofExpr, ConversionError> {
+        match expr {
+            Expr::Value(Value::Boolean(b)) => {
+                Ok(DynProofExpr::new_literal(Expr::Value(Value::Boolean(*b))))
             }
-            Literal::VarChar(s) => Ok(DynProofExpr::new_literal(LiteralValue::VarChar(s.clone()))),
-            Literal::Timestamp(its) => {
-                let timestamp = match its.timeunit() {
-                    PoSQLTimeUnit::Nanosecond => {
-                        its.timestamp().timestamp_nanos_opt().ok_or_else(|| {
-                                PoSQLTimestampError::UnsupportedPrecision{ error: "Timestamp out of range: 
-                                Valid nanosecond timestamps must be between 1677-09-21T00:12:43.145224192 
-                                and 2262-04-11T23:47:16.854775807.".to_owned()
+            Expr::Value(Value::Number(value, _)) => value.parse::<i128>().map_or_else(
+                |_| {
+                    Err(ConversionError::InvalidNumberFormat {
+                        value: value.clone(),
+                    })
+                },
+                |n| {
+                    let number_expr = Expr::Value(Value::Number(n.to_string(), false));
+                    Ok(DynProofExpr::new_literal(number_expr))
+                },
+            ),
+            Expr::Value(Value::SingleQuotedString(s)) => Ok(DynProofExpr::new_literal(
+                Expr::Value(Value::SingleQuotedString(s.clone())),
+            )),
+            Expr::TypedString { data_type, value } => match data_type {
+                DataType::Decimal(ExactNumberInfo::PrecisionAndScale(precision, scale)) => {
+                    let parsed_value = I256::from_string(value).map_err(|_| {
+                        ConversionError::InvalidDecimalFormat {
+                            value: value.clone(),
+                            precision: u8::try_from(*precision)
+                                .expect("Precision must fit into u8"),
+                            scale: i8::try_from(*scale).expect("Scale must fit into i8"),
                         }
-                        })?
-                    }
-                    PoSQLTimeUnit::Microsecond => its.timestamp().timestamp_micros(),
-                    PoSQLTimeUnit::Millisecond => its.timestamp().timestamp_millis(),
-                    PoSQLTimeUnit::Second => its.timestamp().timestamp(),
-                };
-                Ok(DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
-                    its.timeunit(),
-                    its.timezone().into(),
-                    timestamp,
-                )))
-            }
+                    })?;
+                    Ok(DynProofExpr::new_literal(Expr::TypedString {
+                        data_type: DataType::Decimal(ExactNumberInfo::PrecisionAndScale(
+                            *precision, *scale,
+                        )),
+                        value: parsed_value.to_string(),
+                    }))
+                }
+                DataType::Timestamp(Some(precision), tz) => {
+                    let time_unit =
+                        PoSQLTimeUnit::from_precision(*precision).unwrap_or(PoSQLTimeUnit::Second);
+                    let parsed_value = value.parse::<i64>().map_err(|_| {
+                        ConversionError::InvalidTimestampFormat {
+                            value: value.clone(),
+                        }
+                    })?;
+                    Ok(DynProofExpr::new_literal(Expr::TypedString {
+                        data_type: DataType::Timestamp(Some(time_unit.into()), *tz),
+                        value: parsed_value.to_string(),
+                    }))
+                }
+                DataType::Custom(_, _) if data_type.to_string() == "scalar" => {
+                    let scalar_str = value.strip_prefix("scalar:").unwrap_or_default();
+                    let limbs: Vec<u64> = scalar_str
+                        .split(',')
+                        .map(|x| x.parse::<u64>().unwrap_or_default())
+                        .collect();
+                    assert!(limbs.len() == 4, "Scalar must have exactly 4 limbs");
+                    Ok(DynProofExpr::new_literal(Expr::TypedString {
+                        data_type: DataType::Custom(ObjectName(vec![]), vec![]),
+                        value: format!("{},{},{},{}", limbs[0], limbs[1], limbs[2], limbs[3]),
+                    }))
+                }
+                _ => Err(ConversionError::UnsupportedDataType {
+                    data_type: data_type.to_string(),
+                }),
+            },
+            _ => Err(ConversionError::UnsupportedLiteral {
+                literal: format!("{expr:?}"),
+            }),
         }
     }
 

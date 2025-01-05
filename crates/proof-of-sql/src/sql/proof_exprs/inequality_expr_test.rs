@@ -2,8 +2,8 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, LiteralValue, OwnedTable,
-            OwnedTableTestAccessor, TableTestAccessor, TestAccessor,
+            owned_table_utility::*, table_utility::*, Column, OwnedTable, OwnedTableTestAccessor,
+            TableTestAccessor, TestAccessor,
         },
         scalar::{Curve25519Scalar, Scalar, ScalarExt},
     },
@@ -22,7 +22,7 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-use sqlparser::ast::TimezoneInfo;
+use sqlparser::ast::{DataType, Expr, TimezoneInfo};
 
 #[test]
 fn we_can_compare_columns_with_small_timestamp_values_gte() {
@@ -39,11 +39,10 @@ fn we_can_compare_columns_with_small_timestamp_values_gte() {
         tab(t),
         gte(
             column(t, "a", &accessor),
-            DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
-                PoSQLTimeUnit::Nanosecond,
-                TimezoneInfo::WithTimeZone,
-                1,
-            )),
+            DynProofExpr::new_literal(Expr::TypedString {
+                data_type: DataType::Timestamp(Some(1), TimezoneInfo::WithTimeZone),
+                value: "1".to_string(),
+            }),
         ),
     );
 
@@ -73,11 +72,10 @@ fn we_can_compare_columns_with_small_timestamp_values_lte() {
         tab(t),
         lte(
             column(t, "a", &accessor),
-            DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
-                PoSQLTimeUnit::Nanosecond,
-                TimezoneInfo::WithTimeZone,
-                1,
-            )),
+            DynProofExpr::new_literal(Expr::TypedString {
+                data_type: DataType::Timestamp(Some(1), TimezoneInfo::WithTimeZone),
+                value: "1".to_string(),
+            }),
         ),
     );
 

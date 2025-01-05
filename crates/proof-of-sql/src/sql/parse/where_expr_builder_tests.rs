@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
+        database::{ColumnRef, ColumnType, TestSchemaAccessor},
         map::{indexmap, IndexMap},
         math::decimal::Precision,
     },
@@ -16,7 +16,7 @@ use proof_of_sql_parser::{
     utility::*,
     SelectStatement,
 };
-use sqlparser::ast::{Ident, TimezoneInfo};
+use sqlparser::ast::{Expr, Ident, TimezoneInfo, Value};
 
 /// # Panics
 ///
@@ -149,7 +149,10 @@ fn we_can_directly_check_whether_bigint_columns_ge_int128() {
             "bigint_column".into(),
             ColumnType::BigInt,
         ))),
-        DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
+        DynProofExpr::Literal(LiteralExpr::new(Expr::Value(Value::Number(
+            "-12345".to_string(),
+            false,
+        )))),
         false,
     )
     .unwrap();
@@ -171,7 +174,10 @@ fn we_can_directly_check_whether_bigint_columns_le_int128() {
             "bigint_column".into(),
             ColumnType::BigInt,
         ))),
-        DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
+        DynProofExpr::Literal(LiteralExpr::new(Expr::Value(Value::Number(
+            "-12345".to_string(),
+            false,
+        )))),
         true,
     )
     .unwrap();
