@@ -1,4 +1,5 @@
 use super::PoSQLTimestampError;
+use crate::alloc::string::ToString;
 use core::fmt;
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +15,21 @@ pub enum PoSQLTimeUnit {
     Microsecond,
     /// Represents nanoseconds with precision 9: ex "2024-06-20 12:34:56.123456789"
     Nanosecond,
+}
+
+impl PoSQLTimeUnit {
+    /// Converts a precision value into a corresponding `PoSQLTimeUnit`.
+    pub fn from_precision(precision: u64) -> Result<Self, PoSQLTimestampError> {
+        match precision {
+            0 => Ok(PoSQLTimeUnit::Second),
+            3 => Ok(PoSQLTimeUnit::Millisecond),
+            6 => Ok(PoSQLTimeUnit::Microsecond),
+            9 => Ok(PoSQLTimeUnit::Nanosecond),
+            _ => Err(PoSQLTimestampError::UnsupportedPrecision {
+                error: precision.to_string(),
+            }),
+        }
+    }
 }
 
 impl From<PoSQLTimeUnit> for u64 {

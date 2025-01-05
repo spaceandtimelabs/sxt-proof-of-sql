@@ -1,11 +1,11 @@
 use super::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr};
 use crate::base::{
-    database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
-    math::{decimal::Precision, i256::I256},
+    database::{ColumnRef, SchemaAccessor, TableRef},
+    math::i256::I256,
     scalar::Scalar,
 };
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
-use sqlparser::ast::Ident;
+use sqlparser::ast::{DataType, ExactNumberInfo, Expr, Ident, ObjectName, Value};
 
 pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name: Ident = name.into();
@@ -86,43 +86,52 @@ pub fn multiply(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
 }
 
 pub fn const_bool(val: bool) -> DynProofExpr {
-    DynProofExpr::new_literal(LiteralValue::Boolean(val))
+    DynProofExpr::new_literal(Expr::Value(Value::Boolean(val)))
 }
 
 pub fn const_smallint(val: i16) -> DynProofExpr {
-    DynProofExpr::new_literal(LiteralValue::SmallInt(val))
+    DynProofExpr::new_literal(Expr::Value(Value::Number(val.to_string(), false)))
 }
 
 pub fn const_int(val: i32) -> DynProofExpr {
-    DynProofExpr::new_literal(LiteralValue::Int(val))
+    DynProofExpr::new_literal(Expr::Value(Value::Number(val.to_string(), false)))
 }
 
 pub fn const_bigint(val: i64) -> DynProofExpr {
-    DynProofExpr::new_literal(LiteralValue::BigInt(val))
+    DynProofExpr::new_literal(Expr::Value(Value::Number(val.to_string(), false)))
 }
 
 pub fn const_int128(val: i128) -> DynProofExpr {
-    DynProofExpr::new_literal(LiteralValue::Int128(val))
+    DynProofExpr::new_literal(Expr::Value(Value::Number(val.to_string(), false)))
 }
 
 pub fn const_varchar(val: &str) -> DynProofExpr {
-    DynProofExpr::new_literal(LiteralValue::VarChar(val.to_string()))
+    DynProofExpr::new_literal(Expr::Value(Value::SingleQuotedString(val.to_string())))
 }
 
 /// Create a constant scalar value. Used if we don't want to specify column types.
 pub fn const_scalar<S: Scalar, T: Into<S>>(val: T) -> DynProofExpr {
-    DynProofExpr::new_literal(LiteralValue::Scalar(val.into().into()))
+    let scalar_str = format!("scalar:{}", val.into());
+
+    DynProofExpr::new_literal(Expr::TypedString {
+        data_type: DataType::Custom(ObjectName(vec![Ident::new("scalar")]), vec![]),
+        value: scalar_str,
+    })
 }
 
 /// # Panics
 /// Panics if:
 /// - `Precision::new(precision)` fails, meaning the provided precision is invalid.
 pub fn const_decimal75<T: Into<I256>>(precision: u8, scale: i8, val: T) -> DynProofExpr {
-    DynProofExpr::new_literal(LiteralValue::Decimal75(
-        Precision::new(precision).unwrap(),
-        scale,
-        val.into(),
-    ))
+    let decimal_value = val.into();
+    let decimal_str = format!("{decimal_value}e{scale}");
+    DynProofExpr::new_literal(Expr::TypedString {
+        data_type: DataType::Decimal(ExactNumberInfo::PrecisionAndScale(
+            u64::from(precision),
+            i64::from(scale).try_into().unwrap(),
+        )),
+        value: decimal_str,
+    })
 }
 
 pub fn tab(tab: TableRef) -> TableExpr {

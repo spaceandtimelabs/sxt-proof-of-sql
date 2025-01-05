@@ -3,77 +3,106 @@ use crate::base::{
     math::{decimal::Precision, i256::I256},
     scalar::Scalar,
 };
-use alloc::string::String;
 use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
-use serde::{Deserialize, Serialize};
-use sqlparser::ast::TimezoneInfo;
+use sqlparser::ast::{DataType, ExactNumberInfo, Expr, Value};
 
-/// Represents a literal value.
-///
-/// Note: The types here should correspond to native SQL database types.
-/// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
-/// a description of the native types used by Apache Ignite.
-#[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum LiteralValue {
-    /// Boolean literals
-    Boolean(bool),
-    /// i8 literals
-    TinyInt(i8),
-    /// i16 literals
-    SmallInt(i16),
-    /// i32 literals
-    Int(i32),
-    /// i64 literals
-    BigInt(i64),
-
-    /// String literals
-    ///  - the first element maps to the str value.
-    ///  - the second element maps to the str hash (see [`crate::base::scalar::Scalar`]).
-    VarChar(String),
-    /// i128 literals
-    Int128(i128),
-    /// Decimal literals with a max width of 252 bits
-    ///  - the backing store maps to the type [`crate::base::scalar::Curve25519Scalar`]
-    Decimal75(Precision, i8, I256),
-    /// Scalar literals. The underlying `[u64; 4]` is the limbs of the canonical form of the literal
-    Scalar([u64; 4]),
-    /// `TimeStamp` defined over a unit (s, ms, ns, etc) and timezone with backing store
-    /// mapped to i64, which is time units since unix epoch
-    TimeStampTZ(PoSQLTimeUnit, TimezoneInfo, i64),
+/// A trait for SQL expressions that provides functionality to retrieve their associated column type.
+/// This trait is primarily used to map SQL expressions to their corresponding [`ColumnType`].
+pub trait ExprExt {
+    /// Determines the [`ColumnType`] associated with the expression.
+    fn column_type(&self) -> ColumnType;
 }
 
-impl LiteralValue {
+/// A trait for SQL expressions that allows converting them into scalar values.
+/// This trait provides functionality to interpret SQL expressions as scalars
+pub trait ToScalar {
+    /// Converts the SQL expression into a scalar value of the specified type.
+    fn to_scalar<S: Scalar>(&self) -> S;
+}
+
+impl ExprExt for Expr {
     /// Provides the column type associated with the column
     #[must_use]
-    pub fn column_type(&self) -> ColumnType {
+    fn column_type(&self) -> ColumnType {
         match self {
-            Self::Boolean(_) => ColumnType::Boolean,
-            Self::TinyInt(_) => ColumnType::TinyInt,
-            Self::SmallInt(_) => ColumnType::SmallInt,
-            Self::Int(_) => ColumnType::Int,
-            Self::BigInt(_) => ColumnType::BigInt,
-            Self::VarChar(_) => ColumnType::VarChar,
-            Self::Int128(_) => ColumnType::Int128,
-            Self::Scalar(_) => ColumnType::Scalar,
-            Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(*precision, *scale),
-            Self::TimeStampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
+            Expr::Value(Value::Boolean(_)) => ColumnType::Boolean,
+            Expr::Value(Value::Number(value, _)) => {
+                let n = value.parse::<i64>().unwrap_or_else(|err| {
+                    panic!("Failed to parse '{value}' as a number. Error: {err}");
+                });
+                if i8::try_from(n).is_ok() {
+                    ColumnType::TinyInt
+                } else if i16::try_from(n).is_ok() {
+                    ColumnType::SmallInt
+                } else if i32::try_from(n).is_ok() {
+                    ColumnType::Int
+                } else {
+                    ColumnType::BigInt
+                }
+            }
+            Expr::Value(Value::SingleQuotedString(_)) => ColumnType::VarChar,
+            Expr::TypedString { data_type, .. } => match data_type {
+                DataType::Decimal(ExactNumberInfo::PrecisionAndScale(p, s)) => {
+                    let precision = u8::try_from(*p).expect("Precision must fit into u8");
+                    let scale = i8::try_from(*s).expect("Scale must fit into i8");
+                    let precision_obj =
+                        Precision::new(precision).expect("Failed to create Precision");
+                    ColumnType::Decimal75(precision_obj, scale)
+                }
+                DataType::Timestamp(Some(precision), tz) => {
+                    let tu =
+                        PoSQLTimeUnit::from_precision(*precision).unwrap_or(PoSQLTimeUnit::Second);
+                    ColumnType::TimestampTZ(tu, *tz)
+                }
+                DataType::Custom(_, _) if data_type.to_string() == "scalar" => ColumnType::Scalar,
+                _ => unimplemented!("Mapping for {:?} is not implemented", data_type),
+            },
+            _ => unimplemented!("Mapping for {:?} is not implemented", self),
         }
     }
+}
 
+impl ToScalar for Expr {
     /// Converts the literal to a scalar
-    pub(crate) fn to_scalar<S: Scalar>(&self) -> S {
+    fn to_scalar<S: Scalar>(&self) -> S {
         match self {
-            Self::Boolean(b) => b.into(),
-            Self::TinyInt(i) => i.into(),
-            Self::SmallInt(i) => i.into(),
-            Self::Int(i) => i.into(),
-            Self::BigInt(i) => i.into(),
-            Self::VarChar(str) => str.into(),
-            Self::Decimal75(_, _, i) => i.into_scalar(),
-            Self::Int128(i) => i.into(),
-            Self::Scalar(limbs) => (*limbs).into(),
-            Self::TimeStampTZ(_, _, time) => time.into(),
+            Expr::Value(Value::Boolean(b)) => b.into(),
+            Expr::Value(Value::Number(n, _)) => n
+                .parse::<i64>()
+                .unwrap_or_else(|_| panic!("Invalid number: {n}"))
+                .into(),
+            Expr::Value(Value::SingleQuotedString(s)) => s.into(),
+            // Expr::TypedString { data_type, value }
+            //     if matches!(data_type, DataType::Decimal(_)) =>
+            // {
+            //     let bigint_value = match num_bigint::BigInt::parse_bytes(value.as_bytes(), 10) {
+            //         Some(bigint) => bigint,
+            //         // Will be handled later
+            //         None => panic!("Failed to parse '{}' as a decimal", value),
+            //     };
+
+            //     let i256_value = I256::from_num_bigint(&bigint_value);
+            //     i256_value.into_scalar()
+            // }
+            Expr::TypedString { data_type, value } if data_type.to_string() == "scalar" => {
+                let scalar_str = value.strip_prefix("scalar:").unwrap();
+                let limbs: Vec<u64> = scalar_str
+                    .split(',')
+                    .map(|x| x.parse::<u64>().unwrap())
+                    .collect();
+                assert!(limbs.len() == 4, "Scalar must have exactly 4 limbs");
+                S::from([limbs[0], limbs[1], limbs[2], limbs[3]])
+            }
+            Expr::TypedString { data_type, value } => match data_type {
+                DataType::Timestamp(_, _) => value.parse::<i64>().unwrap().into(),
+                DataType::Decimal(_) => {
+                    let i256_value = I256::from_string(value)
+                        .unwrap_or_else(|_| panic!("Failed to parse '{value}' as a decimal"));
+                    i256_value.into_scalar()
+                }
+                _ => unimplemented!("Conversion for {:?} is not implemented.", data_type),
+            },
+            _ => unimplemented!("Conversion for {:?} is not implemented", self),
         }
     }
 }

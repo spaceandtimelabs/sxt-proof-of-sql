@@ -153,6 +153,54 @@ pub enum ConversionError {
         /// The underlying error message
         error: String,
     },
+
+    #[snafu(display("Invalid number format: {value:?}"))]
+    /// Represents an error due to an invalid number format.
+    InvalidNumberFormat {
+        /// The invalid number value as a string.
+        value: String,
+    },
+
+    #[snafu(display(
+        "Invalid decimal format: {value:?} with precision {precision} and scale {scale}"
+    ))]
+    /// Represents an error due to an invalid decimal format.
+    InvalidDecimalFormat {
+        /// The invalid decimal value as a string.
+        value: String,
+        /// The precision of the decimal value.
+        precision: u8,
+        /// The scale of the decimal value.
+        scale: i8,
+    },
+
+    #[snafu(display("Unsupported literal type: {literal:?}"))]
+    /// The literal type is not supported.
+    UnsupportedLiteral {
+        /// The unsupported literal type as a string.
+        literal: String,
+    },
+
+    #[snafu(display("Unsupported data type: {data_type:?}"))]
+    /// The data type is not supported.
+    UnsupportedDataType {
+        /// The unsupported data type as a string.
+        data_type: String,
+    },
+
+    #[snafu(display("Invalid timestamp format: {value:?}"))]
+    /// The timestamp format is invalid.
+    InvalidTimestampFormat {
+        /// The invalid timestamp value as a string.
+        value: String,
+    },
+
+    #[snafu(display("Timestamp out of range: {value:?}"))]
+    /// The timestamp value is out of the allowed range.
+    TimestampOutOfRange {
+        /// The out-of-range timestamp value as a string.
+        value: String,
+    },
 }
 
 impl From<String> for ConversionError {

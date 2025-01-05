@@ -1,7 +1,7 @@
 use super::ProofExpr;
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{Column, ColumnRef, ColumnType, ExprExt, Table, ToScalar},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -11,7 +11,7 @@ use crate::{
 };
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
-
+use sqlparser::ast::Expr;
 /// Provable CONST expression
 ///
 /// This node allows us to easily represent queries like
@@ -25,12 +25,12 @@ use serde::{Deserialize, Serialize};
 /// changes, and the performance is sufficient for present.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LiteralExpr {
-    pub(crate) value: LiteralValue,
+    pub(crate) value: Expr,
 }
 
 impl LiteralExpr {
     /// Create literal expression
-    pub fn new(value: LiteralValue) -> Self {
+    pub fn new(value: Expr) -> Self {
         Self { value }
     }
 }
@@ -52,7 +52,7 @@ impl ProofExpr for LiteralExpr {
 
         log::log_memory_usage("End");
 
-        res
+        res.expect("Failed to evaluate literal expression")
     }
 
     #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]
@@ -69,7 +69,7 @@ impl ProofExpr for LiteralExpr {
 
         log::log_memory_usage("End");
 
-        res
+        res.expect("Failed to evaluate literal expression")
     }
 
     fn verifier_evaluate<S: Scalar>(
