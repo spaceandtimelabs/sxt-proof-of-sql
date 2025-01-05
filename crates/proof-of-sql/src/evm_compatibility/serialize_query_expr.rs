@@ -4,7 +4,6 @@ use crate::{
     sql::{parse::QueryExpr, proof::ProofPlan},
 };
 use alloc::vec::Vec;
-
 /// Serializes a `QueryExpr` into a vector of bytes.
 ///
 /// This function takes a `QueryExpr` and attempts to serialize it into a vector of bytes.
@@ -45,7 +44,7 @@ pub fn serialize_query_expr<S: Scalar>(
 mod tests {
     use crate::{
         base::{
-            database::{ColumnRef, ColumnType, LiteralValue},
+            database::{ColumnRef, ColumnType},
             map::indexset,
             scalar::test_scalar::TestScalar,
         },
@@ -66,6 +65,7 @@ mod tests {
     };
     use core::iter;
     use itertools::Itertools;
+    use sqlparser::ast::{Expr as SqlExpr, Value};
 
     #[test]
     fn we_can_generate_serialized_proof_plan_for_query_expr() {
@@ -74,11 +74,17 @@ mod tests {
 
         let plan = DynProofPlan::Filter(FilterExec::new(
             vec![AliasedDynProofExpr {
-                expr: DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(1001))),
+                expr: DynProofExpr::Literal(LiteralExpr::new(SqlExpr::Value(Value::Number(
+                    "1001".to_string(),
+                    false,
+                )))),
                 alias: identifier_alias,
             }],
             TableExpr { table_ref },
-            DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(1002))),
+            DynProofExpr::Literal(LiteralExpr::new(SqlExpr::Value(Value::Number(
+                "1001".to_string(),
+                false,
+            )))),
         ));
 
         // Serializing a query expression without postprocessing steps should succeed and
@@ -136,9 +142,9 @@ mod tests {
             TableExpr { table_ref },
             DynProofExpr::Equals(EqualsExpr::new(
                 Box::new(DynProofExpr::Column(ColumnExpr::new(column_ref_a))),
-                Box::new(DynProofExpr::Literal(LiteralExpr::new(
-                    LiteralValue::BigInt(5),
-                ))),
+                Box::new(DynProofExpr::Literal(LiteralExpr::new(SqlExpr::Value(
+                    Value::Number("5".to_string(), false),
+                )))),
             )),
         ));
 

@@ -3,8 +3,7 @@ use crate::{
     base::{
         database::{
             owned_table_utility::*, table_utility::*, ColumnField, ColumnRef, ColumnType,
-            LiteralValue, OwnedTable, OwnedTableTestAccessor, TableRef, TableTestAccessor,
-            TestAccessor,
+            OwnedTable, OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
         },
         map::{indexmap, IndexMap, IndexSet},
         math::decimal::Precision,
@@ -21,7 +20,7 @@ use crate::{
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 use proof_of_sql_parser::ResourceId;
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Expr, Ident, Value};
 
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
@@ -54,7 +53,10 @@ fn we_can_correctly_fetch_the_query_result_schema() {
                 Ident::new("c"),
                 ColumnType::BigInt,
             ))),
-            DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(123))),
+            DynProofExpr::Literal(LiteralExpr::new(Expr::Value(Value::Number(
+                "123".to_string(),
+                false,
+            )))),
         )
         .unwrap(),
     );
@@ -102,7 +104,10 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                         Ident::new("f"),
                         ColumnType::BigInt,
                     ))),
-                    DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(45))),
+                    DynProofExpr::Literal(LiteralExpr::new(Expr::Value(Value::Number(
+                        "45".to_string(),
+                        false,
+                    )))),
                 )
                 .unwrap(),
                 DynProofExpr::try_new_equals(
@@ -111,7 +116,10 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                         Ident::new("c"),
                         ColumnType::BigInt,
                     ))),
-                    DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(-2))),
+                    DynProofExpr::Literal(LiteralExpr::new(Expr::Value(Value::Number(
+                        "-2".to_string(),
+                        false,
+                    )))),
                 )
                 .unwrap(),
             ),
@@ -121,7 +129,10 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                     Ident::new("b"),
                     ColumnType::BigInt,
                 ))),
-                DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(3))),
+                DynProofExpr::Literal(LiteralExpr::new(Expr::Value(Value::Number(
+                    "3".to_string(),
+                    false,
+                )))),
             )
             .unwrap(),
         )),

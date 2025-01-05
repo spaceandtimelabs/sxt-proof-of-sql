@@ -1,6 +1,7 @@
 use crate::base::scalar::Scalar;
 use ark_ff::BigInteger;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// A 256-bit data type with some conversions implemented that interpret it as a signed integer.
 ///
@@ -44,7 +45,31 @@ impl I256 {
             num_bigint::Sign::Plus | num_bigint::Sign::NoSign => Self(limbs),
         }
     }
+
+    /// Creates an `I256` instance from a string representation of a number.
+    pub fn from_string(value: &str) -> Result<Self, String> {
+        let bigint = num_bigint::BigInt::parse_bytes(value.as_bytes(), 10)
+            .ok_or_else(|| format!("Failed to parse '{value}' as a valid number"))?;
+        Ok(Self::from_num_bigint(&bigint))
+    }
+
+    /// Converts `I256` into a little-endian byte array for compatibility with `BigInt`.
+    fn as_bytes_le(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(32);
+        for limb in &self.0 {
+            bytes.extend_from_slice(&limb.to_le_bytes());
+        }
+        bytes
+    }
 }
+
+impl fmt::Display for I256 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let bigint = num_bigint::BigInt::from_signed_bytes_le(&self.as_bytes_le());
+        write!(f, "{bigint}")
+    }
+}
+
 impl From<i32> for I256 {
     fn from(value: i32) -> Self {
         let abs = Self([value.unsigned_abs().into(), 0, 0, 0]);
