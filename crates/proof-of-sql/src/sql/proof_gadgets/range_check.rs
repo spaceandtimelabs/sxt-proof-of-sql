@@ -32,8 +32,32 @@ use bytemuck::cast_slice;
 use core::{cmp::max, iter::repeat};
 
 /// Update the max range length for the range check.
-pub fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(builder: &mut FirstRoundBuilder<S>) {
+pub fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
+    builder: &mut FirstRoundBuilder<'a, S>,
+    scalars: &[S],
+    alloc: &'a Bump,
+) {
     builder.update_range_length(256);
+
+    // Create 31 columns, each will collect the corresponding word from all scalars.
+    // 31 because a scalar will only ever have 248 bits of data set.
+    let mut word_columns: Vec<&mut [u8]> = (0..31)
+        .map(|_| alloc.alloc_slice_fill_copy(scalars.len(), 0))
+        .collect();
+    // Initialize a vector to count occurrences of each byte (0-255).
+    // The vector has 256 elements padded with zeros to match the length of the word columns
+    // The size is the larger of 256 or the number of scalars.
+    let word_counts: &mut [i64] = alloc.alloc_slice_fill_copy(max(256, scalars.len()), 0);
+
+    decompose_scalar_to_words(scalars, &mut word_columns, word_counts);
+
+    for byte_column in &mut word_columns {
+        // Allocate words
+        let words = alloc.alloc_slice_fill_with(byte_column.len(), |j| S::from(&byte_column[j]));
+
+        // Produce an MLE over words
+        builder.produce_intermediate_mle(words as &[_]);
+    }
 }
 
 /// Prove that a word-wise decomposition of a collection of scalars
@@ -48,7 +72,7 @@ pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     // 31 because a scalar will only ever have 248 bits of data set.
     let mut word_columns: Vec<&mut [u8]> = repeat(())
         .take(31)
-        .map(|()| alloc.alloc_slice_fill_with(scalars.len(), |_| 0))
+        .map(|()| alloc.alloc_slice_fill_copy(scalars.len(), 0))
         .collect();
 
     // Allocate space for the eventual inverted word columns by copying word_columns and converting to the required type.
@@ -167,9 +191,6 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
             // Allocate words
             let words =
                 alloc.alloc_slice_fill_with(byte_column.len(), |j| S::from(&byte_column[j]));
-
-            // Produce an MLE over words
-            builder.produce_intermediate_mle(words as &[_]);
 
             // Allocate words_inv
             let words_inv =
@@ -300,7 +321,7 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
     builder.produce_intermediate_mle(word_counts as &[_]);
 
     // Allocate row_sums from the bump allocator, ensuring it lives as long as 'a
-    let row_sums = alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO);
+    let row_sums = alloc.alloc_slice_fill_copy(scalars.len(), S::ZERO);
 
     // Sum up the corresponding row values using iterators
     for column in inverted_word_columns {
@@ -341,23 +362,20 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
 /// # Panics
 ///
 /// if a column contains values outside of the selected range.
-pub fn verifier_evaluate_range_check<C>(
-    builder: &mut VerificationBuilder<'_, C>,
-    input_ones_eval: C,
-    input_column_eval: C,
-) -> Result<(), ProofSizeMismatch>
-where
-    C: Scalar,
-{
+pub fn verifier_evaluate_range_check<S: Scalar>(
+    builder: &mut VerificationBuilder<'_, S>,
+    input_ones_eval: S,
+    input_column_eval: S,
+) -> Result<(), ProofSizeMismatch> {
     let alpha = builder.try_consume_post_result_challenge()?;
 
     let (sum, w_plus_alpha_inv_evals) = (0..31)
         .map(|i| {
-            let w_eval = builder.try_consume_final_round_mle_evaluation()?;
+            let w_eval = builder.try_consume_first_round_mle_evaluation()?;
             let words_inv = builder.try_consume_final_round_mle_evaluation()?;
 
             let word_eval = words_inv * (w_eval + alpha);
-            let power = (0..i).fold(C::from(1), |acc, _| acc * C::from(256));
+            let power = (0..i).fold(S::from(1), |acc, _| acc * S::from(256));
 
             builder.try_produce_sumcheck_subpolynomial_evaluation(
                 SumcheckSubpolynomialType::Identity,
@@ -370,7 +388,7 @@ where
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
         .fold(
-            (C::ZERO, Vec::with_capacity(31)),
+            (S::ZERO, Vec::with_capacity(31)),
             |(sum_acc, mut invs), (w_eval, words_inv, power)| {
                 (sum_acc + w_eval * power, {
                     invs.push(words_inv);
@@ -399,7 +417,7 @@ where
     )?;
 
     let count_eval = builder.try_consume_final_round_mle_evaluation()?;
-    let row_sum_eval: C = w_plus_alpha_inv_evals.iter().copied().sum();
+    let row_sum_eval: S = w_plus_alpha_inv_evals.iter().copied().sum();
     let count_value_product_eval = count_eval * word_vals_plus_alpha_inv;
 
     builder.try_produce_sumcheck_subpolynomial_evaluation(
