@@ -1,26 +1,26 @@
 use super::{ExpressionEvaluationError, ExpressionEvaluationResult};
 use crate::base::{
     database::{OwnedColumn, OwnedTable},
-    math::{
-        decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError, Precision},
-        BigDecimalExt,
-    },
+    math::decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError, Precision},
     scalar::Scalar,
 };
 use alloc::{format, string::ToString, vec};
-use proof_of_sql_parser::intermediate_ast::{Expression, Literal};
-use sqlparser::ast::{BinaryOperator, Ident, UnaryOperator};
+use bigdecimal::BigDecimal;
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+use sqlparser::ast::{
+    BinaryOperator, DataType, ExactNumberInfo, Expr, Ident, UnaryOperator, Value,
+};
 
 impl<S: Scalar> OwnedTable<S> {
     /// Evaluate an expression on the table.
-    pub fn evaluate(&self, expr: &Expression) -> ExpressionEvaluationResult<OwnedColumn<S>> {
+    pub fn evaluate(&self, expr: &Expr) -> ExpressionEvaluationResult<OwnedColumn<S>> {
         match expr {
-            Expression::Column(identifier) => self.evaluate_column(&Ident::from(*identifier)),
-            Expression::Literal(lit) => self.evaluate_literal(lit),
-            Expression::Binary { op, left, right } => {
-                self.evaluate_binary_expr(&(*op).into(), left, right)
+            Expr::Identifier(ident) => self.evaluate_column(ident),
+            Expr::Value(_) | Expr::TypedString { .. } => self.evaluate_literal(expr),
+            Expr::BinaryOp { op, left, right } => {
+                self.evaluate_binary_expr(&(*op).clone().into(), left, right)
             }
-            Expression::Unary { op, expr } => self.evaluate_unary_expr((*op).into(), expr),
+            Expr::UnaryOp { op, expr } => self.evaluate_unary_expr((*op).into(), expr),
             _ => Err(ExpressionEvaluationError::Unsupported {
                 expression: format!("Expression {expr:?} is not supported yet"),
             }),
@@ -37,36 +37,72 @@ impl<S: Scalar> OwnedTable<S> {
             .clone())
     }
 
-    fn evaluate_literal(&self, lit: &Literal) -> ExpressionEvaluationResult<OwnedColumn<S>> {
+    fn evaluate_literal(&self, value: &Expr) -> ExpressionEvaluationResult<OwnedColumn<S>> {
         let len = self.num_rows();
-        match lit {
-            Literal::Boolean(b) => Ok(OwnedColumn::Boolean(vec![*b; len])),
-            Literal::BigInt(i) => Ok(OwnedColumn::BigInt(vec![*i; len])),
-            Literal::Int128(i) => Ok(OwnedColumn::Int128(vec![*i; len])),
-            Literal::Decimal(d) => {
-                let raw_scale = d.scale();
-                let scale = raw_scale
-                    .try_into()
-                    .map_err(|_| DecimalError::InvalidScale {
-                        scale: raw_scale.to_string(),
+        match value {
+            Expr::Value(Value::Boolean(b)) => Ok(OwnedColumn::Boolean(vec![*b; len])),
+            Expr::Value(Value::Number(n, _)) => {
+                let num = n
+                    .parse::<i128>()
+                    .map_err(|_| DecimalError::InvalidDecimal {
+                        error: format!("Invalid number: {n}"),
                     })?;
-                let precision = Precision::try_from(d.precision())?;
-                let scalar = try_convert_intermediate_decimal_to_scalar(d, precision, scale)?;
-                Ok(OwnedColumn::Decimal75(precision, scale, vec![scalar; len]))
+                if num >= i64::MIN as i128 && num <= i64::MAX as i128 {
+                    Ok(OwnedColumn::BigInt(vec![num as i64; len]))
+                } else {
+                    Ok(OwnedColumn::Int128(vec![num; len]))
+                }
             }
-            Literal::VarChar(s) => Ok(OwnedColumn::VarChar(vec![s.clone(); len])),
-            Literal::Timestamp(its) => Ok(OwnedColumn::TimestampTZ(
-                its.timeunit(),
-                its.timezone().into(),
-                vec![its.timestamp().timestamp(); len],
-            )),
+            Expr::Value(Value::SingleQuotedString(s)) => {
+                Ok(OwnedColumn::VarChar(vec![s.clone(); len]))
+            }
+            Expr::TypedString { data_type, value } => match data_type {
+                DataType::Decimal(ExactNumberInfo::PrecisionAndScale(precision, scale)) => {
+                    let decimal = BigDecimal::parse_bytes(value.as_bytes(), 10).unwrap();
+                    let scalar = try_convert_intermediate_decimal_to_scalar(
+                        &decimal,
+                        Precision::try_from(*precision as u64)?,
+                        *scale as i8,
+                    )?;
+                    Ok(OwnedColumn::Decimal75(
+                        Precision::try_from(*precision as u64)?,
+                        *scale as i8,
+                        vec![scalar; len],
+                    ))
+                }
+                DataType::Timestamp(Some(time_unit), time_zone) => {
+                    let time_unit = PoSQLTimeUnit::from_precision(*time_unit).map_err(|err| {
+                        DecimalError::InvalidDecimal {
+                            error: format!("Invalid time unit precision: {err}"),
+                        }
+                    })?;
+
+                    let timestamp_value =
+                        value
+                            .parse::<i64>()
+                            .map_err(|_| DecimalError::InvalidDecimal {
+                                error: format!("Invalid timestamp value: {value}"),
+                            })?;
+                    Ok(OwnedColumn::TimestampTZ(
+                        time_unit,
+                        *time_zone,
+                        vec![timestamp_value; len],
+                    ))
+                }
+                _ => Err(ExpressionEvaluationError::Unsupported {
+                    expression: "Unsupported TypedString data type".to_string(),
+                }),
+            },
+            _ => Err(ExpressionEvaluationError::Unsupported {
+                expression: "Unsupported expression type".to_string(),
+            }),
         }
     }
 
     fn evaluate_unary_expr(
         &self,
         op: UnaryOperator,
-        expr: &Expression,
+        expr: &Expr,
     ) -> ExpressionEvaluationResult<OwnedColumn<S>> {
         let column = self.evaluate(expr)?;
         match op {
@@ -81,8 +117,8 @@ impl<S: Scalar> OwnedTable<S> {
     fn evaluate_binary_expr(
         &self,
         op: &BinaryOperator,
-        left: &Expression,
-        right: &Expression,
+        left: &Expr,
+        right: &Expr,
     ) -> ExpressionEvaluationResult<OwnedColumn<S>> {
         let left = self.evaluate(left)?;
         let right = self.evaluate(right)?;
