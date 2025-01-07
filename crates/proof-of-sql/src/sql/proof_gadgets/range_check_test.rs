@@ -1,4 +1,7 @@
-use super::range_check::{final_round_evaluate_range_check, verifier_evaluate_range_check};
+use super::range_check::{
+    final_round_evaluate_range_check, first_round_evaluate_range_check,
+    verifier_evaluate_range_check,
+};
 use crate::{
     base::{
         database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
@@ -23,11 +26,26 @@ impl ProverEvaluate for RangeCheckTestPlan {
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FirstRoundBuilder<'a, S>,
-        _alloc: &'a Bump,
+        alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         builder.request_post_result_challenges(1);
         builder.update_range_length(256);
+
+        // Get the table from the map using the table reference
+        let table: &Table<'a, S> = table_map
+            .get(&self.column.table_ref())
+            .expect("Table not found");
+
+        let scalars = table
+            .inner_table()
+            .get(&self.column.column_id())
+            .expect("Column not found in table")
+            .as_scalar()
+            .expect("Failed to convert column to scalar");
+
+        first_round_evaluate_range_check(builder, scalars, alloc);
+
         table_map[&self.column.table_ref()].clone()
     }
 
