@@ -30,7 +30,8 @@ impl<'a> WhereExprBuilder<'a> {
     ) -> Result<Option<DynProofExpr>, ConversionError> {
         where_expr
             .map(|where_expr| {
-                let expr_plan = self.builder.build(&where_expr)?;
+                let converted_expr = (*where_expr).into();
+                let expr_plan = self.builder.build(&converted_expr)?;
                 // Ensure that the expression is a boolean expression
                 match expr_plan.data_type() {
                     ColumnType::Boolean => Ok(expr_plan),

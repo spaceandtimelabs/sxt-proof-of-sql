@@ -7,12 +7,9 @@ use crate::base::{
 use alloc::{boxed::Box, format, string::ToString, vec, vec::Vec};
 use bumpalo::Bump;
 use itertools::{izip, Itertools};
-use proof_of_sql_parser::{
-    intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression},
-    Identifier,
-};
+use proof_of_sql_parser::intermediate_ast::AliasedResultExpr;
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Expr, Ident};
 
 /// A group by expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -24,7 +21,7 @@ pub struct GroupByPostprocessing {
     group_by_identifiers: Vec<Ident>,
 
     /// A list of aggregation expressions
-    aggregation_exprs: Vec<(AggregationOperator, Expression, Ident)>,
+    aggregation_exprs: Vec<(String, Expr, Ident)>,
 }
 
 /// Check whether multiple layers of aggregation exist within the same GROUP BY clause
@@ -32,31 +29,47 @@ pub struct GroupByPostprocessing {
 ///
 /// If the context is within an aggregation function, then any aggregation function is considered nested.
 /// Otherwise we need two layers of aggregation functions to be nested.
-fn contains_nested_aggregation(expr: &Expression, is_agg: bool) -> bool {
+fn contains_nested_aggregation(expr: &Expr, is_agg: bool) -> bool {
     match expr {
-        Expression::Column(_) | Expression::Literal(_) | Expression::Wildcard => false,
-        Expression::Aggregation { expr, .. } => is_agg || contains_nested_aggregation(expr, true),
-        Expression::Binary { left, right, .. } => {
+        Expr::Identifier(_) | Expr::Value(_) | Expr::Wildcard => false,
+        Expr::Function(function) => {
+            is_agg
+                || function.args.iter().any(|arg| match &arg {
+                    sqlparser::ast::FunctionArg::Unnamed(
+                        sqlparser::ast::FunctionArgExpr::Expr(arg_expr),
+                    ) => contains_nested_aggregation(arg_expr, true),
+                    sqlparser::ast::FunctionArg::Named { arg, .. } => {
+                        if let sqlparser::ast::FunctionArgExpr::Expr(arg_expr) = arg {
+                            contains_nested_aggregation(arg_expr, true)
+                        } else {
+                            false
+                        }
+                    }
+                    _ => false,
+                })
+        }
+        Expr::BinaryOp { left, right, .. } => {
             contains_nested_aggregation(left, is_agg) || contains_nested_aggregation(right, is_agg)
         }
-        Expression::Unary { expr, .. } => contains_nested_aggregation(expr, is_agg),
+        Expr::UnaryOp { expr, .. } => contains_nested_aggregation(expr, is_agg),
+        _ => false,
     }
 }
 
 /// Get identifiers NOT in aggregate functions
-fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Ident> {
+fn get_free_identifiers_from_expr(expr: &Expr) -> IndexSet<Ident> {
     match expr {
-        Expression::Column(identifier) => IndexSet::from_iter([(*identifier).into()]),
-        Expression::Literal(_) | Expression::Aggregation { .. } | Expression::Wildcard => {
-            IndexSet::default()
-        }
-        Expression::Binary { left, right, .. } => {
+        Expr::Identifier(identifier) => IndexSet::from_iter([identifier.clone()]),
+        Expr::Value(_) | Expr::Function(_) | Expr::Wildcard => IndexSet::default(),
+
+        Expr::BinaryOp { left, right, .. } => {
             let mut left_identifiers = get_free_identifiers_from_expr(left);
             let right_identifiers = get_free_identifiers_from_expr(right);
             left_identifiers.extend(right_identifiers);
             left_identifiers
         }
-        Expression::Unary { expr, .. } => get_free_identifiers_from_expr(expr),
+        Expr::UnaryOp { expr, .. } => get_free_identifiers_from_expr(expr),
+        _ => IndexSet::default(),
     }
 }
 
@@ -70,54 +83,46 @@ fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Ident> {
 /// Will panic if the key for an aggregation expression cannot be parsed as a valid identifier
 /// or if there are issues retrieving an identifier from the map.
 fn get_aggregate_and_remainder_expressions(
-    expr: Expression,
-    aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expression), Ident>,
-) -> Result<Expression, PostprocessingError> {
+    expr: Expr,
+    aggregation_expr_map: &mut IndexMap<(String, Expr), Ident>,
+) -> Result<Expr, PostprocessingError> {
     match expr {
-        Expression::Column(_) | Expression::Literal(_) | Expression::Wildcard => Ok(expr),
-        Expression::Aggregation { op, expr } => {
-            let key = (op, (*expr));
+        Expr::Identifier(_) | Expr::Value(_) | Expr::Wildcard => Ok(expr),
+        Expr::Function(function) => {
+            let key = (function.name.to_string(), Expr::Function(function.clone()));
+
             if let Some(ident) = aggregation_expr_map.get(&key) {
-                let identifier = Identifier::try_from(ident.clone()).map_err(|e| {
-                    PostprocessingError::IdentifierConversionError {
-                        error: format!("Failed to convert Ident to Identifier: {e}"),
-                    }
-                })?;
-                Ok(Expression::Column(identifier))
+                Ok(Expr::Identifier(ident.clone()))
             } else {
                 let new_ident = Ident {
                     value: format!("__col_agg_{}", aggregation_expr_map.len()),
                     quote_style: None,
                 };
 
-                let new_identifier = Identifier::try_from(new_ident.clone()).map_err(|e| {
-                    PostprocessingError::IdentifierConversionError {
-                        error: format!("Failed to convert Ident to Identifier: {e}"),
-                    }
-                })?;
-
-                aggregation_expr_map.insert(key, new_ident);
-                Ok(Expression::Column(new_identifier))
+                aggregation_expr_map.insert(key, new_ident.clone());
+                Ok(Expr::Identifier(new_ident))
             }
         }
-        Expression::Binary { op, left, right } => {
+        Expr::BinaryOp { op, left, right } => {
             let left_remainder =
-                get_aggregate_and_remainder_expressions(*left, aggregation_expr_map);
+                get_aggregate_and_remainder_expressions(*left, aggregation_expr_map)?;
             let right_remainder =
-                get_aggregate_and_remainder_expressions(*right, aggregation_expr_map);
-            Ok(Expression::Binary {
+                get_aggregate_and_remainder_expressions(*right, aggregation_expr_map)?;
+            Ok(Expr::BinaryOp {
                 op,
-                left: Box::new(left_remainder?),
-                right: Box::new(right_remainder?),
+                left: Box::new(left_remainder),
+                right: Box::new(right_remainder),
             })
         }
-        Expression::Unary { op, expr } => {
-            let remainder = get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
-            Ok(Expression::Unary {
+
+        Expr::UnaryOp { op, expr } => {
+            let remainder = get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map)?;
+            Ok(Expr::UnaryOp {
                 op,
-                expr: Box::new(remainder?),
+                expr: Box::new(remainder),
             })
         }
+        _ => Ok(expr),
     }
 }
 
@@ -128,23 +133,25 @@ fn get_aggregate_and_remainder_expressions(
 fn check_and_get_aggregation_and_remainder(
     expr: AliasedResultExpr,
     group_by_identifiers: &[Ident],
-    aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expression), Ident>,
+    aggregation_expr_map: &mut IndexMap<(String, Expr), Ident>,
 ) -> PostprocessingResult<AliasedResultExpr> {
-    let free_identifiers = get_free_identifiers_from_expr(&expr.expr);
+    let converted_expr: Expr = (*expr.expr).clone().into();
+    let free_identifiers = get_free_identifiers_from_expr(&converted_expr);
     let group_by_identifier_set = group_by_identifiers
         .iter()
         .cloned()
         .collect::<IndexSet<_>>();
-    if contains_nested_aggregation(&expr.expr, false) {
+    if contains_nested_aggregation(&converted_expr, false) {
         return Err(PostprocessingError::NestedAggregationInGroupByClause {
             error: format!("Nested aggregations found {:?}", expr.expr),
         });
     }
     if free_identifiers.is_subset(&group_by_identifier_set) {
-        let remainder = get_aggregate_and_remainder_expressions(*expr.expr, aggregation_expr_map);
+        let remainder_expr =
+            get_aggregate_and_remainder_expressions((*expr.expr).into(), aggregation_expr_map)?;
         Ok(AliasedResultExpr {
             alias: expr.alias,
-            expr: Box::new(remainder?),
+            expr: Box::new(remainder_expr),
         })
     } else {
         let diff = free_identifiers
@@ -165,8 +172,7 @@ impl GroupByPostprocessing {
         by_ids: Vec<Ident>,
         aliased_exprs: Vec<AliasedResultExpr>,
     ) -> PostprocessingResult<Self> {
-        let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Ident> =
-            IndexMap::default();
+        let mut aggregation_expr_map: IndexMap<(String, Expr), Ident> = IndexMap::default();
         // Look for aggregation expressions and check for non-aggregation expressions that contain identifiers not in the group by clause
         let remainder_exprs: Vec<AliasedResultExpr> = aliased_exprs
             .into_iter()
@@ -203,7 +209,7 @@ impl GroupByPostprocessing {
 
     /// Get aggregation expressions
     #[must_use]
-    pub fn aggregation_exprs(&self) -> &[(AggregationOperator, Expression, Ident)] {
+    pub fn aggregation_exprs(&self) -> &[(String, Expr, Ident)] {
         &self.aggregation_exprs
     }
 }
@@ -219,11 +225,11 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             .iter()
             .map(|(agg_op, expr, id)| -> PostprocessingResult<_> {
                 let evaluated_owned_column = owned_table.evaluate(expr)?;
-                Ok((*agg_op, (id.clone(), evaluated_owned_column)))
+                Ok((agg_op.to_string(), (id.clone(), evaluated_owned_column)))
             })
             .process_results(|iter| {
                 iter.fold(
-                    IndexMap::<_, Vec<_>>::default(),
+                    IndexMap::<String, Vec<_>>::default(),
                     |mut lookup, (key, val)| {
                         lookup.entry(key).or_default().push(val);
                         lookup
@@ -243,32 +249,40 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
                 Ok(Column::<S>::from_owned_column(column, &alloc))
             })
             .collect::<PostprocessingResult<Vec<_>>>()?;
+
         // TODO: Allow a filter
         let selection_in = vec![true; owned_table.num_rows()];
-        let (sum_identifiers, sum_columns): (Vec<_>, Vec<_>) = evaluated_columns
-            .get(&AggregationOperator::Sum)
-            .map_or((vec![], vec![]), |tuple| {
-                tuple
-                    .iter()
-                    .map(|(id, c)| (id.clone(), Column::<S>::from_owned_column(c, &alloc)))
-                    .unzip()
-            });
-        let (max_identifiers, max_columns): (Vec<_>, Vec<_>) = evaluated_columns
-            .get(&AggregationOperator::Max)
-            .map_or((vec![], vec![]), |tuple| {
-                tuple
-                    .iter()
-                    .map(|(id, c)| (id.clone(), Column::<S>::from_owned_column(c, &alloc)))
-                    .unzip()
-            });
-        let (min_identifiers, min_columns): (Vec<_>, Vec<_>) = evaluated_columns
-            .get(&AggregationOperator::Min)
-            .map_or((vec![], vec![]), |tuple| {
-                tuple
-                    .iter()
-                    .map(|(id, c)| (id.clone(), Column::<S>::from_owned_column(c, &alloc)))
-                    .unzip()
-            });
+
+        let (sum_identifiers, sum_columns): (Vec<_>, Vec<_>) =
+            evaluated_columns
+                .get("Sum")
+                .map_or((vec![], vec![]), |tuple| {
+                    tuple
+                        .iter()
+                        .map(|(id, c)| (id.clone(), Column::<S>::from_owned_column(c, &alloc)))
+                        .unzip()
+                });
+
+        let (max_identifiers, max_columns): (Vec<_>, Vec<_>) =
+            evaluated_columns
+                .get("Max")
+                .map_or((vec![], vec![]), |tuple| {
+                    tuple
+                        .iter()
+                        .map(|(id, c)| (id.clone(), Column::<S>::from_owned_column(c, &alloc)))
+                        .unzip()
+                });
+
+        let (min_identifiers, min_columns): (Vec<_>, Vec<_>) =
+            evaluated_columns
+                .get("Min")
+                .map_or((vec![], vec![]), |tuple| {
+                    tuple
+                        .iter()
+                        .map(|(id, c)| (id.clone(), Column::<S>::from_owned_column(c, &alloc)))
+                        .unzip()
+                });
+
         let aggregation_results = aggregate_columns(
             &alloc,
             &group_by_ins,
@@ -277,6 +291,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             &min_columns,
             &selection_in,
         )?;
+
         // Finally do another round of evaluation to get the final result
         // Gather the results into a new OwnedTable
         let group_by_outs = aggregation_results
@@ -284,6 +299,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             .iter()
             .zip(self.group_by_identifiers.iter())
             .map(|(column, id)| Ok((id.clone(), OwnedColumn::from(column))));
+
         let sum_outs = izip!(
             aggregation_results.sum_columns,
             sum_identifiers,
@@ -295,6 +311,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
                 OwnedColumn::try_from_scalars(c_out, c_in.column_type())?,
             ))
         });
+
         let max_outs = izip!(
             aggregation_results.max_columns,
             max_identifiers,
@@ -306,6 +323,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
                 OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
             ))
         });
+
         let min_outs = izip!(
             aggregation_results.min_columns,
             min_identifiers,
@@ -317,13 +335,14 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
                 OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
             ))
         });
+
         //TODO: When we have NULLs we need to differentiate between count(1) and count(expression)
         let count_column = OwnedColumn::BigInt(aggregation_results.count_column.to_vec());
-        let count_outs = evaluated_columns
-            .get(&AggregationOperator::Count)
-            .into_iter()
-            .flatten()
-            .map(|(id, _)| -> PostprocessingResult<_> { Ok((id.clone(), count_column.clone())) });
+        let count_outs =
+            evaluated_columns.get("Count").into_iter().flatten().map(
+                |(id, _)| -> PostprocessingResult<_> { Ok((id.clone(), count_column.clone())) },
+            );
+
         let new_owned_table: OwnedTable<S> = group_by_outs
             .into_iter()
             .chain(sum_outs)
@@ -331,6 +350,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             .chain(min_outs)
             .chain(count_outs)
             .process_results(|iter| OwnedTable::try_from_iter(iter))??;
+
         // If there are no columns at all we need to have the count column so that we can handle
         // queries such as `SELECT 1 FROM table`
         let target_table = if new_owned_table.is_empty() {
@@ -338,11 +358,13 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         } else {
             new_owned_table
         };
+
         let result = self
             .remainder_exprs
             .iter()
             .map(|aliased_expr| -> PostprocessingResult<_> {
-                let column = target_table.evaluate(&aliased_expr.expr)?;
+                let expr_as_expr: Expr = (*aliased_expr.expr).clone().into();
+                let column = target_table.evaluate(&expr_as_expr)?;
                 let alias: Ident = aliased_expr.alias.into();
                 Ok((alias, column))
             })
@@ -359,32 +381,32 @@ mod tests {
     #[test]
     fn we_can_detect_nested_aggregation() {
         // SUM(SUM(a))
-        let expr = sum(sum(col("a")));
+        let expr = (*sum(sum(col("a")))).into();
         assert!(contains_nested_aggregation(&expr, false));
         assert!(contains_nested_aggregation(&expr, true));
 
         // MAX(a) + SUM(b)
-        let expr = add(max(col("a")), sum(col("b")));
+        let expr = (*add(max(col("a")), sum(col("b")))).into();
         assert!(!contains_nested_aggregation(&expr, false));
         assert!(contains_nested_aggregation(&expr, true));
 
         // a + SUM(b)
-        let expr = add(col("a"), sum(col("b")));
+        let expr = (*add(col("a"), sum(col("b")))).into();
         assert!(!contains_nested_aggregation(&expr, false));
         assert!(contains_nested_aggregation(&expr, true));
 
         // SUM(a) + b - SUM(2 * c)
-        let expr = sub(add(sum(col("a")), col("b")), sum(mul(lit(2), col("c"))));
+        let expr = (*sub(add(sum(col("a")), col("b")), sum(mul(lit(2), col("c"))))).into();
         assert!(!contains_nested_aggregation(&expr, false));
         assert!(contains_nested_aggregation(&expr, true));
 
         // a + COUNT(SUM(a))
-        let expr = add(col("a"), count(sum(col("a"))));
+        let expr = (*add(col("a"), count(sum(col("a"))))).into();
         assert!(contains_nested_aggregation(&expr, false));
         assert!(contains_nested_aggregation(&expr, true));
 
         // a + b + 1
-        let expr = add(add(col("a"), col("b")), lit(1));
+        let expr = (*add(add(col("a"), col("b")), lit(1))).into();
         assert!(!contains_nested_aggregation(&expr, false));
         assert!(!contains_nested_aggregation(&expr, true));
     }
@@ -392,31 +414,35 @@ mod tests {
     #[test]
     fn we_can_get_free_identifiers_from_expr() {
         // Literal
-        let expr = lit("Not an identifier");
+        let expr = (*lit("Not an identifier")).into();
         let expected: IndexSet<Ident> = IndexSet::default();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // a + b + 1
-        let expr = add(add(col("a"), col("b")), lit(1));
+        let expr = (*add(add(col("a"), col("b")), lit(1))).into();
         let expected: IndexSet<Ident> = ["a".into(), "b".into()].into_iter().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // ! (a == b || c >= a)
-        let expr = not(or(equal(col("a"), col("b")), ge(col("c"), col("a"))));
+        let expr = (*not(or(equal(col("a"), col("b")), ge(col("c"), col("a"))))).into();
         let expected: IndexSet<Ident> = ["a".into(), "b".into(), "c".into()].into_iter().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // SUM(a + b) * 2
-        let expr = mul(sum(add(col("a"), col("b"))), lit(2));
+        let expr = (*mul(sum(add(col("a"), col("b"))).into(), lit(2))).into();
         let expected: IndexSet<Ident> = IndexSet::default();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // (COUNT(a + b) + c) * d
-        let expr = mul(add(count(add(col("a"), col("b"))), col("c")), col("d"));
+        let expr = (*mul(
+            add(count(add(col("a"), col("b"))).into(), col("c")),
+            col("d"),
+        ))
+        .into();
         let expected: IndexSet<Ident> = ["c".into(), "d".into()].into_iter().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
@@ -424,63 +450,59 @@ mod tests {
 
     #[test]
     fn we_can_get_aggregate_and_remainder_expressions() {
-        let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Ident> =
-            IndexMap::default();
+        let mut aggregation_expr_map: IndexMap<(String, Expr), Ident> = IndexMap::default();
+
         // SUM(a) + b
         let expr = add(sum(col("a")), col("b"));
         let remainder_expr =
-            get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
+            get_aggregate_and_remainder_expressions((*expr).into(), &mut aggregation_expr_map);
         assert_eq!(
-            aggregation_expr_map[&(AggregationOperator::Sum, *col("a"))],
+            aggregation_expr_map[&("SUM".to_string(), (*col("a")).into())],
             "__col_agg_0".into()
         );
-        assert_eq!(remainder_expr, Ok(*add(col("__col_agg_0"), col("b"))));
+        let expected_remainder: Expr = (*add(col("__col_agg_0"), col("b"))).into();
+        assert_eq!(remainder_expr, Ok(expected_remainder));
         assert_eq!(aggregation_expr_map.len(), 1);
 
         // SUM(a) + SUM(b)
         let expr = add(sum(col("a")), sum(col("b")));
         let remainder_expr =
-            get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
+            get_aggregate_and_remainder_expressions((*expr).into(), &mut aggregation_expr_map);
         assert_eq!(
-            aggregation_expr_map[&(AggregationOperator::Sum, *col("a"))],
+            aggregation_expr_map[&("SUM".to_string(), (*col("a")).into())],
             "__col_agg_0".into()
         );
         assert_eq!(
-            aggregation_expr_map[&(AggregationOperator::Sum, *col("b"))],
+            aggregation_expr_map[&("SUM".to_string(), (*col("b")).into())],
             "__col_agg_1".into()
         );
-        assert_eq!(
-            remainder_expr,
-            Ok(*add(col("__col_agg_0"), col("__col_agg_1")))
-        );
-        assert_eq!(aggregation_expr_map.len(), 2);
+        let expected_remainder: Expr = (*add(col("__col_agg_0"), col("__col_agg_1"))).into();
+        assert_eq!(remainder_expr, Ok(expected_remainder));
 
         // MAX(a + 1) + MIN(2 * b - 4) + c
         let expr = add(
             add(
-                max(col("a") + lit(1)),
+                max(add(col("a"), lit(1))),
                 min(sub(mul(lit(2), col("b")), lit(4))),
             ),
             col("c"),
         );
         let remainder_expr =
-            get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
+            get_aggregate_and_remainder_expressions((*expr).into(), &mut aggregation_expr_map);
         assert_eq!(
-            aggregation_expr_map[&(AggregationOperator::Max, *add(col("a"), lit(1)))],
+            aggregation_expr_map[&("MAX".to_string(), (*add(col("a"), lit(1))).into())],
             "__col_agg_2".into()
         );
         assert_eq!(
             aggregation_expr_map[&(
-                AggregationOperator::Min,
-                *sub(mul(lit(2), col("b")), lit(4))
+                "MIN".to_string(),
+                (*sub(mul(lit(2), col("b")), lit(4))).into()
             )],
             "__col_agg_3".into()
         );
-        assert_eq!(
-            remainder_expr,
-            Ok(*add(add(col("__col_agg_2"), col("__col_agg_3")), col("c")))
-        );
-        assert_eq!(aggregation_expr_map.len(), 4);
+        let expected_remainder: Expr =
+            (*add(add(col("__col_agg_2"), col("__col_agg_3")), col("c"))).into();
+        assert_eq!(remainder_expr, Ok(expected_remainder));
 
         // COUNT(2 * a) * 2 + SUM(b) + 1
         let expr = add(
@@ -488,18 +510,16 @@ mod tests {
             lit(1),
         );
         let remainder_expr =
-            get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
+            get_aggregate_and_remainder_expressions((*expr).into(), &mut aggregation_expr_map);
         assert_eq!(
-            aggregation_expr_map[&(AggregationOperator::Count, *mul(lit(2), col("a")))],
+            aggregation_expr_map[&("COUNT".to_string(), (*mul(lit(2), col("a"))).into())],
             "__col_agg_4".into()
         );
-        assert_eq!(
-            remainder_expr,
-            Ok(*add(
-                add(mul(col("__col_agg_4"), lit(2)), col("__col_agg_1")),
-                lit(1)
-            ))
-        );
-        assert_eq!(aggregation_expr_map.len(), 5);
+        let expected_remainder: Expr = (*add(
+            add(mul(col("__col_agg_4"), lit(2)), col("__col_agg_1")),
+            lit(1),
+        ))
+        .into();
+        assert_eq!(remainder_expr, Ok(expected_remainder));
     }
 }

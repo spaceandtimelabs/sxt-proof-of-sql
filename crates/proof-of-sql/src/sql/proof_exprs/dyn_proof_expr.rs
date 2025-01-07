@@ -161,8 +161,22 @@ impl DynProofExpr {
     }
 
     /// Create a new aggregate expression
-    pub fn new_aggregate(op: AggregationOperator, expr: DynProofExpr) -> Self {
-        Self::Aggregate(AggregateExpr::new(op, Box::new(expr)))
+    pub fn new_aggregate(op: String, expr: DynProofExpr) -> Result<Self, ConversionError> {
+        let aggregation_operator = match op.to_uppercase().as_str() {
+            "SUM" => AggregationOperator::Sum,
+            "COUNT" => AggregationOperator::Count,
+            "MAX" => AggregationOperator::Max,
+            "MIN" => AggregationOperator::Min,
+            _ => {
+                return Err(ConversionError::Unprovable {
+                    error: format!("Unsupported aggregation operator: {op}"),
+                })
+            }
+        };
+        Ok(Self::Aggregate(AggregateExpr::new(
+            aggregation_operator,
+            Box::new(expr),
+        )))
     }
 
     /// Check that the plan has the correct data type

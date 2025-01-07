@@ -10,12 +10,10 @@ use crate::{
     },
 };
 use alloc::{boxed::Box, format, string::ToString};
-use proof_of_sql_parser::{
-    intermediate_ast::{AggregationOperator, Expression},
-    posql_time::PoSQLTimeUnit,
-};
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use sqlparser::ast::{
-    BinaryOperator, DataType, ExactNumberInfo, Expr, Ident, ObjectName, UnaryOperator, Value,
+    BinaryOperator, DataType, ExactNumberInfo, Expr, FunctionArg, FunctionArgExpr, Ident,
+    ObjectName, UnaryOperator, Value,
 };
 
 /// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
@@ -40,8 +38,8 @@ impl<'a> DynProofExprBuilder<'a> {
             in_agg_scope: true,
         }
     }
-    /// Builds a `proofs::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression`
-    pub fn build(&self, expr: &Expression) -> Result<DynProofExpr, ConversionError> {
+    /// Builds a `proofs::sql::proof_exprs::DynProofExpr` from a `sqlparser::ast::Expr`
+    pub fn build(&self, expr: &Expr) -> Result<DynProofExpr, ConversionError> {
         self.visit_expr(expr)
     }
 }
@@ -49,18 +47,24 @@ impl<'a> DynProofExprBuilder<'a> {
 #[allow(clippy::match_wildcard_for_single_variants)]
 // Private interface
 impl DynProofExprBuilder<'_> {
-    fn visit_expr(&self, expr: &Expression) -> Result<DynProofExpr, ConversionError> {
+    fn visit_expr(&self, expr: &Expr) -> Result<DynProofExpr, ConversionError> {
         match expr {
-            Expression::Column(identifier) => self.visit_column((*identifier).into()),
-            Expression::Literal(lit) => {
-                let expr: Expr = lit.clone().into();
-                self.visit_literal(&expr)
+            Expr::Identifier(identifier) => self.visit_column(identifier.clone()),
+            Expr::Value(value) => self.visit_literal(&Expr::Value(value.clone())),
+            Expr::BinaryOp { op, left, right } => {
+                self.visit_binary_expr(op, left.as_ref(), right.as_ref())
             }
-            Expression::Binary { op, left, right } => {
-                self.visit_binary_expr(&(*op).into(), left, right)
+            Expr::UnaryOp { op, expr } => self.visit_unary_expr(*op, expr.as_ref()),
+            Expr::Function(function) => {
+                if let Some(first_arg) = function.args.get(0) {
+                    if let FunctionArg::Unnamed(FunctionArgExpr::Expr(inner_expr)) = first_arg {
+                        return self.visit_aggregate_expr(function.name.to_string(), inner_expr);
+                    }
+                }
+                Err(ConversionError::Unprovable {
+                    error: format!("Function {function:?} has unsupported arguments"),
+                })
             }
-            Expression::Unary { op, expr } => self.visit_unary_expr((*op).into(), expr),
-            Expression::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
             _ => Err(ConversionError::Unprovable {
                 error: format!("Expression {expr:?} is not supported yet"),
             }),
@@ -167,7 +171,7 @@ impl DynProofExprBuilder<'_> {
     fn visit_unary_expr(
         &self,
         op: UnaryOperator,
-        expr: &Expression,
+        expr: &Expr,
     ) -> Result<DynProofExpr, ConversionError> {
         let expr = self.visit_expr(expr);
         match op {
@@ -182,8 +186,8 @@ impl DynProofExprBuilder<'_> {
     fn visit_binary_expr(
         &self,
         op: &BinaryOperator,
-        left: &Expression,
-        right: &Expression,
+        left: &Expr,
+        right: &Expr,
     ) -> Result<DynProofExpr, ConversionError> {
         match op {
             BinaryOperator::And => {
@@ -240,8 +244,8 @@ impl DynProofExprBuilder<'_> {
 
     fn visit_aggregate_expr(
         &self,
-        op: AggregationOperator,
-        expr: &Expression,
+        op: String,
+        expr: &Expr,
     ) -> Result<DynProofExpr, ConversionError> {
         if self.in_agg_scope {
             return Err(ConversionError::InvalidExpression {
@@ -249,17 +253,16 @@ impl DynProofExprBuilder<'_> {
             });
         }
         let expr = DynProofExprBuilder::new_agg(self.column_mapping).visit_expr(expr)?;
-        match (op, expr.data_type().is_numeric()) {
-            (AggregationOperator::Count, _) | (AggregationOperator::Sum, true) => {
-                Ok(DynProofExpr::new_aggregate(op, expr))
-            }
-            (AggregationOperator::Sum, false) => Err(ConversionError::InvalidExpression {
+
+        match (op.as_str(), expr.data_type().is_numeric()) {
+            ("COUNT", _) | ("SUM", true) => Ok(DynProofExpr::new_aggregate(op, expr)?),
+            ("SUM", false) => Err(ConversionError::InvalidExpression {
                 expression: format!(
-                    "Aggregation operator {op:?} doesn't work with non-numeric types"
+                    "Aggregation operator {op} doesn't work with non-numeric types"
                 ),
             }),
             _ => Err(ConversionError::Unprovable {
-                error: format!("Aggregation operator {op:?} is not supported at this location"),
+                error: format!("Aggregation operator {op} is not supported at this location"),
             }),
         }
     }

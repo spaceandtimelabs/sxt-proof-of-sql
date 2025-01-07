@@ -291,8 +291,9 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
                     ..
                 } = (*res.expr).clone()
                 {
+                    let converted_expr = (*res.expr).clone().into();
                     let res_dyn_proof_expr =
-                        DynProofExprBuilder::new(&value.column_mapping).build(&res.expr);
+                        DynProofExprBuilder::new(&value.column_mapping).build(&converted_expr);
                     res_dyn_proof_expr
                         .ok()
                         .map(|dyn_proof_expr| AliasedDynProofExpr {

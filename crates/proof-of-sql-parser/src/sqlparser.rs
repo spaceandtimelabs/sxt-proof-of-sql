@@ -175,7 +175,7 @@ impl From<PoSqlOrderBy> for OrderByExpr {
 impl From<Expression> for Expr {
     fn from(expr: Expression) -> Self {
         match expr {
-            Expression::Literal(literal) => literal.into(),
+            Expression::Literal(literal) => Expr::from(literal),
             Expression::Column(identifier) => id(identifier),
             Expression::Unary { op, expr } => Expr::UnaryOp {
                 op: op.into(),
