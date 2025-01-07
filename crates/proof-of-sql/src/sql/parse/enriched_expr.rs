@@ -27,8 +27,9 @@ impl EnrichedExpr {
     pub fn new(expression: AliasedResultExpr, column_mapping: &IndexMap<Ident, ColumnRef>) -> Self {
         // TODO: Using new_agg (ironically) disables aggregations in `QueryExpr` for now.
         // Re-enable aggregations when we add `GroupByExec` generalizations.
+        let converted_expr = (*expression.expr).clone().into();
         let res_dyn_proof_expr =
-            DynProofExprBuilder::new_agg(column_mapping).build(&expression.expr);
+            DynProofExprBuilder::new_agg(column_mapping).build(&converted_expr);
         match res_dyn_proof_expr {
             Ok(dyn_proof_expr) => {
                 let alias = expression.alias;

@@ -4,7 +4,6 @@ use crate::base::{
     math::i256::I256,
     scalar::Scalar,
 };
-use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use sqlparser::ast::{DataType, ExactNumberInfo, Expr, Ident, ObjectName, Value};
 
 pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
@@ -217,7 +216,8 @@ pub fn cols_expr(tab: TableRef, names: &[&str], accessor: &impl SchemaAccessor) 
 /// - `alias.parse()` fails to parse the provided alias string.
 pub fn sum_expr(expr: DynProofExpr, alias: &str) -> AliasedDynProofExpr {
     AliasedDynProofExpr {
-        expr: DynProofExpr::new_aggregate(AggregationOperator::Sum, expr),
+        expr: DynProofExpr::new_aggregate("SUM".to_string(), expr)
+            .expect("Failed to create aggregate expression"),
         alias: alias.into(),
     }
 }
