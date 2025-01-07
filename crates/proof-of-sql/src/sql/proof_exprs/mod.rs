@@ -20,11 +20,6 @@ use multiply_expr::MultiplyExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod multiply_expr_test;
 
-mod bitwise_verification;
-use bitwise_verification::is_within_acceptable_range;
-#[cfg(test)]
-mod bitwise_verification_test;
-
 mod dyn_proof_expr;
 pub(crate) use dyn_proof_expr::DynProofExpr;
 

@@ -1,4 +1,3 @@
-use super::is_within_acceptable_range;
 use crate::{
     base::{
         bit::{
@@ -6,20 +5,18 @@ use crate::{
             compute_varying_bit_matrix, BitDistribution,
         },
         proof::ProofError,
-        scalar::{MontScalar, Scalar, ScalarExt},
+        scalar::{Scalar, ScalarExt},
     },
     sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use bnum::types::U256;
 use bumpalo::Bump;
-use core::str::FromStr;
-use num_traits::sign;
 
 /// Count the number of components needed to prove a sign decomposition
 pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
     let dist = builder.consume_bit_distribution()?;
-    if !is_within_acceptable_range(&dist) {
+    if !dist.is_within_acceptable_range() {
         return Err(ProofError::VerificationError {
             error: "bit distribution outside of acceptable range",
         });
@@ -180,12 +177,12 @@ mod tests {
     use crate::{
         base::{
             bit::BitDistribution,
-            scalar::{test_scalar::TestScalar, Scalar, ScalarExt},
+            scalar::{test_scalar::TestScalar, Scalar},
         },
         sql::proof_exprs::sign_expr::verify_bit_decomposition,
     };
-    use bnum::types::U256;
-    use core::str::FromStr;
+    
+    
 
     #[test]
     fn we_can_verify_bit_decomposition() {

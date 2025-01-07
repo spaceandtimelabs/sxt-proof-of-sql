@@ -3,7 +3,7 @@ use crate::base::scalar::{Scalar, ScalarExt};
 use ark_std::iterable::Iterable;
 use bit_iter::BitIter;
 use bnum::types::U256;
-use core::{convert::Into, option::Iter};
+use core::convert::Into;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
@@ -75,6 +75,21 @@ impl BitDistribution {
     pub fn is_valid(&self) -> bool {
         (self.vary_mask() & self.leading_bit_mask()) & (U256::MAX >> 1) == U256::ZERO
     }
+
+    /// In order to avoid cases with large numbers where there can be both a positive and negative
+/// representation, we restrict the range of bit distributions that we accept.
+///
+/// Currently this is set to be the minimal value that will include the sum of two signed 128-bit
+/// integers. The range will likely be expanded in the future as we support additional expressions.
+pub fn is_within_acceptable_range(&self) -> bool {
+    // signed 128 bit numbers range from
+    //      -2^127 to 2^127-1
+    // the maximum absolute value of the sum of two signed 128-integers is
+    // then
+    //       2 * (2^127) = 2^128
+    (self.leading_bit_inverse_mask() >> 128) == (U256::MAX >> 129)
+}
+
     // Value  = Sum of varying bits | or mask
     // Varying bits = vary mask & value
 
