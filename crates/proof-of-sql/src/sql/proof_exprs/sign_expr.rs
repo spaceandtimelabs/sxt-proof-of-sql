@@ -160,39 +160,23 @@ fn verify_bit_decomposition<S: ScalarExt>(
     bit_evals: &[S],
     dist: &BitDistribution,
 ) -> bool {
-    dbg!(&bit_evals);
-
     let sign_eval = dist.leading_bit_eval(bit_evals, one_eval);
-    let mut rhs = sign_eval * S::from_wrapping(dist.sign_mask())
-        + (one_eval - sign_eval) * S::from_wrapping(dist.inverse_sign_mask())
+    let mut rhs = sign_eval * S::from_wrapping(dist.leading_bit_mask())
+        + (one_eval - sign_eval) * S::from_wrapping(dist.leading_bit_inverse_mask())
         - one_eval * S::from_wrapping(U256::ONE << 255);
 
-    println!(
-        "Binary representation (64 bits) of sign_mask: {:0256b}",
-        dist.sign_mask()
-    );
-    println!(
-        "Binary representation (64 bits) of inverse_sign_mask: {:0256b}",
-        dist.inverse_sign_mask()
-    );
-    dbg!(&dist);
-
-    dist.for_enumerated_vary_mask(|vary_index, bit_index: u8| {
+    for (vary_index, bit_index) in dist.vary_mask_iter().enumerate() {
         if bit_index != 255 {
             let mult = U256::ONE << bit_index;
             let bit_eval = bit_evals[vary_index];
             rhs += S::from_wrapping(mult) * bit_eval;
         }
-    });
-    dbg!(&rhs);
-    dbg!(&expr_eval);
+    }
     rhs == expr_eval
 }
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr;
-
     use crate::{
         base::{
             bit::BitDistribution,
@@ -201,13 +185,14 @@ mod tests {
         sql::proof_exprs::sign_expr::verify_bit_decomposition,
     };
     use bnum::types::U256;
+    use core::str::FromStr;
 
     #[test]
     fn we_can_verify_bit_decomposition() {
         let dist = BitDistribution {
             // vary_mask: (((U256::ZERO) << 255 | (U256::ONE << 3) | (U256::ONE)) as U256).into(),
             vary_mask: [629, 0, 0, 0],
-            sign_mask: [2, 0, 0, 9223372036854775808],
+            leading_bit_mask: [2, 0, 0, 9223372036854775808],
             // sign_mask: (((U256::ONE) << 255 | (U256::ONE << 1)) as U256).into(),
         };
         let one_eval = TestScalar::ONE;
@@ -223,7 +208,7 @@ mod tests {
         let dist = BitDistribution {
             // vary_mask: (((U256::ZERO) << 255 | (U256::ONE << 3) | (U256::ONE)) as U256).into(),
             vary_mask: [629, 0, 0, 0],
-            sign_mask: [2, 0, 0, 9223372036854775808],
+            leading_bit_mask: [2, 0, 0, 9223372036854775808],
             // sign_mask: (((U256::ONE) << 255 | (U256::ONE << 1)) as U256).into(),
         };
         let a = TestScalar::ONE;

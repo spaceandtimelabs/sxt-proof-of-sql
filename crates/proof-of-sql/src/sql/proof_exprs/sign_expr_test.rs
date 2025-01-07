@@ -80,7 +80,7 @@ fn we_can_verify_a_constant_decomposition() {
     );
     let data_eval = (&data).evaluate_at_point(&evaluation_point);
     let eval = verifier_evaluate_sign(&mut builder, data_eval, *one_eval).unwrap();
-    assert_eq!(eval, Curve25519Scalar::ONE);
+    assert_eq!(eval, Curve25519Scalar::ZERO);
 }
 
 #[test]

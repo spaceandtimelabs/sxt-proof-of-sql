@@ -23,10 +23,10 @@ pub fn compute_varying_bit_matrix<'a, S: Scalar>(
     // decompose
     for (scalar_index, val) in vals.iter().enumerate() {
         let mask = make_bit_mask(*val);
-        dist.for_enumerated_vary_mask(|vary_index: usize, bit_index: u8| {
+        for (vary_index, bit_index) in dist.vary_mask_iter().enumerate() {
             data[scalar_index + vary_index * number_of_scalars] =
                 (mask & (U256::ONE << bit_index)) != U256::ZERO;
-        });
+        }
     }
 
     // make result
