@@ -1,7 +1,10 @@
-use crate::base::{bit::make_abs_bit_mask, scalar::Scalar};
+use super::bit_mask_utils::{is_bit_mask_negative_representation, make_bit_mask};
+use crate::base::scalar::{Scalar, ScalarExt};
+use ark_std::iterable::Iterable;
 use bit_iter::BitIter;
 use bnum::types::U256;
 use core::convert::Into;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 /// Describe the distribution of bit values in a table column
@@ -15,29 +18,37 @@ pub struct BitDistribution {
     ///              `1` if `x_s & (1 << i) != x_t & (1 << i)` for some `s != t`
     ///              0 otherwise
     pub or_all: [u64; 4],
-    pub vary_mask: [u64; 4],
+    /// Identifies all columns that are identical to the leading column (the sign column). The lead bit indicates if the sign column is constant
+    pub(crate) vary_mask: [u64; 4],
     /// Identifies all columns that are the identical to the lead column. The lead bit indicates the sign of the last row of data (only relevant if the sign is constant)
     pub(crate) leading_bit_mask: [u64; 4],
 }
 
 impl BitDistribution {
     pub fn new<S: Scalar, T: Into<S> + Clone>(data: &[T]) -> Self {
-        if data.is_empty() {
-            return Self {
-                or_all: [0; 4],
-                vary_mask: [0; 4],
-            };
+        let bit_masks = data.iter().cloned().map(Into::<S>::into).map(make_bit_mask);
+        let (sign_mask, inverse_sign_mask) =
+            bit_masks
+                .clone()
+                .fold((U256::MAX, U256::MAX), |acc, bit_mask| {
+                    let bit_mask = if is_bit_mask_negative_representation(bit_mask) {
+                        bit_mask ^ (U256::MAX >> 1)
+                    } else {
+                        bit_mask
+                    };
+                    (acc.0 & bit_mask, acc.1 & !bit_mask)
+                });
+        let vary_mask_bit = U256::from(
+            !bit_masks
+                .map(is_bit_mask_negative_representation)
+                .all_equal(),
+        ) << 255;
+        let vary_mask: U256 = !(sign_mask | inverse_sign_mask) | vary_mask_bit;
+
+        Self {
+            leading_bit_mask: sign_mask.into(),
+            vary_mask: vary_mask.into(),
         }
-        let mut or_all = make_abs_bit_mask(data[0].clone().into());
-        let mut vary_mask = [0; 4];
-        for x in data.iter().skip(1) {
-            let mask = make_abs_bit_mask((*x).clone().into());
-            for i in 0..4 {
-                vary_mask[i] |= or_all[i] ^ mask[i];
-                or_all[i] |= mask[i];
-            }
-        }
-        Self { or_all, vary_mask }
     }
 
     pub fn vary_mask(&self) -> U256 {
@@ -75,12 +86,7 @@ impl BitDistribution {
     /// can be used after deserializing a [`BitDistribution`] from an untrusted
     /// source.
     pub fn is_valid(&self) -> bool {
-        for (m, o) in self.vary_mask.iter().zip(self.or_all) {
-            if m & !o != 0 {
-                return false;
-            }
-        }
-        true
+        (self.vary_mask() & self.leading_bit_mask()) & (U256::MAX >> 1) == U256::ZERO
     }
 
     /// In order to avoid cases with large numbers where there can be both a positive and negative
@@ -89,17 +95,12 @@ impl BitDistribution {
     /// Currently this is set to be the minimal value that will include the sum of two signed 128-bit
     /// integers. The range will likely be expanded in the future as we support additional expressions.
     pub fn is_within_acceptable_range(&self) -> bool {
-        // handle the case of everything zero
-        if self.num_varying_bits() == 0 && self.constant_part() == [0; 4] {
-            return true;
-        }
-
         // signed 128 bit numbers range from
         //      -2^127 to 2^127-1
         // the maximum absolute value of the sum of two signed 128-integers is
         // then
         //       2 * (2^127) = 2^128
-        self.most_significant_abs_bit() <= 128
+        (self.leading_bit_inverse_mask() >> 128) == (U256::MAX >> 129)
     }
 
     /// If `{b_i}` represents the non-varying 1-bits of the absolute values, return the value
