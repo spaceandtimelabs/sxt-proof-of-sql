@@ -67,7 +67,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
             .expect("Column not found in table")
             .as_scalar()
             .expect("Failed to convert column to scalar");
-        final_round_evaluate_range_check(builder, scalars, 256, alloc);
+        final_round_evaluate_range_check(builder, scalars, scalars.len(), alloc);
         table.clone()
     }
 }
@@ -98,6 +98,7 @@ impl ProofPlan for RangeCheckTestPlan {
         one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         let input_column_eval = accessor[&self.column];
+
         let input_ones_eval = one_eval_map[&self.column.table_ref()];
 
         verifier_evaluate_range_check(builder, input_ones_eval, input_column_eval)?;
@@ -111,11 +112,16 @@ impl ProofPlan for RangeCheckTestPlan {
 
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
+    use std::path::Path;
+
     use super::*;
     use crate::{
         base::database::{
             owned_table_utility::{owned_table, scalar},
-            ColumnRef, ColumnType, OwnedTableTestAccessor,
+            ColumnRef, ColumnType, OwnedTableTestAccessor, TestAccessor,
+        },
+        proof_primitive::dory::{
+            DoryScalar, DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
         },
         sql::proof::VerifiableQueryResult,
     };
@@ -157,18 +163,42 @@ mod tests {
     }
 
     #[test]
-    fn we_can_prove_a_range_check_with_range_1000_to_1256() {
-        let data = owned_table([scalar("a", 1000..1256)]);
+    fn we_can_prove_a_range_check_with_varying_scalar_values_and_ranges() {
+        let handle =
+            blitzar::compute::MsmHandle::new_from_file("/home/debian/Downloads/blitzar_handle.bin");
+        let public_parameters = PublicParameters::load_from_file(Path::new(
+            "/home/debian/Downloads/public_parameters_nu_16.bin",
+        ))
+        .unwrap();
+
+        let prover_setup =
+            ProverSetup::from_public_parameters_and_blitzar_handle(&public_parameters, handle);
+        let verifier_setup = VerifierSetup::load_from_file(Path::new(
+            "/home/debian/Downloads/verifier_setup_nu_16.bin",
+        ))
+        .expect("Failed to load VerifierSetup");
+
         let t = "sxt.t".parse().unwrap();
-        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let mut accessor =
+            OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(
+                &prover_setup,
+            );
+
+        accessor.add_table(
+            "sxt.t".parse().unwrap(),
+            owned_table::<DoryScalar>([scalar("a", 0..1073741824)]),
+            0,
+        );
+
         let ast = RangeCheckTestPlan {
             column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
-        let res: Result<
-            crate::sql::proof::QueryData<crate::base::scalar::MontScalar<ark_curve25519::FrConfig>>,
-            crate::sql::proof::QueryError,
-        > = verifiable_res.verify(&ast, &accessor, &());
+        let verifiable_res = VerifiableQueryResult::<DynamicDoryEvaluationProof>::new(
+            &ast,
+            &accessor,
+            &&prover_setup,
+        );
+        let res = verifiable_res.verify(&ast, &accessor, &&verifier_setup);
 
         if let Err(e) = res {
             panic!("Verification failed: {e}");

@@ -131,31 +131,36 @@ fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
     word_columns: &mut [&mut [u8]],
     byte_counts: &mut [i64],
 ) {
-    scalars.iter().enumerate().for_each(|(i, scalar)| {
-        let scalar_array: [u64; 4] = (*scalar).into(); // Convert scalar to u64 array
-        let scalar_bytes_full = cast_slice::<u64, u8>(&scalar_array); // Cast u64 array to u8 slice
+    // Write each scalar’s bytes into the word_columns table
+    for i in 0..scalars.len() {
+        let scalar_array: [u64; 4] = scalars[i].into();
+        let scalar_bytes_full = cast_slice::<u64, u8>(&scalar_array);
         let scalar_bytes = &scalar_bytes_full[..31];
 
-        scalar_bytes
-            .iter()
-            .enumerate()
-            .for_each(|(byte_index, &byte)| {
-                word_columns[byte_index][i] = byte;
-                byte_counts[byte as usize] += 1;
-            });
-    });
+        for byte_index in 0..31 {
+            word_columns[byte_index][i] = scalar_bytes[byte_index];
+        }
+    }
+
+    // Count the occurrences of each byte
+    for byte_index in 0..31 {
+        for i in 0..scalars.len() {
+            let byte = word_columns[byte_index][i];
+            byte_counts[byte as usize] += 1;
+        }
+    }
 }
 
 /// For a word w and a verifier challenge α, compute
 /// wᵢⱼ , and produce an Int. MLE over this column:
 ///
 /// ```text
-/// | Column 0     | Column 1     | Column 2     | ... | Column 31    |
-/// |--------------|--------------|--------------|-----|--------------|
-/// | w₀,₀         | w₀,₁         | w₀,₂         | ... | w₀,₃₁        |
-/// | w₁,₀         | w₁,₁         | w₁,₂         | ... | w₁,₃₁        |
-/// | w₂,₀         | w₂,₁         | w₂,₂         | ... | w₂,₃₁        |
-/// -------------------------------------------------------------------
+/// R | Column 0     | Column 1     | Column 2     | ... | Column 31    |
+///   |--------------|--------------|--------------|-----|--------------|
+/// 1 | w₀,₀         | w₀,₁         | w₀,₂         | ... | w₀,₃₁        |
+/// 2 | w₁,₀         | w₁,₁         | w₁,₂         | ... | w₁,₃₁        |
+/// 3 | w₂,₀         | w₂,₁         | w₂,₂         | ... | w₂,₃₁        |
+///   -------------------------------------------------------------------
 ///       |               |              |                   |            
 ///       v               v              v                   v          
 ///    Int. MLE        Int. MLE       Int. MLE            Int. MLE     
@@ -166,12 +171,12 @@ fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
 /// of wᵢⱼ + α:
 ///
 /// ```text
-/// | Column 0     | Column 1     | Column 2     | ... | Column 31     |
-/// |--------------|--------------|--------------|-----|---------------|
-/// | (w₀,₀ + α)⁻¹ | (w₀,₁ + α)⁻¹ | (w₀,₂ + α)⁻¹ | ... | (w₀,₃₁ + α)⁻¹ |
-/// | (w₁,₀ + α)⁻¹ | (w₁,₁ + α)⁻¹ | (w₁,₂ + α)⁻¹ | ... | (w₁,₃₁ + α)⁻¹ |
-/// | (w₂,₀ + α)⁻¹ | (w₂,₁ + α)⁻¹ | (w₂,₂ + α)⁻¹ | ... | (w₂,₃₁ + α)⁻¹ |
-/// --------------------------------------------------------------------
+/// R | Column 0     | Column 1     | Column 2     | ... | Column 31     |
+///   |--------------|--------------|--------------|-----|---------------|
+/// 1 | (w₀,₀ + α)⁻¹ | (w₀,₁ + α)⁻¹ | (w₀,₂ + α)⁻¹ | ... | (w₀,₃₁ + α)⁻¹ |
+/// 2 | (w₁,₀ + α)⁻¹ | (w₁,₁ + α)⁻¹ | (w₁,₂ + α)⁻¹ | ... | (w₁,₃₁ + α)⁻¹ |
+/// 3 | (w₂,₀ + α)⁻¹ | (w₂,₁ + α)⁻¹ | (w₂,₂ + α)⁻¹ | ... | (w₂,₃₁ + α)⁻¹ |
+///   --------------------------------------------------------------------
 ///       |              |              |                    |            
 ///       v              v              v                    v          
 ///    Int. MLE      Int. MLE      Int. MLE             Int. MLE     
@@ -184,40 +189,48 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
     table_length: usize,
     inverted_word_columns: &mut [&mut [S]],
 ) {
-    word_columns
-        .iter_mut()
-        .zip(inverted_word_columns.iter_mut())
-        .for_each(|(byte_column, inv_column)| {
-            // Allocate words
-            let words =
-                alloc.alloc_slice_fill_with(byte_column.len(), |j| S::from(&byte_column[j]));
+    // Both slices should have the same length, i.e. same number of columns
+    let num_columns = word_columns.len();
 
-            // Allocate words_inv
-            let words_inv =
-                alloc.alloc_slice_fill_with(byte_column.len(), |j| S::from(&byte_column[j]));
-            slice_ops::add_const::<S, S>(words_inv, alpha);
-            slice_ops::batch_inversion(words_inv);
+    for col_index in 0..num_columns {
+        let byte_column = &mut word_columns[col_index];
+        let inv_column = &mut inverted_word_columns[col_index];
+        let column_length = byte_column.len();
 
-            // Copy words_inv to the corresponding inverted_word_columns[i]
-            builder.produce_intermediate_mle(words_inv as &[_]);
+        // Allocate words
+        let words = alloc
+            .alloc_slice_fill_with(column_length, |row_index| S::from(&byte_column[row_index]));
 
-            inv_column.copy_from_slice(words_inv);
+        // Allocate words_inv
+        let words_inv = alloc
+            .alloc_slice_fill_with(column_length, |row_index| S::from(&byte_column[row_index]));
 
-            let input_ones = alloc.alloc_slice_fill_copy(table_length, true);
+        // Add alpha to words_inv, then invert them in batch
+        slice_ops::add_const::<S, S>(words_inv, alpha);
+        slice_ops::batch_inversion(words_inv);
 
-            // α * (w + α)⁻¹ + w * (w + α)⁻¹ - 1 = 0
-            builder.produce_sumcheck_subpolynomial(
-                SumcheckSubpolynomialType::Identity,
-                vec![
-                    (alpha, vec![Box::new(words_inv as &[_])]),
-                    (
-                        S::one(),
-                        vec![Box::new(words as &[_]), Box::new(words_inv as &[_])],
-                    ),
-                    (-S::one(), vec![Box::new(input_ones as &[_])]),
-                ],
-            );
-        });
+        // Provide the inverted column to the builder
+        builder.produce_intermediate_mle(words_inv as &[_]);
+
+        // Copy the inverted values into the user-provided `inverted_word_columns`
+        inv_column.copy_from_slice(words_inv);
+
+        // Prepare a column of "true" (1-bit flags) to use in the final polynomial check
+        let input_ones = alloc.alloc_slice_fill_copy(table_length, true);
+
+        // α * (w + α)⁻¹ + w * (w + α)⁻¹ - 1 = 0
+        builder.produce_sumcheck_subpolynomial(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (alpha, vec![Box::new(words_inv as &[_])]),
+                (
+                    S::one(),
+                    vec![Box::new(words as &[_]), Box::new(words_inv as &[_])],
+                ),
+                (-S::one(), vec![Box::new(input_ones as &[_])]),
+            ],
+        );
+    }
 }
 
 /// Produce the range of possible values that a word can take on,
@@ -264,14 +277,20 @@ fn prove_word_values<'a, S: Scalar + 'a>(
     table_length: usize,
     builder: &mut FinalRoundBuilder<'a, S>,
 ) {
-    // Allocate from 0 to 255 and pertrub with verifier challenge
-    let word_values: &mut [S] =
-        alloc.alloc_slice_fill_with(max(256, scalars.len()), |i| S::from(&(i as u8)));
+    // Allocate from 0 to 255
+    let word_values: &mut [S] = alloc.alloc_slice_fill_with(max(256, scalars.len()), |_| S::ZERO);
 
-    // Now produce an intermediate MLE over the inverted word values + verifier challenge alpha
-    let word_vals_inv: &mut [S] = alloc.alloc_slice_fill_with(256, |i| {
-        S::try_from(i.into()).expect("word value will always fit into S")
-    });
+    for i in 0..256 {
+        word_values[i] = S::try_from(i.into()).expect("word value will always fit into S");
+    }
+
+    // Allocate a slice filled with zeros, with length equal to the larger of 256 or scalars.len()
+    let word_vals_inv: &mut [S] = alloc.alloc_slice_fill_with(max(256, scalars.len()), |_| S::ZERO);
+
+    // Set elements 0 to 255 to their respective values
+    for i in 0..256 {
+        word_vals_inv[i] = S::try_from(i.into()).expect("word value will always fit into S");
+    }
 
     slice_ops::add_const::<S, S>(word_vals_inv, alpha);
     slice_ops::batch_inversion(&mut word_vals_inv[..]);
@@ -320,28 +339,34 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
     // Produce an MLE over the counts of each word value
     builder.produce_intermediate_mle(word_counts as &[_]);
 
-    // Allocate row_sums from the bump allocator, ensuring it lives as long as 'a
-    let row_sums = alloc.alloc_slice_fill_copy(scalars.len(), S::ZERO);
+    // Allocate row_sums from the bump allocator
+    let row_sums = alloc.alloc_slice_fill_copy(max(256, scalars.len()), S::ZERO);
 
-    // Sum up the corresponding row values using iterators
+    // Sum up the corresponding row values in each column
     for column in inverted_word_columns {
-        column.iter().enumerate().for_each(|(i, &inv_word)| {
+        for (i, &inv_word) in column.iter().enumerate() {
             row_sums[i] += inv_word;
-        });
+        }
     }
 
     // Allocate and store the row sums in a Box using the bump allocator
     let row_sums_box: Box<_> =
         Box::new(alloc.alloc_slice_copy(row_sums) as &[_]) as Box<dyn MultilinearExtension<S>>;
 
-    let word_vals_plus_alpha_inv: &mut [S] = alloc.alloc_slice_fill_with(256, |i| {
-        S::try_from(i.into()).expect("word value will always fit into S")
-    });
+    // Allocate and initialize the array for (w + α)⁻¹ over [0..255]
+    let word_vals_plus_alpha_inv: &mut [S] =
+        alloc.alloc_slice_fill_with(max(256, scalars.len()), |_| S::ZERO);
+    for i in 0..256 {
+        word_vals_plus_alpha_inv[i] =
+            S::try_from(i.into()).expect("word value will always fit into S");
+    }
 
+    // Add α to each value, then invert all in a batch
     slice_ops::add_const::<S, S>(word_vals_plus_alpha_inv, alpha);
     slice_ops::batch_inversion(&mut word_vals_plus_alpha_inv[..]);
 
-    // Now pass the vector to the builder
+    // Build the sumcheck subpolynomial argument:
+    //   ∑ row_sums - (word_counts * (word_vals + α)⁻¹) = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::ZeroSum,
         vec![
@@ -367,59 +392,88 @@ pub fn verifier_evaluate_range_check<S: Scalar>(
     input_ones_eval: S,
     input_column_eval: S,
 ) -> Result<(), ProofSizeMismatch> {
+    // Retrieve the post-result challenge α
     let alpha = builder.try_consume_post_result_challenge()?;
 
-    let (sum, w_plus_alpha_inv_evals) = (0..31)
-        .map(|i| {
-            let w_eval = builder.try_consume_first_round_mle_evaluation()?;
-            let words_inv = builder.try_consume_final_round_mle_evaluation()?;
+    // We will accumulate ∑(wᵢ * 256ⁱ) in `sum`.
+    // Additionally, we'll collect all (wᵢ + α)⁻¹ evaluations in `w_plus_alpha_inv_evals`
+    // to use later for the ZeroSum argument.
+    let mut sum = S::ZERO;
+    let mut w_plus_alpha_inv_evals = Vec::with_capacity(31);
 
-            let word_eval = words_inv * (w_eval + alpha);
-            let power = (0..i).fold(S::from(1), |acc, _| acc * S::from(256));
+    // Process 31 columns (one per byte in a 248-bit decomposition).
+    // Each iteration handles:
+    //  - Consuming MLE evaluations for wᵢ and (wᵢ + α)⁻¹
+    //  - Verifying that (wᵢ + α)⁻¹ * (wᵢ + α) - 1 = 0
+    //  - Accumulating wᵢ * 256ⁱ into `sum`
+    for i in 0..31 {
+        // Consume the next MLE evaluations: one for wᵢ, one for (wᵢ + α)⁻¹
+        let w_eval = builder.try_consume_first_round_mle_evaluation()?;
+        let words_inv = builder.try_consume_final_round_mle_evaluation()?;
 
-            builder.try_produce_sumcheck_subpolynomial_evaluation(
-                SumcheckSubpolynomialType::Identity,
-                word_eval - input_ones_eval,
-                2,
-            )?;
+        // Compute word_eval = (wᵢ + α) * (wᵢ + α)⁻¹
+        // This is used in the subpolynomial check below.
+        let word_eval = words_inv * (w_eval + alpha);
 
-            Ok((w_eval, words_inv, power))
-        })
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .fold(
-            (S::ZERO, Vec::with_capacity(31)),
-            |(sum_acc, mut invs), (w_eval, words_inv, power)| {
-                (sum_acc + w_eval * power, {
-                    invs.push(words_inv);
-                    invs
-                })
-            },
-        );
+        // Compute 256ⁱ via a small loop (instead of a fold or pow)
+        let mut power = S::from(1);
+        for _ in 0..i {
+            power *= S::from(256);
+        }
 
+        // Argue that ( (wᵢ + α)⁻¹ * (wᵢ + α) ) - 1 = 0
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
+            SumcheckSubpolynomialType::Identity,
+            word_eval - input_ones_eval,
+            2,
+        )?;
+
+        // Add wᵢ * 256ⁱ to our running sum to ensure the entire column is in range
+        sum += w_eval * power;
+
+        // Collect the inverse factor for the final ZeroSum argument
+        w_plus_alpha_inv_evals.push(words_inv);
+    }
+
+    // Ensure the sum of the scalars (interpreted in base 256) matches
+    // the claimed input_column_eval. If not, the column is out of range.
     assert_eq!(
         sum, input_column_eval,
         "Range check failed, column contains values outside of the selected range"
     );
 
+    // Retrieve word_vals_eval (evaluation for w-values)
+    // from the builder’s MLE evaluations
     let word_vals_eval = builder
         .mle_evaluations
         .rho_256_evaluation
         .ok_or(ProofSizeMismatch::TooFewSumcheckVariables)?;
-    // Ensures that we have enough sumcheck variables
-    let word_vals_plus_alpha_inv = builder.try_consume_final_round_mle_evaluation()?;
-    let word_value_constraint = word_vals_plus_alpha_inv * (word_vals_eval + alpha);
 
+    // Retrieve the final-round MLE evaluation for (word_vals + α)⁻¹
+    let word_vals_plus_alpha_inv = builder.try_consume_final_round_mle_evaluation()?;
+
+    // Argue that (word_vals + α)⁻¹ * (word_vals + α) - 1 = 0
+    let word_value_constraint = word_vals_plus_alpha_inv * (word_vals_eval + alpha);
     builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
         word_value_constraint - input_ones_eval,
         2,
     )?;
 
+    // The final-round MLE evaluation for word count
     let count_eval = builder.try_consume_final_round_mle_evaluation()?;
-    let row_sum_eval: S = w_plus_alpha_inv_evals.iter().copied().sum();
+
+    // Sum over all (wᵢ + α)⁻¹ evaluations to get row_sum_eval
+    let mut row_sum_eval = S::ZERO;
+    for inv_eval in &w_plus_alpha_inv_evals {
+        row_sum_eval += *inv_eval;
+    }
+
+    // Compute count_eval * (word_vals + α)⁻¹
     let count_value_product_eval = count_eval * word_vals_plus_alpha_inv;
 
+    // Argue that row_sum_eval - (count_eval * (word_vals + α)⁻¹) = 0
+    // This ensures consistency of counts vs. actual row sums.
     builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::ZeroSum,
         row_sum_eval - count_value_product_eval,
