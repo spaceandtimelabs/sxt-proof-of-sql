@@ -39,7 +39,7 @@ impl Default for TrivialTestProofPlan {
             evaluation: 0,
             produce_length: true,
             bit_distribution: Some(BitDistribution {
-                or_all: [0; 4],
+                leading_bit_mask: [0; 4],
                 vary_mask: [0; 4],
             }),
         }
@@ -229,7 +229,7 @@ fn verify_fails_if_the_number_of_bit_distributions_is_not_enough() {
 fn verify_fails_if_a_bit_distribution_is_invalid() {
     let expr = TrivialTestProofPlan {
         bit_distribution: Some(BitDistribution {
-            or_all: [1; 4],
+            leading_bit_mask: [1; 4],
             vary_mask: [1; 4],
         }),
         ..Default::default()
