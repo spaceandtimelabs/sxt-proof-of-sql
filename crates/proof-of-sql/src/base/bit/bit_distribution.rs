@@ -37,12 +37,15 @@ impl BitDistribution {
         Self { or_all, vary_mask }
     }
 
+    pub fn vary_mask(&self) -> U256 {
+        U256::from(self.vary_mask)
+    }
+
+    /// # Panics
+    ///
+    /// Panics if conversion from `ExpType` to `usize` fails
     pub fn num_varying_bits(&self) -> usize {
-        let mut res = 0_usize;
-        for xi in &self.vary_mask {
-            res += xi.count_ones() as usize;
-        }
-        res
+        self.vary_mask().count_ones() as usize
     }
 
     pub fn has_varying_sign_bit(&self) -> bool {
