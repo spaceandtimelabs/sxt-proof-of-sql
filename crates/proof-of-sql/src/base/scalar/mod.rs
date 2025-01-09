@@ -6,9 +6,8 @@ pub use error::ScalarConversionError;
 mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
-pub use mont_scalar::BN254Scalar;
-pub use mont_scalar::Curve25519Scalar;
 pub(crate) use mont_scalar::MontScalar;
+pub use mont_scalar::{BN254Scalar, Curve25519Scalar};
 /// Module for a test Scalar
 #[cfg(test)]
 pub mod test_scalar;
