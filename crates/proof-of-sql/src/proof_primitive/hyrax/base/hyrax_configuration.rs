@@ -23,8 +23,8 @@ pub trait HyraxConfiguration: Debug + Eq + Clone + Default + Send + Sync {
         + Sync;
     /// The scalar that will be used.
     type OperableScalar: HyraxScalar + for<'a> Deserialize<'a>;
-    /// The compressed representation of the operabe group. Note that decompression occurs primarily in verification,
-    /// whereas compression occurs mostly in proof and commitment generation. This is an important deatil for example in the sp1 implementation,
+    /// The compressed representation of the operable group. Note that decompression occurs primarily in verification,
+    /// whereas compression occurs mostly in commitment generation. This is an important detail for example in the sp1 implementation,
     /// where it is most important to emphasize efficient verification.
     type CompressedGroup: Serialize
         + for<'a> Deserialize<'a>
