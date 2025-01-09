@@ -16,8 +16,8 @@ pub fn empty_exec() -> DynProofPlan {
     DynProofPlan::Empty(EmptyExec::new())
 }
 
-pub fn table_exec(table_ref: TableRef, schema: Vec<ColumnField>) -> DynProofPlan {
-    DynProofPlan::Table(TableExec::new(table_ref, schema))
+pub fn table_exec(table_ref: &TableRef, schema: Vec<ColumnField>) -> DynProofPlan {
+    DynProofPlan::Table(TableExec::new(table_ref.clone(), schema))
 }
 
 pub fn projection(results: Vec<AliasedDynProofExpr>, table: TableExpr) -> DynProofPlan {

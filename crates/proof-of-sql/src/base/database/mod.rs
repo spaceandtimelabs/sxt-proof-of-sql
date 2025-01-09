@@ -41,6 +41,8 @@ pub use columnar_value::ColumnarValue;
 mod literal_value;
 pub use literal_value::LiteralValue;
 
+mod error;
+
 mod table_ref;
 #[cfg(feature = "arrow")]
 pub use crate::base::arrow::{

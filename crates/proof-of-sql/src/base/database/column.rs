@@ -561,10 +561,10 @@ pub struct ColumnRef {
 impl ColumnRef {
     /// Create a new `ColumnRef` from a table, column identifier and column type
     #[must_use]
-    pub fn new(table_ref: TableRef, column_id: Ident, column_type: ColumnType) -> Self {
+    pub fn new(table_ref: &TableRef, column_id: Ident, column_type: ColumnType) -> Self {
         Self {
             column_id,
-            table_ref,
+            table_ref: table_ref.clone(),
             column_type,
         }
     }
@@ -572,7 +572,7 @@ impl ColumnRef {
     /// Returns the table reference of this column
     #[must_use]
     pub fn table_ref(&self) -> TableRef {
-        self.table_ref
+        self.table_ref.clone()
     }
 
     /// Returns the column identifier of this column

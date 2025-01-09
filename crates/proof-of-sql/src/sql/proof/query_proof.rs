@@ -36,8 +36,8 @@ fn get_index_range<'a>(
     table_refs
         .into_iter()
         .map(|table_ref| {
-            let length = accessor.get_length(*table_ref);
-            let offset = accessor.get_offset(*table_ref);
+            let length = accessor.get_length(table_ref);
+            let offset = accessor.get_offset(table_ref);
             (offset, offset + length)
         })
         .reduce(|(min_start, max_end), (start, end)| (min_start.min(start), max_end.max(end)))
@@ -116,7 +116,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                     .filter(|col_ref| col_ref.table_ref() == table_ref)
                     .cloned()
                     .collect();
-                (table_ref, accessor.get_table(table_ref, &col_refs))
+                (table_ref.clone(), accessor.get_table(table_ref, &col_refs))
             })
             .collect();
 
@@ -367,7 +367,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // Always prepend input lengths to the one evaluation lengths
         let table_length_map = table_refs
             .iter()
-            .map(|table_ref| (table_ref, accessor.get_length(*table_ref)))
+            .map(|table_ref| (table_ref, accessor.get_length(table_ref)))
             .collect::<IndexMap<_, _>>();
 
         let one_evaluation_lengths = table_length_map
@@ -387,7 +387,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         );
         let one_eval_map: IndexMap<TableRef, CP::Scalar> = table_length_map
             .iter()
-            .map(|(table_ref, length)| (**table_ref, sumcheck_evaluations.one_evaluations[length]))
+            .map(|(table_ref, length)| {
+                (
+                    (*table_ref).clone(),
+                    sumcheck_evaluations.one_evaluations[length],
+                )
+            })
             .collect();
         let mut builder = VerificationBuilder::new(
             min_row_num,

@@ -25,7 +25,7 @@ pub fn exercise_verification(
     res: &VerifiableQueryResult<InnerProductProof>,
     expr: &(impl ProofPlan + Serialize),
     accessor: &impl TestAccessor<RistrettoPoint>,
-    table_ref: TableRef,
+    table_ref: &TableRef,
 ) {
     res.clone()
         .verify(expr, accessor, &())

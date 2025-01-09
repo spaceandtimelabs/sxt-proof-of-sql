@@ -97,7 +97,7 @@ impl<C: Commitment> TableCommitment<C> {
         reason = "The assertion ensures that from_accessor should not create columns with a negative range"
     )]
     pub fn from_accessor_with_max_bounds(
-        table_ref: TableRef,
+        table_ref: &TableRef,
         columns: &[ColumnField],
         accessor: &impl CommitmentAccessor<C>,
     ) -> Self {

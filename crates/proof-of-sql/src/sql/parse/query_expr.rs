@@ -1,5 +1,6 @@
 use super::{EnrichedExpr, FilterExecBuilder, QueryContextBuilder};
 use crate::{
+    alloc::string::ToString,
     base::database::SchemaAccessor,
     sql::{
         parse::ConversionResult,
@@ -35,10 +36,18 @@ impl fmt::Debug for QueryExpr {
     }
 }
 
-pub fn convert_ident_to_identifier(ident: Ident) -> Result<Identifier, PostprocessingError> {
-    Identifier::try_from(ident).map_err(|e| PostprocessingError::IdentifierConversionError {
-        error: format!("Failed to convert Ident to Identifier: {e}"),
-    })
+pub fn convert_ident_to_identifier(
+    ident: Option<Ident>,
+) -> Result<Identifier, PostprocessingError> {
+    ident
+        .ok_or_else(|| PostprocessingError::IdentifierConversionError {
+            error: "Default schema is missing".to_string(),
+        })
+        .and_then(|i| {
+            Identifier::try_from(i).map_err(|e| PostprocessingError::IdentifierConversionError {
+                error: format!("Failed to convert Ident to Identifier: {e}"),
+            })
+        })
 }
 
 impl QueryExpr {
@@ -64,7 +73,7 @@ impl QueryExpr {
                 where_expr,
                 group_by,
             } => QueryContextBuilder::new(schema_accessor)
-                .visit_table_expr(&from, convert_ident_to_identifier(default_schema)?)
+                .visit_table_expr(&from, convert_ident_to_identifier(Some(default_schema))?)
                 .visit_group_by_exprs(group_by.into_iter().map(Ident::from).collect())?
                 .visit_result_exprs(result_exprs)?
                 .visit_where_expr(where_expr)?
@@ -102,7 +111,7 @@ impl QueryExpr {
                     })
                     .collect::<Vec<_>>();
                 let filter = FilterExecBuilder::new(context.get_column_mapping())
-                    .add_table_expr(*context.get_table_ref())
+                    .add_table_expr(context.get_table_ref().clone())
                     .add_where_expr(context.get_where_expr().clone())?
                     .add_result_columns(&raw_enriched_exprs)
                     .build();
@@ -144,7 +153,7 @@ impl QueryExpr {
                 .map(|enriched_expr| enriched_expr.residue_expression.clone())
                 .collect::<Vec<_>>();
             let filter = FilterExecBuilder::new(context.get_column_mapping())
-                .add_table_expr(*context.get_table_ref())
+                .add_table_expr(context.get_table_ref().clone())
                 .add_where_expr(context.get_where_expr().clone())?
                 .add_result_columns(&enriched_exprs)
                 .build();

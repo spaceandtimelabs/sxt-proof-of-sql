@@ -265,10 +265,10 @@ mod tests {
     )]
     fn we_cannot_successfully_verify_invalid_range() {
         let data = owned_table([scalar("a", -2..254)]);
-        let t = "sxt.t".parse().unwrap();
-        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let t = TableRef::new("sxt", "t");
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
         let ast = RangeCheckTestPlan {
-            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+            column: ColumnRef::new(&t, "a".into(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let _ = verifiable_res.verify(&ast, &accessor, &());
@@ -294,10 +294,10 @@ mod tests {
                 .collect::<Vec<_>>(),
         )]);
 
-        let t = "sxt.t".parse().unwrap();
-        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let t = TableRef::new("sxt", "t");
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
         let ast = RangeCheckTestPlan {
-            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+            column: ColumnRef::new(&t, "a".into(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let res: Result<
@@ -331,10 +331,10 @@ mod tests {
                 .collect::<Vec<_>>(),
         )]);
 
-        let t = "sxt.t".parse().unwrap();
-        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let t = TableRef::new("sxt", "t");
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
         let ast = RangeCheckTestPlan {
-            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+            column: ColumnRef::new(&t, "a".into(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let res: Result<

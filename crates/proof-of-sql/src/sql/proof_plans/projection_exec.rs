@@ -83,7 +83,7 @@ impl ProofPlan for ProjectionExec {
     }
 
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        IndexSet::from_iter([self.table.table_ref])
+        IndexSet::from_iter([self.table.table_ref.clone()])
     }
 }
 

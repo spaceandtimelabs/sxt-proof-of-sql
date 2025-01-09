@@ -15,13 +15,13 @@ use sqlparser::ast::Ident;
 /// will only be accessing information about tables that exist in the database.
 pub trait MetadataAccessor {
     /// Return the data span's length in the table (not the full table length)
-    fn get_length(&self, table_ref: TableRef) -> usize;
+    fn get_length(&self, table_ref: &TableRef) -> usize;
 
     /// Return the data span's offset in the table
     ///
     /// If the data span has its first row starting at the ith table row,
     /// this `get_offset` should then return `i`.
-    fn get_offset(&self, table_ref: TableRef) -> usize;
+    fn get_offset(&self, table_ref: &TableRef) -> usize;
 }
 
 /// Access commitments of database columns.
@@ -95,7 +95,7 @@ pub trait DataAccessor<S: Scalar>: MetadataAccessor {
     /// Column length mismatches can occur in theory. In practice, this should not happen.
     fn get_table(&self, table_ref: TableRef, column_refs: &IndexSet<ColumnRef>) -> Table<S> {
         if column_refs.is_empty() {
-            let input_length = self.get_length(table_ref);
+            let input_length = self.get_length(&table_ref);
             Table::<S>::try_new_with_options(
                 IndexMap::default(),
                 TableOptions::new(Some(input_length)),

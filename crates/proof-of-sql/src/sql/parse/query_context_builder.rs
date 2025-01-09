@@ -15,7 +15,7 @@ use proof_of_sql_parser::{
         AggregationOperator, AliasedResultExpr, Expression, Literal, OrderBy, SelectResultExpr,
         Slice, TableExpression,
     },
-    Identifier, ResourceId,
+    Identifier,
 };
 use sqlparser::ast::{BinaryOperator, UnaryOperator};
 pub struct QueryContextBuilder<'a> {
@@ -40,13 +40,17 @@ impl<'a> QueryContextBuilder<'a> {
         default_schema: Identifier,
     ) -> Self {
         assert_eq!(table_expr.len(), 1);
+
         match *table_expr[0] {
             TableExpression::Named { table, schema } => {
                 let schema_identifier = schema.unwrap_or(default_schema);
-                self.context
-                    .set_table_ref(TableRef::new(ResourceId::new(schema_identifier, table)));
+                self.context.set_table_ref(TableRef::from_idents(
+                    Some(Ident::new(schema_identifier.to_string())),
+                    Ident::new(table.to_string()),
+                ));
             }
         }
+
         self
     }
 
@@ -109,7 +113,7 @@ impl QueryContextBuilder<'_> {
     )]
     fn lookup_schema(&self) -> Vec<(Ident, ColumnType)> {
         let table_ref = self.context.get_table_ref();
-        let columns = self.schema_accessor.lookup_schema(*table_ref);
+        let columns = self.schema_accessor.lookup_schema(table_ref.clone());
         assert!(!columns.is_empty(), "At least one column must exist");
         columns
     }
@@ -261,14 +265,15 @@ impl QueryContextBuilder<'_> {
         let table_ref = self.context.get_table_ref();
         let column_type = self
             .schema_accessor
-            .lookup_column(*table_ref, column_name.clone());
+            .lookup_column(table_ref.clone(), column_name.clone());
 
         let column_type = column_type.ok_or_else(|| ConversionError::MissingColumn {
             identifier: Box::new(column_name.clone()),
-            resource_id: Box::new(table_ref.resource_id()),
+            schema_name: table_ref.schema_id().map(Ident::to_string),
+            table_name: table_ref.table_id().to_string(),
         })?;
 
-        let column = ColumnRef::new(*table_ref, column_name.clone(), column_type);
+        let column = ColumnRef::new(table_ref, column_name.clone(), column_type);
 
         self.context.push_column_ref(column_name.clone(), column);
 

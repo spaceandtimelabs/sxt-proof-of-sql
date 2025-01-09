@@ -52,7 +52,7 @@ pub struct ColumnCommitments<C> {
 impl<C: Commitment> ColumnCommitments<C> {
     /// Create a new [`ColumnCommitments`] for a table from a commitment accessor.
     pub fn from_accessor_with_max_bounds(
-        table: TableRef,
+        table: &TableRef,
         columns: &[ColumnField],
         accessor: &impl CommitmentAccessor<C>,
     ) -> Self {

@@ -46,17 +46,17 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
         OwnedTableTestAccessor::default()
     }
 
-    fn add_table(&mut self, table_ref: TableRef, data: Self::Table, table_offset: usize) {
-        self.tables.insert(table_ref, (data, table_offset));
+    fn add_table(&mut self, table_ref: &TableRef, data: Self::Table, table_offset: usize) {
+        self.tables.insert(table_ref.clone(), (data, table_offset));
     }
     ///
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating
     /// that an invalid reference was provided.
-    fn get_column_names(&self, table_ref: TableRef) -> Vec<&str> {
+    fn get_column_names(&self, table_ref: &TableRef) -> Vec<&str> {
         self.tables
-            .get(&table_ref)
+            .get(&table_ref.clone())
             .unwrap()
             .0
             .column_names()
@@ -68,8 +68,8 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
-    fn update_offset(&mut self, table_ref: TableRef, new_offset: usize) {
-        self.tables.get_mut(&table_ref).unwrap().1 = new_offset;
+    fn update_offset(&mut self, table_ref: &TableRef, new_offset: usize) {
+        self.tables.get_mut(&table_ref.clone()).unwrap().1 = new_offset;
     }
 }
 
@@ -138,15 +138,15 @@ impl<CP: CommitmentEvaluationProof> MetadataAccessor for OwnedTableTestAccessor<
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
-    fn get_length(&self, table_ref: TableRef) -> usize {
-        self.tables.get(&table_ref).unwrap().0.num_rows()
+    fn get_length(&self, table_ref: &TableRef) -> usize {
+        self.tables.get(&table_ref.clone()).unwrap().0.num_rows()
     }
     ///
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
-    fn get_offset(&self, table_ref: TableRef) -> usize {
-        self.tables.get(&table_ref).unwrap().1
+    fn get_offset(&self, table_ref: &TableRef) -> usize {
+        self.tables.get(&table_ref.clone()).unwrap().1
     }
 }
 impl<CP: CommitmentEvaluationProof> SchemaAccessor for OwnedTableTestAccessor<'_, CP> {
@@ -186,7 +186,7 @@ impl<'a, CP: CommitmentEvaluationProof> OwnedTableTestAccessor<'a, CP> {
 
     /// Create a new test accessor containing the provided table.
     pub fn new_from_table(
-        table_ref: TableRef,
+        table_ref: &TableRef,
         owned_table: OwnedTable<CP::Scalar>,
         offset: usize,
         setup: CP::ProverPublicSetup<'a>,

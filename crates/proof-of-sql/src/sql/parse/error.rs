@@ -8,20 +8,29 @@ use alloc::{
     string::{String, ToString},
 };
 use core::result::Result;
-use proof_of_sql_parser::{posql_time::PoSQLTimestampError, ResourceId};
+use proof_of_sql_parser::posql_time::PoSQLTimestampError;
 use snafu::Snafu;
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Ident, ObjectName};
 
 /// Errors from converting an intermediate AST into a provable AST.
 #[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum ConversionError {
-    #[snafu(display("Column '{identifier}' was not found in table '{resource_id}'"))]
+    #[snafu(display("Column '{identifier}' was not found in table '{}.{}'", schema_name.clone().unwrap_or("<default>".to_string()), table_name))]
     /// The column is missing in the table
     MissingColumn {
         /// The missing column identifier
         identifier: Box<Ident>,
-        /// The table resource id
-        resource_id: Box<ResourceId>,
+        /// The schema name (optional)
+        schema_name: Option<String>,
+        /// The table name
+        table_name: String,
+    },
+
+    #[snafu(display("Missing schema or table identifier in ObjectName"))]
+    /// Missing schema or table identifier
+    MissingSchemaOrTable {
+        /// The `ObjectName`
+        object_name: ObjectName,
     },
 
     #[snafu(display("Column '{identifier}' was not found"))]

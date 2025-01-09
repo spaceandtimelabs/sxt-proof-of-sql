@@ -239,12 +239,23 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
             .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
-        let table = value.table.map(|table_ref| TableExpr { table_ref }).ok_or(
-            ConversionError::InvalidExpression {
+        let table = value
+            .table
+            .as_ref()
+            .map(|table_ref| TableExpr {
+                table_ref: table_ref.clone(),
+            })
+            .ok_or(ConversionError::InvalidExpression {
                 expression: "QueryContext has no table_ref".to_owned(),
-            },
-        )?;
-        let resource_id = table.table_ref.resource_id();
+            })?;
+        // Extract schema_name and table_name directly from TableRef
+        let schema_name = table.table_ref.schema_id().map_or_else(
+            || "<default_schema>".to_string(),
+            |ident| ident.value.clone(),
+        );
+
+        let table_name = table.table_ref.table_id().value.clone();
+
         let group_by_exprs = value
             .group_by_exprs
             .iter()
@@ -252,9 +263,10 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
                 value
                     .column_mapping
                     .get(expr)
-                    .ok_or(ConversionError::MissingColumn {
-                        identifier: Box::new((expr).clone()),
-                        resource_id: Box::new(resource_id),
+                    .ok_or_else(|| ConversionError::MissingColumn {
+                        identifier: Box::new(expr.clone()),
+                        schema_name: Some(schema_name.clone()),
+                        table_name: table_name.to_string(),
                     })
                     .map(|column_ref| ColumnExpr::new(column_ref.clone()))
             })
