@@ -185,6 +185,11 @@ where
 /// Using the `Scalar` trait rather than this type is encouraged to allow for easier switching of the underlying field.
 pub type Curve25519Scalar = MontScalar<ark_curve25519::FrConfig>;
 
+/// A wrapper type around the field element `ark_bn254::Fr` and should be used in place of `ark_bn254::Fr`.
+///
+/// Using the `Scalar` trait rather than this type is encouraged to allow for easier switching of the underlying field.
+pub type BN254Scalar = MontScalar<ark_bn254::FrConfig>;
+
 impl<T: MontConfig<4>> MontScalar<T> {
     /// Convenience function for creating a new `MontScalar<T>` from the underlying `Fp256<MontBackend<T, 4>>`. Should only be used in tests.
     #[cfg(test)]
@@ -426,6 +431,16 @@ impl<T: MontConfig<4>> Display for MontScalar<T> {
 impl super::Scalar for Curve25519Scalar {
     const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
         "3618502788666131106986593281521497120428558179689953803000975469142727125494"
+    ));
+    const ZERO: Self = Self(ark_ff::MontFp!("0"));
+    const ONE: Self = Self(ark_ff::MontFp!("1"));
+    const TWO: Self = Self(ark_ff::MontFp!("2"));
+    const TEN: Self = Self(ark_ff::MontFp!("10"));
+}
+
+impl super::Scalar for BN254Scalar {
+    const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
+        "10944121435919637611123202872628637544274182200208017171849102093287904247808"
     ));
     const ZERO: Self = Self(ark_ff::MontFp!("0"));
     const ONE: Self = Self(ark_ff::MontFp!("1"));
