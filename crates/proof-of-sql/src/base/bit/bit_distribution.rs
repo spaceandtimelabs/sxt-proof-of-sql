@@ -72,6 +72,19 @@ impl BitDistribution {
         self.vary_mask().count_ones() as usize
     }
 
+    /// # Panics
+    ///
+    /// Panics if lead bit varies but `bit_evals` is empty
+    pub fn leading_bit_eval<S: ScalarExt>(&self, bit_evals: &[S], one_eval: S) -> S {
+        if U256::from(self.vary_mask) & (U256::ONE << 255) != U256::ZERO {
+            *bit_evals.last().expect("bit_evals should be non-empty")
+        } else if U256::from(self.leading_bit_mask) & (U256::ONE << 255) == U256::ZERO {
+            S::ZERO
+        } else {
+            one_eval
+        }
+    }
+
     pub fn has_varying_sign_bit(&self) -> bool {
         self.vary_mask[3] & (1 << 63) != 0
     }
@@ -101,6 +114,19 @@ impl BitDistribution {
         // then
         //       2 * (2^127) = 2^128
         (self.leading_bit_inverse_mask() >> 128) == (U256::MAX >> 129)
+    }
+
+    /// Iterate over each varying bit
+    ///
+    /// # Panics
+    ///
+    /// The panic shouldn't be mathematically possible
+    pub fn vary_mask_iter(&self) -> impl Iterator<Item = u8> + '_ {
+        (0..4).flat_map(|i| {
+            BitIter::from(self.vary_mask[i])
+                .iter()
+                .map(move |pos| u8::try_from(i * 64 + pos).expect("index greater than 255"))
+        })
     }
 
     /// If `{b_i}` represents the non-varying 1-bits of the absolute values, return the value
