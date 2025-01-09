@@ -1,5 +1,6 @@
 use crate::base::{bit::make_abs_bit_mask, scalar::Scalar};
 use bit_iter::BitIter;
+use bnum::types::U256;
 use core::convert::Into;
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +16,8 @@ pub struct BitDistribution {
     ///              0 otherwise
     pub or_all: [u64; 4],
     pub vary_mask: [u64; 4],
+    /// Identifies all columns that are the identical to the lead column. The lead bit indicates the sign of the last row of data (only relevant if the sign is constant)
+    pub(crate) leading_bit_mask: [u64; 4],
 }
 
 impl BitDistribution {
@@ -39,6 +42,16 @@ impl BitDistribution {
 
     pub fn vary_mask(&self) -> U256 {
         U256::from(self.vary_mask)
+    }
+
+    /// Identifies all columns that are the identical to the lead column.
+    pub fn leading_bit_mask(&self) -> U256 {
+        U256::from(self.leading_bit_mask) | (U256::ONE << 255)
+    }
+
+    /// Identifies all columns that are the identical to the inverse of the lead column.
+    pub fn leading_bit_inverse_mask(&self) -> U256 {
+        (!self.vary_mask() ^ self.leading_bit_mask()) & (U256::MAX >> 1)
     }
 
     /// # Panics
