@@ -38,15 +38,14 @@ mod tests {
     use crate::{
         base::{
             polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
-            scalar::Curve25519Scalar,
+            scalar::{BN254Scalar, Curve25519Scalar},
         },
         sql::proof::SumcheckSubpolynomialType,
     };
     use alloc::boxed::Box;
-    use num_traits::{One, Zero};
+    use num_traits::Zero;
 
-    #[test]
-    fn we_can_form_an_aggregated_sumcheck_polynomial() {
+    fn we_can_form_an_aggregated_sumcheck_polynomial<S: Scalar + From<u64>>() {
         let mle1 = [1, 2, -1];
         let mle2 = [10i64, 20, 100, 30];
         let mle3 = [2000i64, 3000, 5000, 7000];
@@ -54,24 +53,24 @@ mod tests {
         let subpolynomials = &[
             SumcheckSubpolynomial::new(
                 SumcheckSubpolynomialType::Identity,
-                vec![(-Curve25519Scalar::one(), vec![Box::new(&mle1)])],
+                vec![(-S::one(), vec![Box::new(&mle1)])],
             ),
             SumcheckSubpolynomial::new(
                 SumcheckSubpolynomialType::Identity,
-                vec![(-Curve25519Scalar::from(10u64), vec![Box::new(&mle2)])],
+                vec![(-S::from(10u64), vec![Box::new(&mle2)])],
             ),
             SumcheckSubpolynomial::new(
                 SumcheckSubpolynomialType::ZeroSum,
-                vec![(Curve25519Scalar::from(9876u64), vec![Box::new(&mle3)])],
+                vec![(S::from(9876u64), vec![Box::new(&mle3)])],
             ),
         ];
 
         let multipliers = [
-            Curve25519Scalar::from(5u64),
-            Curve25519Scalar::from(2u64),
-            Curve25519Scalar::from(50u64),
-            Curve25519Scalar::from(25u64),
-            Curve25519Scalar::from(11u64),
+            S::from(5u64),
+            S::from(2u64),
+            S::from(50u64),
+            S::from(25u64),
+            S::from(11u64),
         ];
 
         let mut evaluation_vector = vec![Zero::zero(); 4];
@@ -86,22 +85,29 @@ mod tests {
         let fr = (&evaluation_vector).to_sumcheck_term(2);
         expected_poly.add_product(
             [fr.clone(), (&mle1).to_sumcheck_term(2)],
-            -Curve25519Scalar::from(1u64) * multipliers[2],
+            -S::from(1u64) * multipliers[2],
         );
         expected_poly.add_product(
             [fr, (&mle2).to_sumcheck_term(2)],
-            -Curve25519Scalar::from(10u64) * multipliers[3],
+            -S::from(10u64) * multipliers[3],
         );
         expected_poly.add_product(
             [(&mle3).to_sumcheck_term(2)],
-            Curve25519Scalar::from(9876u64) * multipliers[4],
+            S::from(9876u64) * multipliers[4],
         );
-        let random_point = [
-            Curve25519Scalar::from(123u64),
-            Curve25519Scalar::from(101_112_u64),
-        ];
+        let random_point = [S::from(123u64), S::from(101_112_u64)];
         let eval = poly.evaluate(&random_point);
         let expected_eval = expected_poly.evaluate(&random_point);
         assert_eq!(eval, expected_eval);
+    }
+
+    #[test]
+    fn we_can_form_an_aggregated_sumcheck_polynomial_with_curve25519_scalars() {
+        we_can_form_an_aggregated_sumcheck_polynomial::<Curve25519Scalar>();
+    }
+
+    #[test]
+    fn we_can_form_an_aggregated_sumcheck_polynomial_with_bn254_scalars() {
+        we_can_form_an_aggregated_sumcheck_polynomial::<BN254Scalar>();
     }
 }
