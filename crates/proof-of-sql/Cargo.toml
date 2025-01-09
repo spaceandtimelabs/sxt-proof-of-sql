@@ -27,6 +27,7 @@ bit-iter = { workspace = true }
 bigdecimal = { workspace = true }
 blake3 = { workspace = true }
 blitzar = { workspace = true, optional = true }
+bnum = { workspace = true }
 bumpalo = { workspace = true, features = ["collections"] }
 bytemuck = { workspace = true }
 byte-slice-cast = { workspace = true }
