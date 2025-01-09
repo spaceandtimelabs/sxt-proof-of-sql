@@ -1,4 +1,3 @@
-use super::{verify_constant_abs_decomposition, verify_constant_sign_decomposition};
 use crate::{
     base::{
         bit::{
@@ -157,4 +156,68 @@ fn verify_bit_decomposition<S: ScalarExt>(
         }
     }
     rhs == expr_eval
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        base::{
+            bit::BitDistribution,
+            scalar::{test_scalar::TestScalar, Scalar},
+        },
+        sql::proof_gadgets::sign_expr::verify_bit_decomposition,
+    };
+
+    #[test]
+    fn we_can_verify_bit_decomposition() {
+        let dist = BitDistribution {
+            vary_mask: [629, 0, 0, 0],
+            leading_bit_mask: [2, 0, 0, 9_223_372_036_854_775_808],
+        };
+        let one_eval = TestScalar::ONE;
+        let bit_evals = [0, 0, 1, 1, 0, 1].map(TestScalar::from);
+        let expr_eval = TestScalar::from(562);
+        assert!(verify_bit_decomposition(
+            expr_eval, one_eval, &bit_evals, &dist,
+        ));
+    }
+
+    #[test]
+    fn we_can_verify_bit_decomposition_constant_sign() {
+        let dist = BitDistribution {
+            vary_mask: [629, 0, 0, 0],
+            leading_bit_mask: [2, 0, 0, 9_223_372_036_854_775_808],
+        };
+        let a = TestScalar::ONE;
+        let b = TestScalar::ONE;
+        let expr_eval = TestScalar::from(118) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+            + TestScalar::from(562) * a * (TestScalar::ONE - b)
+            + TestScalar::from(3) * (TestScalar::ONE - a) * b;
+        let one_eval = TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+            + TestScalar::from(1) * a * (TestScalar::ONE - b)
+            + TestScalar::from(1) * (TestScalar::ONE - a) * b;
+        let bit_evals = [
+            TestScalar::from(0) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(0) * a * (TestScalar::ONE - b)
+                + TestScalar::from(1) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(0) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(1) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(1) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(0) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(0) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(1) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+        ];
+        assert!(verify_bit_decomposition(
+            expr_eval, one_eval, &bit_evals, &dist,
+        ));
+    }
 }

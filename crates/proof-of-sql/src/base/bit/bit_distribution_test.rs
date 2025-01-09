@@ -1,6 +1,208 @@
 use super::*;
-use crate::base::scalar::{test_scalar::TestScalar, ScalarExt};
+use crate::base::scalar::{test_scalar::TestScalar, Scalar, ScalarExt};
 use bnum::types::U256;
+
+// vary_mask function start
+
+#[test]
+fn we_can_get_u256_version_of_vary_mask_for_zero() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [0; 4],
+        leading_bit_mask: [0; 4],
+    };
+
+    // ACT
+    let u256_vary_mask = bit_distribution.vary_mask();
+
+    // ASSERT
+    assert_eq!(u256_vary_mask, U256::ZERO);
+}
+
+#[test]
+fn we_can_get_u256_version_of_vary_mask_for_one() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [1, 0, 0, 0],
+        leading_bit_mask: [0; 4],
+    };
+
+    // ACT
+    let u256_vary_mask = bit_distribution.vary_mask();
+
+    // ASSERT
+    assert_eq!(u256_vary_mask, U256::ONE);
+}
+
+#[test]
+fn we_can_get_u256_version_of_vary_mask_for_large_number() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [256, 0, 0, 256],
+        leading_bit_mask: [0; 4],
+    };
+
+    // ACT
+    let u256_vary_mask = bit_distribution.vary_mask();
+
+    // ASSERT
+    assert_eq!(u256_vary_mask, (U256::ONE << 8) + (U256::ONE << 200));
+}
+
+// vary_mask function end
+
+// leading_bit_mask function start
+
+#[test]
+fn we_can_get_u256_version_of_leading_bit_mask_for_zero() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [0; 4],
+        leading_bit_mask: [0; 4],
+    };
+
+    // ACT
+    let u256_leading_bit_mask = bit_distribution.leading_bit_mask();
+
+    // ASSERT
+    assert_eq!(u256_leading_bit_mask, U256::ONE << 255);
+}
+
+#[test]
+fn we_can_get_u256_version_of_leading_bit_mask_for_one() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [0; 4],
+        leading_bit_mask: [1, 0, 0, 0],
+    };
+
+    // ACT
+    let u256_leading_bit_mask = bit_distribution.leading_bit_mask();
+
+    // ASSERT
+    assert_eq!(u256_leading_bit_mask, U256::ONE | (U256::ONE << 255));
+}
+
+#[test]
+fn we_can_get_u256_version_of_leading_bit_mask_for_large_number() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [0; 4],
+        leading_bit_mask: [256, 0, 0, 256],
+    };
+
+    // ACT
+    let u256_leading_bit_mask = bit_distribution.leading_bit_mask();
+
+    // ASSERT
+    assert_eq!(
+        u256_leading_bit_mask,
+        ((U256::ONE << 8) + (U256::ONE << 200)) | (U256::ONE << 255)
+    );
+}
+
+// leading_bit_mask function end
+
+// leading_bit_inverse_mask function start
+
+#[test]
+fn we_can_get_u256_version_of_leading_bit_inverse_mask_for_zero() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [u64::MAX; 4],
+        leading_bit_mask: [0; 4],
+    };
+
+    // ACT
+    let u256_leading_bit_inverse_mask = bit_distribution.leading_bit_inverse_mask();
+
+    // ASSERT
+    assert_eq!(u256_leading_bit_inverse_mask, U256::ZERO);
+}
+
+#[test]
+fn we_can_get_u256_version_of_leading_bit_inverse_mask_for_one() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [u64::MAX - 1, u64::MAX, u64::MAX, u64::MAX],
+        leading_bit_mask: [0, 0, 0, 0],
+    };
+
+    // ACT
+    let u256_leading_bit_inverse_mask = bit_distribution.leading_bit_inverse_mask();
+
+    // ASSERT
+    assert_eq!(u256_leading_bit_inverse_mask, U256::ONE);
+}
+
+#[test]
+fn we_can_get_u256_version_of_leading_bit_inverse_mask_for_large_number() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [u64::MAX - 255, u64::MAX, u64::MAX, u64::MAX - 255],
+        leading_bit_mask: [0; 4],
+    };
+
+    // ACT
+    let u256_leading_bit_inverse_mask = bit_distribution.leading_bit_inverse_mask();
+
+    // ASSERT
+    assert_eq!(
+        u256_leading_bit_inverse_mask,
+        ((U256::ONE << 8) - U256::ONE) + (((U256::ONE << 8) - U256::ONE) << 192)
+    );
+}
+
+// leading_bit_inverse_mask function end
+
+#[test]
+fn we_can_get_leading_bit_eval_while_varying() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [0, 0, 0, 1 << 63],
+        leading_bit_mask: [0; 4],
+    };
+
+    // ACT
+    let bit_eval = bit_distribution.leading_bit_eval(&[TestScalar::ONE], TestScalar::TWO);
+
+    // ASSERT
+    assert_eq!(bit_eval, TestScalar::ONE);
+}
+
+#[test]
+fn we_can_get_leading_bit_eval_while_constant_and_zero() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [0, 0, 0, 0],
+        leading_bit_mask: [0; 4],
+    };
+
+    // ACT
+    let bit_eval = bit_distribution.leading_bit_eval(&[TestScalar::ONE], TestScalar::TWO);
+
+    // ASSERT
+    assert_eq!(bit_eval, TestScalar::ZERO);
+}
+
+#[test]
+fn we_can_get_leading_bit_eval_while_constant_and_non_zero() {
+    // ARRANGE
+    let bit_distribution = BitDistribution {
+        vary_mask: [0, 0, 0, 0],
+        leading_bit_mask: [0, 0, 0, 1 << 63],
+    };
+
+    // ACT
+    let bit_eval = bit_distribution.leading_bit_eval(&[TestScalar::ONE], TestScalar::TWO);
+
+    // ASSERT
+    assert_eq!(bit_eval, TestScalar::TWO);
+}
+
+// leading_bit_eval functions start
+
+// leading_bit_eval functions end
 
 #[test]
 fn we_can_compute_the_bit_distribution_of_an_empty_slice() {
