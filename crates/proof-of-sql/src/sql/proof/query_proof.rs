@@ -57,6 +57,8 @@ pub(super) struct QueryProof<CP: CommitmentEvaluationProof> {
     pub bit_distributions: Vec<BitDistribution>,
     /// One evaluation lengths
     pub one_evaluation_lengths: Vec<usize>,
+    /// Rho evaluation lengths
+    pub rho_evaluation_lengths: Vec<usize>,
     /// First Round Commitments
     pub first_round_commitments: Vec<CP::Commitment>,
     /// Final Round Commitments
@@ -111,6 +113,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let owned_table_result = OwnedTable::from(&query_result);
         let provable_result = query_result.into();
         let one_evaluation_lengths = first_round_builder.one_evaluation_lengths();
+        let rho_evaluation_lengths = first_round_builder.rho_evaluation_lengths();
 
         let range_length = first_round_builder.range_length();
 
@@ -129,6 +132,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             range_length,
             min_row_num,
             one_evaluation_lengths,
+            rho_evaluation_lengths,
             post_result_challenge_count,
             &first_round_commitments,
         );
@@ -237,6 +241,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let proof = Self {
             bit_distributions: final_round_builder.bit_distributions().to_vec(),
             one_evaluation_lengths: one_evaluation_lengths.to_vec(),
+            rho_evaluation_lengths: rho_evaluation_lengths.to_vec(),
             first_round_commitments,
             final_round_commitments,
             sumcheck_proof,
@@ -292,6 +297,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             self.range_length,
             min_row_num,
             &self.one_evaluation_lengths,
+            &self.rho_evaluation_lengths,
             self.post_result_challenge_count,
             &self.first_round_commitments,
         );
@@ -362,6 +368,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
             self.range_length,
             one_evaluation_lengths,
+            self.rho_evaluation_lengths.clone(),
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.first_round_pcs_proof_evaluations,
@@ -378,6 +385,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             sumcheck_random_scalars.subpolynomial_multipliers,
             post_result_challenges,
             self.one_evaluation_lengths.clone(),
+            self.rho_evaluation_lengths.clone(),
             subclaim.max_multiplicands,
         );
 
@@ -467,18 +475,21 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 /// * `range_length` - The length of the range of generators used.
 /// * `min_row_num` - The minimum row number in the index range of the tables referenced by the query.
 /// * `one_evaluation_lengths` - The lengths of the one evaluations.
+/// * `rho_evaluation_lengths` - The lengths of the rho evaluations.
 /// * `post_result_challenge_count` - The number of post-result challenges.
 /// * `first_round_commitments` - A slice of commitments produced before post-result challenges that are part of the proof.
 ///
 /// # Returns
 ///
 /// A transcript initialized with the provided data.
+#[allow(clippy::too_many_arguments)]
 fn make_transcript<C: Commitment, T: Transcript>(
     expr: &(impl ProofPlan + Serialize),
     result: &OwnedTable<C::Scalar>,
     range_length: usize,
     min_row_num: usize,
     one_evaluation_lengths: &[usize],
+    rho_evaluation_lengths: &[usize],
     post_result_challenge_count: usize,
     first_round_commitments: &[C],
 ) -> T {
@@ -488,6 +499,7 @@ fn make_transcript<C: Commitment, T: Transcript>(
     transcript.extend_serialize_as_le(&range_length);
     transcript.extend_serialize_as_le(&min_row_num);
     transcript.extend_serialize_as_le(one_evaluation_lengths);
+    transcript.extend_serialize_as_le(rho_evaluation_lengths);
     transcript.extend_serialize_as_le(&post_result_challenge_count);
     for commitment in first_round_commitments {
         transcript.extend_as_le(commitment.to_transcript_bytes());

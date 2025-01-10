@@ -44,6 +44,7 @@ fn we_can_verify_a_constant_decomposition() {
     let sumcheck_evaluations = SumcheckMleEvaluations::new(
         data.len(),
         [data.len()],
+        [],
         &evaluation_point,
         &sumcheck_random_scalars,
         &[],
@@ -58,6 +59,7 @@ fn we_can_verify_a_constant_decomposition() {
         &dists,
         &[],
         VecDeque::new(),
+        Vec::new(),
         Vec::new(),
         3,
     );
@@ -77,6 +79,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     let sumcheck_evaluations = SumcheckMleEvaluations::new(
         data.len(),
         [data.len()],
+        [],
         &evaluation_point,
         &sumcheck_random_scalars,
         &[],
@@ -91,6 +94,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         &dists,
         &[],
         VecDeque::new(),
+        Vec::new(),
         Vec::new(),
         3,
     );
