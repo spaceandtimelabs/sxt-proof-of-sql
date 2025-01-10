@@ -17,7 +17,9 @@ use bumpalo::Bump;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
+/// A test plan for performing range checks on a specified column.
 pub struct RangeCheckTestPlan {
+    /// The column reference for the range check test.
     pub column: ColumnRef,
 }
 
@@ -45,6 +47,8 @@ impl ProverEvaluate for RangeCheckTestPlan {
             .expect("Failed to convert column to scalar");
 
         first_round_evaluate_range_check(builder, scalars, alloc);
+
+        builder.produce_one_evaluation_length(scalars.len());
 
         table_map[&self.column.table_ref()].clone()
     }
@@ -99,9 +103,7 @@ impl ProofPlan for RangeCheckTestPlan {
     ) -> Result<TableEvaluation<S>, ProofError> {
         let input_column_eval = accessor[&self.column];
 
-        let input_ones_eval = one_eval_map[&self.column.table_ref()];
-
-        verifier_evaluate_range_check(builder, input_ones_eval, input_column_eval)?;
+        verifier_evaluate_range_check(builder, input_column_eval)?;
 
         Ok(TableEvaluation::new(
             vec![accessor[&self.column]],
@@ -112,20 +114,24 @@ impl ProofPlan for RangeCheckTestPlan {
 
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
-    use std::path::Path;
-
     use super::*;
     use crate::{
-        base::database::{
-            owned_table_utility::{owned_table, scalar},
-            ColumnRef, ColumnType, OwnedTableTestAccessor, TestAccessor,
+        base::{
+            database::{
+                owned_table_utility::{owned_table, scalar},
+                ColumnRef, ColumnType, OwnedTableTestAccessor, TestAccessor,
+            },
+            scalar::{Curve25519Scalar, MontScalar},
         },
         proof_primitive::dory::{
             DoryScalar, DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
         },
-        sql::proof::VerifiableQueryResult,
+        sql::proof::{QueryData, QueryError, VerifiableQueryResult},
     };
     use blitzar::proof::InnerProductProof;
+    use num_bigint::BigUint;
+    use num_traits::Num;
+    use std::path::Path;
 
     #[test]
     #[should_panic(
@@ -143,8 +149,28 @@ mod tests {
     }
 
     #[test]
-    fn we_can_prove_a_range_check_with_range_0_to_256() {
-        let data = owned_table([scalar("a", 0..256)]);
+    #[allow(clippy::cast_sign_loss)]
+    fn we_can_prove_a_range_check_with_range_up_to_boundary() {
+        // 2^248 - 1
+        let upper_bound_str =
+            "452312848583266388373324160190187140051835877600158453279131187530910662655";
+        // Parse the number into a BigUint
+        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
+        let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
+
+        // Convert Vec<u64> to [u64; 4]
+        let limbs: [u64; 4] = limbs_vec[..4].try_into().unwrap();
+
+        let upper_bound = Curve25519Scalar::from_bigint(limbs);
+
+        // Generate the test data
+        let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
+            "a",
+            (0..1000)
+                .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
+                .collect::<Vec<_>>(),
+        )]);
+
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
         let ast = RangeCheckTestPlan {
@@ -163,20 +189,60 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(
+        expected = "Range check failed, column contains values outside of the selected range"
+    )]
+    #[allow(clippy::cast_sign_loss)]
+    fn we_cannot_prove_a_range_check_equal_to_range_boundary() {
+        // 2^248
+        let upper_bound_str =
+            "452312848583266388373324160190187140051835877600158453279131187530910662656";
+        // Parse the number into a BigUint
+        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
+        let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
+
+        // Convert Vec<u64> to [u64; 4]
+        let limbs: [u64; 4] = limbs_vec[..4].try_into().unwrap();
+
+        let upper_bound = Curve25519Scalar::from_bigint(limbs);
+
+        // Generate the test data
+        let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
+            "a",
+            (0..1000)
+                .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
+                .collect::<Vec<_>>(),
+        )]);
+
+        let t = "sxt.t".parse().unwrap();
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        verifiable_res.verify(&ast, &accessor, &()).unwrap();
+    }
+
+    #[test]
+    #[ignore]
+    // Ignore in the CI because wont have access to files. Run this with:
+    // cargo test sql::proof_gadgets::range_check_test::tests::we_can_prove_a_range_check_with_varying_scalar_values_and_ranges --release  -- --nocapture --ignored
     fn we_can_prove_a_range_check_with_varying_scalar_values_and_ranges() {
-        let handle =
-            blitzar::compute::MsmHandle::new_from_file("/home/debian/Downloads/blitzar_handle.bin");
-        let public_parameters = PublicParameters::load_from_file(Path::new(
-            "/home/debian/Downloads/public_parameters_nu_16.bin",
-        ))
-        .unwrap();
+        let blitzar_handle_path = std::env::var("BLITZAR_HANDLE_PATH")
+            .expect("Environment variable BLITZAR_HANDLE_PATH not set");
+        let public_parameters_path = std::env::var("PUBLIC_PARAMETERS_PATH")
+            .expect("Environment variable PUBLIC_PARAMETERS_PATH not set");
+        let verifier_setup_path = std::env::var("VERIFIER_SETUP_PATH")
+            .expect("Environment variable VERIFIER_SETUP_PATH not set");
+
+        let handle = blitzar::compute::MsmHandle::new_from_file(&blitzar_handle_path);
+        let public_parameters =
+            PublicParameters::load_from_file(Path::new(&public_parameters_path)).unwrap();
 
         let prover_setup =
             ProverSetup::from_public_parameters_and_blitzar_handle(&public_parameters, handle);
-        let verifier_setup = VerifierSetup::load_from_file(Path::new(
-            "/home/debian/Downloads/verifier_setup_nu_16.bin",
-        ))
-        .expect("Failed to load VerifierSetup");
+        let verifier_setup = VerifierSetup::load_from_file(Path::new(&verifier_setup_path))
+            .expect("Failed to load VerifierSetup");
 
         let t = "sxt.t".parse().unwrap();
         let mut accessor =
@@ -186,23 +252,111 @@ mod tests {
 
         accessor.add_table(
             "sxt.t".parse().unwrap(),
-            owned_table::<DoryScalar>([scalar("a", 0..1073741824)]),
+            owned_table::<DoryScalar>([scalar("a", 0..2u32.pow(20))]),
             0,
         );
 
         let ast = RangeCheckTestPlan {
             column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
         };
+
         let verifiable_res = VerifiableQueryResult::<DynamicDoryEvaluationProof>::new(
             &ast,
             &accessor,
             &&prover_setup,
         );
+
         let res = verifiable_res.verify(&ast, &accessor, &&verifier_setup);
 
         if let Err(e) = res {
             panic!("Verification failed: {e}");
         }
         assert!(res.is_ok());
+    }
+
+    #[test]
+    #[ignore]
+    // Ignore in the CI because wont have access to files. Run this with:
+    // cargo test sql::proof_gadgets::range_check_test::tests::testing_dory_range_check_boundary_conditions --release  -- --nocapture --ignored
+    fn testing_dory_range_check_boundary_conditions() {
+        let blitzar_handle_path = std::env::var("BLITZAR_HANDLE_PATH")
+            .expect("Environment variable BLITZAR_HANDLE_PATH not set");
+        let public_parameters_path = std::env::var("PUBLIC_PARAMETERS_PATH")
+            .expect("Environment variable PUBLIC_PARAMETERS_PATH not set");
+        let verifier_setup_path = std::env::var("VERIFIER_SETUP_PATH")
+            .expect("Environment variable VERIFIER_SETUP_PATH not set");
+
+        let handle = blitzar::compute::MsmHandle::new_from_file(&blitzar_handle_path);
+        let public_parameters =
+            PublicParameters::load_from_file(Path::new(&public_parameters_path)).unwrap();
+
+        let prover_setup =
+            ProverSetup::from_public_parameters_and_blitzar_handle(&public_parameters, handle);
+        let verifier_setup = VerifierSetup::load_from_file(Path::new(&verifier_setup_path))
+            .expect("Failed to load VerifierSetup");
+
+        let t = "sxt.t".parse().unwrap();
+        let mut accessor =
+            OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(
+                &prover_setup,
+            );
+
+        accessor.add_table(
+            "sxt.t".parse().unwrap(),
+            owned_table::<DoryScalar>([scalar("a", 0..10241)]),
+            0,
+        );
+
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+        };
+
+        let verifiable_res = VerifiableQueryResult::<DynamicDoryEvaluationProof>::new(
+            &ast,
+            &accessor,
+            &&prover_setup,
+        );
+
+        let res = verifiable_res.verify(&ast, &accessor, &&verifier_setup);
+
+        if let Err(e) = res {
+            panic!("Verification failed: {e}");
+        }
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn ipa_proof_breaks_down_on_range_check() {
+        // create a column of scalars from 0 to 10240
+        let data = owned_table::<Curve25519Scalar>([scalar("a", 0..10240)]);
+
+        let t = "sxt.t".parse().unwrap();
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        let res: Result<QueryData<MontScalar<ark_curve25519::FrConfig>>, QueryError> =
+            verifiable_res.verify(&ast, &accessor, &());
+
+        assert!(res.is_ok());
+
+        // now create a column of scalars from 0 to 10241
+        let data = owned_table::<Curve25519Scalar>([scalar("a", 0..10241)]);
+
+        let t = "sxt.t".parse().unwrap();
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        let res: Result<QueryData<MontScalar<ark_curve25519::FrConfig>>, QueryError> =
+            verifiable_res.verify(&ast, &accessor, &());
+
+        if let Err(e) = res {
+            panic!("Verification failed: {e}");
+        }
     }
 }

@@ -389,11 +389,11 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
 /// if a column contains values outside of the selected range.
 pub fn verifier_evaluate_range_check<S: Scalar>(
     builder: &mut VerificationBuilder<'_, S>,
-    input_ones_eval: S,
     input_column_eval: S,
 ) -> Result<(), ProofSizeMismatch> {
     // Retrieve the post-result challenge α
     let alpha = builder.try_consume_post_result_challenge()?;
+    let input_ones_eval = builder.try_consume_one_evaluation()?;
 
     // We will accumulate ∑(wᵢ * 256ⁱ) in `sum`.
     // Additionally, we'll collect all (wᵢ + α)⁻¹ evaluations in `w_plus_alpha_inv_evals`
