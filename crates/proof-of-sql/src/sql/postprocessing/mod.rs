@@ -8,6 +8,7 @@ mod postprocessing_step;
 pub use owned_table_postprocessing::{apply_postprocessing_steps, OwnedTablePostprocessing};
 pub use postprocessing_step::PostprocessingStep;
 #[cfg(test)]
+/// Utility functions for testing postprocessing steps.
 pub mod test_utility;
 
 mod group_by_postprocessing;

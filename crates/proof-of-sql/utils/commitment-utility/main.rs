@@ -69,26 +69,22 @@ fn main() -> CommitUtilityResult<()> {
     let cli = Cli::parse();
 
     // Read input data
-    let input_data = match &cli.input {
-        Some(input_file) => {
-            let mut file =
-                File::open(input_file).map_err(|_| CommitUtilityError::OpenInputFile {
-                    filename: input_file.clone(),
-                })?;
-            let mut buffer = Vec::new();
-            file.read_to_end(&mut buffer)
-                .map_err(|_| CommitUtilityError::ReadInputFile {
-                    filename: input_file.clone(),
-                })?;
-            buffer
-        }
-        None => {
-            let mut buffer = Vec::new();
-            io::stdin()
-                .read_to_end(&mut buffer)
-                .map_err(|_| CommitUtilityError::ReadStdin)?;
-            buffer
-        }
+    let input_data = if let Some(input_file) = &cli.input {
+        let mut file = File::open(input_file).map_err(|_| CommitUtilityError::OpenInputFile {
+            filename: input_file.clone(),
+        })?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)
+            .map_err(|_| CommitUtilityError::ReadInputFile {
+                filename: input_file.clone(),
+            })?;
+        buffer
+    } else {
+        let mut buffer = Vec::new();
+        io::stdin()
+            .read_to_end(&mut buffer)
+            .map_err(|_| CommitUtilityError::ReadStdin)?;
+        buffer
     };
 
     // Deserialize commitment based on the scheme

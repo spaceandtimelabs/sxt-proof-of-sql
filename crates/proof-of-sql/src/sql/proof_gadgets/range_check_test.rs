@@ -17,8 +17,8 @@ use bumpalo::Bump;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
-pub struct RangeCheckTestPlan {
-    pub column: ColumnRef,
+struct RangeCheckTestPlan {
+    column: ColumnRef,
 }
 
 impl ProverEvaluate for RangeCheckTestPlan {

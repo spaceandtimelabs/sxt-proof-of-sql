@@ -143,7 +143,6 @@ pub fn borrowed_int<S: Scalar>(
 ///     borrowed_bigint("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
-
 pub fn borrowed_bigint<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i64>>,
@@ -166,7 +165,6 @@ pub fn borrowed_bigint<S: Scalar>(
 ///     borrowed_boolean("a", [true, false, true], &alloc),
 /// ]);
 /// ```
-
 pub fn borrowed_boolean<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<bool>>,
@@ -189,7 +187,6 @@ pub fn borrowed_boolean<S: Scalar>(
 ///     borrowed_int128("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
-
 pub fn borrowed_int128<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i128>>,
@@ -212,7 +209,6 @@ pub fn borrowed_int128<S: Scalar>(
 ///     borrowed_scalar("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
-
 pub fn borrowed_scalar<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<S>>,
@@ -234,7 +230,6 @@ pub fn borrowed_scalar<S: Scalar>(
 ///     borrowed_varchar("a", ["a", "b", "c"], &alloc),
 /// ]);
 /// ```
-
 pub fn borrowed_varchar<'a, S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<String>>,
@@ -309,7 +304,6 @@ pub fn borrowed_decimal75<S: Scalar>(
 ///     borrowed_timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), vec![1625072400, 1625076000, 1625079600], &alloc),
 /// ]);
 /// ```
-
 pub fn borrowed_timestamptz<S: Scalar>(
     name: impl Into<Ident>,
     time_unit: PoSQLTimeUnit,

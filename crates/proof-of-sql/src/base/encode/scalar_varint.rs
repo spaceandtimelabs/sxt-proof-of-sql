@@ -77,13 +77,13 @@ pub fn read_u256_varint(buf: &[u8]) -> Option<(U256, usize)> {
         // we write the `next 7 bits` at the [shift_amount..shift_amount + 7)
         // bit positions of val u256 number
         match shift_amount.cmp(&126_u32) {
-            Ordering::Less => val.low |= ((*next_byte & 0b0111_1111) as u128) << shift_amount,
+            Ordering::Less => val.low |= (u128::from(*next_byte & 0b0111_1111)) << shift_amount,
             Ordering::Equal => {
-                val.low |= ((*next_byte & 0b0000_0011) as u128) << shift_amount;
-                val.high |= ((*next_byte & 0b0111_1100) as u128) >> 2;
+                val.low |= (u128::from(*next_byte & 0b0000_0011)) << shift_amount;
+                val.high |= (u128::from(*next_byte & 0b0111_1100)) >> 2;
             }
             Ordering::Greater => {
-                val.high |= ((*next_byte & 0b0111_1111) as u128) << (shift_amount - 128);
+                val.high |= (u128::from(*next_byte & 0b0111_1111)) << (shift_amount - 128);
             }
         }
 

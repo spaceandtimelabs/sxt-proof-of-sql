@@ -437,7 +437,7 @@ fn we_can_encode_and_decode_u64_and_u128_the_same() {
     let mut rng = rand::thread_rng();
     test_encode_and_decode_types_align::<u64, u128>(
         &rng.gen::<[_; 32]>(),
-        &[u64::MAX as u128 + 1, u64::MAX as u128 * 1000],
+        &[u128::from(u64::MAX) + 1, u128::from(u64::MAX) * 1000],
         100,
     );
 }
