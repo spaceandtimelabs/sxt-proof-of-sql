@@ -179,7 +179,7 @@ See the [SQL specification](https://github.com/spaceandtimelabs/sxt-proof-of-sql
 
 ## Roadmap
 
-Proof of SQL is in active development. Here are some items that we are currently working on. We are happy to recieve feedback on additional features that the community requests.
+Proof of SQL is in active development. Here are some items that we are currently working on. We are happy to receive feedback on additional features that the community requests.
 
 * Expanded SQL support - in particular, multi-table queries (like JOIN) and subqueries
 * Cluster scale proofs - this means faster proofs over larger tables!
