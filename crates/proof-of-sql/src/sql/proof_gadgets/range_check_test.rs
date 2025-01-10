@@ -333,7 +333,7 @@ mod tests {
         let data: OwnedTable<DoryScalar> = owned_table([scalar(
             "a",
             (0..2u32.pow(20))
-                .map(|i| upper_bound - DoryScalar::from(i as u64)) // Count backward from 2^248
+                .map(|i| upper_bound - DoryScalar::from(u64::from(i))) // Count backward from 2^248
                 .collect::<Vec<_>>(),
         )]);
 
