@@ -134,6 +134,28 @@ mod tests {
     use std::path::Path;
 
     #[test]
+    fn we_can_verify_a_simple_range_check_outside_word_range() {
+        // create a column of scalars from 0 to 10240
+        let data = owned_table::<Curve25519Scalar>([scalar("a", 0..257)]);
+
+        let t = "sxt.t".parse().unwrap();
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        let res: Result<QueryData<MontScalar<ark_curve25519::FrConfig>>, QueryError> =
+            verifiable_res.verify(&ast, &accessor, &());
+
+        if let Err(e) = res {
+            panic!("Verification failed: {e}");
+        }
+
+        assert!(res.is_ok());
+    }
+
+    #[test]
     #[should_panic(
         expected = "Range check failed, column contains values outside of the selected range"
     )]
@@ -295,17 +317,33 @@ mod tests {
         let verifier_setup = VerifierSetup::load_from_file(Path::new(&verifier_setup_path))
             .expect("Failed to load VerifierSetup");
 
+        // 2^248 - 1
+        let upper_bound_str =
+            "452312848583266388373324160190187140051835877600158453279131187530910662655";
+        // Parse the number into a BigUint
+        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
+        let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
+
+        // Convert Vec<u64> to [u64; 4]
+        let limbs: [u64; 4] = limbs_vec[..4].try_into().unwrap();
+
+        let upper_bound = DoryScalar::from_bigint(limbs);
+
+        // Generate the test data
+        let data: OwnedTable<DoryScalar> = owned_table([scalar(
+            "a",
+            (0..2u32.pow(20))
+                .map(|i| upper_bound - DoryScalar::from(i as u64)) // Count backward from 2^248
+                .collect::<Vec<_>>(),
+        )]);
+
         let t = "sxt.t".parse().unwrap();
         let mut accessor =
             OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(
                 &prover_setup,
             );
 
-        accessor.add_table(
-            "sxt.t".parse().unwrap(),
-            owned_table::<DoryScalar>([scalar("a", 0..10241)]),
-            0,
-        );
+        accessor.add_table("sxt.t".parse().unwrap(), data, 0);
 
         let ast = RangeCheckTestPlan {
             column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),

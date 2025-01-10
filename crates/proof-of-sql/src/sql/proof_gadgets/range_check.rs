@@ -47,7 +47,7 @@ pub fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
     // Initialize a vector to count occurrences of each byte (0-255).
     // The vector has 256 elements padded with zeros to match the length of the word columns
     // The size is the larger of 256 or the number of scalars.
-    let word_counts: &mut [i64] = alloc.alloc_slice_fill_copy(max(256, scalars.len()), 0);
+    let word_counts: &mut [i64] = alloc.alloc_slice_fill_copy(256, 0);
 
     decompose_scalar_to_words(scalars, &mut word_columns, word_counts);
 
@@ -84,7 +84,7 @@ pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     // Initialize a vector to count occurrences of each byte (0-255).
     // The vector has 256 elements padded with zeros to match the length of the word columns
     // The size is the larger of 256 or the number of scalars.
-    let word_counts: &mut [i64] = alloc.alloc_slice_fill_with(max(256, scalars.len()), |_| 0);
+    let word_counts: &mut [i64] = alloc.alloc_slice_fill_with(256, |_| 0);
 
     decompose_scalar_to_words(scalars, &mut word_columns, word_counts);
 
@@ -101,7 +101,7 @@ pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     );
 
     // Produce an MLE over the word values
-    prove_word_values(alloc, scalars, alpha, table_length, builder);
+    prove_word_values(alloc, alpha, builder);
 
     // Argue that the sum of all words in each row, minus the count of each
     // word multiplied by the inverted word value, is zero.
@@ -272,20 +272,18 @@ use alloc::vec;
 #[allow(clippy::cast_possible_truncation)]
 fn prove_word_values<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
-    scalars: &[S],
     alpha: S,
-    table_length: usize,
     builder: &mut FinalRoundBuilder<'a, S>,
 ) {
     // Allocate from 0 to 255
-    let word_values: &mut [S] = alloc.alloc_slice_fill_with(max(256, scalars.len()), |_| S::ZERO);
+    let word_values: &mut [S] = alloc.alloc_slice_fill_with(256, |_| S::ZERO);
 
     for i in 0..256 {
         word_values[i] = S::try_from(i.into()).expect("word value will always fit into S");
     }
 
     // Allocate a slice filled with zeros, with length equal to the larger of 256 or scalars.len()
-    let word_vals_inv: &mut [S] = alloc.alloc_slice_fill_with(max(256, scalars.len()), |_| S::ZERO);
+    let word_vals_inv: &mut [S] = alloc.alloc_slice_fill_with(256, |_| S::ZERO);
 
     // Set elements 0 to 255 to their respective values
     for i in 0..256 {
@@ -296,7 +294,7 @@ fn prove_word_values<'a, S: Scalar + 'a>(
     slice_ops::batch_inversion(&mut word_vals_inv[..]);
     builder.produce_intermediate_mle(word_vals_inv as &[_]);
 
-    let input_ones = alloc.alloc_slice_fill_copy(table_length, true);
+    let input_ones = alloc.alloc_slice_fill_copy(256, true);
 
     // Argument:
     // (word_values + α)⁻¹ * (word_values + α) - 1 = 0
@@ -354,8 +352,7 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
         Box::new(alloc.alloc_slice_copy(row_sums) as &[_]) as Box<dyn MultilinearExtension<S>>;
 
     // Allocate and initialize the array for (w + α)⁻¹ over [0..255]
-    let word_vals_plus_alpha_inv: &mut [S] =
-        alloc.alloc_slice_fill_with(max(256, scalars.len()), |_| S::ZERO);
+    let word_vals_plus_alpha_inv: &mut [S] = alloc.alloc_slice_fill_with(256, |_| S::ZERO);
     for i in 0..256 {
         word_vals_plus_alpha_inv[i] =
             S::try_from(i.into()).expect("word value will always fit into S");
