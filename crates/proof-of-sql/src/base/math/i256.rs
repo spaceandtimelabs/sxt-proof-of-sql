@@ -1,7 +1,7 @@
 use crate::base::scalar::Scalar;
+use alloc::{fmt, format, string::String, vec::Vec};
 use ark_ff::BigInteger;
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 /// A 256-bit data type with some conversions implemented that interpret it as a signed integer.
 ///

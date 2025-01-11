@@ -1,8 +1,12 @@
-use crate::base::{
-    database::ColumnType,
-    math::{decimal::Precision, i256::I256},
-    scalar::Scalar,
+use crate::{
+    alloc::string::ToString,
+    base::{
+        database::ColumnType,
+        math::{decimal::Precision, i256::I256},
+        scalar::Scalar,
+    },
 };
+use alloc::vec::Vec;
 use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use sqlparser::ast::{DataType, ExactNumberInfo, Expr, Value};
 
@@ -27,7 +31,7 @@ impl ExprExt for Expr {
         match self {
             Expr::Value(Value::Boolean(_)) => ColumnType::Boolean,
             Expr::Value(Value::Number(value, _)) => {
-                let n = value.parse::<i64>().unwrap_or_else(|err| {
+                let n = value.parse::<i128>().unwrap_or_else(|err| {
                     panic!("Failed to parse '{value}' as a number. Error: {err}");
                 });
                 if i8::try_from(n).is_ok() {
@@ -36,8 +40,10 @@ impl ExprExt for Expr {
                     ColumnType::SmallInt
                 } else if i32::try_from(n).is_ok() {
                     ColumnType::Int
-                } else {
+                } else if i64::try_from(n).is_ok() {
                     ColumnType::BigInt
+                } else {
+                    ColumnType::Int128
                 }
             }
             Expr::Value(Value::SingleQuotedString(_)) => ColumnType::VarChar,
@@ -68,22 +74,10 @@ impl ToScalar for Expr {
         match self {
             Expr::Value(Value::Boolean(b)) => b.into(),
             Expr::Value(Value::Number(n, _)) => n
-                .parse::<i64>()
+                .parse::<i128>()
                 .unwrap_or_else(|_| panic!("Invalid number: {n}"))
                 .into(),
             Expr::Value(Value::SingleQuotedString(s)) => s.into(),
-            // Expr::TypedString { data_type, value }
-            //     if matches!(data_type, DataType::Decimal(_)) =>
-            // {
-            //     let bigint_value = match num_bigint::BigInt::parse_bytes(value.as_bytes(), 10) {
-            //         Some(bigint) => bigint,
-            //         // Will be handled later
-            //         None => panic!("Failed to parse '{}' as a decimal", value),
-            //     };
-
-            //     let i256_value = I256::from_num_bigint(&bigint_value);
-            //     i256_value.into_scalar()
-            // }
             Expr::TypedString { data_type, value } if data_type.to_string() == "scalar" => {
                 let scalar_str = value.strip_prefix("scalar:").unwrap();
                 let limbs: Vec<u64> = scalar_str

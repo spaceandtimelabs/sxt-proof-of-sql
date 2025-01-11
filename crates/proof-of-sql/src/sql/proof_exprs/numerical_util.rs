@@ -2,6 +2,7 @@ use crate::base::{
     database::{literal_value::ToScalar, Column, ColumnError, ColumnarValue},
     scalar::{Scalar, ScalarExt},
 };
+use alloc::{format, vec};
 use bumpalo::Bump;
 use core::cmp::Ordering;
 use sqlparser::ast::{DataType, Expr as SqlExpr, ObjectName};
