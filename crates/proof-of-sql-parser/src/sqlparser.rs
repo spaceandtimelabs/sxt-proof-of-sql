@@ -33,6 +33,24 @@ fn id(id: Identifier) -> Expr {
     Expr::Identifier(id.into())
 }
 
+#[must_use]
+/// New `AliasedResultExpr` using sqlparser types
+/// Represents an aliased SQL expression, e.g., `a + 1 AS alias`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SqlAliasedResultExpr {
+    /// The SQL expression being aliased (e.g., `a + 1`).
+    pub expr: Box<Expr>,
+    /// The alias for the expression (e.g., `alias` in `a + 1 AS alias`).
+    pub alias: Ident, 
+}
+
+impl SqlAliasedResultExpr {
+    /// Creates a new `SqlAliasedResultExpr`.
+    pub fn new(expr: Box<Expr>, alias: Ident) -> Self {
+        Self { expr, alias }
+    }
+}
+
 /// Provides an extension for the `TimezoneInfo` type for offsets.
 pub trait TimezoneInfoExt {
     /// Retrieve the offset in seconds for `TimezoneInfo`.
@@ -229,6 +247,7 @@ impl From<SelectResultExpr> for SelectItem {
         }
     }
 }
+
 
 impl From<SetExpression> for Select {
     fn from(select: SetExpression) -> Self {

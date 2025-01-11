@@ -12,17 +12,19 @@ use crate::base::{
 use alloc::{boxed::Box, format, string::ToString, vec::Vec};
 use proof_of_sql_parser::{
     intermediate_ast::{
-        AggregationOperator, AliasedResultExpr, Expression, Literal, OrderBy, SelectResultExpr,
+        AggregationOperator, Expression, Literal, OrderBy,
         Slice, TableExpression,
     },
     Identifier, ResourceId,
 };
-use sqlparser::ast::{BinaryOperator, UnaryOperator};
+use proof_of_sql_parser::sqlparser::SqlAliasedResultExpr;
+use sqlparser::ast::{BinaryOperator, UnaryOperator, SelectItem};
 pub struct QueryContextBuilder<'a> {
     context: QueryContext,
     schema_accessor: &'a dyn SchemaAccessor,
 }
 use sqlparser::ast::Ident;
+use sqlparser::ast::Expr;
 
 // Public interface
 impl<'a> QueryContextBuilder<'a> {
@@ -63,15 +65,21 @@ impl<'a> QueryContextBuilder<'a> {
 
     pub fn visit_result_exprs(
         mut self,
-        result_exprs: Vec<SelectResultExpr>,
+        result_items: Vec<SelectItem>,
     ) -> ConversionResult<Self> {
         self.context.toggle_result_scope();
-        for column in result_exprs {
+        for column in result_items {
             match column {
-                SelectResultExpr::ALL => self.visit_select_all_expr()?,
-                SelectResultExpr::AliasedResultExpr(expr) => self.visit_aliased_expr(expr)?,
+                SelectItem::Wildcard(_) => self.visit_select_all_expr()?,
+                SelectItem::ExprWithAlias { expr, alias } => {
+                           let aliased_expr = SqlAliasedResultExpr::new(Box::new(expr), alias);
+                self.visit_aliased_expr(aliased_expr)?;
             }
+            _ => unimplemented!("Unsupported SelectItem variant."),
         }
+
+        }
+        
         self.context.toggle_result_scope();
 
         Ok(self)
@@ -116,33 +124,38 @@ impl<'a> QueryContextBuilder<'a> {
 
     fn visit_select_all_expr(&mut self) -> ConversionResult<()> {
         for (column_name, _) in self.lookup_schema() {
-            let column_identifier = Identifier::try_from(column_name).map_err(|e| {
-                ConversionError::IdentifierConversionError {
-                    error: format!("Failed to convert Ident to Identifier: {e}"),
-                }
-            })?;
-            let col_expr = Expression::Column(column_identifier);
-            self.visit_aliased_expr(AliasedResultExpr::new(col_expr, column_identifier))?;
+            // let column_identifier = Identifier::try_from(column_name).map_err(|e| {
+            //     ConversionError::IdentifierConversionError {
+            //         error: format!("Failed to convert Ident to Identifier: {e}"),
+            //     }
+            // })?;
+            let column_identifier = Ident {
+            value: column_name.to_string(),
+            quote_style: None,
+        };
+            let col_expr = Expr::Identifier(column_identifier);
+            self.visit_aliased_expr(SqlAliasedResultExpr::new(Box::new(col_expr), column_identifier.clone()))?;
         }
         Ok(())
     }
 
-    fn visit_aliased_expr(&mut self, aliased_expr: AliasedResultExpr) -> ConversionResult<()> {
+    fn visit_aliased_expr(&mut self, aliased_expr: SqlAliasedResultExpr) -> ConversionResult<()> {
         self.visit_expr(&aliased_expr.expr)?;
         self.context.push_aliased_result_expr(aliased_expr)?;
         Ok(())
     }
 
     /// Visits the expression and returns its data type.
-    fn visit_expr(&mut self, expr: &Expression) -> ConversionResult<ColumnType> {
+    fn visit_expr(&mut self, expr: &Expr) -> ConversionResult<ColumnType> {
         match expr {
-            Expression::Wildcard => Ok(ColumnType::BigInt), // Since COUNT(*) = COUNT(1)
-            Expression::Literal(literal) => self.visit_literal(literal),
-            Expression::Column(_) => self.visit_column_expr(expr),
-            Expression::Unary { op, expr } => self.visit_unary_expr((*op).into(), expr),
-            Expression::Binary { op, left, right } => {
+            Expr::Wildcard => Ok(ColumnType::BigInt), // Since COUNT(*) = COUNT(1)
+            Expr::Value(literal) => self.visit_literal(literal),
+            Expr::Identifier(_) => self.visit_column_expr(expr),
+            Expr::Unary { op, expr } => self.visit_unary_expr((*op).into(), expr),
+            Expr::Binary { op, left, right } => {
                 self.visit_binary_expr(&(*op).into(), left, right)
             }
+
             Expression::Aggregation { op, expr } => self.visit_agg_expr(*op, expr),
         }
     }
