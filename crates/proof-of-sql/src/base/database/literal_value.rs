@@ -34,13 +34,13 @@ impl ExprExt for Expr {
                 let n = value.parse::<i128>().unwrap_or_else(|err| {
                     panic!("Failed to parse '{value}' as a number. Error: {err}");
                 });
-                if i8::try_from(n).is_ok() {
+                if n >= i128::from(i8::MIN) && n <= i128::from(i8::MAX) {
                     ColumnType::TinyInt
-                } else if i16::try_from(n).is_ok() {
+                } else if n >= i128::from(i16::MIN) && n <= i128::from(i16::MAX) {
                     ColumnType::SmallInt
-                } else if i32::try_from(n).is_ok() {
+                } else if n >= i128::from(i32::MIN) && n <= i128::from(i32::MAX) {
                     ColumnType::Int
-                } else if i64::try_from(n).is_ok() {
+                } else if n >= i128::from(i64::MIN) && n <= i128::from(i64::MAX) {
                     ColumnType::BigInt
                 } else {
                     ColumnType::Int128

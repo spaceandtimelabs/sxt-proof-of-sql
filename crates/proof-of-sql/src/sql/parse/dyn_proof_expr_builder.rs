@@ -9,7 +9,9 @@ use crate::{
         proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
     },
 };
-use alloc::{boxed::Box, format, string::ToString, vec, vec::Vec};
+use alloc::vec::Vec;
+use alloc::vec;
+use alloc::{boxed::Box, format, string::ToString};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, Expression},
     posql_time::PoSQLTimeUnit,
