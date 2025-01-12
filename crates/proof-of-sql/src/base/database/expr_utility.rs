@@ -1,3 +1,4 @@
+use alloc::{boxed::Box, vec};
 use proof_of_sql_parser::{intermediate_ast::Literal, sqlparser::SqlAliasedResultExpr};
 use sqlparser::ast::{
     BinaryOperator, Expr, Function, FunctionArg, FunctionArgExpr, Ident, ObjectName, UnaryOperator,

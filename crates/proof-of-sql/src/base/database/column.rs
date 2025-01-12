@@ -1,5 +1,6 @@
 use super::{OwnedColumn, TableRef};
 use crate::{
+    alloc::string::ToString,
     base::{
         math::{decimal::Precision, i256::I256},
         scalar::{Scalar, ScalarExt},
@@ -7,7 +8,7 @@ use crate::{
     },
     sql::parse::ConversionError,
 };
-use alloc::vec::Vec;
+use alloc::{format, string::String, vec::Vec};
 use bumpalo::Bump;
 use core::{
     fmt,
@@ -16,6 +17,7 @@ use core::{
 };
 use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use serde::{Deserialize, Serialize};
+use snafu::Snafu;
 use sqlparser::ast::{DataType, ExactNumberInfo, Expr as SqlExpr, Ident, TimezoneInfo, Value};
 
 /// Represents a read-only view of a column in an in-memory,
@@ -119,7 +121,9 @@ impl<'a, S: Scalar> Column<'a, S> {
             SqlExpr::Value(Value::Number(value, _)) => {
                 let n = value
                     .parse::<i64>()
-                    .map_err(|_| ColumnError::InvalidNumberFormat(value.clone()))?;
+                    .map_err(|_| ColumnError::InvalidNumberFormat {
+                        value: value.clone(),
+                    })?;
 
                 if let Ok(n_i8) = i8::try_from(n) {
                     Ok(Column::TinyInt(alloc.alloc_slice_fill_copy(length, n_i8)))
@@ -142,8 +146,10 @@ impl<'a, S: Scalar> Column<'a, S> {
             SqlExpr::TypedString { data_type, value } => match data_type {
                 // Decimal values
                 DataType::Decimal(ExactNumberInfo::PrecisionAndScale(precision, scale)) => {
-                    let i256_value = I256::from_string(value)
-                        .map_err(|_| ColumnError::InvalidDecimal(value.clone()))?;
+                    let i256_value =
+                        I256::from_string(value).map_err(|_| ColumnError::InvalidDecimal {
+                            value: value.clone(),
+                        })?;
                     let precision_u8 =
                         u8::try_from(*precision).expect("Precision must fit into u8");
                     let scale_i8 = i8::try_from(*scale).expect("Scale must fit into i8");
@@ -161,37 +167,49 @@ impl<'a, S: Scalar> Column<'a, S> {
                 DataType::Timestamp(Some(precision), tz) => {
                     let time_unit =
                         PoSQLTimeUnit::from_precision(*precision).unwrap_or(PoSQLTimeUnit::Second);
-                    let timestamp_value = value
-                        .parse::<i64>()
-                        .map_err(|_| ColumnError::InvalidNumberFormat(value.clone()))?;
+                    let timestamp_value =
+                        value
+                            .parse::<i64>()
+                            .map_err(|_| ColumnError::InvalidNumberFormat {
+                                value: value.clone(),
+                            })?;
                     Ok(Column::TimestampTZ(
                         time_unit,
                         *tz,
                         alloc.alloc_slice_fill_copy(length, timestamp_value),
                     ))
                 }
-                // DataType::Custom(_, _) if data_type.to_string() == "scalar" => {
-                //     let scalar_str = value
-                //         .strip_prefix("scalar:")
-                //         .ok_or_else(|| ColumnError::InvalidScalarFormat(value.clone()))?;
-                //     let limbs: Vec<u64> = scalar_str
-                //         .split(',')
-                //         .map(|x| {
-                //             x.parse::<u64>()
-                //                 .map_err(|_| ColumnError::InvalidScalarFormat(value.clone()))
-                //         })
-                //         .collect::<Result<Vec<u64>, ColumnError>>()?;
-                //     if limbs.len() != 4 {
-                //         return Err(ColumnError::InvalidScalarFormat(value.clone()));
-                //     }
-                //     Ok(Column::Scalar(alloc.alloc_slice_fill_copy(
-                //         length,
-                //         Scalar::from([limbs[0], limbs[1], limbs[2], limbs[3]]),
-                //     )))
-                // }
-                _ => Err(ColumnError::UnsupportedDataType(format!("{data_type:?}"))),
+                DataType::Custom(_, _) if data_type.to_string() == "scalar" => {
+                    let scalar_str = value.strip_prefix("scalar:").ok_or_else(|| {
+                        ColumnError::InvalidScalarFormat {
+                            value: value.clone(),
+                        }
+                    })?;
+                    let limbs: Vec<u64> = scalar_str
+                        .split(',')
+                        .map(|x| {
+                            x.parse::<u64>()
+                                .map_err(|_| ColumnError::InvalidScalarFormat {
+                                    value: value.clone(),
+                                })
+                        })
+                        .collect::<Result<Vec<u64>, ColumnError>>()?;
+                    if limbs.len() != 4 {
+                        return Err(ColumnError::InvalidScalarFormat {
+                            value: value.clone(),
+                        });
+                    }
+                    Ok(Column::Scalar(
+                        alloc.alloc_slice_fill_copy(length, value.clone().into()),
+                    ))
+                }
+                _ => Err(ColumnError::UnsupportedDataType {
+                    data_type: format!("{expr:?}"),
+                }),
             },
-            _ => Err(ColumnError::UnsupportedDataType(format!("{expr:?}"))),
+            _ => Err(ColumnError::UnsupportedDataType {
+                data_type: format!("{expr:?}"),
+            }),
         }
     }
 
@@ -339,45 +357,47 @@ impl<'a, S: Scalar> Column<'a, S> {
 }
 
 /// Represents errors that can occur while working with columns.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum ColumnError {
+    #[snafu(display("Invalid number format: {value}"))]
     /// Error for invalid number format.
-    InvalidNumberFormat(String),
+    InvalidNumberFormat {
+        /// The invalid number value that caused the error.
+        value: String,
+    },
+
+    #[snafu(display("Unsupported data type: {data_type}"))]
     /// Error for unsupported data types.
-    UnsupportedDataType(String),
+    UnsupportedDataType {
+        /// The unsupported data type as a string.
+        data_type: String,
+    },
+
+    #[snafu(display("Scalar parsing error: {value}"))]
     /// Error for scalar parsing failures.
-    ScalarParsingError(String),
+    InvalidScalarFormat {
+        /// The scalar value that caused the parsing error.
+        value: String,
+    },
+
+    #[snafu(display("Invalid decimal format: {value}"))]
     /// Error for invalid decimal format.
-    InvalidDecimal(String),
+    InvalidDecimal {
+        /// The invalid decimal value that caused the error.
+        value: String,
+    },
+
+    #[snafu(display("Conversion error: {source}"))]
     /// Error for column operation conversion issues.
-    ConversionError(ConversionError),
+    ConversionError {
+        /// The underlying conversion error that occurred.
+        source: ConversionError,
+    },
 }
-
-impl std::fmt::Display for ColumnError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ColumnError::InvalidNumberFormat(value) => {
-                write!(f, "Invalid number format: {value}")
-            }
-            ColumnError::UnsupportedDataType(data_type) => {
-                write!(f, "Unsupported data type: {data_type}")
-            }
-            ColumnError::ScalarParsingError(value) => {
-                write!(f, "Scalar parsing error: {value}")
-            }
-            ColumnError::InvalidDecimal(value) => {
-                write!(f, "Invalid decimal format: {value}")
-            }
-            ColumnError::ConversionError(err) => write!(f, "Conversion error: {err}"),
-        }
-    }
-}
-
-impl std::error::Error for ColumnError {}
 
 impl From<ConversionError> for ColumnError {
     fn from(error: ConversionError) -> Self {
-        ColumnError::ConversionError(error)
+        ColumnError::ConversionError { source: error }
     }
 }
 

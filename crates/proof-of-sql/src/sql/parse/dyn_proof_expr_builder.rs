@@ -3,7 +3,7 @@ use crate::{
     base::{database::ColumnRef, map::IndexMap, math::i256::I256},
     sql::proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
 };
-use alloc::{boxed::Box, format, string::ToString, vec::Vec};
+use alloc::{boxed::Box, format, string::ToString, vec, vec::Vec};
 use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use sqlparser::ast::{
     BinaryOperator, DataType, ExactNumberInfo, Expr, FunctionArg, FunctionArgExpr, Ident,

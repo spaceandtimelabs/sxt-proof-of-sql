@@ -10,7 +10,7 @@ use crate::{
     },
     sql::parse::{type_check_binary_operation, ConversionError, ConversionResult},
 };
-use alloc::string::ToString;
+use alloc::{format, string::ToString, vec};
 use bumpalo::Bump;
 use core::cmp::{max, Ordering};
 use sqlparser::ast::{BinaryOperator, DataType, Expr as SqlExpr, ObjectName};
@@ -164,7 +164,7 @@ pub(crate) fn scale_and_subtract_columnar_value<'a, S: Scalar>(
         (ColumnarValue::Column(lhs), ColumnarValue::Column(rhs)) => {
             Ok(ColumnarValue::Column(Column::Scalar(
                 scale_and_subtract(alloc, lhs, rhs, lhs_scale, rhs_scale, is_equal)
-                    .map_err(ColumnError::ConversionError)?,
+                    .map_err(|err| ColumnError::ConversionError { source: err })?,
             )))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
@@ -177,7 +177,7 @@ pub(crate) fn scale_and_subtract_columnar_value<'a, S: Scalar>(
                     rhs_scale,
                     is_equal,
                 )
-                .map_err(ColumnError::ConversionError)?,
+                .map_err(|err| ColumnError::ConversionError { source: err })?,
             )))
         }
         (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
@@ -190,13 +190,13 @@ pub(crate) fn scale_and_subtract_columnar_value<'a, S: Scalar>(
                     rhs_scale,
                     is_equal,
                 )
-                .map_err(ColumnError::ConversionError)?,
+                .map_err(|err| ColumnError::ConversionError { source: err })?,
             )))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
             let result_scalar =
                 scale_and_subtract_literal::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_equal)
-                    .map_err(ColumnError::ConversionError)?;
+                    .map_err(|err| ColumnError::ConversionError { source: err })?;
             Ok(ColumnarValue::Literal(SqlExpr::TypedString {
                 data_type: DataType::Custom(ObjectName(vec![]), vec![]),
                 value: format!("scalar:{result_scalar}"),

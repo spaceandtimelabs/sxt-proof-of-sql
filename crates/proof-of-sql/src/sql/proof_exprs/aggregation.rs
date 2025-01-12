@@ -1,5 +1,8 @@
+use alloc::{
+    fmt,
+    fmt::{Display, Formatter},
+};
 use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display, Formatter};
 
 /// Aggregation operators
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Copy)]

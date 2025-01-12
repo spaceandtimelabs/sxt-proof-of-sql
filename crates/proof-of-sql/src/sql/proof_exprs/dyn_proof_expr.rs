@@ -14,7 +14,7 @@ use crate::{
         proof::{FinalRoundBuilder, VerificationBuilder},
     },
 };
-use alloc::{boxed::Box, string::ToString};
+use alloc::{boxed::Box, format, string::ToString};
 use bumpalo::Bump;
 use core::fmt::Debug;
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
