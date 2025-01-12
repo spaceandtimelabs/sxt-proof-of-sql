@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{owned_table_utility::*, OwnedTable},
+        database::{expr_utility::*, owned_table_utility::*, OwnedTable},
         scalar::Curve25519Scalar,
     },
     sql::postprocessing::{
@@ -9,7 +9,7 @@ use crate::{
     },
 };
 use bigdecimal::BigDecimal;
-use proof_of_sql_parser::{intermediate_ast::AggregationOperator, utility::*};
+use sqlparser::ast::Ident;
 #[test]
 fn we_cannot_have_invalid_group_bys() {
     // Column in result but not in group by or aggregation
@@ -48,17 +48,16 @@ fn we_can_make_group_by_postprocessing() {
             aliased_expr(col("__col_agg_1"), "c1"),
         ]
     );
-    assert_eq!(
-        res.aggregation_exprs(),
-        &[
-            (AggregationOperator::Sum, *col("a"), "__col_agg_0".into()),
-            (
-                AggregationOperator::Sum,
-                *add(col("b"), col("a")),
-                "__col_agg_1".into()
-            ),
-        ]
-    );
+
+    let expected_aggregation_exprs = vec![
+        ("SUM".to_string(), col("a"), Ident::new("__col_agg_0")),
+        (
+            "SUM".to_string(),
+            add(col("b"), col("a")),
+            Ident::new("__col_agg_1"),
+        ),
+    ];
+    assert_eq!(res.aggregation_exprs(), &expected_aggregation_exprs);
 }
 
 #[allow(clippy::too_many_lines)]

@@ -5,7 +5,7 @@ use crate::base::{
     scalar::Scalar,
 };
 use alloc::vec::Vec;
-use proof_of_sql_parser::intermediate_ast::AliasedResultExpr;
+use proof_of_sql_parser::sqlparser::SqlAliasedResultExpr;
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::{Expr, Ident};
 
@@ -13,13 +13,13 @@ use sqlparser::ast::{Expr, Ident};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SelectPostprocessing {
     /// The aliased result expressions we select
-    aliased_result_exprs: Vec<AliasedResultExpr>,
+    aliased_result_exprs: Vec<SqlAliasedResultExpr>,
 }
 
 impl SelectPostprocessing {
     /// Create a new `SelectPostprocessing` node.
     #[must_use]
-    pub fn new(aliased_result_exprs: Vec<AliasedResultExpr>) -> Self {
+    pub fn new(aliased_result_exprs: Vec<SqlAliasedResultExpr>) -> Self {
         Self {
             aliased_result_exprs,
         }
@@ -34,9 +34,9 @@ impl<S: Scalar> PostprocessingStep<S> for SelectPostprocessing {
             .iter()
             .map(
                 |aliased_result_expr| -> PostprocessingResult<(Ident, OwnedColumn<S>)> {
-                    let sql_expr: Expr = (*aliased_result_expr.expr).clone().into();
+                    let sql_expr: Expr = (*aliased_result_expr.expr).clone();
                     let result_column = owned_table.evaluate(&sql_expr)?;
-                    Ok((aliased_result_expr.alias.into(), result_column))
+                    Ok((aliased_result_expr.alias.clone(), result_column))
                 },
             )
             .collect::<PostprocessingResult<_>>()?;

@@ -4,26 +4,26 @@ use crate::base::{
         try_add_subtract_column_types, try_multiply_column_types, ColumnRef, ColumnType,
         SchemaAccessor, TableRef,
     },
-    math::{
-        decimal::{DecimalError, Precision},
-        BigDecimalExt,
-    },
+    math::decimal::Precision,
 };
 use alloc::{boxed::Box, format, string::ToString, vec::Vec};
 use proof_of_sql_parser::{
     intermediate_ast::{
-        AggregationOperator, AliasedResultExpr, Expression, Literal, OrderBy, SelectResultExpr,
-        Slice, TableExpression,
+        AggregationOperator, Expression, OrderBy, SelectResultExpr, Slice, TableExpression,
     },
+    posql_time::PoSQLTimeUnit,
     Identifier, ResourceId,
 };
-use sqlparser::ast::{BinaryOperator, UnaryOperator};
+use sqlparser::ast::{
+    BinaryOperator, DataType, ExactNumberInfo, Expr, FunctionArg, FunctionArgExpr, UnaryOperator,
+    Value,
+};
 pub struct QueryContextBuilder<'a> {
     context: QueryContext,
     schema_accessor: &'a dyn SchemaAccessor,
 }
+use proof_of_sql_parser::sqlparser::SqlAliasedResultExpr;
 use sqlparser::ast::Ident;
-
 // Public interface
 impl<'a> QueryContextBuilder<'a> {
     pub fn new(schema_accessor: &'a dyn SchemaAccessor) -> Self {
@@ -55,7 +55,8 @@ impl<'a> QueryContextBuilder<'a> {
         mut where_expr: Option<Box<Expression>>,
     ) -> ConversionResult<Self> {
         if let Some(expr) = where_expr.as_deref_mut() {
-            self.visit_expr(expr)?;
+            let sql_expr: sqlparser::ast::Expr = (*expr).clone().into();
+            self.visit_expr(&sql_expr)?;
         }
         self.context.set_where_expr(where_expr);
         Ok(self)
@@ -69,7 +70,11 @@ impl<'a> QueryContextBuilder<'a> {
         for column in result_exprs {
             match column {
                 SelectResultExpr::ALL => self.visit_select_all_expr()?,
-                SelectResultExpr::AliasedResultExpr(expr) => self.visit_aliased_expr(expr)?,
+                SelectResultExpr::AliasedResultExpr(expr) => {
+                    let converted_expr: Box<Expr> = Box::new((*expr.expr).clone().into());
+                    let sql_expr = SqlAliasedResultExpr::new(converted_expr, expr.alias.into());
+                    self.visit_aliased_expr(sql_expr)?;
+                }
             }
         }
         self.context.toggle_result_scope();
@@ -116,53 +121,88 @@ impl<'a> QueryContextBuilder<'a> {
 
     fn visit_select_all_expr(&mut self) -> ConversionResult<()> {
         for (column_name, _) in self.lookup_schema() {
-            let column_identifier = Identifier::try_from(column_name).map_err(|e| {
-                ConversionError::IdentifierConversionError {
-                    error: format!("Failed to convert Ident to Identifier: {e}"),
-                }
-            })?;
-            let col_expr = Expression::Column(column_identifier);
-            self.visit_aliased_expr(AliasedResultExpr::new(col_expr, column_identifier))?;
+            let column_identifier = Ident {
+                value: column_name.to_string(),
+                quote_style: None,
+            };
+            let col_expr = Expr::Identifier(column_identifier.clone());
+            self.visit_aliased_expr(SqlAliasedResultExpr::new(
+                Box::new(col_expr),
+                column_identifier,
+            ))?;
         }
         Ok(())
     }
 
-    fn visit_aliased_expr(&mut self, aliased_expr: AliasedResultExpr) -> ConversionResult<()> {
+    fn visit_aliased_expr(&mut self, aliased_expr: SqlAliasedResultExpr) -> ConversionResult<()> {
         self.visit_expr(&aliased_expr.expr)?;
         self.context.push_aliased_result_expr(aliased_expr)?;
         Ok(())
     }
 
     /// Visits the expression and returns its data type.
-    fn visit_expr(&mut self, expr: &Expression) -> ConversionResult<ColumnType> {
+    fn visit_expr(&mut self, expr: &Expr) -> ConversionResult<ColumnType> {
         match expr {
-            Expression::Wildcard => Ok(ColumnType::BigInt), // Since COUNT(*) = COUNT(1)
-            Expression::Literal(literal) => self.visit_literal(literal),
-            Expression::Column(_) => self.visit_column_expr(expr),
-            Expression::Unary { op, expr } => self.visit_unary_expr((*op).into(), expr),
-            Expression::Binary { op, left, right } => {
-                self.visit_binary_expr(&(*op).into(), left, right)
+            Expr::Wildcard => Ok(ColumnType::BigInt), // Since COUNT(*) = COUNT(1)
+            Expr::Value(_) => self.visit_literal(expr),
+            Expr::Identifier(_) | Expr::CompoundIdentifier(_) | Expr::QualifiedWildcard(_) => {
+                self.visit_column_expr(expr)
             }
-            Expression::Aggregation { op, expr } => self.visit_agg_expr(*op, expr),
+            Expr::UnaryOp { op, expr } => self.visit_unary_expr(*op, expr),
+            Expr::BinaryOp { op, left, right } => self.visit_binary_expr(&op.clone(), left, right),
+            Expr::Function(function) => {
+                let function_name = function.name.to_string().to_uppercase();
+                match function_name.as_str() {
+                    "SUM" | "COUNT" | "MAX" | "MIN" | "FIRST" => {
+                        let agg_op = match function_name.as_str() {
+                            "SUM" => AggregationOperator::Sum,
+                            "COUNT" => AggregationOperator::Count,
+                            "MAX" => AggregationOperator::Max,
+                            "MIN" => AggregationOperator::Min,
+                            "FIRST" => AggregationOperator::First,
+                            _ => unreachable!(),
+                        };
+                        if let Some(arg) = function.args.first() {
+                            if let FunctionArg::Unnamed(FunctionArgExpr::Expr(expr)) = arg {
+                                self.visit_agg_expr(agg_op, expr)
+                            } else {
+                                Err(ConversionError::Unprovable {
+                                    error: "Aggregation with named arguments is not supported."
+                                        .to_string(),
+                                })
+                            }
+                        } else {
+                            Err(ConversionError::Unprovable {
+                                error: "Aggregation function requires at least one argument."
+                                    .to_string(),
+                            })
+                        }
+                    }
+                    _ => Err(ConversionError::Unprovable {
+                        error: format!("Unsupported function: {function_name}"),
+                    }),
+                }
+            }
+            _ => Err(ConversionError::UnsupportedExpr {
+                error: format!("Unsupported expression: {expr:?}"),
+            }),
         }
     }
 
     /// # Panics
     /// Panics if the expression is not a column expression.
-    fn visit_column_expr(&mut self, expr: &Expression) -> ConversionResult<ColumnType> {
-        let identifier = match expr {
-            Expression::Column(identifier) => *identifier,
+    fn visit_column_expr(&mut self, expr: &Expr) -> ConversionResult<ColumnType> {
+        match expr {
+            Expr::Identifier(identifier) => self.visit_column_identifier(identifier),
             _ => panic!("Must be a column expression"),
-        };
-
-        self.visit_column_identifier(&identifier.into())
+        }
     }
 
     fn visit_binary_expr(
         &mut self,
         op: &BinaryOperator,
-        left: &Expression,
-        right: &Expression,
+        left: &Expr,
+        right: &Expr,
     ) -> ConversionResult<ColumnType> {
         let left_dtype = self.visit_expr(left)?;
         let right_dtype = self.visit_expr(right)?;
@@ -186,11 +226,7 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
-    fn visit_unary_expr(
-        &mut self,
-        op: UnaryOperator,
-        expr: &Expression,
-    ) -> ConversionResult<ColumnType> {
+    fn visit_unary_expr(&mut self, op: UnaryOperator, expr: &Expr) -> ConversionResult<ColumnType> {
         match op {
             UnaryOperator::Not => {
                 let dtype = self.visit_expr(expr)?;
@@ -212,7 +248,7 @@ impl<'a> QueryContextBuilder<'a> {
     fn visit_agg_expr(
         &mut self,
         op: AggregationOperator,
-        expr: &Expression,
+        expr: &Expr,
     ) -> ConversionResult<ColumnType> {
         self.context.set_in_agg_scope(true)?;
 
@@ -236,28 +272,54 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
+    /// # Panics
+    /// This function will panic if the precision value cannot be wrapped
     #[allow(clippy::unused_self)]
-    fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
-        match literal {
-            Literal::Boolean(_) => Ok(ColumnType::Boolean),
-            Literal::BigInt(_) => Ok(ColumnType::BigInt),
-            Literal::Int128(_) => Ok(ColumnType::Int128),
-            Literal::VarChar(_) => Ok(ColumnType::VarChar),
-            Literal::Decimal(d) => {
-                let precision = Precision::try_from(d.precision())?;
-                let scale = d.scale();
-                Ok(ColumnType::Decimal75(
-                    precision,
-                    scale.try_into().map_err(|_| DecimalError::InvalidScale {
-                        scale: scale.to_string(),
-                    })?,
-                ))
+    fn visit_literal(&self, expr: &Expr) -> Result<ColumnType, ConversionError> {
+        match expr {
+            Expr::Value(Value::Boolean(_)) => Ok(ColumnType::Boolean),
+            Expr::Value(Value::Number(value, _)) => {
+                let n =
+                    value
+                        .parse::<i128>()
+                        .map_err(|_| ConversionError::InvalidNumberFormat {
+                            value: value.clone(),
+                        })?;
+                if n >= i128::from(i64::MIN) && n <= i128::from(i64::MAX) {
+                    Ok(ColumnType::BigInt)
+                } else {
+                    Ok(ColumnType::Int128)
+                }
             }
-
-            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(
-                its.timeunit(),
-                its.timezone().into(),
-            )),
+            Expr::Value(Value::SingleQuotedString(_)) => Ok(ColumnType::VarChar),
+            Expr::TypedString { data_type, .. } => match data_type {
+                DataType::Decimal(ExactNumberInfo::PrecisionAndScale(precision, scale)) => {
+                    let precision = u8::try_from(*precision).map_err(|_| {
+                        ConversionError::InvalidPrecision {
+                            precision: precision.to_string(),
+                        }
+                    })?;
+                    let scale =
+                        i8::try_from(*scale).map_err(|_| ConversionError::InvalidScale {
+                            scale: scale.to_string(),
+                        })?;
+                    Ok(ColumnType::Decimal75(
+                        Precision::new(precision).unwrap(),
+                        scale,
+                    ))
+                }
+                DataType::Timestamp(Some(precision), tz) => {
+                    let time_unit =
+                        PoSQLTimeUnit::from_precision(*precision).unwrap_or(PoSQLTimeUnit::Second);
+                    Ok(ColumnType::TimestampTZ(time_unit, *tz))
+                }
+                _ => Err(ConversionError::UnsupportedDataType {
+                    data_type: data_type.to_string(),
+                }),
+            },
+            _ => Err(ConversionError::UnsupportedLiteral {
+                literal: format!("{expr:?}"),
+            }),
         }
     }
 

@@ -1,3 +1,4 @@
+use alloc::string::String;
 use snafu::Snafu;
 
 /// Errors that can occur during proof plan serialization.

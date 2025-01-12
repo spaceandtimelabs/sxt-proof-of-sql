@@ -1,4 +1,5 @@
 use crate::base::scalar::Scalar;
+use alloc::vec::Vec;
 use ark_ff::BigInteger;
 use serde::{Deserialize, Serialize};
 use std::fmt;

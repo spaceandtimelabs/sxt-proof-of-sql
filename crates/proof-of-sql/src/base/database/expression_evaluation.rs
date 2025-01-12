@@ -17,10 +17,8 @@ impl<S: Scalar> OwnedTable<S> {
         match expr {
             Expr::Identifier(ident) => self.evaluate_column(ident),
             Expr::Value(_) | Expr::TypedString { .. } => self.evaluate_literal(expr),
-            Expr::BinaryOp { op, left, right } => {
-                self.evaluate_binary_expr(&(*op).clone().into(), left, right)
-            }
-            Expr::UnaryOp { op, expr } => self.evaluate_unary_expr((*op).into(), expr),
+            Expr::BinaryOp { op, left, right } => self.evaluate_binary_expr(op, left, right),
+            Expr::UnaryOp { op, expr } => self.evaluate_unary_expr(*op, expr),
             _ => Err(ExpressionEvaluationError::Unsupported {
                 expression: format!("Expression {expr:?} is not supported yet"),
             }),
@@ -36,7 +34,13 @@ impl<S: Scalar> OwnedTable<S> {
             })?
             .clone())
     }
-
+    /// Evaluates a literal expression and returns its corresponding column representation.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if:
+    /// - `BigDecimal::parse_bytes` fails to parse a valid decimal string.
+    /// - `Precision::try_from` fails due to invalid precision or scale values.
     fn evaluate_literal(&self, value: &Expr) -> ExpressionEvaluationResult<OwnedColumn<S>> {
         let len = self.num_rows();
         match value {
@@ -47,8 +51,8 @@ impl<S: Scalar> OwnedTable<S> {
                     .map_err(|_| DecimalError::InvalidDecimal {
                         error: format!("Invalid number: {n}"),
                     })?;
-                if num >= i64::MIN as i128 && num <= i64::MAX as i128 {
-                    Ok(OwnedColumn::BigInt(vec![num as i64; len]))
+                if num >= i128::from(i64::MIN) && num <= i128::from(i64::MAX) {
+                    Ok(OwnedColumn::BigInt(vec![num.try_into().unwrap(); len]))
                 } else {
                     Ok(OwnedColumn::Int128(vec![num; len]))
                 }
@@ -57,18 +61,20 @@ impl<S: Scalar> OwnedTable<S> {
                 Ok(OwnedColumn::VarChar(vec![s.clone(); len]))
             }
             Expr::TypedString { data_type, value } => match data_type {
-                DataType::Decimal(ExactNumberInfo::PrecisionAndScale(precision, scale)) => {
+                DataType::Decimal(ExactNumberInfo::PrecisionAndScale(raw_precision, raw_scale)) => {
                     let decimal = BigDecimal::parse_bytes(value.as_bytes(), 10).unwrap();
-                    let scalar = try_convert_intermediate_decimal_to_scalar(
-                        &decimal,
-                        Precision::try_from(*precision as u64)?,
-                        *scale as i8,
-                    )?;
-                    Ok(OwnedColumn::Decimal75(
-                        Precision::try_from(*precision as u64)?,
-                        *scale as i8,
-                        vec![scalar; len],
-                    ))
+                    let precision = Precision::try_from(*raw_precision).map_err(|_| {
+                        DecimalError::InvalidPrecision {
+                            error: raw_precision.to_string(),
+                        }
+                    })?;
+                    let scale =
+                        i8::try_from(*raw_scale).map_err(|_| DecimalError::InvalidScale {
+                            scale: raw_scale.to_string(),
+                        })?;
+                    let scalar =
+                        try_convert_intermediate_decimal_to_scalar(&decimal, precision, scale)?;
+                    Ok(OwnedColumn::Decimal75(precision, scale, vec![scalar; len]))
                 }
                 DataType::Timestamp(Some(time_unit), time_zone) => {
                     let time_unit = PoSQLTimeUnit::from_precision(*time_unit).map_err(|err| {

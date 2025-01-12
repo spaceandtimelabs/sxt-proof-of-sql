@@ -161,7 +161,7 @@ impl DynProofExpr {
     }
 
     /// Create a new aggregate expression
-    pub fn new_aggregate(op: String, expr: DynProofExpr) -> Result<Self, ConversionError> {
+    pub fn new_aggregate(op: &str, expr: DynProofExpr) -> Result<Self, ConversionError> {
         let aggregation_operator = match op.to_uppercase().as_str() {
             "SUM" => AggregationOperator::Sum,
             "COUNT" => AggregationOperator::Count,

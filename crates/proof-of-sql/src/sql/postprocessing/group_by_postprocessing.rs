@@ -4,18 +4,24 @@ use crate::base::{
     map::{indexmap, IndexMap, IndexSet},
     scalar::Scalar,
 };
-use alloc::{boxed::Box, format, string::ToString, vec, vec::Vec};
+use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 use bumpalo::Bump;
 use itertools::{izip, Itertools};
-use proof_of_sql_parser::intermediate_ast::AliasedResultExpr;
+use proof_of_sql_parser::sqlparser::SqlAliasedResultExpr;
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::{Expr, Ident};
 
 /// A group by expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GroupByPostprocessing {
-    /// A list of `AliasedResultExpr` that exclusively use identifiers in the group by clause or results of aggregation expressions
-    remainder_exprs: Vec<AliasedResultExpr>,
+    /// A list of `SqlAliasedResultExpr` that exclusively use identifiers in the group by clause or results of aggregation expressions
+    remainder_exprs: Vec<SqlAliasedResultExpr>,
 
     /// A list of identifiers in the group by clause
     group_by_identifiers: Vec<Ident>,
@@ -31,20 +37,16 @@ pub struct GroupByPostprocessing {
 /// Otherwise we need two layers of aggregation functions to be nested.
 fn contains_nested_aggregation(expr: &Expr, is_agg: bool) -> bool {
     match expr {
-        Expr::Identifier(_) | Expr::Value(_) | Expr::Wildcard => false,
         Expr::Function(function) => {
             is_agg
-                || function.args.iter().any(|arg| match &arg {
+                || function.args.iter().any(|arg| match arg {
                     sqlparser::ast::FunctionArg::Unnamed(
                         sqlparser::ast::FunctionArgExpr::Expr(arg_expr),
-                    ) => contains_nested_aggregation(arg_expr, true),
-                    sqlparser::ast::FunctionArg::Named { arg, .. } => {
-                        if let sqlparser::ast::FunctionArgExpr::Expr(arg_expr) = arg {
-                            contains_nested_aggregation(arg_expr, true)
-                        } else {
-                            false
-                        }
-                    }
+                    )
+                    | sqlparser::ast::FunctionArg::Named {
+                        arg: sqlparser::ast::FunctionArgExpr::Expr(arg_expr),
+                        ..
+                    } => contains_nested_aggregation(arg_expr, true),
                     _ => false,
                 })
         }
@@ -60,8 +62,7 @@ fn contains_nested_aggregation(expr: &Expr, is_agg: bool) -> bool {
 fn get_free_identifiers_from_expr(expr: &Expr) -> IndexSet<Ident> {
     match expr {
         Expr::Identifier(identifier) => IndexSet::from_iter([identifier.clone()]),
-        Expr::Value(_) | Expr::Function(_) | Expr::Wildcard => IndexSet::default(),
-
+        // Expr::Value(_) | Expr::Function(_) | Expr::Wildcard => IndexSet::default(),
         Expr::BinaryOp { left, right, .. } => {
             let mut left_identifiers = get_free_identifiers_from_expr(left);
             let right_identifiers = get_free_identifiers_from_expr(right);
@@ -69,6 +70,7 @@ fn get_free_identifiers_from_expr(expr: &Expr) -> IndexSet<Ident> {
             left_identifiers
         }
         Expr::UnaryOp { expr, .. } => get_free_identifiers_from_expr(expr),
+
         _ => IndexSet::default(),
     }
 }
@@ -122,34 +124,35 @@ fn get_aggregate_and_remainder_expressions(
                 expr: Box::new(remainder),
             })
         }
-        _ => Ok(expr),
+        _ => Err(PostprocessingError::UnsupportedExpr {
+            error: format!("Expression {expr:?} is not supported yet"),
+        }),
     }
 }
 
-/// Given an `AliasedResultExpr`, check if it is legitimate and if so grab the relevant aggregation expression
+/// Given an `SqlAliasedResultExpr`, check if it is legitimate and if so grab the relevant aggregation expression
 /// # Panics
 ///
 /// Will panic if there is an issue retrieving the first element from the difference of free identifiers and group-by identifiers, indicating a logical inconsistency in the identifiers.
 fn check_and_get_aggregation_and_remainder(
-    expr: AliasedResultExpr,
+    expr: SqlAliasedResultExpr,
     group_by_identifiers: &[Ident],
     aggregation_expr_map: &mut IndexMap<(String, Expr), Ident>,
-) -> PostprocessingResult<AliasedResultExpr> {
-    let converted_expr: Expr = (*expr.expr).clone().into();
-    let free_identifiers = get_free_identifiers_from_expr(&converted_expr);
+) -> PostprocessingResult<SqlAliasedResultExpr> {
+    let free_identifiers = get_free_identifiers_from_expr(&expr.expr);
     let group_by_identifier_set = group_by_identifiers
         .iter()
         .cloned()
         .collect::<IndexSet<_>>();
-    if contains_nested_aggregation(&converted_expr, false) {
+    if contains_nested_aggregation(&expr.expr, false) {
         return Err(PostprocessingError::NestedAggregationInGroupByClause {
             error: format!("Nested aggregations found {:?}", expr.expr),
         });
     }
     if free_identifiers.is_subset(&group_by_identifier_set) {
         let remainder_expr =
-            get_aggregate_and_remainder_expressions((*expr.expr).into(), aggregation_expr_map)?;
-        Ok(AliasedResultExpr {
+            get_aggregate_and_remainder_expressions(*expr.expr, aggregation_expr_map)?;
+        Ok(SqlAliasedResultExpr {
             alias: expr.alias,
             expr: Box::new(remainder_expr),
         })
@@ -170,11 +173,11 @@ impl GroupByPostprocessing {
     /// Create a new group by expression containing the group by and aggregation expressions
     pub fn try_new(
         by_ids: Vec<Ident>,
-        aliased_exprs: Vec<AliasedResultExpr>,
+        aliased_exprs: Vec<SqlAliasedResultExpr>,
     ) -> PostprocessingResult<Self> {
         let mut aggregation_expr_map: IndexMap<(String, Expr), Ident> = IndexMap::default();
         // Look for aggregation expressions and check for non-aggregation expressions that contain identifiers not in the group by clause
-        let remainder_exprs: Vec<AliasedResultExpr> = aliased_exprs
+        let remainder_exprs: Vec<SqlAliasedResultExpr> = aliased_exprs
             .into_iter()
             .map(|aliased_expr| -> PostprocessingResult<_> {
                 check_and_get_aggregation_and_remainder(
@@ -183,7 +186,7 @@ impl GroupByPostprocessing {
                     &mut aggregation_expr_map,
                 )
             })
-            .collect::<PostprocessingResult<Vec<AliasedResultExpr>>>()?;
+            .collect::<PostprocessingResult<Vec<SqlAliasedResultExpr>>>()?;
         let group_by_identifiers = Vec::from_iter(IndexSet::from_iter(by_ids));
         Ok(Self {
             remainder_exprs,
@@ -202,8 +205,7 @@ impl GroupByPostprocessing {
     }
 
     /// Get remainder expressions for SELECT
-    #[must_use]
-    pub fn remainder_exprs(&self) -> &[AliasedResultExpr] {
+    pub fn remainder_exprs(&self) -> &[SqlAliasedResultExpr] {
         &self.remainder_exprs
     }
 
@@ -363,9 +365,9 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             .remainder_exprs
             .iter()
             .map(|aliased_expr| -> PostprocessingResult<_> {
-                let expr_as_expr: Expr = (*aliased_expr.expr).clone().into();
+                let expr_as_expr: Expr = (*aliased_expr.expr).clone();
                 let column = target_table.evaluate(&expr_as_expr)?;
-                let alias: Ident = aliased_expr.alias.into();
+                let alias: Ident = aliased_expr.alias.clone();
                 Ok((alias, column))
             })
             .process_results(|iter| OwnedTable::try_from_iter(iter))??;
@@ -432,17 +434,13 @@ mod tests {
         assert_eq!(actual, expected);
 
         // SUM(a + b) * 2
-        let expr = (*mul(sum(add(col("a"), col("b"))).into(), lit(2))).into();
+        let expr = (*mul(sum(add(col("a"), col("b"))), lit(2))).into();
         let expected: IndexSet<Ident> = IndexSet::default();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // (COUNT(a + b) + c) * d
-        let expr = (*mul(
-            add(count(add(col("a"), col("b"))).into(), col("c")),
-            col("d"),
-        ))
-        .into();
+        let expr = (*mul(add(count(add(col("a"), col("b"))), col("c")), col("d"))).into();
         let expected: IndexSet<Ident> = ["c".into(), "d".into()].into_iter().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);

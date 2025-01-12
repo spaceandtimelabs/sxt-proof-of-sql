@@ -1,11 +1,14 @@
 use super::*;
-use proof_of_sql_parser::intermediate_ast::{AliasedResultExpr, OrderBy, OrderByDirection};
+use proof_of_sql_parser::{
+    intermediate_ast::{OrderBy, OrderByDirection},
+    sqlparser::SqlAliasedResultExpr,
+};
 use sqlparser::ast::Ident;
 
 #[must_use]
 pub fn group_by_postprocessing(
     cols: &[&str],
-    result_exprs: &[AliasedResultExpr],
+    result_exprs: &[SqlAliasedResultExpr],
 ) -> OwnedTablePostprocessing {
     let ids: Vec<Ident> = cols.iter().map(|col| (*col).into()).collect();
     OwnedTablePostprocessing::new_group_by(
@@ -18,7 +21,7 @@ pub fn group_by_postprocessing(
 ///
 /// This function may panic if the internal structures cannot be created properly, although this is unlikely under normal circumstances.
 #[must_use]
-pub fn select_expr(result_exprs: &[AliasedResultExpr]) -> OwnedTablePostprocessing {
+pub fn select_expr(result_exprs: &[SqlAliasedResultExpr]) -> OwnedTablePostprocessing {
     OwnedTablePostprocessing::new_select(SelectPostprocessing::new(result_exprs.to_vec()))
 }
 

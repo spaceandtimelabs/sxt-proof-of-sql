@@ -4,8 +4,9 @@ use crate::{
     sql::proof_exprs::DynProofExpr,
 };
 use alloc::boxed::Box;
-use proof_of_sql_parser::intermediate_ast::{AliasedResultExpr, Expression};
-use sqlparser::ast::Ident;
+use proof_of_sql_parser::sqlparser::SqlAliasedResultExpr;
+use sqlparser::ast::{Expr, Ident};
+
 /// Enriched expression
 ///
 /// An enriched expression consists of an `proof_of_sql_parser::intermediate_ast::AliasedResultExpr`
@@ -13,7 +14,7 @@ use sqlparser::ast::Ident;
 /// If the `DynProofExpr` is `None`, the `EnrichedExpr` is not provable.
 pub struct EnrichedExpr {
     /// The remaining expression after the provable expression plan has been extracted.
-    pub residue_expression: AliasedResultExpr,
+    pub residue_expression: SqlAliasedResultExpr,
     /// The extracted provable expression plan if it exists.
     pub dyn_proof_expr: Option<DynProofExpr>,
 }
@@ -24,18 +25,20 @@ impl EnrichedExpr {
     /// If the expression is not provable, the `dyn_proof_expr` will be `None`.
     /// Otherwise the `dyn_proof_expr` will contain the provable expression plan
     /// and the `residue_expression` will contain the remaining expression.
-    pub fn new(expression: AliasedResultExpr, column_mapping: &IndexMap<Ident, ColumnRef>) -> Self {
+    pub fn new(
+        expression: SqlAliasedResultExpr,
+        column_mapping: &IndexMap<Ident, ColumnRef>,
+    ) -> Self {
         // TODO: Using new_agg (ironically) disables aggregations in `QueryExpr` for now.
         // Re-enable aggregations when we add `GroupByExec` generalizations.
-        let converted_expr = (*expression.expr).clone().into();
         let res_dyn_proof_expr =
-            DynProofExprBuilder::new_agg(column_mapping).build(&converted_expr);
+            DynProofExprBuilder::new_agg(column_mapping).build(&expression.expr);
         match res_dyn_proof_expr {
             Ok(dyn_proof_expr) => {
                 let alias = expression.alias;
                 Self {
-                    residue_expression: AliasedResultExpr {
-                        expr: Box::new(Expression::Column(alias)),
+                    residue_expression: SqlAliasedResultExpr {
+                        expr: Box::new(Expr::Identifier(alias.clone())),
                         alias,
                     },
                     dyn_proof_expr: Some(dyn_proof_expr),
@@ -55,7 +58,7 @@ impl EnrichedExpr {
     pub fn get_alias(&self) -> Option<Ident> {
         self.residue_expression
             .try_as_identifier()
-            .map(|identifier| Ident::new(identifier.as_str()))
+            .map(|identifier| Ident::new(identifier.value.as_str()))
     }
 
     /// Is the `EnrichedExpr` provable

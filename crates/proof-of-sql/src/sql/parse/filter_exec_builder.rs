@@ -57,7 +57,7 @@ impl FilterExecBuilder {
             if let Some(plan) = &enriched_expr.dyn_proof_expr {
                 self.filter_result_expr_list.push(AliasedDynProofExpr {
                     expr: plan.clone(),
-                    alias: enriched_expr.residue_expression.alias.into(),
+                    alias: enriched_expr.residue_expression.alias.clone(),
                 });
             } else {
                 has_nonprovable_column = true;

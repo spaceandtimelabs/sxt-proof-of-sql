@@ -14,6 +14,7 @@ use alloc::{
     vec,
 };
 use core::fmt::Display;
+use serde::{Deserialize, Serialize};
 use sqlparser::ast::{
     BinaryOperator, DataType, Expr, Function, FunctionArg, FunctionArgExpr, GroupByExpr, Ident,
     ObjectName, Offset, OffsetRows, OrderByExpr, Query, Select, SelectItem, SetExpr, TableFactor,
@@ -31,6 +32,34 @@ where
 /// Convert an [`Identifier`] into a [`Expr`].
 fn id(id: Identifier) -> Expr {
     Expr::Identifier(id.into())
+}
+
+#[must_use]
+/// New `AliasedResultExpr` using sqlparser types
+/// Represents an aliased SQL expression, e.g., `a + 1 AS alias`.
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct SqlAliasedResultExpr {
+    /// The SQL expression being aliased (e.g., `a + 1`).
+    pub expr: Box<Expr>,
+    /// The alias for the expression (e.g., `alias` in `a + 1 AS alias`).
+    pub alias: Ident,
+}
+
+impl SqlAliasedResultExpr {
+    /// Creates a new `SqlAliasedResultExpr`.
+    pub fn new(expr: Box<Expr>, alias: Ident) -> Self {
+        Self { expr, alias }
+    }
+
+    /// Try to get the identifier of the expression if it is a column
+    /// Otherwise, return None
+    #[must_use]
+    pub fn try_as_identifier(&self) -> Option<&Ident> {
+        match self.expr.as_ref() {
+            Expr::Identifier(identifier) => Some(identifier),
+            _ => None,
+        }
+    }
 }
 
 /// Provides an extension for the `TimezoneInfo` type for offsets.

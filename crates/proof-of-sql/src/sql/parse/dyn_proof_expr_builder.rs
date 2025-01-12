@@ -1,15 +1,9 @@
 use super::ConversionError;
 use crate::{
     base::{database::ColumnRef, map::IndexMap, math::i256::I256},
-    sql::{
-        // parse::{
-        //     dyn_proof_expr_builder::DecimalError::{InvalidPrecision, InvalidScale},
-        //     ConversionError::DecimalConversionError,
-        // },
-        proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
-    },
+    sql::proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
 };
-use alloc::{boxed::Box, format, string::ToString};
+use alloc::{boxed::Box, format, string::ToString, vec::Vec};
 use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use sqlparser::ast::{
     BinaryOperator, DataType, ExactNumberInfo, Expr, FunctionArg, FunctionArgExpr, Ident,
@@ -56,10 +50,10 @@ impl DynProofExprBuilder<'_> {
             }
             Expr::UnaryOp { op, expr } => self.visit_unary_expr(*op, expr.as_ref()),
             Expr::Function(function) => {
-                if let Some(first_arg) = function.args.get(0) {
-                    if let FunctionArg::Unnamed(FunctionArgExpr::Expr(inner_expr)) = first_arg {
-                        return self.visit_aggregate_expr(function.name.to_string(), inner_expr);
-                    }
+                if let Some(FunctionArg::Unnamed(FunctionArgExpr::Expr(inner_expr))) =
+                    function.args.first()
+                {
+                    return self.visit_aggregate_expr(&function.name.to_string(), inner_expr);
                 }
                 Err(ConversionError::Unprovable {
                     error: format!("Function {function:?} has unsupported arguments"),
@@ -242,11 +236,7 @@ impl DynProofExprBuilder<'_> {
         }
     }
 
-    fn visit_aggregate_expr(
-        &self,
-        op: String,
-        expr: &Expr,
-    ) -> Result<DynProofExpr, ConversionError> {
+    fn visit_aggregate_expr(&self, op: &str, expr: &Expr) -> Result<DynProofExpr, ConversionError> {
         if self.in_agg_scope {
             return Err(ConversionError::InvalidExpression {
                 expression: "nested aggregations are invalid".to_string(),
@@ -254,7 +244,7 @@ impl DynProofExprBuilder<'_> {
         }
         let expr = DynProofExprBuilder::new_agg(self.column_mapping).visit_expr(expr)?;
 
-        match (op.as_str(), expr.data_type().is_numeric()) {
+        match (op, expr.data_type().is_numeric()) {
             ("COUNT", _) | ("SUM", true) => Ok(DynProofExpr::new_aggregate(op, expr)?),
             ("SUM", false) => Err(ConversionError::InvalidExpression {
                 expression: format!(

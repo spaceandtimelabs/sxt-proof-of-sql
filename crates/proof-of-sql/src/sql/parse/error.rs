@@ -40,6 +40,27 @@ pub enum ConversionError {
         actual: ColumnType,
     },
 
+    #[snafu(display("Unsupported expression: {error}"))]
+    /// The expression is unsupported
+    UnsupportedExpr {
+        /// The error for unsupported expression
+        error: String,
+    },
+
+    #[snafu(display("Invalid precision value: {precision}"))]
+    /// Precision value is invalid
+    InvalidPrecision {
+        /// The invalid precision value
+        precision: String,
+    },
+
+    #[snafu(display("Invalid scale value: {scale}"))]
+    /// Scale value is invalid
+    InvalidScale {
+        /// The invalid scale value
+        scale: String,
+    },
+
     #[snafu(display("Left side has '{left_type}' type but right side has '{right_type}' type"))]
     /// Data types do not match
     DataTypeMismatch {
