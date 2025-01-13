@@ -4,7 +4,7 @@ use crate::base::{
     database::{Column, ColumnField, ColumnType},
     scalar::Curve25519Scalar,
 };
-use alloc::sync::Arc;
+use alloc::{collections::VecDeque, sync::Arc};
 #[cfg(feature = "arrow")]
 use arrow::{
     array::Int64Array,
@@ -17,7 +17,7 @@ use curve25519_dalek::RistrettoPoint;
 fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     let mle1 = [1, 2];
     let mle2 = [10i64, 20];
-    let mut builder = FinalRoundBuilder::<Curve25519Scalar>::new(1, Vec::new());
+    let mut builder = FinalRoundBuilder::<Curve25519Scalar>::new(1, VecDeque::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 0_usize;
@@ -36,7 +36,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
 fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     let mle1 = [1, 2];
     let mle2 = [10i64, 20];
-    let mut builder = FinalRoundBuilder::<Curve25519Scalar>::new(1, Vec::new());
+    let mut builder = FinalRoundBuilder::<Curve25519Scalar>::new(1, VecDeque::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 123_usize;
@@ -55,7 +55,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
 fn we_can_evaluate_pcs_proof_mles() {
     let mle1 = [1, 2];
     let mle2 = [10i64, 20];
-    let mut builder = FinalRoundBuilder::new(1, Vec::new());
+    let mut builder = FinalRoundBuilder::new(1, VecDeque::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let evaluation_vec = [
@@ -107,14 +107,15 @@ fn we_can_form_the_provable_query_result() {
 fn we_can_consume_post_result_challenges_in_proof_builder() {
     let mut builder = FinalRoundBuilder::new(
         0,
-        vec![
+        [
             Curve25519Scalar::from(123),
             Curve25519Scalar::from(456),
             Curve25519Scalar::from(789),
-        ],
+        ]
+        .into(),
     );
     assert_eq!(
-        Curve25519Scalar::from(789),
+        Curve25519Scalar::from(123),
         builder.consume_post_result_challenge()
     );
     assert_eq!(
@@ -122,7 +123,7 @@ fn we_can_consume_post_result_challenges_in_proof_builder() {
         builder.consume_post_result_challenge()
     );
     assert_eq!(
-        Curve25519Scalar::from(123),
+        Curve25519Scalar::from(789),
         builder.consume_post_result_challenge()
     );
 }

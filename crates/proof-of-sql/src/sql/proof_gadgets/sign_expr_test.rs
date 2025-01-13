@@ -5,6 +5,7 @@ use crate::{
         FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
     },
 };
+use alloc::collections::VecDeque;
 use bumpalo::Bump;
 use num_traits::Zero;
 
@@ -14,7 +15,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
     let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
     let alloc = Bump::new();
     let data: Vec<Curve25519Scalar> = data.into_iter().map(Curve25519Scalar::from).collect();
-    let mut builder = FinalRoundBuilder::new(2, Vec::new());
+    let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
     let sign = prover_evaluate_sign(&mut builder, &alloc, &data, false);
     assert_eq!(sign, [false; 3]);
     assert_eq!(builder.bit_distributions(), [dist]);
@@ -26,7 +27,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_colum
     let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
     let alloc = Bump::new();
     let data: Vec<Curve25519Scalar> = data.into_iter().map(Curve25519Scalar::from).collect();
-    let mut builder = FinalRoundBuilder::new(2, Vec::new());
+    let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
     let sign = prover_evaluate_sign(&mut builder, &alloc, &data, false);
     assert_eq!(sign, [true; 3]);
     assert_eq!(builder.bit_distributions(), [dist]);
@@ -56,7 +57,7 @@ fn we_can_verify_a_constant_decomposition() {
         sumcheck_evaluations,
         &dists,
         &[],
-        Vec::new(),
+        VecDeque::new(),
         Vec::new(),
         3,
     );
@@ -89,7 +90,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         sumcheck_evaluations,
         &dists,
         &[],
-        Vec::new(),
+        VecDeque::new(),
         Vec::new(),
         3,
     );
