@@ -13,6 +13,7 @@ license-file = "LICENSE"
 ahash = { version = "0.8.11", default-features = false }
 alloy-sol-types = { version = "0.8.5" }
 ark-bls12-381 = { version = "0.5.0" }
+ark-bn254 = { version = "0.5.0" }
 ark-curve25519 = { version = "0.5.0" }
 ark-ec = { version = "0.5.0" }
 ark-ff = { version = "0.5.0" }
@@ -36,6 +37,7 @@ chrono = { version = "0.4.38", default-features = false }
 curve25519-dalek = { version = "4", features = ["rand_core"] }
 derive_more = { version = "0.99" }
 enum_dispatch = { version = "0.3.13" }
+ff = { version = "0.13.0"}
 flexbuffers = { version = "2.0.0" }
 indexmap = { version = "2.1", default-features = false }
 indicatif = "0.17.8"
@@ -43,6 +45,7 @@ itertools = { version = "0.13.0", default-features = false, features = ["use_all
 lalrpop = { version = "0.22.0" }
 lalrpop-util = { version = "0.22.0", default-features = false }
 merlin = { version = "2" }
+nova-snark = { version = "0.39.0" }
 num-traits = { version = "0.2", default-features = false }
 num-bigint = { version = "0.4.4", default-features = false }
 opentelemetry = { version = "0.23.0" }
