@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn test_unix_epoch_time_timezone() {
-        let unix_time = 1_231_006_505; // Unix time as string
+        let unix_time = 1_231_006_505; // Unix time as integer
         let expected_timezone = PoSQLTimeZone::utc(); // Unix time should always be UTC
         let result = PoSQLTimestamp::to_timestamp(unix_time).unwrap();
         assert_eq!(result.timezone, expected_timezone);
@@ -158,7 +158,7 @@ mod tests {
         let unix_time = 1_231_006_505; // Example Unix timestamp (seconds since epoch)
         let expected_datetime = Utc.timestamp_opt(unix_time, 0).unwrap();
         let expected_unit = PoSQLTimeUnit::Second; // Assuming basic second precision for Unix timestamp
-        let input = unix_time; // Simulate input as string since Unix times are often transmitted as strings
+        let input = unix_time; // Simulate input as integer since Unix times are often transmitted as strings
         let result = PoSQLTimestamp::to_timestamp(input).unwrap();
 
         assert_eq!(result.timestamp, expected_datetime);
