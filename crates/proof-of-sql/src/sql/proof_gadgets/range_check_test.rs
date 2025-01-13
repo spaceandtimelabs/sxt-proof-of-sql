@@ -18,7 +18,7 @@ use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 /// A test plan for performing range checks on a specified column.
-pub struct RangeCheckTestPlan {
+struct RangeCheckTestPlan {
     /// The column reference for the range check test.
     column: ColumnRef,
 }
