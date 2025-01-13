@@ -278,9 +278,7 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
 )]
 fn prove_word_values<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
-
     alpha: S,
-
     builder: &mut FinalRoundBuilder<'a, S>,
 ) {
     // Allocate from 0 to 255
