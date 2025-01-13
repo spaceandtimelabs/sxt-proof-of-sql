@@ -15,7 +15,6 @@ use num_traits::{Inv, One, Zero};
 // Allow missing panics documentation because the function should not panic under normal conditions.
 /// unless x is one of 0,1,...,d, in which case, f(x) is already known.
 #[allow(dead_code, clippy::missing_panics_doc)]
-
 pub fn interpolate_uni_poly<F>(polynomial: &[F], x: F) -> F
 where
     F: Copy

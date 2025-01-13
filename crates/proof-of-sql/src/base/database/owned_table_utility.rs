@@ -169,7 +169,6 @@ pub fn int128<S: Scalar>(
 ///     scalar("a", [1, 2, 3]),
 /// ]);
 /// ```
-
 pub fn scalar<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<S>>,
@@ -189,7 +188,6 @@ pub fn scalar<S: Scalar>(
 ///     varchar("a", ["a", "b", "c"]),
 /// ]);
 /// ```
-
 pub fn varchar<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<String>>,
@@ -249,7 +247,6 @@ pub fn decimal75<S: Scalar>(
 ///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), vec![1625072400, 1625076000, 1625079600]),
 /// ]);
 /// ```
-
 pub fn timestamptz<S: Scalar>(
     name: impl Into<Ident>,
     time_unit: PoSQLTimeUnit,

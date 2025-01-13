@@ -44,10 +44,8 @@ where
             // Divide the vector v evenly between all available cores, but make sure that each
             // core has at least MIN_RAYON_LEN elements to work on
             let num_cpus_available = max(1, rayon::current_num_threads());
-            let num_elem_per_thread = max(
-                (v.len() + num_cpus_available - 1) / num_cpus_available,
-                super::MIN_RAYON_LEN,
-            );
+            let num_elem_per_thread =
+                max(v.len().div_ceil(num_cpus_available), super::MIN_RAYON_LEN);
 
             // Batch invert in parallel, without copying the vector
             v.par_chunks_mut(num_elem_per_thread).for_each(|chunk| {

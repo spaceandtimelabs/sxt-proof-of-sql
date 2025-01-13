@@ -1,3 +1,4 @@
+//! Other integration tests for the proof-of-sql crate.
 #![cfg(feature = "test")]
 #![cfg_attr(test, allow(clippy::missing_panics_doc))]
 use ark_std::test_rng;
@@ -8,9 +9,12 @@ use proof_of_sql::{
         database::{owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TestAccessor},
         scalar::Curve25519Scalar,
     },
-    proof_primitive::dory::{
-        DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
-        DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+    proof_primitive::{
+        dory::{
+            DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
+            DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+        },
+        hyperkzg::HyperKZGCommitmentEvaluationProof,
     },
     sql::{
         parse::{ConversionError, QueryExpr},
@@ -163,6 +167,38 @@ fn we_can_prove_a_basic_equality_query_with_dory() {
     );
     let owned_table_result = verifiable_result
         .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .unwrap()
+        .table;
+    let expected_result = owned_table([bigint("a", [1, 3]), bigint("b", [1, 1])]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+fn we_can_prove_a_basic_equality_query_with_hyperkzg() {
+    use nova_snark::{
+        provider::hyperkzg::{CommitmentEngine, CommitmentKey, EvaluationEngine},
+        traits::{commitment::CommitmentEngineTrait, evaluation::EvaluationEngineTrait},
+    };
+    type CP = HyperKZGCommitmentEvaluationProof;
+
+    let ck: CommitmentKey<_> = CommitmentEngine::setup(b"test", 32);
+    let (_, vk) = EvaluationEngine::setup(&ck);
+
+    let mut accessor = OwnedTableTestAccessor::<CP>::new_empty_with_setup(&ck);
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 1])]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE b = 1".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result = VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, &&ck);
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &&vk)
         .unwrap()
         .table;
     let expected_result = owned_table([bigint("a", [1, 3]), bigint("b", [1, 1])]);

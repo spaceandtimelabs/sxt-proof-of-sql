@@ -13,7 +13,6 @@ pub trait ProvableResultElement<'a> {
 }
 
 /// Implement encode and decode for integer types
-
 impl<T: VarInt> ProvableResultElement<'_> for T {
     fn required_bytes(&self) -> usize {
         self.required_space()

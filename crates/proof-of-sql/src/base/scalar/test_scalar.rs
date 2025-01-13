@@ -16,6 +16,9 @@ impl Scalar for TestScalar {
     const TEN: Self = Self(ark_ff::MontFp!("10"));
 }
 
+/// An implementation of `MontConfig` intended for use in testing when a concrete implementation is required.
+///
+/// Ultimately, a wrapper type around the field element `ark_curve25519::FrConfig` and should be used in place of `ark_curve25519::FrConfig`.
 pub struct TestMontConfig(pub ark_curve25519::FrConfig);
 
 impl MontConfig<4> for TestMontConfig {

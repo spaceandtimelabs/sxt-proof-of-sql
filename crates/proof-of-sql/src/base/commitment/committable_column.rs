@@ -48,7 +48,7 @@ pub enum CommittableColumn<'a> {
     RangeCheckWord(&'a [u8]),
 }
 
-impl<'a> CommittableColumn<'a> {
+impl CommittableColumn<'_> {
     /// Returns the length of the column.
     #[must_use]
     pub fn len(&self) -> usize {
