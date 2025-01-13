@@ -23,7 +23,7 @@ pub fn num_sub_commits(
     offset: usize,
     num_matrix_commitment_columns: usize,
 ) -> usize {
-    (column.len() + offset + num_matrix_commitment_columns - 1) / num_matrix_commitment_columns
+    (column.len() + offset).div_ceil(num_matrix_commitment_columns)
 }
 
 /// Returns a bit table vector related to each of the committable columns data size.

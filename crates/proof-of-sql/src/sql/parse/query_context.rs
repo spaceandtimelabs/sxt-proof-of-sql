@@ -51,6 +51,7 @@ impl QueryContext {
         self.where_expr = where_expr;
     }
 
+    #[allow(clippy::ref_option)]
     pub fn get_where_expr(&self) -> &Option<Box<Expression>> {
         &self.where_expr
     }
@@ -209,6 +210,7 @@ impl QueryContext {
         Ok(self.order_by_exprs.clone())
     }
 
+    #[allow(clippy::ref_option)]
     pub fn get_slice_expr(&self) -> &Option<Slice> {
         &self.slice_expr
     }

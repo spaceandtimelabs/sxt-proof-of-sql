@@ -26,13 +26,14 @@ use crate::{
         FinalRoundBuilder, FirstRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
-use alloc::{boxed::Box, vec::Vec};
+use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use bytemuck::cast_slice;
 use core::{cmp::max, iter::repeat};
 
 /// Update the max range length for the range check.
-pub fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
+#[allow(dead_code)]
+pub(crate) fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
     builder: &mut FirstRoundBuilder<'a, S>,
     scalars: &[S],
     alloc: &'a Bump,
@@ -62,7 +63,8 @@ pub fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
 
 /// Prove that a word-wise decomposition of a collection of scalars
 /// are all within the range 0 to 2^248.
-pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
+#[allow(dead_code)]
+pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
     scalars: &[S],
     table_length: usize,
@@ -126,6 +128,7 @@ pub fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
 /// |  w₂,₀      |  w₂,₁      |  w₂,₂      | ... |  w₂,₃₁      |
 /// ------------------------------------------------------------
 /// ```
+#[allow(dead_code)]
 fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
     scalars: &[S],
     word_columns: &mut [&mut [u8]],
@@ -176,6 +179,7 @@ fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
 ///       v              v              v                    v          
 ///    Int. MLE      Int. MLE      Int. MLE             Int. MLE     
 /// ```
+#[allow(dead_code)]
 fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
@@ -254,9 +258,11 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
 /// ```
 /// Finally, argue that (`word_values` + α)⁻¹ * (`word_values` + α) - 1 = 0
 ///
-use alloc::vec;
-#[allow(clippy::missing_panics_doc)]
-#[allow(clippy::cast_possible_truncation)]
+#[allow(
+    dead_code,
+    clippy::missing_panics_doc,
+    clippy::cast_possible_truncation
+)]
 fn prove_word_values<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
     scalars: &[S],
@@ -362,7 +368,8 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
 /// # Panics
 ///
 /// if a column contains values outside of the selected range.
-pub fn verifier_evaluate_range_check<S: Scalar>(
+#[allow(dead_code)]
+pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
     builder: &mut VerificationBuilder<'_, S>,
     input_ones_eval: S,
     input_column_eval: S,

@@ -1,3 +1,4 @@
+//! Decimal integration tests for the proof-of-sql crate.
 #![cfg(feature = "test")]
 #![cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(feature = "blitzar")]

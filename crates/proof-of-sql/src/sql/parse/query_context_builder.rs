@@ -102,7 +102,7 @@ impl<'a> QueryContextBuilder<'a> {
 }
 
 // Private interface
-impl<'a> QueryContextBuilder<'a> {
+impl QueryContextBuilder<'_> {
     #[allow(
         clippy::missing_panics_doc,
         reason = "The assertion ensures there is at least one column, and this is a fundamental requirement for schema retrieval."

@@ -12,6 +12,7 @@ use alloc::{vec, vec::Vec};
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
 
+#[allow(clippy::ref_option)]
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Option<S>) -> Vec<S> {
     log::log_memory_usage("Start");
