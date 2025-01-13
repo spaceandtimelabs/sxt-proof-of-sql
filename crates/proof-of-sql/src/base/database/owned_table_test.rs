@@ -6,8 +6,9 @@ use crate::{
     },
     proof_primitive::dory::DoryScalar,
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
-use sqlparser::ast::Ident;
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+use sqlparser::ast::{Ident, TimezoneInfo};
+
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {
     let table = OwnedTable::<TestScalar>::try_new(IndexMap::default()).unwrap();
@@ -44,7 +45,7 @@ fn we_can_create_an_owned_table_with_data() {
         timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
         ),
     ]);
@@ -53,7 +54,7 @@ fn we_can_create_an_owned_table_with_data() {
         Ident::new("time_stamp"),
         OwnedColumn::TimestampTZ(
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX].into(),
         ),
     );
@@ -111,7 +112,7 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [0; 0],
         ),
     ]);
@@ -123,7 +124,7 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [0; 0],
         ),
     ]);
@@ -139,7 +140,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
         timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [1_625_072_400],
         ),
     ]);
@@ -151,7 +152,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
         timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [1_625_076_000],
         ),
     ]);

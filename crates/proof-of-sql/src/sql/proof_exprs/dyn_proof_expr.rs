@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{Column, ColumnRef, ColumnType, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -19,7 +19,7 @@ use bumpalo::Bump;
 use core::fmt::Debug;
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::BinaryOperator;
+use sqlparser::ast::{BinaryOperator, Expr as SqlExpr};
 
 /// Enum of AST column expression types that implement `ProofExpr`. Is itself a `ProofExpr`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -69,8 +69,8 @@ impl DynProofExpr {
         Ok(Self::Not(NotExpr::new(Box::new(expr))))
     }
     /// Create CONST expression
-    pub fn new_literal(value: LiteralValue) -> Self {
-        Self::Literal(LiteralExpr::new(value))
+    pub fn new_literal(expr: SqlExpr) -> Self {
+        Self::Literal(LiteralExpr::new(expr))
     }
     /// Create a new equals expression
     pub fn try_new_equals(lhs: DynProofExpr, rhs: DynProofExpr) -> ConversionResult<Self> {
@@ -161,8 +161,22 @@ impl DynProofExpr {
     }
 
     /// Create a new aggregate expression
-    pub fn new_aggregate(op: AggregationOperator, expr: DynProofExpr) -> Self {
-        Self::Aggregate(AggregateExpr::new(op, Box::new(expr)))
+    pub fn new_aggregate(op: String, expr: DynProofExpr) -> Result<Self, ConversionError> {
+        let aggregation_operator = match op.to_uppercase().as_str() {
+            "SUM" => AggregationOperator::Sum,
+            "COUNT" => AggregationOperator::Count,
+            "MAX" => AggregationOperator::Max,
+            "MIN" => AggregationOperator::Min,
+            _ => {
+                return Err(ConversionError::Unprovable {
+                    error: format!("Unsupported aggregation operator: {op}"),
+                })
+            }
+        };
+        Ok(Self::Aggregate(AggregateExpr::new(
+            aggregation_operator,
+            Box::new(expr),
+        )))
     }
 
     /// Check that the plan has the correct data type

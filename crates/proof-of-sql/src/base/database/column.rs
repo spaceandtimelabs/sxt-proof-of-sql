@@ -1,8 +1,11 @@
-use super::{LiteralValue, OwnedColumn, TableRef};
-use crate::base::{
-    math::decimal::Precision,
-    scalar::{Scalar, ScalarExt},
-    slice_ops::slice_cast_with,
+use super::{OwnedColumn, TableRef};
+use crate::{
+    base::{
+        math::{decimal::Precision, i256::I256},
+        scalar::{Scalar, ScalarExt},
+        slice_ops::slice_cast_with,
+    },
+    sql::parse::ConversionError,
 };
 use alloc::vec::Vec;
 use bumpalo::Bump;
@@ -11,9 +14,9 @@ use core::{
     fmt::{Display, Formatter},
     mem::size_of,
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::Ident;
+use sqlparser::ast::{DataType, ExactNumberInfo, Expr as SqlExpr, Ident, TimezoneInfo, Value};
 
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -49,7 +52,7 @@ pub enum Column<'a, S: Scalar> {
     /// - the first element maps to the stored `TimeUnit`
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
-    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    TimestampTZ(PoSQLTimeUnit, TimezoneInfo, &'a [i64]),
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
@@ -97,43 +100,98 @@ impl<'a, S: Scalar> Column<'a, S> {
     }
 
     /// Generate a constant column from a literal value with a given length
+    ///
+    /// # Panics
+    /// - Panics if the precision or scale for a decimal value cannot fit into `u8` or `i8`, respectively.
+    /// - Panics if creating a `Precision` object fails.
     pub fn from_literal_with_length(
-        literal: &LiteralValue,
+        expr: &SqlExpr,
         length: usize,
         alloc: &'a Bump,
-    ) -> Self {
-        match literal {
-            LiteralValue::Boolean(value) => {
-                Column::Boolean(alloc.alloc_slice_fill_copy(length, *value))
+    ) -> Result<Self, ColumnError> {
+        match expr {
+            // Boolean value
+            SqlExpr::Value(Value::Boolean(value)) => {
+                Ok(Column::Boolean(alloc.alloc_slice_fill_copy(length, *value)))
             }
-            LiteralValue::TinyInt(value) => {
-                Column::TinyInt(alloc.alloc_slice_fill_copy(length, *value))
+
+            // Numeric values
+            SqlExpr::Value(Value::Number(value, _)) => {
+                let n = value
+                    .parse::<i64>()
+                    .map_err(|_| ColumnError::InvalidNumberFormat(value.clone()))?;
+
+                if let Ok(n_i8) = i8::try_from(n) {
+                    Ok(Column::TinyInt(alloc.alloc_slice_fill_copy(length, n_i8)))
+                } else if let Ok(n_i16) = i16::try_from(n) {
+                    Ok(Column::SmallInt(alloc.alloc_slice_fill_copy(length, n_i16)))
+                } else if let Ok(n_i32) = i32::try_from(n) {
+                    Ok(Column::Int(alloc.alloc_slice_fill_copy(length, n_i32)))
+                } else {
+                    Ok(Column::BigInt(alloc.alloc_slice_fill_copy(length, n)))
+                }
             }
-            LiteralValue::SmallInt(value) => {
-                Column::SmallInt(alloc.alloc_slice_fill_copy(length, *value))
-            }
-            LiteralValue::Int(value) => Column::Int(alloc.alloc_slice_fill_copy(length, *value)),
-            LiteralValue::BigInt(value) => {
-                Column::BigInt(alloc.alloc_slice_fill_copy(length, *value))
-            }
-            LiteralValue::Int128(value) => {
-                Column::Int128(alloc.alloc_slice_fill_copy(length, *value))
-            }
-            LiteralValue::Scalar(value) => {
-                Column::Scalar(alloc.alloc_slice_fill_copy(length, (*value).into()))
-            }
-            LiteralValue::Decimal75(precision, scale, value) => Column::Decimal75(
-                *precision,
-                *scale,
-                alloc.alloc_slice_fill_copy(length, value.into_scalar()),
-            ),
-            LiteralValue::TimeStampTZ(tu, tz, value) => {
-                Column::TimestampTZ(*tu, *tz, alloc.alloc_slice_fill_copy(length, *value))
-            }
-            LiteralValue::VarChar(string) => Column::VarChar((
+
+            // String values
+            SqlExpr::Value(Value::SingleQuotedString(string)) => Ok(Column::VarChar((
                 alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
                 alloc.alloc_slice_fill_copy(length, S::from(string)),
-            )),
+            ))),
+
+            // Typed string literals
+            SqlExpr::TypedString { data_type, value } => match data_type {
+                // Decimal values
+                DataType::Decimal(ExactNumberInfo::PrecisionAndScale(precision, scale)) => {
+                    let i256_value = I256::from_string(value)
+                        .map_err(|_| ColumnError::InvalidDecimal(value.clone()))?;
+                    let precision_u8 =
+                        u8::try_from(*precision).expect("Precision must fit into u8");
+                    let scale_i8 = i8::try_from(*scale).expect("Scale must fit into i8");
+                    let precision_obj =
+                        Precision::new(precision_u8).expect("Failed to create Precision");
+
+                    Ok(Column::Decimal75(
+                        precision_obj,
+                        scale_i8,
+                        alloc.alloc_slice_fill_copy(length, i256_value.into_scalar()),
+                    ))
+                }
+
+                // Timestamp values
+                DataType::Timestamp(Some(precision), tz) => {
+                    let time_unit =
+                        PoSQLTimeUnit::from_precision(*precision).unwrap_or(PoSQLTimeUnit::Second);
+                    let timestamp_value = value
+                        .parse::<i64>()
+                        .map_err(|_| ColumnError::InvalidNumberFormat(value.clone()))?;
+                    Ok(Column::TimestampTZ(
+                        time_unit,
+                        *tz,
+                        alloc.alloc_slice_fill_copy(length, timestamp_value),
+                    ))
+                }
+                // DataType::Custom(_, _) if data_type.to_string() == "scalar" => {
+                //     let scalar_str = value
+                //         .strip_prefix("scalar:")
+                //         .ok_or_else(|| ColumnError::InvalidScalarFormat(value.clone()))?;
+                //     let limbs: Vec<u64> = scalar_str
+                //         .split(',')
+                //         .map(|x| {
+                //             x.parse::<u64>()
+                //                 .map_err(|_| ColumnError::InvalidScalarFormat(value.clone()))
+                //         })
+                //         .collect::<Result<Vec<u64>, ColumnError>>()?;
+                //     if limbs.len() != 4 {
+                //         return Err(ColumnError::InvalidScalarFormat(value.clone()));
+                //     }
+                //     Ok(Column::Scalar(alloc.alloc_slice_fill_copy(
+                //         length,
+                //         Scalar::from([limbs[0], limbs[1], limbs[2], limbs[3]]),
+                //     )))
+                // }
+                _ => Err(ColumnError::UnsupportedDataType(format!("{data_type:?}"))),
+            },
+            _ => Err(ColumnError::UnsupportedDataType(format!("{expr:?}"))),
         }
     }
 
@@ -280,6 +338,49 @@ impl<'a, S: Scalar> Column<'a, S> {
     }
 }
 
+/// Represents errors that can occur while working with columns.
+#[derive(Debug, PartialEq, Eq)]
+pub enum ColumnError {
+    /// Error for invalid number format.
+    InvalidNumberFormat(String),
+    /// Error for unsupported data types.
+    UnsupportedDataType(String),
+    /// Error for scalar parsing failures.
+    ScalarParsingError(String),
+    /// Error for invalid decimal format.
+    InvalidDecimal(String),
+    /// Error for column operation conversion issues.
+    ConversionError(ConversionError),
+}
+
+impl std::fmt::Display for ColumnError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ColumnError::InvalidNumberFormat(value) => {
+                write!(f, "Invalid number format: {value}")
+            }
+            ColumnError::UnsupportedDataType(data_type) => {
+                write!(f, "Unsupported data type: {data_type}")
+            }
+            ColumnError::ScalarParsingError(value) => {
+                write!(f, "Scalar parsing error: {value}")
+            }
+            ColumnError::InvalidDecimal(value) => {
+                write!(f, "Invalid decimal format: {value}")
+            }
+            ColumnError::ConversionError(err) => write!(f, "Conversion error: {err}"),
+        }
+    }
+}
+
+impl std::error::Error for ColumnError {}
+
+impl From<ConversionError> for ColumnError {
+    fn from(error: ConversionError) -> Self {
+        ColumnError::ConversionError(error)
+    }
+}
+
 /// Represents the supported data types of a column in an in-memory,
 /// column-oriented database.
 ///
@@ -313,7 +414,7 @@ pub enum ColumnType {
     Decimal75(Precision, i8),
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
-    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
+    TimestampTZ(PoSQLTimeUnit, TimezoneInfo),
     /// Mapped to `S`
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
@@ -565,9 +666,9 @@ mod tests {
 
     #[test]
     fn column_type_serializes_to_string() {
-        let column_type = ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc());
+        let column_type = ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None);
         let serialized = serde_json::to_string(&column_type).unwrap();
-        assert_eq!(serialized, r#"{"TimestampTZ":["Second",{"offset":0}]}"#);
+        assert_eq!(serialized, r#"{"TimestampTZ":["Second","None"]}"#);
 
         let column_type = ColumnType::Boolean;
         let serialized = serde_json::to_string(&column_type).unwrap();
@@ -609,9 +710,9 @@ mod tests {
     #[test]
     fn we_can_deserialize_columns_from_valid_strings() {
         let expected_column_type =
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc());
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None);
         let deserialized: ColumnType =
-            serde_json::from_str(r#"{"TimestampTZ":["Second",{"offset":0}]}"#).unwrap();
+            serde_json::from_str(r#"{"TimestampTZ":["Second","None"]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
         let expected_column_type = ColumnType::Boolean;
@@ -1064,7 +1165,7 @@ mod tests {
         assert_eq!(column.column_type().bit_size(), 256);
 
         let column: Column<'_, DoryScalar> =
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[1, 2, 3]);
+            Column::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, &[1, 2, 3]);
         assert_eq!(column.column_type().byte_size(), 8);
         assert_eq!(column.column_type().bit_size(), 64);
     }

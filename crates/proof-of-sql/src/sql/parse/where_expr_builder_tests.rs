@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
+        database::{ColumnRef, ColumnType, TestSchemaAccessor},
         map::{indexmap, IndexMap},
         math::decimal::Precision,
     },
@@ -12,11 +12,11 @@ use crate::{
 use bigdecimal::BigDecimal;
 use core::str::FromStr;
 use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
+    posql_time::{PoSQLTimeUnit, PoSQLTimestamp},
     utility::*,
     SelectStatement,
 };
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Expr, Ident, TimezoneInfo, Value};
 
 /// # Panics
 ///
@@ -61,7 +61,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             "timestamp_second_column".into(),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None),
         ),
     );
     column_mapping.insert(
@@ -69,7 +69,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             "timestamp_millisecond_column".into(),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::utc()),
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, TimezoneInfo::None),
         ),
     );
     column_mapping.insert(
@@ -77,7 +77,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             "timestamp_microsecond_column".into(),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Microsecond, PoSQLTimeZone::utc()),
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Microsecond, TimezoneInfo::None),
         ),
     );
     column_mapping.insert(
@@ -85,7 +85,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             "timestamp_nanosecond_column".into(),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::utc()),
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, TimezoneInfo::None),
         ),
     );
     column_mapping
@@ -149,7 +149,10 @@ fn we_can_directly_check_whether_bigint_columns_ge_int128() {
             "bigint_column".into(),
             ColumnType::BigInt,
         ))),
-        DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
+        DynProofExpr::Literal(LiteralExpr::new(Expr::Value(Value::Number(
+            "-12345".to_string(),
+            false,
+        )))),
         false,
     )
     .unwrap();
@@ -171,7 +174,10 @@ fn we_can_directly_check_whether_bigint_columns_le_int128() {
             "bigint_column".into(),
             ColumnType::BigInt,
         ))),
-        DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
+        DynProofExpr::Literal(LiteralExpr::new(Expr::Value(Value::Number(
+            "-12345".to_string(),
+            false,
+        )))),
         true,
     )
     .unwrap();

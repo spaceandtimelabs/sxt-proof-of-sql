@@ -1,6 +1,9 @@
 use crate::{
     base::{
-        database::{Column, ColumnarValue, LiteralValue},
+        database::{
+            literal_value::{ExprExt, ToScalar},
+            Column, ColumnError, ColumnarValue,
+        },
         math::decimal::{DecimalError, Precision},
         scalar::{Scalar, ScalarExt},
         slice_ops,
@@ -10,7 +13,7 @@ use crate::{
 use alloc::string::ToString;
 use bumpalo::Bump;
 use core::cmp::{max, Ordering};
-use sqlparser::ast::BinaryOperator;
+use sqlparser::ast::{BinaryOperator, DataType, Expr as SqlExpr, ObjectName};
 
 /// Scale LHS and RHS to the same scale if at least one of them is decimal
 /// and take the difference. This function is used for comparisons.
@@ -20,8 +23,8 @@ use sqlparser::ast::BinaryOperator;
 /// or if we have precision overflow issues.
 #[allow(clippy::cast_sign_loss)]
 pub fn scale_and_subtract_literal<S: Scalar>(
-    lhs: &LiteralValue,
-    rhs: &LiteralValue,
+    lhs: &SqlExpr,
+    rhs: &SqlExpr,
     lhs_scale: i8,
     rhs_scale: i8,
     is_equal: bool,
@@ -156,37 +159,48 @@ pub(crate) fn scale_and_subtract_columnar_value<'a, S: Scalar>(
     lhs_scale: i8,
     rhs_scale: i8,
     is_equal: bool,
-) -> ConversionResult<ColumnarValue<'a, S>> {
+) -> Result<ColumnarValue<'a, S>, ColumnError> {
     match (lhs, rhs) {
         (ColumnarValue::Column(lhs), ColumnarValue::Column(rhs)) => {
-            Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(
-                alloc, lhs, rhs, lhs_scale, rhs_scale, is_equal,
-            )?)))
+            Ok(ColumnarValue::Column(Column::Scalar(
+                scale_and_subtract(alloc, lhs, rhs, lhs_scale, rhs_scale, is_equal)
+                    .map_err(ColumnError::ConversionError)?,
+            )))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(
-                alloc,
-                Column::from_literal_with_length(&lhs, rhs.len(), alloc),
-                rhs,
-                lhs_scale,
-                rhs_scale,
-                is_equal,
-            )?)))
+            Ok(ColumnarValue::Column(Column::Scalar(
+                scale_and_subtract(
+                    alloc,
+                    Column::from_literal_with_length(&lhs, rhs.len(), alloc)?,
+                    rhs,
+                    lhs_scale,
+                    rhs_scale,
+                    is_equal,
+                )
+                .map_err(ColumnError::ConversionError)?,
+            )))
         }
         (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
-            Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(
-                alloc,
-                lhs,
-                Column::from_literal_with_length(&rhs, lhs.len(), alloc),
-                lhs_scale,
-                rhs_scale,
-                is_equal,
-            )?)))
+            Ok(ColumnarValue::Column(Column::Scalar(
+                scale_and_subtract(
+                    alloc,
+                    lhs,
+                    Column::from_literal_with_length(&rhs, lhs.len(), alloc)?,
+                    lhs_scale,
+                    rhs_scale,
+                    is_equal,
+                )
+                .map_err(ColumnError::ConversionError)?,
+            )))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
-            Ok(ColumnarValue::Literal(LiteralValue::Scalar(
-                scale_and_subtract_literal::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_equal)?.into(),
-            )))
+            let result_scalar =
+                scale_and_subtract_literal::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_equal)
+                    .map_err(ColumnError::ConversionError)?;
+            Ok(ColumnarValue::Literal(SqlExpr::TypedString {
+                data_type: DataType::Custom(ObjectName(vec![]), vec![]),
+                value: format!("scalar:{result_scalar}"),
+            }))
         }
     }
 }

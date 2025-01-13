@@ -24,6 +24,7 @@ use alloc::{string::String, vec, vec::Vec};
 use bumpalo::Bump;
 use core::cmp;
 use num_traits::Zero;
+use proof_of_sql_parser::sqlparser::TimezoneInfoExt;
 use serde::{Deserialize, Serialize};
 
 /// Return the row number range of tables referenced in the Query
@@ -514,9 +515,9 @@ fn extend_transcript_with_owned_table<S: Scalar, T: Transcript>(
             OwnedColumn::Scalar(col) => {
                 transcript.extend_as_be(col.iter().map(|&s| Into::<[u64; 4]>::into(s)));
             }
-            OwnedColumn::TimestampTZ(po_sqltime_unit, po_sqltime_zone, col) => {
+            OwnedColumn::TimestampTZ(po_sqltime_unit, timezone_info, col) => {
                 transcript.extend_as_be([u64::from(*po_sqltime_unit)]);
-                transcript.extend_as_be([po_sqltime_zone.offset()]);
+                transcript.extend_as_be([timezone_info.offset(Some("+00:00"))]);
                 transcript.extend_as_be_from_refs(col);
             }
         }
