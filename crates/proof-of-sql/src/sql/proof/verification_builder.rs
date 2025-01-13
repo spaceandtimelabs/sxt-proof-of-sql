@@ -1,6 +1,6 @@
 use super::{SumcheckMleEvaluations, SumcheckSubpolynomialType};
 use crate::base::{bit::BitDistribution, proof::ProofSizeMismatch, scalar::Scalar};
-use alloc::vec::Vec;
+use alloc::{collections::VecDeque, vec::Vec};
 use core::iter;
 
 /// Track components used to verify a query's proof
@@ -21,7 +21,7 @@ pub struct VerificationBuilder<'a, S: Scalar> {
     ///
     /// Note: this vector is treated as a stack and the first
     /// challenge is the last entry in the vector.
-    post_result_challenges: Vec<S>,
+    post_result_challenges: VecDeque<S>,
     one_evaluation_length_queue: Vec<usize>,
     subpolynomial_max_multiplicands: usize,
 }
@@ -36,7 +36,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         mle_evaluations: SumcheckMleEvaluations<'a, S>,
         bit_distributions: &'a [BitDistribution],
         subpolynomial_multipliers: &'a [S],
-        post_result_challenges: Vec<S>,
+        post_result_challenges: VecDeque<S>,
         one_evaluation_length_queue: Vec<usize>,
         subpolynomial_max_multiplicands: usize,
     ) -> Self {
@@ -199,7 +199,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     /// as it attempts to pop an element from the vector and unwraps the result.
     pub fn try_consume_post_result_challenge(&mut self) -> Result<S, ProofSizeMismatch> {
         self.post_result_challenges
-            .pop()
+            .pop_front()
             .ok_or(ProofSizeMismatch::PostResultCountMismatch)
     }
 }

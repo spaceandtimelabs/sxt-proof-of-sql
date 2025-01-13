@@ -8,7 +8,7 @@ use crate::{
     },
     utils::log,
 };
-use alloc::{boxed::Box, vec::Vec};
+use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
 
 /// Track components used to form a query's proof
 pub struct FinalRoundBuilder<'a, S: Scalar> {
@@ -24,11 +24,11 @@ pub struct FinalRoundBuilder<'a, S: Scalar> {
     ///
     /// Note: this vector is treated as a stack and the first
     /// challenge is the last entry in the vector.
-    post_result_challenges: Vec<S>,
+    post_result_challenges: VecDeque<S>,
 }
 
 impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
-    pub fn new(num_sumcheck_variables: usize, post_result_challenges: Vec<S>) -> Self {
+    pub fn new(num_sumcheck_variables: usize, post_result_challenges: VecDeque<S>) -> Self {
         Self {
             num_sumcheck_variables,
             bit_distributions: Vec::new(),
@@ -151,6 +151,6 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
     ///
     /// Will panic if there are no post-result challenges available to pop from the stack.
     pub fn consume_post_result_challenge(&mut self) -> S {
-        self.post_result_challenges.pop().unwrap()
+        self.post_result_challenges.pop_front().unwrap()
     }
 }

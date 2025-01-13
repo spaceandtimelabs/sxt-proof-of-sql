@@ -1,5 +1,6 @@
 use super::{SumcheckMleEvaluations, VerificationBuilder};
 use crate::{base::scalar::Curve25519Scalar, sql::proof::SumcheckSubpolynomialType};
+use alloc::collections::VecDeque;
 use num_traits::Zero;
 
 #[test]
@@ -13,7 +14,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
         mle_evaluations,
         &[][..],
         &[][..],
-        Vec::new(),
+        VecDeque::new(),
         Vec::new(),
         0,
     );
@@ -35,7 +36,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         mle_evaluations,
         &[][..],
         &subpolynomial_multipliers,
-        Vec::new(),
+        VecDeque::new(),
         Vec::new(),
         1,
     );
@@ -59,22 +60,23 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
 }
 
 #[test]
-fn we_can_consume_post_result_challenges_in_proof_builder() {
+fn we_can_consume_post_result_challenges_in_verification_builder() {
     let mut builder = VerificationBuilder::new(
         0,
         SumcheckMleEvaluations::default(),
         &[][..],
         &[][..],
-        vec![
+        [
             Curve25519Scalar::from(123),
             Curve25519Scalar::from(456),
             Curve25519Scalar::from(789),
-        ],
+        ]
+        .into(),
         Vec::new(),
         0,
     );
     assert_eq!(
-        Curve25519Scalar::from(789),
+        Curve25519Scalar::from(123),
         builder.try_consume_post_result_challenge().unwrap()
     );
     assert_eq!(
@@ -82,7 +84,7 @@ fn we_can_consume_post_result_challenges_in_proof_builder() {
         builder.try_consume_post_result_challenge().unwrap()
     );
     assert_eq!(
-        Curve25519Scalar::from(123),
+        Curve25519Scalar::from(789),
         builder.try_consume_post_result_challenge().unwrap()
     );
 }

@@ -436,6 +436,7 @@ mod tests {
         base::scalar::{Curve25519Scalar as S, Scalar},
         sql::proof::FinalRoundBuilder,
     };
+    use alloc::collections::VecDeque;
     use bumpalo::Bump;
     use num_traits::Inv;
 
@@ -561,7 +562,7 @@ mod tests {
             .collect();
 
         let alloc = Bump::new();
-        let mut builder = FinalRoundBuilder::new(2, Vec::new());
+        let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
 
         get_logarithmic_derivative(
             &mut builder,
@@ -660,7 +661,7 @@ mod tests {
             .collect();
 
         let alloc = Bump::new();
-        let mut builder = FinalRoundBuilder::new(2, Vec::new());
+        let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
         get_logarithmic_derivative(
             &mut builder,
             &alloc,
