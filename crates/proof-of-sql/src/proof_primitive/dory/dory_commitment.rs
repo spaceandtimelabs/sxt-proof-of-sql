@@ -26,7 +26,7 @@ use super::{DoryProverPublicSetup, GT};
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
     impl_serde_for_ark_serde_checked,
-    scalar::{MontScalar, Scalar},
+    scalar::MontScalar,
 };
 use alloc::vec::Vec;
 use ark_ec::pairing::PairingOutput;
@@ -37,16 +37,6 @@ use num_traits::One;
 
 /// The Dory scalar type. (alias for `MontScalar<ark_bls12_381::FrConfig>`)
 pub type DoryScalar = MontScalar<ark_bls12_381::FrConfig>;
-
-impl Scalar for DoryScalar {
-    const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
-        "26217937587563095239723870254092982918845276250263818911301829349969290592256"
-    ));
-    const ZERO: Self = Self(ark_ff::MontFp!("0"));
-    const ONE: Self = Self(ark_ff::MontFp!("1"));
-    const TWO: Self = Self(ark_ff::MontFp!("2"));
-    const TEN: Self = Self(ark_ff::MontFp!("10"));
-}
 
 #[derive(
     Debug,
@@ -111,12 +101,18 @@ mod tests {
         base::{
             commitment::{Commitment, NumColumnsMismatch, VecCommitmentExt},
             database::{Column, OwnedColumn},
+            scalar::test_scalar_constants,
         },
         proof_primitive::dory::{rand_util::test_rng, ProverSetup, PublicParameters},
     };
     use ark_ec::pairing::Pairing;
     use ark_ff::UniformRand;
     use rand::{rngs::StdRng, SeedableRng};
+
+    #[test]
+    fn we_have_correct_constants_for_dory_scalar() {
+        test_scalar_constants::<DoryScalar>();
+    }
 
     #[test]
     fn we_can_convert_from_columns() {

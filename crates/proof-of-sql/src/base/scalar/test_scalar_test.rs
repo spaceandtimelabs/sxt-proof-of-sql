@@ -1,8 +1,7 @@
 use super::ScalarExt;
-use crate::base::scalar::{test_scalar::TestScalar, Scalar};
+use crate::base::scalar::{test_scalar::TestScalar, test_scalar_constants, Scalar};
 use bnum::types::U256;
 use core::str::FromStr;
-use num_traits::Inv;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 const MAX_TEST_SCALAR_SIGNED_VALUE_AS_STRING: &str =
@@ -16,13 +15,8 @@ fn random_u256(seed: u64) -> U256 {
 }
 
 #[test]
-fn we_can_get_test_scalar_constants_from_z_p() {
-    assert_eq!(TestScalar::from(0), TestScalar::ZERO);
-    assert_eq!(TestScalar::from(1), TestScalar::ONE);
-    assert_eq!(TestScalar::from(2), TestScalar::TWO);
-    // -1/2 == least upper bound
-    assert_eq!(-TestScalar::TWO.inv().unwrap(), TestScalar::MAX_SIGNED);
-    assert_eq!(TestScalar::from(10), TestScalar::TEN);
+fn we_have_correct_constants_for_test_scalar() {
+    test_scalar_constants::<TestScalar>();
 }
 
 #[test]

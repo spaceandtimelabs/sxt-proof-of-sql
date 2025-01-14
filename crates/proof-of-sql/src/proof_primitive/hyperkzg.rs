@@ -92,16 +92,6 @@ impl Sub for HyperKZGCommitment {
     }
 }
 
-impl Scalar for BNScalar {
-    const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
-        "10944121435919637611123202872628637544274182200208017171849102093287904247808"
-    ));
-    const ZERO: Self = Self(ark_ff::MontFp!("0"));
-    const ONE: Self = Self(ark_ff::MontFp!("1"));
-    const TWO: Self = Self(ark_ff::MontFp!("2"));
-    const TEN: Self = Self(ark_ff::MontFp!("10"));
-}
-
 fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
     setup: &CommitmentKey<HyperKZGEngine>,
     offset: usize,
@@ -270,22 +260,19 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::commitment::commitment_evaluation_proof_test::{
-        test_commitment_evaluation_proof_with_length_1, test_random_commitment_evaluation_proof,
-        test_simple_commitment_evaluation_proof,
+    use crate::base::{
+        commitment::commitment_evaluation_proof_test::{
+            test_commitment_evaluation_proof_with_length_1,
+            test_random_commitment_evaluation_proof, test_simple_commitment_evaluation_proof,
+        },
+        scalar::test_scalar_constants,
     };
     use ark_std::UniformRand;
     use nova_snark::provider::hyperkzg::CommitmentEngine;
-    use num_traits::Inv;
 
     #[test]
-    fn we_can_get_bn_scalar_constants_from_z_p() {
-        assert_eq!(BNScalar::from(0), BNScalar::ZERO);
-        assert_eq!(BNScalar::from(1), BNScalar::ONE);
-        assert_eq!(BNScalar::from(2), BNScalar::TWO);
-        // -1/2 == least upper bound
-        assert_eq!(-BNScalar::TWO.inv().unwrap(), BNScalar::MAX_SIGNED);
-        assert_eq!(BNScalar::from(10), BNScalar::TEN);
+    fn we_have_correct_constants_for_bn_scalar() {
+        test_scalar_constants::<BNScalar>();
     }
 
     #[test]

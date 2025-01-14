@@ -1,5 +1,9 @@
 use super::Transcript;
-use crate::base::{ref_into::RefInto, scalar::Scalar};
+use crate::base::{
+    ref_into::RefInto,
+    scalar::{Scalar, ScalarExt},
+};
+use bnum::types::U256;
 use zerocopy::{AsBytes, FromBytes};
 
 /// A trait used to facilitate implementation of [Transcript](super::Transcript).
@@ -56,7 +60,9 @@ impl<T: TranscriptCore> Transcript for T {
         self.extend_as_be::<[u64; 4]>(messages.into_iter().map(RefInto::ref_into));
     }
     fn scalar_challenge_as_be<S: Scalar>(&mut self) -> S {
-        receive_challenge_as_be::<[u64; 4]>(self).into()
+        ScalarExt::from_wrapping(
+            U256::from(receive_challenge_as_be::<[u64; 4]>(self)) & S::CHALLENGE_MASK,
+        )
     }
     fn challenge_as_le(&mut self) -> [u8; 32] {
         self.raw_challenge()
