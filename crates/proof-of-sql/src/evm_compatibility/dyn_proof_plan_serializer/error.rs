@@ -1,3 +1,4 @@
+use alloc::string::String;
 use snafu::Snafu;
 
 /// Errors that can occur during proof plan serialization.
@@ -22,4 +23,8 @@ pub enum ProofPlanSerializationError {
     /// Error indicating that the column was not found.
     #[snafu(display("Column not found"))]
     ColumnNotFound,
+
+    /// Error indicating as an invalid number format.
+    #[snafu(display("Invalid number format: {value:?}"))]
+    InvalidNumberFormat { value: String },
 }

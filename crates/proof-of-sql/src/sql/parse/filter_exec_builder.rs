@@ -1,7 +1,7 @@
 use super::{where_expr_builder::WhereExprBuilder, ConversionError, EnrichedExpr};
 use crate::{
     base::{
-        database::{ColumnRef, LiteralValue, TableRef},
+        database::{ColumnRef, TableRef},
         map::IndexMap,
     },
     sql::{
@@ -12,7 +12,8 @@ use crate::{
 use alloc::{boxed::Box, vec, vec::Vec};
 use itertools::Itertools;
 use proof_of_sql_parser::intermediate_ast::Expression;
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Expr, Ident, Value};
+
 pub struct FilterExecBuilder {
     table_expr: Option<TableExpr>,
     where_expr: Option<DynProofExpr>,
@@ -82,7 +83,7 @@ impl FilterExecBuilder {
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),
             self.where_expr
-                .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true))),
+                .unwrap_or_else(|| DynProofExpr::new_literal(Expr::Value(Value::Boolean(true)))),
         )
     }
 }

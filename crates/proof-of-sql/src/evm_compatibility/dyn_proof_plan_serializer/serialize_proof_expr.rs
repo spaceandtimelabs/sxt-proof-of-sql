@@ -4,11 +4,12 @@ use super::{
     DynProofPlanSerializer, ProofPlanSerializationError,
 };
 use crate::{
-    base::{database::LiteralValue, scalar::Scalar},
+    base::scalar::Scalar,
     evm_compatibility::primitive_serialize_ext::PrimitiveSerializeExt,
     sql::proof_exprs::{ColumnExpr, DynProofExpr, EqualsExpr, LiteralExpr},
 };
 use snafu::OptionExt;
+use sqlparser::ast::{Expr, Value};
 
 impl<S: Scalar> DynProofPlanSerializer<S> {
     pub(super) fn serialize_dyn_proof_expr(
@@ -45,10 +46,17 @@ impl<S: Scalar> DynProofPlanSerializer<S> {
         self,
         literal_expr: &LiteralExpr,
     ) -> Result<Self, ProofPlanSerializationError> {
-        match literal_expr.value {
-            LiteralValue::BigInt(value) => Ok(self
-                .serialize_u8(BIGINT_TYPE_NUM)
-                .serialize_scalar(value.into())),
+        match &literal_expr.value {
+            Expr::Value(Value::Number(value, _)) => {
+                let parsed_value = value.parse::<i64>().map_err(|_| {
+                    ProofPlanSerializationError::InvalidNumberFormat {
+                        value: value.clone(),
+                    }
+                })?;
+                Ok(self
+                    .serialize_u8(BIGINT_TYPE_NUM)
+                    .serialize_scalar(parsed_value.into()))
+            }
             _ => NotSupportedSnafu.fail(),
         }
     }
@@ -75,6 +83,7 @@ mod tests {
     };
     use core::iter;
     use itertools::Itertools;
+    use sqlparser::ast::{Expr as SqlExpr, Value};
 
     #[test]
     fn we_can_serialize_a_column_expr() {
@@ -135,7 +144,8 @@ mod tests {
 
         // Serialization of a big int literal should result in a byte with the big int type number,
         // followed by the big int value in big-endian form, padded with leading zeros to 32 bytes.
-        let literal_bigint_expr = LiteralExpr::new(LiteralValue::BigInt(4200));
+        let literal_bigint_expr =
+            LiteralExpr::new(SqlExpr::Value(Value::Number("4200".to_string(), false)));
         let bigint_bytes = serializer
             .clone()
             .serialize_literal_expr(&literal_bigint_expr)
@@ -164,7 +174,8 @@ mod tests {
 
         // Serialization of a small int literal should result in an error
         // because only big int literals are supported so far
-        let literal_smallint_expr = LiteralExpr::new(LiteralValue::SmallInt(4200));
+        let literal_smallint_expr =
+            LiteralExpr::new(SqlExpr::Value(Value::Number("4200".to_string(), false)));
         let result = serializer
             .clone()
             .serialize_literal_expr(&literal_smallint_expr);
@@ -186,7 +197,10 @@ mod tests {
         .unwrap();
 
         let lhs = DynProofExpr::Column(ColumnExpr::new(column_0_ref));
-        let rhs = DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(4200)));
+        let rhs = DynProofExpr::Literal(LiteralExpr::new(SqlExpr::Value(Value::Number(
+            "4200".to_string(),
+            false,
+        ))));
         let lhs_bytes = serializer
             .clone()
             .serialize_dyn_proof_expr(&lhs)
@@ -239,7 +253,10 @@ mod tests {
         .unwrap();
 
         let lhs = DynProofExpr::Column(ColumnExpr::new(column_0_ref));
-        let rhs = DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(4200)));
+        let rhs = DynProofExpr::Literal(LiteralExpr::new(SqlExpr::Value(Value::Number(
+            "4200".to_string(),
+            false,
+        ))));
         let expr = DynProofExpr::And(AndExpr::new(Box::new(lhs.clone()), Box::new(rhs.clone())));
         let result = serializer.clone().serialize_dyn_proof_expr(&expr);
         assert!(matches!(
