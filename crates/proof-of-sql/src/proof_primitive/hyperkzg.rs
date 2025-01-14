@@ -22,6 +22,7 @@ use nova_snark::{
     },
 };
 use serde::{Deserialize, Serialize};
+use tracing::{span, Level};
 
 /// The scalar used in the `HyperKZG` PCS. This is the BN254 scalar.
 pub type BNScalar = MontScalar<ark_bn254::FrConfig>;
@@ -102,6 +103,7 @@ impl Scalar for BNScalar {
     const TEN: Self = Self(ark_ff::MontFp!("10"));
 }
 
+#[tracing::instrument(name = "compute_commitments_impl (cpu)", level = "debug", skip_all)]
 fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
     setup: &CommitmentKey<HyperKZGEngine>,
     offset: usize,
@@ -120,6 +122,7 @@ fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
 impl Commitment for HyperKZGCommitment {
     type Scalar = BNScalar;
     type PublicSetup<'a> = &'a CommitmentKey<HyperKZGEngine>;
+    #[tracing::instrument(name = "compute_commitments (cpu)", level = "debug", skip_all)]
     fn compute_commitments(
         committable_columns: &[crate::base::commitment::CommittableColumn],
         offset: usize,
@@ -161,14 +164,29 @@ impl Engine for HyperKZGEngine {
 }
 
 impl TranscriptEngineTrait<HyperKZGEngine> for Keccak256Transcript {
+    #[tracing::instrument(
+        name = "TranscriptEngineTrait<HyperKZGEngine> new (cpu)",
+        level = "debug",
+        skip_all
+    )]
     fn new(_label: &'static [u8]) -> Self {
         Transcript::new()
     }
 
+    #[tracing::instrument(
+        name = "TranscriptEngineTrait<HyperKZGEngine> squeeze (cpu)",
+        level = "debug",
+        skip_all
+    )]
     fn squeeze(&mut self, _label: &'static [u8]) -> Result<NovaScalar, NovaError> {
         Ok(Transcript::scalar_challenge_as_be::<BNScalar>(self).into())
     }
 
+    #[tracing::instrument(
+        name = "TranscriptEngineTrait<HyperKZGEngine> absorb (cpu)",
+        level = "debug",
+        skip_all
+    )]
     fn absorb<T: TranscriptReprTrait<<HyperKZGEngine as Engine>::GE>>(
         &mut self,
         _label: &'static [u8],
@@ -183,6 +201,11 @@ impl TranscriptEngineTrait<HyperKZGEngine> for Keccak256Transcript {
         );
     }
 
+    #[tracing::instrument(
+        name = "TranscriptEngineTrait<HyperKZGEngine> dom_sep (cpu)",
+        level = "debug",
+        skip_all
+    )]
     fn dom_sep(&mut self, _bytes: &'static [u8]) {}
 }
 
@@ -193,6 +216,11 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
     type ProverPublicSetup<'a> = &'a CommitmentKey<HyperKZGEngine>;
     type VerifierPublicSetup<'a> = &'a VerifierKey<HyperKZGEngine>;
 
+    #[tracing::instrument(
+        name = "CommitmentEvaluationProof new (cpu)",
+        level = "debug",
+        skip_all
+    )]
     fn new(
         transcript: &mut impl crate::base::proof::Transcript,
         a: &[Self::Scalar],
@@ -201,6 +229,7 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
         setup: &Self::ProverPublicSetup<'_>,
     ) -> Self {
         assert_eq!(generators_offset, 0);
+        let span = span!(Level::DEBUG, "slice::ops to extend").entered();
         let mut nova_point = slice_ops::slice_cast(b_point);
         nova_point.reverse();
         if nova_point.is_empty() {
@@ -211,7 +240,10 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
             NovaScalar::ZERO,
             (1 << nova_point.len()) - nova_a.len(),
         ));
-        transcript.wrap_transcript(|keccak_transcript| {
+        span.exit();
+
+        let span = span!(Level::DEBUG, "wrap_transcript").entered();
+        let wt = transcript.wrap_transcript(|keccak_transcript| {
             EvaluationEngine::prove(
                 *setup,
                 &EvaluationEngine::setup(*setup).0, // This parameter is unused
@@ -222,9 +254,17 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
                 &NovaScalar::default(), // This parameter is unused
             )
             .unwrap()
-        })
+        });
+        span.exit();
+
+        wt
     }
 
+    #[tracing::instrument(
+        name = "CommitmentEvaluationProof> verify_batched_proof (cpu)",
+        level = "debug",
+        skip_all
+    )]
     fn verify_batched_proof(
         &self,
         transcript: &mut impl crate::base::proof::Transcript,
@@ -239,22 +279,32 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
         if generators_offset != 0 {
             Err(NovaError::InvalidPCS)?;
         }
+        let span = span!(Level::DEBUG, "nova_commit").entered();
         let nova_commit = commit_batch
             .iter()
             .zip(batching_factors)
             .map(|(c, m)| c.commitment * NovaScalar::from(m))
             .fold(NovaCommitment::default(), Add::add);
+        span.exit();
+
+        let span = span!(Level::DEBUG, "nova_eval").entered();
         let nova_eval = evaluations
             .iter()
             .zip(batching_factors)
             .map(|(&e, &f)| e * f)
             .sum::<Self::Scalar>();
+        span.exit();
+
+        let span = span!(Level::DEBUG, "slice_cast and reverse").entered();
         let mut nova_point = slice_ops::slice_cast(b_point);
         nova_point.reverse();
         if nova_point.is_empty() {
             nova_point.push(NovaScalar::ZERO);
         }
-        transcript.wrap_transcript(|keccak_transcript| {
+        span.exit();
+
+        let span = span!(Level::DEBUG, "wrap_transcript").entered();
+        let wt = transcript.wrap_transcript(|keccak_transcript| {
             EvaluationEngine::verify(
                 setup,
                 keccak_transcript,
@@ -263,7 +313,10 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
                 &nova_eval.into(),
                 self,
             )
-        })
+        });
+        span.exit();
+
+        wt
     }
 }
 
