@@ -232,11 +232,11 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
       - name: Run tests
         run: |
-          cargo run --bin yul_preprocessor crates/proof-of-sql
-          forge test --root=crates/proof-of-sql --summary --detailed
+          solidity/scripts/install_deps.sh
+          solidity/scripts/test.sh -vvv
 
   solhint:
     name: solhint
@@ -247,4 +247,6 @@ jobs:
       - name: Install solhint
         run: npm install -g solhint
       - name: Run tests
-        run: solhint -c 'crates/proof-of-sql/.solhint.json' 'crates/proof-of-sql/**/*.sol' 'crates/proof-of-sql/**/*.psol' -w 0
+        run: |
+          cd solidity/src
+          solhint '**/*.sol' -w 0
