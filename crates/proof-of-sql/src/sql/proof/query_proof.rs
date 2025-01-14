@@ -477,7 +477,7 @@ fn make_transcript<C: Commitment, T: Transcript>(
     transcript.extend_serialize_as_le(one_evaluation_lengths);
     transcript.extend_serialize_as_le(&post_result_challenge_count);
     for commitment in first_round_commitments {
-        commitment.append_to_transcript(&mut transcript);
+        transcript.extend_as_le(commitment.to_transcript_bytes());
     }
     transcript
 }
@@ -538,7 +538,7 @@ fn extend_transcript_with_commitments<C: Commitment>(
     bit_distributions: &[BitDistribution],
 ) {
     for commitment in final_round_commitments {
-        commitment.append_to_transcript(transcript);
+        transcript.extend_as_le(commitment.to_transcript_bytes());
     }
     transcript.extend_serialize_as_le(bit_distributions);
 }
