@@ -102,11 +102,6 @@ name = "commitment-utility"
 path = "utils/commitment-utility/main.rs"
 required-features = [ "std", "blitzar"]
 
-[[bin]]
-name = "yul_preprocessor"
-path = "utils/yul-preprocessor/main.rs"
-required-features = [ "std" ]
-
 [[example]]
 name = "hello_world"
 required-features = ["test"]
