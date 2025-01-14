@@ -67,3 +67,7 @@ cache
 
 # any output files from generating public params
 output/
+
+*.post.sol
+
+**/dependencies
