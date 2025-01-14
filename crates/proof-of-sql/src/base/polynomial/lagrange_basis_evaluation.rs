@@ -1,4 +1,9 @@
-use core::ops::{Add, Mul, Sub};
+use super::compute_evaluation_vector;
+use alloc::vec;
+use core::{
+    iter::Sum,
+    ops::{Add, Mul, MulAssign, Sub, SubAssign},
+};
 use num_traits::{One, Zero};
 
 /// Given the points a and b with length nu, we can evaluate the lagrange basis of length 2^nu at the two points.
@@ -103,4 +108,18 @@ where
                 }
             })
     }
+}
+
+pub fn compute_rho_eval<F>(length: usize, point: &[F]) -> F
+where
+    F: One + Sub<Output = F> + MulAssign + SubAssign + Mul<Output = F> + Send + Sync + Copy + Sum,
+    i128: Into<F>,
+{
+    let mut eval_vec = vec![F::one(); length];
+    compute_evaluation_vector(&mut eval_vec, point);
+    eval_vec
+        .into_iter()
+        .enumerate()
+        .map(|(i, v)| v * Into::<F>::into(i as i128))
+        .sum()
 }
