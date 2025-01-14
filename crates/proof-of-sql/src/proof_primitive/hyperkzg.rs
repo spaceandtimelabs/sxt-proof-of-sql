@@ -135,8 +135,8 @@ impl Commitment for HyperKZGCommitment {
             })
             .collect()
     }
-    fn append_to_transcript(&self, transcript: &mut impl crate::base::proof::Transcript) {
-        transcript.extend_as_le(self.commitment.to_transcript_bytes());
+    fn to_transcript_bytes(&self) -> Vec<u8> {
+        self.commitment.to_transcript_bytes()
     }
 }
 

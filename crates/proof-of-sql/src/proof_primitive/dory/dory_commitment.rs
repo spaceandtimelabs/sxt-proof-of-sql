@@ -87,8 +87,10 @@ impl Commitment for DoryCommitment {
         super::compute_dory_commitments(committable_columns, offset, setup)
     }
 
-    fn append_to_transcript(&self, transcript: &mut impl crate::base::proof::Transcript) {
-        transcript.extend_canonical_serialize_as_le(&self.0);
+    fn to_transcript_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(self.0.compressed_size());
+        self.0.serialize_compressed(&mut buf).unwrap();
+        buf
     }
 }
 
@@ -99,7 +101,6 @@ mod tests {
         base::{
             commitment::{Commitment, NumColumnsMismatch, VecCommitmentExt},
             database::{Column, OwnedColumn},
-            proof::{Keccak256Transcript, Transcript},
             scalar::test_scalar_constants,
         },
         proof_primitive::dory::{rand_util::test_rng, ProverSetup, PublicParameters},
@@ -489,17 +490,13 @@ mod tests {
     }
 
     #[test]
-    fn we_can_append_different_dory_commitments_and_get_different_transcripts() {
+    fn we_get_different_transcript_bytes_from_different_dory_commitments() {
         let mut rng = StdRng::seed_from_u64(42);
         let commitment1 = DoryCommitment(GT::rand(&mut rng));
         let commitment2 = DoryCommitment(GT::rand(&mut rng));
-
-        let mut transcript1 = Keccak256Transcript::new();
-        let mut transcript2 = Keccak256Transcript::new();
-
-        commitment1.append_to_transcript(&mut transcript1);
-        commitment2.append_to_transcript(&mut transcript2);
-
-        assert_ne!(transcript1.challenge_as_le(), transcript2.challenge_as_le());
+        assert_ne!(
+            commitment1.to_transcript_bytes(),
+            commitment2.to_transcript_bytes()
+        );
     }
 }
