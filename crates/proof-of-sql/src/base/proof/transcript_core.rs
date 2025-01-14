@@ -56,7 +56,11 @@ impl<T: TranscriptCore> Transcript for T {
         self.extend_as_be::<[u64; 4]>(messages.into_iter().map(RefInto::ref_into));
     }
     fn scalar_challenge_as_be<S: Scalar>(&mut self) -> S {
-        receive_challenge_as_be::<[u64; 4]>(self).into()
+        let mut challenge = receive_challenge_as_be::<[u64; 4]>(self);
+        for (c, m) in challenge.iter_mut().zip(S::CHALLENGE_MASK) {
+            *c &= m;
+        }
+        challenge.into()
     }
     fn challenge_as_le(&mut self) -> [u8; 32] {
         self.raw_challenge()

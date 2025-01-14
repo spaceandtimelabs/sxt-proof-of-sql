@@ -1,5 +1,5 @@
 use super::{transcript_core::TranscriptCore, Keccak256Transcript as T, Transcript};
-use crate::base::scalar::test_scalar::TestScalar as S;
+use crate::base::scalar::{scalar::Scalar, test_scalar::TestScalar as S};
 use zerocopy::AsBytes;
 #[test]
 fn we_can_add_values_to_the_transcript_in_big_endian_form() {
@@ -72,7 +72,9 @@ fn we_can_get_challenge_as_scalar_interpreted_as_big_endian() {
     bytes.reverse();
     let mut limbs: [u64; 4] = scalar.into();
     limbs.as_bytes_mut().copy_from_slice(&bytes);
-
+    for (c, m) in limbs.iter_mut().zip(S::CHALLENGE_MASK) {
+        *c &= m;
+    }
     assert_eq!(scalar, limbs.into());
 }
 

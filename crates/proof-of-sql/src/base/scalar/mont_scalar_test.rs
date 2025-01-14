@@ -1,6 +1,9 @@
 use crate::base::{
     map::IndexSet,
-    scalar::{test_scalar::TestScalar, Curve25519Scalar, Scalar, ScalarConversionError},
+    scalar::{
+        scalar::test_scalar_constants, test_scalar::TestScalar, Curve25519Scalar, Scalar,
+        ScalarConversionError,
+    },
 };
 use alloc::{format, string::ToString, vec::Vec};
 use byte_slice_cast::AsByteSlice;
@@ -12,6 +15,11 @@ use rand::{
     Rng,
 };
 use rand_core::SeedableRng;
+
+#[test]
+fn we_have_correct_constants_for_curve_25519_scalar() {
+    test_scalar_constants::<Curve25519Scalar>();
+}
 
 #[test]
 fn test_dalek_interop_1() {
