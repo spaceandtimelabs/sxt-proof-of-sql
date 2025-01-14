@@ -6,6 +6,7 @@ use alloc::{
 };
 use ark_ff::{AdditiveGroup, BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use bnum::types::U256;
 use bytemuck::TransparentWrapper;
 use core::{
     cmp::Ordering,
@@ -432,17 +433,17 @@ where
     const ONE: Self = Self(Fp::ONE);
     const TWO: Self = Self(Fp::new(ark_ff::BigInt([2, 0, 0, 0])));
     const TEN: Self = Self(Fp::new(ark_ff::BigInt([10, 0, 0, 0])));
-    const CHALLENGE_MASK: [u64; 4] = {
+    const CHALLENGE_MASK: U256 = {
         assert!(
             T::MODULUS.0[3].leading_zeros() < 64,
             "modulus expected to be larger than 1 << (64*3)"
         );
-        [
+        U256::from_digits([
             u64::MAX,
             u64::MAX,
             u64::MAX,
             u64::MAX >> (T::MODULUS.0[3].leading_zeros() + 1),
-        ]
+        ])
     };
 }
 

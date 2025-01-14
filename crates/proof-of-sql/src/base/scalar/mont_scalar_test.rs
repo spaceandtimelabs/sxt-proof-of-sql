@@ -1,7 +1,7 @@
 use crate::base::{
     map::IndexSet,
     scalar::{
-        scalar::test_scalar_constants, test_scalar::TestScalar, Curve25519Scalar, Scalar,
+        test_scalar::TestScalar, test_scalar_constants, Curve25519Scalar, Scalar,
         ScalarConversionError,
     },
 };

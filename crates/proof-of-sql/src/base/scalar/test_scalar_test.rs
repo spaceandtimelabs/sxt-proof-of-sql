@@ -1,5 +1,5 @@
 use super::ScalarExt;
-use crate::base::scalar::{scalar::test_scalar_constants, test_scalar::TestScalar, Scalar};
+use crate::base::scalar::{test_scalar::TestScalar, test_scalar_constants, Scalar};
 use bnum::types::U256;
 use core::str::FromStr;
 use rand::{rngs::StdRng, Rng, SeedableRng};

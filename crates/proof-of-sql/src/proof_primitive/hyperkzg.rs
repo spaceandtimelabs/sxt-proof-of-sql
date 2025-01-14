@@ -265,7 +265,7 @@ mod tests {
             test_commitment_evaluation_proof_with_length_1,
             test_random_commitment_evaluation_proof, test_simple_commitment_evaluation_proof,
         },
-        scalar::scalar::test_scalar_constants,
+        scalar::test_scalar_constants,
     };
     use ark_std::UniformRand;
     use nova_snark::provider::hyperkzg::CommitmentEngine;

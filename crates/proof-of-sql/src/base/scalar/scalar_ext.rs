@@ -35,6 +35,24 @@ pub trait ScalarExt: Scalar {
 impl<S: Scalar> ScalarExt for S {}
 
 #[cfg(test)]
+pub(crate) fn test_scalar_constants<S: Scalar>() {
+    assert_eq!(S::from(0), S::ZERO);
+    assert_eq!(S::from(1), S::ONE);
+    assert_eq!(S::from(2), S::TWO);
+    // -1/2 == least upper bound
+    assert_eq!(-S::TWO.inv().unwrap(), S::MAX_SIGNED);
+    assert_eq!(S::from(10), S::TEN);
+
+    // Check the challenge mask
+    assert_eq!(
+        S::CHALLENGE_MASK,
+        U256::MAX >> S::CHALLENGE_MASK.leading_zeros()
+    );
+    assert!(S::MAX_SIGNED.into_u256_wrapping() < S::CHALLENGE_MASK);
+    assert!((-S::ONE).into_u256_wrapping() > S::CHALLENGE_MASK);
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::base::scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar};

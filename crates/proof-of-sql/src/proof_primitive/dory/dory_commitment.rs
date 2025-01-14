@@ -100,7 +100,7 @@ mod tests {
             commitment::{Commitment, NumColumnsMismatch, VecCommitmentExt},
             database::{Column, OwnedColumn},
             proof::{Keccak256Transcript, Transcript},
-            scalar::scalar::test_scalar_constants,
+            scalar::test_scalar_constants,
         },
         proof_primitive::dory::{rand_util::test_rng, ProverSetup, PublicParameters},
     };
