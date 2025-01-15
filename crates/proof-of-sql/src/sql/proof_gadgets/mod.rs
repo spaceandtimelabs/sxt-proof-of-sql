@@ -4,7 +4,7 @@ use bitwise_verification::{verify_constant_abs_decomposition, verify_constant_si
 #[cfg(test)]
 mod bitwise_verification_test;
 mod membership_check;
-#[allow(unused_imports)]
+#[allow(unused_imports, dead_code)]
 use membership_check::{
     final_round_evaluate_membership_check, first_round_evaluate_membership_check,
     verify_membership_check,

@@ -7,24 +7,23 @@ use crate::{
         proof_plans::{fold_columns, fold_vals},
     },
 };
-use alloc::{boxed::Box, vec, vec::Vec};
+use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use num_traits::{One, Zero};
 
 /// Perform first round evaluation of the membership check.
-#[allow(dead_code)]
 pub(crate) fn first_round_evaluate_membership_check<'a, S: Scalar>(
     builder: &mut FirstRoundBuilder<'a, S>,
-    multiplicities: &[usize],
-    alloc: &'a Bump,
+    multiplicities: &'a [i128],
 ) {
-    let casted_multiplicities: Vec<i128> = multiplicities.iter().map(|&x| x as i128).collect();
-    let alloc_multiplicities = alloc.alloc_slice_copy(casted_multiplicities.as_slice());
-    builder.produce_intermediate_mle(alloc_multiplicities as &[_]);
+    builder.produce_intermediate_mle(multiplicities);
     builder.request_post_result_challenges(2);
 }
 
 /// Perform final round evaluation of the membership check.
+///
+/// # Panics
+/// Panics if the number of source and candidate columns are not equal.
 #[allow(dead_code)]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
@@ -34,20 +33,19 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
     beta: S,
     columns: &[Column<'a, S>],
     candidate_subset: &[Column<'a, S>],
-    multiplicities: &[usize],
-    num_rows: usize,
-    candidate_num_rows: usize,
+    multiplicities: &'a [i128],
+    input_ones: &'a [bool],
+    candidate_ones: &'a [bool],
 ) {
-    let casted_multiplicities: Vec<i128> = multiplicities.iter().map(|&x| x as i128).collect();
-    let alloc_multiplicities = alloc.alloc_slice_copy(casted_multiplicities.as_slice());
-
+    assert_eq!(
+        columns.len(),
+        candidate_subset.len(),
+        "The number of source and candidate columns should be equal"
+    );
     // Fold the columns
-    let input_ones = alloc.alloc_slice_fill_copy(num_rows, true);
-    let candidate_ones = alloc.alloc_slice_fill_copy(candidate_num_rows, true);
-
-    let c_fold = alloc.alloc_slice_fill_copy(num_rows, Zero::zero());
+    let c_fold = alloc.alloc_slice_fill_copy(input_ones.len(), Zero::zero());
     fold_columns(c_fold, alpha, beta, columns);
-    let d_fold = alloc.alloc_slice_fill_copy(candidate_num_rows, Zero::zero());
+    let d_fold = alloc.alloc_slice_fill_copy(candidate_ones.len(), Zero::zero());
     fold_columns(d_fold, alpha, beta, candidate_subset);
 
     let c_star = alloc.alloc_slice_copy(c_fold);
@@ -67,10 +65,7 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
         vec![
             (
                 S::one(),
-                vec![
-                    Box::new(c_star as &[_]),
-                    Box::new(alloc_multiplicities as &[_]),
-                ],
+                vec![Box::new(c_star as &[_]), Box::new(multiplicities as &[_])],
             ),
             (-S::one(), vec![Box::new(d_star as &[_])]),
         ],
@@ -113,6 +108,12 @@ pub(crate) fn verify_membership_check<S: Scalar>(
     column_evals: &[S],
     candidate_evals: &[S],
 ) -> Result<(), ProofError> {
+    // Check that the source and candidate columns have the same amount of columns
+    if column_evals.len() != candidate_evals.len() {
+        return Err(ProofError::VerificationError {
+            error: "The number of source and candidate columns should be equal",
+        });
+    }
     let multiplicity_eval = builder.try_consume_first_round_mle_evaluation()?;
     let c_fold_eval = fold_vals(beta, column_evals);
     let d_fold_eval = fold_vals(beta, candidate_evals);

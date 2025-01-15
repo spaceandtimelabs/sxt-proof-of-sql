@@ -29,7 +29,7 @@ pub struct MembershipCheckTestPlan {
     pub candidate_table: TableRef,
     pub source_columns: Vec<ColumnRef>,
     pub candidate_columns: Vec<ColumnRef>,
-    pub proposed_multiplicities: Vec<usize>,
+    pub proposed_multiplicities: Vec<i128>,
 }
 
 impl ProverEvaluate for MembershipCheckTestPlan {
@@ -40,12 +40,6 @@ impl ProverEvaluate for MembershipCheckTestPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        // Check that the source and candidate columns have the same amount of columns
-        assert_eq!(
-            self.source_columns.len(),
-            self.candidate_columns.len(),
-            "Source and candidate columns must have the same length"
-        );
         // Check that the source columns belong to the source table
         for col_ref in &self.source_columns {
             assert_eq!(self.source_table, col_ref.table_ref(), "Table not found");
@@ -64,7 +58,8 @@ impl ProverEvaluate for MembershipCheckTestPlan {
         builder.produce_one_evaluation_length(source_table.num_rows());
         builder.produce_one_evaluation_length(candidate_table.num_rows());
         // Evaluate the first round
-        first_round_evaluate_membership_check(builder, &self.proposed_multiplicities, alloc);
+        let alloc_proposed_multiplicities = alloc.alloc_slice_copy(&self.proposed_multiplicities);
+        first_round_evaluate_membership_check(builder, alloc_proposed_multiplicities);
         // This is just a dummy table, the actual data is not used
         Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
             .unwrap()
@@ -76,12 +71,6 @@ impl ProverEvaluate for MembershipCheckTestPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        // Check that the source and candidate columns have the same amount of columns
-        assert_eq!(
-            self.source_columns.len(),
-            self.candidate_columns.len(),
-            "Source and candidate columns must have the same length"
-        );
         // Check that the source columns belong to the source table
         for col_ref in &self.source_columns {
             assert_eq!(self.source_table, col_ref.table_ref(), "Table not found");
@@ -122,6 +111,9 @@ impl ProverEvaluate for MembershipCheckTestPlan {
             .collect_in::<BumpVec<_>>(alloc);
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
+        let source_ones = alloc.alloc_slice_fill_copy(source_table.num_rows(), true);
+        let candidate_ones = alloc.alloc_slice_fill_copy(candidate_table.num_rows(), true);
+        let alloc_proposed_multiplicities = alloc.alloc_slice_copy(&self.proposed_multiplicities);
         // Perform final membership check
         final_round_evaluate_membership_check(
             builder,
@@ -130,9 +122,9 @@ impl ProverEvaluate for MembershipCheckTestPlan {
             beta,
             &source_columns,
             &candidate_columns,
-            &self.proposed_multiplicities,
-            source_table.num_rows(),
-            candidate_table.num_rows(),
+            alloc_proposed_multiplicities,
+            source_ones,
+            candidate_ones,
         );
         // Return a dummy table
         Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
@@ -170,12 +162,6 @@ impl ProofPlan for MembershipCheckTestPlan {
         let alpha = builder.try_consume_post_result_challenge()?;
         let beta = builder.try_consume_post_result_challenge()?;
         let num_columns = self.source_columns.len();
-        // Check that the source and candidate columns have the same amount of columns
-        if num_columns != self.candidate_columns.len() {
-            return Err(ProofError::VerificationError {
-                error: "Source and candidate columns must have the same length",
-            });
-        }
         // Get the columns
         let column_evals = builder.try_consume_final_round_mle_evaluations(num_columns)?;
         // Get the target columns
@@ -370,7 +356,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Source and candidate columns must have the same length")]
+    #[should_panic(expected = "The number of source and candidate columns should be equal")]
     fn we_cannot_do_membership_check_if_source_and_candidate_have_different_number_of_columns() {
         let alloc = Bump::new();
         let source_table = table([
