@@ -2,7 +2,7 @@ use crate::{
     base::{
         bit::{
             bit_mask_utils::{is_bit_mask_negative_representation, make_bit_mask},
-            compute_varying_bit_matrix, BitDistribution,
+            compute_varying_bit_matrix, BitDistribution, BitDistrubutionError,
         },
         proof::ProofError,
         scalar::{Scalar, ScalarExt},
@@ -74,7 +74,8 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
 /// Verify the sign decomposition for a column of scalars.
 ///
 /// # Panics
-/// Panics if `bit_evals.last()` is `None`.
+/// Panics if `bit_evals` is empty and `dist` indicates a variable lead bit.
+/// This would mean that there is no way to determine the sign bit.
 ///
 /// See [`prover_evaluate_sign`].
 pub fn verifier_evaluate_sign<S: Scalar>(
@@ -98,9 +99,14 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     verify_bits_are_binary(builder, &bit_evals)?;
 
     verify_bit_decomposition(eval, one_eval, &bit_evals, &dist)
-        .then(|| one_eval - dist.leading_bit_eval(&bit_evals, one_eval))
-        .ok_or(ProofError::VerificationError {
-            error: "invalid bit_decomposition",
+        .map(|sign_eval| one_eval - sign_eval)
+        .map_err(|err| match err {
+            BitDistrubutionError::NoLeadBit => {
+                panic!("No lead bit available despite variable lead bit.")
+            }
+            BitDistrubutionError::Verification => ProofError::VerificationError {
+                error: "invalid bit_decomposition",
+            },
         })
 }
 
@@ -134,17 +140,14 @@ fn verify_bits_are_binary<S: Scalar>(
     Ok(())
 }
 
-/// # Panics
-/// Panics if `bit_evals.last()` returns `None`.
-///
 /// This function checks the consistency of the bit evaluations with the expression evaluation.
 fn verify_bit_decomposition<S: ScalarExt>(
     expr_eval: S,
     one_eval: S,
     bit_evals: &[S],
     dist: &BitDistribution,
-) -> bool {
-    let sign_eval = dist.leading_bit_eval(bit_evals, one_eval);
+) -> Result<S, BitDistrubutionError> {
+    let sign_eval = dist.leading_bit_eval(bit_evals, one_eval)?;
     let mut rhs = sign_eval * S::from_wrapping(dist.leading_bit_mask())
         + (one_eval - sign_eval) * S::from_wrapping(dist.leading_bit_inverse_mask())
         - one_eval * S::from_wrapping(U256::ONE.shl(255));
@@ -156,7 +159,9 @@ fn verify_bit_decomposition<S: ScalarExt>(
             rhs += S::from_wrapping(mult) * bit_eval;
         }
     }
-    rhs == expr_eval
+    (rhs == expr_eval)
+        .then_some(sign_eval)
+        .ok_or(BitDistrubutionError::Verification)
 }
 
 #[cfg(test)]
@@ -178,9 +183,8 @@ mod tests {
         let one_eval = TestScalar::ONE;
         let bit_evals = [0, 0, 1, 1, 0, 1].map(TestScalar::from);
         let expr_eval = TestScalar::from(562);
-        assert!(verify_bit_decomposition(
-            expr_eval, one_eval, &bit_evals, &dist,
-        ));
+        let sign_eval = verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist).unwrap();
+        assert_eq!(sign_eval, TestScalar::ONE);
     }
 
     #[test]
@@ -217,8 +221,7 @@ mod tests {
                 + TestScalar::from(1) * a * (TestScalar::ONE - b)
                 + TestScalar::from(0) * (TestScalar::ONE - a) * b,
         ];
-        assert!(verify_bit_decomposition(
-            expr_eval, one_eval, &bit_evals, &dist,
-        ));
+        let sign_eval = verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist).unwrap();
+        assert_eq!(sign_eval, TestScalar::ZERO);
     }
 }

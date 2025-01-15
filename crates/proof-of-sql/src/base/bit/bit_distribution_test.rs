@@ -165,7 +165,9 @@ fn we_can_get_leading_bit_eval_while_varying() {
     };
 
     // ACT
-    let bit_eval = bit_distribution.leading_bit_eval(&[TestScalar::ONE], TestScalar::TWO);
+    let bit_eval = bit_distribution
+        .leading_bit_eval(&[TestScalar::ONE], TestScalar::TWO)
+        .unwrap();
 
     // ASSERT
     assert_eq!(bit_eval, TestScalar::ONE);
@@ -180,7 +182,9 @@ fn we_can_get_leading_bit_eval_while_constant_and_zero() {
     };
 
     // ACT
-    let bit_eval = bit_distribution.leading_bit_eval(&[TestScalar::ONE], TestScalar::TWO);
+    let bit_eval = bit_distribution
+        .leading_bit_eval(&[TestScalar::ONE], TestScalar::TWO)
+        .unwrap();
 
     // ASSERT
     assert_eq!(bit_eval, TestScalar::ZERO);
@@ -195,7 +199,9 @@ fn we_can_get_leading_bit_eval_while_constant_and_non_zero() {
     };
 
     // ACT
-    let bit_eval = bit_distribution.leading_bit_eval(&[TestScalar::ONE], TestScalar::TWO);
+    let bit_eval = bit_distribution
+        .leading_bit_eval(&[TestScalar::ONE], TestScalar::TWO)
+        .unwrap();
 
     // ASSERT
     assert_eq!(bit_eval, TestScalar::TWO);

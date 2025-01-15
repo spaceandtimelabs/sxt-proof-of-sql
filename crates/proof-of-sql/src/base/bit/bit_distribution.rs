@@ -19,6 +19,15 @@ pub struct BitDistribution {
     pub(crate) leading_bit_mask: [u64; 4],
 }
 
+/// Errors associated with `BitDistribution`
+#[derive(Debug)]
+pub enum BitDistrubutionError {
+    /// No lead bit was provided when the lead bit is variable
+    NoLeadBit,
+    /// Failed to verify bit decomposition
+    Verification,
+}
+
 impl BitDistribution {
     pub fn new<S: Scalar, T: Into<S> + Clone>(data: &[T]) -> Self {
         let bit_masks = data.iter().cloned().map(Into::<S>::into).map(make_bit_mask);
@@ -27,7 +36,7 @@ impl BitDistribution {
                 .clone()
                 .fold((U256::MAX, U256::MAX), |acc, bit_mask| {
                     let bit_mask = if is_bit_mask_negative_representation(bit_mask) {
-                        bit_mask ^ (U256::MAX >> 1)
+                        bit_mask ^ U256::MAX.shr(1)
                     } else {
                         bit_mask
                     };
@@ -67,16 +76,21 @@ impl BitDistribution {
         self.vary_mask().count_ones() as usize
     }
 
-    /// # Panics
-    ///
-    /// Panics if lead bit varies but `bit_evals` is empty
-    pub fn leading_bit_eval<S: ScalarExt>(&self, bit_evals: &[S], one_eval: S) -> S {
-        if U256::from(self.vary_mask) & U256::ONE.shl(255) != U256::ZERO {
-            *bit_evals.last().expect("bit_evals should be non-empty")
+    /// Determines the lead (sign) bit.
+    pub fn leading_bit_eval<S: ScalarExt>(
+        &self,
+        bit_evals: &[S],
+        one_eval: S,
+    ) -> Result<S, BitDistrubutionError> {
+        if U256::from(self.vary_mask) & (U256::ONE.shl(255)) != U256::ZERO {
+            bit_evals
+                .last()
+                .ok_or(BitDistrubutionError::NoLeadBit)
+                .copied()
         } else if U256::from(self.leading_bit_mask) & U256::ONE.shl(255) == U256::ZERO {
-            S::ZERO
+            Ok(S::ZERO)
         } else {
-            one_eval
+            Ok(one_eval)
         }
     }
 
