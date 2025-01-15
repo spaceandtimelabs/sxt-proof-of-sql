@@ -27,7 +27,7 @@ pub trait PrimitiveSerializeExt<S: Scalar>: Sized {
         self.serialize_slice(&[value])
     }
 
-    /// Serializes a scalar value. The scalar is serialized as a 256-bit, bytwise-big-endian integer.
+    /// Serializes a scalar value. The scalar is serialized as a 256-bit, bytewise-big-endian integer.
     /// This is the format used by the EVM for representing integers.
     ///
     /// # Arguments

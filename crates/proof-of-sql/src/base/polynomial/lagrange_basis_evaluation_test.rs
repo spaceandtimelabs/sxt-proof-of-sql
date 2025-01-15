@@ -1,7 +1,7 @@
 use crate::base::{
     polynomial::{
-        compute_evaluation_vector, compute_truncated_lagrange_basis_inner_product,
-        compute_truncated_lagrange_basis_sum,
+        compute_evaluation_vector, compute_rho_eval,
+        compute_truncated_lagrange_basis_inner_product, compute_truncated_lagrange_basis_sum,
     },
     scalar::test_scalar::TestScalar,
 };
@@ -22,6 +22,12 @@ fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_0_variables() 
     );
 }
 #[test]
+fn compute_rho_eval_gives_correct_values_with_0_variables() {
+    let point: Vec<TestScalar> = vec![];
+    assert_eq!(compute_rho_eval(1, &point), TestScalar::from(0u8));
+    assert_eq!(compute_rho_eval(0, &point), TestScalar::from(0u8));
+}
+#[test]
 fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_1_variables() {
     let point: Vec<TestScalar> = vec![TestScalar::from(2u8)];
     assert_eq!(
@@ -36,6 +42,19 @@ fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_1_variables() 
         compute_truncated_lagrange_basis_sum(0, &point),
         TestScalar::from(0u8)
     );
+}
+#[test]
+fn compute_rho_eval_gives_correct_values_with_1_variables() {
+    let point: Vec<TestScalar> = vec![TestScalar::from(2u8)];
+    assert_eq!(
+        compute_rho_eval(2, &point),
+        TestScalar::from(2u8) // This is 0 * (1-2) + 1 * (2)
+    );
+    assert_eq!(
+        compute_rho_eval(1, &point),
+        -TestScalar::from(0u8) // This is 0 * (1-2)
+    );
+    assert_eq!(compute_rho_eval(0, &point), TestScalar::from(0u8));
 }
 #[test]
 fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_2_variables() {
@@ -60,6 +79,27 @@ fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_2_variables() 
         compute_truncated_lagrange_basis_sum(0, &point),
         TestScalar::from(0u8)
     );
+}
+#[test]
+fn compute_rho_eval_gives_correct_values_with_2_variables() {
+    let point = vec![TestScalar::from(2u8), TestScalar::from(5u8)];
+    assert_eq!(
+        compute_rho_eval(4, &point),
+        TestScalar::from(12u8) // This is 0 * (1-2)(1-5) + 1 * (2)(1-5) + 2 * (1-2)(5) + 3 * (2)(5)
+    );
+    assert_eq!(
+        compute_rho_eval(3, &point),
+        -TestScalar::from(18u8) // This is 0 * (1-2)(1-5) + 1 * (2)(1-5) + 2 * (1-2)(5)
+    );
+    assert_eq!(
+        compute_rho_eval(2, &point),
+        -TestScalar::from(8u8) // This is 0 * (1-2)(1-5) + 1 * (2)(1-5)
+    );
+    assert_eq!(
+        compute_rho_eval(1, &point),
+        TestScalar::from(0u8) // This is 0 * (1-2)(1-5)
+    );
+    assert_eq!(compute_rho_eval(0, &point), TestScalar::from(0u8));
 }
 
 #[test]
@@ -108,48 +148,21 @@ fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_3_variables() 
 }
 
 #[test]
-fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_3_variables_using_dalek_scalar() {
+fn compute_rho_eval_gives_correct_values_with_3_variables() {
     let point = vec![
         TestScalar::from(2u8),
         TestScalar::from(5u8),
         TestScalar::from(7u8),
     ];
-    assert_eq!(
-        compute_truncated_lagrange_basis_sum(8, &point),
-        TestScalar::from(1u8)
-    );
-    assert_eq!(
-        compute_truncated_lagrange_basis_sum(7, &point),
-        -TestScalar::from(69u8)
-    );
-    assert_eq!(
-        compute_truncated_lagrange_basis_sum(6, &point),
-        -TestScalar::from(34u8)
-    );
-    assert_eq!(
-        compute_truncated_lagrange_basis_sum(5, &point),
-        TestScalar::from(22u8)
-    );
-    assert_eq!(
-        compute_truncated_lagrange_basis_sum(4, &point),
-        -TestScalar::from(6u8)
-    );
-    assert_eq!(
-        compute_truncated_lagrange_basis_sum(3, &point),
-        TestScalar::from(54u8)
-    );
-    assert_eq!(
-        compute_truncated_lagrange_basis_sum(2, &point),
-        TestScalar::from(24u8)
-    );
-    assert_eq!(
-        compute_truncated_lagrange_basis_sum(1, &point),
-        -TestScalar::from(24u8)
-    );
-    assert_eq!(
-        compute_truncated_lagrange_basis_sum(0, &point),
-        TestScalar::from(0u8)
-    );
+    assert_eq!(compute_rho_eval(8, &point), TestScalar::from(40u8));
+    assert_eq!(compute_rho_eval(7, &point), -TestScalar::from(450u16));
+    assert_eq!(compute_rho_eval(6, &point), -TestScalar::from(240u8));
+    assert_eq!(compute_rho_eval(5, &point), TestScalar::from(40u8));
+    assert_eq!(compute_rho_eval(4, &point), -TestScalar::from(72u8));
+    assert_eq!(compute_rho_eval(3, &point), TestScalar::from(108u8));
+    assert_eq!(compute_rho_eval(2, &point), TestScalar::from(48u8));
+    assert_eq!(compute_rho_eval(1, &point), TestScalar::from(0u8));
+    assert_eq!(compute_rho_eval(0, &point), TestScalar::from(0u8));
 }
 
 #[test]
