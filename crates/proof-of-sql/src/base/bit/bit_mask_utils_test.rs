@@ -4,6 +4,7 @@ use crate::base::{
     scalar::{test_scalar::TestScalar, Scalar},
 };
 use bnum::types::U256;
+use core::ops::Shl;
 
 #[test]
 fn we_can_make_positive_bit_mask() {
@@ -14,7 +15,7 @@ fn we_can_make_positive_bit_mask() {
     let bit_mask = make_bit_mask(positive_scalar);
 
     // ASSERT
-    assert_eq!(bit_mask, (U256::ONE << 255) + U256::TWO);
+    assert_eq!(bit_mask, (U256::ONE.shl(255)) + U256::TWO);
 }
 
 #[test]
@@ -26,7 +27,7 @@ fn we_can_make_negative_bit_mask() {
     let bit_mask = make_bit_mask(negative_scalar);
 
     // ASSERT
-    assert_eq!(bit_mask, (U256::ONE << 255) - U256::TWO);
+    assert_eq!(bit_mask, (U256::ONE.shl(255)) - U256::TWO);
 }
 
 #[test]

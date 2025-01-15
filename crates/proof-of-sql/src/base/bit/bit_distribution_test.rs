@@ -1,6 +1,7 @@
 use super::*;
 use crate::base::scalar::{test_scalar::TestScalar, Scalar, ScalarExt};
 use bnum::types::U256;
+use core::ops::Shl;
 
 // vary_mask function start
 
@@ -46,7 +47,7 @@ fn we_can_get_u256_version_of_vary_mask_for_large_number() {
     let u256_vary_mask = bit_distribution.vary_mask();
 
     // ASSERT
-    assert_eq!(u256_vary_mask, (U256::ONE << 8) + (U256::ONE << 200));
+    assert_eq!(u256_vary_mask, U256::ONE.shl(8) + (U256::ONE.shl(200)));
 }
 
 // vary_mask function end
@@ -65,7 +66,7 @@ fn we_can_get_u256_version_of_leading_bit_mask_for_zero() {
     let u256_leading_bit_mask = bit_distribution.leading_bit_mask();
 
     // ASSERT
-    assert_eq!(u256_leading_bit_mask, U256::ONE << 255);
+    assert_eq!(u256_leading_bit_mask, U256::ONE.shl(255));
 }
 
 #[test]
@@ -80,7 +81,7 @@ fn we_can_get_u256_version_of_leading_bit_mask_for_one() {
     let u256_leading_bit_mask = bit_distribution.leading_bit_mask();
 
     // ASSERT
-    assert_eq!(u256_leading_bit_mask, U256::ONE | (U256::ONE << 255));
+    assert_eq!(u256_leading_bit_mask, U256::ONE | (U256::ONE.shl(255)));
 }
 
 #[test]
@@ -97,7 +98,7 @@ fn we_can_get_u256_version_of_leading_bit_mask_for_large_number() {
     // ASSERT
     assert_eq!(
         u256_leading_bit_mask,
-        ((U256::ONE << 8) + (U256::ONE << 200)) | (U256::ONE << 255)
+        (U256::ONE.shl(8) + U256::ONE.shl(200)) | U256::ONE.shl(255)
     );
 }
 
@@ -149,7 +150,7 @@ fn we_can_get_u256_version_of_leading_bit_inverse_mask_for_large_number() {
     // ASSERT
     assert_eq!(
         u256_leading_bit_inverse_mask,
-        ((U256::ONE << 8) - U256::ONE) + (((U256::ONE << 8) - U256::ONE) << 192)
+        (U256::ONE.shl(8) - U256::ONE) + ((U256::ONE.shl(8) - U256::ONE) << 192)
     );
 }
 
@@ -235,7 +236,7 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_a_single_element() {
     assert!(dist.is_valid());
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_mask()),
-        TestScalar::from_wrapping((U256::ONE << 2) | (U256::ONE << 10) | (U256::ONE << 255))
+        TestScalar::from_wrapping(U256::ONE.shl(2) | U256::ONE.shl(10) | (U256::ONE.shl(255)))
     );
     assert_eq!(
         TestScalar::from_wrapping(dist.vary_mask()),
@@ -243,7 +244,7 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_a_single_element() {
     );
     assert_eq!(
         dist.leading_bit_inverse_mask(),
-        ((U256::ONE << 2) | (U256::ONE << 10) | (U256::ONE << 255)) ^ U256::MAX
+        (U256::ONE.shl(2) | U256::ONE.shl(10) | (U256::ONE.shl(255))) ^ U256::MAX
     );
 
     assert_eq!(dist.vary_mask_iter().count(), 0);
@@ -257,12 +258,12 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_one_varying_bits() {
     assert!(dist.is_valid());
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_mask()),
-        TestScalar::from_wrapping((U256::ONE << 2) | (U256::ONE << 10) | (U256::ONE << 255))
+        TestScalar::from_wrapping(U256::ONE.shl(2) | U256::ONE.shl(10) | (U256::ONE.shl(255)))
     );
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_inverse_mask()),
         TestScalar::from_wrapping(
-            (U256::FOUR | (U256::ONE << 10) | (U256::ONE << 21) | (U256::ONE << 255)) ^ U256::MAX
+            (U256::FOUR | U256::ONE.shl(10) | U256::ONE.shl(21) | (U256::ONE.shl(255))) ^ U256::MAX
         )
     );
 
@@ -282,17 +283,17 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_multiple_varying_bits() {
 
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_mask()),
-        TestScalar::from_wrapping((U256::ONE << 10) | (U256::ONE << 255))
+        TestScalar::from_wrapping(U256::ONE.shl(10) | (U256::ONE.shl(255)))
     );
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_inverse_mask()),
         TestScalar::from_wrapping(
             (U256::FOUR
                 | U256::EIGHT
-                | (U256::ONE << 10)
-                | (U256::ONE << 21)
-                | (U256::ONE << 50)
-                | (U256::ONE << 255))
+                | U256::ONE.shl(10)
+                | U256::ONE.shl(21)
+                | U256::ONE.shl(50)
+                | (U256::ONE.shl(255)))
                 ^ U256::MAX
         )
     );
@@ -311,11 +312,11 @@ fn we_can_compute_the_bit_distribution_of_negative_values() {
     assert!(dist.is_valid());
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_mask()),
-        TestScalar::from_wrapping(U256::ONE << 255)
+        TestScalar::from_wrapping(U256::ONE.shl(255))
     );
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_inverse_mask()),
-        TestScalar::from_wrapping(U256::MAX ^ (U256::ONE << 255))
+        TestScalar::from_wrapping(U256::MAX ^ (U256::ONE.shl(255)))
     );
 
     assert_eq!(dist.vary_mask_iter().count(), 0);
@@ -328,11 +329,11 @@ fn we_can_compute_the_bit_distribution_of_values_with_different_signs() {
     assert_eq!(dist.num_varying_bits(), 2);
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_mask()),
-        TestScalar::from_wrapping(U256::ONE << 255)
+        TestScalar::from_wrapping(U256::ONE.shl(255))
     );
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_inverse_mask()),
-        TestScalar::from_wrapping(U256::MAX ^ (U256::ONE | (U256::ONE << 255)))
+        TestScalar::from_wrapping(U256::MAX ^ (U256::ONE | (U256::ONE.shl(255))))
     );
 
     assert_eq!(dist.vary_mask_iter().count(), 2);
@@ -346,11 +347,11 @@ fn we_can_compute_the_bit_distribution_of_values_with_different_signs_and_values
     assert!(dist.is_valid());
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_mask()),
-        TestScalar::from_wrapping(U256::ONE << 255)
+        TestScalar::from_wrapping(U256::ONE.shl(255))
     );
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_inverse_mask()),
-        TestScalar::from_wrapping(U256::MAX ^ (U256::FIVE | (U256::ONE << 255)))
+        TestScalar::from_wrapping(U256::MAX ^ (U256::FIVE | (U256::ONE.shl(255))))
     );
 
     assert_eq!(dist.vary_mask_iter().count(), 3);
@@ -366,11 +367,11 @@ fn we_can_compute_the_bit_distribution_of_values_larger_than_64_bit_integers() {
     assert!(dist.is_valid());
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_mask()),
-        TestScalar::from_wrapping((U256::ONE << 203) | (U256::ONE << 255))
+        TestScalar::from_wrapping(U256::ONE.shl(203) | (U256::ONE.shl(255)))
     );
     assert_eq!(
         TestScalar::from_wrapping(dist.leading_bit_inverse_mask()),
-        TestScalar::from_wrapping(U256::MAX ^ ((U256::ONE << 203) | (U256::ONE << 255)))
+        TestScalar::from_wrapping(U256::MAX ^ (U256::ONE.shl(203) | (U256::ONE.shl(255))))
     );
 
     assert_eq!(dist.vary_mask_iter().count(), 0);

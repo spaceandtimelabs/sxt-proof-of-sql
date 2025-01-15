@@ -3,7 +3,10 @@ use crate::base::scalar::{Scalar, ScalarExt};
 use ark_std::iterable::Iterable;
 use bit_iter::BitIter;
 use bnum::types::U256;
-use core::convert::Into;
+use core::{
+    convert::Into,
+    ops::{Shl, Shr},
+};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
@@ -49,12 +52,12 @@ impl BitDistribution {
 
     /// Identifies all columns that are the identical to the lead column.
     pub fn leading_bit_mask(&self) -> U256 {
-        U256::from(self.leading_bit_mask) | (U256::ONE << 255)
+        U256::from(self.leading_bit_mask) | (U256::ONE.shl(255))
     }
 
     /// Identifies all columns that are the identical to the inverse of the lead column.
     pub fn leading_bit_inverse_mask(&self) -> U256 {
-        (!self.vary_mask() ^ self.leading_bit_mask()) & (U256::MAX >> 1)
+        (!self.vary_mask() ^ self.leading_bit_mask()) & U256::MAX.shr(1)
     }
 
     /// # Panics
@@ -68,9 +71,9 @@ impl BitDistribution {
     ///
     /// Panics if lead bit varies but `bit_evals` is empty
     pub fn leading_bit_eval<S: ScalarExt>(&self, bit_evals: &[S], one_eval: S) -> S {
-        if U256::from(self.vary_mask) & (U256::ONE << 255) != U256::ZERO {
+        if U256::from(self.vary_mask) & U256::ONE.shl(255) != U256::ZERO {
             *bit_evals.last().expect("bit_evals should be non-empty")
-        } else if U256::from(self.leading_bit_mask) & (U256::ONE << 255) == U256::ZERO {
+        } else if U256::from(self.leading_bit_mask) & U256::ONE.shl(255) == U256::ZERO {
             S::ZERO
         } else {
             one_eval
@@ -81,7 +84,7 @@ impl BitDistribution {
     /// can be used after deserializing a [`BitDistribution`] from an untrusted
     /// source.
     pub fn is_valid(&self) -> bool {
-        (self.vary_mask() & self.leading_bit_mask()) & (U256::MAX >> 1) == U256::ZERO
+        (self.vary_mask() & self.leading_bit_mask()) & U256::MAX.shr(1) == U256::ZERO
     }
 
     /// In order to avoid cases with large numbers where there can be both a positive and negative
@@ -95,7 +98,7 @@ impl BitDistribution {
         // the maximum absolute value of the sum of two signed 128-integers is
         // then
         //       2 * (2^127) = 2^128
-        (self.leading_bit_inverse_mask() >> 128) == (U256::MAX >> 129)
+        (self.leading_bit_inverse_mask() >> 128) == (U256::MAX.shr(129))
     }
 
     /// Iterate over each varying bit

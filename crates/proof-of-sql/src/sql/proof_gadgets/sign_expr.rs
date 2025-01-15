@@ -12,6 +12,7 @@ use crate::{
 use alloc::{boxed::Box, vec, vec::Vec};
 use bnum::types::U256;
 use bumpalo::Bump;
+use core::ops::Shl;
 
 /// Compute the sign bit for a column of scalars.
 ///
@@ -146,11 +147,11 @@ fn verify_bit_decomposition<S: ScalarExt>(
     let sign_eval = dist.leading_bit_eval(bit_evals, one_eval);
     let mut rhs = sign_eval * S::from_wrapping(dist.leading_bit_mask())
         + (one_eval - sign_eval) * S::from_wrapping(dist.leading_bit_inverse_mask())
-        - one_eval * S::from_wrapping(U256::ONE << 255);
+        - one_eval * S::from_wrapping(U256::ONE.shl(255));
 
     for (vary_index, bit_index) in dist.vary_mask_iter().enumerate() {
         if bit_index != 255 {
-            let mult = U256::ONE << bit_index;
+            let mult = U256::ONE.shl(bit_index);
             let bit_eval = bit_evals[vary_index];
             rhs += S::from_wrapping(mult) * bit_eval;
         }
