@@ -169,7 +169,7 @@ mod tests {
         // Generate the test data
         let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
             "a",
-            (0..257)
+            (0..2u32.pow(20))
                 .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
                 .collect::<Vec<_>>(),
         )]);

@@ -54,9 +54,9 @@ pub(crate) fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
 
     // Build a local lookup table for (u8 -> S) once
     let span = span!(Level::DEBUG, "build byte->S lookup table").entered();
-    let mut lookup_table = [0u8; 256];
+    let mut lookup_table = [S::ZERO; 256];
     for i in 0..256 {
-        lookup_table[i] = i as u8;
+        lookup_table[i] = S::from(&(i as u8));
     }
     span.exit();
 
@@ -114,8 +114,8 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     // Retrieve verifier challenge here, *after* Phase 1
     let alpha = builder.consume_post_result_challenge();
 
-    // 1) Create lookup tables in the bump arena, which gives them lifetime `'a`.
-    let word_val_table: &mut [u8] = alloc.alloc_slice_fill_with(256, |i| i as u8);
+    // 1) Create your lookup tables in the bump arena, which gives them lifetime `'a`.
+    let word_val_table: &mut [S] = alloc.alloc_slice_fill_with(256, |i| S::from(&(i as u8)));
     let inv_word_vals_plus_alpha_table: &mut [S] =
         alloc.alloc_slice_fill_with(256, |i| S::from(&(i as u8)));
 
@@ -236,7 +236,7 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
     alpha: S,
     table_length: usize,
     inverted_word_columns: &mut [&mut [S]],
-    word_vals_table: &[u8],
+    word_vals_table: &[S],
     inv_word_vals_plus_alpha_table: &[S],
 ) {
     let num_columns = word_columns.len();
@@ -319,7 +319,7 @@ fn prove_word_values<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
     alpha: S,
     builder: &mut FinalRoundBuilder<'a, S>,
-    word_val_table: &'a [u8],
+    word_val_table: &'a [S],
     inv_word_vals_plus_alpha_table: &'a [S],
 ) {
     builder.produce_intermediate_mle(inv_word_vals_plus_alpha_table as &[_]);
@@ -425,6 +425,7 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
 /// # Panics
 ///
 /// if a column contains values outside of the selected range.
+
 pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
     builder: &mut VerificationBuilder<'_, S>,
     input_column_eval: S,
@@ -678,13 +679,13 @@ mod tests {
         let alloc = Bump::new();
         let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
 
-        let mut table = [0u8; 256];
+        let mut table = [S::ZERO; 256];
         let mut table_plus_alpha = [S::ZERO; 256];
 
         for i in 0..256 {
-            let w_i = i as u8;
+            let w_i = S::from(&(i as u8));
             table[i] = w_i;
-            table_plus_alpha[i] = w_i.into();
+            table_plus_alpha[i] = w_i;
         }
 
         slice_ops::add_const::<S, S>(&mut table_plus_alpha, alpha);
@@ -791,13 +792,13 @@ mod tests {
         let alloc = Bump::new();
         let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
 
-        let mut table = [0u8; 256];
+        let mut table = [S::ZERO; 256];
         let mut table_plus_alpha = [S::ZERO; 256];
 
         for i in 0..256 {
-            let w_i = i as u8;
+            let w_i = S::from(&(i as u8));
             table[i] = w_i;
-            table_plus_alpha[i] = w_i.into();
+            table_plus_alpha[i] = w_i;
         }
 
         slice_ops::add_const::<S, S>(&mut table_plus_alpha, alpha);
