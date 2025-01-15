@@ -164,29 +164,14 @@ impl Engine for HyperKZGEngine {
 }
 
 impl TranscriptEngineTrait<HyperKZGEngine> for Keccak256Transcript {
-    #[tracing::instrument(
-        name = "TranscriptEngineTrait<HyperKZGEngine> new (cpu)",
-        level = "debug",
-        skip_all
-    )]
     fn new(_label: &'static [u8]) -> Self {
         Transcript::new()
     }
 
-    #[tracing::instrument(
-        name = "TranscriptEngineTrait<HyperKZGEngine> squeeze (cpu)",
-        level = "debug",
-        skip_all
-    )]
     fn squeeze(&mut self, _label: &'static [u8]) -> Result<NovaScalar, NovaError> {
         Ok(Transcript::scalar_challenge_as_be::<BNScalar>(self).into())
     }
 
-    #[tracing::instrument(
-        name = "TranscriptEngineTrait<HyperKZGEngine> absorb (cpu)",
-        level = "debug",
-        skip_all
-    )]
     fn absorb<T: TranscriptReprTrait<<HyperKZGEngine as Engine>::GE>>(
         &mut self,
         _label: &'static [u8],
@@ -201,11 +186,6 @@ impl TranscriptEngineTrait<HyperKZGEngine> for Keccak256Transcript {
         );
     }
 
-    #[tracing::instrument(
-        name = "TranscriptEngineTrait<HyperKZGEngine> dom_sep (cpu)",
-        level = "debug",
-        skip_all
-    )]
     fn dom_sep(&mut self, _bytes: &'static [u8]) {}
 }
 
@@ -216,11 +196,6 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
     type ProverPublicSetup<'a> = &'a CommitmentKey<HyperKZGEngine>;
     type VerifierPublicSetup<'a> = &'a VerifierKey<HyperKZGEngine>;
 
-    #[tracing::instrument(
-        name = "CommitmentEvaluationProof new (cpu)",
-        level = "debug",
-        skip_all
-    )]
     fn new(
         transcript: &mut impl crate::base::proof::Transcript,
         a: &[Self::Scalar],
@@ -242,9 +217,9 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
         ));
         span.exit();
 
-        let span = span!(Level::DEBUG, "wrap_transcript").entered();
-        let wt = transcript.wrap_transcript(|keccak_transcript| {
-            EvaluationEngine::prove(
+        transcript.wrap_transcript(|keccak_transcript| {
+            let span = span!(Level::DEBUG, "EvaluationEngine::prove").entered();
+            let eval_eng = EvaluationEngine::prove(
                 *setup,
                 &EvaluationEngine::setup(*setup).0, // This parameter is unused
                 keccak_transcript,
@@ -253,18 +228,14 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
                 &nova_point,
                 &NovaScalar::default(), // This parameter is unused
             )
-            .unwrap()
-        });
-        span.exit();
+            .unwrap();
 
-        wt
+            span.exit();
+
+            eval_eng
+        })
     }
 
-    #[tracing::instrument(
-        name = "CommitmentEvaluationProof> verify_batched_proof (cpu)",
-        level = "debug",
-        skip_all
-    )]
     fn verify_batched_proof(
         &self,
         transcript: &mut impl crate::base::proof::Transcript,

@@ -13,6 +13,7 @@ To run benchmarks with Jaeger, you need to do the following
     cargo bench -p proof-of-sql --bench jaeger_benches InnerProductProof
     cargo bench -p proof-of-sql --bench jaeger_benches Dory
     cargo bench -p proof-of-sql --bench jaeger_benches DynamicDory
+    cargo bench -p proof-of-sql --bench jaeger_benches HyperKZG
     ```
 3. Navigate to http://localhost:16686/ to see the results.
 4. To end the Jaeger service, run

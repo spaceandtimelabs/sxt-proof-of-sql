@@ -5,6 +5,7 @@
 //! cargo bench -p proof-of-sql --bench jaeger_benches InnerProductProof
 //! cargo bench -p proof-of-sql --bench jaeger_benches Dory
 //! cargo bench -p proof-of-sql --bench jaeger_benches DynamicDory
+//! cargo bench -p proof-of-sql --bench jaeger_benches HyperKZG
 //! ```
 //! Then, navigate to <http://localhost:16686> to view the traces.
 
