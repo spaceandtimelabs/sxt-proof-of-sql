@@ -14,7 +14,7 @@ use shift::{final_round_evaluate_shift, first_round_evaluate_shift, verify_shift
 mod shift_test;
 mod sign_expr;
 pub(crate) use sign_expr::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
-#[allow(clippy::needless_range_loop)] // keep the loop for readability for now, refactor later
+#[cfg(all(test, feature = "blitzar"))]
 pub(crate) mod range_check;
 #[cfg(all(test, feature = "blitzar"))]
 mod range_check_test;

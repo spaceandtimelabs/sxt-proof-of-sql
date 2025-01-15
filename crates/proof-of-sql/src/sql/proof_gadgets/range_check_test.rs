@@ -71,7 +71,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
             .expect("Column not found in table")
             .as_scalar()
             .expect("Failed to convert column to scalar");
-        final_round_evaluate_range_check(builder, scalars, scalars.len(), alloc);
+        final_round_evaluate_range_check(builder, scalars, alloc);
         table.clone()
     }
 }
@@ -128,7 +128,6 @@ mod tests {
     };
     use blitzar::proof::InnerProductProof;
     use num_bigint::BigUint;
-    use num_traits::Num;
 
     #[test]
     #[should_panic(
@@ -149,10 +148,7 @@ mod tests {
     #[allow(clippy::cast_sign_loss)]
     fn we_can_prove_a_range_check_with_range_up_to_boundary() {
         // 2^248 - 1
-        let upper_bound_str =
-            "452312848583266388373324160190187140051835877600158453279131187530910662655";
-        // Parse the number into a BigUint
-        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
+        let big_uint = BigUint::from(2u8).pow(248) - BigUint::from(1u8);
         let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
 
         // Convert Vec<u64> to [u64; 4]
@@ -163,8 +159,8 @@ mod tests {
         // Generate the test data
         let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
             "a",
-            (0..257)
-                .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
+            (0..2u32.pow(10))
+                .map(|i| upper_bound - Curve25519Scalar::from(u64::from(i))) // Count backward from 2^248
                 .collect::<Vec<_>>(),
         )]);
 
@@ -186,13 +182,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::cast_sign_loss)]
-    fn we_can_prove_a_range_check_below_max_word_value() {
+    fn we_can_prove_a_range_check_with_range_below_max_word_value() {
         // 2^248 - 1
-        let upper_bound_str =
-            "452312848583266388373324160190187140051835877600158453279131187530910662655";
+        let big_uint = BigUint::from(2u8).pow(248) - BigUint::from(1u8);
         // Parse the number into a BigUint
-        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
         let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
 
         // Convert Vec<u64> to [u64; 4]
@@ -203,8 +196,8 @@ mod tests {
         // Generate the test data
         let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
             "a",
-            (0..1)
-                .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
+            (0u8..1)
+                .map(|i| upper_bound - Curve25519Scalar::from(i)) // Count backward from 2^248
                 .collect::<Vec<_>>(),
         )]);
 
@@ -229,13 +222,9 @@ mod tests {
     #[should_panic(
         expected = "Range check failed, column contains values outside of the selected range"
     )]
-    #[allow(clippy::cast_sign_loss)]
     fn we_cannot_prove_a_range_check_equal_to_range_boundary() {
         // 2^248
-        let upper_bound_str =
-            "452312848583266388373324160190187140051835877600158453279131187530910662656";
-        // Parse the number into a BigUint
-        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
+        let big_uint = BigUint::from(2u8).pow(248);
         let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
 
         // Convert Vec<u64> to [u64; 4]
@@ -246,8 +235,8 @@ mod tests {
         // Generate the test data
         let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
             "a",
-            (0..1000)
-                .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
+            (0u16..2u16.pow(10))
+                .map(|i| upper_bound - Curve25519Scalar::from(i)) // Count backward from 2^248
                 .collect::<Vec<_>>(),
         )]);
 

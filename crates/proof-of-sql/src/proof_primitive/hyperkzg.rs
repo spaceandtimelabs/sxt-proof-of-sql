@@ -123,6 +123,7 @@ impl Commitment for HyperKZGCommitment {
             .iter()
             .map(|column| match column {
                 CommittableColumn::Boolean(vals) => compute_commitments_impl(setup, offset, vals),
+                CommittableColumn::Uint8(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::TinyInt(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::SmallInt(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::Int(vals) => compute_commitments_impl(setup, offset, vals),
@@ -133,9 +134,6 @@ impl Commitment for HyperKZGCommitment {
                 CommittableColumn::Decimal75(_, _, vals)
                 | CommittableColumn::Scalar(vals)
                 | CommittableColumn::VarChar(vals) => compute_commitments_impl(setup, offset, vals),
-                CommittableColumn::RangeCheckWord(vals) => {
-                    compute_commitments_impl(setup, offset, vals)
-                }
             })
             .collect()
     }

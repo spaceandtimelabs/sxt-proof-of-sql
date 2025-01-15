@@ -11,6 +11,7 @@ impl From<&ColumnType> for DataType {
     fn from(column_type: &ColumnType) -> Self {
         match column_type {
             ColumnType::Boolean => DataType::Boolean,
+            ColumnType::Uint8 => DataType::UInt8,
             ColumnType::TinyInt => DataType::Int8,
             ColumnType::SmallInt => DataType::Int16,
             ColumnType::Int => DataType::Int32,
