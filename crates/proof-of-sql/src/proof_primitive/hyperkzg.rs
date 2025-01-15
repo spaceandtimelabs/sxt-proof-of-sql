@@ -22,6 +22,7 @@ use nova_snark::{
     },
 };
 use serde::{Deserialize, Serialize};
+use tracing::{span, Level};
 
 /// The scalar used in the `HyperKZG` PCS. This is the BN254 scalar.
 pub type BNScalar = MontScalar<ark_bn254::FrConfig>;
@@ -92,6 +93,7 @@ impl Sub for HyperKZGCommitment {
     }
 }
 
+#[tracing::instrument(name = "compute_commitments_impl (cpu)", level = "debug", skip_all)]
 fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
     setup: &CommitmentKey<HyperKZGEngine>,
     offset: usize,
@@ -110,6 +112,8 @@ fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
 impl Commitment for HyperKZGCommitment {
     type Scalar = BNScalar;
     type PublicSetup<'a> = &'a CommitmentKey<HyperKZGEngine>;
+
+    #[tracing::instrument(name = "compute_commitments (cpu)", level = "debug", skip_all)]
     fn compute_commitments(
         committable_columns: &[crate::base::commitment::CommittableColumn],
         offset: usize,
@@ -202,7 +206,8 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
             (1 << nova_point.len()) - nova_a.len(),
         ));
         transcript.wrap_transcript(|keccak_transcript| {
-            EvaluationEngine::prove(
+            let span = span!(Level::DEBUG, "EvaluationEngine::prove").entered();
+            let eval_eng = EvaluationEngine::prove(
                 *setup,
                 &EvaluationEngine::setup(*setup).0, // This parameter is unused
                 keccak_transcript,
@@ -211,7 +216,9 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
                 &nova_point,
                 &NovaScalar::default(), // This parameter is unused
             )
-            .unwrap()
+            .unwrap();
+            span.exit();
+            eval_eng
         })
     }
 

@@ -5,14 +5,22 @@
 //! cargo bench -p proof-of-sql --bench jaeger_benches InnerProductProof
 //! cargo bench -p proof-of-sql --bench jaeger_benches Dory
 //! cargo bench -p proof-of-sql --bench jaeger_benches DynamicDory
+//! cargo bench -p proof-of-sql --bench jaeger_benches HyperKZG
 //! ```
 //! Then, navigate to <http://localhost:16686> to view the traces.
 
 use ark_std::test_rng;
 use blitzar::{compute::init_backend, proof::InnerProductProof};
-use proof_of_sql::proof_primitive::dory::{
-    DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
-    DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+use nova_snark::{
+    provider::hyperkzg::{CommitmentEngine, CommitmentKey, EvaluationEngine},
+    traits::{commitment::CommitmentEngineTrait, evaluation::EvaluationEngineTrait},
+};
+use proof_of_sql::proof_primitive::{
+    dory::{
+        DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
+        DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+    },
+    hyperkzg::{HyperKZGCommitmentEvaluationProof, HyperKZGEngine},
 };
 mod scaffold;
 use crate::scaffold::querys::QUERIES;
@@ -93,6 +101,17 @@ fn main() {
                         SIZE,
                         &&prover_setup,
                         &&verifier_setup,
+                    );
+                }
+            }
+        }
+        "HyperKZG" => {
+            let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"bench", SIZE);
+            let (_, vk) = EvaluationEngine::setup(&ck);
+            for _ in 0..3 {
+                for (title, query, columns) in QUERIES {
+                    jaeger_scaffold::<HyperKZGCommitmentEvaluationProof>(
+                        title, query, columns, SIZE, &&ck, &&vk,
                     );
                 }
             }
