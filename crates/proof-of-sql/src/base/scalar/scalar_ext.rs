@@ -2,8 +2,8 @@ use super::Scalar;
 use bnum::types::U256;
 use core::cmp::Ordering;
 
-/// Extention trait for blanket implementations for `Scalar` types.
-/// This trait is primarily to avoid cluttering the core `Scalar` implementation with default implemenentations
+/// Extension trait for blanket implementations for `Scalar` types.
+/// This trait is primarily to avoid cluttering the core `Scalar` implementation with default implementations
 /// and provides helper methods for `Scalar`.
 pub trait ScalarExt: Scalar {
     /// Compute 10^exponent for the Scalar. Note that we do not check for overflow.
