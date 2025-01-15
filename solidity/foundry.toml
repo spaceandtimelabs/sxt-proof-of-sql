@@ -1,0 +1,12 @@
+[profile.default]
+src = "src"
+out = "out"
+solc = "0.8.28"
+libs = ["dependencies"]
+no-match-path = "**/*.pre.sol"
+
+[dependencies]
+forge-std = "1.9.5"
+
+[soldeer]
+remappings_generate = true

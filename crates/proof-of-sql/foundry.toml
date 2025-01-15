@@ -1,6 +1,0 @@
-[profile.default]
-src = "sol_src"
-out = "out"
-solc = "0.8.17"
-
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
