@@ -34,23 +34,49 @@ impl ProverEvaluate for RangeCheckTestPlan {
         builder.request_post_result_challenges(1);
         builder.update_range_length(256);
 
-        // Get the table from the map using the table reference
-        let table: &Table<'a, S> = table_map
+        let table = table_map
             .get(&self.column.table_ref())
             .expect("Table not found");
 
-        let scalars = table
+        // Extract the column data
+        let col = table
             .inner_table()
             .get(&self.column.column_id())
-            .expect("Column not found in table")
-            .as_scalar()
-            .expect("Failed to convert column to scalar");
+            .expect("Column not found in table");
 
-        first_round_evaluate_range_check(builder, scalars, alloc);
+        // Match on the underlying enum variant so we can pass the correct typed slice
+        if let Some(slice) = col.as_bigint() {
+            // slice is &[i64]
+            first_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_int() {
+            // slice is &[i32]
+            first_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_smallint() {
+            // slice is &[i16]
+            first_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_tinyint() {
+            // slice is &[i8]
+            first_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_int128() {
+            // slice is &[i128]
+            first_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_decimal75() {
+            // slice is &[S]
+            first_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_scalar() {
+            // slice is &[S]
+            first_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_timestamptz() {
+            // slice is &[i64]
+            first_round_evaluate_range_check(builder, slice, alloc);
+        } else {
+            panic!("Unsupported column type in first_round_evaluate");
+        }
 
         builder.produce_one_evaluation_length(256);
 
-        table_map[&self.column.table_ref()].clone()
+        // Return a clone of the same table
+        table.clone()
     }
 
     // extract data to test on from here, feed it into range check
@@ -60,18 +86,42 @@ impl ProverEvaluate for RangeCheckTestPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        // Get the table from the map using the table reference
-        let table: &Table<'a, S> = table_map
+        let table = table_map
             .get(&self.column.table_ref())
             .expect("Table not found");
-
-        let scalars = table
+        let col = table
             .inner_table()
             .get(&self.column.column_id())
-            .expect("Column not found in table")
-            .as_scalar()
-            .expect("Failed to convert column to scalar");
-        final_round_evaluate_range_check(builder, scalars, scalars.len(), alloc);
+            .expect("Column not found in table");
+
+        if let Some(slice) = col.as_bigint() {
+            // slice: &[i64]
+            final_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_int() {
+            // slice: &[i32]
+            final_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_smallint() {
+            // slice: &[i16]
+            final_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_tinyint() {
+            // slice: &[i8]
+            final_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_int128() {
+            // slice: &[i128]
+            final_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_decimal75() {
+            // slice: &[S]
+            final_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_scalar() {
+            // slice: &[S]
+            final_round_evaluate_range_check(builder, slice, alloc);
+        } else if let Some(slice) = col.as_timestamptz() {
+            // slice: &[i64] (assuming your timestamp is stored as i64)
+            final_round_evaluate_range_check(builder, slice, alloc);
+        } else {
+            panic!("Unsupported column type in final_round_evaluate");
+        }
+
         table.clone()
     }
 }
@@ -119,7 +169,9 @@ mod tests {
     use crate::{
         base::{
             database::{
-                owned_table_utility::{owned_table, scalar},
+                owned_table_utility::{
+                    bigint, int, int128, owned_table, scalar, smallint, timestamptz, tinyint,
+                },
                 ColumnRef, ColumnType, OwnedTableTestAccessor,
             },
             scalar::Curve25519Scalar,
@@ -128,7 +180,65 @@ mod tests {
     };
     use blitzar::proof::InnerProductProof;
     use num_bigint::BigUint;
-    use num_traits::Num;
+    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+
+    #[test]
+    fn we_can_prove_ranges_on_mixed_column_types() {
+        let data = owned_table([
+            tinyint("tinyint", [0, i8::MAX]),
+            smallint("smallint", [0, i16::MAX]),
+            int("int", [0, i32::MAX]),
+            bigint("bigint", [0, i64::MAX]),
+            int128("int128", [0, i128::MAX]),
+            timestamptz(
+                "times",
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::utc(),
+                [0, i64::MAX],
+            ),
+        ]);
+        let t = "sxt.t".parse().unwrap();
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "tinyint".into(), ColumnType::TinyInt),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        assert!(verifiable_res.verify(&ast, &accessor, &()).is_ok());
+
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "smallint".into(), ColumnType::SmallInt),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        assert!(verifiable_res.verify(&ast, &accessor, &()).is_ok());
+
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "int".into(), ColumnType::Int),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        assert!(verifiable_res.verify(&ast, &accessor, &()).is_ok());
+
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "bigint".into(), ColumnType::BigInt),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        assert!(verifiable_res.verify(&ast, &accessor, &()).is_ok());
+
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "int128".into(), ColumnType::Int128),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        assert!(verifiable_res.verify(&ast, &accessor, &()).is_ok());
+
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(
+                t,
+                "times".into(),
+                ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
+            ),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        assert!(verifiable_res.verify(&ast, &accessor, &()).is_ok());
+    }
 
     #[test]
     #[should_panic(
@@ -149,10 +259,7 @@ mod tests {
     #[allow(clippy::cast_sign_loss)]
     fn we_can_prove_a_range_check_with_range_up_to_boundary() {
         // 2^248 - 1
-        let upper_bound_str =
-            "452312848583266388373324160190187140051835877600158453279131187530910662655";
-        // Parse the number into a BigUint
-        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
+        let big_uint = BigUint::from(2u8).pow(248) - BigUint::from(1u8);
         let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
 
         // Convert Vec<u64> to [u64; 4]
@@ -163,8 +270,8 @@ mod tests {
         // Generate the test data
         let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
             "a",
-            (0..257)
-                .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
+            (0..2u32.pow(10))
+                .map(|i| upper_bound - Curve25519Scalar::from(u64::from(i))) // Count backward from 2^248
                 .collect::<Vec<_>>(),
         )]);
 
@@ -186,13 +293,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::cast_sign_loss)]
-    fn we_can_prove_a_range_check_below_max_word_value() {
+    fn we_can_prove_a_range_check_with_range_below_max_word_value() {
         // 2^248 - 1
-        let upper_bound_str =
-            "452312848583266388373324160190187140051835877600158453279131187530910662655";
+        let big_uint = BigUint::from(2u8).pow(248) - BigUint::from(1u8);
         // Parse the number into a BigUint
-        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
         let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
 
         // Convert Vec<u64> to [u64; 4]
@@ -203,8 +307,8 @@ mod tests {
         // Generate the test data
         let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
             "a",
-            (0..1)
-                .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
+            (0u8..1)
+                .map(|i| upper_bound - Curve25519Scalar::from(i)) // Count backward from 2^248
                 .collect::<Vec<_>>(),
         )]);
 
@@ -229,13 +333,9 @@ mod tests {
     #[should_panic(
         expected = "Range check failed, column contains values outside of the selected range"
     )]
-    #[allow(clippy::cast_sign_loss)]
     fn we_cannot_prove_a_range_check_equal_to_range_boundary() {
         // 2^248
-        let upper_bound_str =
-            "452312848583266388373324160190187140051835877600158453279131187530910662656";
-        // Parse the number into a BigUint
-        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
+        let big_uint = BigUint::from(2u8).pow(248);
         let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
 
         // Convert Vec<u64> to [u64; 4]
@@ -246,8 +346,8 @@ mod tests {
         // Generate the test data
         let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
             "a",
-            (0..1000)
-                .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
+            (0u16..2u16.pow(10))
+                .map(|i| upper_bound - Curve25519Scalar::from(i)) // Count backward from 2^248
                 .collect::<Vec<_>>(),
         )]);
 
