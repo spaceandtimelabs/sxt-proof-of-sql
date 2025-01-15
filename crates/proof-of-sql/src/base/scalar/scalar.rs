@@ -2,6 +2,7 @@
 
 use crate::base::{encode::VarInt, ref_into::RefInto, scalar::ScalarConversionError};
 use alloc::string::String;
+use bnum::types::U256;
 use core::ops::Sub;
 use num_bigint::BigInt;
 
@@ -56,6 +57,7 @@ pub trait Scalar:
     + core::convert::From<i32>
     + core::convert::From<i16>
     + core::convert::From<i8>
+    + core::convert::From<u64>
     + core::convert::From<bool>
     + core::convert::Into<BigInt>
     + TryFrom<BigInt, Error = ScalarConversionError>
@@ -71,4 +73,7 @@ pub trait Scalar:
     const TWO: Self;
     /// 2 + 2 + 2 + 2 + 2
     const TEN: Self;
+    /// The value to mask the challenge with to ensure it is in the field.
+    /// This one less than the largest power of 2 that is less than the field modulus.
+    const CHALLENGE_MASK: U256;
 }

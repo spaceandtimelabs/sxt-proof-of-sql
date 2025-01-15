@@ -13,14 +13,14 @@ use crate::{
         },
         map::{IndexMap, IndexSet},
         math::log2_up,
-        polynomial::compute_evaluation_vector,
+        polynomial::{compute_evaluation_vector, MultilinearExtension},
         proof::{Keccak256Transcript, ProofError, Transcript},
         scalar::Scalar,
     },
     proof_primitive::sumcheck::SumcheckProof,
     utils::log,
 };
-use alloc::{string::String, vec, vec::Vec};
+use alloc::{boxed::Box, string::String, vec, vec::Vec};
 use bumpalo::Bump;
 use core::cmp;
 use num_traits::Zero;
@@ -65,6 +65,8 @@ pub(super) struct QueryProof<CP: CommitmentEvaluationProof> {
     pub sumcheck_proof: SumcheckProof<CP::Scalar>,
     /// MLEs used in first round sumcheck except for the result columns
     pub first_round_pcs_proof_evaluations: Vec<CP::Scalar>,
+    /// evaluations of the columns referenced in the query
+    pub column_ref_pcs_proof_evaluations: Vec<CP::Scalar>,
     /// MLEs used in final round sumcheck except for the result columns
     pub final_round_pcs_proof_evaluations: Vec<CP::Scalar>,
     /// Inner product proof of the MLEs' evaluations
@@ -144,10 +146,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let mut final_round_builder =
             FinalRoundBuilder::new(num_sumcheck_variables, post_result_challenges);
 
-        for col_ref in total_col_refs {
-            final_round_builder.produce_anchored_mle(accessor.get_column(col_ref));
-        }
-
         expr.final_round_evaluate(&mut final_round_builder, &alloc, &table_map);
 
         let num_sumcheck_variables = final_round_builder.num_sumcheck_variables();
@@ -185,11 +183,20 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
         let first_round_pcs_proof_evaluations =
             first_round_builder.evaluate_pcs_proof_mles(&evaluation_vec);
+        let column_ref_pcs_proof_evaluations: Vec<_> = total_col_refs
+            .iter()
+            .map(|col_ref| {
+                accessor
+                    .get_column(col_ref.clone())
+                    .inner_product(&evaluation_vec)
+            })
+            .collect();
         let final_round_pcs_proof_evaluations =
             final_round_builder.evaluate_pcs_proof_mles(&evaluation_vec);
 
         // commit to the MLE evaluations
         transcript.extend_canonical_serialize_as_le(&first_round_pcs_proof_evaluations);
+        transcript.extend_canonical_serialize_as_le(&column_ref_pcs_proof_evaluations);
         transcript.extend_canonical_serialize_as_le(&final_round_pcs_proof_evaluations);
 
         // fold together the pre result MLEs -- this will form the input to an inner product proof
@@ -198,19 +205,21 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
                 .take(
                     first_round_pcs_proof_evaluations.len()
+                        + column_ref_pcs_proof_evaluations.len()
                         + final_round_pcs_proof_evaluations.len(),
                 )
                 .collect();
 
-        assert_eq!(
-            random_scalars.len(),
-            first_round_builder.pcs_proof_mles().len() + final_round_builder.pcs_proof_mles().len()
-        );
         let mut folded_mle = vec![Zero::zero(); range_length];
+        let column_ref_mles: Vec<_> = total_col_refs
+            .into_iter()
+            .map(|c| Box::new(accessor.get_column(c)) as Box<dyn MultilinearExtension<_>>)
+            .collect();
         for (multiplier, evaluator) in random_scalars.iter().zip(
             first_round_builder
                 .pcs_proof_mles()
                 .iter()
+                .chain(&column_ref_mles)
                 .chain(final_round_builder.pcs_proof_mles().iter()),
         ) {
             evaluator.mul_add(&mut folded_mle, multiplier);
@@ -232,6 +241,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             final_round_commitments,
             sumcheck_proof,
             first_round_pcs_proof_evaluations,
+            column_ref_pcs_proof_evaluations,
             final_round_pcs_proof_evaluations,
             evaluation_proof,
             range_length,
@@ -323,6 +333,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // commit to mle evaluations
         transcript.extend_canonical_serialize_as_le(&self.first_round_pcs_proof_evaluations);
+        transcript.extend_canonical_serialize_as_le(&self.column_ref_pcs_proof_evaluations);
         transcript.extend_canonical_serialize_as_le(&self.final_round_pcs_proof_evaluations);
 
         // draw the random scalars for the evaluation proof
@@ -331,6 +342,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
                 .take(
                     self.first_round_pcs_proof_evaluations.len()
+                        + self.column_ref_pcs_proof_evaluations.len()
                         + self.final_round_pcs_proof_evaluations.len(),
                 )
                 .collect();
@@ -382,8 +394,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .collect();
         let evaluation_accessor: IndexMap<_, _> = column_references
             .into_iter()
-            .map(|col| Ok((col, builder.try_consume_final_round_mle_evaluation()?)))
-            .collect::<Result<_, ProofError>>()?;
+            .zip(self.column_ref_pcs_proof_evaluations.iter().copied())
+            .collect();
 
         let verifier_evaluations = expr.verifier_evaluate(
             &mut builder,
@@ -410,6 +422,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let pcs_proof_evaluations: Vec<_> = self
             .first_round_pcs_proof_evaluations
             .iter()
+            .chain(self.column_ref_pcs_proof_evaluations.iter())
             .chain(self.final_round_pcs_proof_evaluations.iter())
             .copied()
             .collect();
@@ -477,7 +490,7 @@ fn make_transcript<C: Commitment, T: Transcript>(
     transcript.extend_serialize_as_le(one_evaluation_lengths);
     transcript.extend_serialize_as_le(&post_result_challenge_count);
     for commitment in first_round_commitments {
-        commitment.append_to_transcript(&mut transcript);
+        transcript.extend_as_le(commitment.to_transcript_bytes());
     }
     transcript
 }
@@ -538,7 +551,7 @@ fn extend_transcript_with_commitments<C: Commitment>(
     bit_distributions: &[BitDistribution],
 ) {
     for commitment in final_round_commitments {
-        commitment.append_to_transcript(transcript);
+        transcript.extend_as_le(commitment.to_transcript_bytes());
     }
     transcript.extend_serialize_as_le(bit_distributions);
 }
