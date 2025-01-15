@@ -29,10 +29,11 @@ use crate::{
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use bytemuck::cast_slice;
-use core::{cmp::max, iter::repeat};
+use core::iter::repeat;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use tracing::{span, Level};
 
-/// Update the max range length for the range check.
-#[allow(dead_code)]
+#[tracing::instrument(name = "range check first round evaluate", level = "debug", skip_all)]
 pub(crate) fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
     builder: &mut FirstRoundBuilder<'a, S>,
     scalars: &[S],
@@ -40,34 +41,43 @@ pub(crate) fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
 ) {
     builder.update_range_length(256);
 
-    // Create 31 columns, each will collect the corresponding word from all scalars.
-    // 31 because a scalar will only ever have 248 bits of data set.
+    // Create 31 columns, each will collect the corresponding byte from all scalars.
+    // 31 because a scalar will only ever have 248 bits set.
     let mut word_columns: Vec<&mut [u8]> = (0..31)
         .map(|_| alloc.alloc_slice_fill_copy(scalars.len(), 0))
         .collect();
-    // Initialize a vector to count occurrences of each byte (0-255).
-    // The vector has 256 elements padded with zeros to match the length of the word columns
-    // The size is the larger of 256 or the number of scalars.
-    let word_counts: &mut [i64] = alloc.alloc_slice_fill_copy(256, 0);
 
-    decompose_scalar_to_words(scalars, &mut word_columns, word_counts);
+    // Decompose scalars to bytes
+    let span = span!(Level::DEBUG, "decompose scalars in first round").entered();
+    decompose_scalars_to_words(scalars, &mut word_columns);
+    span.exit();
 
-    for byte_column in &mut word_columns {
-        // Allocate words
-        let words = alloc.alloc_slice_fill_with(byte_column.len(), |j| S::from(&byte_column[j]));
+    // Build a local lookup table for (u8 -> S) once
+    let span = span!(Level::DEBUG, "build byte->S lookup table").entered();
+    let mut lookup_table = [0u8; 256];
+    for i in 0..256 {
+        lookup_table[i] = i as u8;
+    }
+    span.exit();
 
-        // Produce an MLE over words
+    // For each column, allocate `words` using the lookup table
+    let span = span!(Level::DEBUG, "compute intermediate MLE over word column").entered();
+    for byte_column in word_columns {
+        let words = alloc
+            .alloc_slice_fill_with(byte_column.len(), |j| lookup_table[byte_column[j] as usize]);
+
+        // Finally, commit an MLE over these word values
         builder.produce_intermediate_mle(words as &[_]);
     }
+    span.exit();
 }
 
 /// Prove that a word-wise decomposition of a collection of scalars
 /// are all within the range 0 to 2^248.
-#[allow(dead_code)]
+#[tracing::instrument(name = "range check final round evaluate", level = "debug", skip_all)]
 pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
     scalars: &[S],
-    table_length: usize,
     alloc: &'a Bump,
 ) {
     // Create 31 columns, each will collect the corresponding word from all scalars.
@@ -86,24 +96,54 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     // Initialize a vector to count occurrences of each byte (0-255).
     // The vector has 256 elements padded with zeros to match the length of the word columns
     // The size is the larger of 256 or the number of scalars.
-    let word_counts: &mut [i64] = alloc.alloc_slice_fill_with(max(256, scalars.len()), |_| 0);
+    let word_counts: &mut [i64] = alloc.alloc_slice_fill_with(256, |_| 0);
 
-    decompose_scalar_to_words(scalars, &mut word_columns, word_counts);
+    let span = span!(Level::DEBUG, "decompose scalars in final round").entered();
+    decompose_scalars_to_words(scalars, &mut word_columns);
+    span.exit();
+
+    let word_columns_immut: Vec<&[u8]> = word_columns
+        .iter()
+        .map(|column| &column[..]) // convert &mut [u8] -> &[u8]
+        .collect();
+
+    let span = span!(Level::DEBUG, "count_word_occurrences in final round").entered();
+    count_word_occurrences(&word_columns_immut, scalars.len(), word_counts);
+    span.exit();
 
     // Retrieve verifier challenge here, *after* Phase 1
     let alpha = builder.consume_post_result_challenge();
 
+    // 1) Create lookup tables in the bump arena, which gives them lifetime `'a`.
+    let word_val_table: &mut [u8] = alloc.alloc_slice_fill_with(256, |i| i as u8);
+    let inv_word_vals_plus_alpha_table: &mut [S] =
+        alloc.alloc_slice_fill_with(256, |i| S::from(&(i as u8)));
+
+    // 2) Add alpha, batch invert, etc.
+    slice_ops::add_const::<S, S>(inv_word_vals_plus_alpha_table, alpha);
+    slice_ops::batch_inversion(inv_word_vals_plus_alpha_table);
+
+    let span = span!(Level::DEBUG, "get_logarithmic_derivative in final round").entered();
     get_logarithmic_derivative(
         builder,
         alloc,
         &mut word_columns,
         alpha,
-        table_length,
+        scalars.len(),
         &mut inverted_word_columns,
+        word_val_table,
+        inv_word_vals_plus_alpha_table,
     );
+    span.exit();
 
     // Produce an MLE over the word values
-    prove_word_values(alloc, alpha, builder);
+    prove_word_values(
+        alloc,
+        alpha,
+        builder,
+        word_val_table,
+        inv_word_vals_plus_alpha_table,
+    );
 
     // Argue that the sum of all words in each row, minus the count of each
     // word multiplied by the inverted word value, is zero.
@@ -113,7 +153,7 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
         alloc,
         scalars,
         &inverted_word_columns,
-        alpha,
+        inv_word_vals_plus_alpha_table,
     );
 }
 
@@ -128,13 +168,12 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
 /// |  w₂,₀      |  w₂,₁      |  w₂,₂      | ... |  w₂,₃₁      |
 /// ------------------------------------------------------------
 /// ```
-#[allow(dead_code)]
-fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
-    scalars: &[S],
-    word_columns: &mut [&mut [u8]],
-    byte_counts: &mut [i64],
-) {
-    // Write each scalar’s bytes into the word_columns table
+#[tracing::instrument(
+    name = "range check decompose_scalars_to_words",
+    level = "debug",
+    skip_all
+)]
+fn decompose_scalars_to_words<'a, S: Scalar + 'a>(scalars: &[S], word_columns: &mut [&mut [u8]]) {
     for i in 0..scalars.len() {
         let scalar_array: [u64; 4] = scalars[i].into();
         let scalar_bytes_full = cast_slice::<u64, u8>(&scalar_array);
@@ -144,12 +183,13 @@ fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
             word_columns[byte_index][i] = scalar_bytes[byte_index];
         }
     }
+}
 
-    // Count the occurrences of each byte
+fn count_word_occurrences(word_columns: &[&[u8]], scalar_count: usize, word_counts: &mut [i64]) {
     for byte_index in 0..31 {
-        for i in 0..scalars.len() {
+        for i in 0..scalar_count {
             let byte = word_columns[byte_index][i];
-            byte_counts[byte as usize] += 1;
+            word_counts[byte as usize] += 1;
         }
     }
 }
@@ -184,7 +224,11 @@ fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
 ///       v              v              v                    v          
 ///    Int. MLE      Int. MLE      Int. MLE             Int. MLE     
 /// ```
-#[allow(dead_code)]
+#[tracing::instrument(
+    name = "get_logarithmic_derivative in final round",
+    level = "debug",
+    skip_all
+)]
 fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
@@ -192,37 +236,31 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
     alpha: S,
     table_length: usize,
     inverted_word_columns: &mut [&mut [S]],
+    word_vals_table: &[u8],
+    inv_word_vals_plus_alpha_table: &[S],
 ) {
-    // Both slices should have the same length, i.e. same number of columns
     let num_columns = word_columns.len();
+    let span = span!(Level::DEBUG, "get_logarithmic_derivative total loop time").entered();
 
     for col_index in 0..num_columns {
-        let byte_column = &mut word_columns[col_index];
+        let byte_column = &word_columns[col_index];
         let inv_column = &mut inverted_word_columns[col_index];
         let column_length = byte_column.len();
 
-        // Allocate words
-        let words = alloc
-            .alloc_slice_fill_with(column_length, |row_index| S::from(&byte_column[row_index]));
+        let words = alloc.alloc_slice_fill_with(column_length, |row_index| {
+            word_vals_table[byte_column[row_index] as usize]
+        });
 
-        // Allocate words_inv
-        let words_inv = alloc
-            .alloc_slice_fill_with(column_length, |row_index| S::from(&byte_column[row_index]));
+        let words_inv = alloc.alloc_slice_fill_with(column_length, |row_index| {
+            inv_word_vals_plus_alpha_table[byte_column[row_index] as usize]
+        });
 
-        // Add alpha to words_inv, then invert them in batch
-        slice_ops::add_const::<S, S>(words_inv, alpha);
-        slice_ops::batch_inversion(words_inv);
-
-        // Provide the inverted column to the builder
         builder.produce_intermediate_mle(words_inv as &[_]);
 
-        // Copy the inverted values into the user-provided `inverted_word_columns`
         inv_column.copy_from_slice(words_inv);
 
-        // Prepare a column of "true" (1-bit flags) to use in the final polynomial check
         let input_ones = alloc.alloc_slice_fill_copy(table_length, true);
 
-        // α * (w + α)⁻¹ + w * (w + α)⁻¹ - 1 = 0
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
@@ -235,6 +273,7 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
             ],
         );
     }
+    span.exit();
 }
 
 /// Produce the range of possible values that a word can take on,
@@ -280,25 +319,10 @@ fn prove_word_values<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
     alpha: S,
     builder: &mut FinalRoundBuilder<'a, S>,
+    word_val_table: &'a [u8],
+    inv_word_vals_plus_alpha_table: &'a [S],
 ) {
-    // Allocate from 0 to 255
-    let word_values: &mut [S] = alloc.alloc_slice_fill_with(256, |_| S::ZERO);
-
-    for i in 0..256 {
-        word_values[i] = S::try_from(i.into()).expect("word value will always fit into S");
-    }
-
-    // Allocate a slice filled with zeros, with length equal to the larger of 256 or scalars.len()
-    let word_vals_inv: &mut [S] = alloc.alloc_slice_fill_with(256, |_| S::ZERO);
-
-    // Set elements 0 to 255 to their respective values
-    for i in 0..256 {
-        word_vals_inv[i] = S::try_from(i.into()).expect("word value will always fit into S");
-    }
-
-    slice_ops::add_const::<S, S>(word_vals_inv, alpha);
-    slice_ops::batch_inversion(&mut word_vals_inv[..]);
-    builder.produce_intermediate_mle(word_vals_inv as &[_]);
+    builder.produce_intermediate_mle(inv_word_vals_plus_alpha_table as &[_]);
 
     let input_ones = alloc.alloc_slice_fill_copy(256, true);
 
@@ -307,12 +331,15 @@ fn prove_word_values<'a, S: Scalar + 'a>(
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
-            (alpha, vec![Box::new(word_vals_inv as &[_])]),
+            (
+                alpha,
+                vec![Box::new(inv_word_vals_plus_alpha_table as &[_])],
+            ),
             (
                 S::one(),
                 vec![
-                    Box::new(word_vals_inv as &[_]),
-                    Box::new(word_values as &[_]),
+                    Box::new(inv_word_vals_plus_alpha_table as &[_]),
+                    Box::new(word_val_table as &[_]),
                 ],
             ),
             (-S::one(), vec![Box::new(input_ones as &[_])]),
@@ -338,38 +365,47 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
     scalars: &[S],
     inverted_word_columns: &[&mut [S]],
-    alpha: S,
+    word_vals_plus_alpha_inv: &'a [S],
 ) {
-    // Produce an MLE over the counts of each word value
+    // commit an MLE over word_counts
     builder.produce_intermediate_mle(word_counts as &[_]);
 
-    // Allocate row_sums from the bump allocator
-    let row_sums = alloc.alloc_slice_fill_copy(max(256, scalars.len()), S::ZERO);
+    //    we won't sum directly into row_sums in parallel because
+    //    bump allocs are not thread-safe and we'd have to lock anyway.
+    //    Instead, do a map-reduce over `inverted_word_columns`.
+    let col_sums = inverted_word_columns
+        .par_iter() // Parallel over columns
+        .map(|column| {
+            // Each thread gets a local Vec to store partial sums:
+            let mut local_sum = vec![S::ZERO; scalars.len()];
+            for (i, &inv_word) in column.iter().enumerate() {
+                local_sum[i] += inv_word;
+            }
+            local_sum
+        })
+        // Then reduce all partial sums into a single vector
+        .reduce(
+            // Identity (empty) partial sum:
+            || vec![S::ZERO; scalars.len()],
+            // Combine partial sums:
+            |mut acc, local_sum| {
+                for i in 0..acc.len() {
+                    acc[i] += local_sum[i];
+                }
+                acc
+            },
+        );
 
-    // Sum up the corresponding row values in each column
-    for column in inverted_word_columns {
-        for (i, &inv_word) in column.iter().enumerate() {
-            row_sums[i] += inv_word;
-        }
-    }
+    // 3) Now `col_sums` has the sum of all columns at each row index.
+    //    Allocate `row_sums` in the bump for the rest of the pipeline:
+    let row_sums = alloc.alloc_slice_fill_copy(scalars.len(), S::ZERO);
+    row_sums.copy_from_slice(&col_sums);
 
-    // Allocate and store the row sums in a Box using the bump allocator
-    let row_sums_box: Box<_> =
-        Box::new(alloc.alloc_slice_copy(row_sums) as &[_]) as Box<dyn MultilinearExtension<S>>;
+    // 4) Box `row_sums` as a MultilinearExtension
+    let row_sums_box: Box<dyn MultilinearExtension<S>> =
+        Box::new(alloc.alloc_slice_copy(row_sums) as &[_]);
 
-    // Allocate and initialize the array for (w + α)⁻¹ over [0..255]
-    let word_vals_plus_alpha_inv: &mut [S] = alloc.alloc_slice_fill_with(256, |_| S::ZERO);
-    for i in 0..256 {
-        word_vals_plus_alpha_inv[i] =
-            S::try_from(i.into()).expect("word value will always fit into S");
-    }
-
-    // Add α to each value, then invert all in a batch
-    slice_ops::add_const::<S, S>(word_vals_plus_alpha_inv, alpha);
-    slice_ops::batch_inversion(&mut word_vals_plus_alpha_inv[..]);
-
-    // Build the sumcheck subpolynomial argument:
-    //   ∑ row_sums - (word_counts * (word_vals + α)⁻¹) = 0
+    // 5) ∑ row_sums - (word_counts * (word_vals + α)⁻¹) = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::ZeroSum,
         vec![
@@ -390,7 +426,6 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
 /// # Panics
 ///
 /// if a column contains values outside of the selected range.
-#[allow(dead_code)]
 pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
     builder: &mut VerificationBuilder<'_, S>,
     input_column_eval: S,
@@ -504,10 +539,23 @@ mod tests {
         let scalars: Vec<S> = [1, 2, 3, 255, 256, 257].iter().map(S::from).collect();
 
         let mut word_columns = vec![vec![0; scalars.len()]; 31];
-        let mut word_slices: Vec<&mut [u8]> = word_columns.iter_mut().map(|c| &mut c[..]).collect();
+        let mut word_slices: Vec<&mut [u8]> = word_columns
+            .iter_mut()
+            .map(|column| &mut column[..])
+            .collect();
+
         let mut byte_counts = vec![0; 256];
 
-        decompose_scalar_to_words(&scalars, &mut word_slices, &mut byte_counts);
+        // Call the decomposer first
+        decompose_scalars_to_words(&scalars, &mut word_slices);
+
+        let word_columns_immut: Vec<&[u8]> = word_slices
+            .iter()
+            .map(|column| &column[..]) // convert &mut [u8] -> &[u8]
+            .collect();
+
+        // Then do the counting
+        count_word_occurrences(&word_columns_immut, scalars.len(), &mut byte_counts);
 
         let mut expected_word_columns = vec![vec![0; scalars.len()]; 31];
         expected_word_columns[0] = vec![1, 2, 3, 255, 0, 1];
@@ -533,10 +581,18 @@ mod tests {
             .collect();
 
         let mut word_columns = vec![vec![0; scalars.len()]; 31];
-        let mut word_slices: Vec<&mut [u8]> = word_columns.iter_mut().map(|c| &mut c[..]).collect();
+        let mut word_slices: Vec<&mut [u8]> = word_columns
+            .iter_mut()
+            .map(|column| &mut column[..])
+            .collect();
+
         let mut byte_counts = vec![0; 256];
 
-        decompose_scalar_to_words(&scalars, &mut word_slices, &mut byte_counts);
+        decompose_scalars_to_words(&scalars, &mut word_slices);
+
+        let word_columns_immut: Vec<&[u8]> = word_slices.iter().map(|column| &column[..]).collect();
+
+        count_word_occurrences(&word_columns_immut, scalars.len(), &mut byte_counts);
 
         let expected_word_columns = [
             [246, 255, 236],
@@ -623,6 +679,18 @@ mod tests {
         let alloc = Bump::new();
         let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
 
+        let mut table = [0u8; 256];
+        let mut table_plus_alpha = [S::ZERO; 256];
+
+        for i in 0..256 {
+            let w_i = i as u8;
+            table[i] = w_i;
+            table_plus_alpha[i] = w_i.into();
+        }
+
+        slice_ops::add_const::<S, S>(&mut table_plus_alpha, alpha);
+        slice_ops::batch_inversion(&mut table_plus_alpha);
+
         get_logarithmic_derivative(
             &mut builder,
             &alloc,
@@ -630,6 +698,8 @@ mod tests {
             alpha,
             256,
             &mut word_columns_from_log_deriv,
+            &table,
+            &table_plus_alpha,
         );
 
         let expected_data: [[u8; 6]; 31] = [
@@ -721,6 +791,19 @@ mod tests {
 
         let alloc = Bump::new();
         let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
+
+        let mut table = [0u8; 256];
+        let mut table_plus_alpha = [S::ZERO; 256];
+
+        for i in 0..256 {
+            let w_i = i as u8;
+            table[i] = w_i;
+            table_plus_alpha[i] = w_i.into();
+        }
+
+        slice_ops::add_const::<S, S>(&mut table_plus_alpha, alpha);
+        slice_ops::batch_inversion(&mut table_plus_alpha);
+
         get_logarithmic_derivative(
             &mut builder,
             &alloc,
@@ -728,6 +811,8 @@ mod tests {
             alpha,
             256,
             &mut word_columns_from_log_deriv,
+            &table,
+            &table_plus_alpha,
         );
 
         let expected_data: [[u8; 2]; 31] = [

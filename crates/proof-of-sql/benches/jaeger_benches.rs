@@ -10,14 +10,24 @@
 
 use ark_std::test_rng;
 use blitzar::{compute::init_backend, proof::InnerProductProof};
-use proof_of_sql::proof_primitive::dory::{
-    DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
-    DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+use num_bigint::BigUint;
+use num_traits::Num;
+use proof_of_sql::{
+    base::database::{
+        owned_table_utility::{owned_table, scalar},
+        ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, TestAccessor,
+    },
+    proof_primitive::dory::{
+        DoryEvaluationProof, DoryProverPublicSetup, DoryScalar, DoryVerifierPublicSetup,
+        DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+    },
+    sql::proof::VerifiableQueryResult,
 };
 mod scaffold;
 use crate::scaffold::querys::QUERIES;
+use proof_of_sql::sql::proof_gadgets::range_check_test::RangeCheckTestPlan;
 use scaffold::jaeger_scaffold;
-use std::env;
+use std::{env, path::Path};
 
 const SIZE: usize = 1_000_000;
 
@@ -96,6 +106,68 @@ fn main() {
                     );
                 }
             }
+        }
+        "DynamicDoryRangeCheck" => {
+            let blitzar_handle_path = std::env::var("BLITZAR_HANDLE_PATH")
+                .expect("Environment variable BLITZAR_HANDLE_PATH not set");
+            let public_parameters_path = std::env::var("PUBLIC_PARAMETERS_PATH")
+                .expect("Environment variable PUBLIC_PARAMETERS_PATH not set");
+            let verifier_setup_path = std::env::var("VERIFIER_SETUP_PATH")
+                .expect("Environment variable VERIFIER_SETUP_PATH not set");
+
+            let handle = blitzar::compute::MsmHandle::new_from_file(&blitzar_handle_path);
+            let public_parameters =
+                PublicParameters::load_from_file(Path::new(&public_parameters_path)).unwrap();
+
+            let prover_setup =
+                ProverSetup::from_public_parameters_and_blitzar_handle(&public_parameters, handle);
+            let verifier_setup = VerifierSetup::load_from_file(Path::new(&verifier_setup_path))
+                .expect("Failed to load VerifierSetup");
+
+            // 2^248 - 1
+            let upper_bound_str =
+                "452312848583266388373324160190187140051835877600158453279131187530910662655";
+            // Parse the number into a BigUint
+            let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
+            let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
+
+            // Convert Vec<u64> to [u64; 4]
+            let limbs: [u64; 4] = limbs_vec[..4].try_into().unwrap();
+
+            let upper_bound = DoryScalar::from_bigint(limbs);
+
+            // Generate the test data
+            let data: OwnedTable<DoryScalar> = owned_table([scalar(
+                "a",
+                (0..2u32.pow(20))
+                    .map(|i| upper_bound - DoryScalar::from(u64::from(i))) // Count backward from 2^248
+                    .collect::<Vec<_>>(),
+            )]);
+
+            let t = "sxt.t".parse().unwrap();
+            let mut accessor =
+                OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(
+                    &prover_setup,
+                );
+
+            accessor.add_table("sxt.t".parse().unwrap(), data, 0);
+
+            let ast = RangeCheckTestPlan {
+                column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+            };
+
+            let verifiable_res = VerifiableQueryResult::<DynamicDoryEvaluationProof>::new(
+                &ast,
+                &accessor,
+                &&prover_setup,
+            );
+
+            let res = verifiable_res.verify(&ast, &accessor, &&verifier_setup);
+
+            if let Err(e) = res {
+                panic!("Verification failed: {e}");
+            }
+            assert!(res.is_ok());
         }
         _ => panic!("Invalid benchmark type specified."),
     }
