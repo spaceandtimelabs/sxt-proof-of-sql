@@ -11,7 +11,7 @@ Run `cargo install --example posql_db --path crates/proof-of-sql` to install the
 > cargo install --example posql_db --path crates/proof-of-sql --no-default-features --features="cpu-perf"
 > ```
 
-## Quick Start Exmaple
+## Quick Start Example
 Run the following
 ```bash
 posql_db create -t sxt.table -c a,b -d BIGINT,VARCHAR
