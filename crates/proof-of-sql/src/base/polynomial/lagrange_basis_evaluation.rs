@@ -113,13 +113,13 @@ where
 pub fn compute_rho_eval<F>(length: usize, point: &[F]) -> F
 where
     F: One + Sub<Output = F> + MulAssign + SubAssign + Mul<Output = F> + Send + Sync + Copy + Sum,
-    i128: Into<F>,
+    u64: Into<F>,
 {
     let mut eval_vec = vec![F::one(); length];
     compute_evaluation_vector(&mut eval_vec, point);
     eval_vec
         .into_iter()
         .enumerate()
-        .map(|(i, v)| v * Into::<F>::into(i as i128))
+        .map(|(i, v)| v * Into::<F>::into(i as u64))
         .sum()
 }
