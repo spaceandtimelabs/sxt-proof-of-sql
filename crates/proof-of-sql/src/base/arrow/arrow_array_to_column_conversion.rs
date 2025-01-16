@@ -80,7 +80,7 @@ pub trait ArrayRefExt {
 
 impl ArrayRefExt for ArrayRef {
     /// Converts the given `ArrowArray` into a [`Column`] data type based on its [`DataType`]. Returns an
-    /// empty [`Column`] for any empty tange if it is in-bounds.
+    /// empty [`Column`] for any empty range if it is in-bounds.
     ///
     /// # Parameters
     /// - `alloc`: Reference to a `Bump` allocator used for memory allocation during the conversion.
