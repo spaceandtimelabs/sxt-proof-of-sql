@@ -16,6 +16,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
         &[][..],
         VecDeque::new(),
         Vec::new(),
+        Vec::new(),
         0,
     );
     assert_eq!(builder.sumcheck_evaluation(), Curve25519Scalar::zero());
@@ -37,6 +38,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         &[][..],
         &subpolynomial_multipliers,
         VecDeque::new(),
+        Vec::new(),
         Vec::new(),
         1,
     );
@@ -72,6 +74,7 @@ fn we_can_consume_post_result_challenges_in_verification_builder() {
             Curve25519Scalar::from(789),
         ]
         .into(),
+        Vec::new(),
         Vec::new(),
         0,
     );
