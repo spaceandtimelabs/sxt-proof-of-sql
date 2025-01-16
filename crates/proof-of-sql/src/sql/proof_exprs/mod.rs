@@ -14,6 +14,7 @@ mod add_subtract_expr_test;
 
 mod aggregate_expr;
 pub(crate) use aggregate_expr::AggregateExpr;
+mod aggregation;
 
 mod multiply_expr;
 use multiply_expr::MultiplyExpr;

@@ -3,6 +3,7 @@ use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 
 pub trait BigDecimalExt {
+    #[allow(dead_code)]
     fn precision(&self) -> u64;
     fn scale(&self) -> i64;
     fn try_into_bigint_with_precision_and_scale(
@@ -14,6 +15,7 @@ pub trait BigDecimalExt {
 impl BigDecimalExt for BigDecimal {
     /// Get the precision of the fixed-point representation of this intermediate decimal.
     #[must_use]
+    #[allow(dead_code)]
     fn precision(&self) -> u64 {
         self.normalized().digits()
     }

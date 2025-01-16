@@ -41,6 +41,12 @@ pub enum PostprocessingError {
         /// The underlying error message
         error: String,
     },
+    /// Unsupported expression encountered during postprocessing
+    #[snafu(display("Unsupported expression: {error}"))]
+    UnsupportedExpr {
+        /// The underlying error message
+        error: String,
+    },
     /// Errors in aggregate columns
     #[snafu(transparent)]
     AggregateColumnsError {

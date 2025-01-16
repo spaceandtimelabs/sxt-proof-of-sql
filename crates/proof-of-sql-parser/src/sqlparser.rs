@@ -5,10 +5,16 @@ use crate::{
         OrderBy as PoSqlOrderBy, OrderByDirection, SelectResultExpr, SetExpression,
         TableExpression, UnaryOperator as PoSqlUnaryOperator,
     },
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier, ResourceId, SelectStatement,
 };
-use alloc::{boxed::Box, string::ToString, vec};
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+    vec,
+};
 use core::fmt::Display;
+use serde::{Deserialize, Serialize};
 use sqlparser::ast::{
     BinaryOperator, DataType, Expr, Function, FunctionArg, FunctionArgExpr, GroupByExpr, Ident,
     ObjectName, Offset, OffsetRows, OrderByExpr, Query, Select, SelectItem, SetExpr, TableFactor,
@@ -26,6 +32,79 @@ where
 /// Convert an [`Identifier`] into a [`Expr`].
 fn id(id: Identifier) -> Expr {
     Expr::Identifier(id.into())
+}
+
+#[must_use]
+/// New `AliasedResultExpr` using sqlparser types
+/// Represents an aliased SQL expression, e.g., `a + 1 AS alias`.
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct SqlAliasedResultExpr {
+    /// The SQL expression being aliased (e.g., `a + 1`).
+    pub expr: Box<Expr>,
+    /// The alias for the expression (e.g., `alias` in `a + 1 AS alias`).
+    pub alias: Ident,
+}
+
+impl SqlAliasedResultExpr {
+    /// Creates a new `SqlAliasedResultExpr`.
+    pub fn new(expr: Box<Expr>, alias: Ident) -> Self {
+        Self { expr, alias }
+    }
+
+    /// Try to get the identifier of the expression if it is a column
+    /// Otherwise, return None
+    #[must_use]
+    pub fn try_as_identifier(&self) -> Option<&Ident> {
+        match self.expr.as_ref() {
+            Expr::Identifier(identifier) => Some(identifier),
+            _ => None,
+        }
+    }
+}
+
+/// Provides an extension for the `TimezoneInfo` type for offsets.
+pub trait TimezoneInfoExt {
+    /// Retrieve the offset in seconds for `TimezoneInfo`.
+    fn offset(&self, timezone_str: Option<&str>) -> i32;
+}
+
+impl TimezoneInfoExt for TimezoneInfo {
+    fn offset(&self, timezone_str: Option<&str>) -> i32 {
+        match self {
+            TimezoneInfo::None => PoSQLTimeZone::utc().offset(),
+            TimezoneInfo::WithTimeZone => match timezone_str {
+                Some(tz_str) => PoSQLTimeZone::try_from(&Some(tz_str.into()))
+                    .unwrap_or_else(|_| PoSQLTimeZone::utc())
+                    .offset(),
+                None => PoSQLTimeZone::utc().offset(),
+            },
+            _ => panic!("Offsets are not applicable for WithoutTimeZone or Tz variants."),
+        }
+    }
+}
+
+/// Utility function to create a `Timestamp` expression.
+pub fn timestamp_to_expr(
+    value: &str,
+    time_unit: PoSQLTimeUnit,
+    timezone: TimezoneInfo,
+) -> Result<Expr, String> {
+    let time_unit_as_u64 = u64::from(time_unit);
+
+    Ok(Expr::TypedString {
+        data_type: DataType::Timestamp(Some(time_unit_as_u64), timezone),
+        value: value.to_string(),
+    })
+}
+
+/// Parses [`PoSQLTimeZone`] into a `TimezoneInfo`.
+impl From<PoSQLTimeZone> for TimezoneInfo {
+    fn from(posql_timezone: PoSQLTimeZone) -> Self {
+        match posql_timezone.offset() {
+            0 => TimezoneInfo::None,
+            _ => TimezoneInfo::WithTimeZone,
+        }
+    }
 }
 
 impl From<Identifier> for Ident {
@@ -125,7 +204,7 @@ impl From<PoSqlOrderBy> for OrderByExpr {
 impl From<Expression> for Expr {
     fn from(expr: Expression) -> Self {
         match expr {
-            Expression::Literal(literal) => literal.into(),
+            Expression::Literal(literal) => Expr::from(literal),
             Expression::Column(identifier) => id(identifier),
             Expression::Unary { op, expr } => Expr::UnaryOp {
                 op: op.into(),
@@ -267,6 +346,11 @@ mod test {
         check_posql_intermediate_ast_to_sqlparser_equivalence(
             "select timestamp '2024-11-07T04:55:12.345+03:00' as time from t;",
             "select timestamp(3) '2024-11-07 01:55:12.345 UTC' as time from t;",
+        );
+
+        check_posql_intermediate_ast_to_sqlparser_equivalence(
+            "select timestamp '2024-11-07T04:55:12+00:00' as time from t;",
+            "select timestamp(0) '2024-11-07 04:55:12 UTC' as time from t;",
         );
     }
 

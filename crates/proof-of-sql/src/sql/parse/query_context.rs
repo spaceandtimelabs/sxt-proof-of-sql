@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{ColumnRef, LiteralValue, TableRef},
+        database::{ColumnRef, TableRef},
         map::{IndexMap, IndexSet},
     },
     sql::{
@@ -10,10 +10,11 @@ use crate::{
     },
 };
 use alloc::{borrow::ToOwned, boxed::Box, string::ToString, vec::Vec};
-use proof_of_sql_parser::intermediate_ast::{
-    AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice,
+use proof_of_sql_parser::{
+    intermediate_ast::{Expression, OrderBy, Slice},
+    sqlparser::SqlAliasedResultExpr,
 };
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Expr, Ident, Value};
 
 #[derive(Default, Debug)]
 pub struct QueryContext {
@@ -28,7 +29,7 @@ pub struct QueryContext {
     group_by_exprs: Vec<Ident>,
     where_expr: Option<Box<Expression>>,
     result_column_set: IndexSet<Ident>,
-    res_aliased_exprs: Vec<AliasedResultExpr>,
+    res_aliased_exprs: Vec<SqlAliasedResultExpr>,
     column_mapping: IndexMap<Ident, ColumnRef>,
     first_result_col_out_agg_scope: Option<Ident>,
 }
@@ -118,7 +119,7 @@ impl QueryContext {
     }
 
     #[allow(clippy::missing_panics_doc, clippy::unnecessary_wraps)]
-    pub fn push_aliased_result_expr(&mut self, expr: AliasedResultExpr) -> ConversionResult<()> {
+    pub fn push_aliased_result_expr(&mut self, expr: SqlAliasedResultExpr) -> ConversionResult<()> {
         assert!(&self.has_visited_group_by, "Group by must be visited first");
         self.res_aliased_exprs.push(expr);
 
@@ -161,7 +162,7 @@ impl QueryContext {
     ///
     /// Will panic if:
     /// - `self.res_aliased_exprs` is empty, triggering the assertion `assert!(!self.res_aliased_exprs.is_empty(), "empty aliased exprs")`.
-    pub fn get_aliased_result_exprs(&self) -> ConversionResult<&[AliasedResultExpr]> {
+    pub fn get_aliased_result_exprs(&self) -> ConversionResult<&[SqlAliasedResultExpr]> {
         assert!(!self.res_aliased_exprs.is_empty(), "empty aliased exprs");
 
         // We need to check that each column alias is unique
@@ -201,7 +202,7 @@ impl QueryContext {
         for by_expr in &self.order_by_exprs {
             self.res_aliased_exprs
                 .iter()
-                .find(|col| col.alias == by_expr.expr)
+                .find(|col| col.alias == by_expr.expr.into())
                 .ok_or(ConversionError::InvalidOrderBy {
                     alias: by_expr.expr.as_str().to_string(),
                 })?;
@@ -238,7 +239,7 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
     fn try_from(value: &QueryContext) -> Result<Option<GroupByExec>, Self::Error> {
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
-            .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
+            .unwrap_or_else(|| DynProofExpr::new_literal(Expr::Value(Value::Boolean(true))));
         let table = value.table.map(|table_ref| TableExpr { table_ref }).ok_or(
             ConversionError::InvalidExpression {
                 expression: "QueryContext has no table_ref".to_owned(),
@@ -277,8 +278,8 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
             .iter()
             .zip(res_group_by_columns.iter())
             .all(|(ident, res)| {
-                if let Expression::Column(res_ident) = *res.expr {
-                    Ident::from(res_ident) == *ident
+                if let Expr::Identifier(res_ident) = &*res.expr {
+                    *res_ident == *ident
                 } else {
                     false
                 }
@@ -288,19 +289,20 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
         let sum_expr = sum_expr_columns
             .iter()
             .map(|res| {
-                if let Expression::Aggregation {
-                    op: AggregationOperator::Sum,
-                    ..
-                } = (*res.expr).clone()
-                {
-                    let res_dyn_proof_expr =
-                        DynProofExprBuilder::new(&value.column_mapping).build(&res.expr);
-                    res_dyn_proof_expr
-                        .ok()
-                        .map(|dyn_proof_expr| AliasedDynProofExpr {
-                            alias: res.alias.into(),
-                            expr: dyn_proof_expr,
-                        })
+                if let Expr::Function(function) = &*res.expr {
+                    let function_name = function.name.to_string().to_uppercase();
+                    if function_name == "SUM" {
+                        let res_dyn_proof_expr =
+                            DynProofExprBuilder::new(&value.column_mapping).build(&res.expr);
+                        res_dyn_proof_expr
+                            .ok()
+                            .map(|dyn_proof_expr| AliasedDynProofExpr {
+                                alias: res.alias.clone(),
+                                expr: dyn_proof_expr,
+                            })
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -309,13 +311,12 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
 
         // Check count(*)
         let count_column = &value.res_aliased_exprs[num_result_columns - 1];
-        let count_column_compliant = matches!(
-            *count_column.expr,
-            Expression::Aggregation {
-                op: AggregationOperator::Count,
-                ..
-            }
-        );
+        let count_column_compliant = if let Expr::Function(function) = &*count_column.expr {
+            let function_name = function.name.to_string().to_uppercase();
+            function_name == "COUNT"
+        } else {
+            false
+        };
 
         if !group_by_compliance || sum_expr.is_none() || !count_column_compliant {
             return Ok(None);
@@ -323,7 +324,7 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
         Ok(Some(GroupByExec::new(
             group_by_exprs,
             sum_expr.expect("the none case was just checked"),
-            count_column.alias.into(),
+            count_column.alias.clone(),
             table,
             where_clause,
         )))

@@ -69,18 +69,22 @@ impl<S: Scalar> DynProofPlanSerializer<S> {
 mod tests {
     use super::*;
     use crate::{
-        base::{database::LiteralValue, map::indexset, scalar::test_scalar::TestScalar},
+        base::{map::indexset, scalar::test_scalar::TestScalar},
         sql::proof_exprs::{DynProofExpr, LiteralExpr},
     };
     use core::iter;
     use itertools::Itertools;
+    use sqlparser::ast::{Expr as SqlExpr, Value};
 
     #[test]
     fn we_can_serialize_an_aliased_dyn_proof_expr() {
         let serializer =
             DynProofPlanSerializer::<TestScalar>::try_new(indexset! {}, indexset! {}).unwrap();
 
-        let expr = DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(4200)));
+        let expr = DynProofExpr::Literal(LiteralExpr::new(SqlExpr::Value(Value::Number(
+            "4200".to_string(),
+            false,
+        ))));
         let expr_bytes = serializer
             .clone()
             .serialize_dyn_proof_expr(&expr)
@@ -150,9 +154,18 @@ mod tests {
             DynProofPlanSerializer::<TestScalar>::try_new(indexset! { table_ref }, indexset! {})
                 .unwrap();
 
-        let expr_a = DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(4200)));
-        let expr_b = DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(4200)));
-        let expr_c = DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(4200)));
+        let expr_a = DynProofExpr::Literal(LiteralExpr::new(SqlExpr::Value(Value::Number(
+            "4200".to_string(),
+            false,
+        ))));
+        let expr_b = DynProofExpr::Literal(LiteralExpr::new(SqlExpr::Value(Value::Number(
+            "4200".to_string(),
+            false,
+        ))));
+        let expr_c = DynProofExpr::Literal(LiteralExpr::new(SqlExpr::Value(Value::Number(
+            "4200".to_string(),
+            false,
+        ))));
         let aliased_expr_0 = AliasedDynProofExpr {
             expr: expr_a.clone(),
             alias: "alias_0".into(),

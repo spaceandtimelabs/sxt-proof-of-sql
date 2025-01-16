@@ -59,7 +59,7 @@ impl TryFrom<DataType> for ColumnType {
                 };
                 Ok(ColumnType::TimestampTZ(
                     posql_time_unit,
-                    PoSQLTimeZone::try_from(&timezone_option)?,
+                    PoSQLTimeZone::try_from(&timezone_option)?.into(),
                 ))
             }
             DataType::Utf8 => Ok(ColumnType::VarChar),
