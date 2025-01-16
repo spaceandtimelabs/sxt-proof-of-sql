@@ -13,7 +13,7 @@ pub enum RecordBatchToColumnsError {
         source: ArrowArrayToColumnConversionError,
     },
     #[snafu(transparent)]
-    /// This error occurs when convering from a record batch name to an identifier fails. (Which may be impossible.)
+    /// This error occurs when converting from a record batch name to an identifier fails. (Which may be impossible.)
     FieldParseFail {
         /// The underlying source error
         source: ParseError,
