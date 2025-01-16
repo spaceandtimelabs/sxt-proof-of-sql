@@ -309,18 +309,16 @@ impl<T: MontConfig<4>> num_traits::Inv for MontScalar<T> {
 }
 impl<T: MontConfig<4>> Serialize for MontScalar<T> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut bytes = Vec::with_capacity(self.0.compressed_size());
-        self.0
-            .serialize_compressed(&mut bytes)
-            .map_err(serde::ser::Error::custom)?;
-        bytes.serialize(serializer)
+        let mut limbs: [u64; 4] = self.into();
+        limbs.reverse();
+        limbs.serialize(serializer)
     }
 }
 impl<'de, T: MontConfig<4>> Deserialize<'de> for MontScalar<T> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        CanonicalDeserialize::deserialize_compressed(Vec::deserialize(deserializer)?.as_slice())
-            .map_err(serde::de::Error::custom)
-            .map(Self)
+        let mut limbs: [u64; 4] = Deserialize::deserialize(deserializer)?;
+        limbs.reverse();
+        Ok(limbs.into())
     }
 }
 
