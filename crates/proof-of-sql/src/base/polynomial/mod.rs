@@ -14,9 +14,7 @@ pub use evaluation_vector::compute_evaluation_vector;
 #[cfg(test)]
 mod evaluation_vector_test;
 
-#[allow(dead_code)]
 mod lagrange_basis_evaluation;
-#[allow(unused_imports)]
 pub use lagrange_basis_evaluation::{
     compute_rho_eval, compute_truncated_lagrange_basis_inner_product,
     compute_truncated_lagrange_basis_sum,
