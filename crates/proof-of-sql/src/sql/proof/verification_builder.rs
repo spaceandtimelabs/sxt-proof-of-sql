@@ -78,7 +78,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             .mle_evaluations
             .one_evaluations
             .get(&length)
-            .expect("One evaluation not found"))
+            .ok_or(ProofSizeMismatch::OneLengthNotFound)?)
     }
 
     /// Consume the evaluation of a rho evaluation
@@ -97,7 +97,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             .mle_evaluations
             .rho_evaluations
             .get(&length)
-            .expect("Rho evaluation not found"))
+            .ok_or(ProofSizeMismatch::RhoLengthNotFound)?)
     }
 
     pub fn generator_offset(&self) -> usize {

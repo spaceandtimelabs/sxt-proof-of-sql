@@ -49,4 +49,10 @@ pub enum ProofSizeMismatch {
     /// This error occurs when the proof has too few sumcheck variables.
     #[snafu(display("Proof has too few sumcheck variables"))]
     TooFewSumcheckVariables,
+    /// This error occurs when a requested one length is not found.
+    #[snafu(display("Proof doesn't have requested one length"))]
+    OneLengthNotFound,
+    /// This error occurs when a requested rho length is not found.
+    #[snafu(display("Proof doesn't have requested rho length"))]
+    RhoLengthNotFound,
 }
