@@ -52,7 +52,7 @@ pub enum OwnedArrowConversionError {
     /// This error occurs when trying to convert from a record batch with duplicate idents(e.g. `"a"` and `"A"`).
     #[snafu(display("conversion resulted in duplicate idents"))]
     DuplicateIdents,
-    /// This error occurs when convering from a record batch name to an idents fails. (Which may my impossible.)
+    /// This error occurs when converting from a record batch name to an idents fails. (Which may be impossible.)
     #[snafu(transparent)]
     FieldParseFail {
         /// The underlying source error
