@@ -17,7 +17,9 @@ use bumpalo::Bump;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
+// A test plan for performing range checks on a specified column.
 struct RangeCheckTestPlan {
+    // The column reference for the range check test.
     column: ColumnRef,
 }
 
@@ -46,6 +48,8 @@ impl ProverEvaluate for RangeCheckTestPlan {
 
         first_round_evaluate_range_check(builder, scalars, alloc);
 
+        builder.produce_one_evaluation_length(256);
+
         table_map[&self.column.table_ref()].clone()
     }
 
@@ -67,7 +71,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
             .expect("Column not found in table")
             .as_scalar()
             .expect("Failed to convert column to scalar");
-        final_round_evaluate_range_check(builder, scalars, 256, alloc);
+        final_round_evaluate_range_check(builder, scalars, scalars.len(), alloc);
         table.clone()
     }
 }
@@ -100,7 +104,7 @@ impl ProofPlan for RangeCheckTestPlan {
         let input_column_eval = accessor[&self.column];
         let input_ones_eval = one_eval_map[&self.column.table_ref()];
 
-        verifier_evaluate_range_check(builder, input_ones_eval, input_column_eval)?;
+        verifier_evaluate_range_check(builder, input_column_eval, input_ones_eval)?;
 
         Ok(TableEvaluation::new(
             vec![accessor[&self.column]],
@@ -113,13 +117,18 @@ impl ProofPlan for RangeCheckTestPlan {
 mod tests {
     use super::*;
     use crate::{
-        base::database::{
-            owned_table_utility::{owned_table, scalar},
-            ColumnRef, ColumnType, OwnedTableTestAccessor,
+        base::{
+            database::{
+                owned_table_utility::{owned_table, scalar},
+                ColumnRef, ColumnType, OwnedTableTestAccessor,
+            },
+            scalar::Curve25519Scalar,
         },
         sql::proof::VerifiableQueryResult,
     };
     use blitzar::proof::InnerProductProof;
+    use num_bigint::BigUint;
+    use num_traits::Num;
 
     #[test]
     #[should_panic(
@@ -137,8 +146,28 @@ mod tests {
     }
 
     #[test]
-    fn we_can_prove_a_range_check_with_range_0_to_256() {
-        let data = owned_table([scalar("a", 0..256)]);
+    #[allow(clippy::cast_sign_loss)]
+    fn we_can_prove_a_range_check_with_range_up_to_boundary() {
+        // 2^248 - 1
+        let upper_bound_str =
+            "452312848583266388373324160190187140051835877600158453279131187530910662655";
+        // Parse the number into a BigUint
+        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
+        let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
+
+        // Convert Vec<u64> to [u64; 4]
+        let limbs: [u64; 4] = limbs_vec[..4].try_into().unwrap();
+
+        let upper_bound = Curve25519Scalar::from_bigint(limbs);
+
+        // Generate the test data
+        let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
+            "a",
+            (0..257)
+                .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
+                .collect::<Vec<_>>(),
+        )]);
+
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
         let ast = RangeCheckTestPlan {
@@ -157,8 +186,28 @@ mod tests {
     }
 
     #[test]
-    fn we_can_prove_a_range_check_with_range_1000_to_1256() {
-        let data = owned_table([scalar("a", 1000..1256)]);
+    #[allow(clippy::cast_sign_loss)]
+    fn we_can_prove_a_range_check_below_max_word_value() {
+        // 2^248 - 1
+        let upper_bound_str =
+            "452312848583266388373324160190187140051835877600158453279131187530910662655";
+        // Parse the number into a BigUint
+        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
+        let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
+
+        // Convert Vec<u64> to [u64; 4]
+        let limbs: [u64; 4] = limbs_vec[..4].try_into().unwrap();
+
+        let upper_bound = Curve25519Scalar::from_bigint(limbs);
+
+        // Generate the test data
+        let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
+            "a",
+            (0..1)
+                .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
+                .collect::<Vec<_>>(),
+        )]);
+
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
         let ast = RangeCheckTestPlan {
@@ -174,5 +223,40 @@ mod tests {
             panic!("Verification failed: {e}");
         }
         assert!(res.is_ok());
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Range check failed, column contains values outside of the selected range"
+    )]
+    #[allow(clippy::cast_sign_loss)]
+    fn we_cannot_prove_a_range_check_equal_to_range_boundary() {
+        // 2^248
+        let upper_bound_str =
+            "452312848583266388373324160190187140051835877600158453279131187530910662656";
+        // Parse the number into a BigUint
+        let big_uint = BigUint::from_str_radix(upper_bound_str, 10).unwrap();
+        let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
+
+        // Convert Vec<u64> to [u64; 4]
+        let limbs: [u64; 4] = limbs_vec[..4].try_into().unwrap();
+
+        let upper_bound = Curve25519Scalar::from_bigint(limbs);
+
+        // Generate the test data
+        let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
+            "a",
+            (0..1000)
+                .map(|i| upper_bound - Curve25519Scalar::from(i as u64)) // Count backward from 2^248
+                .collect::<Vec<_>>(),
+        )]);
+
+        let t = "sxt.t".parse().unwrap();
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        verifiable_res.verify(&ast, &accessor, &()).unwrap();
     }
 }
