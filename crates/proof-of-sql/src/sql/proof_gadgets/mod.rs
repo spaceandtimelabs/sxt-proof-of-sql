@@ -13,11 +13,9 @@ use membership_check::{
 mod membership_check_test;
 mod sign_expr;
 pub(crate) use sign_expr::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
-#[allow(clippy::needless_range_loop)] // keep the loop for readability for now, refactor later
-#[allow(dead_code, missing_docs)]
+#[cfg(all(test, feature = "blitzar"))]
 pub(crate) mod range_check;
-#[cfg(all(feature = "blitzar"))]
-#[allow(dead_code, missing_docs)]
-pub mod range_check_test;
+#[cfg(all(test, feature = "blitzar"))]
+pub(crate) mod range_check_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod sign_expr_test;

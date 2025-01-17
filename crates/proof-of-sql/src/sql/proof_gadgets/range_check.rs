@@ -55,8 +55,10 @@ pub(crate) fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
     // Build a local lookup table for (u8 -> S) once
     let span = span!(Level::DEBUG, "build byte->S lookup table").entered();
     let mut lookup_table = [S::ZERO; 256];
-    for i in 0..256 {
-        lookup_table[i] = S::from(&(i as u8));
+
+    // avoids casting from usize
+    for i in 0u8..=255 {
+        lookup_table[i as usize] = S::from(&i);
     }
     span.exit();
 
@@ -114,12 +116,17 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     // Retrieve verifier challenge here, *after* Phase 1
     let alpha = builder.consume_post_result_challenge();
 
-    // 1) Create your lookup tables in the bump arena, which gives them lifetime `'a`.
-    let word_val_table: &mut [S] = alloc.alloc_slice_fill_with(256, |i| S::from(&(i as u8)));
+    // avoids usize to u8 cast
+    let mut word_value_table = [S::ZERO; 256];
+    for i in 0u8..=255 {
+        word_value_table[i as usize] = S::from(&i);
+    }
+    let word_val_table: &mut [S] =
+        alloc.alloc_slice_fill_with(word_value_table.len(), |i| word_value_table[i]);
     let inv_word_vals_plus_alpha_table: &mut [S] =
-        alloc.alloc_slice_fill_with(256, |i| S::from(&(i as u8)));
+        alloc.alloc_slice_fill_with(word_value_table.len(), |i| word_value_table[i]);
 
-    // 2) Add alpha, batch invert, etc.
+    // Add alpha, batch invert, etc.
     slice_ops::add_const::<S, S>(inv_word_vals_plus_alpha_table, alpha);
     slice_ops::batch_inversion(inv_word_vals_plus_alpha_table);
 
@@ -174,21 +181,21 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     skip_all
 )]
 fn decompose_scalars_to_words<'a, S: Scalar + 'a>(scalars: &[S], word_columns: &mut [&mut [u8]]) {
-    for i in 0..scalars.len() {
-        let scalar_array: [u64; 4] = scalars[i].into();
-        let scalar_bytes_full = cast_slice::<u64, u8>(&scalar_array);
-        let scalar_bytes = &scalar_bytes_full[..31];
+    for (i, scalar) in scalars.iter().enumerate() {
+        let scalar_array: [u64; 4] = (*scalar).into();
+        // Convert the [u64; 4] into a slice of bytes
+        let scalar_bytes = &cast_slice::<u64, u8>(&scalar_array)[..31];
 
-        for byte_index in 0..31 {
-            word_columns[byte_index][i] = scalar_bytes[byte_index];
+        // Zip the "columns" and the scalar bytes so we can write them directly
+        for (column, &byte) in word_columns[..31].iter_mut().zip(scalar_bytes) {
+            column[i] = byte;
         }
     }
 }
 
 fn count_word_occurrences(word_columns: &[&[u8]], scalar_count: usize, word_counts: &mut [i64]) {
-    for byte_index in 0..31 {
-        for i in 0..scalar_count {
-            let byte = word_columns[byte_index][i];
+    for column in word_columns.iter().take(31) {
+        for &byte in column.iter().take(scalar_count) {
             word_counts[byte as usize] += 1;
         }
     }
@@ -425,7 +432,6 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
 /// # Panics
 ///
 /// if a column contains values outside of the selected range.
-
 pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
     builder: &mut VerificationBuilder<'_, S>,
     input_column_eval: S,
@@ -682,6 +688,7 @@ mod tests {
         let mut table = [S::ZERO; 256];
         let mut table_plus_alpha = [S::ZERO; 256];
 
+        #[allow(clippy::cast_possible_truncation)]
         for i in 0..256 {
             let w_i = S::from(&(i as u8));
             table[i] = w_i;
@@ -795,6 +802,7 @@ mod tests {
         let mut table = [S::ZERO; 256];
         let mut table_plus_alpha = [S::ZERO; 256];
 
+        #[allow(clippy::cast_possible_truncation)]
         for i in 0..256 {
             let w_i = S::from(&(i as u8));
             table[i] = w_i;
