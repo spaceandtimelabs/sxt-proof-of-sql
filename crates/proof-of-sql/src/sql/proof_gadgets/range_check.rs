@@ -323,7 +323,6 @@ fn prove_word_values<'a, S: Scalar + 'a>(
     inv_word_vals_plus_alpha_table: &'a [S],
 ) {
     builder.produce_intermediate_mle(inv_word_vals_plus_alpha_table as &[_]);
-
     let input_ones = alloc.alloc_slice_fill_copy(256, true);
 
     // Argument:

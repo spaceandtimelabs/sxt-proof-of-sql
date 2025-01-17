@@ -126,6 +126,7 @@ mod tests {
         },
         proof_primitive::dory::{
             DoryScalar, DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+
         },
         sql::proof::VerifiableQueryResult,
     };
@@ -133,6 +134,7 @@ mod tests {
     use num_bigint::BigUint;
     use num_traits::Num;
     use std::path::Path;
+
 
     #[test]
     #[should_panic(
