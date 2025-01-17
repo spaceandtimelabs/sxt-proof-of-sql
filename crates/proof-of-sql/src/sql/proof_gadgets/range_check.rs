@@ -30,7 +30,6 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use bytemuck::cast_slice;
 use core::iter::repeat;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use tracing::{span, Level};
 
 #[tracing::instrument(name = "range check first round evaluate", level = "debug", skip_all)]
@@ -136,7 +135,6 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
         alloc,
         &mut word_columns,
         alpha,
-        scalars.len(),
         &mut inverted_word_columns,
         word_val_table,
         inv_word_vals_plus_alpha_table,
@@ -241,7 +239,6 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
     word_columns: &mut [&mut [u8]],
     alpha: S,
-    table_length: usize,
     inverted_word_columns: &mut [&mut [S]],
     word_vals_table: &[S],
     inv_word_vals_plus_alpha_table: &[S],
@@ -266,7 +263,7 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
 
         inv_column.copy_from_slice(words_inv);
 
-        let input_ones = alloc.alloc_slice_fill_copy(table_length, true);
+        let input_ones = alloc.alloc_slice_fill_copy(inverted_word_columns[0].len(), true);
 
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
@@ -317,11 +314,6 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
 /// ```
 /// Finally, argue that (`word_values` + α)⁻¹ * (`word_values` + α) - 1 = 0
 ///
-#[allow(
-    dead_code,
-    clippy::missing_panics_doc,
-    clippy::cast_possible_truncation
-)]
 fn prove_word_values<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
     alpha: S,
@@ -364,7 +356,6 @@ fn prove_word_values<'a, S: Scalar + 'a>(
 /// - `I₀ + I₁ + I₂ ... Iₙ` are the inverted word columns.
 /// - `C` is the count of each word.
 /// - `IN` is the inverted word values column.
-#[allow(clippy::missing_panics_doc)]
 fn prove_row_zero_sum<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
     word_counts: &'a mut [i64],
@@ -373,34 +364,16 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
     inverted_word_columns: &[&mut [S]],
     word_vals_plus_alpha_inv: &'a [S],
 ) {
-    // commit an MLE over word_counts
+    // 1) Commit an MLE over word_counts
     builder.produce_intermediate_mle(word_counts as &[_]);
 
-    //    we won't sum directly into row_sums in parallel because
-    //    bump allocs are not thread-safe and we'd have to lock anyway.
-    //    Instead, do a map-reduce over `inverted_word_columns`.
-    let col_sums = inverted_word_columns
-        .par_iter() // Parallel over columns
-        .map(|column| {
-            // Each thread gets a local Vec to store partial sums:
-            let mut local_sum = vec![S::ZERO; scalars.len()];
-            for (i, &inv_word) in column.iter().enumerate() {
-                local_sum[i] += inv_word;
-            }
-            local_sum
-        })
-        // Then reduce all partial sums into a single vector
-        .reduce(
-            // Identity (empty) partial sum:
-            || vec![S::ZERO; scalars.len()],
-            // Combine partial sums:
-            |mut acc, local_sum| {
-                for i in 0..acc.len() {
-                    acc[i] += local_sum[i];
-                }
-                acc
-            },
-        );
+    // 2) Compute sum over all columns at each row index (single-threaded)
+    let mut col_sums = vec![S::ZERO; scalars.len()];
+    for column in inverted_word_columns {
+        for (i, &inv_word) in column.iter().enumerate() {
+            col_sums[i] += inv_word;
+        }
+    }
 
     // 3) Now `col_sums` has the sum of all columns at each row index.
     //    Allocate `row_sums` in the bump for the rest of the pipeline:
@@ -703,7 +676,6 @@ mod tests {
             &alloc,
             &mut word_slices,
             alpha,
-            256,
             &mut word_columns_from_log_deriv,
             &table,
             &table_plus_alpha,
@@ -817,7 +789,6 @@ mod tests {
             &alloc,
             &mut word_slices,
             alpha,
-            256,
             &mut word_columns_from_log_deriv,
             &table,
             &table_plus_alpha,
