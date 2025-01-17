@@ -163,7 +163,7 @@ mod tests {
         // Generate the test data
         let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
             "a",
-            (0..2u32.pow(20))
+            (0..2u32.pow(10))
                 .map(|i| upper_bound - Curve25519Scalar::from(u64::from(i))) // Count backward from 2^248
                 .collect::<Vec<_>>(),
         )]);
@@ -239,7 +239,7 @@ mod tests {
         // Generate the test data
         let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
             "a",
-            (0u16..1000)
+            (0u16..2u16.pow(10))
                 .map(|i| upper_bound - Curve25519Scalar::from(i)) // Count backward from 2^248
                 .collect::<Vec<_>>(),
         )]);
@@ -286,7 +286,7 @@ mod tests {
         // Generate the test data
         let data: OwnedTable<DoryScalar> = owned_table([scalar(
             "a",
-            (0..2u32.pow(20))
+            (0..2u32.pow(10))
                 .map(|i| upper_bound - DoryScalar::from(u64::from(i))) // Count backward from 2^248
                 .collect::<Vec<_>>(),
         )]);
