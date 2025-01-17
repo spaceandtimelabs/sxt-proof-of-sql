@@ -2,9 +2,7 @@
 
 # Optional help text
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-  echo "Runs only the cargo commands within the 'examples:' job in lint-and-test.yml,"
-  echo "without stopping the shell on errors. Prints a summary of any failures."
-
+  echo "Runs only the cargo commands within the 'examples:' job in lint-and-test.yml."
 fi
 
 # Location of GitHub Actions workflow file

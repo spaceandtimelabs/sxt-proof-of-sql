@@ -2,7 +2,6 @@
 
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   echo "Runs only the 'test' job cargo commands from lint-and-test.yml, ignoring rustup lines."
-  echo "Does NOT exit non-zero on failures, just prints a summary."
 fi
 
 YAML_FILE=".github/workflows/lint-and-test.yml"

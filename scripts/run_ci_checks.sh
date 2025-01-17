@@ -3,7 +3,6 @@
 # Display a help text
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   echo "Runs all CI checks (excluding tests, udeps, and the 'examples' job)."
-  echo "Does NOT run toolchain install/update commands."
 fi
 
 # The path to the YAML file that defines the CI workflows
