@@ -17,7 +17,7 @@ pub trait ProofExpr: Debug + Send + Sync {
     fn data_type(&self) -> ColumnType;
 
     /// This returns the result of evaluating the expression on the given table, and returns
-    /// a column of values. This result slice is guarenteed to have length `table_length`.
+    /// a column of values. This result slice is guaranteed to have length `table_length`.
     /// Implementations must ensure that the returned slice has length `table_length`.
     fn result_evaluate<'a, S: Scalar>(
         &self,
