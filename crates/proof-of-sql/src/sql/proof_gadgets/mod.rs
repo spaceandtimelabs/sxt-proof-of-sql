@@ -1,6 +1,7 @@
 //! This module contains shared proof logic for multiple `ProofExpr` / `ProofPlan` implementations.
 mod membership_check;
 mod shift;
+mod uniqueness;
 #[allow(unused_imports, dead_code)]
 use membership_check::{
     final_round_evaluate_membership_check, first_round_evaluate_membership_check,
@@ -8,7 +9,6 @@ use membership_check::{
 };
 #[cfg(test)]
 mod membership_check_test;
-#[allow(unused_imports, dead_code)]
 use shift::{final_round_evaluate_shift, first_round_evaluate_shift, verify_shift};
 #[cfg(test)]
 mod shift_test;
@@ -20,3 +20,9 @@ pub(crate) mod range_check;
 mod range_check_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod sign_expr_test;
+#[allow(unused_imports, dead_code)]
+use uniqueness::{
+    final_round_evaluate_uniqueness, first_round_evaluate_uniqueness, verify_uniqueness,
+};
+#[cfg(test)]
+mod uniqueness_test;
