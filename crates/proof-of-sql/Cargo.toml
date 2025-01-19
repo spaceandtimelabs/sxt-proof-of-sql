@@ -24,6 +24,7 @@ ark-poly = { workspace = true }
 ark-serialize = { workspace = true }
 ark-std = { workspace = true }
 arrow = { workspace = true, optional = true }
+bincode = { workspace = true }
 bit-iter = { workspace = true }
 bigdecimal = { workspace = true }
 blake3 = { workspace = true }
