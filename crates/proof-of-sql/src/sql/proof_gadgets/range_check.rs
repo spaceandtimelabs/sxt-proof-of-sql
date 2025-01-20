@@ -116,15 +116,18 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     let alpha = builder.consume_post_result_challenge();
 
     // avoids usize to u8 cast
-    let mut word_value_table = [S::ZERO; 256];
+    let mut word_value_table = [0u8; 256];
+    let mut inv_word_values_plus_alpha_table = [S::ZERO; 256];
     for i in 0u8..=255 {
-        word_value_table[i as usize] = S::from(&i);
+        word_value_table[i as usize] = i;
+        inv_word_values_plus_alpha_table[i as usize] = S::from(&i);
     }
-    let word_val_table: &mut [S] =
+    let word_val_table: &mut [u8] =
         alloc.alloc_slice_fill_with(word_value_table.len(), |i| word_value_table[i]);
-    let inv_word_vals_plus_alpha_table: &mut [S] =
-        alloc.alloc_slice_fill_with(word_value_table.len(), |i| word_value_table[i]);
-
+    let inv_word_vals_plus_alpha_table: &mut [S] = alloc
+        .alloc_slice_fill_with(inv_word_values_plus_alpha_table.len(), |i| {
+            inv_word_values_plus_alpha_table[i]
+        });
     // Add alpha, batch invert, etc.
     slice_ops::add_const::<S, S>(inv_word_vals_plus_alpha_table, alpha);
     slice_ops::batch_inversion(inv_word_vals_plus_alpha_table);
@@ -240,7 +243,7 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
     word_columns: &mut [&mut [u8]],
     alpha: S,
     inverted_word_columns: &mut [&mut [S]],
-    word_vals_table: &[S],
+    word_vals_table: &[u8],
     inv_word_vals_plus_alpha_table: &[S],
 ) {
     let num_columns = word_columns.len();
@@ -318,7 +321,7 @@ fn prove_word_values<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
     alpha: S,
     builder: &mut FinalRoundBuilder<'a, S>,
-    word_val_table: &'a [S],
+    word_val_table: &'a [u8],
     inv_word_vals_plus_alpha_table: &'a [S],
 ) {
     builder.produce_intermediate_mle(inv_word_vals_plus_alpha_table as &[_]);
@@ -658,14 +661,12 @@ mod tests {
         let alloc = Bump::new();
         let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
 
-        let mut table = [S::ZERO; 256];
+        let mut table = [0u8; 256];
         let mut table_plus_alpha = [S::ZERO; 256];
 
-        #[allow(clippy::cast_possible_truncation)]
-        for i in 0..256 {
-            let w_i = S::from(&(i as u8));
-            table[i] = w_i;
-            table_plus_alpha[i] = w_i;
+        for i in 0u8..=255 {
+            table[i as usize] = i;
+            table_plus_alpha[i as usize] = S::from(&i);
         }
 
         slice_ops::add_const::<S, S>(&mut table_plus_alpha, alpha);
@@ -771,16 +772,13 @@ mod tests {
         let alloc = Bump::new();
         let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
 
-        let mut table = [S::ZERO; 256];
+        let mut table = [0u8; 256];
         let mut table_plus_alpha = [S::ZERO; 256];
 
-        #[allow(clippy::cast_possible_truncation)]
-        for i in 0..256 {
-            let w_i = S::from(&(i as u8));
-            table[i] = w_i;
-            table_plus_alpha[i] = w_i;
+        for i in 0u8..=255 {
+            table[i as usize] = i;
+            table_plus_alpha[i as usize] = S::from(&i);
         }
-
         slice_ops::add_const::<S, S>(&mut table_plus_alpha, alpha);
         slice_ops::batch_inversion(&mut table_plus_alpha);
 
