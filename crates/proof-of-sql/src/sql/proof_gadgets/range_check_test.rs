@@ -17,10 +17,10 @@ use bumpalo::Bump;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
-/// A test plan for performing range checks on a specified column.
-pub struct RangeCheckTestPlan {
-    /// The column reference for the range check test.
-    pub column: ColumnRef,
+// A test plan for performing range checks on a specified column.
+struct RangeCheckTestPlan {
+    // The column reference for the range check test.
+    column: ColumnRef,
 }
 
 impl ProverEvaluate for RangeCheckTestPlan {
