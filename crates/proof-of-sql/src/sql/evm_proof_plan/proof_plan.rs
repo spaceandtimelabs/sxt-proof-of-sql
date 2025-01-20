@@ -18,6 +18,7 @@ use alloc::{
     vec::Vec,
 };
 use bumpalo::Bump;
+use itertools::Itertools;
 use serde::{Serialize, Serializer};
 
 #[derive(Debug)]
@@ -25,7 +26,27 @@ use serde::{Serialize, Serializer};
 /// Serialization should be done using bincode with fixint, big-endian encoding in order to be compatible with EVM.
 ///
 /// This is simply a wrapper around a `DynProofPlan`.
-pub struct EVMProofPlan(pub DynProofPlan);
+pub struct EVMProofPlan {
+    inner: DynProofPlan,
+}
+
+impl EVMProofPlan {
+    /// Create a new `EVMProofPlan` from a `DynProofPlan`.
+    #[must_use]
+    pub fn new(plan: DynProofPlan) -> Self {
+        Self { inner: plan }
+    }
+    /// Get the inner `DynProofPlan`.
+    #[must_use]
+    pub fn into_inner(self) -> DynProofPlan {
+        self.inner
+    }
+    /// Get a reference to the inner `DynProofPlan`.
+    #[must_use]
+    pub fn inner(&self) -> &DynProofPlan {
+        &self.inner
+    }
+}
 
 impl Serialize for EVMProofPlan {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -39,18 +60,18 @@ impl Serialize for EVMProofPlan {
         let table_refs = self.get_table_references();
         let column_refs = self.get_column_references();
 
-        let plan = Plan::try_from_proof_plan(&self.0, &table_refs, &column_refs)
+        let plan = Plan::try_from_proof_plan(self.inner(), &table_refs, &column_refs)
             .map_err(serde::ser::Error::custom)?;
         let columns = column_refs
             .into_iter()
             .map(|column_ref| {
-                table_refs
+                let table_index = table_refs
                     .get_index_of(&column_ref.table_ref())
-                    .map(|table_index| (table_index, column_ref.column_id().to_string()))
+                    .ok_or(Error::TableNotFound)?;
+                Ok((table_index, column_ref.column_id().to_string()))
             })
-            .collect::<Option<_>>()
-            .ok_or(Error::TableNotFound)
-            .map_err(serde::ser::Error::custom)?;
+            .try_collect()
+            .map_err(serde::ser::Error::custom::<Error>)?;
         let tables = table_refs.iter().map(ToString::to_string).collect();
 
         CompactPlan {
@@ -70,17 +91,17 @@ impl ProofPlan for EVMProofPlan {
         result: Option<&OwnedTable<S>>,
         one_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        self.0
+        self.inner()
             .verifier_evaluate(builder, accessor, result, one_eval_map)
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        self.0.get_column_result_fields()
+        self.inner().get_column_result_fields()
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        self.0.get_column_references()
+        self.inner().get_column_references()
     }
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        self.0.get_table_references()
+        self.inner().get_table_references()
     }
 }
 impl ProverEvaluate for EVMProofPlan {
@@ -90,7 +111,7 @@ impl ProverEvaluate for EVMProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        self.0.first_round_evaluate(builder, alloc, table_map)
+        self.inner().first_round_evaluate(builder, alloc, table_map)
     }
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
@@ -98,6 +119,6 @@ impl ProverEvaluate for EVMProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        self.0.final_round_evaluate(builder, alloc, table_map)
+        self.inner().final_round_evaluate(builder, alloc, table_map)
     }
 }

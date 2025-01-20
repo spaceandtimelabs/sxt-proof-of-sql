@@ -18,7 +18,7 @@ fn we_cannot_generate_serialized_proof_plan_for_unsupported_plan() {
     bincode::DefaultOptions::new()
         .with_fixint_encoding()
         .with_big_endian()
-        .serialize(&EVMProofPlan(plan))
+        .serialize(&EVMProofPlan::new(plan))
         .unwrap_err();
 }
 
@@ -49,7 +49,7 @@ fn we_can_generate_serialized_proof_plan_for_simple_filter() {
     let bytes = bincode::DefaultOptions::new()
         .with_fixint_encoding()
         .with_big_endian()
-        .serialize(&EVMProofPlan(plan))
+        .serialize(&EVMProofPlan::new(plan))
         .unwrap();
 
     let expected_bytes: Vec<_> = iter::empty()

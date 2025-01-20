@@ -9,12 +9,15 @@ use crate::{
 use alloc::vec::Vec;
 use serde::Serialize;
 
+/// Represents a plan that can be serialized for EVM.
 #[derive(Serialize)]
-pub enum Plan {
+pub(super) enum Plan {
     Filter(FilterExec),
 }
+
 impl Plan {
-    pub fn try_from_proof_plan(
+    /// Try to create a `Plan` from a `DynProofPlan`.
+    pub(super) fn try_from_proof_plan(
         plan: &DynProofPlan,
         table_refs: &IndexSet<TableRef>,
         column_refs: &IndexSet<ColumnRef>,
@@ -29,13 +32,16 @@ impl Plan {
     }
 }
 
+/// Represents a filter execution plan.
 #[derive(Serialize)]
-pub struct FilterExec {
+pub(super) struct FilterExec {
     table_number: usize,
     results: Vec<Expr>,
     where_clause: Expr,
 }
+
 impl FilterExec {
+    /// Try to create a `FilterExec` from a `proof_plans::FilterExec`.
     fn try_from_proof_plan(
         plan: &proof_plans::FilterExec,
         table_refs: &IndexSet<TableRef>,

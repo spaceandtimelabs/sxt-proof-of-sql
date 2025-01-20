@@ -9,14 +9,16 @@ use crate::{
 use alloc::boxed::Box;
 use serde::Serialize;
 
+/// Represents an expression that can be serialized for EVM.
 #[derive(Serialize)]
-pub enum Expr {
+pub(super) enum Expr {
     Column(ColumnExpr),
     Equals(EqualsExpr),
     Literal(LiteralExpr),
 }
 impl Expr {
-    pub fn try_from_proof_expr(
+    /// Try to create an `Expr` from a `DynProofExpr`.
+    pub(super) fn try_from_proof_expr(
         expr: &DynProofExpr,
         column_refs: &IndexSet<ColumnRef>,
     ) -> Result<Self, Error> {
@@ -35,11 +37,13 @@ impl Expr {
     }
 }
 
+/// Represents a column expression.
 #[derive(Serialize)]
-pub struct ColumnExpr {
+pub(super) struct ColumnExpr {
     column_number: usize,
 }
 impl ColumnExpr {
+    /// Try to create a `ColumnExpr` from a `proof_exprs::ColumnExpr`.
     fn try_from_proof_expr(
         expr: &proof_exprs::ColumnExpr,
         column_refs: &IndexSet<ColumnRef>,
@@ -52,11 +56,13 @@ impl ColumnExpr {
     }
 }
 
+/// Represents a literal expression.
 #[derive(Serialize)]
-pub enum LiteralExpr {
+pub(super) enum LiteralExpr {
     BigInt(i64),
 }
 impl LiteralExpr {
+    /// Try to create a `LiteralExpr` from a `proof_exprs::LiteralExpr`.
     fn try_from_proof_expr(expr: &proof_exprs::LiteralExpr) -> Result<Self, Error> {
         match expr.value {
             LiteralValue::BigInt(value) => Ok(LiteralExpr::BigInt(value)),
@@ -64,12 +70,15 @@ impl LiteralExpr {
         }
     }
 }
+
+/// Represents an equals expression.
 #[derive(Serialize)]
-pub struct EqualsExpr {
+pub(super) struct EqualsExpr {
     lhs: Box<Expr>,
     rhs: Box<Expr>,
 }
 impl EqualsExpr {
+    /// Try to create an `EqualsExpr` from a `proof_exprs::EqualsExpr`.
     fn try_from_proof_expr(
         expr: &proof_exprs::EqualsExpr,
         column_refs: &IndexSet<ColumnRef>,
