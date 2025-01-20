@@ -14,7 +14,7 @@ Using Proof of SQL, developers can compute over both onchain and offchain datase
 
 ## Contributing
 
-Proof of SQL is in active development, and not all SQL functions are supported yet. Proof of SQL is most powerful as a community-driven project. We hope to foster a large group of contributers that can help maintain, improve, and
+Proof of SQL is in active development, and not all SQL functions are supported yet. Proof of SQL is most powerful as a community-driven project. We hope to foster a large group of contributors that can help maintain, improve, and
 use this project to create a trustless and data-driven future. Please create an Issue, file a PR, or reach out via Discord if you want to add a SQL feature,
 integrate into another ZK solution, use this in your project, or anything else! Check out our guidelines: [CONTRIBUTING.md](https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/CONTRIBUTING.md).
 
