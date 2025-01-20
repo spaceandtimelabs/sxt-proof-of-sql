@@ -33,11 +33,13 @@ use core::iter::repeat;
 use tracing::{span, Level};
 
 #[tracing::instrument(name = "range check first round evaluate", level = "debug", skip_all)]
-pub(crate) fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
+pub(crate) fn first_round_evaluate_range_check<'a, S>(
     builder: &mut FirstRoundBuilder<'a, S>,
-    scalars: &[S],
+    scalars: &[impl Copy + Into<S>],
     alloc: &'a Bump,
-) {
+) where
+    S: Scalar + 'a,
+{
     builder.update_range_length(256);
 
     // Create 31 columns, each will collect the corresponding byte from all scalars.
@@ -78,7 +80,7 @@ pub(crate) fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
 #[tracing::instrument(name = "range check final round evaluate", level = "debug", skip_all)]
 pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
-    scalars: &[S],
+    scalars: &[impl Copy + Into<S>],
     alloc: &'a Bump,
 ) {
     // Create 31 columns, each will collect the corresponding word from all scalars.
@@ -181,9 +183,12 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     level = "debug",
     skip_all
 )]
-fn decompose_scalars_to_words<'a, S: Scalar + 'a>(scalars: &[S], word_columns: &mut [&mut [u8]]) {
+fn decompose_scalars_to_words<'a, T, S: Scalar + 'a>(scalars: &[T], word_columns: &mut [&mut [u8]])
+where
+    T: Copy + Into<S>,
+{
     for (i, scalar) in scalars.iter().enumerate() {
-        let scalar_array: [u64; 4] = (*scalar).into();
+        let scalar_array: [u64; 4] = (*scalar).into().into();
         // Convert the [u64; 4] into a slice of bytes
         let scalar_bytes = &cast_slice::<u64, u8>(&scalar_array)[..31];
 
@@ -363,7 +368,7 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
     word_counts: &'a mut [i64],
     alloc: &'a Bump,
-    scalars: &[S],
+    scalars: &[impl Into<S>],
     inverted_word_columns: &[&mut [S]],
     word_vals_plus_alpha_inv: &'a [S],
 ) {
@@ -509,7 +514,7 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
 mod tests {
     use super::*;
     use crate::{
-        base::scalar::{Curve25519Scalar as S, Scalar},
+        base::scalar::{Curve25519Scalar, Curve25519Scalar as S, Scalar},
         sql::proof::FinalRoundBuilder,
     };
     use alloc::collections::VecDeque;
@@ -529,7 +534,10 @@ mod tests {
         let mut byte_counts = vec![0; 256];
 
         // Call the decomposer first
-        decompose_scalars_to_words(&scalars, &mut word_slices);
+        decompose_scalars_to_words::<Curve25519Scalar, Curve25519Scalar>(
+            &scalars,
+            &mut word_slices,
+        );
 
         let word_columns_immut: Vec<&[u8]> = word_slices
             .iter()
@@ -570,7 +578,10 @@ mod tests {
 
         let mut byte_counts = vec![0; 256];
 
-        decompose_scalars_to_words(&scalars, &mut word_slices);
+        decompose_scalars_to_words::<Curve25519Scalar, Curve25519Scalar>(
+            &scalars,
+            &mut word_slices,
+        );
 
         let word_columns_immut: Vec<&[u8]> = word_slices.iter().map(|column| &column[..]).collect();
 
