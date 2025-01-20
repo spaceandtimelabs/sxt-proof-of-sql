@@ -120,22 +120,32 @@ jobs:
         run: |
             cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std" && \
             cargo test proof_primitive::dory::dynamic_dory_compute_commitments_test --no-default-features --features="std"
-      - name: Run hello_world example (With Blitzar)
-        run: cargo run --example hello_world --features="test"
-      - name: Run hello_world example (Without Blitzar and With Rayon)
-        run: cargo run --example hello_world --no-default-features --features="rayon test"
-      - name: Run hello_world example (Without Blitzar and Without Rayon)
-        run: cargo run --example hello_world --no-default-features --features="test"
-      - name: Run space example
-        run: cargo run --example space
-      - name: Run dog breeds example
-        run: cargo run --example dog_breeds
-      - name: Run wood types example
-        run: cargo run --example wood_types
-      - name: Run posql_db example (With Blitzar)
-        run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
-      - name: Run posql_db example (Without Blitzar)
-        run: bash crates/proof-of-sql/examples/posql_db/run_example.sh --no-default-features --features="rayon"
+
+  examples:
+      name: Run Examples (Heavy)
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout sources
+          uses: actions/checkout@v3
+        - name: Install stable toolchain
+          run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
+        - name: Run hello_world example (With Blitzar)
+          run: cargo run --example hello_world --features="test"
+        - name: Run hello_world example (Without Blitzar and With Rayon)
+          run: cargo run --example hello_world --no-default-features --features="rayon test"
+        - name: Run hello_world example (Without Blitzar and Without Rayon)
+          run: cargo run --example hello_world --no-default-features --features="test"
+        - name: Run space example
+          run: cargo run --example space
+        - name: Run dog breeds example
+          run: cargo run --example dog_breeds
+        - name: Run wood types example
+          run: cargo run --example wood_types
+        - name: Run posql_db example (With Blitzar)
+          run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
+        - name: Run posql_db example (Without Blitzar)
+          run: bash crates/proof-of-sql/examples/posql_db/run_example.sh --no-default-features --features="rayon"
+
   clippy:
     name: Clippy
     runs-on: large-8-core-32gb-22-04

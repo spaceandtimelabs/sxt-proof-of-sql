@@ -600,8 +600,8 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         (),
     );
     let (mut proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
-    proof.final_round_commitments[0] =
-        proof.final_round_commitments[0] * Curve25519Scalar::from(2u64);
+    proof.final_round_message.round_commitments[0] =
+        proof.final_round_message.round_commitments[0] * Curve25519Scalar::from(2u64);
     assert!(proof.verify(&expr, &accessor, result, &()).is_err());
 }
 
