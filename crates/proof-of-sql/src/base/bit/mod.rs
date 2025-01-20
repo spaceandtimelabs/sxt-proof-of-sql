@@ -1,5 +1,6 @@
-mod abs_bit_mask;
-pub use abs_bit_mask::*;
+pub(crate) mod bit_mask_utils;
+#[cfg(test)]
+mod bit_mask_utils_test;
 
 mod bit_distribution;
 pub use bit_distribution::*;
