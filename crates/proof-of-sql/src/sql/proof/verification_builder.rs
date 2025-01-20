@@ -92,7 +92,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             .get(index)
             .copied()
             .ok_or(ProofSizeMismatch::TooFewRhoLengths)?;
-        self.consumed_one_evaluations += 1;
+        self.consumed_rho_evaluations += 1;
         Ok(*self
             .mle_evaluations
             .rho_evaluations
