@@ -5,20 +5,26 @@ use crate::base::{
     slice_ops,
 };
 use alloc::vec::Vec;
+use ark_bn254::g1::G1Affine;
+use ark_ec::AffineRepr;
+use ark_ff::PrimeField;
+use blitzar;
+use byte_slice_cast::AsByteSlice;
 use core::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
 use ff::Field;
 use itertools::Itertools;
+#[cfg(not(feature = "blitzar"))]
+use nova_snark::provider::hyperkzg::CommitmentEngine;
+#[cfg(not(feature = "blitzar"))]
+use nova_snark::traits::commitment::{CommitmentEngineTrait, CommitmentTrait};
 use nova_snark::{
     errors::NovaError,
     provider::{
         bn256_grumpkin::bn256::Scalar as NovaScalar,
-        hyperkzg::{
-            CommitmentEngine, CommitmentKey, EvaluationArgument, EvaluationEngine, VerifierKey,
-        },
+        hyperkzg::{CommitmentKey, EvaluationArgument, EvaluationEngine, VerifierKey},
     },
     traits::{
-        commitment::CommitmentEngineTrait, evaluation::EvaluationEngineTrait, Engine,
-        TranscriptEngineTrait, TranscriptReprTrait,
+        evaluation::EvaluationEngineTrait, Engine, TranscriptEngineTrait, TranscriptReprTrait,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -93,6 +99,7 @@ impl Sub for HyperKZGCommitment {
     }
 }
 
+#[cfg(not(feature = "blitzar"))]
 #[tracing::instrument(name = "compute_commitments_impl (cpu)", level = "debug", skip_all)]
 fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
     setup: &CommitmentKey<HyperKZGEngine>,
@@ -109,6 +116,107 @@ fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
     );
     HyperKZGCommitment { commitment }
 }
+
+#[cfg(feature = "blitzar")]
+fn convert_to_ark_bn254_g1_affine(
+    point: nova_snark::provider::bn256_grumpkin::bn256::Affine,
+) -> ark_bn254::G1Affine {
+    ark_bn254::G1Affine::new(
+        ark_bn254::Fq::from_le_bytes_mod_order(&point.x.to_bytes()),
+        ark_bn254::Fq::from_le_bytes_mod_order(&point.y.to_bytes()),
+    )
+}
+
+#[cfg(feature = "blitzar")]
+/// Converts a `NovaScalar` to an array of four `u64` values.
+///
+/// This function takes a `NovaScalar`, converts it to a 32-byte array, and then splits
+/// that array into four `u64` values.
+///
+/// # Panics
+///
+/// This function will panic if:
+/// - The scalar is not 32 bytes long.
+/// - The conversion from bytes to `u64` fails.
+///
+/// # Arguments
+///
+/// * `scalar` - A `NovaScalar` to be converted.
+///
+/// # Returns
+///
+/// An array of four `u64` values representing the `NovaScalar`.
+fn convert_to_u64_array(scalar: NovaScalar) -> [u64; 4] {
+    let bytes: [u8; 32] = scalar.to_bytes();
+    let mut array = [0u64; 4];
+    for i in 0..4 {
+        array[i] = u64::from_le_bytes(bytes[i * 8..(i + 1) * 8].try_into().unwrap());
+    }
+    array
+}
+
+#[cfg(feature = "blitzar")]
+/// Converts an `ark_bn254::G1Affine` point to a `nova_snark::provider::bn256_grumpkin::bn256::Affine` point.
+///
+/// # Panics
+///
+/// This function will panic if:
+/// - The x or y coordinates of the point are not 32 bytes long.
+/// - The conversion from bytes to `nova_snark::provider::bn256_grumpkin::bn256::Base` fails.
+fn convert_to_nova_g1_affine(
+    point: ark_bn254::G1Affine,
+) -> nova_snark::provider::bn256_grumpkin::bn256::Affine {
+    let x = point.x().unwrap().into_bigint();
+    let y = point.y().unwrap().into_bigint();
+    let x_bytes: &[u8; 32] = x.as_byte_slice().try_into().unwrap();
+    let y_bytes: &[u8; 32] = y.as_byte_slice().try_into().unwrap();
+
+    nova_snark::provider::bn256_grumpkin::bn256::Affine {
+        x: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(x_bytes).unwrap(),
+        y: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(y_bytes).unwrap(),
+    }
+}
+
+#[cfg(feature = "blitzar")]
+fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
+    setup: &CommitmentKey<HyperKZGEngine>,
+    offset: usize,
+    scalars: &[T],
+) -> HyperKZGCommitment {
+    let v = &itertools::repeat_n(BNScalar::ZERO, offset)
+        .chain(scalars.iter().map(Into::into))
+        .map(Into::into)
+        .collect_vec();
+
+    // Get bases from the setup
+    let blitzar_bases_slice: Vec<G1Affine> = setup.ck()[..v.len()]
+        .iter()
+        .chain(std::iter::once(setup.h()))
+        .map(|x| convert_to_ark_bn254_g1_affine(*x))
+        .collect();
+
+    // Get the scalars
+    let blitzar_scalar_vec = v
+        .iter()
+        .map(|x| convert_to_u64_array(*x))
+        .chain(std::iter::once(convert_to_u64_array(NovaScalar::zero())))
+        .collect::<Vec<[u64; 4]>>();
+
+    let mut blitzar_commitments = vec![G1Affine::default(); 1];
+
+    blitzar::compute::compute_bn254_g1_uncompressed_commitments_with_generators(
+        &mut blitzar_commitments,
+        &[(&blitzar_scalar_vec).into()],
+        &blitzar_bases_slice,
+    );
+
+    HyperKZGCommitment {
+        commitment: NovaCommitment::from_g1_affine(convert_to_nova_g1_affine(
+            blitzar_commitments[0],
+        )),
+    }
+}
+
 impl Commitment for HyperKZGCommitment {
     type Scalar = BNScalar;
     type PublicSetup<'a> = &'a CommitmentKey<HyperKZGEngine>;
@@ -276,7 +384,9 @@ mod tests {
         scalar::test_scalar_constants,
     };
     use ark_std::UniformRand;
-    use nova_snark::provider::hyperkzg::CommitmentEngine;
+    use nova_snark::{
+        provider::hyperkzg::CommitmentEngine, traits::commitment::CommitmentEngineTrait,
+    };
 
     #[test]
     fn we_have_correct_constants_for_bn_scalar() {
