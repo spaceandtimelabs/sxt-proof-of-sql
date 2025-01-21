@@ -143,14 +143,17 @@ fn we_can_directly_check_whether_bigint_columns_ge_int128() {
         .build(Some(expr_integer_to_integer))
         .unwrap()
         .unwrap();
-    let expected = DynProofExpr::try_new_inequality(
-        DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-            "sxt.sxt_tab".parse().unwrap(),
-            "bigint_column".into(),
-            ColumnType::BigInt,
-        ))),
-        DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
-        false,
+    let expected = DynProofExpr::try_new_not(
+        DynProofExpr::try_new_inequality(
+            DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
+                "sxt.sxt_tab".parse().unwrap(),
+                "bigint_column".into(),
+                ColumnType::BigInt,
+            ))),
+            DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
+            true,
+        )
+        .unwrap(),
     )
     .unwrap();
     assert_eq!(actual, expected);
@@ -165,14 +168,17 @@ fn we_can_directly_check_whether_bigint_columns_le_int128() {
         .build(Some(expr_integer_to_integer))
         .unwrap()
         .unwrap();
-    let expected = DynProofExpr::try_new_inequality(
-        DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-            "sxt.sxt_tab".parse().unwrap(),
-            "bigint_column".into(),
-            ColumnType::BigInt,
-        ))),
-        DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
-        true,
+    let expected = DynProofExpr::try_new_not(
+        DynProofExpr::try_new_inequality(
+            DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
+                "sxt.sxt_tab".parse().unwrap(),
+                "bigint_column".into(),
+                ColumnType::BigInt,
+            ))),
+            DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
+            false,
+        )
+        .unwrap(),
     )
     .unwrap();
     assert_eq!(actual, expected);
