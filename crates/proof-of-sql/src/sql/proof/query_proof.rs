@@ -143,6 +143,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         transcript.extend_serialize_as_le(expr);
         transcript.extend_serialize_as_le(&owned_table_result);
         transcript.extend_serialize_as_le(&min_row_num);
+        transcript.challenge_as_le();
 
         let first_round_message = FirstRoundMessage {
             range_length,
@@ -181,6 +182,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         };
 
         // add the commitments, bit distributions and one evaluation lengths to the proof
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(&final_round_message);
 
         // construct the sumcheck polynomial
@@ -195,6 +197,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             num_sumcheck_variables,
             &SumcheckRandomScalars::new(&random_scalars, range_length, num_sumcheck_variables),
         );
+        transcript.challenge_as_le();
 
         // create the sumcheck proof -- this is the main part of proving a query
         let mut evaluation_point = vec![Zero::zero(); state.num_vars];
@@ -308,6 +311,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         transcript.extend_serialize_as_le(expr);
         transcript.extend_serialize_as_le(&result);
         transcript.extend_serialize_as_le(&min_row_num);
+        transcript.challenge_as_le();
 
         transcript.extend_serialize_as_le(&self.first_round_message);
 
@@ -322,6 +326,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .collect();
 
         // add the commitments and bit distributions to the proof
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(&self.final_round_message);
 
         // draw the random scalars for sumcheck
@@ -336,6 +341,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             self.first_round_message.range_length,
             num_sumcheck_variables,
         );
+        transcript.challenge_as_le();
 
         // verify sumcheck up to the evaluation check
         let subclaim = self.sumcheck_proof.verify_without_evaluation(

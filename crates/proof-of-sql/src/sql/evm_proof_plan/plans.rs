@@ -36,8 +36,8 @@ impl Plan {
 #[derive(Serialize)]
 pub(super) struct FilterExec {
     table_number: usize,
-    results: Vec<Expr>,
     where_clause: Expr,
+    results: Vec<Expr>,
 }
 
 impl FilterExec {
