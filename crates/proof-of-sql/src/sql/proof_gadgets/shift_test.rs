@@ -34,6 +34,8 @@ impl ProverEvaluate for ShiftTestPlan {
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         builder.request_post_result_challenges(2);
+        builder.produce_one_evaluation_length(self.column_length);
+        builder.produce_one_evaluation_length(self.column_length + 1);
         // Evaluate the first round
         first_round_evaluate_shift(builder, self.column_length);
         // This is just a dummy table, the actual data is not used
@@ -113,8 +115,18 @@ impl ProofPlan for ShiftTestPlan {
         // Get the columns
         let column_eval = builder.try_consume_final_round_mle_evaluation()?;
         let candidate_shift_eval = builder.try_consume_final_round_mle_evaluation()?;
+        let chi_n_eval = builder.try_consume_one_evaluation()?;
+        let chi_n_plus_1_eval = builder.try_consume_one_evaluation()?;
         // Evaluate the verifier
-        verify_shift(builder, alpha, beta, column_eval, candidate_shift_eval)?;
+        verify_shift(
+            builder,
+            alpha,
+            beta,
+            column_eval,
+            candidate_shift_eval,
+            chi_n_eval,
+            chi_n_plus_1_eval,
+        )?;
         Ok(TableEvaluation::new(vec![], S::zero()))
     }
 }

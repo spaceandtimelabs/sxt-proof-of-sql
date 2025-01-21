@@ -16,10 +16,10 @@ pub(crate) fn first_round_evaluate_shift<S: Scalar>(
     builder: &mut FirstRoundBuilder<'_, S>,
     num_rows: usize,
 ) {
+    // Note that we don't produce one eval lengths here
+    // since it needs to be done in uniqueness check which uses shifts.
     builder.produce_rho_evaluation_length(num_rows);
     builder.produce_rho_evaluation_length(num_rows + 1);
-    builder.produce_one_evaluation_length(num_rows);
-    builder.produce_one_evaluation_length(num_rows + 1);
 }
 
 /// Perform final round evaluation of downward shift.
@@ -105,11 +105,11 @@ pub(crate) fn verify_shift<S: Scalar>(
     beta: S,
     column_eval: S,
     shifted_column_eval: S,
+    chi_n_eval: S,
+    chi_n_plus_1_eval: S,
 ) -> Result<(), ProofError> {
     let rho_n_eval = builder.try_consume_rho_evaluation()?;
     let rho_n_plus_1_eval = builder.try_consume_rho_evaluation()?;
-    let chi_n_eval = builder.try_consume_one_evaluation()?;
-    let chi_n_plus_1_eval = builder.try_consume_one_evaluation()?;
     let c_fold_eval = alpha * fold_vals(beta, &[rho_n_eval + chi_n_eval, column_eval]);
     let d_fold_eval = alpha * fold_vals(beta, &[rho_n_plus_1_eval, shifted_column_eval]);
     let c_star_eval = builder.try_consume_final_round_mle_evaluation()?;
