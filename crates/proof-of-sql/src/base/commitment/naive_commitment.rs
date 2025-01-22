@@ -122,6 +122,9 @@ impl Commitment for NaiveCommitment {
                     CommittableColumn::Boolean(bool_vec) => {
                         bool_vec.iter().map(core::convert::Into::into).collect()
                     }
+                    CommittableColumn::Uint8(u8_vec) => {
+                        u8_vec.iter().map(core::convert::Into::into).collect()
+                    }
                     CommittableColumn::TinyInt(tiny_int_vec) => {
                         tiny_int_vec.iter().map(core::convert::Into::into).collect()
                     }
@@ -150,10 +153,6 @@ impl Commitment for NaiveCommitment {
                     CommittableColumn::TimestampTZ(_, _, i64_vec) => {
                         i64_vec.iter().map(core::convert::Into::into).collect()
                     }
-                    CommittableColumn::RangeCheckWord(u8_scalar_vec) => u8_scalar_vec
-                        .iter()
-                        .map(core::convert::Into::into)
-                        .collect(),
                 };
                 vectors.append(&mut existing_scalars);
                 NaiveCommitment(vectors)
