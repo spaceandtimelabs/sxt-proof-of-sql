@@ -109,8 +109,7 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
         word_value_table[i as usize] = i;
         inv_word_values_plus_alpha_table[i as usize] = S::from(&i);
     }
-    let word_val_table: &mut [u8] =
-        alloc.alloc_slice_fill_with(word_value_table.len(), |i| word_value_table[i]);
+
     let inv_word_vals_plus_alpha_table: &mut [S] = alloc
         .alloc_slice_fill_with(inv_word_values_plus_alpha_table.len(), |i| {
             inv_word_values_plus_alpha_table[i]
@@ -135,7 +134,7 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
         alloc,
         alpha,
         builder,
-        word_val_table,
+        alloc.alloc_slice_copy(&word_value_table), // give this an explicit lifetime for MLE commitment
         inv_word_vals_plus_alpha_table,
     );
 
