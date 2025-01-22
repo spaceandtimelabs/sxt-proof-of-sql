@@ -203,7 +203,7 @@ pub struct ColumnBoundsMismatch {
 pub enum ColumnBounds {
     /// Column does not have order.
     NoOrder,
-    /// The bounds of a `TinyInt` column.
+    /// The bounds of a `Uint8` column.
     Uint8(Bounds<u8>),
     /// The bounds of a `TinyInt` column.
     TinyInt(Bounds<i8>),

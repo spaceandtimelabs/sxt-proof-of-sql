@@ -479,17 +479,27 @@ where
     MontScalar<T>: Scalar,
 {
     type Error = ScalarConversionError;
+
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
+        if value < MontScalar::<T>::ZERO {
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is negative and cannot fit in a u8"),
+            });
+        }
+
         let abs: [u64; 4] = value.into();
+
         if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
             return Err(ScalarConversionError::Overflow {
                 error: format!("{value} is too large to fit in a u8"),
             });
         }
-        let val: u64 = abs[0];
-        val.try_into().map_err(|_| ScalarConversionError::Overflow {
-            error: format!("{value} is too large to fit in a u8"),
-        })
+
+        abs[0]
+            .try_into()
+            .map_err(|_| ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in a u8"),
+            })
     }
 }
 
