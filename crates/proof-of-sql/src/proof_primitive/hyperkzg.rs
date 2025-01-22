@@ -8,6 +8,7 @@ use alloc::vec::Vec;
 use ark_bn254::g1::G1Affine;
 use ark_ec::AffineRepr;
 use ark_ff::PrimeField;
+#[cfg(feature = "blitzar")]
 use blitzar;
 use byte_slice_cast::AsByteSlice;
 use core::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
@@ -166,14 +167,22 @@ fn convert_to_u64_array(scalar: NovaScalar) -> [u64; 4] {
 fn convert_to_nova_g1_affine(
     point: ark_bn254::G1Affine,
 ) -> nova_snark::provider::bn256_grumpkin::bn256::Affine {
-    let x = point.x().unwrap().into_bigint();
-    let y = point.y().unwrap().into_bigint();
-    let x_bytes: &[u8; 32] = x.as_byte_slice().try_into().unwrap();
-    let y_bytes: &[u8; 32] = y.as_byte_slice().try_into().unwrap();
+    let x = match point.x() {
+        Some(coord) => coord,
+        None => return nova_snark::provider::bn256_grumpkin::bn256::Affine::default(),
+    };
+    let y = match point.y() {
+        Some(coord) => coord,
+        None => return nova_snark::provider::bn256_grumpkin::bn256::Affine::default(),
+    };
+    let x = x.into_bigint();
+    let y = y.into_bigint();
+    let x_bytes: &[u8; 32] = x.as_byte_slice().try_into().expect("Failed to convert x coordinate to bytes");
+    let y_bytes: &[u8; 32] = y.as_byte_slice().try_into().expect("Failed to convert y coordinate to bytes");
 
     nova_snark::provider::bn256_grumpkin::bn256::Affine {
-        x: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(x_bytes).unwrap(),
-        y: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(y_bytes).unwrap(),
+        x: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(x_bytes).expect("Failed to convert x coordinate to bytes"),
+        y: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(y_bytes).expect("Failed to convert y coordinate to bytes"),
     }
 }
 
