@@ -1,17 +1,18 @@
-use super::{verify_constant_abs_decomposition, verify_constant_sign_decomposition};
 use crate::{
     base::{
-        bit::{compute_varying_bit_matrix, BitDistribution},
+        bit::{
+            bit_mask_utils::{is_bit_mask_negative_representation, make_bit_mask},
+            compute_varying_bit_matrix, BitDistribution, BitDistrubutionError,
+        },
         proof::ProofError,
-        scalar::Scalar,
+        scalar::{Scalar, ScalarExt},
     },
-    sql::proof::{
-        FinalRoundBuilder, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
-        VerificationBuilder,
-    },
+    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::{boxed::Box, vec, vec::Vec};
+use bnum::types::U256;
 use bumpalo::Bump;
+use core::ops::Shl;
 
 /// Compute the sign bit for a column of scalars.
 ///
@@ -25,23 +26,13 @@ pub fn result_evaluate_sign<'a, S: Scalar>(
     expr: &'a [S],
 ) -> &'a [bool] {
     assert_eq!(table_length, expr.len());
-    // bit_distribution
-    let dist = BitDistribution::new::<S, _>(expr);
-
-    // handle the constant case
-    if dist.num_varying_bits() == 0 {
-        return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
-    }
-
-    // prove that the bits are binary
-    let bits = compute_varying_bit_matrix(alloc, expr, &dist);
-    if !dist.has_varying_sign_bit() {
-        return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
-    }
-
-    let result = bits.last().unwrap();
-    assert_eq!(table_length, result.len());
-    result
+    let signs = expr
+        .iter()
+        .map(|s| make_bit_mask(*s))
+        .map(is_bit_mask_negative_representation)
+        .collect::<Vec<_>>();
+    assert_eq!(table_length, signs.len());
+    alloc.alloc_slice_copy(&signs)
 }
 
 /// Prove the sign decomposition for a column of scalars.
@@ -59,45 +50,32 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     expr: &'a [S],
-    #[cfg(test)] treat_column_of_zeros_as_negative: bool,
 ) -> &'a [bool] {
-    let table_length = expr.len();
     // bit_distribution
     let dist = BitDistribution::new::<S, _>(expr);
-    #[cfg(test)]
-    let dist = {
-        let mut dist = dist;
-        if treat_column_of_zeros_as_negative && dist.vary_mask == [0; 4] {
-            dist.or_all[3] = 1 << 63;
-        }
-        dist
-    };
     builder.produce_bit_distribution(dist.clone());
 
-    // handle the constant case
-    if dist.num_varying_bits() == 0 {
-        return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
-    }
-
-    // prove that the bits are binary
-    let bits = compute_varying_bit_matrix(alloc, expr, &dist);
-    prove_bits_are_binary(builder, &bits);
-    if !dist.has_varying_sign_bit() {
-        return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
-    }
-
-    if dist.num_varying_bits() > 1 {
-        prove_bit_decomposition(builder, alloc, expr, &bits, &dist);
+    if dist.num_varying_bits() > 0 {
+        // prove that the bits are binary
+        let bits = compute_varying_bit_matrix(alloc, expr, &dist);
+        prove_bits_are_binary(builder, &bits);
     }
 
     // This might panic if `bits.last()` returns `None`.
-    bits.last().unwrap()
+
+    let signs = expr
+        .iter()
+        .map(|s| make_bit_mask(*s))
+        .map(is_bit_mask_negative_representation)
+        .collect::<Vec<_>>();
+    alloc.alloc_slice_copy(&signs)
 }
 
 /// Verify the sign decomposition for a column of scalars.
 ///
 /// # Panics
-/// Panics if `bit_evals.last()` is `None`.
+/// Panics if `bit_evals` is empty and `dist` indicates a variable lead bit.
+/// This would mean that there is no way to determine the sign bit.
 ///
 /// See [`prover_evaluate_sign`].
 pub fn verifier_evaluate_sign<S: Scalar>(
@@ -120,33 +98,16 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     // establish that the bits are binary
     verify_bits_are_binary(builder, &bit_evals)?;
 
-    // handle the special case of the sign bit being constant
-    if !dist.has_varying_sign_bit() {
-        return verifier_const_sign_evaluate(&dist, eval, one_eval, &bit_evals);
-    }
-
-    // handle the special case of the absolute part being constant
-    if dist.num_varying_bits() == 1 {
-        verify_constant_abs_decomposition(&dist, eval, one_eval, bit_evals[0])?;
-    } else {
-        verify_bit_decomposition(builder, eval, one_eval, &bit_evals, &dist)?;
-    }
-
-    Ok(*bit_evals.last().unwrap())
-}
-
-fn verifier_const_sign_evaluate<S: Scalar>(
-    dist: &BitDistribution,
-    eval: S,
-    one_eval: S,
-    bit_evals: &[S],
-) -> Result<S, ProofError> {
-    verify_constant_sign_decomposition(dist, eval, one_eval, bit_evals)?;
-    if dist.sign_bit() {
-        Ok(one_eval)
-    } else {
-        Ok(S::zero())
-    }
+    verify_bit_decomposition(eval, one_eval, &bit_evals, &dist)
+        .map(|sign_eval| one_eval - sign_eval)
+        .map_err(|err| match err {
+            BitDistrubutionError::NoLeadBit => {
+                panic!("No lead bit available despite variable lead bit.")
+            }
+            BitDistrubutionError::Verification => ProofError::VerificationError {
+                error: "invalid bit_decomposition",
+            },
+        })
 }
 
 fn prove_bits_are_binary<'a, S: Scalar>(
@@ -179,70 +140,88 @@ fn verify_bits_are_binary<S: Scalar>(
     Ok(())
 }
 
-/// # Panics
-/// Panics if `bits.last()` returns `None`.
-///
-/// This function generates subpolynomial terms for sumcheck, involving the scalar expression and its bit decomposition.
-fn prove_bit_decomposition<'a, S: Scalar>(
-    builder: &mut FinalRoundBuilder<'a, S>,
-    alloc: &'a Bump,
-    expr: &'a [S],
-    bits: &[&'a [bool]],
-    dist: &BitDistribution,
-) {
-    let sign_mle = bits.last().unwrap();
-    let sign_mle: &[_] =
-        alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * i32::from(sign_mle[i]));
-    let mut terms: Vec<SumcheckSubpolynomialTerm<S>> = Vec::new();
-
-    // expr
-    terms.push((S::one(), vec![Box::new(expr)]));
-
-    // expr bit decomposition
-    let const_part = S::from(dist.constant_part());
-    if !const_part.is_zero() {
-        terms.push((-const_part, vec![Box::new(sign_mle)]));
-    }
-    let mut vary_index = 0;
-    dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
-        let mut mult = [0u64; 4];
-        mult[int_index] = 1u64 << bit_index;
-        terms.push((
-            -S::from(mult),
-            vec![Box::new(sign_mle), Box::new(bits[vary_index])],
-        ));
-        vary_index += 1;
-    });
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomialType::Identity, terms);
-}
-
-/// # Panics
-/// Panics if `bit_evals.last()` returns `None`.
-///
 /// This function checks the consistency of the bit evaluations with the expression evaluation.
-fn verify_bit_decomposition<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+fn verify_bit_decomposition<S: ScalarExt>(
     expr_eval: S,
     one_eval: S,
     bit_evals: &[S],
     dist: &BitDistribution,
-) -> Result<(), ProofError> {
-    let mut eval = expr_eval;
-    let sign_eval = bit_evals.last().unwrap();
-    let sign_eval = one_eval - S::TWO * *sign_eval;
-    let mut vary_index = 0;
-    eval -= sign_eval * S::from(dist.constant_part());
-    dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
-        let mut mult = [0u64; 4];
-        mult[int_index] = 1u64 << bit_index;
-        let bit_eval = bit_evals[vary_index];
-        eval -= S::from(mult) * sign_eval * bit_eval;
-        vary_index += 1;
-    });
-    builder.try_produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::Identity,
-        eval,
-        2,
-    )?;
-    Ok(())
+) -> Result<S, BitDistrubutionError> {
+    let sign_eval = dist.leading_bit_eval(bit_evals, one_eval)?;
+    let mut rhs = sign_eval * S::from_wrapping(dist.leading_bit_mask())
+        + (one_eval - sign_eval) * S::from_wrapping(dist.leading_bit_inverse_mask())
+        - one_eval * S::from_wrapping(U256::ONE.shl(255));
+
+    for (vary_index, bit_index) in dist.vary_mask_iter().enumerate() {
+        if bit_index != 255 {
+            let mult = U256::ONE.shl(bit_index);
+            let bit_eval = bit_evals[vary_index];
+            rhs += S::from_wrapping(mult) * bit_eval;
+        }
+    }
+    (rhs == expr_eval)
+        .then_some(sign_eval)
+        .ok_or(BitDistrubutionError::Verification)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        base::{
+            bit::BitDistribution,
+            scalar::{test_scalar::TestScalar, Scalar},
+        },
+        sql::proof_gadgets::sign_expr::verify_bit_decomposition,
+    };
+
+    #[test]
+    fn we_can_verify_bit_decomposition() {
+        let dist = BitDistribution {
+            vary_mask: [629, 0, 0, 0],
+            leading_bit_mask: [2, 0, 0, 9_223_372_036_854_775_808],
+        };
+        let one_eval = TestScalar::ONE;
+        let bit_evals = [0, 0, 1, 1, 0, 1].map(TestScalar::from);
+        let expr_eval = TestScalar::from(562);
+        let sign_eval = verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist).unwrap();
+        assert_eq!(sign_eval, TestScalar::ONE);
+    }
+
+    #[test]
+    fn we_can_verify_bit_decomposition_constant_sign() {
+        let dist = BitDistribution {
+            vary_mask: [629, 0, 0, 0],
+            leading_bit_mask: [2, 0, 0, 9_223_372_036_854_775_808],
+        };
+        let a = TestScalar::ONE;
+        let b = TestScalar::ONE;
+        let expr_eval = TestScalar::from(118) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+            + TestScalar::from(562) * a * (TestScalar::ONE - b)
+            + TestScalar::from(3) * (TestScalar::ONE - a) * b;
+        let one_eval = TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+            + TestScalar::from(1) * a * (TestScalar::ONE - b)
+            + TestScalar::from(1) * (TestScalar::ONE - a) * b;
+        let bit_evals = [
+            TestScalar::from(0) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(0) * a * (TestScalar::ONE - b)
+                + TestScalar::from(1) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(0) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(1) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(1) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(0) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+            TestScalar::from(0) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+                + TestScalar::from(1) * a * (TestScalar::ONE - b)
+                + TestScalar::from(0) * (TestScalar::ONE - a) * b,
+        ];
+        let sign_eval = verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist).unwrap();
+        assert_eq!(sign_eval, TestScalar::ZERO);
+    }
 }

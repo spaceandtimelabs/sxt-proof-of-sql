@@ -129,10 +129,10 @@ pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
 
     // selection_not
     let selection_not: &[_] = alloc.alloc_slice_fill_with(table_length, |i| lhs[i] != S::zero());
-    builder.produce_intermediate_mle(selection_not);
 
     // selection
     let selection: &[_] = alloc.alloc_slice_fill_with(table_length, |i| !selection_not[i]);
+    builder.produce_intermediate_mle(selection);
 
     // subpolynomial: selection * lhs
     builder.produce_sumcheck_subpolynomial(
@@ -162,8 +162,8 @@ pub fn verifier_evaluate_equals_zero<S: Scalar>(
 ) -> Result<S, ProofError> {
     // consume mle evaluations
     let lhs_pseudo_inv_eval = builder.try_consume_final_round_mle_evaluation()?;
-    let selection_not_eval = builder.try_consume_final_round_mle_evaluation()?;
-    let selection_eval = one_eval - selection_not_eval;
+    let selection_eval = builder.try_consume_final_round_mle_evaluation()?;
+    let selection_not_eval = one_eval - selection_eval;
 
     // subpolynomial: selection * lhs
     builder.try_produce_sumcheck_subpolynomial_evaluation(

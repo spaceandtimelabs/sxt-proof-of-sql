@@ -26,20 +26,12 @@ pub struct InequalityExpr {
     lhs: Box<DynProofExpr>,
     rhs: Box<DynProofExpr>,
     is_lte: bool,
-    #[cfg(test)]
-    pub(crate) treat_column_of_zeros_as_negative: bool,
 }
 
 impl InequalityExpr {
     /// Create a new less than or equal expression
     pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>, is_lte: bool) -> Self {
-        Self {
-            lhs,
-            rhs,
-            is_lte,
-            #[cfg(test)]
-            treat_column_of_zeros_as_negative: false,
-        }
+        Self { lhs, rhs, is_lte }
     }
 }
 
@@ -108,13 +100,7 @@ impl ProofExpr for InequalityExpr {
         let equals_zero = prover_evaluate_equals_zero(table.num_rows(), builder, alloc, diff);
 
         // sign(diff) == -1
-        let sign = prover_evaluate_sign(
-            builder,
-            alloc,
-            diff,
-            #[cfg(test)]
-            self.treat_column_of_zeros_as_negative,
-        );
+        let sign = prover_evaluate_sign(builder, alloc, diff);
 
         // (diff == 0) || (sign(diff) == -1)
         let res = Column::Boolean(prover_evaluate_or(builder, alloc, equals_zero, sign));
