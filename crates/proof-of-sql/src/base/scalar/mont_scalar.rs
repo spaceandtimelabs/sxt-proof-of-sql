@@ -473,6 +473,26 @@ where
     }
 }
 
+impl<T> TryFrom<MontScalar<T>> for u8
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
+    type Error = ScalarConversionError;
+    fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
+        let abs: [u64; 4] = value.into();
+        if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in a u8"),
+            });
+        }
+        let val: u64 = abs[0];
+        val.try_into().map_err(|_| ScalarConversionError::Overflow {
+            error: format!("{value} is too large to fit in a u8"),
+        })
+    }
+}
+
 impl<T> TryFrom<MontScalar<T>> for i8
 where
     T: MontConfig<4>,

@@ -118,6 +118,7 @@ fn append_single_row_to_column<S: Scalar>(column: &OwnedColumn<S>) -> OwnedColum
     let mut column = column.clone();
     match &mut column {
         OwnedColumn::Boolean(col) => col.push(false),
+        OwnedColumn::Uint8(col) => col.push(0),
         OwnedColumn::TinyInt(col) => col.push(0),
         OwnedColumn::SmallInt(col) => col.push(0),
         OwnedColumn::Int(col) => col.push(0),
@@ -151,6 +152,7 @@ pub fn tamper_first_row_of_column<S: Scalar>(column: &OwnedColumn<S>) -> OwnedCo
     let mut column = column.clone();
     match &mut column {
         OwnedColumn::Boolean(col) => col[0] ^= true,
+        OwnedColumn::Uint8(col) => col[0] = col[0].wrapping_add(1),
         OwnedColumn::TinyInt(col) => col[0] = col[0].wrapping_add(1),
         OwnedColumn::SmallInt(col) => col[0] = col[0].wrapping_add(1),
         OwnedColumn::Int(col) => col[0] = col[0].wrapping_add(1),
