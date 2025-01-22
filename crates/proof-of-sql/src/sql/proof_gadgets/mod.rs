@@ -1,4 +1,5 @@
 //! This module contains shared proof logic for multiple `ProofExpr` / `ProofPlan` implementations.
+mod increasing;
 mod membership_check;
 mod shift;
 mod uniqueness;
@@ -20,6 +21,12 @@ pub(crate) mod range_check;
 mod range_check_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod sign_expr_test;
+#[allow(unused_imports, dead_code)]
+use increasing::{
+    final_round_evaluate_increasing, first_round_evaluate_increasing, verify_increasing,
+};
+#[cfg(test)]
+mod increasing_test;
 #[allow(unused_imports, dead_code)]
 use uniqueness::{
     final_round_evaluate_uniqueness, first_round_evaluate_uniqueness, verify_uniqueness,
