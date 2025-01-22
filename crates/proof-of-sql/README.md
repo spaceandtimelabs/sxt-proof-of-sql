@@ -57,7 +57,7 @@ Workaround for non-Linux and/or non-GPU machines.
 
 ## Examples
 
-Proof of SQL comes with example code demonstrating its usage. You can find the examples in the `crates/proof-of-sql/examples` folder. Below are explainations of how to run some of these examples:
+Proof of SQL comes with example code demonstrating its usage. You can find the examples in the `crates/proof-of-sql/examples` folder. Below are explanations of how to run some of these examples:
 
 ### "Hello World" Example
 
