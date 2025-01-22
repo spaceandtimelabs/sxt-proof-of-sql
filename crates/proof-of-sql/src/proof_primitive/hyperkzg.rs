@@ -178,6 +178,7 @@ fn convert_to_nova_g1_affine(
 }
 
 #[cfg(feature = "blitzar")]
+#[tracing::instrument(name = "compute_commitments_impl (gpu)", level = "debug", skip_all)]
 fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
     setup: &CommitmentKey<HyperKZGEngine>,
     offset: usize,
