@@ -452,25 +452,11 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     &mut packed_scalars,
                     cumulative_bit_sum_table[i],
                     offset,
-                    committable_columns[i].column_type().byte_size(),
-                    bit_table_full_sum_in_bytes,
-                    num_matrix_commitment_columns,
-                );
-            }
-<<<<<<< HEAD
-            CommittableColumn::RangeCheckWord(column) => {
-                pack_bit(
-                    column,
-                    &mut packed_scalars,
-                    cumulative_bit_sum_table[i],
-                    offset,
                     committable_columns[i].byte_size(),
                     bit_table_full_sum_in_bytes,
                     num_matrix_commitment_columns,
                 );
             }
-=======
->>>>>>> 973cf0d3 (feat: replace RangeCheckWord with full Uint8 support)
         });
 
     log::log_memory_usage("End");
