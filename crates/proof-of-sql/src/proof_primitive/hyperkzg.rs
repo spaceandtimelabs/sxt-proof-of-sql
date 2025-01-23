@@ -167,70 +167,52 @@ fn convert_to_u64_array(scalar: NovaScalar) -> [u64; 4] {
 fn convert_to_nova_g1_affine(
     point: ark_bn254::G1Affine,
 ) -> nova_snark::provider::bn256_grumpkin::bn256::Affine {
-    let x = match point.x() {
-        Some(coord) => coord,
-        None => return nova_snark::provider::bn256_grumpkin::bn256::Affine::default(),
+    let Some(x) = point.x() else {
+        return nova_snark::provider::bn256_grumpkin::bn256::Affine::default();
     };
-    let y = match point.y() {
-        Some(coord) => coord,
-        None => return nova_snark::provider::bn256_grumpkin::bn256::Affine::default(),
+    let Some(y) = point.y() else {
+        return nova_snark::provider::bn256_grumpkin::bn256::Affine::default();
     };
     let x = x.into_bigint();
     let y = y.into_bigint();
-    let x_bytes: &[u8; 32] = x.as_byte_slice().try_into().expect("Failed to convert x coordinate to bytes");
-    let y_bytes: &[u8; 32] = y.as_byte_slice().try_into().expect("Failed to convert y coordinate to bytes");
+    let x_bytes: &[u8; 32] = x
+        .as_byte_slice()
+        .try_into()
+        .expect("Failed to convert x coordinate to bytes");
+    let y_bytes: &[u8; 32] = y
+        .as_byte_slice()
+        .try_into()
+        .expect("Failed to convert y coordinate to bytes");
 
     nova_snark::provider::bn256_grumpkin::bn256::Affine {
-        x: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(x_bytes).expect("Failed to convert x coordinate to bytes"),
-        y: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(y_bytes).expect("Failed to convert y coordinate to bytes"),
+        x: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(x_bytes)
+            .expect("Failed to convert x coordinate to bytes"),
+        y: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(y_bytes)
+            .expect("Failed to convert y coordinate to bytes"),
     }
 }
 
 #[cfg(feature = "blitzar")]
-#[tracing::instrument(name = "compute_commitments_impl (gpu)", level = "debug", skip_all)]
-fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
-    setup: &CommitmentKey<HyperKZGEngine>,
+fn write_vec<T: Into<BNScalar> + Clone>(
     offset: usize,
+    max_len: usize,
     scalars: &[T],
-) -> HyperKZGCommitment {
-    let v = &itertools::repeat_n(BNScalar::ZERO, offset)
+) -> Vec<BNScalar> {
+    itertools::repeat_n(BNScalar::ZERO, offset)
         .chain(scalars.iter().map(Into::into))
         .map(Into::into)
-        .collect_vec();
-
-    // Get bases from the setup
-    let blitzar_bases_slice: Vec<G1Affine> = setup.ck()[..v.len()]
-        .iter()
-        .chain(std::iter::once(setup.h()))
-        .map(|x| convert_to_ark_bn254_g1_affine(*x))
-        .collect();
-
-    // Get the scalars
-    let blitzar_scalar_vec = v
-        .iter()
-        .map(|x| convert_to_u64_array(*x))
-        .chain(std::iter::once(convert_to_u64_array(NovaScalar::zero())))
-        .collect::<Vec<[u64; 4]>>();
-
-    let mut blitzar_commitments = vec![G1Affine::default(); 1];
-
-    blitzar::compute::compute_bn254_g1_uncompressed_commitments_with_generators(
-        &mut blitzar_commitments,
-        &[(&blitzar_scalar_vec).into()],
-        &blitzar_bases_slice,
-    );
-
-    HyperKZGCommitment {
-        commitment: NovaCommitment::from_g1_affine(convert_to_nova_g1_affine(
-            blitzar_commitments[0],
-        )),
-    }
+        .chain(itertools::repeat_n(
+            BNScalar::ZERO,
+            max_len.saturating_sub(offset + scalars.len()),
+        ))
+        .collect_vec()
 }
 
 impl Commitment for HyperKZGCommitment {
     type Scalar = BNScalar;
     type PublicSetup<'a> = &'a CommitmentKey<HyperKZGEngine>;
 
+    #[cfg(not(feature = "blitzar"))]
     #[tracing::instrument(name = "compute_commitments (cpu)", level = "debug", skip_all)]
     fn compute_commitments(
         committable_columns: &[crate::base::commitment::CommittableColumn],
@@ -255,6 +237,86 @@ impl Commitment for HyperKZGCommitment {
                 | CommittableColumn::VarBinary(vals) => {
                     compute_commitments_impl(setup, offset, vals)
                 }
+            })
+            .collect()
+    }
+    #[cfg(feature = "blitzar")]
+    #[tracing::instrument(name = "compute_commitments (gpu)", level = "debug", skip_all)]
+    fn compute_commitments(
+        committable_columns: &[crate::base::commitment::CommittableColumn],
+        offset: usize,
+        setup: &Self::PublicSetup<'_>,
+    ) -> Vec<Self> {
+        let max_column_len = committable_columns
+            .iter()
+            .map(CommittableColumn::len)
+            .max()
+            .unwrap_or(0)
+            + offset;
+
+        let mut v: Vec<BNScalar> = Vec::with_capacity(max_column_len);
+        for column in committable_columns {
+            match column {
+                CommittableColumn::Boolean(vals) => {
+                    v.extend(write_vec(offset, max_column_len, vals));
+                }
+                CommittableColumn::Uint8(vals) => {
+                    v.extend(write_vec(offset, max_column_len, vals));
+                }
+                CommittableColumn::TinyInt(vals) => {
+                    v.extend(write_vec(offset, max_column_len, vals));
+                }
+                CommittableColumn::SmallInt(vals) => {
+                    v.extend(write_vec(offset, max_column_len, vals));
+                }
+                CommittableColumn::Int(vals) => {
+                    v.extend(write_vec(offset, max_column_len, vals));
+                }
+                CommittableColumn::BigInt(vals) | CommittableColumn::TimestampTZ(_, _, vals) => {
+                    v.extend(write_vec(offset, max_column_len, vals));
+                }
+                CommittableColumn::Int128(vals) => {
+                    v.extend(write_vec(offset, max_column_len, vals));
+                }
+                CommittableColumn::Decimal75(_, _, vals)
+                | CommittableColumn::Scalar(vals)
+                | CommittableColumn::VarChar(vals) => {
+                    v.extend(write_vec(offset, max_column_len, vals));
+                }
+            }
+        }
+
+        // Get the scalars
+        let blitzar_scalar_vec = v
+            .iter()
+            .map(|x| convert_to_u64_array((*x).into()))
+            .chain(std::iter::once(convert_to_u64_array(NovaScalar::zero())))
+            .collect::<Vec<[u64; 4]>>();
+
+        // Get bases from the setup
+        let blitzar_bases_slice: Vec<G1Affine> = itertools::repeat_n(
+            setup.ck()[..v.len()]
+                .iter()
+                .chain(std::iter::once(setup.h()))
+                .map(|x| convert_to_ark_bn254_g1_affine(*x))
+                .collect::<Vec<_>>(),
+            committable_columns.len(),
+        )
+        .flatten()
+        .collect();
+
+        let mut blitzar_commitments = vec![G1Affine::default(); committable_columns.len()];
+
+        blitzar::compute::compute_bn254_g1_uncompressed_commitments_with_generators(
+            &mut blitzar_commitments,
+            &[(&blitzar_scalar_vec).into()],
+            &blitzar_bases_slice,
+        );
+
+        blitzar_commitments
+            .into_iter()
+            .map(|commitment| HyperKZGCommitment {
+                commitment: NovaCommitment::from_g1_affine(convert_to_nova_g1_affine(commitment)),
             })
             .collect()
     }
