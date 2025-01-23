@@ -52,6 +52,12 @@ macro_rules! handle_column_with_match {
                     .expect("column_type() is TinyInt, but as_tinyint() was None");
                 $fn_name($builder, slice, $alloc);
             }
+            ColumnType::Uint8 => {
+                let slice = $col
+                    .as_uint8()
+                    .expect("column_type() is Uint8, but as_uint8() was None");
+                $fn_name($builder, slice, $alloc);
+            }
             ColumnType::Int128 => {
                 let slice = $col
                     .as_int128()
@@ -200,16 +206,8 @@ mod tests {
 
     #[test]
     fn we_can_prove_ranges_on_mixed_column_types() {
-        // 2^248 - 1
-        let big_uint = BigUint::from(2u8).pow(248) - BigUint::from(1u8);
-        let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
-
-        // Convert Vec<u64> to [u64; 4]
-        let limbs: [u64; 4] = limbs_vec[..4].try_into().unwrap();
-
-        let upper_bound = Curve25519Scalar::from_bigint(limbs);
-
         let data = owned_table([
+            uint8("uint8", [0, u8::MAX]),
             tinyint("tinyint", [0, i8::MAX]),
             smallint("smallint", [0, i16::MAX]),
             int("int", [0, i32::MAX]),
@@ -221,12 +219,27 @@ mod tests {
                 PoSQLTimeZone::utc(),
                 [0, i64::MAX],
             ),
-            decimal75("decimal75", 74, 0, [Curve25519Scalar::ZERO, upper_bound]),
+            decimal75(
+                "decimal75",
+                74,
+                0,
+                [
+                    Curve25519Scalar::ZERO,
+                    // 2^248 - 1
+                    Curve25519Scalar::from_bigint(
+                        (BigUint::from(2u8).pow(248) - BigUint::from(1u8))
+                            .to_u64_digits()
+                            .try_into()
+                            .unwrap(),
+                    ),
+                ],
+            ),
         ]);
 
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
 
+        check_range(t, "uint8", ColumnType::Uint8, &accessor);
         check_range(t, "tinyint", ColumnType::TinyInt, &accessor);
         check_range(t, "smallint", ColumnType::SmallInt, &accessor);
         check_range(t, "int", ColumnType::Int, &accessor);

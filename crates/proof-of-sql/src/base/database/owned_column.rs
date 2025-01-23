@@ -52,8 +52,8 @@ impl<S: Scalar> OwnedColumn<S> {
     pub(crate) fn inner_product(&self, vec: &[S]) -> S {
         match self {
             OwnedColumn::Boolean(col) => inner_product_ref_cast(col, vec),
-            OwnedColumn::TinyInt(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::Uint8(col) => inner_product_ref_cast(col, vec),
+            OwnedColumn::TinyInt(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::SmallInt(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::Int(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => {
@@ -263,7 +263,15 @@ impl<S: Scalar> OwnedColumn<S> {
             })?;
         Self::try_from_scalars(&scalars, column_type)
     }
-
+    #[cfg(test)]
+    /// Returns an iterator over the raw data of the column
+    /// assuming the underlying type is [u8], panicking if it is not.
+    pub fn u8_iter(&self) -> impl Iterator<Item = &u8> {
+        match self {
+            OwnedColumn::Uint8(col) => col.iter(),
+            _ => panic!("Expected Uint8 column"),
+        }
+    }
     #[cfg(test)]
     /// Returns an iterator over the raw data of the column
     /// assuming the underlying type is [i8], panicking if it is not.
@@ -389,6 +397,12 @@ impl<S: Scalar> OwnedColumn<S> {
             Ok(self)
         } else if let OwnedColumn::Scalar(vec) = self {
             match to_type {
+                ColumnType::Uint8 => vec
+                    .into_iter()
+                    .map(TryInto::try_into)
+                    .try_collect()
+                    .map_err(|_| ColumnCoercionError::Overflow)
+                    .map(OwnedColumn::Uint8),
                 ColumnType::TinyInt => vec
                     .into_iter()
                     .map(TryInto::try_into)

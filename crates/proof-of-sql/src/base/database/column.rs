@@ -26,6 +26,8 @@ use sqlparser::ast::Ident;
 pub enum Column<'a, S: Scalar> {
     /// Boolean columns
     Boolean(&'a [bool]),
+    /// u8 columns
+    Uint8(&'a [u8]),
     /// i8 columns
     TinyInt(&'a [i8]),
     /// i16 columns
@@ -50,8 +52,6 @@ pub enum Column<'a, S: Scalar> {
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
-    /// u8 columns
-    Uint8(&'a [u8]),
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
@@ -60,6 +60,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub fn column_type(&self) -> ColumnType {
         match self {
             Self::Boolean(_) => ColumnType::Boolean,
+            Self::Uint8(_) => ColumnType::Uint8,
             Self::TinyInt(_) => ColumnType::TinyInt,
             Self::SmallInt(_) => ColumnType::SmallInt,
             Self::Int(_) => ColumnType::Int,
@@ -71,7 +72,6 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::TimestampTZ(time_unit, timezone, _) => {
                 ColumnType::TimestampTZ(*time_unit, *timezone)
             }
-            Self::Uint8(_) => ColumnType::Uint8,
         }
     }
     /// Returns the length of the column.
@@ -81,6 +81,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub fn len(&self) -> usize {
         match self {
             Self::Boolean(col) => col.len(),
+            Self::Uint8(col) => col.len(),
             Self::TinyInt(col) => col.len(),
             Self::SmallInt(col) => col.len(),
             Self::Int(col) => col.len(),
@@ -91,7 +92,6 @@ impl<'a, S: Scalar> Column<'a, S> {
             }
             Self::Int128(col) => col.len(),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col.len(),
-            Self::Uint8(col) => col.len(),
         }
     }
     /// Returns `true` if the column has no elements.
@@ -109,6 +109,9 @@ impl<'a, S: Scalar> Column<'a, S> {
         match literal {
             LiteralValue::Boolean(value) => {
                 Column::Boolean(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::Uint8(value) => {
+                Column::Uint8(alloc.alloc_slice_fill_copy(length, *value))
             }
             LiteralValue::TinyInt(value) => {
                 Column::TinyInt(alloc.alloc_slice_fill_copy(length, *value))
@@ -145,8 +148,8 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub fn from_owned_column(owned_column: &'a OwnedColumn<S>, alloc: &'a Bump) -> Self {
         match owned_column {
             OwnedColumn::Boolean(col) => Column::Boolean(col.as_slice()),
-            OwnedColumn::TinyInt(col) => Column::TinyInt(col.as_slice()),
             OwnedColumn::Uint8(col) => Column::Uint8(col.as_slice()),
+            OwnedColumn::TinyInt(col) => Column::TinyInt(col.as_slice()),
             OwnedColumn::SmallInt(col) => Column::SmallInt(col.as_slice()),
             OwnedColumn::Int(col) => Column::Int(col.as_slice()),
             OwnedColumn::BigInt(col) => Column::BigInt(col.as_slice()),
@@ -178,18 +181,18 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 
-    /// Returns the column as a slice of i8 if it is a tinyint column. Otherwise, returns None.
-    pub(crate) fn as_tinyint(&self) -> Option<&'a [i8]> {
-        match self {
-            Self::TinyInt(col) => Some(col),
-            _ => None,
-        }
-    }
-
     /// Returns the column as a slice of u8 if it is a uint8 column. Otherwise, returns None.
     pub(crate) fn as_uint8(&self) -> Option<&'a [u8]> {
         match self {
             Self::Uint8(col) => Some(col),
+            _ => None,
+        }
+    }
+
+    /// Returns the column as a slice of i8 if it is a tinyint column. Otherwise, returns None.
+    pub(crate) fn as_tinyint(&self) -> Option<&'a [i8]> {
+        match self {
+            Self::TinyInt(col) => Some(col),
             _ => None,
         }
     }
@@ -264,6 +267,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub(crate) fn scalar_at(&self, index: usize) -> Option<S> {
         (index < self.len()).then_some(match self {
             Self::Boolean(col) => S::from(col[index]),
+            Self::Uint8(col) => S::from(col[index]),
             Self::TinyInt(col) => S::from(col[index]),
             Self::SmallInt(col) => S::from(col[index]),
             Self::Int(col) => S::from(col[index]),
@@ -271,7 +275,6 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => S::from(col[index]),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
             Self::VarChar((_, scals)) => scals[index],
-            Self::Uint8(col) => S::from(col[index]),
         })
     }
 
@@ -283,6 +286,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Boolean(col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
             Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
             Self::VarChar((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
+            Self::Uint8(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::TinyInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Int(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
@@ -290,7 +294,6 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::Uint8(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
         }
     }
 }
@@ -305,6 +308,9 @@ pub enum ColumnType {
     /// Mapped to bool
     #[serde(alias = "BOOLEAN", alias = "boolean")]
     Boolean,
+    /// Mapped to u8
+    #[serde(alias = "UINT8", alias = "uint8")]
+    Uint8,
     /// Mapped to i8
     #[serde(alias = "TINYINT", alias = "tinyint")]
     TinyInt,
@@ -332,9 +338,6 @@ pub enum ColumnType {
     /// Mapped to `S`
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
-    /// Mapped to u8
-    #[serde(alias = "UINT8", alias = "uint8")]
-    Uint8,
 }
 
 impl ColumnType {
@@ -343,7 +346,8 @@ impl ColumnType {
     pub fn is_numeric(&self) -> bool {
         matches!(
             self,
-            ColumnType::TinyInt
+            ColumnType::Uint8
+                | ColumnType::TinyInt
                 | ColumnType::SmallInt
                 | ColumnType::Int
                 | ColumnType::BigInt
@@ -358,7 +362,8 @@ impl ColumnType {
     pub fn is_integer(&self) -> bool {
         matches!(
             self,
-            ColumnType::TinyInt
+            ColumnType::Uint8
+                | ColumnType::TinyInt
                 | ColumnType::SmallInt
                 | ColumnType::Int
                 | ColumnType::BigInt
@@ -369,7 +374,7 @@ impl ColumnType {
     /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
     fn to_integer_bits(self) -> Option<usize> {
         match self {
-            ColumnType::TinyInt => Some(8),
+            ColumnType::Uint8 | ColumnType::TinyInt => Some(8),
             ColumnType::SmallInt => Some(16),
             ColumnType::Int => Some(32),
             ColumnType::BigInt => Some(64),
@@ -378,16 +383,26 @@ impl ColumnType {
         }
     }
 
-    /// Returns the [`ColumnType`] of the integer type with the given number of bits if it is a valid integer type.
+    /// Returns the [`ColumnType`] of the signed integer type with the given number of bits if it is a valid integer type.
     ///
     /// Otherwise, return None.
-    fn from_integer_bits(bits: usize) -> Option<Self> {
+    fn from_signed_integer_bits(bits: usize) -> Option<Self> {
         match bits {
             8 => Some(ColumnType::TinyInt),
             16 => Some(ColumnType::SmallInt),
             32 => Some(ColumnType::Int),
             64 => Some(ColumnType::BigInt),
             128 => Some(ColumnType::Int128),
+            _ => None,
+        }
+    }
+
+    /// Returns the [`ColumnType`] of the unsigned integer type with the given number of bits if it is a valid integer type.
+    ///
+    /// Otherwise, return None.
+    fn from_unsigned_integer_bits(bits: usize) -> Option<Self> {
+        match bits {
+            8 => Some(ColumnType::Uint8),
             _ => None,
         }
     }
@@ -404,7 +419,23 @@ impl ColumnType {
         self.to_integer_bits().and_then(|self_bits| {
             other
                 .to_integer_bits()
-                .and_then(|other_bits| Self::from_integer_bits(self_bits.max(other_bits)))
+                .and_then(|other_bits| Self::from_signed_integer_bits(self_bits.max(other_bits)))
+        })
+    }
+
+    /// Returns the larger integer type of two [`ColumnType`]s if they are both integers.
+    ///
+    /// If either of the columns is not an integer, return None.
+    #[must_use]
+    pub fn max_unsigned_integer_type(&self, other: &Self) -> Option<Self> {
+        // If either of the columns is not an integer, return None
+        if !self.is_integer() || !other.is_integer() {
+            return None;
+        }
+        self.to_integer_bits().and_then(|self_bits| {
+            other
+                .to_integer_bits()
+                .and_then(|other_bits| Self::from_unsigned_integer_bits(self_bits.max(other_bits)))
         })
     }
 
@@ -451,8 +482,8 @@ impl ColumnType {
     pub fn byte_size(&self) -> usize {
         match self {
             Self::Boolean => size_of::<bool>(),
-            Self::TinyInt => size_of::<i8>(),
             Self::Uint8 => size_of::<u8>(),
+            Self::TinyInt => size_of::<i8>(),
             Self::SmallInt => size_of::<i16>(),
             Self::Int => size_of::<i32>(),
             Self::BigInt | Self::TimestampTZ(_, _) => size_of::<i64>(),
@@ -490,8 +521,8 @@ impl Display for ColumnType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ColumnType::Boolean => write!(f, "BOOLEAN"),
-            ColumnType::TinyInt => write!(f, "TINYINT"),
             ColumnType::Uint8 => write!(f, "UINT8"),
+            ColumnType::TinyInt => write!(f, "TINYINT"),
             ColumnType::SmallInt => write!(f, "SMALLINT"),
             ColumnType::Int => write!(f, "INT"),
             ColumnType::BigInt => write!(f, "BIGINT"),

@@ -72,6 +72,20 @@ pub enum ColumnOperationError {
         /// The length of the column
         len: usize,
     },
+
+    /// Errors related to casting between signed and unsigned types. This error can be
+    /// used as a signal that a casting operation is currently unsupported.
+    /// For example, an i8 can fit inside of a u8 iff it is greater than zero. The library
+    /// needs to have a way to check *and* prove that this condition is true. If the library
+    /// does not have a proving mechanism in place for this check, then this error is
+    /// then used to indicate that the operation is not supported.
+    #[snafu(display("Cannot fit {left_type} into {right_type} without losing data"))]
+    SignedCastingError {
+        /// `ColumnType` of left operand
+        left_type: ColumnType,
+        /// `ColumnType` of right operand
+        right_type: ColumnType,
+    },
 }
 
 /// Result type for column operations

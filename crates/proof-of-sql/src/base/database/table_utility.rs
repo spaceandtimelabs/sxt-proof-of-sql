@@ -64,6 +64,27 @@ pub fn table_with_row_count<'a, S: Scalar>(
     Table::try_from_iter_with_options(iter, TableOptions::new(Some(row_count))).unwrap()
 }
 
+/// Creates a (Ident, `Column`) pair for a uint8 column.
+/// This is primarily intended for use in conjunction with [`table`].
+/// # Example
+/// ```
+/// use bumpalo::Bump;
+/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// let alloc = Bump::new();
+/// let result = table::<Curve25519Scalar>([
+///     borrowed_uint8("a", [1_u8, 2, 3], &alloc),
+/// ]);
+///```
+pub fn borrowed_uint8<S: Scalar>(
+    name: impl Into<Ident>,
+    data: impl IntoIterator<Item = impl Into<u8>>,
+    alloc: &Bump,
+) -> (Ident, Column<'_, S>) {
+    let transformed_data: Vec<u8> = data.into_iter().map(Into::into).collect();
+    let alloc_data = alloc.alloc_slice_copy(&transformed_data);
+    (name.into(), Column::Uint8(alloc_data))
+}
+
 /// Creates a (Ident, `Column`) pair for a tinyint column.
 /// This is primarily intended for use in conjunction with [`table`].
 /// # Example
