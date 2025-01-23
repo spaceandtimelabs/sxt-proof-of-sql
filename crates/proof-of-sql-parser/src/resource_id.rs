@@ -148,7 +148,7 @@ mod tests {
         let resource_id =
             ResourceId::from_str("G00d_identifier._can_start_with_underscore").unwrap();
         assert_eq!(resource_id.schema().name(), "g00d_identifier");
-        assert_eq!(resource_id.schema().name(), "g00d_identifier");
+        assert_eq!(resource_id.object_name().name(), "_can_start_with_underscore");
     }
 
     #[test]
