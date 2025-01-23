@@ -168,12 +168,12 @@ impl DynProofExprBuilder<'_> {
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_equals(left?, right?)
             }
-            BinaryOperator::GtEq => {
+            BinaryOperator::Gt => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_inequality(left?, right?, false)
             }
-            BinaryOperator::LtEq => {
+            BinaryOperator::Lt => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_inequality(left?, right?, true)

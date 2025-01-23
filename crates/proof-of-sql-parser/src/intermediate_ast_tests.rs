@@ -987,7 +987,7 @@ fn we_can_parse_a_query_with_filter_lt() {
         query(
             cols_res(&["a"]),
             tab(None, "tab"),
-            not(ge(col("b"), lit(4))),
+            lt(col("b"), lit(4)),
             vec![],
         ),
         vec![],
@@ -1023,7 +1023,7 @@ fn we_can_parse_a_query_with_filter_gt() {
         query(
             cols_res(&["a"]),
             tab(None, "tab"),
-            not(le(col("b"), lit(4))),
+            gt(col("b"), lit(4)),
             vec![],
         ),
         vec![],

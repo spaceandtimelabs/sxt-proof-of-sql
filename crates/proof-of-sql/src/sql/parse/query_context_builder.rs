@@ -171,8 +171,8 @@ impl QueryContextBuilder<'_> {
             BinaryOperator::And
             | BinaryOperator::Or
             | BinaryOperator::Eq
-            | BinaryOperator::GtEq
-            | BinaryOperator::LtEq => Ok(ColumnType::Boolean),
+            | BinaryOperator::Gt
+            | BinaryOperator::Lt => Ok(ColumnType::Boolean),
             BinaryOperator::Multiply
             | BinaryOperator::Divide
             | BinaryOperator::Minus
@@ -309,7 +309,7 @@ pub(crate) fn type_check_binary_operation(
                     | (ColumnType::Scalar, _)
             ) || (left_dtype.is_numeric() && right_dtype.is_numeric())
         }
-        BinaryOperator::GtEq | BinaryOperator::LtEq => {
+        BinaryOperator::Gt | BinaryOperator::Lt => {
             if left_dtype == ColumnType::VarChar || right_dtype == ColumnType::VarChar {
                 return false;
             }
