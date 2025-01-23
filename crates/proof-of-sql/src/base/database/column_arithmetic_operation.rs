@@ -46,6 +46,41 @@ pub trait ArithmeticOp {
             });
         }
         match (&lhs, &rhs) {
+            // We can upcast a u8 into any of the signed types without incident. However, we cannot upcast
+            // a signed type into a u8 without potentially losing data. Therefore, we need a way to check
+            // that a signed type is greater than zero before we can upcast it into a u8.
+            (OwnedColumn::Uint8(_), OwnedColumn::TinyInt(_)) => {
+                Err(ColumnOperationError::SignedCastingError {
+                    left_type: ColumnType::Uint8,
+                    right_type: ColumnType::TinyInt,
+                })
+            }
+            (OwnedColumn::Uint8(lhs), OwnedColumn::Uint8(rhs)) => {
+                Ok(OwnedColumn::Uint8(try_slice_binary_op(lhs, rhs, Self::op)?))
+            }
+            (OwnedColumn::Uint8(lhs), OwnedColumn::SmallInt(rhs)) => Ok(OwnedColumn::SmallInt(
+                try_slice_binary_op_left_upcast(lhs, rhs, Self::op)?,
+            )),
+            (OwnedColumn::Uint8(lhs), OwnedColumn::Int(rhs)) => Ok(OwnedColumn::Int(
+                try_slice_binary_op_left_upcast(lhs, rhs, Self::op)?,
+            )),
+            (OwnedColumn::Uint8(lhs), OwnedColumn::BigInt(rhs)) => Ok(OwnedColumn::BigInt(
+                try_slice_binary_op_left_upcast(lhs, rhs, Self::op)?,
+            )),
+            (OwnedColumn::Uint8(lhs), OwnedColumn::Int128(rhs)) => Ok(OwnedColumn::Int128(
+                try_slice_binary_op_left_upcast(lhs, rhs, Self::op)?,
+            )),
+            (OwnedColumn::Uint8(lhs_values), OwnedColumn::Decimal75(_, _, rhs_values)) => {
+                let (new_precision, new_scale, new_values) =
+                    Self::decimal_op(lhs_values, rhs_values, lhs.column_type(), rhs.column_type())?;
+                Ok(OwnedColumn::Decimal75(new_precision, new_scale, new_values))
+            }
+            (OwnedColumn::TinyInt(_), OwnedColumn::Uint8(_)) => {
+                Err(ColumnOperationError::SignedCastingError {
+                    left_type: ColumnType::TinyInt,
+                    right_type: ColumnType::Uint8,
+                })
+            }
             (OwnedColumn::TinyInt(lhs), OwnedColumn::TinyInt(rhs)) => Ok(OwnedColumn::TinyInt(
                 try_slice_binary_op(lhs, rhs, Self::op)?,
             )),

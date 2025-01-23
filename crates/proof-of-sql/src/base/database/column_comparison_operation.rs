@@ -56,6 +56,41 @@ pub trait ComparisonOp {
             });
         }
         let result = match (&lhs, &rhs) {
+            (OwnedColumn::Uint8(_), OwnedColumn::TinyInt(_)) => {
+                Err(ColumnOperationError::SignedCastingError {
+                    left_type: ColumnType::Uint8,
+                    right_type: ColumnType::TinyInt,
+                })
+            }
+            (OwnedColumn::Uint8(lhs), OwnedColumn::Uint8(rhs)) => {
+                Ok(slice_binary_op(lhs, rhs, Self::op))
+            }
+            (OwnedColumn::Uint8(lhs), OwnedColumn::SmallInt(rhs)) => {
+                Ok(slice_binary_op_left_upcast(lhs, rhs, Self::op))
+            }
+            (OwnedColumn::Uint8(lhs), OwnedColumn::Int(rhs)) => {
+                Ok(slice_binary_op_left_upcast(lhs, rhs, Self::op))
+            }
+            (OwnedColumn::Uint8(lhs), OwnedColumn::BigInt(rhs)) => {
+                Ok(slice_binary_op_left_upcast(lhs, rhs, Self::op))
+            }
+            (OwnedColumn::Uint8(lhs), OwnedColumn::Int128(rhs)) => {
+                Ok(slice_binary_op_left_upcast(lhs, rhs, Self::op))
+            }
+            (OwnedColumn::Uint8(lhs_values), OwnedColumn::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::decimal_op_left_upcast(
+                    lhs_values,
+                    rhs_values,
+                    lhs.column_type(),
+                    rhs.column_type(),
+                ))
+            }
+            (OwnedColumn::TinyInt(_), OwnedColumn::Uint8(_)) => {
+                return Err(ColumnOperationError::SignedCastingError {
+                    left_type: ColumnType::TinyInt,
+                    right_type: ColumnType::Uint8,
+                })
+            }
             (OwnedColumn::TinyInt(lhs), OwnedColumn::TinyInt(rhs)) => {
                 Ok(slice_binary_op(lhs, rhs, Self::op))
             }
