@@ -248,6 +248,9 @@ impl ColumnBounds {
     pub fn try_union(self, other: Self) -> Result<Self, ColumnBoundsMismatch> {
         match (self, other) {
             (ColumnBounds::NoOrder, ColumnBounds::NoOrder) => Ok(ColumnBounds::NoOrder),
+            (ColumnBounds::Uint8(bounds_a), ColumnBounds::Uint8(bounds_b)) => {
+                Ok(ColumnBounds::Uint8(bounds_a.union(bounds_b)))
+            }
             (ColumnBounds::TinyInt(bounds_a), ColumnBounds::TinyInt(bounds_b)) => {
                 Ok(ColumnBounds::TinyInt(bounds_a.union(bounds_b)))
             }
@@ -280,6 +283,9 @@ impl ColumnBounds {
     pub fn try_difference(self, other: Self) -> Result<Self, ColumnBoundsMismatch> {
         match (self, other) {
             (ColumnBounds::NoOrder, ColumnBounds::NoOrder) => Ok(self),
+            (ColumnBounds::Uint8(bounds_a), ColumnBounds::Uint8(bounds_b)) => {
+                Ok(ColumnBounds::Uint8(bounds_a.difference(bounds_b)))
+            }
             (ColumnBounds::TinyInt(bounds_a), ColumnBounds::TinyInt(bounds_b)) => {
                 Ok(ColumnBounds::TinyInt(bounds_a.difference(bounds_b)))
             }

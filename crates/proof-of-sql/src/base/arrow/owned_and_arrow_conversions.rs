@@ -166,6 +166,14 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .collect::<Option<Vec<bool>>>()
                     .ok_or(OwnedArrowConversionError::NullNotSupportedYet)?,
             )),
+            DataType::UInt8 => Ok(Self::Uint8(
+                value
+                    .as_any()
+                    .downcast_ref::<UInt8Array>()
+                    .unwrap()
+                    .values()
+                    .to_vec(),
+            )),
             DataType::Int8 => Ok(Self::TinyInt(
                 value
                     .as_any()
