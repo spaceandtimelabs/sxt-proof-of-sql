@@ -238,35 +238,35 @@ Expression: Box<intermediate_ast::Expression> = {
         }),
 
     #[precedence(level="4")] #[assoc(side="left")]
-    <left: Expression> ">=" <right: Expression> =>
+    <left: Expression> ">" <right: Expression> =>
         Box::new(intermediate_ast::Expression::Binary {
-            op: intermediate_ast::BinaryOperator::GreaterThanOrEqual,
+            op: intermediate_ast::BinaryOperator::GreaterThan,
             left,
             right, 
         }),
     
-    <left: Expression> "<=" <right: Expression> =>
+    <left: Expression> "<" <right: Expression> =>
         Box::new(intermediate_ast::Expression::Binary {
-            op: intermediate_ast::BinaryOperator::LessThanOrEqual,
+            op: intermediate_ast::BinaryOperator::LessThan,
             left,
             right, 
         }),
 
-    <left: Expression> ">" <right: Expression> =>
+    <left: Expression> ">=" <right: Expression> =>
         Box::new(intermediate_ast::Expression::Unary {
             op: intermediate_ast::UnaryOperator::Not,
             expr: Box::new(intermediate_ast::Expression::Binary {
-                op: intermediate_ast::BinaryOperator::LessThanOrEqual,
+                op: intermediate_ast::BinaryOperator::LessThan,
                 left,
                 right, 
             }), 
         }),
     
-    <left: Expression> "<" <right: Expression> =>
+    <left: Expression> "<=" <right: Expression> =>
         Box::new(intermediate_ast::Expression::Unary {
             op: intermediate_ast::UnaryOperator::Not,
             expr: Box::new(intermediate_ast::Expression::Binary {
-                op: intermediate_ast::BinaryOperator::GreaterThanOrEqual,
+                op: intermediate_ast::BinaryOperator::GreaterThan,
                 left,
                 right, 
             }), 

@@ -1,8 +1,4 @@
-use super::{
-    prover_evaluate_equals_zero, prover_evaluate_or, result_evaluate_equals_zero,
-    result_evaluate_or, scale_and_add_subtract_eval, scale_and_subtract,
-    verifier_evaluate_equals_zero, verifier_evaluate_or, DynProofExpr, ProofExpr,
-};
+use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
 use crate::{
     base::{
         database::{Column, ColumnRef, ColumnType, Table},
@@ -25,13 +21,13 @@ use serde::{Deserialize, Serialize};
 pub struct InequalityExpr {
     lhs: Box<DynProofExpr>,
     rhs: Box<DynProofExpr>,
-    is_lte: bool,
+    is_lt: bool,
 }
 
 impl InequalityExpr {
-    /// Create a new less than or equal expression
-    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>, is_lte: bool) -> Self {
-        Self { lhs, rhs, is_lte }
+    /// Create a new less than or equal
+    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>, is_lt: bool) -> Self {
+        Self { lhs, rhs, is_lt }
     }
 }
 
@@ -53,7 +49,7 @@ impl ProofExpr for InequalityExpr {
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let table_length = table.num_rows();
-        let diff = if self.is_lte {
+        let diff = if self.is_lt {
             scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, false)
                 .expect("Failed to scale and subtract")
         } else {
@@ -61,14 +57,8 @@ impl ProofExpr for InequalityExpr {
                 .expect("Failed to scale and subtract")
         };
 
-        // diff == 0
-        let equals_zero = result_evaluate_equals_zero(table_length, alloc, diff);
-
-        // sign(diff) == -1
-        let sign = result_evaluate_sign(table_length, alloc, diff);
-
-        // (diff == 0) || (sign(diff) == -1)
-        let res = Column::Boolean(result_evaluate_or(table_length, alloc, equals_zero, sign));
+        // (sign(diff) == -1)
+        let res = Column::Boolean(result_evaluate_sign(table_length, alloc, diff));
 
         log::log_memory_usage("End");
 
@@ -88,7 +78,7 @@ impl ProofExpr for InequalityExpr {
         let rhs_column = self.rhs.prover_evaluate(builder, alloc, table);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let diff = if self.is_lte {
+        let diff = if self.is_lt {
             scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, false)
                 .expect("Failed to scale and subtract")
         } else {
@@ -96,14 +86,8 @@ impl ProofExpr for InequalityExpr {
                 .expect("Failed to scale and subtract")
         };
 
-        // diff == 0
-        let equals_zero = prover_evaluate_equals_zero(table.num_rows(), builder, alloc, diff);
-
-        // sign(diff) == -1
-        let sign = prover_evaluate_sign(builder, alloc, diff);
-
-        // (diff == 0) || (sign(diff) == -1)
-        let res = Column::Boolean(prover_evaluate_or(builder, alloc, equals_zero, sign));
+        // (sign(diff) == -1)
+        let res = Column::Boolean(prover_evaluate_sign(builder, alloc, diff));
 
         log::log_memory_usage("End");
 
@@ -120,20 +104,14 @@ impl ProofExpr for InequalityExpr {
         let rhs_eval = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let diff_eval = if self.is_lte {
+        let diff_eval = if self.is_lt {
             scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, true)
         } else {
             scale_and_add_subtract_eval(rhs_eval, lhs_eval, rhs_scale, lhs_scale, true)
         };
 
-        // diff == 0
-        let equals_zero = verifier_evaluate_equals_zero(builder, diff_eval, one_eval)?;
-
         // sign(diff) == -1
-        let sign = verifier_evaluate_sign(builder, diff_eval, one_eval)?;
-
-        // (diff == 0) || (sign(diff) == -1)
-        verifier_evaluate_or(builder, &equals_zero, &sign)
+        verifier_evaluate_sign(builder, diff_eval, one_eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

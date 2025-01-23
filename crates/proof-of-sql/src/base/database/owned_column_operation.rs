@@ -1,6 +1,6 @@
 use super::{
     AddOp, ArithmeticOp, ColumnOperationError, ColumnOperationResult, ComparisonOp, DivOp, EqualOp,
-    GreaterThanOrEqualOp, LessThanOrEqualOp, MulOp, SubOp,
+    GreaterThanOp, LessThanOp, MulOp, SubOp,
 };
 use crate::base::{
     database::{
@@ -65,13 +65,13 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 
     /// Element-wise less than or equal to check for two columns
-    pub fn element_wise_le(&self, rhs: &Self) -> ColumnOperationResult<Self> {
-        LessThanOrEqualOp::owned_column_element_wise_comparison(self, rhs)
+    pub fn element_wise_lt(&self, rhs: &Self) -> ColumnOperationResult<Self> {
+        LessThanOp::owned_column_element_wise_comparison(self, rhs)
     }
 
     /// Element-wise greater than or equal to check for two columns
-    pub fn element_wise_ge(&self, rhs: &Self) -> ColumnOperationResult<Self> {
-        GreaterThanOrEqualOp::owned_column_element_wise_comparison(self, rhs)
+    pub fn element_wise_gt(&self, rhs: &Self) -> ColumnOperationResult<Self> {
+        GreaterThanOp::owned_column_element_wise_comparison(self, rhs)
     }
 
     /// Element-wise addition for two columns
@@ -118,13 +118,13 @@ mod test {
             Err(ColumnOperationError::DifferentColumnLength { .. })
         ));
 
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert!(matches!(
             result,
             Err(ColumnOperationError::DifferentColumnLength { .. })
         ));
 
-        let result = lhs.element_wise_ge(&rhs);
+        let result = lhs.element_wise_gt(&rhs);
         assert!(matches!(
             result,
             Err(ColumnOperationError::DifferentColumnLength { .. })
@@ -316,31 +316,31 @@ mod test {
     }
 
     #[test]
-    fn we_can_do_le_operation_on_numeric_and_boolean_columns() {
+    fn we_can_do_lt_operation_on_numeric_and_boolean_columns() {
         // Booleans
         let lhs = OwnedColumn::<TestScalar>::Boolean(vec![true, false, true]);
         let rhs = OwnedColumn::<TestScalar>::Boolean(vec![true, true, false]);
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, true, false]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, true, false]))
         );
 
         // Integers
         let lhs = OwnedColumn::<TestScalar>::SmallInt(vec![1, 3, 2]);
         let rhs = OwnedColumn::<TestScalar>::TinyInt(vec![1, 2, 3]);
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, false, true]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, false, true]))
         );
 
         let lhs = OwnedColumn::<TestScalar>::Int(vec![1, 3, 2]);
         let rhs = OwnedColumn::<TestScalar>::SmallInt(vec![1, 2, 3]);
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, false, true]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, false, true]))
         );
 
         // Decimals
@@ -348,29 +348,29 @@ mod test {
         let rhs_scalars = [1, 24, -3].iter().map(TestScalar::from).collect();
         let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 3, lhs_scalars);
         let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, true, false]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, true, false]))
         );
 
         // Decimals and integers
         let lhs_scalars = [10, -2, -30].iter().map(TestScalar::from).collect();
         let rhs = OwnedColumn::<TestScalar>::TinyInt(vec![1, -20, 3]);
         let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, true, true]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, false, true]))
         );
 
         let lhs_scalars = [10, -2, -30].iter().map(TestScalar::from).collect();
         let rhs = OwnedColumn::<TestScalar>::Int(vec![1, -20, 3]);
         let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, true, true]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, false, true]))
         );
     }
 
@@ -379,27 +379,27 @@ mod test {
         // Booleans
         let lhs = OwnedColumn::<TestScalar>::Boolean(vec![true, false, true]);
         let rhs = OwnedColumn::<TestScalar>::Boolean(vec![true, true, false]);
-        let result = lhs.element_wise_ge(&rhs);
+        let result = lhs.element_wise_gt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, false, true]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, false, true]))
         );
 
         // Integers
         let lhs = OwnedColumn::<TestScalar>::SmallInt(vec![1, 3, 2]);
         let rhs = OwnedColumn::<TestScalar>::TinyInt(vec![1, 2, 3]);
-        let result = lhs.element_wise_ge(&rhs);
+        let result = lhs.element_wise_gt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, true, false]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, true, false]))
         );
 
         let lhs = OwnedColumn::<TestScalar>::Int(vec![1, 3, 2]);
         let rhs = OwnedColumn::<TestScalar>::SmallInt(vec![1, 2, 3]);
-        let result = lhs.element_wise_ge(&rhs);
+        let result = lhs.element_wise_gt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, true, false]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, true, false]))
         );
 
         // Decimals
@@ -407,29 +407,29 @@ mod test {
         let rhs_scalars = [1, 24, -3].iter().map(TestScalar::from).collect();
         let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 3, lhs_scalars);
         let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
-        let result = lhs.element_wise_ge(&rhs);
+        let result = lhs.element_wise_gt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, false, true]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![false, false, true]))
         );
 
         // Decimals and integers
         let lhs_scalars = [10, -2, -30].iter().map(TestScalar::from).collect();
         let rhs = OwnedColumn::<TestScalar>::TinyInt(vec![1_i8, -20, 3]);
         let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
-        let result = lhs.element_wise_ge(&rhs);
+        let result = lhs.element_wise_gt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, true, false]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, false, false]))
         );
 
         let lhs_scalars = [10, -2, -30].iter().map(TestScalar::from).collect();
         let rhs = OwnedColumn::<TestScalar>::BigInt(vec![1_i64, -20, 3]);
         let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
-        let result = lhs.element_wise_ge(&rhs);
+        let result = lhs.element_wise_gt(&rhs);
         assert_eq!(
             result,
-            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, true, false]))
+            Ok(OwnedColumn::<TestScalar>::Boolean(vec![true, false, false]))
         );
     }
 
@@ -443,7 +443,7 @@ mod test {
                 .map(ToString::to_string)
                 .collect(),
         );
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert!(matches!(
             result,
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
@@ -456,19 +456,19 @@ mod test {
                 .map(ToString::to_string)
                 .collect(),
         );
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert!(matches!(
             result,
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
         ));
 
-        let result = lhs.element_wise_ge(&rhs);
+        let result = lhs.element_wise_gt(&rhs);
         assert!(matches!(
             result,
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
         ));
 
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert!(matches!(
             result,
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
@@ -477,7 +477,7 @@ mod test {
         // Booleans can't be compared with other types
         let lhs = OwnedColumn::<TestScalar>::Boolean(vec![true, false, true]);
         let rhs = OwnedColumn::<TestScalar>::TinyInt(vec![1, 2, 3]);
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert!(matches!(
             result,
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
@@ -485,7 +485,7 @@ mod test {
 
         let lhs = OwnedColumn::<TestScalar>::Boolean(vec![true, false, true]);
         let rhs = OwnedColumn::<TestScalar>::Int(vec![1, 2, 3]);
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert!(matches!(
             result,
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
@@ -504,13 +504,13 @@ mod test {
                 .map(ToString::to_string)
                 .collect(),
         );
-        let result = lhs.element_wise_le(&rhs);
+        let result = lhs.element_wise_lt(&rhs);
         assert!(matches!(
             result,
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
         ));
 
-        let result = lhs.element_wise_ge(&rhs);
+        let result = lhs.element_wise_gt(&rhs);
         assert!(matches!(
             result,
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })

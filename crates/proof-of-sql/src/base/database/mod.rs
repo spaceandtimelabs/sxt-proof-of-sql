@@ -21,9 +21,7 @@ mod column_arithmetic_operation;
 pub(super) use column_arithmetic_operation::{AddOp, ArithmeticOp, DivOp, MulOp, SubOp};
 
 mod column_comparison_operation;
-pub(super) use column_comparison_operation::{
-    ComparisonOp, EqualOp, GreaterThanOrEqualOp, LessThanOrEqualOp,
-};
+pub(super) use column_comparison_operation::{ComparisonOp, EqualOp, GreaterThanOp, LessThanOp};
 
 mod column_index_operation;
 pub(super) use column_index_operation::apply_column_to_indexes;

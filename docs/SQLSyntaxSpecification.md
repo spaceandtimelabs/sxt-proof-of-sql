@@ -15,6 +15,7 @@ FROM table
 * DataTypes
     - Bool / Boolean
     - Numeric Types
+        * Uint8 (8 bits)
         * TinyInt (8 bits)
         * SmallInt (16 bits)
         * Int / Integer (32 bits)

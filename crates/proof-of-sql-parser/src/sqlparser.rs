@@ -90,8 +90,8 @@ impl From<PoSqlBinaryOperator> for BinaryOperator {
             PoSqlBinaryOperator::And => BinaryOperator::And,
             PoSqlBinaryOperator::Or => BinaryOperator::Or,
             PoSqlBinaryOperator::Equal => BinaryOperator::Eq,
-            PoSqlBinaryOperator::LessThanOrEqual => BinaryOperator::LtEq,
-            PoSqlBinaryOperator::GreaterThanOrEqual => BinaryOperator::GtEq,
+            PoSqlBinaryOperator::LessThan => BinaryOperator::Lt,
+            PoSqlBinaryOperator::GreaterThan => BinaryOperator::Gt,
             PoSqlBinaryOperator::Add => BinaryOperator::Plus,
             PoSqlBinaryOperator::Subtract => BinaryOperator::Minus,
             PoSqlBinaryOperator::Multiply => BinaryOperator::Multiply,
@@ -291,7 +291,7 @@ mod test {
         );
         check_posql_intermediate_ast_to_sqlparser_equality("select 1 as a, 'Meow' as d, b as b from namespace.table where c = 4 order by a desc limit 10 offset 0;");
         check_posql_intermediate_ast_to_sqlparser_equality(
-            "select true as cons, a and b or c >= 4 as comp from tab where d = 'Space and Time';",
+            "select true as cons, a and b or c > 4 as comp from tab where d = 'Space and Time';",
         );
         check_posql_intermediate_ast_to_sqlparser_equality(
             "select cat as cat, true as cons, max(meow) as max_meow from tab where d = 'Space and Time' group by cat;",

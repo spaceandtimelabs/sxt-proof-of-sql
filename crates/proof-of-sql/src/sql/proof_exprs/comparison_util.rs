@@ -31,7 +31,7 @@ pub fn scale_and_subtract_literal<S: Scalar>(
     let operator = if is_equal {
         BinaryOperator::Eq
     } else {
-        BinaryOperator::LtEq
+        BinaryOperator::Lt
     };
     if !type_check_binary_operation(lhs_type, rhs_type, &operator) {
         return Err(ConversionError::DataTypeMismatch {
@@ -104,7 +104,7 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     let operator = if is_equal {
         BinaryOperator::Eq
     } else {
-        BinaryOperator::LtEq
+        BinaryOperator::Lt
     };
     if !type_check_binary_operation(lhs_type, rhs_type, &operator) {
         return Err(ConversionError::DataTypeMismatch {

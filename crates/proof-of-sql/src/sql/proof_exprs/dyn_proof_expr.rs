@@ -89,15 +89,15 @@ impl DynProofExpr {
     pub fn try_new_inequality(
         lhs: DynProofExpr,
         rhs: DynProofExpr,
-        is_lte: bool,
+        is_lt: bool,
     ) -> ConversionResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::LtEq) {
+        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Lt) {
             Ok(Self::Inequality(InequalityExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
-                is_lte,
+                is_lt,
             )))
         } else {
             Err(ConversionError::DataTypeMismatch {

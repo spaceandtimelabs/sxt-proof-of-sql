@@ -30,8 +30,18 @@ pub fn equal(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
 /// Construct a new boxed `Expression` A >= B
 #[must_use]
 pub fn ge(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
+    not(Box::new(Expression::Binary {
+        op: BinaryOperator::LessThan,
+        left,
+        right,
+    }))
+}
+
+/// Construct a new boxed `Expression` A > B
+#[must_use]
+pub fn gt(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
-        op: BinaryOperator::GreaterThanOrEqual,
+        op: BinaryOperator::GreaterThan,
         left,
         right,
     })
@@ -40,8 +50,18 @@ pub fn ge(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
 /// Construct a new boxed `Expression` A <= B
 #[must_use]
 pub fn le(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
+    not(Box::new(Expression::Binary {
+        op: BinaryOperator::GreaterThan,
+        left,
+        right,
+    }))
+}
+
+/// Construct a new boxed `Expression` A < B
+#[must_use]
+pub fn lt(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
-        op: BinaryOperator::LessThanOrEqual,
+        op: BinaryOperator::LessThan,
         left,
         right,
     })
