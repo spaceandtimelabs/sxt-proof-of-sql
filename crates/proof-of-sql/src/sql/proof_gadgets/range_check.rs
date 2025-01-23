@@ -33,22 +33,24 @@ use core::iter::repeat_with;
 use tracing::{span, Level};
 
 #[tracing::instrument(name = "range check first round evaluate", level = "debug", skip_all)]
-pub(crate) fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
+pub(crate) fn first_round_evaluate_range_check<'a, S>(
     builder: &mut FirstRoundBuilder<'a, S>,
-    scalars: &[S],
+    column_data: &[impl Copy + Into<S>],
     alloc: &'a Bump,
-) {
+) where
+    S: Scalar + 'a,
+{
     builder.update_range_length(256);
 
-    // Create 31 columns, each will collect the corresponding word from all scalars.
-    // 31 because a scalar will only ever have 248 bits of data set.
+    // Create 31 columns, each will collect the corresponding byte from all scalars.
+    // 31 because a scalar will only ever have 248 bits set.
     let mut word_columns: Vec<&mut [u8]> = (0..31)
-        .map(|_| alloc.alloc_slice_fill_copy(scalars.len(), 0))
+        .map(|_| alloc.alloc_slice_fill_copy(column_data.len(), 0))
         .collect();
 
     // Decompose scalars to bytes
     let span = span!(Level::DEBUG, "decompose scalars in first round").entered();
-    decompose_scalars_to_words(scalars, &mut word_columns);
+    decompose_scalars_to_words(column_data, &mut word_columns);
     span.exit();
 
     // For each column, allocate `words` using the lookup table
@@ -65,13 +67,13 @@ pub(crate) fn first_round_evaluate_range_check<'a, S: Scalar + 'a>(
 #[tracing::instrument(name = "range check final round evaluate", level = "debug", skip_all)]
 pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
-    scalars: &[S],
+    column_data: &[impl Copy + Into<S>],
     alloc: &'a Bump,
 ) {
     // Create 31 columns, each will collect the corresponding word from all scalars.
     // 31 because a scalar will only ever have 248 bits of data set.
     let mut word_columns: Vec<&mut [u8]> =
-        repeat_with(|| alloc.alloc_slice_fill_copy(scalars.len(), 0))
+        repeat_with(|| alloc.alloc_slice_fill_copy(column_data.len(), 0))
             .take(31)
             .collect();
 
@@ -87,7 +89,7 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     let word_counts: &mut [i64] = alloc.alloc_slice_fill_with(256, |_| 0);
 
     let span = span!(Level::DEBUG, "decompose scalars in final round").entered();
-    decompose_scalars_to_words(scalars, &mut word_columns);
+    decompose_scalars_to_words(column_data, &mut word_columns);
     span.exit();
 
     let word_columns_immut: Vec<&[u8]> = word_columns
@@ -96,7 +98,7 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
         .collect();
 
     let span = span!(Level::DEBUG, "count_word_occurrences in final round").entered();
-    count_word_occurrences(&word_columns_immut, scalars.len(), word_counts);
+    count_word_occurrences(&word_columns_immut, column_data.len(), word_counts);
     span.exit();
 
     // Retrieve verifier challenge here, *after* Phase 1
@@ -109,7 +111,6 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
         word_value_table[i as usize] = i;
         inv_word_values_plus_alpha_table[i as usize] = S::from(&i);
     }
-
     let inv_word_vals_plus_alpha_table: &mut [S] = alloc
         .alloc_slice_fill_with(inv_word_values_plus_alpha_table.len(), |i| {
             inv_word_values_plus_alpha_table[i]
@@ -144,7 +145,7 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
         builder,
         word_counts,
         alloc,
-        scalars,
+        column_data,
         &inverted_word_columns,
         inv_word_vals_plus_alpha_table,
     );
@@ -166,9 +167,14 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     level = "debug",
     skip_all
 )]
-fn decompose_scalars_to_words<'a, S: Scalar + 'a>(scalars: &[S], word_columns: &mut [&mut [u8]]) {
-    for (i, scalar) in scalars.iter().enumerate() {
-        let scalar_array: [u64; 4] = (*scalar).into();
+fn decompose_scalars_to_words<'a, T, S: Scalar + 'a>(
+    column_data: &[T],
+    word_columns: &mut [&mut [u8]],
+) where
+    T: Copy + Into<S>,
+{
+    for (i, scalar) in column_data.iter().enumerate() {
+        let scalar_array: [u64; 4] = (*scalar).into().into();
         // Convert the [u64; 4] into a slice of bytes
         let scalar_bytes = &cast_slice::<u64, u8>(&scalar_array)[..31];
 
@@ -179,6 +185,7 @@ fn decompose_scalars_to_words<'a, S: Scalar + 'a>(scalars: &[S], word_columns: &
     }
 }
 
+// Count the individual word occurrences in the decomposed columns.
 fn count_word_occurrences(word_columns: &[&[u8]], scalar_count: usize, word_counts: &mut [i64]) {
     for column in word_columns.iter().take(31) {
         for &byte in column.iter().take(scalar_count) {
@@ -345,7 +352,7 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
     word_counts: &'a mut [i64],
     alloc: &'a Bump,
-    scalars: &[S],
+    column_data: &[impl Into<S>],
     inverted_word_columns: &[&mut [S]],
     word_vals_plus_alpha_inv: &'a [S],
 ) {
@@ -353,14 +360,13 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
     builder.produce_intermediate_mle(word_counts as &[_]);
 
     // Compute sum over all columns at each row index (single-threaded)
-    let row_sums = alloc.alloc_slice_fill_copy(scalars.len(), S::ZERO);
+    let row_sums = alloc.alloc_slice_fill_copy(column_data.len(), S::ZERO);
     for column in inverted_word_columns {
         for (i, &inv_word) in column.iter().enumerate() {
             row_sums[i] += inv_word;
         }
     }
 
-    // ∑ row_sums - (word_counts * (word_vals + α)⁻¹) = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::ZeroSum,
         vec![
@@ -501,7 +507,7 @@ mod tests {
         let mut byte_counts = vec![0; 256];
 
         // Call the decomposer first
-        decompose_scalars_to_words(&scalars, &mut word_slices);
+        decompose_scalars_to_words::<S, S>(&scalars, &mut word_slices);
 
         let word_columns_immut: Vec<&[u8]> = word_slices
             .iter()
@@ -542,7 +548,7 @@ mod tests {
 
         let mut byte_counts = vec![0; 256];
 
-        decompose_scalars_to_words(&scalars, &mut word_slices);
+        decompose_scalars_to_words::<S, S>(&scalars, &mut word_slices);
 
         let word_columns_immut: Vec<&[u8]> = word_slices.iter().map(|column| &column[..]).collect();
 
