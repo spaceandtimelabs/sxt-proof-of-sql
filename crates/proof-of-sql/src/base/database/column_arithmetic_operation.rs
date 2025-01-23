@@ -46,9 +46,9 @@ pub trait ArithmeticOp {
             });
         }
         match (&lhs, &rhs) {
-            // We can upcast a u8 into any of the signed types without incident. However, we cannot upcast
+            // We can cast a u8 into any of the signed types without incident. However, we cannot cast
             // a signed type into a u8 without potentially losing data. Therefore, we need a way to check
-            // that a signed type is greater than zero before we can upcast it into a u8.
+            // that a signed type is greater than zero before we can cast it into a u8.
             (OwnedColumn::Uint8(_), OwnedColumn::TinyInt(_)) => {
                 Err(ColumnOperationError::SignedCastingError {
                     left_type: ColumnType::Uint8,
