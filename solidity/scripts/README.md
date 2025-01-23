@@ -12,7 +12,7 @@ The script will recursively process all `*.pre.sol` files in the specified direc
 
 ## How it Works
 
-1. The script finds all `*.pre.sol` files in the given directory
+1. The script finds all `*.pre.sol` files in the given directory.
 2. For each file, it looks for special import directives in the format:
    ```solidity
    // IMPORT-YUL path/to/file.sol
@@ -20,9 +20,9 @@ The script will recursively process all `*.pre.sol` files in the specified direc
    ```
 
 3. When it finds an import directive:
-   - Resolves the import path relative to the source file
-   - Locates the specified function in the imported file
-   - Replaces the original function with the imported implementation
+   - Resolves the import path relative to the source file.
+   - Locates the specified function in the imported file.
+   - Replaces the original function with the imported implementation.
    - Adds a comment indicating the source: `// IMPORTED-YUL path/to/file.sol::functionName`
 
 ## Example
@@ -116,8 +116,8 @@ contract MyContract {
 ## Error Handling
 
 The script will fail with an error if:
-- The specified directory doesn't exist
-- An imported file cannot be read
-- A referenced function cannot be found in the imported file
+- The specified directory doesn't exist.
+- An imported file cannot be read.
+- A referenced function cannot be found in the imported file.
 
 Error messages are written to stderr and the script exits with a non-zero status code on any error.
