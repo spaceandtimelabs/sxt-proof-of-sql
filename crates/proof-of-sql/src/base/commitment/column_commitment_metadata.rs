@@ -44,7 +44,8 @@ impl ColumnCommitmentMetadata {
         bounds: ColumnBounds,
     ) -> Result<ColumnCommitmentMetadata, InvalidColumnCommitmentMetadata> {
         match (column_type, bounds) {
-            (ColumnType::TinyInt, ColumnBounds::TinyInt(_))
+            (ColumnType::Uint8, ColumnBounds::Uint8(_))
+            | (ColumnType::TinyInt, ColumnBounds::TinyInt(_))
             | (ColumnType::SmallInt, ColumnBounds::SmallInt(_))
             | (ColumnType::Int, ColumnBounds::Int(_))
             | (ColumnType::BigInt, ColumnBounds::BigInt(_))

@@ -68,6 +68,9 @@ pub(crate) fn compare_single_row_of_tables<S: Scalar>(
             (Column::Boolean(left_col), Column::Boolean(right_col)) => {
                 left_col[left_row_index].cmp(&right_col[right_row_index])
             }
+            (Column::Uint8(left_col), Column::Uint8(right_col)) => {
+                left_col[left_row_index].cmp(&right_col[right_row_index])
+            }
             (Column::TinyInt(left_col), Column::TinyInt(right_col)) => {
                 left_col[left_row_index].cmp(&right_col[right_row_index])
             }
@@ -129,8 +132,8 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
         .map(|(col, direction)| {
             let ordering = match col {
                 OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
-                OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Uint8(col) => col[i].cmp(&col[j]),
+                OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Int(col) => col[i].cmp(&col[j]),
                 OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => {

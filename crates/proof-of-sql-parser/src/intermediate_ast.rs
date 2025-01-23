@@ -106,11 +106,11 @@ pub enum BinaryOperator {
     /// Comparison =
     Equal,
 
-    /// Comparison <=
-    LessThanOrEqual,
+    /// Comparison <
+    LessThan,
 
-    /// Comparison >=
-    GreaterThanOrEqual,
+    /// Comparison >
+    GreaterThan,
 }
 
 /// Possible unary operators for simple expressions
