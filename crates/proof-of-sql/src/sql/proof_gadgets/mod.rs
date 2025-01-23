@@ -1,5 +1,6 @@
 //! This module contains shared proof logic for multiple `ProofExpr` / `ProofPlan` implementations.
 mod membership_check;
+mod monotonic;
 mod shift;
 #[allow(unused_imports, dead_code)]
 use membership_check::{
@@ -8,7 +9,6 @@ use membership_check::{
 };
 #[cfg(test)]
 mod membership_check_test;
-#[allow(unused_imports, dead_code)]
 use shift::{final_round_evaluate_shift, first_round_evaluate_shift, verify_shift};
 #[cfg(test)]
 mod shift_test;
@@ -20,3 +20,7 @@ pub(crate) mod range_check;
 mod range_check_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod sign_expr_test;
+#[allow(unused_imports, dead_code)]
+use monotonic::{final_round_evaluate_monotonic, first_round_evaluate_monotonic, verify_monotonic};
+#[cfg(test)]
+mod monotonic_test;

@@ -280,57 +280,13 @@ impl ComparisonOp for EqualOp {
     }
 }
 
-pub struct GreaterThanOrEqualOp {}
-impl ComparisonOp for GreaterThanOrEqualOp {
+pub struct GreaterThanOp {}
+impl ComparisonOp for GreaterThanOp {
     fn op<T>(l: &T, r: &T) -> bool
     where
         T: Debug + Ord,
     {
-        l >= r
-    }
-
-    fn decimal_op_left_upcast<S, T>(
-        lhs: &[T],
-        rhs: &[S],
-        left_column_type: ColumnType,
-        right_column_type: ColumnType,
-    ) -> Vec<bool>
-    where
-        S: Scalar,
-        T: Copy + Debug + Ord + Zero + Into<S>,
-    {
-        ge_decimal_columns(lhs, rhs, left_column_type, right_column_type)
-    }
-
-    fn decimal_op_right_upcast<S, T>(
-        lhs: &[S],
-        rhs: &[T],
-        left_column_type: ColumnType,
-        right_column_type: ColumnType,
-    ) -> Vec<bool>
-    where
-        S: Scalar,
-        T: Copy + Debug + Ord + Zero + Into<S>,
-    {
-        le_decimal_columns(rhs, lhs, right_column_type, left_column_type)
-    }
-
-    fn string_op(_lhs: &[String], _rhs: &[String]) -> ColumnOperationResult<Vec<bool>> {
-        Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-            operator: ">=".to_string(),
-            left_type: ColumnType::VarChar,
-            right_type: ColumnType::VarChar,
-        })
-    }
-}
-
-pub struct LessThanOrEqualOp {}
-impl ComparisonOp for LessThanOrEqualOp {
-    fn op<T>(l: &T, r: &T) -> bool
-    where
-        T: Debug + Ord,
-    {
-        l <= r
+        l > r
     }
 
     fn decimal_op_left_upcast<S, T>(
@@ -344,6 +300,9 @@ impl ComparisonOp for LessThanOrEqualOp {
         T: Copy + Debug + Ord + Zero + Into<S>,
     {
         le_decimal_columns(lhs, rhs, left_column_type, right_column_type)
+            .iter()
+            .map(|b| !b)
+            .collect()
     }
 
     fn decimal_op_right_upcast<S, T>(
@@ -357,11 +316,64 @@ impl ComparisonOp for LessThanOrEqualOp {
         T: Copy + Debug + Ord + Zero + Into<S>,
     {
         ge_decimal_columns(rhs, lhs, right_column_type, left_column_type)
+            .iter()
+            .map(|b| !b)
+            .collect()
     }
 
     fn string_op(_lhs: &[String], _rhs: &[String]) -> ColumnOperationResult<Vec<bool>> {
         Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-            operator: "<=".to_string(),
+            operator: ">".to_string(),
+            left_type: ColumnType::VarChar,
+            right_type: ColumnType::VarChar,
+        })
+    }
+}
+
+pub struct LessThanOp {}
+impl ComparisonOp for LessThanOp {
+    fn op<T>(l: &T, r: &T) -> bool
+    where
+        T: Debug + Ord,
+    {
+        l < r
+    }
+
+    fn decimal_op_left_upcast<S, T>(
+        lhs: &[T],
+        rhs: &[S],
+        left_column_type: ColumnType,
+        right_column_type: ColumnType,
+    ) -> Vec<bool>
+    where
+        S: Scalar,
+        T: Copy + Debug + Ord + Zero + Into<S>,
+    {
+        ge_decimal_columns(lhs, rhs, left_column_type, right_column_type)
+            .iter()
+            .map(|b| !b)
+            .collect()
+    }
+
+    fn decimal_op_right_upcast<S, T>(
+        lhs: &[S],
+        rhs: &[T],
+        left_column_type: ColumnType,
+        right_column_type: ColumnType,
+    ) -> Vec<bool>
+    where
+        S: Scalar,
+        T: Copy + Debug + Ord + Zero + Into<S>,
+    {
+        le_decimal_columns(rhs, lhs, right_column_type, left_column_type)
+            .iter()
+            .map(|b| !b)
+            .collect()
+    }
+
+    fn string_op(_lhs: &[String], _rhs: &[String]) -> ColumnOperationResult<Vec<bool>> {
+        Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+            operator: "<".to_string(),
             left_type: ColumnType::VarChar,
             right_type: ColumnType::VarChar,
         })

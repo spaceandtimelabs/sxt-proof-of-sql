@@ -33,14 +33,14 @@ pub fn equal(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
 /// Panics if:
 /// - `DynProofExpr::try_new_inequality()` returns an error.
 pub fn lte(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
-    DynProofExpr::try_new_inequality(left, right, true).unwrap()
+    not(DynProofExpr::try_new_inequality(left, right, false).unwrap())
 }
 
 /// # Panics
 /// Panics if:
 /// - `DynProofExpr::try_new_inequality()` returns an error.
 pub fn gte(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
-    DynProofExpr::try_new_inequality(left, right, false).unwrap()
+    not(DynProofExpr::try_new_inequality(left, right, true).unwrap())
 }
 
 /// # Panics
