@@ -185,6 +185,7 @@ fn decompose_scalars_to_words<'a, T, S: Scalar + 'a>(
     }
 }
 
+// Count the individual word occurrences in the decomposed columns.
 fn count_word_occurrences(word_columns: &[&[u8]], scalar_count: usize, word_counts: &mut [i64]) {
     for column in word_columns.iter().take(31) {
         for &byte in column.iter().take(scalar_count) {
