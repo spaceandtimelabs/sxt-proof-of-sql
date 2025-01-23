@@ -22,6 +22,7 @@ use nova_snark::{
     },
 };
 use serde::{Deserialize, Serialize};
+use tracing::{span, Level};
 
 /// The scalar used in the `HyperKZG` PCS. This is the BN254 scalar.
 pub type BNScalar = MontScalar<ark_bn254::FrConfig>;
@@ -92,16 +93,7 @@ impl Sub for HyperKZGCommitment {
     }
 }
 
-impl Scalar for BNScalar {
-    const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
-        "10944121435919637611123202872628637544274182200208017171849102093287904247808"
-    ));
-    const ZERO: Self = Self(ark_ff::MontFp!("0"));
-    const ONE: Self = Self(ark_ff::MontFp!("1"));
-    const TWO: Self = Self(ark_ff::MontFp!("2"));
-    const TEN: Self = Self(ark_ff::MontFp!("10"));
-}
-
+#[tracing::instrument(name = "compute_commitments_impl (cpu)", level = "debug", skip_all)]
 fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
     setup: &CommitmentKey<HyperKZGEngine>,
     offset: usize,
@@ -120,6 +112,8 @@ fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
 impl Commitment for HyperKZGCommitment {
     type Scalar = BNScalar;
     type PublicSetup<'a> = &'a CommitmentKey<HyperKZGEngine>;
+
+    #[tracing::instrument(name = "compute_commitments (cpu)", level = "debug", skip_all)]
     fn compute_commitments(
         committable_columns: &[crate::base::commitment::CommittableColumn],
         offset: usize,
@@ -129,6 +123,7 @@ impl Commitment for HyperKZGCommitment {
             .iter()
             .map(|column| match column {
                 CommittableColumn::Boolean(vals) => compute_commitments_impl(setup, offset, vals),
+                CommittableColumn::Uint8(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::TinyInt(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::SmallInt(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::Int(vals) => compute_commitments_impl(setup, offset, vals),
@@ -139,14 +134,11 @@ impl Commitment for HyperKZGCommitment {
                 CommittableColumn::Decimal75(_, _, vals)
                 | CommittableColumn::Scalar(vals)
                 | CommittableColumn::VarChar(vals) => compute_commitments_impl(setup, offset, vals),
-                CommittableColumn::RangeCheckWord(vals) => {
-                    compute_commitments_impl(setup, offset, vals)
-                }
             })
             .collect()
     }
-    fn append_to_transcript(&self, transcript: &mut impl crate::base::proof::Transcript) {
-        transcript.extend_as_le(self.commitment.to_transcript_bytes());
+    fn to_transcript_bytes(&self) -> Vec<u8> {
+        self.commitment.to_transcript_bytes()
     }
 }
 
@@ -212,7 +204,8 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
             (1 << nova_point.len()) - nova_a.len(),
         ));
         transcript.wrap_transcript(|keccak_transcript| {
-            EvaluationEngine::prove(
+            let span = span!(Level::DEBUG, "EvaluationEngine::prove").entered();
+            let eval_eng = EvaluationEngine::prove(
                 *setup,
                 &EvaluationEngine::setup(*setup).0, // This parameter is unused
                 keccak_transcript,
@@ -221,7 +214,9 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
                 &nova_point,
                 &NovaScalar::default(), // This parameter is unused
             )
-            .unwrap()
+            .unwrap();
+            span.exit();
+            eval_eng
         })
     }
 
@@ -270,22 +265,19 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::commitment::commitment_evaluation_proof_test::{
-        test_commitment_evaluation_proof_with_length_1, test_random_commitment_evaluation_proof,
-        test_simple_commitment_evaluation_proof,
+    use crate::base::{
+        commitment::commitment_evaluation_proof_test::{
+            test_commitment_evaluation_proof_with_length_1,
+            test_random_commitment_evaluation_proof, test_simple_commitment_evaluation_proof,
+        },
+        scalar::test_scalar_constants,
     };
     use ark_std::UniformRand;
     use nova_snark::provider::hyperkzg::CommitmentEngine;
-    use num_traits::Inv;
 
     #[test]
-    fn we_can_get_bn_scalar_constants_from_z_p() {
-        assert_eq!(BNScalar::from(0), BNScalar::ZERO);
-        assert_eq!(BNScalar::from(1), BNScalar::ONE);
-        assert_eq!(BNScalar::from(2), BNScalar::TWO);
-        // -1/2 == least upper bound
-        assert_eq!(-BNScalar::TWO.inv().unwrap(), BNScalar::MAX_SIGNED);
-        assert_eq!(BNScalar::from(10), BNScalar::TEN);
+    fn we_have_correct_constants_for_bn_scalar() {
+        test_scalar_constants::<BNScalar>();
     }
 
     #[test]

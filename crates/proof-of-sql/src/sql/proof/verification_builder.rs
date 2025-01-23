@@ -11,6 +11,7 @@ pub struct VerificationBuilder<'a, S: Scalar> {
     sumcheck_evaluation: S,
     bit_distributions: &'a [BitDistribution],
     consumed_one_evaluations: usize,
+    consumed_rho_evaluations: usize,
     consumed_first_round_pcs_proof_mles: usize,
     consumed_final_round_pcs_proof_mles: usize,
     produced_subpolynomials: usize,
@@ -23,6 +24,7 @@ pub struct VerificationBuilder<'a, S: Scalar> {
     /// challenge is the last entry in the vector.
     post_result_challenges: VecDeque<S>,
     one_evaluation_length_queue: Vec<usize>,
+    rho_evaluation_length_queue: Vec<usize>,
     subpolynomial_max_multiplicands: usize,
 }
 
@@ -31,6 +33,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         clippy::missing_panics_doc,
         reason = "The only possible panic is from the assertion comparing lengths, which is clear from context."
     )]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         generator_offset: usize,
         mle_evaluations: SumcheckMleEvaluations<'a, S>,
@@ -38,6 +41,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         subpolynomial_multipliers: &'a [S],
         post_result_challenges: VecDeque<S>,
         one_evaluation_length_queue: Vec<usize>,
+        rho_evaluation_length_queue: Vec<usize>,
         subpolynomial_max_multiplicands: usize,
     ) -> Self {
         Self {
@@ -47,11 +51,13 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             subpolynomial_multipliers,
             sumcheck_evaluation: S::zero(),
             consumed_one_evaluations: 0,
+            consumed_rho_evaluations: 0,
             consumed_first_round_pcs_proof_mles: 0,
             consumed_final_round_pcs_proof_mles: 0,
             produced_subpolynomials: 0,
             post_result_challenges,
             one_evaluation_length_queue,
+            rho_evaluation_length_queue,
             subpolynomial_max_multiplicands,
         }
     }
@@ -72,7 +78,26 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             .mle_evaluations
             .one_evaluations
             .get(&length)
-            .expect("One evaluation not found"))
+            .ok_or(ProofSizeMismatch::OneLengthNotFound)?)
+    }
+
+    /// Consume the evaluation of a rho evaluation
+    ///
+    /// # Panics
+    /// It should never panic, as the length of the rho evaluation is guaranteed to be present
+    pub fn try_consume_rho_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
+        let index = self.consumed_rho_evaluations;
+        let length = self
+            .rho_evaluation_length_queue
+            .get(index)
+            .copied()
+            .ok_or(ProofSizeMismatch::TooFewRhoLengths)?;
+        self.consumed_rho_evaluations += 1;
+        Ok(*self
+            .mle_evaluations
+            .rho_evaluations
+            .get(&length)
+            .ok_or(ProofSizeMismatch::RhoLengthNotFound)?)
     }
 
     pub fn generator_offset(&self) -> usize {

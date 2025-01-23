@@ -26,7 +26,7 @@ use super::{DoryProverPublicSetup, GT};
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
     impl_serde_for_ark_serde_checked,
-    scalar::{MontScalar, Scalar},
+    scalar::MontScalar,
 };
 use alloc::vec::Vec;
 use ark_ec::pairing::PairingOutput;
@@ -37,16 +37,6 @@ use num_traits::One;
 
 /// The Dory scalar type. (alias for `MontScalar<ark_bls12_381::FrConfig>`)
 pub type DoryScalar = MontScalar<ark_bls12_381::FrConfig>;
-
-impl Scalar for DoryScalar {
-    const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
-        "26217937587563095239723870254092982918845276250263818911301829349969290592256"
-    ));
-    const ZERO: Self = Self(ark_ff::MontFp!("0"));
-    const ONE: Self = Self(ark_ff::MontFp!("1"));
-    const TWO: Self = Self(ark_ff::MontFp!("2"));
-    const TEN: Self = Self(ark_ff::MontFp!("10"));
-}
 
 #[derive(
     Debug,
@@ -97,8 +87,10 @@ impl Commitment for DoryCommitment {
         super::compute_dory_commitments(committable_columns, offset, setup)
     }
 
-    fn append_to_transcript(&self, transcript: &mut impl crate::base::proof::Transcript) {
-        transcript.extend_canonical_serialize_as_le(&self.0);
+    fn to_transcript_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(self.0.compressed_size());
+        self.0.serialize_compressed(&mut buf).unwrap();
+        buf
     }
 }
 
@@ -109,13 +101,18 @@ mod tests {
         base::{
             commitment::{Commitment, NumColumnsMismatch, VecCommitmentExt},
             database::{Column, OwnedColumn},
-            proof::{Keccak256Transcript, Transcript},
+            scalar::test_scalar_constants,
         },
         proof_primitive::dory::{rand_util::test_rng, ProverSetup, PublicParameters},
     };
     use ark_ec::pairing::Pairing;
     use ark_ff::UniformRand;
     use rand::{rngs::StdRng, SeedableRng};
+
+    #[test]
+    fn we_have_correct_constants_for_dory_scalar() {
+        test_scalar_constants::<DoryScalar>();
+    }
 
     #[test]
     fn we_can_convert_from_columns() {
@@ -493,17 +490,13 @@ mod tests {
     }
 
     #[test]
-    fn we_can_append_different_dory_commitments_and_get_different_transcripts() {
+    fn we_get_different_transcript_bytes_from_different_dory_commitments() {
         let mut rng = StdRng::seed_from_u64(42);
         let commitment1 = DoryCommitment(GT::rand(&mut rng));
         let commitment2 = DoryCommitment(GT::rand(&mut rng));
-
-        let mut transcript1 = Keccak256Transcript::new();
-        let mut transcript2 = Keccak256Transcript::new();
-
-        commitment1.append_to_transcript(&mut transcript1);
-        commitment2.append_to_transcript(&mut transcript2);
-
-        assert_ne!(transcript1.challenge_as_le(), transcript2.challenge_as_le());
+        assert_ne!(
+            commitment1.to_transcript_bytes(),
+            commitment2.to_transcript_bytes()
+        );
     }
 }

@@ -66,6 +66,7 @@ fn compute_dory_commitment(
 ) -> DoryCommitment {
     match committable_column {
         CommittableColumn::Scalar(column) => compute_dory_commitment_impl(column, offset, setup),
+        CommittableColumn::Uint8(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::TinyInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::SmallInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Int(column) => compute_dory_commitment_impl(column, offset, setup),
@@ -77,9 +78,6 @@ fn compute_dory_commitment(
         CommittableColumn::VarChar(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Boolean(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::TimestampTZ(_, _, column) => {
-            compute_dory_commitment_impl(column, offset, setup)
-        }
-        CommittableColumn::RangeCheckWord(column) => {
             compute_dory_commitment_impl(column, offset, setup)
         }
     }

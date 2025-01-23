@@ -4,6 +4,7 @@ use crate::base::{
     scalar::{test_scalar::TestScalar, Scalar},
 };
 use alloc::{vec, vec::Vec};
+use ark_serialize::CanonicalSerialize;
 use core::{
     cmp,
     fmt::Debug,
@@ -121,6 +122,9 @@ impl Commitment for NaiveCommitment {
                     CommittableColumn::Boolean(bool_vec) => {
                         bool_vec.iter().map(core::convert::Into::into).collect()
                     }
+                    CommittableColumn::Uint8(u8_vec) => {
+                        u8_vec.iter().map(core::convert::Into::into).collect()
+                    }
                     CommittableColumn::TinyInt(tiny_int_vec) => {
                         tiny_int_vec.iter().map(core::convert::Into::into).collect()
                     }
@@ -149,10 +153,6 @@ impl Commitment for NaiveCommitment {
                     CommittableColumn::TimestampTZ(_, _, i64_vec) => {
                         i64_vec.iter().map(core::convert::Into::into).collect()
                     }
-                    CommittableColumn::RangeCheckWord(u8_scalar_vec) => u8_scalar_vec
-                        .iter()
-                        .map(core::convert::Into::into)
-                        .collect(),
                 };
                 vectors.append(&mut existing_scalars);
                 NaiveCommitment(vectors)
@@ -160,8 +160,10 @@ impl Commitment for NaiveCommitment {
             .collect()
     }
 
-    fn append_to_transcript(&self, transcript: &mut impl crate::base::proof::Transcript) {
-        transcript.extend_as_le(self.0.iter().map(Into::<[u64; 4]>::into));
+    fn to_transcript_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(self.0.compressed_size());
+        self.0.serialize_compressed(&mut buf).unwrap();
+        buf
     }
 }
 
@@ -202,19 +204,14 @@ fn we_can_compute_commitments_from_commitable_columns_with_offset() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::proof::{Keccak256Transcript, Transcript};
 
     #[test]
-    fn we_can_append_different_naive_commitments_and_get_different_transcripts() {
+    fn we_get_different_transcript_bytes_from_different_naive_commitments() {
         let commitment1 = NaiveCommitment(vec![TestScalar::from(1), TestScalar::from(2)]);
         let commitment2 = NaiveCommitment(vec![TestScalar::from(3), TestScalar::from(4)]);
-
-        let mut transcript1 = Keccak256Transcript::new();
-        let mut transcript2 = Keccak256Transcript::new();
-
-        commitment1.append_to_transcript(&mut transcript1);
-        commitment2.append_to_transcript(&mut transcript2);
-
-        assert_ne!(transcript1.challenge_as_le(), transcript2.challenge_as_le());
+        assert_ne!(
+            commitment1.to_transcript_bytes(),
+            commitment2.to_transcript_bytes()
+        );
     }
 }

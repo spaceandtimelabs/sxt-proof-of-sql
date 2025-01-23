@@ -43,13 +43,14 @@ pub fn exercise_verification(
     assert!(res_p.verify(expr, accessor, &()).is_err());
 
     // try changing MLE evaluations
-    for i in 0..proof.final_round_pcs_proof_evaluations.len() {
+    for i in 0..proof.pcs_proof_evaluations.final_round.len() {
         let mut res_p = res.clone();
         res_p
             .proof
             .as_mut()
             .unwrap()
-            .final_round_pcs_proof_evaluations[i] += Curve25519Scalar::one();
+            .pcs_proof_evaluations
+            .final_round[i] += Curve25519Scalar::one();
         assert!(res_p.verify(expr, accessor, &()).is_err());
     }
 
@@ -63,9 +64,14 @@ pub fn exercise_verification(
         &(),
     )[0];
 
-    for i in 0..proof.final_round_commitments.len() {
+    for i in 0..proof.final_round_message.round_commitments.len() {
         let mut res_p = res.clone();
-        res_p.proof.as_mut().unwrap().final_round_commitments[i] = commit_p;
+        res_p
+            .proof
+            .as_mut()
+            .unwrap()
+            .final_round_message
+            .round_commitments[i] = commit_p;
         assert!(res_p.verify(expr, accessor, &()).is_err());
     }
 
@@ -76,7 +82,8 @@ pub fn exercise_verification(
     // vector; hence, changing the offset would have no effect.
     if accessor.get_length(table_ref) > 1
         || proof
-            .final_round_commitments
+            .final_round_message
+            .round_commitments
             .iter()
             .any(|&c| c != Identity::identity())
     {
@@ -111,6 +118,7 @@ fn append_single_row_to_column<S: Scalar>(column: &OwnedColumn<S>) -> OwnedColum
     let mut column = column.clone();
     match &mut column {
         OwnedColumn::Boolean(col) => col.push(false),
+        OwnedColumn::Uint8(col) => col.push(0),
         OwnedColumn::TinyInt(col) => col.push(0),
         OwnedColumn::SmallInt(col) => col.push(0),
         OwnedColumn::Int(col) => col.push(0),
@@ -144,6 +152,7 @@ pub fn tamper_first_row_of_column<S: Scalar>(column: &OwnedColumn<S>) -> OwnedCo
     let mut column = column.clone();
     match &mut column {
         OwnedColumn::Boolean(col) => col[0] ^= true,
+        OwnedColumn::Uint8(col) => col[0] = col[0].wrapping_add(1),
         OwnedColumn::TinyInt(col) => col[0] = col[0].wrapping_add(1),
         OwnedColumn::SmallInt(col) => col[0] = col[0].wrapping_add(1),
         OwnedColumn::Int(col) => col[0] = col[0].wrapping_add(1),

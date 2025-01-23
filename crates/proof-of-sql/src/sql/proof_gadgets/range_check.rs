@@ -487,7 +487,7 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
 mod tests {
     use super::*;
     use crate::{
-        base::scalar::{Curve25519Scalar, Curve25519Scalar as S, Scalar},
+        base::scalar::{Curve25519Scalar as S, Scalar},
         sql::proof::FinalRoundBuilder,
     };
     use alloc::collections::VecDeque;
@@ -506,10 +506,7 @@ mod tests {
         let mut byte_counts = vec![0; 256];
 
         // Call the decomposer first
-        decompose_scalars_to_words::<Curve25519Scalar, Curve25519Scalar>(
-            &scalars,
-            &mut word_slices,
-        );
+        decompose_scalars_to_words::<S, S>(&scalars, &mut word_slices);
 
         let word_columns_immut: Vec<&[u8]> = word_slices
             .iter()
@@ -550,10 +547,7 @@ mod tests {
 
         let mut byte_counts = vec![0; 256];
 
-        decompose_scalars_to_words::<Curve25519Scalar, Curve25519Scalar>(
-            &scalars,
-            &mut word_slices,
-        );
+        decompose_scalars_to_words::<S, S>(&scalars, &mut word_slices);
 
         let word_columns_immut: Vec<&[u8]> = word_slices.iter().map(|column| &column[..]).collect();
 

@@ -38,9 +38,11 @@ fn we_can_compute_the_bit_matrix_for_data_with_a_varying_sign_bit() {
     let dist = BitDistribution::new::<TestScalar, _>(&data);
     let alloc = Bump::new();
     let matrix = compute_varying_bit_matrix(&alloc, &data, &dist);
-    assert_eq!(matrix.len(), 1);
-    let slice1 = vec![false, true];
+    assert_eq!(matrix.len(), 2);
+    let slice1 = vec![true, true];
+    let slice2 = vec![true, false];
     assert_eq!(matrix[0], slice1);
+    assert_eq!(matrix[1], slice2);
 }
 
 #[test]
@@ -62,11 +64,13 @@ fn we_can_compute_the_bit_matrix_for_data_with_varying_bits_and_constant_bits() 
     let dist = BitDistribution::new::<TestScalar, _>(&data);
     let alloc = Bump::new();
     let matrix = compute_varying_bit_matrix(&alloc, &data, &dist);
-    assert_eq!(matrix.len(), 2);
-    let slice1 = vec![true, false];
-    let slice2 = vec![false, true];
+    assert_eq!(matrix.len(), 3);
+    let slice1 = vec![true, true];
+    let slice2 = vec![true, true];
+    let slice3 = vec![true, false];
     assert_eq!(matrix[0], slice1);
     assert_eq!(matrix[1], slice2);
+    assert_eq!(matrix[2], slice3);
 }
 
 #[test]

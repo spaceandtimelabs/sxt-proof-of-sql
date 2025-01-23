@@ -203,6 +203,8 @@ pub struct ColumnBoundsMismatch {
 pub enum ColumnBounds {
     /// Column does not have order.
     NoOrder,
+    /// The bounds of a `Uint8` column.
+    Uint8(Bounds<u8>),
     /// The bounds of a `TinyInt` column.
     TinyInt(Bounds<i8>),
     /// The bounds of a `SmallInt` column.
@@ -225,6 +227,7 @@ impl ColumnBounds {
     pub fn from_column(column: &CommittableColumn) -> ColumnBounds {
         match column {
             CommittableColumn::TinyInt(ints) => ColumnBounds::TinyInt(Bounds::from_iter(*ints)),
+            CommittableColumn::Uint8(ints) => ColumnBounds::Uint8(Bounds::from_iter(*ints)),
             CommittableColumn::SmallInt(ints) => ColumnBounds::SmallInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int(ints) => ColumnBounds::Int(Bounds::from_iter(*ints)),
             CommittableColumn::BigInt(ints) => ColumnBounds::BigInt(Bounds::from_iter(*ints)),
@@ -235,8 +238,7 @@ impl ColumnBounds {
             CommittableColumn::Boolean(_)
             | CommittableColumn::Decimal75(_, _, _)
             | CommittableColumn::Scalar(_)
-            | CommittableColumn::VarChar(_)
-            | CommittableColumn::RangeCheckWord(_) => ColumnBounds::NoOrder,
+            | CommittableColumn::VarChar(_) => ColumnBounds::NoOrder,
         }
     }
 

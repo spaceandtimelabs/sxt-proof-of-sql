@@ -4,8 +4,9 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use ark_ff::{BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
+use ark_ff::{AdditiveGroup, BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use bnum::types::U256;
 use bytemuck::TransparentWrapper;
 use core::{
     cmp::Ordering,
@@ -308,18 +309,16 @@ impl<T: MontConfig<4>> num_traits::Inv for MontScalar<T> {
 }
 impl<T: MontConfig<4>> Serialize for MontScalar<T> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut bytes = Vec::with_capacity(self.0.compressed_size());
-        self.0
-            .serialize_compressed(&mut bytes)
-            .map_err(serde::ser::Error::custom)?;
-        bytes.serialize(serializer)
+        let mut limbs: [u64; 4] = self.into();
+        limbs.reverse();
+        limbs.serialize(serializer)
     }
 }
 impl<'de, T: MontConfig<4>> Deserialize<'de> for MontScalar<T> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        CanonicalDeserialize::deserialize_compressed(Vec::deserialize(deserializer)?.as_slice())
-            .map_err(serde::de::Error::custom)
-            .map(Self)
+        let mut limbs: [u64; 4] = Deserialize::deserialize(deserializer)?;
+        limbs.reverse();
+        Ok(limbs.into())
     }
 }
 
@@ -423,14 +422,27 @@ impl<T: MontConfig<4>> Display for MontScalar<T> {
     }
 }
 
-impl super::Scalar for Curve25519Scalar {
-    const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
-        "3618502788666131106986593281521497120428558179689953803000975469142727125494"
-    ));
-    const ZERO: Self = Self(ark_ff::MontFp!("0"));
-    const ONE: Self = Self(ark_ff::MontFp!("1"));
-    const TWO: Self = Self(ark_ff::MontFp!("2"));
-    const TEN: Self = Self(ark_ff::MontFp!("10"));
+impl<T> Scalar for MontScalar<T>
+where
+    T: MontConfig<4>,
+{
+    const MAX_SIGNED: Self = Self(Fp::new(T::MODULUS.divide_by_2_round_down()));
+    const ZERO: Self = Self(Fp::ZERO);
+    const ONE: Self = Self(Fp::ONE);
+    const TWO: Self = Self(Fp::new(ark_ff::BigInt([2, 0, 0, 0])));
+    const TEN: Self = Self(Fp::new(ark_ff::BigInt([10, 0, 0, 0])));
+    const CHALLENGE_MASK: U256 = {
+        assert!(
+            T::MODULUS.0[3].leading_zeros() < 64,
+            "modulus expected to be larger than 1 << (64*3)"
+        );
+        U256::from_digits([
+            u64::MAX,
+            u64::MAX,
+            u64::MAX,
+            u64::MAX >> (T::MODULUS.0[3].leading_zeros() + 1),
+        ])
+    };
 }
 
 impl<T> TryFrom<MontScalar<T>> for bool
@@ -458,6 +470,36 @@ where
                 error: format!("{value} is too large to fit in a bool"),
             }),
         }
+    }
+}
+
+impl<T> TryFrom<MontScalar<T>> for u8
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
+    type Error = ScalarConversionError;
+
+    fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
+        if value < MontScalar::<T>::ZERO {
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is negative and cannot fit in a u8"),
+            });
+        }
+
+        let abs: [u64; 4] = value.into();
+
+        if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in a u8"),
+            });
+        }
+
+        abs[0]
+            .try_into()
+            .map_err(|_| ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in a u8"),
+            })
     }
 }
 

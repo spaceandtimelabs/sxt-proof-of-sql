@@ -83,33 +83,28 @@ impl Commitment for DynamicDoryCommitment {
         super::compute_dynamic_dory_commitments(committable_columns, offset, setup)
     }
 
-    fn append_to_transcript(&self, transcript: &mut impl crate::base::proof::Transcript) {
-        transcript.extend_canonical_serialize_as_le(&self.0);
+    fn to_transcript_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(self.0.compressed_size());
+        self.0.serialize_compressed(&mut buf).unwrap();
+        buf
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{DynamicDoryCommitment, GT};
-    use crate::base::{
-        commitment::Commitment,
-        proof::{Keccak256Transcript, Transcript},
-    };
+    use crate::base::commitment::Commitment;
     use ark_ff::UniformRand;
     use rand::{rngs::StdRng, SeedableRng};
 
     #[test]
-    fn we_can_append_different_dynamic_dory_commitments_and_get_different_transcripts() {
+    fn we_get_different_transcript_bytes_from_different_dynamic_dory_commitments() {
         let mut rng = StdRng::seed_from_u64(42);
         let commitment1 = DynamicDoryCommitment(GT::rand(&mut rng));
         let commitment2 = DynamicDoryCommitment(GT::rand(&mut rng));
-
-        let mut transcript1 = Keccak256Transcript::new();
-        let mut transcript2 = Keccak256Transcript::new();
-
-        commitment1.append_to_transcript(&mut transcript1);
-        commitment2.append_to_transcript(&mut transcript2);
-
-        assert_ne!(transcript1.challenge_as_le(), transcript2.challenge_as_le());
+        assert_ne!(
+            commitment1.to_transcript_bytes(),
+            commitment2.to_transcript_bytes()
+        );
     }
 }

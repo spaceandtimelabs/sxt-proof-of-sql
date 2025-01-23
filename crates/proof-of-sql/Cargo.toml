@@ -24,6 +24,7 @@ ark-poly = { workspace = true }
 ark-serialize = { workspace = true }
 ark-std = { workspace = true }
 arrow = { workspace = true, optional = true }
+bincode = { workspace = true }
 bit-iter = { workspace = true }
 bigdecimal = { workspace = true }
 blake3 = { workspace = true }
@@ -61,7 +62,6 @@ tracing = { workspace = true, features = ["attributes"] }
 zerocopy = { workspace = true }
 
 [dev-dependencies]
-alloy-sol-types = { workspace = true }
 arrow-csv = { workspace = true }
 criterion = { workspace = true, features = ["html_reports"] }
 merlin = { workspace = true }
@@ -101,11 +101,6 @@ required-features = [ "std", "blitzar"]
 name = "commitment-utility"
 path = "utils/commitment-utility/main.rs"
 required-features = [ "std", "blitzar"]
-
-[[bin]]
-name = "yul_preprocessor"
-path = "utils/yul-preprocessor/main.rs"
-required-features = [ "std" ]
 
 [[example]]
 name = "hello_world"

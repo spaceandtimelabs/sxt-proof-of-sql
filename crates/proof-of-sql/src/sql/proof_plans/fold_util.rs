@@ -3,7 +3,7 @@ use crate::base::{polynomial::MultilinearExtension, scalar::Scalar};
 /// This function takes a set of columns and fold it into a slice of scalars.
 ///
 /// The result `res` is updated with
-/// `res[i] += mul * sum (beta^j * columns[j][i]) for j in 0..columns.len()`
+/// `res[i] += mul * sum (beta^(n-j) * columns[j][i]) for j in 0..columns.len()` where n is the number of columns.
 /// where each column is padded with 0s as needed.
 ///
 /// This is similar to adding `mul * fold_vals(beta,...)` on each row.
@@ -13,7 +13,7 @@ pub fn fold_columns<S: Scalar>(
     beta: S,
     columns: &[impl MultilinearExtension<S>],
 ) {
-    for (m, col) in powers(mul, beta).zip(columns) {
+    for (m, col) in powers(mul, beta).zip(columns.iter().rev()) {
         col.mul_add(res, &m);
     }
 }
@@ -22,10 +22,9 @@ pub fn fold_columns<S: Scalar>(
 /// result of folding the values.
 ///
 /// The result is
-/// `sum (beta^j * vals[j]) for j in 0..vals.len()`
+/// `sum (beta^(n-j) * vals[j]) for j in 0..vals.len()` where n is the number of vals.
 pub fn fold_vals<S: Scalar>(beta: S, vals: &[S]) -> S {
-    let beta_powers = powers(S::one(), beta);
-    beta_powers.zip(vals).map(|(pow, &val)| pow * val).sum()
+    vals.iter().fold(S::zero(), |acc, &v| acc * beta + v)
 }
 
 /// Returns an iterator for the lazily evaluated sequence `init, init * base, init * base^2, ...`

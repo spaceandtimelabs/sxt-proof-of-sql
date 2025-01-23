@@ -6,16 +6,16 @@ use num_traits::Zero;
 #[test]
 fn we_can_fold_columns_with_scalars() {
     let expected = vec![
-        Curve25519Scalar::from(77 + 2061 * 33)
-            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("1"),
-        Curve25519Scalar::from(77 + 3072 * 33)
-            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("2"),
-        Curve25519Scalar::from(77 + 5083 * 33)
-            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("3"),
-        Curve25519Scalar::from(77 + 7094 * 33)
-            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("4"),
-        Curve25519Scalar::from(77 + 1005 * 33)
-            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("5"),
+        Curve25519Scalar::from(77 + 1602 * 33)
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("1"),
+        Curve25519Scalar::from(77 + 2703 * 33)
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("2"),
+        Curve25519Scalar::from(77 + 3805 * 33)
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("3"),
+        Curve25519Scalar::from(77 + 4907 * 33)
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("4"),
+        Curve25519Scalar::from(77 + 5001 * 33)
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("5"),
     ];
 
     let str_scalars: [Curve25519Scalar; 5] =
@@ -47,14 +47,14 @@ fn we_can_fold_columns_with_scalars() {
 #[test]
 fn we_can_fold_columns_with_that_get_padded() {
     let expected = vec![
-        Curve25519Scalar::from(77 + 2061 * 33)
-            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("1"),
-        Curve25519Scalar::from(77 + 3072 * 33)
-            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("2"),
-        Curve25519Scalar::from(77 + 83 * 33)
-            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("3"),
-        Curve25519Scalar::from(77 + 94 * 33),
-        Curve25519Scalar::from(77 + 5 * 33),
+        Curve25519Scalar::from(77 + 1602 * 33)
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("1"),
+        Curve25519Scalar::from(77 + 2703 * 33)
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("2"),
+        Curve25519Scalar::from(77 + 3800 * 33)
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("3"),
+        Curve25519Scalar::from(77 + 4900 * 33),
+        Curve25519Scalar::from(77 + 5000 * 33),
         Curve25519Scalar::from(77),
         Curve25519Scalar::from(77),
         Curve25519Scalar::from(77),
@@ -116,6 +116,6 @@ fn we_can_fold_vals() {
                 5.into()
             ]
         ),
-        (54321).into()
+        (12345).into()
     );
 }

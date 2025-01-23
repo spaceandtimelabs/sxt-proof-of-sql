@@ -1149,7 +1149,7 @@ mod tests {
     }
 
     #[test]
-    fn we_can_create_and_append_table_commitments_with_record_batchs() {
+    fn we_can_create_and_append_table_commitments_with_record_batches() {
         let batch = record_batch!(
             "a" => [1i64, 2, 3],
             "b" => ["1", "2", "3"],

@@ -285,11 +285,10 @@ pub fn count_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
 #[must_use]
 pub fn count_all_res(alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: Expression::Aggregation {
+        expr: Box::new(Expression::Aggregation {
             op: AggregationOperator::Count,
             expr: Box::new(Expression::Wildcard),
-        }
-        .into(),
+        }),
         alias: alias.parse().unwrap(),
     })
 }

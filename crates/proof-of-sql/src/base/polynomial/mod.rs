@@ -16,7 +16,8 @@ mod evaluation_vector_test;
 
 mod lagrange_basis_evaluation;
 pub use lagrange_basis_evaluation::{
-    compute_truncated_lagrange_basis_inner_product, compute_truncated_lagrange_basis_sum,
+    compute_rho_eval, compute_truncated_lagrange_basis_inner_product,
+    compute_truncated_lagrange_basis_sum,
 };
 #[cfg(test)]
 mod lagrange_basis_evaluation_test;

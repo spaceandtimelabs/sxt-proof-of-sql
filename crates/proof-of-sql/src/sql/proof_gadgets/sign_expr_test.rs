@@ -1,13 +1,16 @@
 use super::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
 use crate::{
-    base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Curve25519Scalar},
+    base::{
+        bit::BitDistribution,
+        polynomial::MultilinearExtension,
+        scalar::{Curve25519Scalar, Scalar},
+    },
     sql::proof::{
         FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
     },
 };
 use alloc::collections::VecDeque;
 use bumpalo::Bump;
-use num_traits::Zero;
 
 #[test]
 fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
@@ -16,7 +19,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
     let alloc = Bump::new();
     let data: Vec<Curve25519Scalar> = data.into_iter().map(Curve25519Scalar::from).collect();
     let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
-    let sign = prover_evaluate_sign(&mut builder, &alloc, &data, false);
+    let sign = prover_evaluate_sign(&mut builder, &alloc, &data);
     assert_eq!(sign, [false; 3]);
     assert_eq!(builder.bit_distributions(), [dist]);
 }
@@ -28,7 +31,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_colum
     let alloc = Bump::new();
     let data: Vec<Curve25519Scalar> = data.into_iter().map(Curve25519Scalar::from).collect();
     let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
-    let sign = prover_evaluate_sign(&mut builder, &alloc, &data, false);
+    let sign = prover_evaluate_sign(&mut builder, &alloc, &data);
     assert_eq!(sign, [true; 3]);
     assert_eq!(builder.bit_distributions(), [dist]);
 }
@@ -44,6 +47,7 @@ fn we_can_verify_a_constant_decomposition() {
     let sumcheck_evaluations = SumcheckMleEvaluations::new(
         data.len(),
         [data.len()],
+        [],
         &evaluation_point,
         &sumcheck_random_scalars,
         &[],
@@ -59,11 +63,12 @@ fn we_can_verify_a_constant_decomposition() {
         &[],
         VecDeque::new(),
         Vec::new(),
+        Vec::new(),
         3,
     );
     let data_eval = (&data).evaluate_at_point(&evaluation_point);
     let eval = verifier_evaluate_sign(&mut builder, data_eval, *one_eval).unwrap();
-    assert_eq!(eval, Curve25519Scalar::zero());
+    assert_eq!(eval, Curve25519Scalar::ZERO);
 }
 
 #[test]
@@ -77,6 +82,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     let sumcheck_evaluations = SumcheckMleEvaluations::new(
         data.len(),
         [data.len()],
+        [],
         &evaluation_point,
         &sumcheck_random_scalars,
         &[],
@@ -91,6 +97,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         &dists,
         &[],
         VecDeque::new(),
+        Vec::new(),
         Vec::new(),
         3,
     );

@@ -39,7 +39,7 @@ impl Default for TrivialTestProofPlan {
             evaluation: 0,
             produce_length: true,
             bit_distribution: Some(BitDistribution {
-                or_all: [0; 4],
+                leading_bit_mask: [0; 4],
                 vary_mask: [0; 4],
             }),
         }
@@ -229,7 +229,7 @@ fn verify_fails_if_the_number_of_bit_distributions_is_not_enough() {
 fn verify_fails_if_a_bit_distribution_is_invalid() {
     let expr = TrivialTestProofPlan {
         bit_distribution: Some(BitDistribution {
-            or_all: [1; 4],
+            leading_bit_mask: [1; 4],
             vary_mask: [1; 4],
         }),
         ..Default::default()
@@ -600,8 +600,8 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         (),
     );
     let (mut proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
-    proof.final_round_commitments[0] =
-        proof.final_round_commitments[0] * Curve25519Scalar::from(2u64);
+    proof.final_round_message.round_commitments[0] =
+        proof.final_round_message.round_commitments[0] * Curve25519Scalar::from(2u64);
     assert!(proof.verify(&expr, &accessor, result, &()).is_err());
 }
 

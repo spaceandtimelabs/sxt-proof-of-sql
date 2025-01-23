@@ -2,6 +2,7 @@
 
 use crate::base::{encode::VarInt, ref_into::RefInto, scalar::ScalarConversionError};
 use alloc::string::String;
+use bnum::types::U256;
 use core::ops::Sub;
 use num_bigint::BigInt;
 
@@ -32,6 +33,7 @@ pub trait Scalar:
     + for<'a> core::convert::From<&'a i128> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a u8> // Required for `Column` to implement `MultilinearExtension`
     + core::convert::TryInto <bool>
+    + core::convert::TryInto<u8>
     + core::convert::TryInto <i8>
     + core::convert::TryInto <i16>
     + core::convert::TryInto <i32>
@@ -39,6 +41,7 @@ pub trait Scalar:
     + core::convert::TryInto <i128>
     + core::convert::Into<[u64; 4]>
     + core::convert::From<[u64; 4]>
+    + core::convert::From<u8>
     + core::cmp::Ord
     + core::ops::Neg<Output = Self>
     + num_traits::Zero
@@ -56,6 +59,7 @@ pub trait Scalar:
     + core::convert::From<i32>
     + core::convert::From<i16>
     + core::convert::From<i8>
+    + core::convert::From<u64>
     + core::convert::From<bool>
     + core::convert::Into<BigInt>
     + TryFrom<BigInt, Error = ScalarConversionError>
@@ -71,4 +75,7 @@ pub trait Scalar:
     const TWO: Self;
     /// 2 + 2 + 2 + 2 + 2
     const TEN: Self;
+    /// The value to mask the challenge with to ensure it is in the field.
+    /// This one less than the largest power of 2 that is less than the field modulus.
+    const CHALLENGE_MASK: U256;
 }

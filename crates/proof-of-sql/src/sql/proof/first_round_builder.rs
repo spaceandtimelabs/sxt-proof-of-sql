@@ -18,6 +18,8 @@ pub struct FirstRoundBuilder<'a, S> {
     num_post_result_challenges: usize,
     /// The extra one evaluation lengths used in the proof.
     one_evaluation_lengths: Vec<usize>,
+    /// The rho evaluation lengths used in the proof.
+    rho_evaluation_lengths: Vec<usize>,
     // The range_length used in sumcheck which is max of all possible ones.
     range_length: usize,
 }
@@ -29,6 +31,7 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
             pcs_proof_mles: Vec::new(),
             num_post_result_challenges: 0,
             one_evaluation_lengths: Vec::new(),
+            rho_evaluation_lengths: Vec::new(),
             range_length: initial_range_length,
         }
     }
@@ -58,6 +61,17 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
     pub(crate) fn produce_one_evaluation_length(&mut self, length: usize) {
         self.update_range_length(length);
         self.one_evaluation_lengths.push(length);
+    }
+
+    /// Get the rho evaluation lengths used in the proof.
+    pub(crate) fn rho_evaluation_lengths(&self) -> &[usize] {
+        &self.rho_evaluation_lengths
+    }
+
+    /// Append the length to the list of rho evaluation lengths.
+    #[allow(dead_code)]
+    pub(crate) fn produce_rho_evaluation_length(&mut self, length: usize) {
+        self.rho_evaluation_lengths.push(length);
     }
 
     /// Produce an MLE for a intermediate computed column that we can reference in sumcheck.
