@@ -41,7 +41,6 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
 /// Panics if `left` and `right` have different number of columns
 /// which should never happen since this function should only be called
 /// for joins.
-#[allow(dead_code)]
 pub(crate) fn compare_single_row_of_tables<S: Scalar>(
     left: &[Column<S>],
     right: &[Column<S>],

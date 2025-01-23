@@ -1,18 +1,92 @@
 use super::{
     apply_column_to_indexes,
     order_by_util::{compare_indexes_by_columns, compare_single_row_of_tables},
-    Column, ColumnRepeatOp, ElementwiseRepeatOp, RepetitionOp, Table, TableOperationError,
-    TableOperationResult, TableOptions,
+    union_util::column_union,
+    Column, ColumnOperationResult, ColumnRepeatOp, ElementwiseRepeatOp, RepetitionOp, Table,
+    TableOperationError, TableOperationResult, TableOptions,
 };
 use crate::base::{
     map::{IndexMap, IndexSet},
     scalar::Scalar,
 };
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 use bumpalo::Bump;
 use core::cmp::Ordering;
 use itertools::Itertools;
 use sqlparser::ast::Ident;
+
+/// Compute the set union of two slices of columns, deduplicate and sort the result.
+///
+/// Notes
+/// 1. This is mostly used for joins.
+/// 2. We do not check whether columns in the args have the same length, as we assume that the columns in an arg are already from the same table.
+pub(crate) fn ordered_set_union<'a, S: Scalar>(
+    left_on: &[Column<'a, S>],
+    right_on: &[Column<'a, S>],
+    alloc: &'a Bump,
+) -> TableOperationResult<Vec<Column<'a, S>>> {
+    //1. Union the columns
+    if left_on.len() != right_on.len() {
+        return Err(TableOperationError::JoinWithDifferentNumberOfColumns {
+            left_num_columns: left_on.len(),
+            right_num_columns: right_on.len(),
+        });
+    }
+    if left_on.is_empty() {
+        return Ok(Vec::new());
+    }
+    let raw_union = left_on
+        .iter()
+        .zip(right_on.iter())
+        .map(|(left, right)| column_union(&[left, right], alloc, left.column_type()))
+        .collect::<ColumnOperationResult<Vec<_>>>()?;
+    //2. Sort and deduplicate the raw union by indexes
+    // Allowed because we already checked that the columns aren't empty
+    let indexes: Vec<usize> = (0..raw_union[0].len())
+        .sorted_unstable_by(|&a, &b| compare_indexes_by_columns(&raw_union, a, b))
+        .dedup_by(|&a, &b| compare_indexes_by_columns(&raw_union, a, b) == Ordering::Equal)
+        .collect();
+    //3. Apply the deduplicated indexes to the raw union
+    let result = raw_union
+        .into_iter()
+        .map(|column| apply_column_to_indexes(&column, alloc, &indexes))
+        .collect::<ColumnOperationResult<Vec<_>>>()?;
+    Ok(result)
+}
+
+/// Get multiplicities of rows of `data` in `unique`.
+///
+/// `data` consists of rows possibly present in `unique` and `unique` has only
+/// unique rows. We want to get the number of times each row in `unique` is present
+/// in `data`.
+///
+/// Note that schema incompatibility is caught by `compare_single_row_of_tables`.
+#[tracing::instrument(name = "join_util::get_multiplicities", level = "debug", skip_all)]
+pub(crate) fn get_multiplicities<'a, S: Scalar>(
+    data: &[Column<'a, S>],
+    unique: &[Column<'a, S>],
+) -> Vec<u64> {
+    // If unique is empty, the multiplicities vector is empty
+    if unique.is_empty() {
+        return Vec::new();
+    }
+    let num_unique_rows = unique[0].len();
+    // If data is empty, all multiplicities are 0
+    if data.is_empty() {
+        return vec![0; num_unique_rows];
+    }
+    let num_rows = data[0].len();
+    (0..num_unique_rows)
+        .map(|unique_index| {
+            (0..num_rows)
+                .filter(|&data_index| {
+                    compare_single_row_of_tables(data, unique, data_index, unique_index)
+                        == Ok(Ordering::Equal)
+                })
+                .count() as u64
+        })
+        .collect::<Vec<_>>()
+}
 
 /// Compute the CROSS JOIN / cartesian product of two tables.
 ///
@@ -699,5 +773,138 @@ mod tests {
             result,
             Err(TableOperationError::ColumnDoesNotExist { .. })
         ));
+    }
+
+    /// Ordered Set Union
+    #[test]
+    fn we_can_do_ordered_set_union_success_single_column() {
+        let alloc = Bump::new();
+
+        // Two single-column slices: left_on and right_on
+        let left_on = vec![Column::<TestScalar>::Boolean(&[true, false, true])];
+        let right_on = vec![Column::<TestScalar>::Boolean(&[false, true])];
+
+        // Union the columns
+        let result = ordered_set_union(&left_on, &right_on, &alloc);
+
+        assert!(result.is_ok(), "Expected Ok result from ordered_set_union");
+        let collection = result.unwrap();
+
+        // We expect just one column in the final result
+        assert_eq!(collection.len(), 1, "Should have exactly one column");
+        assert_eq!(collection[0], Column::<TestScalar>::Boolean(&[false, true]));
+    }
+
+    #[test]
+    fn we_can_do_ordered_set_union_success_multiple_columns() {
+        let alloc = Bump::new();
+        let left_on = vec![
+            Column::<TestScalar>::Boolean(&[true, true, false, false]),
+            Column::<TestScalar>::Int(&[1, 2, 3, 3]),
+            Column::<TestScalar>::BigInt(&[7_i64, 8, 7, 7]),
+        ];
+        let right_on = vec![
+            Column::<TestScalar>::Boolean(&[true, false]),
+            Column::<TestScalar>::Int(&[2, 4]),
+            Column::<TestScalar>::BigInt(&[9_i64, 9]),
+        ];
+
+        let result = ordered_set_union(&left_on, &right_on, &alloc);
+        assert!(result.is_ok(), "Expected Ok result from ordered_set_union");
+        let collection = result.unwrap();
+        assert_eq!(
+            collection.len(),
+            3,
+            "Should produce exactly three columns in the final result"
+        );
+        assert_eq!(
+            collection[0],
+            Column::<TestScalar>::Boolean(&[false, false, true, true, true])
+        );
+        assert_eq!(collection[1], Column::<TestScalar>::Int(&[3, 4, 1, 2, 2]));
+        assert_eq!(
+            collection[2],
+            Column::<TestScalar>::BigInt(&[7_i64, 9, 7, 8, 9])
+        );
+    }
+
+    #[test]
+    fn we_can_do_ordered_set_union_empty_slices() {
+        let alloc = Bump::new();
+        // Both sides have zero columns
+        let left_on: Vec<Column<TestScalar>> = vec![];
+        let right_on: Vec<Column<TestScalar>> = vec![];
+
+        let result = ordered_set_union(&left_on, &right_on, &alloc);
+        assert!(result.is_ok(), "Empty slices should not fail");
+        let collection = result.unwrap();
+        assert_eq!(collection.len(), 0, "Empty slices => no columns in result");
+    }
+
+    #[test]
+    fn we_can_do_ordered_set_union_fail_different_number_of_columns() {
+        let alloc = Bump::new();
+
+        // left has 2 columns, right has 1
+        let left_on = vec![
+            Column::<TestScalar>::Boolean(&[true, false]),
+            Column::<TestScalar>::Int(&[1, 2]),
+        ];
+        let right_on = vec![Column::<TestScalar>::Boolean(&[true, false])];
+
+        // We expect an error since they differ in number of columns
+        let result = ordered_set_union(&left_on, &right_on, &alloc);
+        assert!(matches!(
+            result,
+            Err(TableOperationError::JoinWithDifferentNumberOfColumns { .. })
+        ));
+    }
+
+    /// Get Multiplicities
+    #[test]
+    fn we_can_get_multiplicities_empty_scenarios() {
+        let empty_data: Vec<Column<TestScalar>> = vec![];
+        let empty_unique: Vec<Column<TestScalar>> = vec![];
+
+        // 1) Both 'data' and 'unique' empty
+        let result = get_multiplicities(&empty_data, &empty_unique);
+        assert!(
+            result.is_empty(),
+            "When both are empty, result should be empty"
+        );
+
+        // 2) 'unique' empty, 'data' non-empty
+        let nonempty_data = vec![Column::<TestScalar>::Boolean(&[true, false])];
+        let result = get_multiplicities(&nonempty_data, &empty_unique);
+        assert!(
+            result.is_empty(),
+            "When 'unique' is empty, result must be empty"
+        );
+
+        // 3) 'unique' non-empty, 'data' empty => all zeros
+        let nonempty_unique = vec![Column::<TestScalar>::Boolean(&[true, true, false])];
+        let result = get_multiplicities(&empty_data, &nonempty_unique);
+        assert_eq!(
+            result,
+            vec![0_u64; 3],
+            "If data is empty, multiplicities should be zeros"
+        );
+    }
+
+    #[test]
+    fn we_can_get_multiplicities() {
+        let data = vec![
+            Column::<TestScalar>::Boolean(&[true, false, true, true, true]),
+            Column::<TestScalar>::Int(&[1, 2, 1, 1, 2]),
+            Column::<TestScalar>::BigInt(&[1_i64, 2, 1, 1, 1]),
+        ];
+        let unique = vec![
+            Column::<TestScalar>::Boolean(&[false, false, true, true]),
+            Column::<TestScalar>::Int(&[2, 3, 1, 2]),
+            Column::<TestScalar>::BigInt(&[2_i64, 4, 1, 1]),
+        ];
+
+        let result = get_multiplicities(&data, &unique);
+        assert_eq!(result, vec![1, 0, 3, 1], "Expected multiplicities");
     }
 }
