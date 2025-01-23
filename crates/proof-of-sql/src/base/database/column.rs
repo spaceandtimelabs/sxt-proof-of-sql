@@ -1,10 +1,10 @@
 use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
-    math::decimal::Precision,
+    math::{decimal::Precision, i256::I256},
     scalar::{Scalar, ScalarExt},
     slice_ops::slice_cast_with,
 };
-use alloc::vec::Vec;
+use alloc::{string::ToString, vec::Vec};
 use bumpalo::Bump;
 use core::{
     fmt,
@@ -275,6 +275,27 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => S::from(col[index]),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
             Self::VarChar((_, scals)) => scals[index],
+        })
+    }
+
+    /// Returns element at index as `LiteralValue`
+    ///
+    /// Note that if index is out of bounds, this function will return None
+    pub(crate) fn literal_at(&self, index: usize) -> Option<LiteralValue> {
+        (index < self.len()).then_some(match self {
+            Self::Boolean(col) => LiteralValue::Boolean(col[index]),
+            Self::TinyInt(col) => LiteralValue::TinyInt(col[index]),
+            Self::SmallInt(col) => LiteralValue::SmallInt(col[index]),
+            Self::Int(col) => LiteralValue::Int(col[index]),
+            Self::BigInt(col) => LiteralValue::BigInt(col[index]),
+            Self::TimestampTZ(tu, tz, col) => LiteralValue::TimeStampTZ(*tu, *tz, col[index]),
+            Self::Int128(col) => LiteralValue::Int128(col[index]),
+            Self::Scalar(col) => LiteralValue::Scalar(col[index].into()),
+            Self::Decimal75(precision, scale, col) => {
+                LiteralValue::Decimal75(*precision, *scale, I256::new(col[index].into()))
+            }
+            Self::VarChar((strs, _)) => LiteralValue::VarChar(strs[index].to_string()),
+            Self::Uint8(col) => LiteralValue::Uint8(col[index]),
         })
     }
 

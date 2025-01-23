@@ -1,4 +1,4 @@
-use super::{ColumnField, OwnedColumn, Table};
+use super::{ColumnField, OwnedColumn, Row, Table};
 use crate::base::{
     database::ColumnCoercionError, map::IndexMap, polynomial::compute_evaluation_vector,
     scalar::Scalar,
@@ -129,6 +129,25 @@ impl<S: Scalar> OwnedTable<S> {
     /// Returns the columns of this table as an Iterator
     pub fn column_names(&self) -> impl Iterator<Item = &Ident> {
         self.table.keys()
+    }
+
+    /// Returns the ith row of the table.
+    ///
+    /// If index is out of bounds, this function returns `None`.
+    #[must_use]
+    pub fn row(&self, index: usize) -> Option<Row> {
+        (index < self.num_rows()).then(|| {
+            Row::new(
+                self.table
+                    .values()
+                    .map(|column| {
+                        column
+                            .literal_at(index)
+                            .expect("Index is guaranteed to be within bounds")
+                    })
+                    .collect(),
+            )
+        })
     }
 
     pub(crate) fn mle_evaluations(&self, evaluation_point: &[S]) -> Vec<S> {

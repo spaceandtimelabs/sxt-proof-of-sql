@@ -8,6 +8,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone, Copy)]
 pub struct I256([u64; 4]);
 impl I256 {
+    /// Creates a new `I256` from a `[u64; 4]`.
+    #[must_use]
+    pub fn new(value: [u64; 4]) -> Self {
+        Self(value)
+    }
     /// Computes the wrapping negative of the value. This could perhaps be more efficient.
     fn neg(self) -> Self {
         let mut res = ark_ff::BigInt([0; 4]);

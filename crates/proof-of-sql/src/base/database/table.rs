@@ -1,4 +1,4 @@
-use super::{Column, ColumnField};
+use super::{Column, ColumnField, Row};
 use crate::base::{map::IndexMap, scalar::Scalar};
 use alloc::vec::Vec;
 use snafu::Snafu;
@@ -137,6 +137,24 @@ impl<'a, S: Scalar> Table<'a, S> {
     #[must_use]
     pub fn column(&self, index: usize) -> Option<&Column<'a, S>> {
         self.table.values().nth(index)
+    }
+    /// Returns the ith row of the table.
+    ///
+    /// If index is out of bounds, this function returns `None`.
+    #[must_use]
+    pub fn row(&self, index: usize) -> Option<Row> {
+        (index < self.row_count).then(|| {
+            Row::new(
+                self.table
+                    .values()
+                    .map(|column| {
+                        column
+                            .literal_at(index)
+                            .expect("index guaranteed to be within bounds")
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        })
     }
 }
 

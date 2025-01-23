@@ -2,10 +2,13 @@
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow Array.
-use super::{Column, ColumnCoercionError, ColumnType, OwnedColumnError, OwnedColumnResult};
+use super::{
+    Column, ColumnCoercionError, ColumnType, LiteralValue, OwnedColumnError, OwnedColumnResult,
+};
 use crate::base::{
     math::{
         decimal::Precision,
+        i256::I256,
         permutation::{Permutation, PermutationError},
     },
     scalar::Scalar,
@@ -159,6 +162,27 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             OwnedColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
         }
+    }
+
+    /// Returns element at index as `LiteralValue`
+    ///
+    /// Note that if index is out of bounds, this function will return None
+    pub(crate) fn literal_at(&self, index: usize) -> Option<LiteralValue> {
+        (index < self.len()).then_some(match self {
+            Self::Boolean(col) => LiteralValue::Boolean(col[index]),
+            Self::TinyInt(col) => LiteralValue::TinyInt(col[index]),
+            Self::SmallInt(col) => LiteralValue::SmallInt(col[index]),
+            Self::Int(col) => LiteralValue::Int(col[index]),
+            Self::BigInt(col) => LiteralValue::BigInt(col[index]),
+            Self::TimestampTZ(tu, tz, col) => LiteralValue::TimeStampTZ(*tu, *tz, col[index]),
+            Self::Int128(col) => LiteralValue::Int128(col[index]),
+            Self::Scalar(col) => LiteralValue::Scalar(col[index].into()),
+            Self::Decimal75(precision, scale, col) => {
+                LiteralValue::Decimal75(*precision, *scale, I256::new(col[index].into()))
+            }
+            Self::VarChar(strs) => LiteralValue::VarChar(strs[index].to_string()),
+            Self::Uint8(col) => LiteralValue::Uint8(col[index]),
+        })
     }
 
     /// Convert a slice of scalars to a vec of owned columns
