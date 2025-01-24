@@ -14,32 +14,33 @@ use bumpalo::Bump;
 use core::cmp::Ordering;
 use itertools::Itertools;
 use sqlparser::ast::Ident;
+use tracing::{span, Level};
 
 /// Compute the set union of two slices of columns, deduplicate and sort the result.
 ///
 /// Notes
 /// 1. This is mostly used for joins.
 /// 2. We do not check whether columns in the args have the same length, as we assume that the columns in an arg are already from the same table.
+///
+/// # Panics
+/// The function panics if we feed in incorrect data (e.g. Num of rows in `left_on` and `right_on` being different).
+#[tracing::instrument(name = "join_util::ordered_set_union", level = "debug", skip_all)]
 pub(crate) fn ordered_set_union<'a, S: Scalar>(
     left_on: &[Column<'a, S>],
     right_on: &[Column<'a, S>],
     alloc: &'a Bump,
 ) -> TableOperationResult<Vec<Column<'a, S>>> {
     //1. Union the columns
-    if left_on.len() != right_on.len() {
-        return Err(TableOperationError::JoinWithDifferentNumberOfColumns {
-            left_num_columns: left_on.len(),
-            right_num_columns: right_on.len(),
-        });
-    }
     if left_on.is_empty() {
         return Ok(Vec::new());
     }
+    let span = span!(Level::DEBUG, "ordered_set_union::raw_union").entered();
     let raw_union = left_on
         .iter()
-        .zip(right_on.iter())
+        .zip_eq(right_on)
         .map(|(left, right)| column_union(&[left, right], alloc, left.column_type()))
         .collect::<ColumnOperationResult<Vec<_>>>()?;
+    span.exit();
     //2. Sort and deduplicate the raw union by indexes
     // Allowed because we already checked that the columns aren't empty
     let indexes: Vec<usize> = (0..raw_union[0].len())
@@ -839,25 +840,6 @@ mod tests {
         assert!(result.is_ok(), "Empty slices should not fail");
         let collection = result.unwrap();
         assert_eq!(collection.len(), 0, "Empty slices => no columns in result");
-    }
-
-    #[test]
-    fn we_can_do_ordered_set_union_fail_different_number_of_columns() {
-        let alloc = Bump::new();
-
-        // left has 2 columns, right has 1
-        let left_on = vec![
-            Column::<TestScalar>::Boolean(&[true, false]),
-            Column::<TestScalar>::Int(&[1, 2]),
-        ];
-        let right_on = vec![Column::<TestScalar>::Boolean(&[true, false])];
-
-        // We expect an error since they differ in number of columns
-        let result = ordered_set_union(&left_on, &right_on, &alloc);
-        assert!(matches!(
-            result,
-            Err(TableOperationError::JoinWithDifferentNumberOfColumns { .. })
-        ));
     }
 
     /// Get Multiplicities
