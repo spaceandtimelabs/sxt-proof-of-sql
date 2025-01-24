@@ -17,6 +17,16 @@ pub enum TableOperationError {
         /// The schema of the table that caused the error
         actual_schema: Vec<ColumnField>,
     },
+    /// Errors related to joining tables with different numbers of columns.
+    #[snafu(display(
+        "Cannot join tables with different numbers of columns: {left_num_columns} and {right_num_columns}"
+    ))]
+    JoinWithDifferentNumberOfColumns {
+        /// The number of columns in the left-hand table
+        left_num_columns: usize,
+        /// The number of columns in the right-hand table
+        right_num_columns: usize,
+    },
     /// Errors related to joining tables on columns with incompatible types.
     #[snafu(display(
         "Cannot join tables on columns with incompatible types: {left_type:?} and {right_type:?}"
