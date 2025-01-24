@@ -102,7 +102,7 @@ impl Sub for HyperKZGCommitment {
 
 #[cfg(not(feature = "blitzar"))]
 #[tracing::instrument(name = "compute_commitments_impl (cpu)", level = "debug", skip_all)]
-fn compute_commitments_impl_cpu<T: Into<BNScalar> + Clone>(
+fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
     setup: &CommitmentKey<HyperKZGEngine>,
     offset: usize,
     scalars: &[T],
