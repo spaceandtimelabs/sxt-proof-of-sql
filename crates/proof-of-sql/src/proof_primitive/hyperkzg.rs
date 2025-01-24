@@ -102,7 +102,7 @@ impl Sub for HyperKZGCommitment {
 
 #[cfg(not(feature = "blitzar"))]
 #[tracing::instrument(name = "compute_commitments_impl (cpu)", level = "debug", skip_all)]
-fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
+fn compute_commitments_impl_cpu<T: Into<BNScalar> + Clone>(
     setup: &CommitmentKey<HyperKZGEngine>,
     offset: usize,
     scalars: &[T],
@@ -193,18 +193,11 @@ fn convert_to_nova_g1_affine(
 }
 
 #[cfg(feature = "blitzar")]
-fn write_vec<T: Into<BNScalar> + Clone>(
-    offset: usize,
-    max_len: usize,
-    scalars: &[T],
-) -> Vec<BNScalar> {
+fn write_vec<T: Into<BNScalar> + Clone>(offset: usize, scalars: &[T]) -> Vec<BNScalar> {
     itertools::repeat_n(BNScalar::ZERO, offset)
         .chain(scalars.iter().map(Into::into))
         .map(Into::into)
-        .chain(itertools::repeat_n(
-            BNScalar::ZERO,
-            max_len.saturating_sub(offset + scalars.len()),
-        ))
+        .chain(std::iter::once(BNScalar::ZERO))
         .collect_vec()
 }
 
@@ -247,6 +240,10 @@ impl Commitment for HyperKZGCommitment {
         offset: usize,
         setup: &Self::PublicSetup<'_>,
     ) -> Vec<Self> {
+        if committable_columns.is_empty() {
+            return Vec::new();
+        }
+
         let max_column_len = committable_columns
             .iter()
             .map(CommittableColumn::len)
@@ -254,62 +251,66 @@ impl Commitment for HyperKZGCommitment {
             .unwrap_or(0)
             + offset;
 
-        let mut v: Vec<BNScalar> = Vec::with_capacity(max_column_len);
+        let mut v: Vec<Vec<BNScalar>> = Vec::with_capacity(committable_columns.len());
         for column in committable_columns {
+            let mut column_vec: Vec<BNScalar> = Vec::with_capacity(column.len());
+
             match column {
                 CommittableColumn::Boolean(vals) => {
-                    v.extend(write_vec(offset, max_column_len, vals));
+                    column_vec.extend(write_vec(offset, vals));
                 }
                 CommittableColumn::Uint8(vals) => {
-                    v.extend(write_vec(offset, max_column_len, vals));
+                    column_vec.extend(write_vec(offset, vals));
                 }
                 CommittableColumn::TinyInt(vals) => {
-                    v.extend(write_vec(offset, max_column_len, vals));
+                    column_vec.extend(write_vec(offset, vals));
                 }
                 CommittableColumn::SmallInt(vals) => {
-                    v.extend(write_vec(offset, max_column_len, vals));
+                    column_vec.extend(write_vec(offset, vals));
                 }
                 CommittableColumn::Int(vals) => {
-                    v.extend(write_vec(offset, max_column_len, vals));
+                    column_vec.extend(write_vec(offset, vals));
                 }
                 CommittableColumn::BigInt(vals) | CommittableColumn::TimestampTZ(_, _, vals) => {
-                    v.extend(write_vec(offset, max_column_len, vals));
+                    column_vec.extend(write_vec(offset, vals));
                 }
                 CommittableColumn::Int128(vals) => {
-                    v.extend(write_vec(offset, max_column_len, vals));
+                    column_vec.extend(write_vec(offset, vals));
                 }
                 CommittableColumn::Decimal75(_, _, vals)
                 | CommittableColumn::Scalar(vals)
                 | CommittableColumn::VarChar(vals) => {
-                    v.extend(write_vec(offset, max_column_len, vals));
+                    column_vec.extend(write_vec(offset, vals));
                 }
             }
+            v.push(column_vec);
         }
 
         // Get the scalars
-        let blitzar_scalar_vec = v
+        let blitzar_scalar_vec: Vec<Vec<[u64; 4]>> = v
             .iter()
-            .map(|x| convert_to_u64_array((*x).into()))
-            .chain(std::iter::once(convert_to_u64_array(NovaScalar::zero())))
-            .collect::<Vec<[u64; 4]>>();
+            .map(|x| {
+                x.iter()
+                    .map(|x| convert_to_u64_array((*x).into()))
+                    .collect::<Vec<[u64; 4]>>()
+            })
+            .collect();
+
+        let blitzar_sequence: Vec<blitzar::sequence::Sequence> =
+            blitzar_scalar_vec.iter().map(Into::into).collect();
 
         // Get bases from the setup
-        let blitzar_bases_slice: Vec<G1Affine> = itertools::repeat_n(
-            setup.ck()[..v.len()]
-                .iter()
-                .chain(std::iter::once(setup.h()))
-                .map(|x| convert_to_ark_bn254_g1_affine(*x))
-                .collect::<Vec<_>>(),
-            committable_columns.len(),
-        )
-        .flatten()
-        .collect();
+        let blitzar_bases_slice: Vec<G1Affine> = setup.ck()[..max_column_len]
+            .iter()
+            .chain(std::iter::once(setup.h()))
+            .map(|x| convert_to_ark_bn254_g1_affine(*x))
+            .collect::<Vec<_>>();
 
         let mut blitzar_commitments = vec![G1Affine::default(); committable_columns.len()];
 
         blitzar::compute::compute_bn254_g1_uncompressed_commitments_with_generators(
             &mut blitzar_commitments,
-            &[(&blitzar_scalar_vec).into()],
+            &blitzar_sequence,
             &blitzar_bases_slice,
         );
 
