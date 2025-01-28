@@ -367,6 +367,17 @@ pub fn bit_table_and_scalars_for_packed_msm(
         .iter()
         .enumerate()
         .for_each(|(i, column)| match column {
+            CommittableColumn::Uint16(column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars,
+                    cumulative_bit_sum_table[i],
+                    offset,
+                    committable_columns[i].column_type().byte_size(),
+                    bit_table_full_sum_in_bytes,
+                    num_matrix_commitment_columns,
+                );
+            }
             CommittableColumn::Uint8(column) => {
                 pack_bit(
                     column,

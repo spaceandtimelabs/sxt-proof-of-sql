@@ -27,6 +27,8 @@ pub enum OwnedColumn<S: Scalar> {
     Boolean(Vec<bool>),
     /// u8 columns
     Uint8(Vec<u8>),
+    /// u8 columns
+    Uint16(Vec<u16>),
     /// i8 columns
     TinyInt(Vec<i8>),
     /// i16 columns
@@ -53,6 +55,8 @@ impl<S: Scalar> OwnedColumn<S> {
         match self {
             OwnedColumn::Boolean(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::Uint8(col) => inner_product_ref_cast(col, vec),
+            OwnedColumn::Uint16(col) => inner_product_ref_cast(col, vec),
+
             OwnedColumn::TinyInt(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::SmallInt(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::Int(col) => inner_product_ref_cast(col, vec),
@@ -74,6 +78,8 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Boolean(col) => col.len(),
             OwnedColumn::TinyInt(col) => col.len(),
             OwnedColumn::Uint8(col) => col.len(),
+            OwnedColumn::Uint16(col) => col.len(),
+
             OwnedColumn::SmallInt(col) => col.len(),
             OwnedColumn::Int(col) => col.len(),
             OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col.len(),
@@ -89,6 +95,8 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Boolean(col) => OwnedColumn::Boolean(permutation.try_apply(col)?),
             OwnedColumn::TinyInt(col) => OwnedColumn::TinyInt(permutation.try_apply(col)?),
             OwnedColumn::Uint8(col) => OwnedColumn::Uint8(permutation.try_apply(col)?),
+            OwnedColumn::Uint16(col) => OwnedColumn::Uint16(permutation.try_apply(col)?),
+
             OwnedColumn::SmallInt(col) => OwnedColumn::SmallInt(permutation.try_apply(col)?),
             OwnedColumn::Int(col) => OwnedColumn::Int(permutation.try_apply(col)?),
             OwnedColumn::BigInt(col) => OwnedColumn::BigInt(permutation.try_apply(col)?),
@@ -111,6 +119,8 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Boolean(col) => OwnedColumn::Boolean(col[start..end].to_vec()),
             OwnedColumn::TinyInt(col) => OwnedColumn::TinyInt(col[start..end].to_vec()),
             OwnedColumn::Uint8(col) => OwnedColumn::Uint8(col[start..end].to_vec()),
+            OwnedColumn::Uint16(col) => OwnedColumn::Uint16(col[start..end].to_vec()),
+
             OwnedColumn::SmallInt(col) => OwnedColumn::SmallInt(col[start..end].to_vec()),
             OwnedColumn::Int(col) => OwnedColumn::Int(col[start..end].to_vec()),
             OwnedColumn::BigInt(col) => OwnedColumn::BigInt(col[start..end].to_vec()),
@@ -133,6 +143,8 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Boolean(col) => col.is_empty(),
             OwnedColumn::TinyInt(col) => col.is_empty(),
             OwnedColumn::Uint8(col) => col.is_empty(),
+            OwnedColumn::Uint16(col) => col.is_empty(),
+
             OwnedColumn::SmallInt(col) => col.is_empty(),
             OwnedColumn::Int(col) => col.is_empty(),
             OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col.is_empty(),
@@ -148,6 +160,8 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Boolean(_) => ColumnType::Boolean,
             OwnedColumn::TinyInt(_) => ColumnType::TinyInt,
             OwnedColumn::Uint8(_) => ColumnType::Uint8,
+            OwnedColumn::Uint16(_) => ColumnType::Uint16,
+
             OwnedColumn::SmallInt(_) => ColumnType::SmallInt,
             OwnedColumn::Int(_) => ColumnType::Int,
             OwnedColumn::BigInt(_) => ColumnType::BigInt,
@@ -177,6 +191,15 @@ impl<S: Scalar> OwnedColumn<S> {
                 scalars
                     .iter()
                     .map(|s| -> Result<u8, _> { TryInto::<u8>::try_into(*s) })
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|_| OwnedColumnError::ScalarConversionError {
+                        error: "Overflow in scalar conversions".to_string(),
+                    })?,
+            )),
+            ColumnType::Uint16 => Ok(OwnedColumn::Uint16(
+                scalars
+                    .iter()
+                    .map(|s| -> Result<u16, _> { TryInto::<u16>::try_into(*s) })
                     .collect::<Result<Vec<_>, _>>()
                     .map_err(|_| OwnedColumnError::ScalarConversionError {
                         error: "Overflow in scalar conversions".to_string(),
@@ -352,6 +375,8 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
             Column::Boolean(col) => OwnedColumn::Boolean(col.to_vec()),
             Column::TinyInt(col) => OwnedColumn::TinyInt(col.to_vec()),
             Column::Uint8(col) => OwnedColumn::Uint8(col.to_vec()),
+            Column::Uint16(col) => OwnedColumn::Uint16(col.to_vec()),
+
             Column::SmallInt(col) => OwnedColumn::SmallInt(col.to_vec()),
             Column::Int(col) => OwnedColumn::Int(col.to_vec()),
             Column::BigInt(col) => OwnedColumn::BigInt(col.to_vec()),

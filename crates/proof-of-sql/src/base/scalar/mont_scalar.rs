@@ -473,6 +473,37 @@ where
     }
 }
 
+impl<T> TryFrom<MontScalar<T>> for u16
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
+    type Error = ScalarConversionError;
+
+    fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
+        if value < MontScalar::<T>::ZERO {
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is negative and cannot fit in a u16"),
+            });
+        }
+
+        let abs: [u64; 4] = value.into();
+
+        // If any of the higher 192 bits are nonzero, it won't fit in a u16.
+        if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in a u16"),
+            });
+        }
+
+        abs[0]
+            .try_into()
+            .map_err(|_| ScalarConversionError::Overflow {
+                error: format!("{value} is too large to fit in a u16"),
+            })
+    }
+}
+
 impl<T> TryFrom<MontScalar<T>> for u8
 where
     T: MontConfig<4>,

@@ -168,6 +168,7 @@ fn make_empty_query_result<S: Scalar>(result_fields: &[ColumnField]) -> QueryRes
                     match field.data_type() {
                         ColumnType::Boolean => OwnedColumn::Boolean(vec![]),
                         ColumnType::Uint8 => OwnedColumn::Uint8(vec![]),
+                        ColumnType::Uint16 => OwnedColumn::Uint16(vec![]),
                         ColumnType::TinyInt => OwnedColumn::TinyInt(vec![]),
                         ColumnType::SmallInt => OwnedColumn::SmallInt(vec![]),
                         ColumnType::Int => OwnedColumn::Int(vec![]),

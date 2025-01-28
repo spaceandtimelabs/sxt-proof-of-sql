@@ -28,6 +28,8 @@ pub enum Column<'a, S: Scalar> {
     Boolean(&'a [bool]),
     /// u8 columns
     Uint8(&'a [u8]),
+    /// u8 columns
+    Uint16(&'a [u16]),
     /// i8 columns
     TinyInt(&'a [i8]),
     /// i16 columns
@@ -61,6 +63,8 @@ impl<'a, S: Scalar> Column<'a, S> {
         match self {
             Self::Boolean(_) => ColumnType::Boolean,
             Self::Uint8(_) => ColumnType::Uint8,
+            Self::Uint16(_) => ColumnType::Uint16,
+
             Self::TinyInt(_) => ColumnType::TinyInt,
             Self::SmallInt(_) => ColumnType::SmallInt,
             Self::Int(_) => ColumnType::Int,
@@ -82,6 +86,8 @@ impl<'a, S: Scalar> Column<'a, S> {
         match self {
             Self::Boolean(col) => col.len(),
             Self::Uint8(col) => col.len(),
+            Self::Uint16(col) => col.len(),
+
             Self::TinyInt(col) => col.len(),
             Self::SmallInt(col) => col.len(),
             Self::Int(col) => col.len(),
@@ -149,6 +155,8 @@ impl<'a, S: Scalar> Column<'a, S> {
         match owned_column {
             OwnedColumn::Boolean(col) => Column::Boolean(col.as_slice()),
             OwnedColumn::Uint8(col) => Column::Uint8(col.as_slice()),
+            OwnedColumn::Uint16(col) => Column::Uint16(col.as_slice()),
+
             OwnedColumn::TinyInt(col) => Column::TinyInt(col.as_slice()),
             OwnedColumn::SmallInt(col) => Column::SmallInt(col.as_slice()),
             OwnedColumn::Int(col) => Column::Int(col.as_slice()),
@@ -185,6 +193,14 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub(crate) fn as_uint8(&self) -> Option<&'a [u8]> {
         match self {
             Self::Uint8(col) => Some(col),
+            _ => None,
+        }
+    }
+
+    /// Returns the column as a slice of u8 if it is a uint8 column. Otherwise, returns None.
+    pub(crate) fn as_uint16(&self) -> Option<&'a [u16]> {
+        match self {
+            Self::Uint16(col) => Some(col),
             _ => None,
         }
     }
@@ -268,6 +284,8 @@ impl<'a, S: Scalar> Column<'a, S> {
         (index < self.len()).then_some(match self {
             Self::Boolean(col) => S::from(col[index]),
             Self::Uint8(col) => S::from(col[index]),
+            Self::Uint16(col) => S::from(col[index]),
+
             Self::TinyInt(col) => S::from(col[index]),
             Self::SmallInt(col) => S::from(col[index]),
             Self::Int(col) => S::from(col[index]),
@@ -287,6 +305,8 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
             Self::VarChar((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
             Self::Uint8(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Uint16(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+
             Self::TinyInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Int(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
@@ -311,6 +331,9 @@ pub enum ColumnType {
     /// Mapped to u8
     #[serde(alias = "UINT8", alias = "uint8")]
     Uint8,
+    /// Mapped to u8
+    #[serde(alias = "UINT16", alias = "uint16")]
+    Uint16,
     /// Mapped to i8
     #[serde(alias = "TINYINT", alias = "tinyint")]
     TinyInt,
@@ -444,7 +467,8 @@ impl ColumnType {
     pub fn precision_value(&self) -> Option<u8> {
         match self {
             Self::Uint8 | Self::TinyInt => Some(3_u8),
-            Self::SmallInt => Some(5_u8),
+
+            Self::SmallInt | Self::Uint16 => Some(5_u8),
             Self::Int => Some(10_u8),
             Self::BigInt | Self::TimestampTZ(_, _) => Some(19_u8),
             Self::Int128 => Some(39_u8),
@@ -462,6 +486,7 @@ impl ColumnType {
             Self::Decimal75(_, scale) => Some(*scale),
             Self::TinyInt
             | Self::Uint8
+            | Self::Uint16
             | Self::SmallInt
             | Self::Int
             | Self::BigInt
@@ -483,6 +508,7 @@ impl ColumnType {
         match self {
             Self::Boolean => size_of::<bool>(),
             Self::Uint8 => size_of::<u8>(),
+            Self::Uint16 => size_of::<u8>(),
             Self::TinyInt => size_of::<i8>(),
             Self::SmallInt => size_of::<i16>(),
             Self::Int => size_of::<i32>(),
@@ -509,9 +535,12 @@ impl ColumnType {
             | Self::BigInt
             | Self::Int128
             | Self::TimestampTZ(_, _) => true,
-            Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean | Self::Uint8 => {
-                false
-            }
+            Self::Decimal75(_, _)
+            | Self::Scalar
+            | Self::VarChar
+            | Self::Boolean
+            | Self::Uint8
+            | Self::Uint16 => false,
         }
     }
 }
@@ -522,6 +551,7 @@ impl Display for ColumnType {
         match self {
             ColumnType::Boolean => write!(f, "BOOLEAN"),
             ColumnType::Uint8 => write!(f, "UINT8"),
+            ColumnType::Uint16 => write!(f, "UINT8"),
             ColumnType::TinyInt => write!(f, "TINYINT"),
             ColumnType::SmallInt => write!(f, "SMALLINT"),
             ColumnType::Int => write!(f, "INT"),

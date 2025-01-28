@@ -19,6 +19,8 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
         .map(|col| match col {
             Column::Boolean(col) => col[i].cmp(&col[j]),
             Column::Uint8(col) => col[i].cmp(&col[j]),
+            Column::Uint16(col) => col[i].cmp(&col[j]),
+
             Column::TinyInt(col) => col[i].cmp(&col[j]),
             Column::SmallInt(col) => col[i].cmp(&col[j]),
             Column::Int(col) => col[i].cmp(&col[j]),
@@ -132,6 +134,8 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
             let ordering = match col {
                 OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Uint8(col) => col[i].cmp(&col[j]),
+                OwnedColumn::Uint16(col) => col[i].cmp(&col[j]),
+
                 OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Int(col) => col[i].cmp(&col[j]),

@@ -104,6 +104,8 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
                 c.inner_product(evaluation_vec)
             }
             Column::Uint8(c) => c.inner_product(evaluation_vec),
+            Column::Uint16(c) => c.inner_product(evaluation_vec),
+
             Column::TinyInt(c) => c.inner_product(evaluation_vec),
             Column::SmallInt(c) => c.inner_product(evaluation_vec),
             Column::Int(c) => c.inner_product(evaluation_vec),
@@ -119,6 +121,8 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
                 c.mul_add(res, multiplier);
             }
             Column::Uint8(c) => c.mul_add(res, multiplier),
+            Column::Uint16(c) => c.mul_add(res, multiplier),
+
             Column::TinyInt(c) => c.mul_add(res, multiplier),
             Column::SmallInt(c) => c.mul_add(res, multiplier),
             Column::Int(c) => c.mul_add(res, multiplier),
@@ -134,6 +138,8 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
                 c.to_sumcheck_term(num_vars)
             }
             Column::Uint8(c) => c.to_sumcheck_term(num_vars),
+            Column::Uint16(c) => c.to_sumcheck_term(num_vars),
+
             Column::TinyInt(c) => c.to_sumcheck_term(num_vars),
             Column::SmallInt(c) => c.to_sumcheck_term(num_vars),
             Column::Int(c) => c.to_sumcheck_term(num_vars),
@@ -149,6 +155,8 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
                 MultilinearExtension::<S>::id(c)
             }
             Column::Uint8(c) => MultilinearExtension::<S>::id(c),
+            Column::Uint16(c) => MultilinearExtension::<S>::id(c),
+
             Column::TinyInt(c) => MultilinearExtension::<S>::id(c),
             Column::SmallInt(c) => MultilinearExtension::<S>::id(c),
             Column::Int(c) => MultilinearExtension::<S>::id(c),

@@ -16,10 +16,10 @@ mod sign_expr;
 pub(crate) use sign_expr::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
 #[cfg(feature = "blitzar")]
 #[allow(unused_imports, dead_code)] // remove this when we use it
-mod range_check;
-#[cfg(all(test, feature = "blitzar"))]
-mod range_check_test;
-#[cfg(all(test, feature = "blitzar"))]
+pub mod range_check;
+#[cfg(all(feature = "blitzar"))]
+pub mod range_check_test;
+#[cfg(all(feature = "blitzar"))]
 mod sign_expr_test;
 #[allow(unused_imports, dead_code)]
 use monotonic::{final_round_evaluate_monotonic, first_round_evaluate_monotonic, verify_monotonic};

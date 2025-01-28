@@ -235,6 +235,7 @@ impl ColumnBounds {
             CommittableColumn::TimestampTZ(_, _, times) => {
                 ColumnBounds::TimestampTZ(Bounds::from_iter(*times))
             }
+            CommittableColumn::Uint16(ints) => unimplemented!("uint16 bounds not supported"),
             CommittableColumn::Boolean(_)
             | CommittableColumn::Decimal75(_, _, _)
             | CommittableColumn::Scalar(_)

@@ -38,6 +38,7 @@ pub const fn min_as_f(column_type: ColumnType) -> F {
         ColumnType::Int128 => MontFp!("-170141183460469231731687303715884105728"),
         ColumnType::Decimal75(_, _)
         | ColumnType::Uint8
+        | ColumnType::Uint16
         | ColumnType::Scalar
         | ColumnType::VarChar
         | ColumnType::Boolean => MontFp!("0"),
@@ -112,6 +113,9 @@ fn copy_column_data_to_slice(
             scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
         }
         CommittableColumn::Uint8(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+        }
+        CommittableColumn::Uint16(column) => {
             scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
         }
         CommittableColumn::TinyInt(column) => {

@@ -63,6 +63,16 @@ pub fn column_union<'a, S: Scalar>(
                 iter.next().expect("Iterator should have enough elements")
             }) as &[_])
         }
+        ColumnType::Uint16 => {
+            let mut iter = columns
+                .iter()
+                .flat_map(|col| col.as_uint16().expect("Column types should match"))
+                .copied();
+
+            Column::Uint16(alloc.alloc_slice_fill_with(len, |_| {
+                iter.next().expect("Iterator should have enough elements")
+            }) as &[_])
+        }
         ColumnType::TinyInt => {
             let mut iter = columns
                 .iter()

@@ -38,6 +38,13 @@ where
             )?;
             Ok(Column::Uint8(alloc.alloc_slice_copy(&raw_values) as &[_]))
         }
+        ColumnType::Uint16 => {
+            let raw_values = apply_slice_to_indexes(
+                column.as_uint16().expect("Column types should match"),
+                indexes,
+            )?;
+            Ok(Column::Uint16(alloc.alloc_slice_copy(&raw_values) as &[_]))
+        }
         ColumnType::SmallInt => {
             let raw_values = apply_slice_to_indexes(
                 column.as_smallint().expect("Column types should match"),

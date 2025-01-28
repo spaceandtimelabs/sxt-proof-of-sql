@@ -112,6 +112,8 @@ impl ProvableQueryResult {
                 let (x, sz) = match field.data_type() {
                     ColumnType::Boolean => decode_and_convert::<bool, S>(&self.data[offset..]),
                     ColumnType::Uint8 => decode_and_convert::<u8, S>(&self.data[offset..]),
+                    ColumnType::Uint16 => decode_and_convert::<u16, S>(&self.data[offset..]),
+
                     ColumnType::TinyInt => decode_and_convert::<i8, S>(&self.data[offset..]),
                     ColumnType::SmallInt => decode_and_convert::<i16, S>(&self.data[offset..]),
                     ColumnType::Int => decode_and_convert::<i32, S>(&self.data[offset..]),
@@ -169,6 +171,11 @@ impl ProvableQueryResult {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Uint8(col)))
+                    }
+                    ColumnType::Uint16 => {
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        offset += num_read;
+                        Ok((field.name(), OwnedColumn::Uint16(col)))
                     }
                     ColumnType::TinyInt => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;

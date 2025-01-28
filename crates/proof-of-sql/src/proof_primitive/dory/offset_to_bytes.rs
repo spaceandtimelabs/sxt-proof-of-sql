@@ -8,6 +8,12 @@ impl OffsetToBytes<1> for u8 {
     }
 }
 
+impl OffsetToBytes<2> for u16 {
+    fn offset_to_bytes(&self) -> [u8; 2] {
+        self.to_le_bytes()
+    }
+}
+
 impl OffsetToBytes<1> for i8 {
     fn offset_to_bytes(&self) -> [u8; 1] {
         let shifted = self.wrapping_sub(i8::MIN);

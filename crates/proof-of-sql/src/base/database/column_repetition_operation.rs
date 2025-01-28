@@ -29,6 +29,12 @@ pub trait RepetitionOp {
                     iter.next().expect("Iterator should have enough elements")
                 }) as &[_])
             }
+            ColumnType::Uint16 => {
+                let mut iter = Self::op(column.as_uint16().expect("Column types should match"), n);
+                Column::Uint16(alloc.alloc_slice_fill_with(len, |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }) as &[_])
+            }
             ColumnType::TinyInt => {
                 let mut iter = Self::op(column.as_tinyint().expect("Column types should match"), n);
                 Column::TinyInt(alloc.alloc_slice_fill_with(len, |_| {

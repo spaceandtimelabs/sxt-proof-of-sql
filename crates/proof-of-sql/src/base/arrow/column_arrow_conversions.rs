@@ -12,6 +12,7 @@ impl From<&ColumnType> for DataType {
         match column_type {
             ColumnType::Boolean => DataType::Boolean,
             ColumnType::Uint8 => DataType::UInt8,
+            ColumnType::Uint16 => DataType::UInt16,
             ColumnType::TinyInt => DataType::Int8,
             ColumnType::SmallInt => DataType::Int16,
             ColumnType::Int => DataType::Int32,

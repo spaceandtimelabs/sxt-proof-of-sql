@@ -24,7 +24,7 @@ use arrow::{
     array::{
         ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
         Int64Array, Int8Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
-        TimestampNanosecondArray, TimestampSecondArray, UInt8Array,
+        TimestampNanosecondArray, TimestampSecondArray, UInt16Array, UInt8Array,
     },
     datatypes::{i256, DataType, Schema, SchemaRef, TimeUnit as ArrowTimeUnit},
     error::ArrowError,
@@ -85,6 +85,7 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
         match value {
             OwnedColumn::Boolean(col) => Arc::new(BooleanArray::from(col)),
             OwnedColumn::Uint8(col) => Arc::new(UInt8Array::from(col)),
+            OwnedColumn::Uint16(col) => Arc::new(UInt16Array::from(col)),
             OwnedColumn::TinyInt(col) => Arc::new(Int8Array::from(col)),
             OwnedColumn::SmallInt(col) => Arc::new(Int16Array::from(col)),
             OwnedColumn::Int(col) => Arc::new(Int32Array::from(col)),

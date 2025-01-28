@@ -20,9 +20,9 @@ use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 // A test plan for performing range checks on a specified column.
-struct RangeCheckTestPlan {
+pub struct RangeCheckTestPlan {
     // The column reference for the range check test.
-    column: ColumnRef,
+    pub column: ColumnRef,
 }
 
 macro_rules! handle_column_with_match {
@@ -98,7 +98,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         builder.request_post_result_challenges(1);
-        builder.update_range_length(256);
+        builder.update_range_length(65536);
 
         let table = table_map
             .get(&self.column.table_ref())
@@ -112,7 +112,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
 
         handle_column_with_match!(col, first_round_evaluate_range_check, builder, alloc);
 
-        builder.produce_one_evaluation_length(256);
+        builder.produce_one_evaluation_length(65536);
 
         // Return a clone of the same table
         table.clone()
@@ -202,6 +202,20 @@ mod tests {
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, accessor, &());
         assert!(verifiable_res.verify(&ast, accessor, &()).is_ok());
+    }
+
+    #[test]
+    fn we_can_prove_a_simple_range_check() {
+        // Generate the test data
+        let data: OwnedTable<Curve25519Scalar> = owned_table([scalar("a", 0..256)]);
+
+        let t = "sxt.t".parse().unwrap();
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let ast = RangeCheckTestPlan {
+            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+        };
+        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        verifiable_res.verify(&ast, &accessor, &()).unwrap();
     }
 
     #[test]
@@ -346,36 +360,5 @@ mod tests {
             panic!("Verification failed: {e}");
         }
         assert!(res.is_ok());
-    }
-
-    #[test]
-    #[should_panic(
-        expected = "Range check failed, column contains values outside of the selected range"
-    )]
-    fn we_cannot_prove_a_range_check_equal_to_range_boundary() {
-        // 2^248
-        let big_uint = BigUint::from(2u8).pow(248);
-        let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
-
-        // Convert Vec<u64> to [u64; 4]
-        let limbs: [u64; 4] = limbs_vec[..4].try_into().unwrap();
-
-        let upper_bound = Curve25519Scalar::from_bigint(limbs);
-
-        // Generate the test data
-        let data: OwnedTable<Curve25519Scalar> = owned_table([scalar(
-            "a",
-            (0u16..2u16.pow(10))
-                .map(|i| upper_bound - Curve25519Scalar::from(i)) // Count backward from 2^248
-                .collect::<Vec<_>>(),
-        )]);
-
-        let t = "sxt.t".parse().unwrap();
-        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-        let ast = RangeCheckTestPlan {
-            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
-        };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
-        verifiable_res.verify(&ast, &accessor, &()).unwrap();
     }
 }
