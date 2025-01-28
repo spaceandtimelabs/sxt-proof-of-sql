@@ -66,7 +66,7 @@ pub(crate) fn ordered_set_union<'a, S: Scalar>(
 pub(crate) fn get_multiplicities<'a, S: Scalar>(
     data: &[Column<'a, S>],
     unique: &[Column<'a, S>],
-) -> Vec<u64> {
+) -> Vec<i128> {
     // If unique is empty, the multiplicities vector is empty
     if unique.is_empty() {
         return Vec::new();
@@ -84,7 +84,7 @@ pub(crate) fn get_multiplicities<'a, S: Scalar>(
                     compare_single_row_of_tables(data, unique, data_index, unique_index)
                         == Ok(Ordering::Equal)
                 })
-                .count() as u64
+                .count() as i128
         })
         .collect::<Vec<_>>()
 }
@@ -868,7 +868,7 @@ mod tests {
         let result = get_multiplicities(&empty_data, &nonempty_unique);
         assert_eq!(
             result,
-            vec![0_u64; 3],
+            vec![0_i128; 3],
             "If data is empty, multiplicities should be zeros"
         );
     }

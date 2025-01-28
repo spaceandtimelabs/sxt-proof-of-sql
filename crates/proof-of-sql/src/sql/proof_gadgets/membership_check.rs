@@ -1,5 +1,10 @@
 use crate::{
-    base::{database::Column, proof::ProofError, scalar::Scalar, slice_ops},
+    base::{
+        database::{join_util::get_multiplicities, Column},
+        proof::ProofError,
+        scalar::Scalar,
+        slice_ops,
+    },
     sql::{
         proof::{
             FinalRoundBuilder, FirstRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder,
@@ -12,18 +17,37 @@ use bumpalo::Bump;
 use num_traits::{One, Zero};
 
 /// Perform first round evaluation of the membership check.
+///
+/// # Panics
+/// Panics if the number of source and candidate columns are not equal
+/// or if the number of columns is zero.
 pub(crate) fn first_round_evaluate_membership_check<'a, S: Scalar>(
     builder: &mut FirstRoundBuilder<'a, S>,
-    multiplicities: &'a [i128],
-) {
-    builder.produce_intermediate_mle(multiplicities);
+    alloc: &'a Bump,
+    columns: &[Column<'a, S>],
+    candidate_subset: &[Column<'a, S>],
+) -> &'a [i128] {
+    assert_eq!(
+        columns.len(),
+        candidate_subset.len(),
+        "The number of source and candidate columns should be equal"
+    );
+    assert!(
+        !columns.is_empty(),
+        "The number of source columns should be greater than 0"
+    );
+    let multiplicities = get_multiplicities::<S>(candidate_subset, columns);
+    let alloc_multiplicities = alloc.alloc_slice_copy(multiplicities.as_slice());
+    builder.produce_intermediate_mle(alloc_multiplicities as &[_]);
     builder.request_post_result_challenges(2);
+    alloc_multiplicities
 }
 
 /// Perform final round evaluation of the membership check.
 ///
 /// # Panics
-/// Panics if the number of source and candidate columns are not equal.
+/// Panics if the number of source and candidate columns are not equal
+/// or if the number of columns is zero.
 #[allow(dead_code)]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
@@ -33,15 +57,23 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
     beta: S,
     columns: &[Column<'a, S>],
     candidate_subset: &[Column<'a, S>],
-    multiplicities: &'a [i128],
-    input_ones: &'a [bool],
-    candidate_ones: &'a [bool],
-) {
+) -> &'a [i128] {
     assert_eq!(
         columns.len(),
         candidate_subset.len(),
         "The number of source and candidate columns should be equal"
     );
+    assert!(
+        !columns.is_empty(),
+        "The number of source columns should be greater than 0"
+    );
+    let column_len = columns[0].len();
+    let candidate_len = candidate_subset[0].len();
+    let input_ones = alloc.alloc_slice_fill_copy(column_len, true);
+    let candidate_ones = alloc.alloc_slice_fill_copy(candidate_len, true);
+    let multiplicities = get_multiplicities::<S>(candidate_subset, columns);
+    let alloc_multiplicities = alloc.alloc_slice_copy(multiplicities.as_slice());
+
     // Fold the columns
     let c_fold = alloc.alloc_slice_fill_copy(input_ones.len(), Zero::zero());
     fold_columns(c_fold, alpha, beta, columns);
@@ -65,7 +97,10 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
         vec![
             (
                 S::one(),
-                vec![Box::new(c_star as &[_]), Box::new(multiplicities as &[_])],
+                vec![
+                    Box::new(c_star as &[_]),
+                    Box::new(alloc_multiplicities as &[_]),
+                ],
             ),
             (-S::one(), vec![Box::new(d_star as &[_])]),
         ],
@@ -96,6 +131,7 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
             (-S::one(), vec![Box::new(candidate_ones as &[_])]),
         ],
     );
+    alloc_multiplicities
 }
 
 #[allow(dead_code)]
@@ -107,7 +143,7 @@ pub(crate) fn verify_membership_check<S: Scalar>(
     candidate_one_eval: S,
     column_evals: &[S],
     candidate_evals: &[S],
-) -> Result<(), ProofError> {
+) -> Result<S, ProofError> {
     // Check that the source and candidate columns have the same amount of columns
     if column_evals.len() != candidate_evals.len() {
         return Err(ProofError::VerificationError {
@@ -141,5 +177,5 @@ pub(crate) fn verify_membership_check<S: Scalar>(
         2,
     )?;
 
-    Ok(())
+    Ok(multiplicity_eval)
 }

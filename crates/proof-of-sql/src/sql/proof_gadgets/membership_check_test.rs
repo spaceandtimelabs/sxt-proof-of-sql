@@ -7,7 +7,8 @@ use super::membership_check::{
 use crate::{
     base::{
         database::{
-            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
+            owned_table_utility::*, table_utility::table, Column, ColumnField, ColumnRef,
+            ColumnType, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
@@ -22,6 +23,7 @@ use bumpalo::{
     Bump,
 };
 use serde::Serialize;
+use sqlparser::ast::Ident;
 
 #[derive(Debug, Serialize)]
 pub struct MembershipCheckTestPlan {
@@ -29,7 +31,6 @@ pub struct MembershipCheckTestPlan {
     pub candidate_table: TableRef,
     pub source_columns: Vec<ColumnRef>,
     pub candidate_columns: Vec<ColumnRef>,
-    pub proposed_multiplicities: Vec<i128>,
 }
 
 impl ProverEvaluate for MembershipCheckTestPlan {
@@ -58,11 +59,15 @@ impl ProverEvaluate for MembershipCheckTestPlan {
         builder.produce_one_evaluation_length(source_table.num_rows());
         builder.produce_one_evaluation_length(candidate_table.num_rows());
         // Evaluate the first round
-        let alloc_proposed_multiplicities = alloc.alloc_slice_copy(&self.proposed_multiplicities);
-        first_round_evaluate_membership_check(builder, alloc_proposed_multiplicities);
-        // This is just a dummy table, the actual data is not used
-        Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
-            .unwrap()
+        let source_columns = source_table.columns().copied().collect::<Vec<_>>();
+        let candidate_columns = candidate_table.columns().copied().collect::<Vec<_>>();
+        let multiplicities = first_round_evaluate_membership_check(
+            builder,
+            alloc,
+            &source_columns,
+            &candidate_columns,
+        );
+        table([(Ident::new("multiplicities"), Column::Int128(multiplicities))])
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -111,30 +116,25 @@ impl ProverEvaluate for MembershipCheckTestPlan {
             .collect_in::<BumpVec<_>>(alloc);
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
-        let source_ones = alloc.alloc_slice_fill_copy(source_table.num_rows(), true);
-        let candidate_ones = alloc.alloc_slice_fill_copy(candidate_table.num_rows(), true);
-        let alloc_proposed_multiplicities = alloc.alloc_slice_copy(&self.proposed_multiplicities);
         // Perform final membership check
-        final_round_evaluate_membership_check(
+        let multiplicities = final_round_evaluate_membership_check(
             builder,
             alloc,
             alpha,
             beta,
             &source_columns,
             &candidate_columns,
-            alloc_proposed_multiplicities,
-            source_ones,
-            candidate_ones,
         );
-        // Return a dummy table
-        Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
-            .unwrap()
+        table([(Ident::new("multiplicities"), Column::Int128(multiplicities))])
     }
 }
 
 impl ProofPlan for MembershipCheckTestPlan {
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        vec![]
+        vec![ColumnField::new(
+            Ident::new("multiplicities"),
+            ColumnType::Int128,
+        )]
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
@@ -171,7 +171,7 @@ impl ProofPlan for MembershipCheckTestPlan {
         let one_eval = builder.try_consume_one_evaluation()?;
         let candidate_subset_one_eval = builder.try_consume_one_evaluation()?;
         // Evaluate the verifier
-        verify_membership_check(
+        let multiplicities_eval = verify_membership_check(
             builder,
             alpha,
             beta,
@@ -180,7 +180,7 @@ impl ProofPlan for MembershipCheckTestPlan {
             &column_evals,
             &candidate_subset_evals,
         )?;
-        Ok(TableEvaluation::new(vec![], S::zero()))
+        Ok(TableEvaluation::new(vec![multiplicities_eval], one_eval))
     }
 }
 
@@ -223,11 +223,11 @@ mod tests {
                 "c".into(),
                 ColumnType::BigInt,
             )],
-            proposed_multiplicities: vec![2, 3, 0],
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let res = verifiable_res.verify(&plan, &accessor, &());
-        assert!(res.is_ok());
+        let actual = verifiable_res.verify(&plan, &accessor, &()).unwrap().table;
+        let expected = owned_table([int128("multiplicities", [2_i128, 3, 0])]);
+        assert_eq!(actual, expected);
     }
 
     #[test]
@@ -267,11 +267,11 @@ mod tests {
                 ColumnRef::new(candidate_table_ref, "d".into(), ColumnType::VarChar),
                 ColumnRef::new(candidate_table_ref, "e".into(), ColumnType::Boolean),
             ],
-            proposed_multiplicities: vec![3, 2, 0],
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let res = verifiable_res.verify(&plan, &accessor, &());
-        assert!(res.is_ok());
+        let actual = verifiable_res.verify(&plan, &accessor, &()).unwrap().table;
+        let expected = owned_table([int128("multiplicities", [3_i128, 2, 0])]);
+        assert_eq!(actual, expected);
     }
 
     #[test]
@@ -311,48 +311,11 @@ mod tests {
                 ColumnRef::new(candidate_table_ref, "d".into(), ColumnType::VarChar),
                 ColumnRef::new(candidate_table_ref, "e".into(), ColumnType::Boolean),
             ],
-            proposed_multiplicities: vec![0; 3],
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let res = verifiable_res.verify(&plan, &accessor, &());
-        assert!(res.is_ok());
-    }
-
-    #[test]
-    fn we_cannot_do_membership_check_if_multiplicities_are_wrong() {
-        let alloc = Bump::new();
-        let source_table = table([
-            borrowed_bigint("a", [1, 2], &alloc),
-            borrowed_bigint("b", [3, 4], &alloc),
-        ]);
-        let candidate_table = table([
-            borrowed_bigint("a", [1, 2, 1, 1, 2], &alloc),
-            borrowed_bigint("b", [3, 4, 3, 3, 4], &alloc),
-        ]);
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
-        let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
-            source_table,
-            0,
-            (),
-        );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
-        let plan = MembershipCheckTestPlan {
-            source_table: source_table_ref,
-            candidate_table: candidate_table_ref,
-            source_columns: vec![
-                ColumnRef::new(source_table_ref, "a".into(), ColumnType::BigInt),
-                ColumnRef::new(source_table_ref, "b".into(), ColumnType::BigInt),
-            ],
-            candidate_columns: vec![
-                ColumnRef::new(candidate_table_ref, "a".into(), ColumnType::BigInt),
-                ColumnRef::new(candidate_table_ref, "b".into(), ColumnType::BigInt),
-            ],
-            proposed_multiplicities: vec![4, 1],
-        };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        assert!(verifiable_res.verify(&plan, &accessor, &()).is_err());
+        let actual = verifiable_res.verify(&plan, &accessor, &()).unwrap().table;
+        let expected = owned_table([int128("multiplicities", [0_i128; 3])]);
+        assert_eq!(actual, expected);
     }
 
     #[test]
@@ -385,13 +348,12 @@ mod tests {
                 "a".into(),
                 ColumnType::BigInt,
             )],
-            proposed_multiplicities: vec![3, 2],
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        assert!(verifiable_res.verify(&plan, &accessor, &()).is_err());
+        VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
     }
 
     #[test]
+    #[should_panic(expected = "The number of source columns should be greater than 0")]
     fn we_can_do_membership_check_if_there_are_no_columns_in_the_tables() {
         let source_table = Table::<'_, Curve25519Scalar>::try_new_with_options(
             IndexMap::default(),
@@ -417,14 +379,13 @@ mod tests {
             candidate_table: candidate_table_ref,
             source_columns: vec![],
             candidate_columns: vec![],
-            proposed_multiplicities: vec![2, 0, 1, 1, 0],
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let res = verifiable_res.verify(&plan, &accessor, &());
-        assert!(res.is_ok());
+        let _verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
     }
 
     #[test]
+    #[should_panic(expected = "The number of source columns should be greater than 0")]
     fn we_can_do_membership_check_if_there_are_no_columns_in_the_tables_and_candidate_has_no_rows_either(
     ) {
         let source_table = Table::<'_, Curve25519Scalar>::try_new_with_options(
@@ -451,13 +412,12 @@ mod tests {
             candidate_table: candidate_table_ref,
             source_columns: vec![],
             candidate_columns: vec![],
-            proposed_multiplicities: vec![0; 5],
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let res = verifiable_res.verify(&plan, &accessor, &());
-        assert!(res.is_ok());
+        let _verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
     }
 
+    // This one doesn't panic since it is an empty query
     #[test]
     fn we_can_do_membership_check_if_there_are_neither_rows_nor_columns_in_the_tables() {
         let source_table = Table::<'_, Curve25519Scalar>::try_new_with_options(
@@ -484,15 +444,16 @@ mod tests {
             candidate_table: candidate_table_ref,
             source_columns: vec![],
             candidate_columns: vec![],
-            proposed_multiplicities: vec![],
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let res = verifiable_res.verify(&plan, &accessor, &());
-        assert!(res.is_ok());
+        let actual = verifiable_res.verify(&plan, &accessor, &()).unwrap().table;
+        let expected = owned_table([int128("multiplicities", [0_i128; 0])]);
+        assert_eq!(actual, expected);
     }
 
     #[test]
-    fn we_can_do_membership_check_if_no_column_is_selected() {
+    #[should_panic(expected = "The number of source columns should be greater than 0")]
+    fn we_cannot_do_membership_check_if_no_column_is_selected() {
         let alloc = Bump::new();
         let source_table = table([
             borrowed_bigint("a", [1, 2], &alloc),
@@ -516,10 +477,8 @@ mod tests {
             candidate_table: candidate_table_ref,
             source_columns: vec![],
             candidate_columns: vec![],
-            proposed_multiplicities: vec![2, 3],
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let res = verifiable_res.verify(&plan, &accessor, &());
-        assert!(res.is_ok());
+        let _verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
     }
 }
