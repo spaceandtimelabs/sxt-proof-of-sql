@@ -9,7 +9,7 @@ use crate::base::{
     map::{IndexMap, IndexSet},
     scalar::Scalar,
 };
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::cmp::Ordering;
 use itertools::Itertools;
@@ -66,27 +66,29 @@ pub(crate) fn ordered_set_union<'a, S: Scalar>(
 pub(crate) fn get_multiplicities<'a, S: Scalar>(
     data: &[Column<'a, S>],
     unique: &[Column<'a, S>],
-) -> Vec<u64> {
+    alloc: &'a Bump,
+) -> &'a [i128] {
     // If unique is empty, the multiplicities vector is empty
     if unique.is_empty() {
-        return Vec::new();
+        return alloc.alloc_slice_fill_copy(0, 0_i128);
     }
     let num_unique_rows = unique[0].len();
     // If data is empty, all multiplicities are 0
     if data.is_empty() {
-        return vec![0; num_unique_rows];
+        return alloc.alloc_slice_fill_copy(num_unique_rows, 0_i128);
     }
     let num_rows = data[0].len();
-    (0..num_unique_rows)
+    let multiplicities = (0..num_unique_rows)
         .map(|unique_index| {
             (0..num_rows)
                 .filter(|&data_index| {
                     compare_single_row_of_tables(data, unique, data_index, unique_index)
                         == Ok(Ordering::Equal)
                 })
-                .count() as u64
+                .count() as i128
         })
-        .collect::<Vec<_>>()
+        .collect::<Vec<_>>();
+    alloc.alloc_slice_copy(multiplicities.as_slice())
 }
 
 /// Compute the CROSS JOIN / cartesian product of two tables.
@@ -845,11 +847,12 @@ mod tests {
     /// Get Multiplicities
     #[test]
     fn we_can_get_multiplicities_empty_scenarios() {
+        let alloc = Bump::new();
         let empty_data: Vec<Column<TestScalar>> = vec![];
         let empty_unique: Vec<Column<TestScalar>> = vec![];
 
         // 1) Both 'data' and 'unique' empty
-        let result = get_multiplicities(&empty_data, &empty_unique);
+        let result = get_multiplicities(&empty_data, &empty_unique, &alloc);
         assert!(
             result.is_empty(),
             "When both are empty, result should be empty"
@@ -857,7 +860,7 @@ mod tests {
 
         // 2) 'unique' empty, 'data' non-empty
         let nonempty_data = vec![Column::<TestScalar>::Boolean(&[true, false])];
-        let result = get_multiplicities(&nonempty_data, &empty_unique);
+        let result = get_multiplicities(&nonempty_data, &empty_unique, &alloc);
         assert!(
             result.is_empty(),
             "When 'unique' is empty, result must be empty"
@@ -865,16 +868,17 @@ mod tests {
 
         // 3) 'unique' non-empty, 'data' empty => all zeros
         let nonempty_unique = vec![Column::<TestScalar>::Boolean(&[true, true, false])];
-        let result = get_multiplicities(&empty_data, &nonempty_unique);
+        let result = get_multiplicities(&empty_data, &nonempty_unique, &alloc);
         assert_eq!(
             result,
-            vec![0_u64; 3],
+            &[0_i128, 0, 0],
             "If data is empty, multiplicities should be zeros"
         );
     }
 
     #[test]
     fn we_can_get_multiplicities() {
+        let alloc = Bump::new();
         let data = vec![
             Column::<TestScalar>::Boolean(&[true, false, true, true, true]),
             Column::<TestScalar>::Int(&[1, 2, 1, 1, 2]),
@@ -886,7 +890,7 @@ mod tests {
             Column::<TestScalar>::BigInt(&[2_i64, 4, 1, 1]),
         ];
 
-        let result = get_multiplicities(&data, &unique);
-        assert_eq!(result, vec![1, 0, 3, 1], "Expected multiplicities");
+        let result = get_multiplicities(&data, &unique, &alloc);
+        assert_eq!(result, &[1, 0, 3, 1], "Expected multiplicities");
     }
 }
