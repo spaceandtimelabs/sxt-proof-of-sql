@@ -36,11 +36,10 @@ pub(crate) fn first_round_evaluate_membership_check<'a, S: Scalar>(
         !columns.is_empty(),
         "The number of source columns should be greater than 0"
     );
-    let multiplicities = get_multiplicities::<S>(candidate_subset, columns);
-    let alloc_multiplicities = alloc.alloc_slice_copy(multiplicities.as_slice());
-    builder.produce_intermediate_mle(alloc_multiplicities as &[_]);
+    let multiplicities = get_multiplicities::<S>(candidate_subset, columns, alloc);
+    builder.produce_intermediate_mle(multiplicities as &[_]);
     builder.request_post_result_challenges(2);
-    alloc_multiplicities
+    multiplicities
 }
 
 /// Perform final round evaluation of the membership check.
@@ -55,6 +54,8 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
     alloc: &'a Bump,
     alpha: S,
     beta: S,
+    input_ones: &'a [bool],
+    candidate_ones: &'a [bool],
     columns: &[Column<'a, S>],
     candidate_subset: &[Column<'a, S>],
 ) -> &'a [i128] {
@@ -67,12 +68,7 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
         !columns.is_empty(),
         "The number of source columns should be greater than 0"
     );
-    let column_len = columns[0].len();
-    let candidate_len = candidate_subset[0].len();
-    let input_ones = alloc.alloc_slice_fill_copy(column_len, true);
-    let candidate_ones = alloc.alloc_slice_fill_copy(candidate_len, true);
-    let multiplicities = get_multiplicities::<S>(candidate_subset, columns);
-    let alloc_multiplicities = alloc.alloc_slice_copy(multiplicities.as_slice());
+    let multiplicities = get_multiplicities::<S>(candidate_subset, columns, alloc);
 
     // Fold the columns
     let c_fold = alloc.alloc_slice_fill_copy(input_ones.len(), Zero::zero());
@@ -97,10 +93,7 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
         vec![
             (
                 S::one(),
-                vec![
-                    Box::new(c_star as &[_]),
-                    Box::new(alloc_multiplicities as &[_]),
-                ],
+                vec![Box::new(c_star as &[_]), Box::new(multiplicities as &[_])],
             ),
             (-S::one(), vec![Box::new(d_star as &[_])]),
         ],
@@ -131,7 +124,7 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
             (-S::one(), vec![Box::new(candidate_ones as &[_])]),
         ],
     );
-    alloc_multiplicities
+    multiplicities
 }
 
 #[allow(dead_code)]

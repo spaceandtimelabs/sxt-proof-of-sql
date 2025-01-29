@@ -122,6 +122,8 @@ impl ProverEvaluate for MembershipCheckTestPlan {
             alloc,
             alpha,
             beta,
+            alloc.alloc_slice_fill_copy(source_table.num_rows(), true),
+            alloc.alloc_slice_fill_copy(candidate_table.num_rows(), true),
             &source_columns,
             &candidate_columns,
         );
