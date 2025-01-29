@@ -6,3 +6,6 @@ mod proof_plan;
 mod tests;
 
 pub use proof_plan::EVMProofPlan;
+
+#[cfg(all(test, feature = "std"))]
+mod verifier;

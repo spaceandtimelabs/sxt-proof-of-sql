@@ -243,10 +243,12 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
-      - name: Run tests
+      - name: Run solidity tests
         run: |
           solidity/scripts/install_deps.sh
           solidity/scripts/test.sh -vvv
+      - name: Run rust+evm tests
+        run: cargo test --lib -p proof-of-sql -- --include-ignored sql::evm_proof_plan::verifier
 
   solhint:
     name: solhint
