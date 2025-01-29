@@ -8,7 +8,7 @@ mod column;
 pub use column::{Column, ColumnField, ColumnRef, ColumnType};
 
 #[allow(dead_code)]
-mod slice_operation;
+pub(crate) mod slice_operation;
 
 mod slice_decimal_operation;
 

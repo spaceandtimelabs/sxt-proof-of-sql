@@ -5,15 +5,11 @@ use super::{
     Column, ColumnOperationResult, ColumnRepeatOp, ElementwiseRepeatOp, RepetitionOp, Table,
     TableOperationError, TableOperationResult, TableOptions,
 };
-use crate::base::{
-    map::{IndexMap, IndexSet},
-    scalar::Scalar,
-};
+use crate::base::scalar::Scalar;
 use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::cmp::Ordering;
 use itertools::Itertools;
-use sqlparser::ast::Ident;
 use tracing::{span, Level};
 
 /// Compute the set union of two slices of columns, deduplicate and sort the result.
@@ -123,16 +119,37 @@ pub fn cross_join<'a, S: Scalar>(
     .expect("Table creation should not fail")
 }
 
-/// This is the core of sort-merge joins.
+/// Get columns from a table with given indexes.
 ///
+/// The function returns an error if any of the indexes are out of bounds.
+#[allow(dead_code)]
+pub(crate) fn get_columns_of_table<'a, S: Scalar>(
+    table: &Table<'a, S>,
+    indexes: &[usize],
+) -> TableOperationResult<Vec<Column<'a, S>>> {
+    indexes
+        .iter()
+        .map(|&i| {
+            table
+                .column(i)
+                .copied()
+                .ok_or(TableOperationError::ColumnIndexOutOfBounds { column_index: i })
+        })
+        .collect::<TableOperationResult<Vec<_>>>()
+}
+
+/// Get sort merge join indexes
+///
+/// Get indexes of rows in `left` and `right` that match on the columns `left_on` and `right_on`.
+/// The results are sorted by (`left_index`, `right_index`).
 /// # Panics
 /// The function panics if we feed in incorrect data (e.g. Num of rows in `left` and some column of `left_on` being different).
-fn get_sort_merge_join_indexes<'a, S: Scalar>(
+pub(crate) fn get_sort_merge_join_indexes<'a, S: Scalar>(
     left_on: &'a [Column<'a, S>],
     right_on: &'a [Column<'a, S>],
     left_num_rows: usize,
     right_num_rows: usize,
-) -> impl Iterator<Item = (usize, usize)> + 'a {
+) -> Vec<(usize, usize)> {
     // Validate input sizes
     for column in left_on {
         assert_eq!(column.len(), left_num_rows);
@@ -195,84 +212,73 @@ fn get_sort_merge_join_indexes<'a, S: Scalar>(
         }
     })
     .flatten()
+    .sorted()
+    .collect::<Vec<(usize, usize)>>()
 }
 
-/// Compute the JOIN of two tables using a sort-merge join.
+/// Apply sort merge join indexes
 ///
 /// Currently we only support INNER JOINs and only support joins on equalities.
+/// In terms of ordering of columns we retain
+/// 1. Join columns
+/// 2. Other columns from the left table
+/// 3. Other columns from the right table
 /// # Panics
 /// The function panics if we feed in incorrect data (e.g. Num of rows in `left` and some column of `left_on` being different).
 #[allow(clippy::needless_borrowed_reference)]
-pub fn sort_merge_join<'a, S: Scalar>(
+pub fn apply_sort_merge_join_indexes<'a, S: Scalar>(
     left: &Table<'a, S>,
     right: &Table<'a, S>,
-    left_on: &[Column<'a, S>],
-    right_on: &[Column<'a, S>],
-    left_selected_column_ident_aliases: &[(&Ident, &Ident)],
-    right_selected_column_ident_aliases: &[(&Ident, &Ident)],
+    left_join_column_indexes: &[usize],
+    right_join_column_indexes: &[usize],
+    left_row_indexes: &[usize],
+    right_row_indexes: &[usize],
     alloc: &'a Bump,
-) -> TableOperationResult<Table<'a, S>> {
-    let left_num_rows = left.num_rows();
-    let right_num_rows = right.num_rows();
-    // Check that result aliases are unique
-    let aliases = left_selected_column_ident_aliases
+) -> ColumnOperationResult<Vec<Column<'a, S>>> {
+    let left_other_col_indexes = (0..left.num_columns())
+        .filter(|i| !left_join_column_indexes.contains(i))
+        .collect::<Vec<_>>();
+    let right_other_col_indexes = (0..right.num_columns())
+        .filter(|i| !right_join_column_indexes.contains(i))
+        .collect::<Vec<_>>();
+    left_join_column_indexes
         .iter()
-        .map(|(_, alias)| alias)
+        .map(|i| -> ColumnOperationResult<_> {
+            apply_column_to_indexes(
+                left.column(*i).expect(
+                    "Column definitely exists due to how `left_join_column_indexes` is constructed",
+                ),
+                alloc,
+                left_row_indexes,
+            )
+        })
         .chain(
-            right_selected_column_ident_aliases
+            left_other_col_indexes
                 .iter()
-                .map(|(_, alias)| alias),
-        )
-        .collect::<IndexSet<_>>();
-    if aliases.len()
-        != left_selected_column_ident_aliases.len() + right_selected_column_ident_aliases.len()
-    {
-        return Err(TableOperationError::DuplicateColumn);
-    }
-    // Find indexes of rows that match
-    let index_pairs = get_sort_merge_join_indexes(left_on, right_on, left_num_rows, right_num_rows);
-    // Now we have the indexes of the rows that match, we can create the new table
-    let (left_indexes, right_indexes): (Vec<usize>, Vec<usize>) = index_pairs.into_iter().unzip();
-    let num_rows = left_indexes.len();
-    let result_columns = left_selected_column_ident_aliases
-        .iter()
-        .map(
-            move |(&ref ident, &ref alias)| -> TableOperationResult<(Ident, Column<'a, S>)> {
-                Ok((
-                    alias.clone(),
+                .map(|i| -> ColumnOperationResult<_> {
                     apply_column_to_indexes(
-                        left.inner_table().get(&ident.clone()).ok_or(
-                            TableOperationError::ColumnDoesNotExist {
-                                column_ident: ident.clone(),
-                            },
-                        )?,
-                        alloc,
-                        &left_indexes,
-                    )?,
-                ))
-            },
+                left.column(*i).expect(
+                    "Column definitely exists due to how `left_other_col_indexes` is constructed",
+                ),
+                alloc,
+                left_row_indexes,
+            )
+                }),
         )
-        .chain(right_selected_column_ident_aliases.iter().map(
-            move |(&ref ident, &ref alias)| -> TableOperationResult<(Ident, Column<'a, S>)> {
-                Ok((
-                    alias.clone(),
+        .chain(
+            right_other_col_indexes
+                .iter()
+                .map(|i| -> ColumnOperationResult<_> {
                     apply_column_to_indexes(
-                        right.inner_table().get(&ident.clone()).ok_or(
-                            TableOperationError::ColumnDoesNotExist {
-                                column_ident: ident.clone(),
-                            },
-                        )?,
-                        alloc,
-                        &right_indexes,
-                    )?,
-                ))
-            },
-        ))
-        .collect::<TableOperationResult<IndexMap<_, _>>>()?;
-    Ok(
-        Table::<'a, S>::try_new_with_options(result_columns, TableOptions::new(Some(num_rows)))
-            .expect("Table creation should not fail"),
-    )
+                right.column(*i).expect(
+                    "Column definitely exists due to how `right_other_col_indexes` is constructed",
+                ),
+                alloc,
+                right_row_indexes,
+            )
+                }),
+        )
+        .collect::<ColumnOperationResult<Vec<_>>>()
 }
 
 #[cfg(test)]
@@ -483,301 +489,6 @@ mod tests {
         assert_eq!(result.num_columns(), 0);
     }
 
-    #[test]
-    fn we_can_do_sort_merge_join_on_two_tables() {
-        let bump = Bump::new();
-        let a: Ident = "a".into();
-        let b: Ident = "b".into();
-        let c: Ident = "c".into();
-        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (a.clone(), Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7])),
-                (b.clone(), Column::Int(&[3_i32, 5, 9, 4, 5, 7])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (c.clone(), Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2])),
-                (b.clone(), Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let left_on = vec![Column::Int(&[3_i32, 5, 9, 4, 5, 7])];
-        let right_on = vec![Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])];
-        let left_selected_column_ident_aliases = vec![(&a, &a), (&b, &b)];
-        let right_selected_column_ident_aliases = vec![(&c, &c)];
-        let result = sort_merge_join(
-            &left,
-            &right,
-            &left_on,
-            &right_on,
-            &left_selected_column_ident_aliases,
-            &right_selected_column_ident_aliases,
-            &bump,
-        )
-        .unwrap();
-        assert_eq!(result.num_rows(), 5);
-        assert_eq!(result.num_columns(), 3);
-        assert_eq!(
-            result.inner_table()[&a].as_smallint().unwrap(),
-            &[1_i16, 2, 2, 3, 3]
-        );
-        assert_eq!(
-            result.inner_table()[&b].as_int().unwrap(),
-            &[4_i32, 5, 5, 5, 5]
-        );
-        assert_eq!(
-            result.inner_table()[&c].as_bigint().unwrap(),
-            &[7_i64, 8, 9, 8, 9]
-        );
-    }
-
-    #[test]
-    fn we_can_do_sort_merge_join_on_two_tables_with_empty_results() {
-        let bump = Bump::new();
-        let a: Ident = "a".into();
-        let b: Ident = "b".into();
-        let c: Ident = "c".into();
-        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (a.clone(), Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7])),
-                (b.clone(), Column::Int(&[3_i32, 15, 9, 14, 15, 7])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (c.clone(), Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2])),
-                (b.clone(), Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let left_on = vec![Column::Int(&[3_i32, 15, 9, 14, 15, 7])];
-        let right_on = vec![Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])];
-        let left_selected_column_ident_aliases = vec![(&a, &a), (&b, &b)];
-        let right_selected_column_ident_aliases = vec![(&c, &c)];
-        let result = sort_merge_join(
-            &left,
-            &right,
-            &left_on,
-            &right_on,
-            &left_selected_column_ident_aliases,
-            &right_selected_column_ident_aliases,
-            &bump,
-        )
-        .unwrap();
-        assert_eq!(result.num_rows(), 0);
-        assert_eq!(result.num_columns(), 3);
-        assert_eq!(result.inner_table()[&a].as_smallint().unwrap(), &[0_i16; 0]);
-        assert_eq!(result.inner_table()[&b].as_int().unwrap(), &[0_i32; 0]);
-        assert_eq!(result.inner_table()[&c].as_bigint().unwrap(), &[0_i64; 0]);
-    }
-
-    #[allow(clippy::too_many_lines)]
-    #[test]
-    fn we_can_do_sort_merge_join_on_tables_with_no_rows() {
-        let bump = Bump::new();
-        let a: Ident = "a".into();
-        let b: Ident = "b".into();
-        let c: Ident = "c".into();
-
-        // Right table has no rows
-        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (a.clone(), Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7])),
-                (b.clone(), Column::Int(&[3_i32, 15, 9, 14, 15, 7])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (c.clone(), Column::BigInt(&[0_i64; 0])),
-                (b.clone(), Column::Int(&[0_i32; 0])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let left_on = vec![Column::Int(&[3_i32, 15, 9, 14, 15, 7])];
-        let right_on = vec![Column::Int(&[0_i32; 0])];
-        let left_selected_column_ident_aliases = vec![(&a, &a), (&b, &b)];
-        let right_selected_column_ident_aliases = vec![(&c, &c)];
-        let result = sort_merge_join(
-            &left,
-            &right,
-            &left_on,
-            &right_on,
-            &left_selected_column_ident_aliases,
-            &right_selected_column_ident_aliases,
-            &bump,
-        )
-        .unwrap();
-        assert_eq!(result.num_rows(), 0);
-        assert_eq!(result.num_columns(), 3);
-        assert_eq!(result.inner_table()[&a].as_smallint().unwrap(), &[0_i16; 0]);
-        assert_eq!(result.inner_table()[&b].as_int().unwrap(), &[0_i32; 0]);
-        assert_eq!(result.inner_table()[&c].as_bigint().unwrap(), &[0_i64; 0]);
-
-        // Left table has no rows
-        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (a.clone(), Column::SmallInt(&[0_i16; 0])),
-                (b.clone(), Column::Int(&[0_i32; 0])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (c.clone(), Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2])),
-                (b.clone(), Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let left_on = vec![Column::Int(&[0_i32; 0])];
-        let right_on = vec![Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])];
-        let left_selected_column_ident_aliases = vec![(&a, &a), (&b, &b)];
-        let right_selected_column_ident_aliases = vec![(&c, &c)];
-        let result = sort_merge_join(
-            &left,
-            &right,
-            &left_on,
-            &right_on,
-            &left_selected_column_ident_aliases,
-            &right_selected_column_ident_aliases,
-            &bump,
-        )
-        .unwrap();
-        assert_eq!(result.num_rows(), 0);
-        assert_eq!(result.num_columns(), 3);
-        assert_eq!(result.inner_table()[&a].as_smallint().unwrap(), &[0_i16; 0]);
-        assert_eq!(result.inner_table()[&b].as_int().unwrap(), &[0_i32; 0]);
-        assert_eq!(result.inner_table()[&c].as_bigint().unwrap(), &[0_i64; 0]);
-
-        // Both tables have no rows
-        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (a.clone(), Column::SmallInt(&[0_i16; 0])),
-                (b.clone(), Column::Int(&[0_i32; 0])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (c.clone(), Column::BigInt(&[0_i64; 0])),
-                (b.clone(), Column::Int(&[0_i32; 0])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let left_on = vec![Column::Int(&[0_i32; 0])];
-        let right_on = vec![Column::Int(&[0_i32; 0])];
-        let left_selected_column_ident_aliases = vec![(&a, &a), (&b, &b)];
-        let right_selected_column_ident_aliases = vec![(&c, &c)];
-        let result = sort_merge_join(
-            &left,
-            &right,
-            &left_on,
-            &right_on,
-            &left_selected_column_ident_aliases,
-            &right_selected_column_ident_aliases,
-            &bump,
-        )
-        .unwrap();
-        assert_eq!(result.num_rows(), 0);
-        assert_eq!(result.num_columns(), 3);
-        assert_eq!(result.inner_table()[&a].as_smallint().unwrap(), &[0_i16; 0]);
-        assert_eq!(result.inner_table()[&b].as_int().unwrap(), &[0_i32; 0]);
-        assert_eq!(result.inner_table()[&c].as_bigint().unwrap(), &[0_i64; 0]);
-    }
-
-    #[test]
-    fn we_can_not_do_sort_merge_join_with_duplicate_aliases() {
-        let bump = Bump::new();
-        let a: Ident = "a".into();
-        let b: Ident = "b".into();
-        let c: Ident = "c".into();
-        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (a.clone(), Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7])),
-                (b.clone(), Column::Int(&[3_i32, 5, 9, 4, 5, 7])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (c.clone(), Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2])),
-                (b.clone(), Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let left_on = vec![Column::Int(&[3_i32, 5, 9, 4, 5, 7])];
-        let right_on = vec![Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])];
-        let left_selected_column_ident_aliases = vec![(&a, &a), (&b, &b)];
-        let right_selected_column_ident_aliases = vec![(&b, &b), (&c, &c)];
-        let result = sort_merge_join(
-            &left,
-            &right,
-            &left_on,
-            &right_on,
-            &left_selected_column_ident_aliases,
-            &right_selected_column_ident_aliases,
-            &bump,
-        );
-        assert_eq!(result, Err(TableOperationError::DuplicateColumn));
-    }
-
-    #[test]
-    fn we_can_not_do_sort_merge_join_with_wrong_column_idents() {
-        let bump = Bump::new();
-        let a: Ident = "a".into();
-        let b: Ident = "b".into();
-        let c: Ident = "c".into();
-        let not_a_column: Ident = "not_a_column".into();
-        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (a.clone(), Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7])),
-                (b.clone(), Column::Int(&[3_i32, 5, 9, 4, 5, 7])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
-            vec![
-                (c.clone(), Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2])),
-                (b.clone(), Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])),
-            ],
-            TableOptions::default(),
-        )
-        .expect("Table creation should not fail");
-        let left_on = vec![Column::Int(&[3_i32, 5, 9, 4, 5, 7])];
-        let right_on = vec![Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])];
-        let left_selected_column_ident_aliases = vec![(&a, &a), (&b, &b)];
-        let right_selected_column_ident_aliases = vec![(&not_a_column, &c)];
-        let result = sort_merge_join(
-            &left,
-            &right,
-            &left_on,
-            &right_on,
-            &left_selected_column_ident_aliases,
-            &right_selected_column_ident_aliases,
-            &bump,
-        );
-        assert!(matches!(
-            result,
-            Err(TableOperationError::ColumnDoesNotExist { .. })
-        ));
-    }
-
     /// Ordered Set Union
     #[test]
     fn we_can_do_ordered_set_union_success_single_column() {
@@ -892,5 +603,345 @@ mod tests {
 
         let result = get_multiplicities(&data, &unique, &alloc);
         assert_eq!(result, &[1, 0, 3, 1], "Expected multiplicities");
+    }
+
+    // Get Columns of Table
+    #[test]
+    fn we_can_get_columns_of_table() {
+        let a: Ident = "a".into();
+        let b: Ident = "b".into();
+        let c: Ident = "c".into();
+
+        let tab = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (a.clone(), Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7, 4])),
+                (b.clone(), Column::Int(&[3_i32, 15, 9, 14, 15, 7, 4])),
+                (c.clone(), Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let indexes = vec![1, 1, 0, 2, 2];
+        let result = get_columns_of_table(&tab, &indexes).unwrap();
+        assert_eq!(result[0], Column::Int(&[3_i32, 15, 9, 14, 15, 7, 4]));
+        assert_eq!(result[1], Column::Int(&[3_i32, 15, 9, 14, 15, 7, 4]));
+        assert_eq!(result[2], Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7, 4]));
+        assert_eq!(result[3], Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2]));
+        assert_eq!(result[4], Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2]));
+    }
+
+    #[test]
+    fn we_can_get_columns_of_table_with_empty_indexes() {
+        let a: Ident = "a".into();
+        let b: Ident = "b".into();
+        let c: Ident = "c".into();
+
+        let tab = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (a.clone(), Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7, 4])),
+                (b.clone(), Column::Int(&[3_i32, 15, 9, 14, 15, 7, 4])),
+                (c.clone(), Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let indexes: Vec<usize> = vec![];
+        let result = get_columns_of_table(&tab, &indexes).unwrap();
+        assert!(
+            result.is_empty(),
+            "Empty indexes should return empty columns"
+        );
+    }
+
+    #[test]
+    fn we_can_get_columns_of_table_with_no_rows() {
+        let a: Ident = "a".into();
+        let b: Ident = "b".into();
+        let c: Ident = "c".into();
+
+        let tab = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (a.clone(), Column::SmallInt(&[0_i16; 0])),
+                (b.clone(), Column::Int(&[0_i32; 0])),
+                (c.clone(), Column::BigInt(&[0_i64; 0])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let indexes: Vec<usize> = vec![];
+        let result = get_columns_of_table(&tab, &indexes).unwrap();
+        assert!(result.is_empty(), "Empty table should return empty columns");
+    }
+
+    #[test]
+    fn we_can_get_columns_of_table_with_no_columns() {
+        // 0 * 0 table
+        let tab =
+            Table::<'_, TestScalar>::try_from_iter_with_options(vec![], TableOptions::new(Some(0)))
+                .expect("Table creation should not fail");
+        let indexes: Vec<usize> = vec![];
+        let result = get_columns_of_table(&tab, &indexes).unwrap();
+        assert!(result.is_empty(), "Empty table should return empty columns");
+
+        // 0 * 5 table
+        let tab =
+            Table::<'_, TestScalar>::try_from_iter_with_options(vec![], TableOptions::new(Some(5)))
+                .expect("Table creation should not fail");
+        let indexes: Vec<usize> = vec![];
+        let result = get_columns_of_table(&tab, &indexes).unwrap();
+        assert!(result.is_empty(), "Empty table should return empty columns");
+    }
+
+    #[test]
+    fn we_cannot_get_columns_of_table_if_some_index_is_out_of_bound() {
+        let a: Ident = "a".into();
+        let b: Ident = "b".into();
+        let c: Ident = "c".into();
+
+        let tab = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (a.clone(), Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7, 4])),
+                (b.clone(), Column::Int(&[3_i32, 15, 9, 14, 15, 7, 4])),
+                (c.clone(), Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let indexes = vec![1, 1, 0, 2, 3];
+        let result = get_columns_of_table(&tab, &indexes);
+        assert!(matches!(
+            result,
+            Err(TableOperationError::ColumnIndexOutOfBounds { .. })
+        ));
+    }
+
+    // get_sort_merge_join_indexes
+    #[test]
+    fn we_can_get_sort_merge_join_indexes_two_tables() {
+        let left_on = vec![Column::<TestScalar>::Int(&[3_i32, 5, 9, 4, 5, 7])];
+        let right_on = vec![Column::<TestScalar>::Int(&[10_i32, 11, 6, 5, 5, 4, 8])];
+        let row_indexes = get_sort_merge_join_indexes(&left_on, &right_on, 6, 7);
+        assert_eq!(row_indexes, vec![(1, 3), (1, 4), (3, 5), (4, 3), (4, 4)]);
+    }
+
+    #[test]
+    fn we_can_get_sort_merge_join_indexes_two_tables_with_empty_results() {
+        let left_on = vec![Column::<TestScalar>::Int(&[3_i32, 15, 9, 14, 15, 7])];
+        let right_on = vec![Column::<TestScalar>::Int(&[10_i32, 11, 6, 5, 5, 4, 8])];
+        let row_indexes = get_sort_merge_join_indexes(&left_on, &right_on, 6, 7);
+        assert!(row_indexes.is_empty());
+    }
+
+    #[test]
+    fn we_can_get_sort_merge_join_indexes_tables_with_no_rows() {
+        // Right table has no rows
+        let left_on = vec![Column::<TestScalar>::Int(&[3_i32, 15, 9, 14, 15, 7])];
+        let right_on = vec![Column::<TestScalar>::Int(&[0_i32; 0])];
+        let row_indexes = get_sort_merge_join_indexes(&left_on, &right_on, 6, 0);
+        assert!(row_indexes.is_empty());
+
+        // Left table has no rows
+        let left_on = vec![Column::<TestScalar>::Int(&[0_i32; 0])];
+        let right_on = vec![Column::<TestScalar>::Int(&[10_i32, 11, 6, 5, 5, 4, 8])];
+        let row_indexes = get_sort_merge_join_indexes(&left_on, &right_on, 0, 7);
+        assert!(row_indexes.is_empty());
+
+        // Both tables have no rows
+        let left_on = vec![Column::<TestScalar>::Int(&[0_i32; 0])];
+        let right_on = vec![Column::<TestScalar>::Int(&[0_i32; 0])];
+        let row_indexes = get_sort_merge_join_indexes(&left_on, &right_on, 0, 0);
+        assert!(row_indexes.is_empty());
+    }
+
+    #[test]
+    fn we_can_apply_sort_merge_join_indexes_two_tables() {
+        let bump = Bump::new();
+        let a: Ident = "a".into();
+        let b: Ident = "b".into();
+        let c: Ident = "c".into();
+
+        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (a.clone(), Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7])),
+                (b.clone(), Column::Int(&[3_i32, 5, 9, 4, 5, 7])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (c.clone(), Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2])),
+                (b.clone(), Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+
+        let left_row_indexes = vec![3, 1, 1, 4, 4];
+        let right_row_indexes = vec![5, 3, 4, 3, 4];
+
+        let result = apply_sort_merge_join_indexes(
+            &left,
+            &right,
+            &[1],
+            &[1],
+            &left_row_indexes,
+            &right_row_indexes,
+            &bump,
+        )
+        .unwrap();
+
+        assert_eq!(result[0], Column::Int(&[4_i32, 5, 5, 5, 5]));
+        assert_eq!(result[1], Column::SmallInt(&[1_i16, 2, 2, 3, 3]));
+        assert_eq!(result[2], Column::BigInt(&[7_i64, 8, 9, 8, 9]));
+    }
+
+    #[test]
+    fn we_can_apply_sort_merge_join_indexes_two_tables_with_empty_results() {
+        let bump = Bump::new();
+        let a: Ident = "a".into();
+        let b: Ident = "b".into();
+        let c: Ident = "c".into();
+
+        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (a.clone(), Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7])),
+                (b.clone(), Column::Int(&[3_i32, 15, 9, 14, 15, 7])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (c.clone(), Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2])),
+                (b.clone(), Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+
+        let left_row_indexes: Vec<usize> = vec![];
+        let right_row_indexes: Vec<usize> = vec![];
+
+        let result = apply_sort_merge_join_indexes(
+            &left,
+            &right,
+            &[1],
+            &[1],
+            &left_row_indexes,
+            &right_row_indexes,
+            &bump,
+        )
+        .unwrap();
+        assert_eq!(result[0], Column::Int(&[0_i32; 0]));
+        assert_eq!(result[1], Column::SmallInt(&[0_i16; 0]));
+        assert_eq!(result[2], Column::BigInt(&[0_i64; 0]));
+    }
+
+    #[test]
+    fn we_can_apply_sort_merge_join_indexes_tables_with_no_rows() {
+        let bump = Bump::new();
+        let a: Ident = "a".into();
+        let b: Ident = "b".into();
+        let c: Ident = "c".into();
+
+        // Right table has no rows
+        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (a.clone(), Column::SmallInt(&[8_i16, 2, 5, 1, 3, 7])),
+                (b.clone(), Column::Int(&[3_i32, 15, 9, 14, 15, 7])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (c.clone(), Column::BigInt(&[0_i64; 0])),
+                (b.clone(), Column::Int(&[0_i32; 0])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let left_row_indexes: Vec<usize> = vec![];
+        let right_row_indexes: Vec<usize> = vec![];
+        let result = apply_sort_merge_join_indexes(
+            &left,
+            &right,
+            &[1],
+            &[1],
+            &left_row_indexes,
+            &right_row_indexes,
+            &bump,
+        )
+        .unwrap();
+        assert_eq!(result[0], Column::Int(&[0_i32; 0]));
+        assert_eq!(result[1], Column::SmallInt(&[0_i16; 0]));
+        assert_eq!(result[2], Column::BigInt(&[0_i64; 0]));
+
+        // Left table has no rows
+        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (a.clone(), Column::SmallInt(&[0_i16; 0])),
+                (b.clone(), Column::Int(&[0_i32; 0])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (c.clone(), Column::BigInt(&[1_i64, 2, 7, 8, 9, 7, 2])),
+                (b.clone(), Column::Int(&[10_i32, 11, 6, 5, 5, 4, 8])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let left_row_indexes: Vec<usize> = vec![];
+        let right_row_indexes: Vec<usize> = vec![];
+        let result = apply_sort_merge_join_indexes(
+            &left,
+            &right,
+            &[1],
+            &[1],
+            &left_row_indexes,
+            &right_row_indexes,
+            &bump,
+        )
+        .unwrap();
+        assert_eq!(result[0], Column::Int(&[0_i32; 0]));
+        assert_eq!(result[1], Column::SmallInt(&[0_i16; 0]));
+        assert_eq!(result[2], Column::BigInt(&[0_i64; 0]));
+
+        // Both tables have no rows
+        let left = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (a.clone(), Column::SmallInt(&[0_i16; 0])),
+                (b.clone(), Column::Int(&[0_i32; 0])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let right = Table::<'_, TestScalar>::try_from_iter_with_options(
+            vec![
+                (c.clone(), Column::BigInt(&[0_i64; 0])),
+                (b.clone(), Column::Int(&[0_i32; 0])),
+            ],
+            TableOptions::default(),
+        )
+        .expect("Table creation should not fail");
+        let left_row_indexes: Vec<usize> = vec![];
+        let right_row_indexes: Vec<usize> = vec![];
+        let result = apply_sort_merge_join_indexes(
+            &left,
+            &right,
+            &[1],
+            &[1],
+            &left_row_indexes,
+            &right_row_indexes,
+            &bump,
+        )
+        .unwrap();
+        assert_eq!(result[0], Column::Int(&[0_i32; 0]));
+        assert_eq!(result[1], Column::SmallInt(&[0_i16; 0]));
+        assert_eq!(result[2], Column::BigInt(&[0_i64; 0]));
     }
 }

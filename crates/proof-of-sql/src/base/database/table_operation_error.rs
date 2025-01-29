@@ -52,6 +52,12 @@ pub enum TableOperationError {
         /// The underlying `ColumnOperationError`
         source: ColumnOperationError,
     },
+    /// Errors related to column index out of bounds.
+    #[snafu(display("Column index out of bounds: {column_index}"))]
+    ColumnIndexOutOfBounds {
+        /// The column index that is out of bounds
+        column_index: usize,
+    },
 }
 
 /// Result type for table operations
