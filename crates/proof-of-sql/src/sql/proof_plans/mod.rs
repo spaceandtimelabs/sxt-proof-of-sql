@@ -12,8 +12,9 @@ pub(crate) use projection_exec::ProjectionExec;
 #[cfg(all(test, feature = "blitzar"))]
 mod projection_exec_test;
 
-#[cfg(test)]
-pub(crate) mod test_utility;
+// #[cfg(test)]
+#[allow(clippy::missing_docs)]
+pub mod test_utility;
 
 mod filter_exec;
 pub(crate) use filter_exec::FilterExec;

@@ -51,10 +51,10 @@ pub use verifiable_query_result::VerifiableQueryResult;
 #[cfg(all(test, feature = "blitzar"))]
 mod verifiable_query_result_test;
 
-#[cfg(all(test, feature = "blitzar"))]
+#[cfg(all(feature = "blitzar"))]
 mod verifiable_query_result_test_utility;
-#[cfg(all(test, feature = "blitzar"))]
-pub(crate) use verifiable_query_result_test_utility::exercise_verification;
+#[cfg(all(feature = "blitzar"))]
+pub use verifiable_query_result_test_utility::exercise_verification;
 
 mod result_element_serialization;
 pub(crate) use result_element_serialization::{

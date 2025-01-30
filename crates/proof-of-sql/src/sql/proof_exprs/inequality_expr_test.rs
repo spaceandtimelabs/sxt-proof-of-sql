@@ -16,6 +16,7 @@ use crate::{
 };
 use bumpalo::Bump;
 use itertools::{multizip, MultiUnzip};
+use num_bigint::BigUint;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -443,7 +444,31 @@ fn we_can_run_nested_comparison() {
 
 #[test]
 fn we_can_compare_a_column_with_varying_absolute_values_and_signs_and_a_constant_bit() {
-    let data = owned_table([bigint("a", [-2_i64, 3, 2]), bigint("b", [1_i64, 2, 3])]);
+    // 2^248 - 1
+    let big_uint = BigUint::from(2u8).pow(248) - BigUint::from(1u8);
+    let limbs_vec: Vec<u64> = big_uint.to_u64_digits();
+
+    // Convert Vec<u64> to [u64; 4]
+    let limbs: [u64; 4] = limbs_vec[..4].try_into().unwrap();
+
+    let upper_bound = Curve25519Scalar::from_bigint(limbs);
+
+    // Generate the test data
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        scalar(
+            "a",
+            (0..2u32.pow(10))
+                .map(|i| upper_bound - Curve25519Scalar::from(u64::from(i))) // Count backward from 2^248
+                .collect::<Vec<_>>(),
+        ),
+        scalar(
+            "b",
+            (0..2u32.pow(10))
+                .map(|i| upper_bound - Curve25519Scalar::from(u64::from(i))) // Count backward from 2^248
+                .collect::<Vec<_>>(),
+        ),
+    ]);
+
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let ast = filter(

@@ -1,6 +1,6 @@
 //! This module proves provable expressions.
-mod proof_expr;
-pub(crate) use proof_expr::ProofExpr;
+pub mod proof_expr;
+pub use proof_expr::ProofExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod proof_expr_test;
 
@@ -20,8 +20,8 @@ use multiply_expr::MultiplyExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod multiply_expr_test;
 
-mod dyn_proof_expr;
-pub(crate) use dyn_proof_expr::DynProofExpr;
+pub mod dyn_proof_expr;
+pub use dyn_proof_expr::DynProofExpr;
 
 mod literal_expr;
 pub(crate) use literal_expr::LiteralExpr;
@@ -64,8 +64,8 @@ mod equals_expr_test;
 mod table_expr;
 pub(crate) use table_expr::TableExpr;
 
-#[cfg(test)]
-pub(crate) mod test_utility;
+// #[cfg(test)]
+pub mod test_utility;
 
 mod column_expr;
 pub(crate) use column_expr::ColumnExpr;
