@@ -1,0 +1,57 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{todonotes}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\title{Inner Join}
+\author{Space and Time Inc}
+\date{January 2025}
+
+\begin{document}
+\maketitle
+
+\noindent Let $L = (l_{ij})$, $R = (r_{ij})$. Let their index columns be $\rho_l$ and $\rho_r$ respectively. Let $\bar{L} = (L|\rho_l)$ and $\bar{R} = (R|\rho_r)$ be enhanced versions of $L$ and $R$ with the last column the index ones. Join $L$ and $R$ on the columns $L'$ and $R'$ which have column indexes $j_l = (l'_0,\cdots, l'_{k-1})$ and $j_r = (r'_0,\cdots, r'_{k-1})$ respectively. The remaining columns of $L$ and $R$ are $L''$ and $R''$ respectively. The inner join $J$ can be expressed as $J = (C|\breve{L}|\breve{R})$ where $C$ consists of the common join columns in the order of $j_l$, and $\breve{L}$ and $\breve{R}$ are the remaining columns of $J$ from $L$ and $R$ respectively.
+Let $\hat{L}$ be a column permutation of $(L|\rho_l)$ by having $C$ first and then other columns of the table, that is, $\hat{L} = (L'|L''|\rho_l)$. Similarly we have $\hat{R} = (R'|R''|\rho_r)$. Let $\bar{J}$ be the inner join of $\bar{L}$ and $\bar{R}$ on the columns $L'$ and $R'$. Hence $\bar{J}=(C|\breve{L}|\bar{\rho}_l|\breve{R}|\bar{\rho}_r)$. Let $\tilde{L}=(C|\breve{L}|\bar{\rho}_l)$ and $\tilde{R}=(C|\breve{R}|\bar{\rho}_r)$. To prove that $J$ is the inner join of $L$ and $R$ we need to prove the following:\\
+
+\textbf{1. Membership}
+\begin{enumerate}
+  \item[(a)] $\tilde{L}$ consists of copies of rows of $\hat{L}$ with multiplicity vector $v_l$.
+  \item[(b)] $\tilde{R}$ consists of copies of rows of $\hat{R}$ with multiplicity vector $v_r$.
+\end{enumerate}
+
+\noindent Note that with (a) and (b) the join conditions are validated. That is, every row of $J$ has to be a row in the inner join.\\
+
+\textbf{2. Uniqueness of rows of $J$}
+
+We can just focus on the row index columns $l_0$ and $r_0$ or, better yet, let $i = \bar{\rho}_l \cdot 2^{BITS} + \bar{\rho}_r$. We need to prove that $i$ is strictly increasing (or decreasing).\\
+\noindent With (1) and (2), $J$ is a subset of the inner join. That is, if we can prove that the row count of $J$ matches that of the inner join, we will establish that it is exactly the inner join.\\
+
+\textbf{3. Row count}
+
+Let $U$ be the distinct set union of $L'$ and $R'$. We need to prove the following:\\
+\begin{enumerate}
+\item[(a)] $U$ is strictly increasing (or decreasing).
+\item[(b)] $L'$ consist of copies of rows of $U$ with multiplicity vector $w_l$.
+\item[(c)] $R'$ consist of copies of rows of $U$ with multiplicity vector $w_r$.
+\item[(d)] $w_l \cdot w_r \overset{\Sigma}{=} \chi_m$ with $m$ the number of rows the prover claims $J$ has.
+\end{enumerate}
+
+Thus, it is established that $J$ is the inner join of $L$ and $R$ on $L'$ and $R'$.\\
+
+\end{document}
+

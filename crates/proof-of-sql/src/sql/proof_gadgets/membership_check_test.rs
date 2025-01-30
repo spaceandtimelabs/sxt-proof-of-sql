@@ -67,6 +67,7 @@ impl ProverEvaluate for MembershipCheckTestPlan {
             &source_columns,
             &candidate_columns,
         );
+        builder.request_post_result_challenges(2);
         table([(Ident::new("multiplicities"), Column::Int128(multiplicities))])
     }
 

@@ -45,6 +45,11 @@ pub(crate) use union_exec::UnionExec;
 #[cfg(all(test, feature = "blitzar"))]
 mod union_exec_test;
 
+mod sort_merge_join_exec;
+pub(crate) use sort_merge_join_exec::SortMergeJoinExec;
+#[cfg(all(test, feature = "blitzar"))]
+mod sort_merge_join_exec_test;
+
 mod dyn_proof_plan;
 pub use dyn_proof_plan::DynProofPlan;
 

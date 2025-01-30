@@ -2,8 +2,7 @@
 mod membership_check;
 mod monotonic;
 mod shift;
-#[allow(unused_imports, dead_code)]
-use membership_check::{
+pub(crate) use membership_check::{
     final_round_evaluate_membership_check, first_round_evaluate_membership_check,
     verify_membership_check,
 };
@@ -21,7 +20,8 @@ mod range_check;
 mod range_check_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod sign_expr_test;
-#[allow(unused_imports, dead_code)]
-use monotonic::{final_round_evaluate_monotonic, first_round_evaluate_monotonic, verify_monotonic};
+pub(crate) use monotonic::{
+    final_round_evaluate_monotonic, first_round_evaluate_monotonic, verify_monotonic,
+};
 #[cfg(test)]
 mod monotonic_test;

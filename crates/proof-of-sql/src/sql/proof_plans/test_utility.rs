@@ -1,11 +1,12 @@
 use super::{
-    DynProofPlan, EmptyExec, FilterExec, GroupByExec, ProjectionExec, SliceExec, TableExec,
-    UnionExec,
+    DynProofPlan, EmptyExec, FilterExec, GroupByExec, ProjectionExec, SliceExec, SortMergeJoinExec,
+    TableExec, UnionExec,
 };
 use crate::{
     base::database::{ColumnField, ColumnType, TableRef},
     sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
 };
+use sqlparser::ast::Ident;
 
 pub fn column_field(name: &str, column_type: ColumnType) -> ColumnField {
     ColumnField::new(name.into(), column_type)
@@ -56,4 +57,20 @@ pub fn slice_exec(input: DynProofPlan, skip: usize, fetch: Option<usize>) -> Dyn
 
 pub fn union_exec(inputs: Vec<DynProofPlan>, schema: Vec<ColumnField>) -> DynProofPlan {
     DynProofPlan::Union(UnionExec::new(inputs, schema))
+}
+
+pub fn sort_merge_join(
+    left: DynProofPlan,
+    right: DynProofPlan,
+    left_join_column_indexes: Vec<usize>,
+    right_join_column_indexes: Vec<usize>,
+    result_idents: Vec<Ident>,
+) -> DynProofPlan {
+    DynProofPlan::SortMergeJoin(SortMergeJoinExec::new(
+        Box::new(left),
+        Box::new(right),
+        left_join_column_indexes,
+        right_join_column_indexes,
+        result_idents,
+    ))
 }

@@ -44,13 +44,17 @@ pub(crate) fn final_round_evaluate_monotonic<'a, S: Scalar, const STRICT: bool, 
     // 1. Prove that `shifted_column` is a shift of `column`
     final_round_evaluate_shift(builder, alloc, alpha, beta, column, shifted_column);
     // 2. Construct an indicator `diff = column - shifted_column`
-    let diff = alloc.alloc_slice_fill_with(num_rows + 1, |i| {
-        if i == num_rows {
-            -column[num_rows - 1]
-        } else {
-            column[i] - shifted_column[i]
-        }
-    });
+    let diff = if num_rows >= 1 {
+        alloc.alloc_slice_fill_with(num_rows + 1, |i| {
+            if i == num_rows {
+                -column[num_rows - 1]
+            } else {
+                column[i] - shifted_column[i]
+            }
+        })
+    } else {
+        alloc.alloc_slice_fill_copy(1, S::ZERO)
+    };
     // Since sign expr which we uses for the sign proof only distinguishes between nonnegative
     // and negative integers we need to transform the indicator to be either ind < 0 or ind >= 0
     //
