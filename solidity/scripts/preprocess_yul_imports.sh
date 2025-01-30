@@ -13,6 +13,7 @@ while IFS= read -r -d '' file; do
     echo "Processing $file -> $outfile"
     
     if ! awk '
+    # Handle Yul imports
     /\/\/ IMPORT-YUL/ {
         import_path = $3
         # Resolve actual file path for reading
@@ -74,6 +75,17 @@ while IFS= read -r -d '' file; do
             print "Error: Function " m[1] " not found in " import_file > "/dev/stderr"
             exit 1
         }
+        next
+    }
+    # Handle Solidity imports
+    /^import/ {
+        import_line = $0
+        while (import_line !~ /;[[:space:]]*$/) {
+            getline
+            import_line = import_line "\n" $0
+        }
+        gsub(/\.pre\.sol/, ".post.sol", import_line)
+        print import_line
         next
     }
     { print }
