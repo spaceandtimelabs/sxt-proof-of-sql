@@ -205,6 +205,8 @@ pub enum ColumnBounds {
     NoOrder,
     /// The bounds of a `Uint8` column.
     Uint8(Bounds<u8>),
+    /// The bounds of a `Uint8` column.
+    Uint16(Bounds<u16>),
     /// The bounds of a `TinyInt` column.
     TinyInt(Bounds<i8>),
     /// The bounds of a `SmallInt` column.
@@ -235,7 +237,7 @@ impl ColumnBounds {
             CommittableColumn::TimestampTZ(_, _, times) => {
                 ColumnBounds::TimestampTZ(Bounds::from_iter(*times))
             }
-            CommittableColumn::Uint16(ints) => unimplemented!("uint16 bounds not supported"),
+            CommittableColumn::Uint16(_) => unimplemented!("uint16 bounds not supported"),
             CommittableColumn::Boolean(_)
             | CommittableColumn::Decimal75(_, _, _)
             | CommittableColumn::Scalar(_)

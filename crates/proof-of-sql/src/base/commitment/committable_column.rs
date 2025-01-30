@@ -27,7 +27,7 @@ pub enum CommittableColumn<'a> {
     Boolean(&'a [bool]),
     /// Borrowed `Byte` column, mapped to `u8`.
     Uint8(&'a [u8]),
-    /// Borrowed `Byte` column, mapped to `u16`.
+    /// Borrowed `Word` column, mapped to `u16`.
     Uint16(&'a [u16]),
     /// Borrowed `TinyInt` column, mapped to `i8`.
     TinyInt(&'a [i8]),
@@ -108,7 +108,6 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
             Column::Boolean(bools) => CommittableColumn::Boolean(bools),
             Column::Uint8(ints) => CommittableColumn::Uint8(ints),
             Column::Uint16(ints) => CommittableColumn::Uint16(ints),
-
             Column::TinyInt(ints) => CommittableColumn::TinyInt(ints),
             Column::SmallInt(ints) => CommittableColumn::SmallInt(ints),
             Column::Int(ints) => CommittableColumn::Int(ints),
@@ -140,7 +139,6 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
             OwnedColumn::Boolean(bools) => CommittableColumn::Boolean(bools),
             OwnedColumn::Uint8(ints) => CommittableColumn::Uint8(ints),
             OwnedColumn::Uint16(ints) => CommittableColumn::Uint16(ints),
-
             OwnedColumn::TinyInt(ints) => (ints as &[_]).into(),
             OwnedColumn::SmallInt(ints) => (ints as &[_]).into(),
             OwnedColumn::Int(ints) => (ints as &[_]).into(),

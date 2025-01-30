@@ -115,12 +115,12 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     let span = span!(Level::DEBUG, "creating word value lookup table").entered();
     // avoids usize to u16 cast
     let mut word_value_table = vec![0u16; 65536];
-    let mut inv_word_values_plus_alpha_table = vec![S::ZERO; 65536];
+    let mut inv_word_values_plus_alpha_table = [S::ZERO; 65536];
 
     // Same initialization loop
-    for i in 0..65536 {
-        word_value_table[i as usize] = i as u16;
-        inv_word_values_plus_alpha_table[i] = S::from(i as u16);
+    for i in 0u16..=65535 {
+        word_value_table[i as usize] = i;
+        inv_word_values_plus_alpha_table[i as usize] = S::from(i);
     }
 
     let inv_word_vals_plus_alpha_table: &mut [S] = alloc

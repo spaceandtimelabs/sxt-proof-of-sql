@@ -38,6 +38,7 @@ use std::{env, path::Path};
 const SIZE: usize = 1_000_000;
 
 #[allow(clippy::items_after_statements)]
+#[allow(clippy::too_many_lines)]
 fn main() {
     init_backend();
 

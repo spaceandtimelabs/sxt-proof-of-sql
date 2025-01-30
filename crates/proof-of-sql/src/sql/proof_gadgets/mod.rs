@@ -14,12 +14,15 @@ use shift::{final_round_evaluate_shift, first_round_evaluate_shift, verify_shift
 mod shift_test;
 mod sign_expr;
 pub(crate) use sign_expr::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
+#[allow(clippy::non_minimal_cfg)] // need to add test feature back in at some point
 #[cfg(feature = "blitzar")]
-#[allow(unused_imports, dead_code)] // remove this when we use it
+#[allow(unused_imports)]
 pub mod range_check;
+#[allow(clippy::non_minimal_cfg)]
 #[cfg(all(feature = "blitzar"))]
+#[allow(missing_docs)]
 pub mod range_check_test;
-#[cfg(all(feature = "blitzar"))]
+#[cfg(all(test, feature = "blitzar"))]
 mod sign_expr_test;
 #[allow(unused_imports, dead_code)]
 use monotonic::{final_round_evaluate_monotonic, first_round_evaluate_monotonic, verify_monotonic};

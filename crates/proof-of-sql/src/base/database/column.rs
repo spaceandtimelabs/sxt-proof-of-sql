@@ -508,7 +508,7 @@ impl ColumnType {
         match self {
             Self::Boolean => size_of::<bool>(),
             Self::Uint8 => size_of::<u8>(),
-            Self::Uint16 => size_of::<u8>(),
+            Self::Uint16 => size_of::<u16>(),
             Self::TinyInt => size_of::<i8>(),
             Self::SmallInt => size_of::<i16>(),
             Self::Int => size_of::<i32>(),
@@ -551,7 +551,7 @@ impl Display for ColumnType {
         match self {
             ColumnType::Boolean => write!(f, "BOOLEAN"),
             ColumnType::Uint8 => write!(f, "UINT8"),
-            ColumnType::Uint16 => write!(f, "UINT8"),
+            ColumnType::Uint16 => write!(f, "UINT16"),
             ColumnType::TinyInt => write!(f, "TINYINT"),
             ColumnType::SmallInt => write!(f, "SMALLINT"),
             ColumnType::Int => write!(f, "INT"),
