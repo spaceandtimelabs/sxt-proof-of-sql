@@ -54,7 +54,7 @@ pub type DoryScalar = MontScalar<ark_bls12_381::FrConfig>;
 /// The Dory commitment type.
 pub struct DoryCommitment(pub(super) GT);
 
-/// The default for GT is the the additive identity, but should be the multiplicative identity.
+/// The default for GT is the additive identity, but should be the multiplicative identity.
 impl Default for DoryCommitment {
     fn default() -> Self {
         Self(PairingOutput(One::one()))
