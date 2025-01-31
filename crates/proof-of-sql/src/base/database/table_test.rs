@@ -263,3 +263,93 @@ fn we_get_inequality_between_tables_with_differing_data() {
 
     assert_ne!(table_a, table_b);
 }
+
+// add_rho_column
+#[test]
+fn we_can_add_rho_column_to_table_with_neither_columns_nor_rows() {
+    let alloc = Bump::new();
+    let original_table = table_with_row_count::<TestScalar>([], 0);
+    let enhanced_table = original_table.add_rho_column(&alloc);
+    let expected_table = table([borrowed_int128("rho", [0_i128; 0], &alloc)]);
+    assert_eq!(enhanced_table, expected_table);
+}
+
+#[test]
+fn we_can_add_rho_column_to_table_with_no_columns() {
+    let alloc = Bump::new();
+    let original_table = table_with_row_count::<TestScalar>([], 2);
+    let enhanced_table = original_table.add_rho_column(&alloc);
+    let expected_table = table([borrowed_int128("rho", [0_i128, 1], &alloc)]);
+    assert_eq!(enhanced_table, expected_table);
+}
+
+#[test]
+fn we_can_add_rho_column_to_table_with_no_rows() {
+    let alloc = Bump::new();
+    let original_table = table::<TestScalar>([
+        borrowed_bigint("a", [0_i64; 0], &alloc),
+        borrowed_int128("b", [0_i128; 0], &alloc),
+        borrowed_varchar("c", ["0"; 0], &alloc),
+        borrowed_boolean("d", [true; 0], &alloc),
+        borrowed_timestamptz(
+            "time_stamp",
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::utc(),
+            [0_i64; 0],
+            &alloc,
+        ),
+    ]);
+    let enhanced_table = original_table.add_rho_column(&alloc);
+    let expected_table = table([
+        borrowed_bigint("a", [0_i64; 0], &alloc),
+        borrowed_int128("b", [0_i128; 0], &alloc),
+        borrowed_varchar("c", ["0"; 0], &alloc),
+        borrowed_boolean("d", [true; 0], &alloc),
+        borrowed_timestamptz(
+            "time_stamp",
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::utc(),
+            [0_i64; 0],
+            &alloc,
+        ),
+        borrowed_int128("rho", [0_i128; 0], &alloc),
+    ]);
+    assert_eq!(enhanced_table, expected_table);
+}
+
+#[test]
+fn we_can_add_rho_column() {
+    let alloc = Bump::new();
+    let original_table = table_with_row_count::<TestScalar>(
+        [
+            borrowed_bigint("a", [0_i64, 1, 2], &alloc),
+            borrowed_int128("b", [0_i128, 1, 2], &alloc),
+            borrowed_varchar("c", ["0", "1", "2"], &alloc),
+            borrowed_boolean("d", [true, false, true], &alloc),
+            borrowed_timestamptz(
+                "time_stamp",
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::utc(),
+                [0_i64, 1, 2],
+                &alloc,
+            ),
+        ],
+        3,
+    );
+    let enhanced_table = original_table.add_rho_column(&alloc);
+    let expected_table = table([
+        borrowed_bigint("a", [0_i64, 1, 2], &alloc),
+        borrowed_int128("b", [0_i128, 1, 2], &alloc),
+        borrowed_varchar("c", ["0", "1", "2"], &alloc),
+        borrowed_boolean("d", [true, false, true], &alloc),
+        borrowed_timestamptz(
+            "time_stamp",
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::utc(),
+            [0_i64, 1, 2],
+            &alloc,
+        ),
+        borrowed_int128("rho", [0_i128, 1, 2], &alloc),
+    ]);
+    assert_eq!(enhanced_table, expected_table);
+}

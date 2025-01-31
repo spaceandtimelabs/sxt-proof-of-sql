@@ -1,6 +1,7 @@
 use super::{Column, ColumnField};
 use crate::base::{map::IndexMap, scalar::Scalar};
 use alloc::vec::Vec;
+use bumpalo::Bump;
 use snafu::Snafu;
 use sqlparser::ast::Ident;
 
@@ -137,6 +138,13 @@ impl<'a, S: Scalar> Table<'a, S> {
     #[must_use]
     pub fn column(&self, index: usize) -> Option<&Column<'a, S>> {
         self.table.values().nth(index)
+    }
+    /// Add the `rho` column as the last column to the table.
+    #[must_use]
+    pub fn add_rho_column(mut self, alloc: &'a Bump) -> Self {
+        self.table
+            .insert(Ident::new("rho"), Column::rho(self.row_count, alloc));
+        self
     }
 }
 

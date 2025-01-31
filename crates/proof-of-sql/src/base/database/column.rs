@@ -144,6 +144,13 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 
+    /// Generate a `Int128` `rho` column [0, 1, 2, ..., length - 1]
+    pub fn rho(length: usize, alloc: &'a Bump) -> Self {
+        let raw_rho = (0..length as i128).collect::<Vec<_>>();
+        let rho = alloc.alloc_slice_copy(raw_rho.as_slice());
+        Column::<S>::Int128(rho as &[_])
+    }
+
     /// Convert an `OwnedColumn` to a `Column`
     pub fn from_owned_column(owned_column: &'a OwnedColumn<S>, alloc: &'a Bump) -> Self {
         match owned_column {

@@ -246,7 +246,7 @@ pub(super) fn repeat_elementwise<S: Clone>(slice: &[S], n: usize) -> impl Iterat
 ///
 /// e.g. `apply_slice_to_indexes(&[1, 2, 3], &[0, 0, 1, 0]).unwrap()` -> `vec![1, 1, 2, 1]`
 /// Note that the function will return an error if any index is out of bounds.
-pub(super) fn apply_slice_to_indexes<S: Clone>(
+pub(crate) fn apply_slice_to_indexes<S: Clone>(
     slice: &[S],
     indexes: &[usize],
 ) -> ColumnOperationResult<Vec<S>> {
