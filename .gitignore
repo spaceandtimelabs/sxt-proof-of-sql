@@ -71,3 +71,6 @@ output/
 *.post.sol
 
 **/dependencies
+
+solidity/lcov.info
+solidity/coverage-report

@@ -1,6 +1,6 @@
-# Yul Import Preprocessor
+# Yul and Solidity Import Preprocessor
 
-This script processes Solidity files containing special Yul import directives and replaces function declarations with the actual imported Yul code.
+This script processes Solidity files containing special Yul import directives and replaces function declarations with the actual imported Yul code. It also updates Solidity import paths from `.pre.sol` to `.post.sol`.
 
 ## Usage
 
@@ -18,8 +18,12 @@ The script will recursively process all `*.pre.sol` files in the specified direc
    // IMPORT-YUL path/to/file.sol
    function someFunction() { ... }
    ```
+3. It also updates Solidity import paths from `.pre.sol` to `.post.sol`:
+   ```solidity
+   import {SomeLibrary} from "./SomeLibrary.pre.sol";
+   ```
 
-3. When it finds an import directive:
+4. When it finds an import directive:
    - Resolves the import path relative to the source file.
    - Locates the specified function in the imported file.
    - Replaces the original function with the imported implementation.
@@ -59,6 +63,8 @@ contract YulUtils {
 
 Main contract (`Contract.pre.sol`):
 ```solidity
+import {YulUtils} from "../libs/YulUtils.pre.sol";
+
 contract MyContract {
     function processData(uint256 value) public pure returns (bytes32) {
         assembly {
@@ -79,6 +85,8 @@ contract MyContract {
 
 After processing (`Contract.post.sol`):
 ```solidity
+import {YulUtils} from "../libs/YulUtils.post.sol";
+
 contract MyContract {
     function processData(uint256 value) public pure returns (bytes32) {
         assembly {
