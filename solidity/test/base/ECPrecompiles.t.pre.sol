@@ -22,6 +22,11 @@ contract ECPrecompilesTest {
         assert(argsPtr[3] == 2);
     }
 
+    function testFailsECAddInvalidInput() public view {
+        uint256[4] memory argsPtr = [uint256(1), 2, 3, 4];
+        ECPrecompiles.ecAdd(argsPtr);
+    }
+
     function testECMul() public view {
         uint256[3] memory argsPtr = [uint256(1), 2, 2];
         ECPrecompiles.ecMul(argsPtr);
@@ -36,6 +41,11 @@ contract ECPrecompilesTest {
         assert(argsPtr[1] == 2);
         // scratch space
         assert(argsPtr[2] == 1);
+    }
+
+    function testFailsECMulInvalidInput() public view {
+        uint256[3] memory argsPtr = [uint256(2), 3, 4];
+        ECPrecompiles.ecMul(argsPtr);
     }
 
     function testECMulAssign() public view {
@@ -70,6 +80,11 @@ contract ECPrecompilesTest {
             0x23a8eb0b0996252cb548a4487da97b02422ebc0e834613f954de6c7e0afdc1fc
         ];
         assert(ECPrecompiles.ecPairingX2(argsPtr) == 1);
+    }
+
+    function testFailsECPairingX2WithInvalidInput() public view {
+        uint256[12] memory argsPtr = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        ECPrecompiles.ecPairingX2(argsPtr);
     }
 
     function testCalldataECAddAssign() public view {

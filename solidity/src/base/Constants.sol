@@ -33,15 +33,20 @@ uint256 constant ECMUL_GAS = 6000;
 /// @dev Gas cost for the ECPAIRING precompile with two pairings.
 uint256 constant ECPAIRINGX2_GAS = 45000 + 2 * 34000;
 
-/// @dev Error code for a failed precompile static call.
-/// This should only occur if the precompile runs out of gas.
-uint256 constant FAILED_PRECOMPILE_STATICCALL =
-    0x3f64d520_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+/// @dev Error code for when ECPAIRING inputs are invalid.
+uint256 constant INVALID_EC_ADD_INPUTS = 0x4385b511_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+/// @dev Error code for when ECPAIRING inputs are invalid.
+uint256 constant INVALID_EC_MUL_INPUTS = 0x4385b511_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+/// @dev Error code for when ECPAIRING inputs are invalid.
+uint256 constant INVALID_EC_PAIRING_INPUTS = 0x4385b511_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
 /// @title Errors library
 /// @notice Library containing custom error definitions.
 library Errors {
-    /// @notice Error for a failed precompile static call.
-    /// @dev This should only occur if the precompile runs out of gas.
-    error FailedPrecompileStaticcall();
+    /// @notice Error thrown when the inputs to the ECADD precompile are invalid.
+    error InvalidECAddInputs();
+    /// @notice Error thrown when the inputs to the ECMUL precompile are invalid.
+    error InvalidECMulInputs();
+    /// @notice Error thrown when the inputs to the ECPAIRING precompile are invalid.
+    error InvalidECPairingInputs();
 }

@@ -6,13 +6,13 @@ import {Test} from "forge-std/Test.sol";
 
 import {Errors} from "../../src/base/Constants.sol";
 // solhint-disable-next-line no-unused-import
-import {FAILED_PRECOMPILE_STATICCALL} from "../../src/base/Constants.sol";
+import {INVALID_EC_PAIRING_INPUTS} from "../../src/base/Constants.sol";
 
 contract ConstantsTest is Test {
     function testErrorFailedPrecompileStaticcall() public {
-        vm.expectPartialRevert(Errors.FailedPrecompileStaticcall.selector);
+        vm.expectPartialRevert(Errors.InvalidECPairingInputs.selector);
         assembly {
-            mstore(0, FAILED_PRECOMPILE_STATICCALL)
+            mstore(0, INVALID_EC_PAIRING_INPUTS)
             revert(0, 4)
         }
     }

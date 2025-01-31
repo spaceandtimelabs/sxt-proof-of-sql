@@ -10,7 +10,9 @@ import {
     ECMUL_GAS,
     ECPAIRING_ADDRESS,
     ECPAIRINGX2_GAS,
-    FAILED_PRECOMPILE_STATICCALL,
+    INVALID_EC_ADD_INPUTS,
+    INVALID_EC_MUL_INPUTS,
+    INVALID_EC_PAIRING_INPUTS,
     WORD_SIZE,
     WORDX2_SIZE,
     WORDX3_SIZE,
@@ -32,7 +34,7 @@ library ECPrecompiles {
         assembly {
             function ec_add(args_ptr) {
                 if iszero(staticcall(ECADD_GAS, ECADD_ADDRESS, args_ptr, WORDX4_SIZE, args_ptr, WORDX2_SIZE)) {
-                    mstore(0, FAILED_PRECOMPILE_STATICCALL)
+                    mstore(0, INVALID_EC_ADD_INPUTS)
                     revert(0, 4)
                 }
             }
@@ -50,7 +52,7 @@ library ECPrecompiles {
         assembly {
             function ec_mul(args_ptr) {
                 if iszero(staticcall(ECMUL_GAS, ECMUL_ADDRESS, args_ptr, WORDX3_SIZE, args_ptr, WORDX2_SIZE)) {
-                    mstore(0, FAILED_PRECOMPILE_STATICCALL)
+                    mstore(0, INVALID_EC_MUL_INPUTS)
                     revert(0, 4)
                 }
             }
@@ -71,7 +73,7 @@ library ECPrecompiles {
         assembly {
             function ec_pairing_x2(args_ptr) -> success {
                 if iszero(staticcall(ECPAIRINGX2_GAS, ECPAIRING_ADDRESS, args_ptr, WORDX12_SIZE, args_ptr, WORD_SIZE)) {
-                    mstore(0, FAILED_PRECOMPILE_STATICCALL)
+                    mstore(0, INVALID_EC_PAIRING_INPUTS)
                     revert(0, 4)
                 }
                 success := mload(args_ptr)
