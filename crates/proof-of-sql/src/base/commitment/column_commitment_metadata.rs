@@ -115,7 +115,7 @@ impl ColumnCommitmentMetadata {
         &self.bounds
     }
 
-    /// Contruct a [`ColumnCommitmentMetadata`] by analyzing a column.
+    /// Construct a [`ColumnCommitmentMetadata`] by analyzing a column.
     #[must_use]
     pub fn from_column(column: &CommittableColumn) -> ColumnCommitmentMetadata {
         ColumnCommitmentMetadata {
