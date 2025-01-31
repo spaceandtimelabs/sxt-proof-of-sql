@@ -157,7 +157,7 @@ fn main() {
             // Create two columns with random values (< 2^248)
             let data: OwnedTable<DoryScalar> = owned_table([scalar(
                 "a",
-                (0..2u32.pow(30))
+                (0..2u32.pow(27))
                     .map(|_| {
                         let limbs = [
                             rng.gen::<u64>(),
@@ -218,7 +218,7 @@ fn main() {
             let data: OwnedTable<DoryScalar> = owned_table([
                 scalar(
                     "a",
-                    (0..2u32.pow(30))
+                    (0..2u32.pow(27))
                         .map(|_| {
                             let limbs = [
                                 rng.gen::<u64>(),
@@ -232,7 +232,7 @@ fn main() {
                 ),
                 scalar(
                     "b",
-                    (0..2u32.pow(30))
+                    (0..2u32.pow(27))
                         .map(|_| {
                             let limbs = [
                                 rng.gen::<u64>(),
