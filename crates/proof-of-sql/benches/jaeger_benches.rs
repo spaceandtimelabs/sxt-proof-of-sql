@@ -15,7 +15,7 @@ use nova_snark::{
     provider::hyperkzg::{CommitmentEngine, CommitmentKey, EvaluationEngine},
     traits::{commitment::CommitmentEngineTrait, evaluation::EvaluationEngineTrait},
 };
-use num_bigint::BigUint;
+
 use proof_of_sql::{
     base::{
         database::{
@@ -134,7 +134,7 @@ fn main() {
                 }
             }
         }
-        "DynDoryRangeCheck" => {
+        "DynDoryRangeCheckRand" => {
             let blitzar_handle_path = std::env::var("BLITZAR_HANDLE_PATH")
                 .expect("Environment variable BLITZAR_HANDLE_PATH not set");
             let public_parameters_path = std::env::var("PUBLIC_PARAMETERS_PATH")
@@ -157,7 +157,7 @@ fn main() {
             // Create two columns with random values (< 2^248)
             let data: OwnedTable<DoryScalar> = owned_table([scalar(
                 "a",
-                (0..2u32.pow(20))
+                (0..2u32.pow(30))
                     .map(|_| {
                         let limbs = [
                             rng.gen::<u64>(),
@@ -195,7 +195,7 @@ fn main() {
             }
             assert!(res.is_ok());
         }
-        "DynDoryInequalityExpr" => {
+        "DynDoryInequalityExprRand" => {
             let blitzar_handle_path = std::env::var("BLITZAR_HANDLE_PATH")
                 .expect("Environment variable BLITZAR_HANDLE_PATH not set");
             let public_parameters_path = std::env::var("PUBLIC_PARAMETERS_PATH")
@@ -218,7 +218,7 @@ fn main() {
             let data: OwnedTable<DoryScalar> = owned_table([
                 scalar(
                     "a",
-                    (0..2u32.pow(20))
+                    (0..2u32.pow(30))
                         .map(|_| {
                             let limbs = [
                                 rng.gen::<u64>(),
@@ -232,7 +232,7 @@ fn main() {
                 ),
                 scalar(
                     "b",
-                    (0..2u32.pow(20))
+                    (0..2u32.pow(30))
                         .map(|_| {
                             let limbs = [
                                 rng.gen::<u64>(),
