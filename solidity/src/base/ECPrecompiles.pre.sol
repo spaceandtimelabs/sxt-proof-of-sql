@@ -146,6 +146,7 @@ library ECPrecompiles {
         returns (uint256[5] memory argsPtrOut0)
     {
         assembly {
+            // LCOV_EXCL_START
             // IMPORT-YUL ECPrecompiles.pre.sol
             function ec_add(args_ptr) {
                 pop(staticcall(0, 0, 0, 0, 0, 0))
@@ -161,6 +162,7 @@ library ECPrecompiles {
                 pop(staticcall(0, 0, 0, 0, 0, 0))
                 revert(0, 0)
             }
+            // LCOV_EXCL_STOP
             function calldata_ec_mul_add_assign(args_ptr, c_ptr, scalar) {
                 calldatacopy(add(args_ptr, WORDX2_SIZE), c_ptr, WORDX2_SIZE)
                 ec_mul_assign(add(args_ptr, WORDX2_SIZE), scalar)
