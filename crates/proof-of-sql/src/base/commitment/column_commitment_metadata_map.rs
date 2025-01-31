@@ -315,14 +315,14 @@ mod tests {
             Err(ColumnCommitmentsMismatch::NumColumns)
         ));
 
-        let emtpy_metadata = ColumnCommitmentMetadataMap::default();
+        let empty_metadata = ColumnCommitmentMetadataMap::default();
 
         assert!(matches!(
-            metadata_a.clone().try_union(emtpy_metadata.clone()),
+            metadata_a.clone().try_union(empty_metadata.clone()),
             Err(ColumnCommitmentsMismatch::NumColumns)
         ));
         assert!(matches!(
-            emtpy_metadata.try_union(metadata_a),
+            empty_metadata.try_union(metadata_a),
             Err(ColumnCommitmentsMismatch::NumColumns)
         ));
     }
