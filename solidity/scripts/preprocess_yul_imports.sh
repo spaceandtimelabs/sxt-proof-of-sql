@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 if [ $# -ne 1 ] || [ ! -d "$1" ]; then
@@ -12,7 +12,8 @@ while IFS= read -r -d '' file; do
     outfile="${file%.pre.sol}.post.sol"
     echo "Processing $file -> $outfile"
     
-    if ! awk '
+    if ! gawk '
+    # Handle Yul imports
     /\/\/ IMPORT-YUL/ {
         import_path = $3
         # Resolve actual file path for reading
@@ -34,7 +35,8 @@ while IFS= read -r -d '' file; do
         
         # Extract function name from the complete signature
         match(signature, /function[[:space:]]+([[:alnum:]_]+)/, m)
-        print "        // IMPORTED-YUL " import_path "::" m[1]
+        print "            // IMPORTED-YUL " import_path "::" m[1]
+        print "            function exclude_coverage_start_" m[1] "() {} // solhint-disable-line no-empty-blocks"
         
         # Skip original function if not empty
         if (!(signature ~ /{[[:space:]]*}/)) {
@@ -68,12 +70,25 @@ while IFS= read -r -d '' file; do
                 break
             }
         }
+
+        print "            function exclude_coverage_stop_" m[1] "() {} // solhint-disable-line no-empty-blocks"
         close(import_file)
         
         if (!found) {
             print "Error: Function " m[1] " not found in " import_file > "/dev/stderr"
             exit 1
         }
+        next
+    }
+    # Handle Solidity imports
+    /^import/ {
+        import_line = $0
+        while (import_line !~ /;[[:space:]]*$/) {
+            getline
+            import_line = import_line "\n" $0
+        }
+        gsub(/\.pre\.sol/, ".post.sol", import_line)
+        print import_line
         next
     }
     { print }

@@ -4,6 +4,7 @@ out = "out"
 solc = "0.8.28"
 libs = ["dependencies"]
 no-match-path = "**/*.pre.sol"
+no-match-coverage = "pre.sol"
 
 [dependencies]
 forge-std = "1.9.5"

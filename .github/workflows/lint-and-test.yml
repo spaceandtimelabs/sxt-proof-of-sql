@@ -247,6 +247,8 @@ jobs:
         run: solidity/scripts/install_deps.sh
       - name: Run tests
         run: solidity/scripts/pre_forge.sh test -vvv
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
       - name: Check code coverage
         run: solidity/scripts/check_coverage.sh
 

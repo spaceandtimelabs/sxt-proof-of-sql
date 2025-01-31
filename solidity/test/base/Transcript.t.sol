@@ -3,7 +3,10 @@
 pragma solidity ^0.8.28;
 
 import {Transcript} from "../../src/base/Transcript.sol";
-import {MODULUS, WORD_SIZE, FREE_PTR} from "../../src/base/Constants.sol";
+import {MODULUS, WORD_SIZE} from "../../src/base/Constants.sol";
+// assembly only constants
+// solhint-disable-next-line no-unused-import
+import {FREE_PTR} from "../../src/base/Constants.sol";
 
 library TranscriptTest {
     function testWeCanDrawChallenge() public pure {
