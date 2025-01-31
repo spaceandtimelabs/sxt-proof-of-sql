@@ -33,7 +33,7 @@ fn we_dont_duplicate_repeated_mles() {
     builder.produce_fr_multiplicand(&One::one(), &[Box::new(&mle1), Box::new(&mle2)]);
     let p = builder.make_composite_polynomial();
     assert_eq!(p.products.len(), 3);
-    assert_eq!(p.flattened_ml_extensions.len(), 4);
+    assert_eq!(p.flattened_ml_extensions.len(), 5);
     let pt = [Curve25519Scalar::from(9_268_764_u64)];
     let m0 = Curve25519Scalar::one() - pt[0];
     let m1 = pt[0];

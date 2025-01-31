@@ -3,7 +3,7 @@ use crate::base::{polynomial::MultilinearExtension, scalar::Scalar};
 use alloc::{boxed::Box, vec::Vec};
 
 /// The type of a sumcheck subpolynomial
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum SumcheckSubpolynomialType {
     /// The subpolynomial should be zero at every entry/row
     Identity,
@@ -82,15 +82,11 @@ impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
         Item = (
             SumcheckSubpolynomialType,
             S,
-            &[Box<dyn MultilinearExtension<S> + 'a>],
+            &Vec<Box<dyn MultilinearExtension<S> + 'a>>,
         ),
     > {
         self.terms.iter().map(move |(coeff, multiplicands)| {
-            (
-                self.subpolynomial_type,
-                multiplier * *coeff,
-                multiplicands.as_slice(),
-            )
+            (self.subpolynomial_type, multiplier * *coeff, multiplicands)
         })
     }
 }
