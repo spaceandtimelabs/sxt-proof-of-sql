@@ -37,7 +37,7 @@ pub enum CommittableColumn<'a> {
     BigInt(&'a [i64]),
     /// Borrowed Int128 column, mapped to `i128`.
     Int128(&'a [i128]),
-    /// Borrowed Decimal75(precion, scale, column), mapped to 'i256'
+    /// Borrowed Decimal75(precision, scale, column), mapped to 'i256'
     Decimal75(Precision, i8, Vec<[u64; 4]>),
     /// Column of big ints for committing to, montgomery-reduced from a Scalar column.
     Scalar(Vec<[u64; 4]>),
