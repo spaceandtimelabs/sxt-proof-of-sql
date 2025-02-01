@@ -63,7 +63,7 @@ contract YulUtils {
 
 Main contract (`Contract.pre.sol`):
 ```solidity
-import {YulUtils} from "../libs/YulUtils.pre.sol";
+import {YulUtils} from "../libs/yul_utils.sol";
 
 contract MyContract {
     function processData(uint256 value) public pure returns (bytes32) {
