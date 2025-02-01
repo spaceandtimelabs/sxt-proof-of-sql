@@ -23,7 +23,7 @@ use proof_of_sql::proof_primitive::{
     hyperkzg::{HyperKZGCommitmentEvaluationProof, HyperKZGEngine},
 };
 mod scaffold;
-use crate::scaffold::querys::QUERIES;
+use crate::scaffold::queries::QUERIES;
 use scaffold::jaeger_scaffold;
 use std::env;
 
