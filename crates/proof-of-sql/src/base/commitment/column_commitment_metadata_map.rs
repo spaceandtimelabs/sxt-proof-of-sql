@@ -257,7 +257,7 @@ mod tests {
 
         assert_eq!(b_difference_a.len(), 4);
 
-        // Check metatadata for ordered columns is mostly the same (now bounded)
+        // Check metadata for ordered columns is mostly the same (now bounded)
         let (index_0, metadata_0) = b_difference_a.get_index(0).unwrap();
         assert_eq!(index_0.value.as_str(), "bigint_column");
         assert_eq!(metadata_0.column_type(), &ColumnType::BigInt);
