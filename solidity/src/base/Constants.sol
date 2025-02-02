@@ -41,6 +41,8 @@ uint256 constant INVALID_EC_ADD_INPUTS = 0x765bcba0_00000000_00000000_00000000_0
 uint256 constant INVALID_EC_MUL_INPUTS = 0xe32c7472_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 /// @dev Error code for when ECPAIRING inputs are invalid.
 uint256 constant INVALID_EC_PAIRING_INPUTS = 0x4385b511_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+/// @dev Error code for when the evaluation of a round in a sumcheck proof does not match the expected value.
+uint256 constant ROUND_EVALUATION_MISMATCH = 0x741f5c3f_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
 /// @title Errors library
 /// @notice Library containing custom error definitions.
@@ -51,4 +53,6 @@ library Errors {
     error InvalidECMulInputs();
     /// @notice Error thrown when the inputs to the ECPAIRING precompile are invalid.
     error InvalidECPairingInputs();
+    /// @notice Error thrown when the evaluation of a round in a sumcheck proof does not match the expected value.
+    error RoundEvaluationMismatch();
 }
