@@ -20,7 +20,7 @@ The script will recursively process all `*.pre.sol` files in the specified direc
    ```
 3. It also updates Solidity import paths from `.pre.sol` to `.post.sol`:
    ```solidity
-   import {SomeLibrary} from "./SomeLibrary.pre.sol";
+   import {SomeLibrary} from "./SomeLibrary.post.sol";
    ```
 
 4. When it finds an import directive:
