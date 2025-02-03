@@ -112,7 +112,7 @@ For detailed usage instructions and examples of how to create, append to, prove,
 Proof of SQL is optimized for speed and efficiency. Here's how it's so fast:
 
 1. We use **native, precomputed commitments** to the data. In other words, when adding data to the database, we compute a "digest" of the data, which effectively "locks in" the data. Instead of using a merkle tree based commitment, like those use in most blockchains, we use the commitment scheme that is inherent to Proof of SQL itself.
-2. SQL is conducive to a **natural arithmatization**, meaning that there is very little overhead compared with other proof systems that are designed around instructions/sequential compute. Instead, Proof of SQL is designed from the ground up with data processing and parallelism in mind.
+2. SQL is conducive to a **natural arithmetization**, meaning that there is very little overhead compared with other proof systems that are designed around instructions/sequential compute. Instead, Proof of SQL is designed from the ground up with data processing and parallelism in mind.
 3. We use **GPU acceleration** on the most expensive cryptography in the prover. We use [Blitzar](https://github.com/spaceandtimelabs/blitzar) as our acceleration framework.
 
 ### Setup
