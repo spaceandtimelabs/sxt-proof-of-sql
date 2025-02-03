@@ -296,7 +296,7 @@ fn main() {
             // Generate the test data
             let data: OwnedTable<DoryScalar> = owned_table([scalar(
                 "a",
-                (0..2u32.pow(20))
+                (0u64..1000)
                     .map(|i| upper_bound - DoryScalar::from(u64::from(i))) // Count backward from 2^248
                     .collect::<Vec<_>>(),
             )]);
@@ -357,13 +357,13 @@ fn main() {
             let data: OwnedTable<DoryScalar> = owned_table([
                 scalar(
                     "a",
-                    (0..2u32.pow(20))
+                    (0u64..1000)
                         .map(|i| upper_bound - DoryScalar::from(u64::from(i))) // Count backward from 2^248
                         .collect::<Vec<_>>(),
                 ),
                 scalar(
                     "b",
-                    (0..2u32.pow(20))
+                    (0u64..1000)
                         .map(|i| upper_bound - DoryScalar::from(u64::from(i))) // Count backward from 2^248
                         .collect::<Vec<_>>(),
                 ),
