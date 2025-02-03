@@ -158,7 +158,7 @@ fn main() {
             // Create two columns with random values (< 2^248)
             let data: OwnedTable<DoryScalar> = owned_table([scalar(
                 "a",
-                (0..2u32.pow(20))
+                (0..2u32.pow(10))
                     .map(|_| {
                         let limbs = [
                             rng.gen::<u64>(),
@@ -219,7 +219,7 @@ fn main() {
             let data: OwnedTable<DoryScalar> = owned_table([
                 scalar(
                     "a",
-                    (0..2u32.pow(20))
+                    (0..2u32.pow(10))
                         .map(|_| {
                             let limbs = [
                                 rng.gen::<u64>(),
@@ -233,7 +233,7 @@ fn main() {
                 ),
                 scalar(
                     "b",
-                    (0..2u32.pow(20))
+                    (0..2u32.pow(10))
                         .map(|_| {
                             let limbs = [
                                 rng.gen::<u64>(),
@@ -296,7 +296,7 @@ fn main() {
             // Generate the test data
             let data: OwnedTable<DoryScalar> = owned_table([scalar(
                 "a",
-                (0u64..1000)
+                (0..2u32.pow(20))
                     .map(|i| upper_bound - DoryScalar::from(u64::from(i))) // Count backward from 2^248
                     .collect::<Vec<_>>(),
             )]);
@@ -357,13 +357,13 @@ fn main() {
             let data: OwnedTable<DoryScalar> = owned_table([
                 scalar(
                     "a",
-                    (0u64..1000)
+                    (0..2u32.pow(20))
                         .map(|i| upper_bound - DoryScalar::from(u64::from(i))) // Count backward from 2^248
                         .collect::<Vec<_>>(),
                 ),
                 scalar(
                     "b",
-                    (0u64..1000)
+                    (0..2u32.pow(20))
                         .map(|i| upper_bound - DoryScalar::from(u64::from(i))) // Count backward from 2^248
                         .collect::<Vec<_>>(),
                 ),
