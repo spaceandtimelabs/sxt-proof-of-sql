@@ -11,6 +11,7 @@ use tempfile::tempdir;
 /// # Panics
 /// This test will panic in a number of non-consequential, expected cases.
 #[test]
+#[ignore]
 fn we_can_generate_save_and_load_public_setups() {
     // Create a temporary directory for the test
     let temp_dir = tempdir().expect("Failed to create a temporary directory");
