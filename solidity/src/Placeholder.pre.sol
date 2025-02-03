@@ -16,10 +16,10 @@ library TestScript {
         assembly {
             // IMPORT-YUL Placeholder.pre.sol
             function return_one() -> result {
-                revert(0, 0)
+                result := 1  // Returning 1 instead of revert
             }
             a := return_one()
         }
-        assert(a == 1);
+        assert(a == 1);  // Verifying that the result is 1
     }
 }
