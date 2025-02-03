@@ -26,7 +26,7 @@ fi
 # 2) Then find lines containing `cargo` commands and strip off 'run:'.
 ################################################################################
 cargo_commands=$(
-  sed -n -E '/^  examples:/,/^  [A-Za-z0-9_]+:/p' "$YAML_FILE" \
+  sed -n -E '/^  examples:/,/^  [[:space:]]+[a-zA-Z0-9_-]+:/p' "$YAML_FILE" \
     | grep -E '^\s*run:.*cargo' \
     | sed -E 's/^\s*run:\s*//'
 )
