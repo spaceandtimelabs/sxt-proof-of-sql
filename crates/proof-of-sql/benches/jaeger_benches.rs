@@ -155,7 +155,7 @@ fn main() {
             // Create two columns with random values (< 2^248)
             let data: OwnedTable<DoryScalar> = owned_table([scalar(
                 "a",
-                (0u64..1_000_000)
+                (0u64..1_000)
                     .map(|_| {
                         let limbs = [
                             rng.gen::<u64>(),
