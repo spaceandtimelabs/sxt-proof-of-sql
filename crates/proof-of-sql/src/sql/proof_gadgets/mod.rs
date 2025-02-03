@@ -17,8 +17,8 @@ pub(crate) use sign_expr::{prover_evaluate_sign, result_evaluate_sign, verifier_
 #[cfg(feature = "blitzar")]
 #[allow(unused_imports, dead_code)] // remove this when we use it
 mod range_check;
-#[cfg(all(test, feature = "blitzar"))]
-mod range_check_test;
+#[cfg(all(feature = "blitzar"))]
+pub mod range_check_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod sign_expr_test;
 #[allow(unused_imports, dead_code)]
