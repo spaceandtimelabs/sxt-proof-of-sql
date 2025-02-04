@@ -165,6 +165,35 @@ fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
     });
 }
 
+fn pack_fixed_size_binary(
+    width: usize,
+    bytes: &[u8],
+    packed_scalars: &mut [u8],
+    current_bit_table_sum: usize,
+    offset: usize,
+    bit_table_sum_in_bytes: usize,
+    num_columns: usize,
+) {
+    let byte_offset = current_bit_table_sum / 8;
+    let nrows = bytes.len() / width;
+
+    for i in 0..nrows {
+        let index = i + offset;
+
+        // row_offset: which row in the MSM block
+        let row_offset = (index % num_columns) * bit_table_sum_in_bytes;
+
+        // col_offset: how far in that row we move for this "item"
+        let col_offset = width * (index / num_columns);
+
+        let offset_index = row_offset + col_offset + byte_offset;
+        let row_bytes = &bytes[i * width..(i + 1) * width];
+
+        // Copy exactly width bytes into packed_scalars
+        packed_scalars[offset_index..offset_index + width].copy_from_slice(row_bytes);
+    }
+}
+
 /// Returns an offset vector to support signed values.
 ///
 /// # Arguments
@@ -453,6 +482,17 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     cumulative_bit_sum_table[i],
                     offset,
                     committable_columns[i].column_type().byte_size(),
+                    bit_table_full_sum_in_bytes,
+                    num_matrix_commitment_columns,
+                );
+            }
+            CommittableColumn::FixedSizeBinary(bw, raw_bytes) => {
+                pack_fixed_size_binary(
+                    bw.width_as_usize(),
+                    raw_bytes,
+                    &mut packed_scalars,
+                    cumulative_bit_sum_table[i],
+                    offset,
                     bit_table_full_sum_in_bytes,
                     num_matrix_commitment_columns,
                 );

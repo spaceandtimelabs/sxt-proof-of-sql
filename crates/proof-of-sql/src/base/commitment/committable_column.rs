@@ -1,6 +1,6 @@
 use crate::base::{
     database::{Column, ColumnType, OwnedColumn},
-    math::decimal::Precision,
+    math::{decimal::Precision, non_negative_i32::NonNegativeI32},
     ref_into::RefInto,
     scalar::Scalar,
 };
@@ -45,6 +45,9 @@ pub enum CommittableColumn<'a> {
     VarChar(Vec<[u64; 4]>),
     /// Borrowed Timestamp column with Timezone, mapped to `i64`.
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    /// Borrowed `FixedSizeBinary` column, mapped to a slice of bytes.
+    /// - The i32 specifies the number of bytes per value.
+    FixedSizeBinary(NonNegativeI32, &'a [u8]),
 }
 
 impl CommittableColumn<'_> {
@@ -62,6 +65,7 @@ impl CommittableColumn<'_> {
             | CommittableColumn::Scalar(col)
             | CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
+            CommittableColumn::FixedSizeBinary(_, items) => items.len(),
         }
     }
 
@@ -94,6 +98,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
             CommittableColumn::Boolean(_) => ColumnType::Boolean,
             CommittableColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
+            CommittableColumn::FixedSizeBinary(size, _) => ColumnType::FixedSizeBinary(*size),
         }
     }
 }
@@ -118,6 +123,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
                 CommittableColumn::VarChar(as_limbs)
             }
             Column::TimestampTZ(tu, tz, times) => CommittableColumn::TimestampTZ(*tu, *tz, times),
+            Column::FixedSizeBinary(bw, bytes) => CommittableColumn::FixedSizeBinary(*bw, bytes),
         }
     }
 }
@@ -157,6 +163,9 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
             ),
             OwnedColumn::TimestampTZ(tu, tz, times) => {
                 CommittableColumn::TimestampTZ(*tu, *tz, times as &[_])
+            }
+            OwnedColumn::FixedSizeBinary(bw, bytes) => {
+                CommittableColumn::FixedSizeBinary(*bw, bytes)
             }
         }
     }
@@ -220,6 +229,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             | CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
             CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
+            CommittableColumn::FixedSizeBinary(_, items) => Sequence::from(*items),
         }
     }
 }
