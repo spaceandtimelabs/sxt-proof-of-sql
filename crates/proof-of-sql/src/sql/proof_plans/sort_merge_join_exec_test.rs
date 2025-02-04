@@ -131,6 +131,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_sort_m
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_two_sort_merge_joins() {
     let alloc = Bump::new();
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
