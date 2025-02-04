@@ -25,20 +25,30 @@
 \begin{document}
 \maketitle
 
-\noindent Let $L = (l_{ij})$, $R = (r_{ij})$. Let their index columns be $\rho_l$ and $\rho_r$ respectively. Let $\bar{L} = (L|\rho_l)$ and $\bar{R} = (R|\rho_r)$ be enhanced versions of $L$ and $R$ with the last column the index ones. Join $L$ and $R$ on the columns $L'$ and $R'$ which have column indexes $j_l = (l'_0,\cdots, l'_{k-1})$ and $j_r = (r'_0,\cdots, r'_{k-1})$ respectively. The remaining columns of $L$ and $R$ are $L''$ and $R''$ respectively. The inner join $J$ can be expressed as $J = (C|\breve{L}|\breve{R})$ where $C$ consists of the common join columns in the order of $j_l$, and $\breve{L}$ and $\breve{R}$ are the remaining columns of $J$ from $L$ and $R$ respectively.
-Let $\hat{L}$ be a column permutation of $(L|\rho_l)$ by having $C$ first and then other columns of the table, that is, $\hat{L} = (L'|L''|\rho_l)$. Similarly we have $\hat{R} = (R'|R''|\rho_r)$. Let $\bar{J}$ be the inner join of $\bar{L}$ and $\bar{R}$ on the columns $L'$ and $R'$. Hence $\bar{J}=(C|\breve{L}|\bar{\rho}_l|\breve{R}|\bar{\rho}_r)$. Let $\tilde{L}=(C|\breve{L}|\bar{\rho}_l)$ and $\tilde{R}=(C|\breve{R}|\bar{\rho}_r)$. To prove that $J$ is the inner join of $L$ and $R$ we need to prove the following:\\
+\noindent Let $L = (l_{ij})$, $R = (r_{ij})$ be two tables. Join $L$ and $R$ on the columns $C_\ell$ and $C_r$ which have column indexes $j_l = (l'_0,\cdots, l'_{k-1})$ and $j_r = (r'_0,\cdots, r'_{k-1})$ respectively. \\
+\noindent Let the prover-provided index columns of $L$ and $R$ be $i_\ell:=\rho_{[0, m_\ell)}$ and $i_r:=\rho_{[0, m_r)}$ respectively. Let $\hat{L} = (L|i_\ell)$ and $\hat{R} = (R|i_r)$ be versions of $L$ and $R$ with the last column the index ones.  The remaining columns of $L$ and $R$ are $A$ and $B$ respectively in their respective original ordering. The inner join $J$ can be expressed as $J = (\bar{C}|\bar{A}|\bar{B})$ where $\bar{C}$ consists of the common join columns in the order of $j_l$, and $\bar{A}$ and $\bar{B}$ are the remaining columns of $J$ from $L$ and $R$ respectively, that is, corresponding to columns of $A$ and $B$.\\
+\noindent Let $\tilde{L}$ be a column permutation of $\hat{L}$ by having $C$ first and then other columns of the table, that is, $\tilde{L} = (C_\ell|A|i_\ell)$. Similarly we have $\tilde{R} = (C_r|B|i_r)$. Let $\hat{J}$ be the inner join of $\hat{L}$ and $\hat{R}$ on the columns $C_\ell$ and $C_r$. Hence $\hat{J}=(\bar{C}|\bar{A}|\bar{i_\ell}|\bar{B}|\bar{i_r})$. Let $J_\ell=(\bar{C}|\bar{A}|\bar{i_l})$ and $J_r=(\bar{C}|\bar{B}|\bar{i_r})$. To prove that $J$ is the inner join of $L$ and $R$ we need to prove the following:\\
 
+\section{Summary}
+\begin{itemize}
+    \item Plan values: $j_\ell$, $j_r$ and number of columns in each of $L$ and $R$
+    \item Inputs: $L$, $R$, $w_\ell$, and $w_r$
+    \item Outputs: $J$ and $m$
+    \item Hints: $m_\ell$, $m_r$, $\bar{i_l}$, $\bar{i_r}$, $U$, $w_l$, $w_r$, and all the internal hints for the gadgets.
+\end{itemize}
+
+\section{Details}
 \textbf{1. Membership}
 \begin{enumerate}
-  \item[(a)] $\tilde{L}$ consists of copies of rows of $\hat{L}$ with multiplicity vector $v_l$.
-  \item[(b)] $\tilde{R}$ consists of copies of rows of $\hat{R}$ with multiplicity vector $v_r$.
+  \item[(a)] $J_\ell$ consists of copies of rows of $\tilde{L}$.
+  \item[(b)] $J_r$ consists of copies of rows of $\tilde{R}$.
 \end{enumerate}
 
 \noindent Note that with (a) and (b) the join conditions are validated. That is, every row of $J$ has to be a row in the inner join.\\
 
 \textbf{2. Uniqueness of rows of $J$}
 
-We can just focus on the row index columns $l_0$ and $r_0$ or, better yet, let $i = \bar{\rho}_l \cdot 2^{BITS} + \bar{\rho}_r$. We need to prove that $i$ is strictly increasing (or decreasing).\\
+We can just focus on the prover-provided index columns $i_\ell$ and $i_r$ or, better yet, let $i = \bar{i_\ell} \cdot 2^{BITS} + \bar{i_r}$. We need to prove that $i$ is strictly increasing (or decreasing).\\
 \noindent With (1) and (2), $J$ is a subset of the inner join. That is, if we can prove that the row count of $J$ matches that of the inner join, we will establish that it is exactly the inner join.\\
 
 \textbf{3. Row count}
