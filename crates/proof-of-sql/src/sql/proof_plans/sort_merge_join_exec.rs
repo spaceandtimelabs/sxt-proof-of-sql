@@ -145,6 +145,7 @@ where
             });
         }
         let num_columns_res_hat = num_columns_left + num_columns_right - num_columns_u + 2;
+        // `\hat{J}` in the protocol
         let res_hat_column_evals =
             builder.try_consume_final_round_mle_evaluations(num_columns_res_hat)?;
         // 5. First round MLE evaluations: `i` and `U`
