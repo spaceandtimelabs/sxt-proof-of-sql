@@ -1,0 +1,66 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{todonotes}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\title{Inner Join}
+\author{Space and Time Inc}
+\date{January 2025}
+
+\begin{document}
+\maketitle
+
+\noindent Let $L = (\ell_{ij})$, $R = (r_{ij})$ be two tables. Join $L$ and $R$ on the columns $C_L$ and $C_R$ which have column indexes $j_L = (\ell'_0,\cdots, \ell'_{k-1})$ and $j_R = (r'_0,\cdots, r'_{k-1})$ respectively. \\
+\noindent Let the prover-provided index columns of $L$ and $R$ be $i_L:=\rho_{[0, m_L)}$ and $i_R:=\rho_{[0, m_R)}$ respectively. The remaining columns of $L$ and $R$ are $A$ and $B$ respectively in their respective original ordering. Let $\bar{C}$ consist of the common join columns in the order of $j_L$ (and $j_R$), and $\bar{A}$ and $\bar{B}$ be the remaining columns from $L$ and $R$ respectively, that is, corresponding to columns of $A$ and $B$.\\
+So, $L$ and $R$ are reorderings of $(C_L,A)$ and $(C_R,B)$.  To prove that $J = (\bar{C}|\bar{A}|\bar{B})$ is the inner join of $L$ and $R$ we need to prove the following:\\
+
+\section{Summary}
+\begin{itemize}
+    \item Plan values: $j_L$, $j_R$ and number of columns in each of $L$ and $R$
+    \item Inputs: $L$, $R$
+    \item Outputs: $J$ and $m$
+    \item Hints: $m_L$, $m_R$, $\bar{i}_L$, $\bar{i}_R$, $U$, $w_L$, $w_R$, and all the internal hints for the gadgets.
+\end{itemize}
+
+\section{Details}
+\textbf{1. Membership}
+\begin{enumerate}
+  \item[(a)] $(\bar{C}|\bar{A}|\bar{i}_L)$ consists of copies of rows of $(C_L|A|i_L)$.
+  \item[(b)] $(\bar{C}|\bar{B}|\bar{i}_R)$ consists of copies of rows of $(C_R|B|i_R)$.
+\end{enumerate}
+
+\noindent Note that with (a) and (b) the join conditions are validated. That is, every row of $J$ has to be a row in the inner join.\\
+
+\textbf{2. Uniqueness of rows of $J$}
+
+We can just focus on the prover-provided index columns $\bar{i}_L$ and $\bar{i}_R$. We need to prove that $(\bar{i}_L, \bar{i}_R)$ is strictly increasing (or decreasing) to show that rows of $J$ are unique. Note that if $R$ can not have more than $2^{BITS}$ rows we can use $\bar{i} = \bar{i}_L \cdot 2^{BITS} + \bar{i}_R$ as a shortcut. That is, $(\bar{i}_L, \bar{i}_R)$ is strictly increasing (or decreasing) if and only if $\bar{i}$ is.\\
+\noindent With (1) and (2), $J$ is a subset of the inner join. That is, if we can prove that the row count of $J$ matches that of the inner join, we will establish that it is exactly the inner join.\\
+
+\textbf{3. Row count}
+
+Let $U$ be the distinct set union of $C_L$ and $C_R$. We need to prove the following:\\
+\begin{enumerate}
+\item[(a)] $U$ is strictly increasing (or decreasing).
+\item[(b)] $C_L$ consist of copies of rows of $U$ with multiplicity vector $w_L$.
+\item[(c)] $C_R$ consist of copies of rows of $U$ with multiplicity vector $w_R$.
+\item[(d)] $w_L \cdot w_R \overset{\Sigma}{=} \chi_{[0,m)}$ with $m$ the number of rows the prover claims $J$ has.
+\end{enumerate}
+
+Thus, it is established that $J$ is the inner join of $L$ and $R$ on $C_L = C_R$.\\
+
+\end{document}

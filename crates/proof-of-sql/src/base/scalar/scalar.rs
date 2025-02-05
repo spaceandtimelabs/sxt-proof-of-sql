@@ -76,6 +76,8 @@ pub trait Scalar:
     const TWO: Self;
     /// 2 + 2 + 2 + 2 + 2
     const TEN: Self;
+    /// 2^64
+    const TWO_POW_64: Self;
     /// The value to mask the challenge with to ensure it is in the field.
     /// This one less than the largest power of 2 that is less than the field modulus.
     const CHALLENGE_MASK: U256;

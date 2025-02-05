@@ -38,7 +38,6 @@ pub(crate) fn first_round_evaluate_membership_check<'a, S: Scalar>(
     );
     let multiplicities = get_multiplicities::<S>(candidate_subset, columns, alloc);
     builder.produce_intermediate_mle(multiplicities as &[_]);
-    builder.request_post_result_challenges(2);
     multiplicities
 }
 

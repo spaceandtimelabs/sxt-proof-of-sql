@@ -431,6 +431,7 @@ where
     const ONE: Self = Self(Fp::ONE);
     const TWO: Self = Self(Fp::new(ark_ff::BigInt([2, 0, 0, 0])));
     const TEN: Self = Self(Fp::new(ark_ff::BigInt([10, 0, 0, 0])));
+    const TWO_POW_64: Self = Self(Fp::new(ark_ff::BigInt([0, 1, 0, 0])));
     const CHALLENGE_MASK: U256 = {
         assert!(
             T::MODULUS.0[3].leading_zeros() < 64,

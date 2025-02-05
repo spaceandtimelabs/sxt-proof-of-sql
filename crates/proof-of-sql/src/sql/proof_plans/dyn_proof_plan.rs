@@ -1,4 +1,7 @@
-use super::{EmptyExec, FilterExec, GroupByExec, ProjectionExec, SliceExec, TableExec, UnionExec};
+use super::{
+    EmptyExec, FilterExec, GroupByExec, ProjectionExec, SliceExec, SortMergeJoinExec, TableExec,
+    UnionExec,
+};
 use crate::{
     base::{
         database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
@@ -57,4 +60,10 @@ pub enum DynProofPlan {
     ///     <ProofPlan>
     /// ```
     Union(UnionExec),
+    /// `ProofPlan` for queries of the form
+    /// ```ignore
+    ///     <ProofPlan> INNER JOIN <ProofPlan>
+    ///     ON col1 = col2
+    /// ```
+    SortMergeJoin(SortMergeJoinExec),
 }
