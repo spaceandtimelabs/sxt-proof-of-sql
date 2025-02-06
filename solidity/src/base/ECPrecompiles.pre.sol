@@ -29,8 +29,8 @@ library ECPrecompiles {
     /// This function does an in-place addition of the points a and b. In other words, it sets a += b.
     /// The result is stored in the first two words of the input. If c = a + b, then the input memory is
     /// modified to be [c_x, c_y, b_x, b_y].
-    /// @param argsPtr0 The input memory containing the points to be added.
-    function ecAdd(uint256[4] memory argsPtr0) internal view {
+    /// @param __args The input memory containing the points to be added.
+    function __ecAdd(uint256[4] memory __args) internal view {
         assembly {
             function ec_add(args_ptr) {
                 if iszero(staticcall(ECADD_GAS, ECADD_ADDRESS, args_ptr, WORDX4_SIZE, args_ptr, WORDX2_SIZE)) {
@@ -38,7 +38,7 @@ library ECPrecompiles {
                     revert(0, 4)
                 }
             }
-            ec_add(argsPtr0)
+            ec_add(__args)
         }
     }
 
@@ -47,8 +47,8 @@ library ECPrecompiles {
     /// This function does an in-place multiplication of the point a by the scalar. In other words, it sets a *= scalar.
     /// The result is stored in the first two words of the input. If c = a * scalar, then the input memory is
     /// modified to be [c_x, c_y, scalar].
-    /// @param argsPtr0 The input memory containing the point and scalar to be multiplied.
-    function ecMul(uint256[3] memory argsPtr0) internal view {
+    /// @param __args The input memory containing the point and scalar to be multiplied.
+    function __ecMul(uint256[3] memory __args) internal view {
         assembly {
             function ec_mul(args_ptr) {
                 if iszero(staticcall(ECMUL_GAS, ECMUL_ADDRESS, args_ptr, WORDX3_SIZE, args_ptr, WORDX2_SIZE)) {
@@ -56,7 +56,7 @@ library ECPrecompiles {
                     revert(0, 4)
                 }
             }
-            ec_mul(argsPtr0)
+            ec_mul(__args)
         }
     }
 
@@ -67,9 +67,9 @@ library ECPrecompiles {
     /// This function computes the pairing check e(a, b) + e(g, h) == 0.
     /// If the pairing check is successful, the function returns 1. Otherwise, it returns 0.
     /// The input memory will have the first slot replaced by the returned value.
-    /// @param argsPtr0 The input memory containing the points for the pairing check.
+    /// @param __args The input memory containing the points for the pairing check.
     /// @return success0 The result of the pairing check.
-    function ecPairingX2(uint256[12] memory argsPtr0) internal view returns (uint256 success0) {
+    function __ecPairingX2(uint256[12] memory __args) internal view returns (uint256 success0) {
         assembly {
             function ec_pairing_x2(args_ptr) -> success {
                 if iszero(staticcall(ECPAIRINGX2_GAS, ECPAIRING_ADDRESS, args_ptr, WORDX12_SIZE, args_ptr, WORD_SIZE)) {
@@ -78,17 +78,17 @@ library ECPrecompiles {
                 }
                 success := mload(args_ptr)
             }
-            success0 := ec_pairing_x2(argsPtr0)
+            success0 := ec_pairing_x2(__args)
         }
     }
 
     /// @notice Convenience function for multiplying a point by a scalar in place.
-    /// @dev This is a thin wrapper around `ecMul` that sets the scalar in the input memory.
+    /// @dev This is a thin wrapper around `__ecMul` that sets the scalar in the input memory.
     /// In effect, this function does the operation `a *= scalar`.
     /// The input memory is in the format [a_x, a_y, _]. The third slot is used as scratch space to store the scalar.
-    /// @param argsPtr0 The input memory containing the point to be multiplied.
-    /// @param scalar0 The scalar to multiply the point by.
-    function ecMulAssign(uint256[3] memory argsPtr0, uint256 scalar0) internal view {
+    /// @param __args The input memory containing the point to be multiplied.
+    /// @param __scalar The scalar to multiply the point by.
+    function __ecMulAssign(uint256[3] memory __args, uint256 __scalar) internal view {
         assembly {
             // IMPORT-YUL ECPrecompiles.pre.sol
             function ec_mul(args_ptr) {
@@ -99,7 +99,7 @@ library ECPrecompiles {
                 mstore(add(args_ptr, WORDX2_SIZE), scalar)
                 ec_mul(args_ptr)
             }
-            ec_mul_assign(argsPtr0, scalar0)
+            ec_mul_assign(__args, __scalar)
         }
     }
 
@@ -107,14 +107,14 @@ library ECPrecompiles {
     /// @dev The first point is in memory, and the second point is in calldata.
     /// In effect, this function does the operation `a += c`, where c is in calldata and a is in memory.
     /// The input memory is in the format [a_x, a_y, _, _]. The third and fourth slots are used as scratch space.
-    /// @param argsPtr0 The input memory containing the first point.
-    /// @param cPtr0 The calldata containing the second point.
-    /// @return argsPtrOut0 The result of the addition.
-    function calldataECAddAssign( // solhint-disable-line gas-calldata-parameters
-    uint256[4] memory argsPtr0, uint256[2] calldata cPtr0)
+    /// @param __args The input memory containing the first point.
+    /// @param __c The calldata containing the second point.
+    /// @return __resultArgs The result of the addition.
+    function __calldataECAddAssign( // solhint-disable-line gas-calldata-parameters
+    uint256[4] memory __args, uint256[2] calldata __c)
         external
         view
-        returns (uint256[4] memory argsPtrOut0)
+        returns (uint256[4] memory __resultArgs)
     {
         assembly {
             // IMPORT-YUL ECPrecompiles.pre.sol
@@ -126,24 +126,24 @@ library ECPrecompiles {
                 calldatacopy(add(args_ptr, WORDX2_SIZE), c_ptr, WORDX2_SIZE)
                 ec_add(args_ptr)
             }
-            calldata_ec_add_assign(argsPtr0, cPtr0)
+            calldata_ec_add_assign(__args, __c)
         }
-        argsPtrOut0 = argsPtr0;
+        __resultArgs = __args;
     }
 
     /// @notice Convenience function for multiplying a point by a scalar and adding another point in place.
     /// @dev In effect, this function does the operation `a += c * scalar`.
     /// The first point is in memory, the second point is in calldata, and the scalar is in the stack.
     /// The input memory is in the format [a_x, a_y, _, _, _]. The third and fourth slots are used as scratch space.
-    /// @param argsPtr0 The input memory containing the first point.
-    /// @param cPtr0 The calldata containing the second point.
-    /// @param scalar0 The scalar to multiply the second point by.
-    /// @return argsPtrOut0 The result of the operation.
-    function calldataECMulAddAssign( // solhint-disable-line gas-calldata-parameters
-    uint256[5] memory argsPtr0, uint256[2] calldata cPtr0, uint256 scalar0)
+    /// @param __args The input memory containing the first point.
+    /// @param __c The calldata containing the second point.
+    /// @param __scalar The scalar to multiply the second point by.
+    /// @return __resultArgs The result of the operation.
+    function __calldataECMulAddAssign( // solhint-disable-line gas-calldata-parameters
+    uint256[5] memory __args, uint256[2] calldata __c, uint256 __scalar)
         external
         view
-        returns (uint256[5] memory argsPtrOut0)
+        returns (uint256[5] memory __resultArgs)
     {
         assembly {
             // IMPORT-YUL ECPrecompiles.pre.sol
@@ -166,8 +166,8 @@ library ECPrecompiles {
                 ec_mul_assign(add(args_ptr, WORDX2_SIZE), scalar)
                 ec_add(args_ptr)
             }
-            calldata_ec_mul_add_assign(argsPtr0, cPtr0, scalar0)
+            calldata_ec_mul_add_assign(__args, __c, __scalar)
         }
-        argsPtrOut0 = argsPtr0;
+        __resultArgs = __args;
     }
 }
