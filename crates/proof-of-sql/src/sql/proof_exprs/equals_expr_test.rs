@@ -30,7 +30,8 @@ fn we_can_prove_an_equality_query_with_no_rows() {
         decimal75("e", 75, 0, [0; 0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "d"], &accessor),
         tab(&t),
@@ -52,7 +53,8 @@ fn we_can_prove_another_equality_query_with_no_rows() {
         decimal75("e", 75, 0, [0; 0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "d"], &accessor),
         tab(&t),
@@ -75,7 +77,8 @@ fn we_can_prove_a_nested_equality_query_with_no_rows() {
         decimal75("e", 75, 0, [0; 0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["b", "c", "e"], &accessor),
         tab(&t),
@@ -104,7 +107,8 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
         decimal75("e", 75, 0, [0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["d", "a"], &accessor),
         tab(&t),
@@ -126,7 +130,8 @@ fn we_can_prove_another_equality_query_with_a_single_selected_row() {
         decimal75("e", 75, 0, [0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["d", "a"], &accessor),
         tab(&t),
@@ -148,7 +153,8 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
         decimal75("e", 75, 0, [Curve25519Scalar::MAX_SIGNED]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "d", "e"], &accessor),
         tab(&t),
@@ -184,7 +190,8 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
         ),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "c", "e"], &accessor),
         tab(&t),
@@ -221,7 +228,8 @@ fn we_can_prove_a_nested_equality_query_with_multiple_rows() {
         ),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "c", "e"], &accessor),
         tab(&t),
@@ -261,7 +269,8 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
         ),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "c", "e"], &accessor),
         tab(&t),
@@ -299,7 +308,8 @@ fn we_can_prove_an_equality_query_with_a_string_comparison() {
         ),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "b", "e"], &accessor),
         tab(&t),
@@ -341,7 +351,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         // Create and verify proof
         let t = TableRef::new("sxt", "t");
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-            &t,
+            t.clone(),
             data.clone(),
             offset,
             (),
@@ -410,7 +420,8 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
         ),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(&t, data.clone(), 0, ());
+    let accessor =
+        TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
     let equals_expr: DynProofExpr = equal(
         column(&t, "e", &accessor),
         const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ZERO),

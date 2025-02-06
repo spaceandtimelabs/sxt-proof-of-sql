@@ -41,8 +41,8 @@ impl<'a, CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment> for TableTe
         TableTestAccessor::default()
     }
 
-    fn add_table(&mut self, table_ref: &TableRef, data: Self::Table, table_offset: usize) {
-        self.tables.insert(table_ref.clone(), (data, table_offset));
+    fn add_table(&mut self, table_ref: TableRef, data: Self::Table, table_offset: usize) {
+        self.tables.insert(table_ref, (data, table_offset));
     }
     ///
     /// # Panics
@@ -51,7 +51,7 @@ impl<'a, CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment> for TableTe
     /// that an invalid reference was provided.
     fn get_column_names(&self, table_ref: &TableRef) -> Vec<&str> {
         self.tables
-            .get(&table_ref.clone())
+            .get(&table_ref)
             .unwrap()
             .0
             .column_names()
@@ -64,7 +64,7 @@ impl<'a, CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment> for TableTe
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn update_offset(&mut self, table_ref: &TableRef, new_offset: usize) {
-        self.tables.get_mut(&table_ref.clone()).unwrap().1 = new_offset;
+        self.tables.get_mut(&table_ref).unwrap().1 = new_offset;
     }
 }
 
@@ -111,14 +111,14 @@ impl<CP: CommitmentEvaluationProof> MetadataAccessor for TableTestAccessor<'_, C
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn get_length(&self, table_ref: &TableRef) -> usize {
-        self.tables.get(&table_ref.clone()).unwrap().0.num_rows()
+        self.tables.get(&table_ref).unwrap().0.num_rows()
     }
     ///
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn get_offset(&self, table_ref: &TableRef) -> usize {
-        self.tables.get(&table_ref.clone()).unwrap().1
+        self.tables.get(&table_ref).unwrap().1
     }
 }
 impl<CP: CommitmentEvaluationProof> SchemaAccessor for TableTestAccessor<'_, CP> {
@@ -158,7 +158,7 @@ impl<'a, CP: CommitmentEvaluationProof> TableTestAccessor<'a, CP> {
 
     /// Create a new test accessor containing the provided table.
     pub fn new_from_table(
-        table_ref: &TableRef,
+        table_ref: TableRef,
         table: Table<'a, CP::Scalar>,
         offset: usize,
         setup: CP::ProverPublicSetup<'a>,

@@ -29,7 +29,8 @@ fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
         varchar("d", ["alfa", "gama"]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "d"], &accessor),
         tab(&t),
@@ -63,7 +64,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         // Create and verify proof
         let t = TableRef::new("sxt", "t");
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-            &t,
+            t.clone(),
             data.clone(),
             offset,
             (),
@@ -120,7 +121,7 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
     ]);
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = TableRef::new("sxt", "t");
-    accessor.add_table(&t, data.clone(), 0);
+    accessor.add_table(t.clone(), data.clone(), 0);
     let not_expr: DynProofExpr = not(equal(column(&t, "b", &accessor), const_int128(1)));
     let res = not_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[true, false]);

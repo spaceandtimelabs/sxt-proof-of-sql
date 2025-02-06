@@ -10,7 +10,7 @@ use sqlparser::ast::Ident;
 pub fn col_ref(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name: Ident = name.into();
     let type_col = accessor.lookup_column(tab.clone(), name.clone()).unwrap();
-    ColumnRef::new(tab, name, type_col)
+    ColumnRef::new(tab.clone(), name, type_col)
 }
 
 /// # Panics
@@ -19,7 +19,7 @@ pub fn col_ref(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> Co
 pub fn column(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> DynProofExpr {
     let name: Ident = name.into();
     let type_col = accessor.lookup_column(tab.clone(), name.clone()).unwrap();
-    DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(tab, name, type_col)))
+    DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(tab.clone(), name, type_col)))
 }
 
 /// # Panics

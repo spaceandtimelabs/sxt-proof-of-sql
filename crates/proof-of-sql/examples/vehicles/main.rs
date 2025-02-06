@@ -88,7 +88,7 @@ fn main() {
     let mut accessor =
         OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
     accessor.add_table(
-        &TableRef::new("vehicles", "vehicles"),
+        TableRef::new("vehicles", "vehicles"),
         OwnedTable::try_from(vehicles_batch).unwrap(),
         0,
     );

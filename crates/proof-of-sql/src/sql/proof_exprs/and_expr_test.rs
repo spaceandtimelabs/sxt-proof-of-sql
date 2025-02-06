@@ -30,7 +30,8 @@ fn we_can_prove_a_simple_and_query() {
         bigint("c", [0, 2, 2, 0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "d"], &accessor),
         tab(&t),
@@ -58,7 +59,8 @@ fn we_can_prove_a_simple_and_query_with_128_bits() {
         int128("c", [0, 2, 2, 0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "d"], &accessor),
         tab(&t),
@@ -103,7 +105,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         // Create and verify proof
         let t = TableRef::new("sxt", "t");
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-            &t,
+            t.clone(),
             data.clone(),
             offset,
             (),
@@ -164,7 +166,8 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
         borrowed_bigint("c", [0, 2, 2, 0], &alloc),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(&t, data.clone(), 0, ());
+    let accessor =
+        TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
     let and_expr: DynProofExpr = and(
         equal(column(&t, "b", &accessor), const_int128(1)),
         equal(column(&t, "d", &accessor), const_varchar("t")),

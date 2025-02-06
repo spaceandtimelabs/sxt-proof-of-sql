@@ -28,7 +28,8 @@ fn we_can_prove_a_simple_or_query() {
         bigint("b", [0_i64, 1, 0, 2]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "d"], &accessor),
         tab(&t),
@@ -52,7 +53,8 @@ fn we_can_prove_a_simple_or_query_with_variable_integer_types() {
         smallint("b", [0_i16, 1, 0, 2]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "d"], &accessor),
         tab(&t),
@@ -77,7 +79,8 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
         varchar("d", ["ab", "t", "g", "efg"]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a", "d"], &accessor),
         tab(&t),
@@ -119,7 +122,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         // Create and verify proof
         let t = TableRef::new("sxt", "t");
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-            &t,
+            t.clone(),
             data.clone(),
             offset,
             (),
@@ -181,7 +184,7 @@ fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
     ]);
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = TableRef::new("sxt", "t");
-    accessor.add_table(&t, data.clone(), 0);
+    accessor.add_table(t.clone(), data.clone(), 0);
     let and_expr: DynProofExpr = or(
         equal(column(&t, "b", &accessor), const_int128(1)),
         equal(column(&t, "d", &accessor), const_varchar("g")),

@@ -70,13 +70,12 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
 
 impl<C: Commitment> MetadataAccessor for QueryCommitments<C> {
     fn get_length(&self, table_ref: &TableRef) -> usize {
-        let table_commitment = self.get(&table_ref.clone()).unwrap();
-
+        let table_commitment = self.get(&table_ref).unwrap();
         table_commitment.num_rows()
     }
 
     fn get_offset(&self, table_ref: &TableRef) -> usize {
-        let table_commitment = self.get(&table_ref.clone()).unwrap();
+        let table_commitment = self.get(&table_ref).unwrap();
         table_commitment.range().start
     }
 }
@@ -232,7 +231,7 @@ mod tests {
 
         assert_eq!(
             query_commitments.get_commitment(ColumnRef::new(
-                &table_a_id,
+                table_a_id.clone(),
                 column_a_id.clone(),
                 ColumnType::BigInt
             )),
@@ -240,7 +239,7 @@ mod tests {
         );
         assert_eq!(
             query_commitments.get_commitment(ColumnRef::new(
-                &table_a_id,
+                table_a_id,
                 column_b_id,
                 ColumnType::VarChar
             )),
@@ -248,7 +247,7 @@ mod tests {
         );
         assert_eq!(
             query_commitments.get_commitment(ColumnRef::new(
-                &table_b_id,
+                table_b_id,
                 column_a_id,
                 ColumnType::Scalar
             )),
@@ -384,15 +383,15 @@ mod tests {
 
         let mut accessor =
             OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(setup);
-        accessor.add_table(&table_a_id, table_a, 0);
-        accessor.add_table(&table_b_id, table_b, 0);
+        accessor.add_table(table_a_id.clone(), table_a, 0);
+        accessor.add_table(table_b_id.clone(), table_b, 0);
 
         let query_commitments = QueryCommitments::<DoryCommitment>::from_accessor_with_max_bounds(
             [
-                ColumnRef::new(&table_a_id, column_a_id.clone(), ColumnType::BigInt),
-                ColumnRef::new(&table_b_id, column_a_id, ColumnType::Scalar),
-                ColumnRef::new(&table_a_id, column_b_id.clone(), ColumnType::VarChar),
-                ColumnRef::new(&table_b_id, column_b_id, ColumnType::Int128),
+                ColumnRef::new(table_a_id.clone(), column_a_id.clone(), ColumnType::BigInt),
+                ColumnRef::new(table_b_id.clone(), column_a_id, ColumnType::Scalar),
+                ColumnRef::new(table_a_id, column_b_id.clone(), ColumnType::VarChar),
+                ColumnRef::new(table_b_id, column_b_id, ColumnType::Int128),
             ],
             &accessor,
         );

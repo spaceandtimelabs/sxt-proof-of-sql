@@ -18,7 +18,7 @@ fn we_can_create_and_prove_an_empty_table_exec() {
         vec![ColumnField::new("a".into(), ColumnType::BigInt)],
     );
     let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-        &table_ref,
+        table_ref.clone(),
         table([borrowed_bigint("a", [0_i64; 0], &alloc)]),
         0_usize,
         (),
@@ -43,7 +43,7 @@ fn we_can_create_and_prove_a_table_exec() {
         ],
     );
     let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-        &table_ref,
+        table_ref.clone(),
         table([
             borrowed_bigint("language_rank", [0_i64, 1, 2, 3], &alloc),
             borrowed_varchar(

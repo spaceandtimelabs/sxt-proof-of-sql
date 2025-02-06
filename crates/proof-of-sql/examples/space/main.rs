@@ -99,12 +99,12 @@ fn main() {
     let mut accessor =
         OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
     accessor.add_table(
-        &TableRef::new("space", "travellers"),
+        TableRef::new("space", "travellers"),
         OwnedTable::try_from(space_travellers_batch).unwrap(),
         0,
     );
     accessor.add_table(
-        &TableRef::new("space", "planets"),
+        TableRef::new("space", "planets"),
         OwnedTable::try_from(planets_batch).unwrap(),
         0,
     );

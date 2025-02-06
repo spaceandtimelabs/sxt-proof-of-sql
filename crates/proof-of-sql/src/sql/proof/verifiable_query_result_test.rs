@@ -98,7 +98,7 @@ fn we_can_verify_queries_on_an_empty_table() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("a1", [0_i64; 0])]),
         0,
         (),
@@ -119,7 +119,7 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("a1", [0_i64; 0])]),
         0,
         (),

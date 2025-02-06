@@ -124,7 +124,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
     };
     let column: Vec<i64> = vec![0_i64; n];
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("a1", column.clone())]),
         offset_generators,
         (),
@@ -164,7 +164,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("a1", [123_i64; 2])]),
         0,
         (),
@@ -182,7 +182,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("a1", [123_i64; 2])]),
         0,
         (),
@@ -200,7 +200,7 @@ fn verify_fails_if_counts_dont_match() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("a1", [0_i64; 2])]),
         0,
         (),
@@ -216,7 +216,7 @@ fn verify_fails_if_the_number_of_bit_distributions_is_not_enough() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("a1", [0_i64; 2])]),
         0,
         (),
@@ -235,7 +235,7 @@ fn verify_fails_if_a_bit_distribution_is_invalid() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("a1", [0_i64; 2])]),
         0,
         (),
@@ -306,7 +306,7 @@ impl ProofPlan for SquareTestProofPlan {
         let x_eval = S::from(self.anchored_commit_multiplier)
             * *accessor
                 .get(&ColumnRef::new(
-                    &TableRef::new("sxt", "test"),
+                    TableRef::new("sxt", "test"),
                     "x".into(),
                     ColumnType::BigInt,
                 ))
@@ -327,7 +327,7 @@ impl ProofPlan for SquareTestProofPlan {
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {ColumnRef::new(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
               "x".into(),
               ColumnType::BigInt,
           )}
@@ -345,7 +345,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         offset_generators,
         (),
@@ -364,7 +364,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
 
     // invalid offset will fail to verify
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         offset_generators + 1,
         (),
@@ -394,7 +394,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         0,
         (),
@@ -413,7 +413,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         0,
         (),
@@ -497,7 +497,7 @@ impl ProofPlan for DoubleSquareTestProofPlan {
     ) -> Result<TableEvaluation<S>, ProofError> {
         let x_eval = *accessor
             .get(&ColumnRef::new(
-                &TableRef::new("sxt", "test"),
+                TableRef::new("sxt", "test"),
                 "x".into(),
                 ColumnType::BigInt,
             ))
@@ -528,7 +528,7 @@ impl ProofPlan for DoubleSquareTestProofPlan {
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {ColumnRef::new(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
               "x".into(),
               ColumnType::BigInt,
           )}
@@ -547,7 +547,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         offset_generators,
         (),
@@ -566,7 +566,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
 
     // invalid offset will fail to verify
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         offset_generators + 1,
         (),
@@ -594,7 +594,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         0,
         (),
@@ -617,7 +617,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 4])]),
         0,
         (),
@@ -639,7 +639,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         0,
         (),
@@ -700,7 +700,7 @@ impl ProofPlan for ChallengeTestProofPlan {
         let _beta = builder.try_consume_post_result_challenge()?;
         let x_eval = *accessor
             .get(&ColumnRef::new(
-                &TableRef::new("sxt", "test"),
+                TableRef::new("sxt", "test"),
                 "x".into(),
                 ColumnType::BigInt,
             ))
@@ -721,7 +721,7 @@ impl ProofPlan for ChallengeTestProofPlan {
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {ColumnRef::new(
-            &TableRef::new("sxt", "test"),
+            TableRef::new("sxt", "test"),
             "x".into(),
             ColumnType::BigInt,
         )}
@@ -738,7 +738,7 @@ fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generator
     // additionally, we will have a second challenge beta, that is unused
     let expr = ChallengeTestProofPlan {};
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         offset_generators,
         (),
@@ -757,7 +757,7 @@ fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generator
 
     // invalid offset will fail to verify
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         offset_generators + 1,
         (),
@@ -839,7 +839,7 @@ impl ProofPlan for FirstRoundSquareTestProofPlan {
         let x_eval = S::from(self.anchored_commit_multiplier)
             * *accessor
                 .get(&ColumnRef::new(
-                    &TableRef::new("sxt", "test"),
+                    TableRef::new("sxt", "test"),
                     "x".into(),
                     ColumnType::BigInt,
                 ))
@@ -862,7 +862,7 @@ impl ProofPlan for FirstRoundSquareTestProofPlan {
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         indexset! {ColumnRef::new(
-            &TableRef::new("sxt", "test"),
+            TableRef::new("sxt", "test"),
             "x".into(),
             ColumnType::BigInt,
         )}
@@ -880,7 +880,7 @@ fn verify_a_proof_with_a_commitment_and_given_offset(offset_generators: usize) {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         offset_generators,
         (),
@@ -899,7 +899,7 @@ fn verify_a_proof_with_a_commitment_and_given_offset(offset_generators: usize) {
 
     // invalid offset will fail to verify
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         offset_generators + 1,
         (),
@@ -929,7 +929,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_equation() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         0,
         (),
@@ -948,7 +948,7 @@ fn verify_fails_if_the_commitment_doesnt_match() {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        &TableRef::new("sxt", "test"),
+        TableRef::new("sxt", "test"),
         owned_table([bigint("x", [3, 5])]),
         0,
         (),

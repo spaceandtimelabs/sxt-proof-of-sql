@@ -273,7 +273,7 @@ impl QueryContextBuilder<'_> {
             table_name: table_ref.table_id().to_string(),
         })?;
 
-        let column = ColumnRef::new(table_ref, column_name.clone(), column_type);
+        let column = ColumnRef::new(table_ref.clone(), column_name.clone(), column_type);
 
         self.context.push_column_ref(column_name.clone(), column);
 

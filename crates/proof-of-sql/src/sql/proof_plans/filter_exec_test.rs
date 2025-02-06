@@ -33,7 +33,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    &table_ref,
+                    table_ref.clone(),
                     a,
                     ColumnType::BigInt,
                 ))),
@@ -41,7 +41,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
             ),
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    &table_ref,
+                    table_ref.clone(),
                     b,
                     ColumnType::BigInt,
                 ))),
@@ -53,7 +53,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
         },
         DynProofExpr::try_new_equals(
             DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                &table_ref,
+                table_ref.clone(),
                 Ident::new("c"),
                 ColumnType::BigInt,
             ))),
@@ -84,7 +84,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    &table_ref,
+                    table_ref.clone(),
                     a,
                     ColumnType::BigInt,
                 ))),
@@ -92,7 +92,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             ),
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    &table_ref,
+                    table_ref.clone(),
                     f,
                     ColumnType::BigInt,
                 ))),
@@ -106,7 +106,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             or(
                 DynProofExpr::try_new_equals(
                     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                        &table_ref,
+                        table_ref.clone(),
                         Ident::new("f"),
                         ColumnType::BigInt,
                     ))),
@@ -115,7 +115,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 .unwrap(),
                 DynProofExpr::try_new_equals(
                     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                        &table_ref,
+                        table_ref.clone(),
                         Ident::new("c"),
                         ColumnType::BigInt,
                     ))),
@@ -125,7 +125,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             ),
             DynProofExpr::try_new_equals(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    &table_ref,
+                    table_ref.clone(),
                     Ident::new("b"),
                     ColumnType::BigInt,
                 ))),
@@ -140,10 +140,10 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
     assert_eq!(
         ref_columns,
         IndexSet::from_iter([
-            ColumnRef::new(&table_ref, Ident::new("a"), ColumnType::BigInt),
-            ColumnRef::new(&table_ref, Ident::new("f"), ColumnType::BigInt),
-            ColumnRef::new(&table_ref, Ident::new("c"), ColumnType::BigInt),
-            ColumnRef::new(&table_ref, Ident::new("b"), ColumnType::BigInt)
+            ColumnRef::new(table_ref.clone(), Ident::new("a"), ColumnType::BigInt),
+            ColumnRef::new(table_ref.clone(), Ident::new("f"), ColumnType::BigInt),
+            ColumnRef::new(table_ref.clone(), Ident::new("c"), ColumnType::BigInt),
+            ColumnRef::new(table_ref.clone(), Ident::new("b"), ColumnType::BigInt)
         ])
     );
 
@@ -159,7 +159,8 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_filter() {
         bigint("b", [1_i64, 2, 3, 4, 5]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let where_clause = equal(column(&t, "a", &accessor), const_int128(5_i128));
     let ast = filter(cols_expr_plan(&t, &["b"], &accessor), tab(&t), where_clause);
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
@@ -185,7 +186,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_first_
         t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(999));
     let expr = filter(
         cols_expr_plan(&t, &["b", "c", "d", "e"], &accessor),
@@ -235,7 +236,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_first_round_evaluate() {
         t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(999));
     let expr = filter(
         cols_expr_plan(&t, &["b", "c", "d", "e"], &accessor),
@@ -285,7 +286,7 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_firs
         t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(5));
     let expr = filter(cols_expr_plan(&t, &[], &accessor), tab(&t), where_clause);
     let fields = &[];
@@ -317,7 +318,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_first_round_evaluate(
         t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(5));
     let expr = filter(
         cols_expr_plan(&t, &["b", "c", "d", "e"], &accessor),
@@ -361,7 +362,7 @@ fn we_can_prove_a_filter_on_an_empty_table() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = filter(
         cols_expr_plan(&t, &["b", "c", "d", "e"], &accessor),
         tab(&t),
@@ -390,7 +391,7 @@ fn we_can_prove_a_filter_with_empty_results() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = filter(
         cols_expr_plan(&t, &["b", "c", "d", "e"], &accessor),
         tab(&t),
@@ -419,7 +420,7 @@ fn we_can_prove_a_filter() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = filter(
         vec![
             col_expr_plan(&t, "b", &accessor),

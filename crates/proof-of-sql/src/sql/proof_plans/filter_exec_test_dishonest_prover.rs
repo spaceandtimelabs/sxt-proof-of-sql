@@ -174,7 +174,7 @@ fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = DishonestFilterExec::new(
         cols_expr_plan(&t, &["b", "c", "d", "e"], &accessor),
         tab(&t),

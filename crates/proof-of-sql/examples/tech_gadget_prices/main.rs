@@ -64,7 +64,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .ok_or("No data found in CSV file")??;
 
     let accessor = OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_from_table(
-        &TableRef::new("tech_gadget_prices", "prices"),
+        TableRef::new("tech_gadget_prices", "prices"),
         OwnedTable::try_from(data_batch)?,
         0,
         &prover_setup,

@@ -14,7 +14,8 @@ use crate::{
 fn we_can_prove_a_query_with_a_single_selected_row() {
     let data = owned_table([boolean("a", [true, false])]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = projection(cols_expr_plan(&t, &["a"], &accessor), tab(&t));
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
     exercise_verification(&verifiable_res, &ast, &accessor, &t);

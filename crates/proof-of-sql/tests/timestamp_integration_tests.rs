@@ -25,7 +25,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
-        &TableRef::new("sxt", "table"),
+        TableRef::new("sxt", "table"),
         owned_table([
             tinyint("tinyint", [i8::MIN, 0, i8::MAX]),
             smallint("smallint", [i16::MIN, 0, i16::MAX]),
@@ -78,7 +78,7 @@ fn run_timestamp_query_test(
 
     // Setting up a table specifically for timestamps
     accessor.add_table(
-        &TableRef::new("sxt", "table"),
+        TableRef::new("sxt", "table"),
         owned_table([timestamptz(
             "times",
             PoSQLTimeUnit::Second,
@@ -392,7 +392,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
-        &TableRef::new("sxt", "table"),
+        TableRef::new("sxt", "table"),
         owned_table([
             timestamptz(
                 "a",

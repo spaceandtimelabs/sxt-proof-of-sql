@@ -52,7 +52,7 @@ fn main() {
     let mut accessor =
         OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
     accessor.add_table(
-        &TableRef::new("sxt", "table"),
+        TableRef::new("sxt", "table"),
         owned_table([
             bigint("a", [1, 2, 3, 2]),
             varchar("b", ["hi", "hello", "there", "world"]),

@@ -1,5 +1,5 @@
 use crate::{
-    base::database::{ColumnRef, ColumnType, LiteralValue},
+    base::database::{ColumnRef, ColumnType, LiteralValue, TableRef},
     sql::{
         evm_proof_plan::EVMProofPlan,
         proof_exprs::{
@@ -24,13 +24,13 @@ fn we_cannot_generate_serialized_proof_plan_for_unsupported_plan() {
 
 #[test]
 fn we_can_generate_serialized_proof_plan_for_simple_filter() {
-    let table_ref = "namespace.table".parse().unwrap();
+    let table_ref: TableRef = "namespace.table".parse().unwrap();
     let identifier_a = "a".into();
     let identifier_b = "b".into();
     let identifier_alias = "alias".into();
 
-    let column_ref_a = ColumnRef::new(table_ref, identifier_a, ColumnType::BigInt);
-    let column_ref_b = ColumnRef::new(table_ref, identifier_b, ColumnType::BigInt);
+    let column_ref_a = ColumnRef::new(table_ref.clone(), identifier_a, ColumnType::BigInt);
+    let column_ref_b = ColumnRef::new(table_ref.clone(), identifier_b, ColumnType::BigInt);
 
     let plan = DynProofPlan::Filter(FilterExec::new(
         vec![AliasedDynProofExpr {

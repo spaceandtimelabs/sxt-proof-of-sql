@@ -44,7 +44,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_union_with_one_table() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let ast = union_exec(
         vec![filter(
             cols_expr_plan(&t, &["a0"], &accessor),
@@ -67,8 +67,8 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_union_exec() {
     let data1 = owned_table([bigint("a1", [0_i64; 0])]);
     let t1 = TableRef::new("sxt", "t1");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t0, data0, 0);
-    accessor.add_table(&t1, data1, 0);
+    accessor.add_table(t0.clone(), data0, 0);
+    accessor.add_table(t1.clone(), data1, 0);
     let ast = union_exec(
         vec![
             projection(cols_expr_plan(&t1, &["a1"], &accessor), tab(&t1)),
@@ -97,8 +97,8 @@ fn we_can_prove_and_get_the_correct_result_from_a_union_exec() {
     ]);
     let t1 = TableRef::new("sxt", "t1");
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t0, data0, 0);
-    accessor.add_table(&t1, data1, 0);
+    accessor.add_table(t0.clone(), data0, 0);
+    accessor.add_table(t1.clone(), data1, 0);
     let ast = union_exec(
         vec![
             projection(cols_expr_plan(&t0, &["a0", "b0"], &accessor), tab(&t0)),
@@ -165,13 +165,13 @@ fn we_can_prove_and_get_the_correct_result_from_a_more_complex_union_exec() {
     ]);
     let t6 = TableRef::new("sxt", "t6");
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t0, data0, 0);
-    accessor.add_table(&t1, data1, 0);
-    accessor.add_table(&t2, data2, 0);
-    accessor.add_table(&t3, data3, 0);
-    accessor.add_table(&t4, data4, 0);
-    accessor.add_table(&t5, data5, 0);
-    accessor.add_table(&t6, data6, 0);
+    accessor.add_table(t0.clone(), data0, 0);
+    accessor.add_table(t1.clone(), data1, 0);
+    accessor.add_table(t2.clone(), data2, 0);
+    accessor.add_table(t3.clone(), data3, 0);
+    accessor.add_table(t4.clone(), data4, 0);
+    accessor.add_table(t5.clone(), data5, 0);
+    accessor.add_table(t6.clone(), data6, 0);
     let ast = union_exec(
         vec![
             slice_exec(
@@ -266,8 +266,8 @@ fn we_can_get_result_from_union_using_first_round_evaluate() {
     let data_length = std::cmp::max(len_0, len_1);
 
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t0, data0, 0);
-    accessor.add_table(&t1, data1, 0);
+    accessor.add_table(t0.clone(), data0, 0);
+    accessor.add_table(t1.clone(), data1, 0);
     let fields = vec![
         column_field("a", ColumnType::BigInt),
         column_field("b", ColumnType::VarChar),

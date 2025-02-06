@@ -44,11 +44,11 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
         let mut length = None;
         for (column, commitment) in columns.iter().zip(commitments) {
             self.columns.insert(
-                ColumnRef::new(&table_ref, column.0.clone(), column.1.column_type()),
+                ColumnRef::new(table_ref.clone(), column.0.clone(), column.1.column_type()),
                 column.1,
             );
             self.commitments.insert(
-                ColumnRef::new(&table_ref, column.0.clone(), column.1.column_type()),
+                ColumnRef::new(table_ref.clone(), column.0.clone(), column.1.column_type()),
                 commitment,
             );
             self.column_types.insert(

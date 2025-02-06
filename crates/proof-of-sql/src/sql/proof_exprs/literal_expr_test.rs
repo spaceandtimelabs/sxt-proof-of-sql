@@ -42,7 +42,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         // Create and verify proof
         let t = TableRef::new("sxt", "t");
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-            &t,
+            t.clone(),
             data.clone(),
             offset,
             (),
@@ -91,7 +91,8 @@ fn we_can_prove_a_query_with_a_single_selected_row() {
     let data = owned_table([bigint("a", [123_i64])]);
     let expected_res = data.clone();
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a"], &accessor),
         tab(&t),
@@ -107,7 +108,8 @@ fn we_can_prove_a_query_with_a_single_selected_row() {
 fn we_can_prove_a_query_with_a_single_non_selected_row() {
     let data = owned_table([bigint("a", [123_i64])]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         cols_expr_plan(&t, &["a"], &accessor),
         tab(&t),

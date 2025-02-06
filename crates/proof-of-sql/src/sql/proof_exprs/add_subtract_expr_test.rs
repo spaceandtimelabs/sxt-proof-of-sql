@@ -32,7 +32,8 @@ fn we_can_prove_a_typical_add_subtract_query() {
         bigint("c", [0_i64, 2, 2, 0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         vec![
             col_expr_plan(&t, "a", &accessor),
@@ -68,7 +69,8 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
         decimal75("c", 12, 3, [190_i64, 27, 253, 120]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         vec![
             col_expr_plan(&t, "a", &accessor),
@@ -106,7 +108,8 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
 fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
     let data = owned_table([decimal75("a", 75, 2, [1_i16, 2, 3, 4])]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     assert!(matches!(
         DynProofExpr::try_new_add(column(&t, "a", &accessor), const_bigint(1)),
         Err(ConversionError::DataTypeMismatch { .. })
@@ -122,7 +125,8 @@ fn result_expr_can_overflow() {
         smallint("b", [1_i16, 0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast: DynProofPlan = filter(
         vec![aliased_plan(
             add(column(&t, "a", &accessor), column(&t, "b", &accessor)),
@@ -147,7 +151,8 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
         smallint("b", [1_i16, 0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast: DynProofPlan = filter(
         vec![aliased_plan(
             add(column(&t, "a", &accessor), column(&t, "b", &accessor)),
@@ -169,7 +174,8 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
 fn overflow_in_where_clause_doesnt_error_out() {
     let data = owned_table([bigint("a", [i64::MAX, i64::MIN]), smallint("b", [1_i16, 0])]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast: DynProofPlan = filter(
         cols_expr_plan(&t, &["a", "b"], &accessor),
         tab(&t),
@@ -194,7 +200,8 @@ fn result_expr_can_overflow_more() {
         bigint("b", [i64::MAX, i64::MAX, i64::MIN, i64::MIN]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast: DynProofPlan = filter(
         vec![
             aliased_plan(
@@ -243,7 +250,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         // Create and verify proof
         let t = TableRef::new("sxt", "t");
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-            &t,
+            t.clone(),
             data.clone(),
             offset,
             (),
@@ -317,7 +324,8 @@ fn we_can_compute_the_correct_output_of_an_add_subtract_expr_using_result_evalua
         borrowed_bigint("c", [0_i64, 2, 2, 0], &alloc),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(&t, data.clone(), 0, ());
+    let accessor =
+        TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
     let add_subtract_expr: DynProofExpr = add(
         column(&t, "b", &accessor),
         subtract(column(&t, "a", &accessor), const_bigint(1)),

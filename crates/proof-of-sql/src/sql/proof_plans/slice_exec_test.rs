@@ -28,7 +28,8 @@ fn we_can_prove_and_get_the_correct_result_from_a_slice_exec() {
         varchar("b", ["1", "2", "3", "4", "5"]),
     ]);
     let t: TableRef = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = slice_exec(
         projection(cols_expr_plan(&t, &["a", "b"], &accessor), tab(&t)),
         1,
@@ -48,7 +49,8 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_slice_exec() {
         varchar("b", ["1", "2", "3", "4", "5"]),
     ]);
     let t: TableRef = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(2));
     let ast = slice_exec(
         filter(
@@ -82,7 +84,7 @@ fn we_can_get_an_empty_result_from_a_slice_on_an_empty_table_using_first_round_e
         t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(999));
     let expr = slice_exec(
         filter(
@@ -137,7 +139,7 @@ fn we_can_get_an_empty_result_from_a_slice_using_first_round_evaluate() {
         t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(999));
     let expr = slice_exec(
         filter(
@@ -192,7 +194,7 @@ fn we_can_get_no_columns_from_a_slice_with_empty_input_using_first_round_evaluat
         t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(5));
     let expr = slice_exec(
         filter(cols_expr_plan(&t, &[], &accessor), tab(&t), where_clause),
@@ -228,7 +230,7 @@ fn we_can_get_the_correct_result_from_a_slice_using_first_round_evaluate() {
         t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(5));
     let expr = slice_exec(
         filter(
@@ -276,7 +278,7 @@ fn we_can_prove_a_slice_exec() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = slice_exec(
         filter(
             vec![
@@ -321,7 +323,7 @@ fn we_can_prove_a_nested_slice_exec() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = slice_exec(
         slice_exec(
             filter(
@@ -370,7 +372,7 @@ fn we_can_prove_a_nested_slice_exec_with_no_rows() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = slice_exec(
         slice_exec(
             filter(
@@ -419,7 +421,7 @@ fn we_can_prove_another_nested_slice_exec_with_no_rows() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = slice_exec(
         slice_exec(
             filter(
@@ -474,7 +476,7 @@ fn we_can_create_and_prove_a_slice_exec_on_top_of_a_table_exec() {
         Some(4),
     );
     let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-        &table_ref,
+        table_ref.clone(),
         table([
             borrowed_bigint("language_rank", [0_i64, 1, 2, 3], &alloc),
             borrowed_varchar(
@@ -531,7 +533,7 @@ fn we_cannot_prove_a_slice_exec_if_it_has_groupby_as_input_for_now() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = slice_exec(
         group_by(
             cols_expr(&t, &["a"], &accessor),

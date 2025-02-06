@@ -33,7 +33,8 @@ fn we_can_prove_a_typical_multiply_query() {
         decimal75("d", 2, 1, [21_i64, 4, 21, -7]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
         vec![
             aliased_plan(multiply(column(&t, "a", &accessor), const_int(2)), "a"),
@@ -75,7 +76,8 @@ fn we_can_prove_a_typical_multiply_query() {
 fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
     let data = owned_table([decimal75("a", 57, 2, [1_i16, 2, 3, 4])]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     assert!(matches!(
         DynProofExpr::try_new_multiply(column(&t, "a", &accessor), const_bigint(1)),
         Err(ConversionError::DataTypeMismatch { .. })
@@ -91,7 +93,8 @@ fn result_expr_can_overflow() {
         smallint("b", [2_i16, 0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast: DynProofPlan = filter(
         vec![aliased_plan(
             multiply(column(&t, "a", &accessor), column(&t, "b", &accessor)),
@@ -116,7 +119,8 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
         smallint("b", [2_i16, 0]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast: DynProofPlan = filter(
         vec![aliased_plan(
             multiply(column(&t, "a", &accessor), column(&t, "b", &accessor)),
@@ -141,7 +145,8 @@ fn overflow_in_where_clause_doesnt_error_out() {
         smallint("b", [2_i16, 1]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast: DynProofPlan = filter(
         cols_expr_plan(&t, &["a", "b"], &accessor),
         tab(&t),
@@ -166,7 +171,8 @@ fn result_expr_can_overflow_more() {
         bigint("b", [i64::MAX, i64::MAX, i64::MIN, i64::MIN]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast: DynProofPlan = filter(
         vec![aliased_plan(
             multiply(column(&t, "a", &accessor), column(&t, "b", &accessor)),
@@ -204,7 +210,8 @@ fn where_clause_can_wrap_around() {
         bigint("res", [-20_i64, 50, 539_835_356_263_424]),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(&t, data, 0, ());
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast: DynProofPlan = filter(
         cols_expr_plan(&t, &["a", "b", "c", "d", "e", "res"], &accessor),
         tab(&t),
@@ -269,7 +276,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         // Create and verify proof
         let t = TableRef::new("sxt", "t");
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-            &t,
+            t.clone(),
             data.clone(),
             offset,
             (),
@@ -343,7 +350,8 @@ fn we_can_compute_the_correct_output_of_a_multiply_expr_using_result_evaluate() 
         borrowed_bigint("c", [0_i64, 2, 2, 0], &alloc),
     ]);
     let t = TableRef::new("sxt", "t");
-    let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(&t, data.clone(), 0, ());
+    let accessor =
+        TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
     let arithmetic_expr: DynProofExpr = multiply(
         column(&t, "b", &accessor),
         subtract(column(&t, "a", &accessor), const_decimal75(2, 1, 15)),

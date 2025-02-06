@@ -21,7 +21,7 @@ fn we_can_prove_a_simple_group_by_with_bigint_columns() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = group_by(
         cols_expr(&t, &["a"], &accessor),
         vec![sum_expr(column(&t, "c", &accessor), "sum_c")],
@@ -50,7 +50,7 @@ fn we_can_prove_a_group_by_with_bigint_columns() {
     ]);
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = group_by(
         cols_expr(&t, &["a"], &accessor),
         vec![sum_expr(
@@ -154,7 +154,7 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
 
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(&t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
 
     // SELECT scalar_group, int128_group, bigint_group, sum(bigint_sum + 1) as sum_int, sum(bigint_sum - int128_sum) as sum_bigint, sum(scalar_filter) as sum_scal, count(*) as __count__
     //  FROM sxt.t WHERE int128_filter = 1020 AND varchar_filter = 'f2'

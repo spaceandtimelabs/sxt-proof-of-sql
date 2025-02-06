@@ -88,7 +88,7 @@ fn main() {
 
     // Load the table into an "Accessor" so that the prover and verifier can access the data/commitments.
     let accessor = OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_from_table(
-        &TableRef::new("avocado", "prices"),
+        TableRef::new("avocado", "prices"),
         OwnedTable::try_from(data_batch).unwrap(),
         0,
         &prover_setup,

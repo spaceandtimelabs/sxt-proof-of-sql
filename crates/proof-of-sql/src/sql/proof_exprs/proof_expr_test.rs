@@ -32,7 +32,7 @@ fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluat
     ]);
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = TableRef::new("sxt", "t");
-    accessor.add_table(&t, data.clone(), 0);
+    accessor.add_table(t.clone(), data.clone(), 0);
     // (a <= 5 || b == "g") && c != 3
     let bool_expr: DynProofExpr = and(
         or(

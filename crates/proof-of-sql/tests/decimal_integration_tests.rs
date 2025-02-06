@@ -28,7 +28,7 @@ fn run_query(
         decimal75("c", expected_precision, expected_scale, test_decimal_values),
     ]);
 
-    accessor.add_table(&TableRef::new("sxt", "table"), data, 0);
+    accessor.add_table(TableRef::new("sxt", "table"), data, 0);
 
     let query = QueryExpr::try_new(query_str.parse().unwrap(), "sxt".into(), &accessor).unwrap();
     let proof = VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());

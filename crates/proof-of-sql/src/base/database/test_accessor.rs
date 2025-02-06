@@ -18,7 +18,7 @@ pub trait TestAccessor<C: Commitment>:
     fn new_empty() -> Self;
 
     /// Add a new table to the current test accessor
-    fn add_table(&mut self, table_ref: &TableRef, data: Self::Table, table_offset: usize);
+    fn add_table(&mut self, table_ref: TableRef, data: Self::Table, table_offset: usize);
 
     /// Get the column names for a given table
     fn get_column_names(&self, table_ref: &TableRef) -> Vec<&str>;
