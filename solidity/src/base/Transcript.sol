@@ -14,26 +14,30 @@ library Transcript {
     /// @dev The result should be a scalar value (less than MODULUS).
     /// The challenges is a masked version of the current state of the transcript.
     /// The new state of the transcript is the hash of the current state.
-    /// @param transcript0 The current state of the transcript
-    /// @return result0 The drawn challenge
-    function drawChallenge(uint256[1] memory transcript0) internal pure returns (uint256 result0) {
+    /// @param __transcript The current state of the transcript
+    /// @return __result The drawn challenge
+    function __drawChallenge(uint256[1] memory __transcript) internal pure returns (uint256 __result) {
         assembly {
             function draw_challenge(transcript_ptr) -> result {
                 result := and(mload(transcript_ptr), MODULUS_MASK)
                 mstore(transcript_ptr, keccak256(transcript_ptr, WORD_SIZE))
             }
-            result0 := draw_challenge(transcript0)
+            __result := draw_challenge(__transcript)
         }
     }
 
     /// @notice Draw multiple challenges from the transcript, and update the state of the transcript.
-    /// @dev This is equivalent to calling `drawChallenge` multiple times.
+    /// @dev This is equivalent to calling `__drawChallenge` multiple times.
     /// The returned value is a pointer to newly allocated memory containing the challenges.
     /// The first entry is NOT the length of the results. That is count.
-    /// @param transcript0 The current state of the transcript
-    /// @param count0 The number of challenges to draw
-    /// @return resultPtr0 A pointer to the memory containing the drawn challenges
-    function drawChallenges(uint256[1] memory transcript0, uint256 count0) internal pure returns (uint256 resultPtr0) {
+    /// @param __transcript The current state of the transcript
+    /// @param __count The number of challenges to draw
+    /// @return __resultPtr A pointer to the memory containing the drawn challenges
+    function __drawChallenges(uint256[1] memory __transcript, uint256 __count)
+        internal
+        pure
+        returns (uint256 __resultPtr)
+    {
         assembly {
             function draw_challenges(transcript_ptr, count) -> result_ptr {
                 // allocate `count` words
@@ -58,20 +62,20 @@ library Transcript {
                 // The last (unused) challenge is the current state of the transcript
                 mstore(transcript_ptr, challenge)
             }
-            resultPtr0 := draw_challenges(transcript0, count0)
+            __resultPtr := draw_challenges(__transcript, __count)
         }
     }
 
     /// @notice Append calldata to the transcript, and update the state of the transcript.
     /// @dev This is achieved by hashing the current transcript state with the new calldata.
-    /// @param transcript0 The current state of the transcript
-    /// @param data0 The calldata to append
-    /// @return transcriptOut0 The updated state of the transcript
-    function appendCalldata( // solhint-disable-line gas-calldata-parameters
-    uint256[1] memory transcript0, bytes calldata data0)
+    /// @param __transcript The current state of the transcript
+    /// @param __data The calldata to append
+    /// @return __resultTranscript The updated state of the transcript
+    function __appendCalldata( // solhint-disable-line gas-calldata-parameters
+    uint256[1] memory __transcript, bytes calldata __data)
         external
         pure
-        returns (uint256[1] memory transcriptOut0)
+        returns (uint256[1] memory __resultTranscript)
     {
         assembly {
             function append_calldata(transcript_ptr, offset, size) {
@@ -80,8 +84,8 @@ library Transcript {
                 calldatacopy(add(free_ptr, WORD_SIZE), offset, size)
                 mstore(transcript_ptr, keccak256(free_ptr, add(size, WORD_SIZE)))
             }
-            append_calldata(transcript0, data0.offset, data0.length)
+            append_calldata(__transcript, __data.offset, __data.length)
         }
-        transcriptOut0 = transcript0;
+        __resultTranscript = __transcript;
     }
 }
