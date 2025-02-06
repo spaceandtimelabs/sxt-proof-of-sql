@@ -8,25 +8,25 @@ library MathUtilTest {
     function testWeCanComputeLog2Up() public pure {
         /* solhint-disable gas-strict-inequalities */
         for (uint256 i = 0; i <= 2; ++i) {
-            assert(MathUtil.log2Up(i) == 1);
+            assert(MathUtil.__log2Up(i) == 1);
         }
         for (uint256 i = 3; i <= 4; ++i) {
-            assert(MathUtil.log2Up(i) == 2);
+            assert(MathUtil.__log2Up(i) == 2);
         }
         for (uint256 i = 5; i <= 8; ++i) {
-            assert(MathUtil.log2Up(i) == 3);
+            assert(MathUtil.__log2Up(i) == 3);
         }
         for (uint256 i = 9; i <= 16; ++i) {
-            assert(MathUtil.log2Up(i) == 4);
+            assert(MathUtil.__log2Up(i) == 4);
         }
         for (uint256 i = 17; i <= 32; ++i) {
-            assert(MathUtil.log2Up(i) == 5);
+            assert(MathUtil.__log2Up(i) == 5);
         }
         /* solhint-enable gas-strict-inequalities */
     }
 
     function testFuzzLog2Up(uint256 value) public pure {
-        uint256 exponent = MathUtil.log2Up(value);
+        uint256 exponent = MathUtil.__log2Up(value);
         if (value < 2) {
             assert(exponent == 1);
             return;
