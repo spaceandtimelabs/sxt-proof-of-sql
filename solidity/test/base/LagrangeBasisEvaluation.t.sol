@@ -9,27 +9,27 @@ import {LagrangeBasisEvaluation} from "../../src/base/LagrangeBasisEvaluation.so
 library LagrangeBasisEvaluationTest {
     function testComputeTruncatedLagrangeBasisSumGivesCorrectValuesWith0Variables() public pure {
         uint256[] memory point = new uint256[](0);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(1, point) == 1);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(0, point) == 0);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(1, point) == 1);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(0, point) == 0);
     }
 
     function testComputeTruncatedLagrangeBasisSumGivesCorrectValuesWith1Variables() public pure {
         uint256[] memory point = new uint256[](1);
         point[0] = 2;
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(2, point) == 1);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(1, point) == MODULUS - 1);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(0, point) == 0);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(2, point) == 1);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(1, point) == MODULUS - 1);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(0, point) == 0);
     }
 
     function testComputeTruncatedLagrangeBasisSumGivesCorrectValuesWith2Variables() public pure {
         uint256[] memory point = new uint256[](2);
         point[0] = 2;
         point[1] = 5;
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(4, point) == 1);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(3, point) == MODULUS - 9);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(2, point) == MODULUS - 4);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(1, point) == 4);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(0, point) == 0);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(4, point) == 1);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(3, point) == MODULUS - 9);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(2, point) == MODULUS - 4);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(1, point) == 4);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(0, point) == 0);
     }
 
     function testComputeTruncatedLagrangeBasisSumGivesCorrectValuesWith3Variables() public pure {
@@ -37,22 +37,22 @@ library LagrangeBasisEvaluationTest {
         point[0] = 2;
         point[1] = 5;
         point[2] = 7;
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(8, point) == 1);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(7, point) == MODULUS - 69);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(6, point) == MODULUS - 34);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(5, point) == 22);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(4, point) == MODULUS - 6);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(3, point) == 54);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(2, point) == 24);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(1, point) == MODULUS - 24);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(0, point) == 0);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(8, point) == 1);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(7, point) == MODULUS - 69);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(6, point) == MODULUS - 34);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(5, point) == 22);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(4, point) == MODULUS - 6);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(3, point) == 54);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(2, point) == 24);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(1, point) == MODULUS - 24);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(0, point) == 0);
     }
 
     function testComputeTruncatedLagrangeBasisInnerProductGivesCorrectValuesWith0Variables() public pure {
         uint256[] memory a = new uint256[](0);
         uint256[] memory b = new uint256[](0);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(1, a, b) == 1);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(0, a, b) == 0);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(1, a, b) == 1);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(0, a, b) == 0);
     }
 
     function testComputeTruncatedLagrangeBasisInnerProductGivesCorrectValuesWith1Variable() public pure {
@@ -60,9 +60,9 @@ library LagrangeBasisEvaluationTest {
         uint256[] memory b = new uint256[](1);
         a[0] = 2;
         b[0] = 3;
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(2, a, b) == 8);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(1, a, b) == 2);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(0, a, b) == 0);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(2, a, b) == 8);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(1, a, b) == 2);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(0, a, b) == 0);
     }
 
     function testComputeTruncatedLagrangeBasisInnerProductGivesCorrectValuesWith3Variables() public pure {
@@ -75,15 +75,15 @@ library LagrangeBasisEvaluationTest {
         b[1] = 11;
         b[2] = 13;
 
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(8, a, b) == 123880);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(7, a, b) == 93850);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(6, a, b) == 83840);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(5, a, b) == 62000);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(4, a, b) == 54720);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(3, a, b) == 30960);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(2, a, b) == 23040);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(1, a, b) == 5760);
-        assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(0, a, b) == 0);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(8, a, b) == 123880);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(7, a, b) == 93850);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(6, a, b) == 83840);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(5, a, b) == 62000);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(4, a, b) == 54720);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(3, a, b) == 30960);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(2, a, b) == 23040);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(1, a, b) == 5760);
+        assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(0, a, b) == 0);
     }
 
     uint256 private constant MAX_FUZZ_POINT_LENGTH = 5;
@@ -112,7 +112,7 @@ library LagrangeBasisEvaluationTest {
             if (i >> numVars != 0) {
                 product = 0;
             }
-            assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisSum(i, point) == sum);
+            assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(i, point) == sum);
             sum = addmod(sum, product, MODULUS);
         }
     }
@@ -145,7 +145,7 @@ library LagrangeBasisEvaluationTest {
                 product = 0;
             }
 
-            assert(LagrangeBasisEvaluation.computeTruncatedLagrangeBasisInnerProduct(i, a, b) == sum);
+            assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(i, a, b) == sum);
             sum = addmod(sum, product, MODULUS);
         }
     }

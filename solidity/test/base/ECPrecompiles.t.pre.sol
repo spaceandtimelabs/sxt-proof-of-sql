@@ -6,7 +6,7 @@ import {ECPrecompiles} from "../../src/base/ECPrecompiles.pre.sol";
 contract ECPrecompilesTest {
     function testECAdd() public view {
         uint256[4] memory argsPtr = [uint256(1), 2, 1, 2];
-        ECPrecompiles.ecAdd(argsPtr);
+        ECPrecompiles.__ecAdd(argsPtr);
         assert(argsPtr[0] == 0x030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3);
         assert(argsPtr[1] == 0x15ed738c0e0a7c92e7845f96b2ae9c0a68a6a449e3538fc7ff3ebf7a5a18a2c4);
         // scratch space
@@ -14,7 +14,7 @@ contract ECPrecompilesTest {
         assert(argsPtr[3] == 2);
 
         argsPtr = [uint256(0), 0, 1, 2];
-        ECPrecompiles.ecAdd(argsPtr);
+        ECPrecompiles.__ecAdd(argsPtr);
         assert(argsPtr[0] == 1);
         assert(argsPtr[1] == 2);
         // scratch space
@@ -24,19 +24,19 @@ contract ECPrecompilesTest {
 
     function testFailsECAddInvalidInput() public view {
         uint256[4] memory argsPtr = [uint256(1), 2, 3, 4];
-        ECPrecompiles.ecAdd(argsPtr);
+        ECPrecompiles.__ecAdd(argsPtr);
     }
 
     function testECMul() public view {
         uint256[3] memory argsPtr = [uint256(1), 2, 2];
-        ECPrecompiles.ecMul(argsPtr);
+        ECPrecompiles.__ecMul(argsPtr);
         assert(argsPtr[0] == 0x030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3);
         assert(argsPtr[1] == 0x15ed738c0e0a7c92e7845f96b2ae9c0a68a6a449e3538fc7ff3ebf7a5a18a2c4);
         // scratch space
         assert(argsPtr[2] == 2);
 
         argsPtr = [uint256(1), 2, 1];
-        ECPrecompiles.ecMul(argsPtr);
+        ECPrecompiles.__ecMul(argsPtr);
         assert(argsPtr[0] == 1);
         assert(argsPtr[1] == 2);
         // scratch space
@@ -45,19 +45,19 @@ contract ECPrecompilesTest {
 
     function testFailsECMulInvalidInput() public view {
         uint256[3] memory argsPtr = [uint256(2), 3, 4];
-        ECPrecompiles.ecMul(argsPtr);
+        ECPrecompiles.__ecMul(argsPtr);
     }
 
     function testECMulAssign() public view {
         uint256[3] memory argsPtr = [uint256(1), 2, 0xDEAD];
-        ECPrecompiles.ecMulAssign(argsPtr, 2);
+        ECPrecompiles.__ecMulAssign(argsPtr, 2);
         assert(argsPtr[0] == 0x030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3);
         assert(argsPtr[1] == 0x15ed738c0e0a7c92e7845f96b2ae9c0a68a6a449e3538fc7ff3ebf7a5a18a2c4);
         // scratch space
         assert(argsPtr[2] == 2);
 
         argsPtr = [uint256(1), 2, 0xDEAD];
-        ECPrecompiles.ecMulAssign(argsPtr, 1);
+        ECPrecompiles.__ecMulAssign(argsPtr, 1);
         assert(argsPtr[0] == 1);
         assert(argsPtr[1] == 2);
         // scratch space
@@ -79,17 +79,17 @@ contract ECPrecompilesTest {
             0x2a23af9a5ce2ba2796c1f4e453a370eb0af8c212d9dc9acd8fc02c2e907baea2,
             0x23a8eb0b0996252cb548a4487da97b02422ebc0e834613f954de6c7e0afdc1fc
         ];
-        assert(ECPrecompiles.ecPairingX2(argsPtr) == 1);
+        assert(ECPrecompiles.__ecPairingX2(argsPtr) == 1);
     }
 
     function testFailsECPairingX2WithInvalidInput() public view {
         uint256[12] memory argsPtr = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-        ECPrecompiles.ecPairingX2(argsPtr);
+        ECPrecompiles.__ecPairingX2(argsPtr);
     }
 
     function testCalldataECAddAssign() public view {
         uint256[4] memory argsPtr = [uint256(1), 2, 0x5C, 0xDEAD];
-        argsPtr = ECPrecompiles.calldataECAddAssign(argsPtr, [uint256(1), 2]);
+        argsPtr = ECPrecompiles.__calldataECAddAssign(argsPtr, [uint256(1), 2]);
         assert(argsPtr[0] == 0x030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3);
         assert(argsPtr[1] == 0x15ed738c0e0a7c92e7845f96b2ae9c0a68a6a449e3538fc7ff3ebf7a5a18a2c4);
         // scratch space
@@ -97,7 +97,7 @@ contract ECPrecompilesTest {
         assert(argsPtr[3] == 2);
 
         argsPtr = [uint256(0), 0, 0xDEAD, 0xDEAD];
-        argsPtr = ECPrecompiles.calldataECAddAssign(argsPtr, [uint256(1), 2]);
+        argsPtr = ECPrecompiles.__calldataECAddAssign(argsPtr, [uint256(1), 2]);
         assert(argsPtr[0] == 1);
         assert(argsPtr[1] == 2);
         // scratch space
@@ -107,7 +107,7 @@ contract ECPrecompilesTest {
 
     function testCalldataECMulAddAssign() public view {
         uint256[5] memory argsPtr = [uint256(1), 2, 0xDEAD, 0xDEAD, 0xDEAD];
-        argsPtr = ECPrecompiles.calldataECMulAddAssign(argsPtr, [uint256(1), 2], 1);
+        argsPtr = ECPrecompiles.__calldataECMulAddAssign(argsPtr, [uint256(1), 2], 1);
         assert(argsPtr[0] == 0x030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3);
         assert(argsPtr[1] == 0x15ed738c0e0a7c92e7845f96b2ae9c0a68a6a449e3538fc7ff3ebf7a5a18a2c4);
         // scratch space
@@ -116,7 +116,7 @@ contract ECPrecompilesTest {
         assert(argsPtr[4] == 1);
 
         argsPtr = [uint256(0), 0, 0xDEAD, 0xDEAD, 0xDEAD];
-        argsPtr = ECPrecompiles.calldataECMulAddAssign(argsPtr, [uint256(1), 2], 2);
+        argsPtr = ECPrecompiles.__calldataECMulAddAssign(argsPtr, [uint256(1), 2], 2);
         assert(argsPtr[0] == 0x030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3);
         assert(argsPtr[1] == 0x15ed738c0e0a7c92e7845f96b2ae9c0a68a6a449e3538fc7ff3ebf7a5a18a2c4);
         // scratch space
@@ -125,7 +125,7 @@ contract ECPrecompilesTest {
         assert(argsPtr[4] == 2);
 
         argsPtr = [uint256(0), 0, 0xDEAD, 0xDEAD, 0xDEAD];
-        argsPtr = ECPrecompiles.calldataECMulAddAssign(argsPtr, [uint256(1), 2], 1);
+        argsPtr = ECPrecompiles.__calldataECMulAddAssign(argsPtr, [uint256(1), 2], 1);
         assert(argsPtr[0] == 1);
         assert(argsPtr[1] == 2);
         // scratch space

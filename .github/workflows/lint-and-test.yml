@@ -251,6 +251,11 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lcov
       - name: Check code coverage
         run: solidity/scripts/check_coverage.sh
+      - name: Run slither
+        uses: crytic/slither-action@v0.4.0
+        with:
+          target: solidity
+          slither-config: solidity/slither.config.json
 
   solhint:
     name: solhint

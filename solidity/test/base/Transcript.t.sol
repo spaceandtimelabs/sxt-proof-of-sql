@@ -12,10 +12,10 @@ library TranscriptTest {
     function testWeCanDrawChallenge() public pure {
         uint256[1] memory transcriptAPtr = [uint256(12345)];
         uint256[1] memory transcriptBPtr = [uint256(6789)];
-        uint256 challengeA1 = Transcript.drawChallenge(transcriptAPtr);
-        uint256 challengeA2 = Transcript.drawChallenge(transcriptAPtr);
-        uint256 challengeB1 = Transcript.drawChallenge(transcriptBPtr);
-        uint256 challengeB2 = Transcript.drawChallenge(transcriptBPtr);
+        uint256 challengeA1 = Transcript.__drawChallenge(transcriptAPtr);
+        uint256 challengeA2 = Transcript.__drawChallenge(transcriptAPtr);
+        uint256 challengeB1 = Transcript.__drawChallenge(transcriptBPtr);
+        uint256 challengeB2 = Transcript.__drawChallenge(transcriptBPtr);
         assert(challengeA1 == 12345);
         assert(challengeA1 != challengeA2);
         assert(challengeB1 == 6789);
@@ -32,12 +32,12 @@ library TranscriptTest {
     function testWeCanDrawMultipleChallenges() public pure {
         uint256[1] memory transcriptAPtr = [uint256(12345)];
         uint256[1] memory transcriptBPtr = [uint256(12345)];
-        uint256 challengeA1 = Transcript.drawChallenge(transcriptAPtr);
-        uint256 challengeA2 = Transcript.drawChallenge(transcriptAPtr);
-        uint256 challengeA3 = Transcript.drawChallenge(transcriptAPtr);
-        uint256 challengeA4 = Transcript.drawChallenge(transcriptAPtr);
+        uint256 challengeA1 = Transcript.__drawChallenge(transcriptAPtr);
+        uint256 challengeA2 = Transcript.__drawChallenge(transcriptAPtr);
+        uint256 challengeA3 = Transcript.__drawChallenge(transcriptAPtr);
+        uint256 challengeA4 = Transcript.__drawChallenge(transcriptAPtr);
 
-        uint256 resultBPtr = Transcript.drawChallenges(transcriptBPtr, 4);
+        uint256 resultBPtr = Transcript.__drawChallenges(transcriptBPtr, 4);
         uint256[4] memory resultB;
         assembly {
             resultB := resultBPtr
@@ -57,10 +57,10 @@ library TranscriptTest {
         uint256[1] memory transcriptA,
         uint256[1] memory transcriptB
     ) public pure {
-        uint256 challengeA1 = Transcript.drawChallenge(transcriptA);
-        uint256 challengeB1 = Transcript.drawChallenge(transcriptB);
-        uint256 challengeA2 = Transcript.drawChallenge(transcriptA);
-        uint256 challengeB2 = Transcript.drawChallenge(transcriptB);
+        uint256 challengeA1 = Transcript.__drawChallenge(transcriptA);
+        uint256 challengeB1 = Transcript.__drawChallenge(transcriptB);
+        uint256 challengeA2 = Transcript.__drawChallenge(transcriptA);
+        uint256 challengeB2 = Transcript.__drawChallenge(transcriptB);
         if (transcriptA[0] == transcriptB[0]) {
             assert(challengeA1 == challengeB1);
             assert(challengeA2 == challengeB2);
@@ -92,14 +92,14 @@ library TranscriptTest {
         assembly {
             freePtrBefore := mload(FREE_PTR)
         }
-        uint256 challengePtr = Transcript.drawChallenges(transcriptA, count);
+        uint256 challengePtr = Transcript.__drawChallenges(transcriptA, count);
         uint256 freePtrAfter;
         assembly {
             freePtrAfter := mload(FREE_PTR)
         }
         assert(freePtrBefore + count * WORD_SIZE == freePtrAfter);
         for (uint256 i = 0; i < count; ++i) {
-            uint256 challenge = Transcript.drawChallenge(transcriptB);
+            uint256 challenge = Transcript.__drawChallenge(transcriptB);
             uint256 result;
             assembly {
                 result := mload(challengePtr)
@@ -111,7 +111,7 @@ library TranscriptTest {
     }
 
     function testAppendCalldata() public pure {
-        uint256[1] memory state = Transcript.appendCalldata(
+        uint256[1] memory state = Transcript.__appendCalldata(
             [0x0123456789ABCDEF_0123456789ABCDEF_0123456789ABCDEF_0123456789ABCDEF], hex"C001C0DE"
         );
         uint256 expectedState = uint256(
@@ -123,7 +123,7 @@ library TranscriptTest {
     }
 
     function testFuzzAppendCalldata(uint256 start, bytes calldata data) public pure {
-        uint256[1] memory state = Transcript.appendCalldata([start], data);
+        uint256[1] memory state = Transcript.__appendCalldata([start], data);
         uint256 expectedState = uint256(keccak256(abi.encodePacked(start, data)));
         assert(state[0] == expectedState);
     }

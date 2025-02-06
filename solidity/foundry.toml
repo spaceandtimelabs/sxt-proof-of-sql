@@ -6,6 +6,9 @@ libs = ["dependencies"]
 no-match-path = "**/*.pre.sol"
 no-match-coverage = "pre.sol"
 
+[doc]
+ignore = ["**/*.pre.sol"]
+
 [dependencies]
 forge-std = "1.9.5"
 
