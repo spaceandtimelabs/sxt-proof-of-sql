@@ -23,6 +23,7 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use core::cmp;
 use num_traits::Zero;
+use proof_of_sql_parser::sqlparser::TimezoneInfoExt;
 use serde::{Deserialize, Serialize};
 
 /// Return the row number range of tables referenced in the Query
