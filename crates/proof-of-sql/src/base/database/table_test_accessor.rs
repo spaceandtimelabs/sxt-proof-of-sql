@@ -49,7 +49,7 @@ impl<'a, CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment> for TableTe
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating
     /// that an invalid reference was provided.
-    fn get_column_names(&self, table_ref: TableRef) -> Vec<&str> {
+    fn get_column_names(&self, table_ref: &TableRef) -> Vec<&str> {
         self.tables
             .get(&table_ref)
             .unwrap()
@@ -63,7 +63,7 @@ impl<'a, CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment> for TableTe
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
-    fn update_offset(&mut self, table_ref: TableRef, new_offset: usize) {
+    fn update_offset(&mut self, table_ref: &TableRef, new_offset: usize) {
         self.tables.get_mut(&table_ref).unwrap().1 = new_offset;
     }
 }
@@ -110,14 +110,14 @@ impl<CP: CommitmentEvaluationProof> MetadataAccessor for TableTestAccessor<'_, C
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
-    fn get_length(&self, table_ref: TableRef) -> usize {
+    fn get_length(&self, table_ref: &TableRef) -> usize {
         self.tables.get(&table_ref).unwrap().0.num_rows()
     }
     ///
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
-    fn get_offset(&self, table_ref: TableRef) -> usize {
+    fn get_offset(&self, table_ref: &TableRef) -> usize {
         self.tables.get(&table_ref).unwrap().1
     }
 }

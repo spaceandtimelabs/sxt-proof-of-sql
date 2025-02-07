@@ -44,14 +44,14 @@ impl<S: Scalar> DataAccessor<S> for RecordBatchAccessor {
     }
 }
 impl MetadataAccessor for RecordBatchAccessor {
-    fn get_length(&self, table_ref: TableRef) -> usize {
+    fn get_length(&self, table_ref: &TableRef) -> usize {
         self.tables
             .get(&table_ref)
             .expect("Table not found.")
             .num_rows()
     }
 
-    fn get_offset(&self, table_ref: TableRef) -> usize {
+    fn get_offset(&self, table_ref: &TableRef) -> usize {
         assert!(self.tables.contains_key(&table_ref), "Table not found.");
         0
     }

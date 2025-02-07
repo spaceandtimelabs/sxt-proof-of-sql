@@ -19,19 +19,18 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
-use proof_of_sql_parser::ResourceId;
 use sqlparser::ast::Ident;
 
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
-    let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
+    let table_ref = TableRef::new("sxt", "sxt_tab");
     let a = Ident::new("a");
     let b = Ident::new("b");
     let provable_ast = ProjectionExec::new(
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    table_ref,
+                    table_ref.clone(),
                     a,
                     ColumnType::BigInt,
                 ))),
@@ -39,7 +38,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
             ),
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    table_ref,
+                    table_ref.clone(),
                     b,
                     ColumnType::BigInt,
                 ))),
@@ -60,14 +59,14 @@ fn we_can_correctly_fetch_the_query_result_schema() {
 
 #[test]
 fn we_can_correctly_fetch_all_the_referenced_columns() {
-    let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
+    let table_ref = TableRef::new("sxt", "sxt_tab");
     let a = Ident::new("a");
     let f = Ident::new("f");
     let provable_ast = ProjectionExec::new(
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    table_ref,
+                    table_ref.clone(),
                     a,
                     ColumnType::BigInt,
                 ))),
@@ -75,14 +74,16 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             ),
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    table_ref,
+                    table_ref.clone(),
                     f,
                     ColumnType::BigInt,
                 ))),
                 "f",
             ),
         ],
-        TableExpr { table_ref },
+        TableExpr {
+            table_ref: table_ref.clone(),
+        },
     );
 
     let ref_columns = provable_ast.get_column_references();
@@ -90,8 +91,8 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
     assert_eq!(
         ref_columns,
         IndexSet::from_iter([
-            ColumnRef::new(table_ref, Ident::new("a"), ColumnType::BigInt),
-            ColumnRef::new(table_ref, Ident::new("f"), ColumnType::BigInt),
+            ColumnRef::new(table_ref.clone(), Ident::new("a"), ColumnType::BigInt),
+            ColumnRef::new(table_ref.clone(), Ident::new("f"), ColumnType::BigInt),
         ])
     );
 
@@ -106,12 +107,12 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_projection() {
         bigint("a", [1_i64, 4_i64, 5_i64, 2_i64, 5_i64, 1, 4, 5, 2, 5]),
         bigint("b", [1_i64, 2, 3, 4, 5, 1, 2, 3, 4, 5]),
     ]);
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
-    let ast = projection(cols_expr_plan(t, &["b"], &accessor), tab(t));
+    accessor.add_table(t.clone(), data, 0);
+    let ast = projection(cols_expr_plan(&t, &["b"], &accessor), tab(&t));
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected = owned_table([bigint("b", [1_i64, 2, 3, 4, 5, 1, 2, 3, 4, 5])]);
     assert_eq!(res, expected);
@@ -123,21 +124,21 @@ fn we_can_prove_and_get_the_correct_result_from_a_nontrivial_projection() {
         bigint("a", [1_i64, 4_i64, 5_i64, 2_i64, 5_i64]),
         bigint("b", [1_i64, 2, 3, 4, 5]),
     ]);
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let ast = projection(
         vec![
-            aliased_plan(add(column(t, "b", &accessor), const_bigint(1)), "b"),
+            aliased_plan(add(column(&t, "b", &accessor), const_bigint(1)), "b"),
             aliased_plan(
-                multiply(column(t, "a", &accessor), column(t, "b", &accessor)),
+                multiply(column(&t, "a", &accessor), column(&t, "b", &accessor)),
                 "prod",
             ),
         ],
-        tab(t),
+        tab(&t),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected = owned_table([
         bigint("b", [2_i64, 3, 4, 5, 6]),
@@ -158,14 +159,16 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_fi
         borrowed_scalar("e", [0; 0], &alloc),
     ]);
     let data_length = data.num_rows();
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let table_map = indexmap! {
-        t => data.clone()
+        t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
-    let expr: DynProofPlan =
-        projection(cols_expr_plan(t, &["b", "c", "d", "e"], &accessor), tab(t));
+    accessor.add_table(t.clone(), data, 0);
+    let expr: DynProofPlan = projection(
+        cols_expr_plan(&t, &["b", "c", "d", "e"], &accessor),
+        tab(&t),
+    );
     let fields = &[
         ColumnField::new("b".into(), ColumnType::BigInt),
         ColumnField::new("c".into(), ColumnType::Int128),
@@ -205,13 +208,13 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
         borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
     let data_length = data.num_rows();
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let table_map = indexmap! {
-        t => data.clone()
+        t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
-    let expr: DynProofPlan = projection(cols_expr_plan(t, &[], &accessor), tab(t));
+    accessor.add_table(t.clone(), data, 0);
+    let expr: DynProofPlan = projection(cols_expr_plan(&t, &[], &accessor), tab(&t));
     let fields = &[];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
@@ -236,23 +239,23 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_first_round_evalu
         borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
     let data_length = data.num_rows();
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let table_map = indexmap! {
-        t => data.clone()
+        t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr: DynProofPlan = projection(
         vec![
-            aliased_plan(add(column(t, "b", &accessor), const_bigint(1)), "b"),
+            aliased_plan(add(column(&t, "b", &accessor), const_bigint(1)), "b"),
             aliased_plan(
-                multiply(column(t, "b", &accessor), column(t, "c", &accessor)),
+                multiply(column(&t, "b", &accessor), column(&t, "c", &accessor)),
                 "prod",
             ),
-            col_expr_plan(t, "d", &accessor),
+            col_expr_plan(&t, "d", &accessor),
             aliased_plan(const_decimal75(1, 0, 3), "e"),
         ],
-        tab(t),
+        tab(&t),
     );
     let fields = &[
         ColumnField::new("b".into(), ColumnType::BigInt),
@@ -289,23 +292,23 @@ fn we_can_prove_a_projection_on_an_empty_table() {
         varchar("d", ["3"; 0]),
         scalar("e", [3; 0]),
     ]);
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = projection(
         vec![
-            aliased_plan(add(column(t, "b", &accessor), const_bigint(1)), "b"),
+            aliased_plan(add(column(&t, "b", &accessor), const_bigint(1)), "b"),
             aliased_plan(
-                multiply(column(t, "b", &accessor), column(t, "c", &accessor)),
+                multiply(column(&t, "b", &accessor), column(&t, "c", &accessor)),
                 "prod",
             ),
-            col_expr_plan(t, "d", &accessor),
+            col_expr_plan(&t, "d", &accessor),
             aliased_plan(const_decimal75(1, 0, 3), "e"),
         ],
-        tab(t),
+        tab(&t),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, t);
+    exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table([
         bigint("b", [3; 0]),
@@ -325,25 +328,25 @@ fn we_can_prove_a_projection() {
         varchar("d", ["1", "2", "3", "4", "5"]),
         scalar("e", [1, 2, 3, 4, 5]),
     ]);
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = projection(
         vec![
-            col_expr_plan(t, "b", &accessor),
-            col_expr_plan(t, "c", &accessor),
-            col_expr_plan(t, "d", &accessor),
-            col_expr_plan(t, "e", &accessor),
+            col_expr_plan(&t, "b", &accessor),
+            col_expr_plan(&t, "c", &accessor),
+            col_expr_plan(&t, "d", &accessor),
+            col_expr_plan(&t, "e", &accessor),
             aliased_plan(const_int128(105), "const"),
             aliased_plan(
-                equal(column(t, "b", &accessor), column(t, "c", &accessor)),
+                equal(column(&t, "b", &accessor), column(&t, "c", &accessor)),
                 "bool",
             ),
         ],
-        tab(t),
+        tab(&t),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, t);
+    exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table([
         bigint("b", [1, 2, 3, 4, 7]),

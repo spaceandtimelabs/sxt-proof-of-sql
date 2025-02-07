@@ -6,7 +6,9 @@ use ark_std::test_rng;
 use proof_of_sql::base::commitment::InnerProductProof;
 use proof_of_sql::{
     base::{
-        database::{owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TestAccessor},
+        database::{
+            owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
+        },
         scalar::Curve25519Scalar,
     },
     proof_primitive::{
@@ -28,7 +30,7 @@ use proof_of_sql::{
 fn we_can_prove_a_minimal_filter_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([boolean("a", [true, false])]),
         0,
     );
@@ -59,7 +61,7 @@ fn we_can_prove_a_minimal_filter_query_with_dory() {
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([boolean("a", [true, false])]),
         0,
     );
@@ -91,7 +93,7 @@ fn we_can_prove_a_minimal_filter_query_with_dynamic_dory() {
     let mut accessor =
         OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([boolean("a", [true, false])]),
         0,
     );
@@ -119,7 +121,7 @@ fn we_can_prove_a_minimal_filter_query_with_dynamic_dory() {
 fn we_can_prove_a_basic_equality_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 1])]),
         0,
     );
@@ -150,7 +152,7 @@ fn we_can_prove_a_basic_equality_query_with_dory() {
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 1])]),
         0,
     );
@@ -210,7 +212,7 @@ fn we_can_prove_a_basic_equality_query_with_hyperkzg() {
 fn we_can_prove_a_basic_inequality_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 2])]),
         0,
     );
@@ -235,7 +237,7 @@ fn we_can_prove_a_basic_inequality_query_with_curve25519() {
 fn we_can_prove_a_basic_query_containing_extrema_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([
             tinyint("tinyint", [i8::MIN, 0, i8::MAX]),
             smallint("smallint", [i16::MIN, 0, i16::MAX]),
@@ -278,7 +280,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([
             tinyint("tinyint", [i8::MIN, 0, i8::MAX]),
             smallint("smallint", [i16::MIN, 0, i16::MAX]),
@@ -318,7 +320,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
 fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([bigint("a", [1, 2, 3]), bigint("b", [4, 1, 2])]),
         0,
     );
@@ -350,7 +352,7 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([bigint("a", [1, -1, 3]), bigint("b", [0, 0, 2])]),
         0,
     );
@@ -378,7 +380,7 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
 fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "public.test_table".parse().unwrap(),
+        TableRef::new("public", "test_table"),
         owned_table([
             int128("amount", [115, -79]),
             varchar("primes", ["-f34", "abcd"]),
@@ -416,7 +418,7 @@ fn we_can_prove_a_basic_inequality_query_with_dory() {
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 4])]),
         0,
     );
@@ -444,7 +446,7 @@ fn we_can_prove_a_basic_inequality_query_with_dory() {
 fn decimal_type_issues_should_cause_provable_ast_to_fail() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([decimal75("d0", 12, 0, [10])]),
         0,
     );
@@ -461,7 +463,7 @@ fn decimal_type_issues_should_cause_provable_ast_to_fail() {
 fn we_can_prove_a_complex_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([
             smallint("a", [1_i16, 2, 3]),
             int("b", [1_i32, 4, 3]),
@@ -478,8 +480,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         "SELECT a + (b * c) + 1 as t, 45.7 as g, (a = b) or f as h, d0 * d1 + 1.4 as dr FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f;"
             .parse()
             .unwrap(),
-        "sxt".into(),
-        &accessor,
+            "sxt".into(),        &accessor,
     )
     .unwrap();
     let verifiable_result =
@@ -508,7 +509,7 @@ fn we_can_prove_a_complex_query_with_dory() {
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([
             smallint("a", [1_i16, 2, 3]),
             int("b", [1, 0, 1]),
@@ -525,7 +526,7 @@ fn we_can_prove_a_complex_query_with_dory() {
         "SELECT 0.5 + a * b * c - d as res, 32 as g, (c >= d) and f as h, (a + 1) * (b + 1 + c + d + d0 - d1 + 0.5) as res2 FROM table WHERE (a < b) = (c <= d) and e <> 'f' and f and 100000 * d1 * d0 + a = 1.3"
             .parse()
             .unwrap(),
-        "sxt".into(),
+         "sxt".into(),
         &accessor,
     )
     .unwrap();
@@ -553,7 +554,7 @@ fn we_can_prove_a_complex_query_with_dory() {
 fn we_can_prove_a_minimal_group_by_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([bigint("a", [1, 1, 2, 2, 3]), bigint("b", [1, 0, 2, 3, 4])]),
         0,
     );
@@ -583,7 +584,7 @@ fn we_can_prove_a_minimal_group_by_query_with_curve25519() {
 fn we_can_prove_a_basic_group_by_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([
             bigint("a", [1, 1, 2, 3, 2]),
             bigint("b", [1, 0, 4, 2, 3]),
@@ -618,7 +619,7 @@ fn we_can_prove_a_basic_group_by_query_with_curve25519() {
 fn we_can_prove_a_cat_group_by_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.cats".parse().unwrap(),
+        TableRef::new("sxt", "cats"),
         owned_table([
             int("id", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
             varchar(
@@ -658,8 +659,7 @@ fn we_can_prove_a_cat_group_by_query_with_curve25519() {
         "select human, sum(age + 0.1) as total_adjusted_cat_age, count(*) as num_cats from sxt.cats where is_female group by human order by human"
             .parse()
             .unwrap(),
-        "sxt".into(),
-        &accessor,
+            "sxt".into(),        &accessor,
     )
     .unwrap();
     let verifiable_result =
@@ -685,7 +685,7 @@ fn we_can_prove_a_cat_group_by_query_with_dynamic_dory() {
     let mut accessor =
         OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
     accessor.add_table(
-        "sxt.cats".parse().unwrap(),
+        TableRef::new("sxt", "cats"),
         owned_table([
             int("id", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
             varchar(
@@ -730,8 +730,7 @@ fn we_can_prove_a_cat_group_by_query_with_dynamic_dory() {
         "select diff_from_ideal_weight, count(*) as num_cats from sxt.cats where is_female group by diff_from_ideal_weight order by diff_from_ideal_weight"
             .parse()
             .unwrap(),
-        "sxt".into(),
-        &accessor,
+    "sxt".into(),        &accessor,
     )
     .unwrap();
     let verifiable_result = VerifiableQueryResult::<DynamicDoryEvaluationProof>::new(
@@ -761,7 +760,7 @@ fn we_can_prove_a_basic_group_by_query_with_dory() {
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([
             bigint("a", [1, 1, 2, 3, 2]),
             bigint("b", [1, 0, 4, 2, 3]),
@@ -800,7 +799,7 @@ fn we_can_prove_a_basic_group_by_query_with_dory() {
 fn we_can_prove_a_query_with_overflow_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([smallint("a", [i16::MAX]), smallint("b", [1_i16])]),
         0,
     );
@@ -829,7 +828,7 @@ fn we_can_prove_a_query_with_overflow_with_dory() {
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([bigint("a", [i64::MIN]), smallint("b", [1_i16])]),
         0,
     );
@@ -855,7 +854,7 @@ fn we_can_prove_a_query_with_overflow_with_dory() {
 fn we_can_perform_arithmetic_and_conditional_operations_on_tinyint() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([
             tinyint("a", [3_i8, 5, 2, 1]),
             tinyint("b", [2_i8, 1, 3, 4]),

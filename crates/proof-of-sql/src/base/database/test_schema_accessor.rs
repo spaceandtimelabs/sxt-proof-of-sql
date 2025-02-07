@@ -34,8 +34,8 @@ mod tests {
     use crate::base::map::indexmap;
 
     fn sample_test_schema_accessor() -> TestSchemaAccessor {
-        let table1: TableRef = TableRef::new("schema.table1".parse().unwrap());
-        let table2: TableRef = TableRef::new("schema.table2".parse().unwrap());
+        let table1 = TableRef::new("schema", "table1");
+        let table2 = TableRef::new("schema", "table2");
         TestSchemaAccessor::new(indexmap! {
             table1 => indexmap! {
                 "col1".into() => ColumnType::BigInt,
@@ -50,27 +50,36 @@ mod tests {
     #[test]
     fn test_lookup_column() {
         let accessor = sample_test_schema_accessor();
-        let table1: TableRef = TableRef::new("schema.table1".parse().unwrap());
-        let table2: TableRef = TableRef::new("schema.table2".parse().unwrap());
-        let not_a_table: TableRef = TableRef::new("schema.not_a_table".parse().unwrap());
+        let table1 = TableRef::new("schema", "table1");
+        let table2 = TableRef::new("schema", "table2");
+        let not_a_table = TableRef::new("schema", "not_a_table");
         assert_eq!(
-            accessor.lookup_column(table1, "col1".into()),
+            accessor.lookup_column(table1.clone(), "col1".into()),
             Some(ColumnType::BigInt)
         );
         assert_eq!(
-            accessor.lookup_column(table1, "col2".into()),
+            accessor.lookup_column(table1.clone(), "col2".into()),
             Some(ColumnType::VarChar)
         );
-        assert_eq!(accessor.lookup_column(table1, "not_a_col".into()), None);
         assert_eq!(
-            accessor.lookup_column(table2, "col1".into()),
+            accessor.lookup_column(table1.clone(), "not_a_col".into()),
+            None
+        );
+        assert_eq!(
+            accessor.lookup_column(table2.clone(), "col1".into()),
             Some(ColumnType::BigInt)
         );
-        assert_eq!(accessor.lookup_column(table2, "col2".into()), None);
-        assert_eq!(accessor.lookup_column(not_a_table, "col1".into()), None);
-        assert_eq!(accessor.lookup_column(not_a_table, "col2".into()), None);
+        assert_eq!(accessor.lookup_column(table2.clone(), "col2".into()), None);
         assert_eq!(
-            accessor.lookup_column(not_a_table, "not_a_col".into()),
+            accessor.lookup_column(not_a_table.clone(), "col1".into()),
+            None
+        );
+        assert_eq!(
+            accessor.lookup_column(not_a_table.clone(), "col2".into()),
+            None
+        );
+        assert_eq!(
+            accessor.lookup_column(not_a_table.clone(), "not_a_col".into()),
             None
         );
     }
@@ -78,9 +87,9 @@ mod tests {
     #[test]
     fn test_lookup_schema() {
         let accessor = sample_test_schema_accessor();
-        let table1: TableRef = TableRef::new("schema.table1".parse().unwrap());
-        let table2: TableRef = TableRef::new("schema.table2".parse().unwrap());
-        let not_a_table: TableRef = TableRef::new("schema.not_a_table".parse().unwrap());
+        let table1 = TableRef::new("schema", "table1");
+        let table2 = TableRef::new("schema", "table2");
+        let not_a_table = TableRef::new("schema", "not_a_table");
         assert_eq!(
             accessor.lookup_schema(table1),
             vec![

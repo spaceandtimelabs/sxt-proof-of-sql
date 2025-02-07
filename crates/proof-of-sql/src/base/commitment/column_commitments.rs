@@ -52,7 +52,7 @@ pub struct ColumnCommitments<C> {
 impl<C: Commitment> ColumnCommitments<C> {
     /// Create a new [`ColumnCommitments`] for a table from a commitment accessor.
     pub fn from_accessor_with_max_bounds(
-        table: TableRef,
+        table: &TableRef,
         columns: &[ColumnField],
         accessor: &impl CommitmentAccessor<C>,
     ) -> Self {
@@ -60,7 +60,9 @@ impl<C: Commitment> ColumnCommitments<C> {
             ColumnCommitmentMetadataMap::from_column_fields_with_max_bounds(columns);
         let commitments = columns
             .iter()
-            .map(|c| accessor.get_commitment(ColumnRef::new(table, c.name(), c.data_type())))
+            .map(|c| {
+                accessor.get_commitment(ColumnRef::new(table.clone(), c.name(), c.data_type()))
+            })
             .collect();
         ColumnCommitments {
             commitments,

@@ -97,7 +97,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         let table_refs = expr.get_table_references();
         if table_refs
             .into_iter()
-            .all(|table_ref| accessor.get_length(table_ref) == 0)
+            .all(|table_ref| accessor.get_length(&table_ref) == 0)
         {
             return VerifiableQueryResult {
                 result: None,
@@ -146,7 +146,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
                 if expr
                     .get_table_references()
                     .into_iter()
-                    .all(|table_ref| accessor.get_length(table_ref) == 0) =>
+                    .all(|table_ref| accessor.get_length(&table_ref) == 0) =>
             {
                 let result_fields = expr.get_column_result_fields();
                 make_empty_query_result(&result_fields)

@@ -7,19 +7,19 @@ use crate::base::{
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use sqlparser::ast::Ident;
 
-pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
+pub fn col_ref(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name: Ident = name.into();
-    let type_col = accessor.lookup_column(tab, name.clone()).unwrap();
-    ColumnRef::new(tab, name, type_col)
+    let type_col = accessor.lookup_column(tab.clone(), name.clone()).unwrap();
+    ColumnRef::new(tab.clone(), name, type_col)
 }
 
 /// # Panics
 /// Panics if:
 /// - `accessor.lookup_column()` returns `None`, indicating the column is not found.
-pub fn column(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> DynProofExpr {
+pub fn column(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> DynProofExpr {
     let name: Ident = name.into();
-    let type_col = accessor.lookup_column(tab, name.clone()).unwrap();
-    DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(tab, name, type_col)))
+    let type_col = accessor.lookup_column(tab.clone(), name.clone()).unwrap();
+    DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(tab.clone(), name, type_col)))
 }
 
 /// # Panics
@@ -125,8 +125,10 @@ pub fn const_decimal75<T: Into<I256>>(precision: u8, scale: i8, val: T) -> DynPr
     ))
 }
 
-pub fn tab(tab: TableRef) -> TableExpr {
-    TableExpr { table_ref: tab }
+pub fn tab(tab: &TableRef) -> TableExpr {
+    TableExpr {
+        table_ref: tab.clone(),
+    }
 }
 
 /// # Panics
@@ -144,7 +146,7 @@ pub fn aliased_plan(expr: DynProofExpr, alias: &str) -> AliasedDynProofExpr {
 /// - `old_name.parse()` or `new_name.parse()` fails to parse the provided column names.
 /// - `col_ref()` fails to find the referenced column, leading to a panic in the column accessor.
 pub fn aliased_col_expr_plan(
-    tab: TableRef,
+    tab: &TableRef,
     old_name: &str,
     new_name: &str,
     accessor: &impl SchemaAccessor,
@@ -160,7 +162,7 @@ pub fn aliased_col_expr_plan(
 /// - `name.parse()` fails to parse the provided column name.
 /// - `col_ref()` fails to find the referenced column, leading to a panic in the column accessor.
 pub fn col_expr_plan(
-    tab: TableRef,
+    tab: &TableRef,
     name: &str,
     accessor: &impl SchemaAccessor,
 ) -> AliasedDynProofExpr {
@@ -171,7 +173,7 @@ pub fn col_expr_plan(
 }
 
 pub fn aliased_cols_expr_plan(
-    tab: TableRef,
+    tab: &TableRef,
     names: &[(&str, &str)],
     accessor: &impl SchemaAccessor,
 ) -> Vec<AliasedDynProofExpr> {
@@ -182,7 +184,7 @@ pub fn aliased_cols_expr_plan(
 }
 
 pub fn cols_expr_plan(
-    tab: TableRef,
+    tab: &TableRef,
     names: &[&str],
     accessor: &impl SchemaAccessor,
 ) -> Vec<AliasedDynProofExpr> {
@@ -192,11 +194,15 @@ pub fn cols_expr_plan(
         .collect()
 }
 
-pub fn col_expr(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnExpr {
+pub fn col_expr(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnExpr {
     ColumnExpr::new(col_ref(tab, name, accessor))
 }
 
-pub fn cols_expr(tab: TableRef, names: &[&str], accessor: &impl SchemaAccessor) -> Vec<ColumnExpr> {
+pub fn cols_expr(
+    tab: &TableRef,
+    names: &[&str],
+    accessor: &impl SchemaAccessor,
+) -> Vec<ColumnExpr> {
     names
         .iter()
         .map(|name| col_expr(tab, name, accessor))

@@ -5,7 +5,7 @@
 use blitzar::proof::InnerProductProof;
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar as S};
-use proof_of_sql::sql::postprocessing::apply_postprocessing_steps;
+use proof_of_sql::{base::database::TableRef, sql::postprocessing::apply_postprocessing_steps};
 
 #[cfg(feature = "blitzar")]
 fn run_query(
@@ -28,7 +28,7 @@ fn run_query(
         decimal75("c", expected_precision, expected_scale, test_decimal_values),
     ]);
 
-    accessor.add_table("sxt.table".parse().unwrap(), data, 0);
+    accessor.add_table(TableRef::new("sxt", "table"), data, 0);
 
     let query = QueryExpr::try_new(query_str.parse().unwrap(), "sxt".into(), &accessor).unwrap();
     let proof = VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());

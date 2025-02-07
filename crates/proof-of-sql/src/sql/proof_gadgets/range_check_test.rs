@@ -236,17 +236,18 @@ mod tests {
             ),
         ]);
 
-        let t = "sxt.t".parse().unwrap();
-        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let t: TableRef = "sxt.t".parse().unwrap();
+        let accessor =
+            OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
 
-        check_range(t, "uint8", ColumnType::Uint8, &accessor);
-        check_range(t, "tinyint", ColumnType::TinyInt, &accessor);
-        check_range(t, "smallint", ColumnType::SmallInt, &accessor);
-        check_range(t, "int", ColumnType::Int, &accessor);
-        check_range(t, "bigint", ColumnType::BigInt, &accessor);
-        check_range(t, "int128", ColumnType::Int128, &accessor);
+        check_range(t.clone(), "uint8", ColumnType::Uint8, &accessor);
+        check_range(t.clone(), "tinyint", ColumnType::TinyInt, &accessor);
+        check_range(t.clone(), "smallint", ColumnType::SmallInt, &accessor);
+        check_range(t.clone(), "int", ColumnType::Int, &accessor);
+        check_range(t.clone(), "bigint", ColumnType::BigInt, &accessor);
+        check_range(t.clone(), "int128", ColumnType::Int128, &accessor);
         check_range(
-            t,
+            t.clone(),
             "decimal75",
             ColumnType::Decimal75(Precision::new(74).unwrap(), 0),
             &accessor,
@@ -265,10 +266,11 @@ mod tests {
     )]
     fn we_cannot_successfully_verify_invalid_range() {
         let data = owned_table([scalar("a", -2..254)]);
-        let t = "sxt.t".parse().unwrap();
-        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let t = TableRef::new("sxt", "t");
+        let accessor =
+            OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
         let ast = RangeCheckTestPlan {
-            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+            column: ColumnRef::new(t.clone(), "a".into(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let _ = verifiable_res.verify(&ast, &accessor, &());
@@ -294,10 +296,11 @@ mod tests {
                 .collect::<Vec<_>>(),
         )]);
 
-        let t = "sxt.t".parse().unwrap();
-        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let t = TableRef::new("sxt", "t");
+        let accessor =
+            OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
         let ast = RangeCheckTestPlan {
-            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+            column: ColumnRef::new(t.clone(), "a".into(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let res: Result<
@@ -331,10 +334,11 @@ mod tests {
                 .collect::<Vec<_>>(),
         )]);
 
-        let t = "sxt.t".parse().unwrap();
-        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let t = TableRef::new("sxt", "t");
+        let accessor =
+            OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
         let ast = RangeCheckTestPlan {
-            column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
+            column: ColumnRef::new(t.clone(), "a".into(), ColumnType::Scalar),
         };
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
         let res: Result<
@@ -370,8 +374,9 @@ mod tests {
                 .collect::<Vec<_>>(),
         )]);
 
-        let t = "sxt.t".parse().unwrap();
-        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+        let t: TableRef = "sxt.t".parse().unwrap();
+        let accessor =
+            OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
         let ast = RangeCheckTestPlan {
             column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
         };

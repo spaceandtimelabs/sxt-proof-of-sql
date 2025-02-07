@@ -172,13 +172,13 @@ fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
         varchar("d", ["1", "2", "3", "4", "5"]),
         scalar("e", [1, 2, 3, 4, 5]),
     ]);
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = DishonestFilterExec::new(
-        cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
-        tab(t),
-        equal(column(t, "a", &accessor), const_int128(105_i128)),
+        cols_expr_plan(&t, &["b", "c", "d", "e"], &accessor),
+        tab(&t),
+        equal(column(&t, "a", &accessor), const_int128(105_i128)),
     );
     let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(matches!(

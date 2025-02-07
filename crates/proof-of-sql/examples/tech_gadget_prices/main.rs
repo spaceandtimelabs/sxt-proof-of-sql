@@ -7,14 +7,13 @@
 use arrow::datatypes::SchemaRef;
 use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
-    base::database::{OwnedTable, OwnedTableTestAccessor},
+    base::database::{OwnedTable, OwnedTableTestAccessor, TableRef},
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
 use rand::{rngs::StdRng, SeedableRng};
-use sqlparser::ast::Ident;
 use std::{error::Error, fs::File, time::Instant};
 
 const DORY_SETUP_MAX_NU: usize = 8;
@@ -28,7 +27,7 @@ fn prove_and_verify_query(
 ) -> Result<(), Box<dyn Error>> {
     println!("Parsing the query: {sql}...");
     let now = Instant::now();
-    let query_plan = QueryExpr::try_new(sql.parse()?, Ident::new("tech_gadget_prices"), accessor)?;
+    let query_plan = QueryExpr::try_new(sql.parse()?, "tech_gadget_prices".into(), accessor)?;
     println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
     print!("Generating proof...");
@@ -65,7 +64,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .ok_or("No data found in CSV file")??;
 
     let accessor = OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_from_table(
-        "tech_gadget_prices.prices".parse()?,
+        TableRef::new("tech_gadget_prices", "prices"),
         OwnedTable::try_from(data_batch)?,
         0,
         &prover_setup,

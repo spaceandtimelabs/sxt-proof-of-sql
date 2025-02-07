@@ -26,10 +26,10 @@ impl<C: Commitment + Serialize + for<'a> Deserialize<'a>> CommitAccessor<C> {
         fs::write(path, postcard::to_allocvec(commit)?)?;
         Ok(())
     }
-    pub fn load_commit(&mut self, table_ref: TableRef) -> Result<(), Box<dyn Error>> {
+    pub fn load_commit(&mut self, table_ref: &TableRef) -> Result<(), Box<dyn Error>> {
         let path = self.base_path.join(format!("{table_ref}.commit"));
         let commit = postcard::from_bytes(&fs::read(path)?)?;
-        self.inner.insert(table_ref, commit);
+        self.inner.insert(table_ref.clone(), commit);
         Ok(())
     }
     pub fn get_commit(&self, table_ref: &TableRef) -> Option<&TableCommitment<C>> {
@@ -43,11 +43,11 @@ impl<C: Commitment> CommitmentAccessor<C> for CommitAccessor<C> {
     }
 }
 impl<C: Commitment> MetadataAccessor for CommitAccessor<C> {
-    fn get_length(&self, table_ref: proof_of_sql::base::database::TableRef) -> usize {
+    fn get_length(&self, table_ref: &proof_of_sql::base::database::TableRef) -> usize {
         self.inner.get_length(table_ref)
     }
 
-    fn get_offset(&self, table_ref: proof_of_sql::base::database::TableRef) -> usize {
+    fn get_offset(&self, table_ref: &proof_of_sql::base::database::TableRef) -> usize {
         self.inner.get_offset(table_ref)
     }
 }

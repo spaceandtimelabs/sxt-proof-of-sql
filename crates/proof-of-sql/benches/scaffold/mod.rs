@@ -11,7 +11,6 @@ use benchmark_accessor::BenchmarkAccessor;
 pub mod querys;
 mod random_util;
 use random_util::{generate_random_columns, OptionalRandBound};
-
 /// # Panics
 ///
 /// Will panic if:

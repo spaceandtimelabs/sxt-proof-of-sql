@@ -199,12 +199,12 @@ fn main() {
                 CommitAccessor::<DynamicDoryCommitment>::new(PathBuf::from(args.path.clone()));
             let csv_accessor = CsvDataAccessor::new(PathBuf::from(args.path));
             commit_accessor
-                .load_commit(table_name)
+                .load_commit(&table_name)
                 .expect("Failed to load commit");
             let mut table_commitment = commit_accessor.get_commit(&table_name).unwrap().clone();
             let schema = Schema::new(
                 commit_accessor
-                    .lookup_schema(table_name)
+                    .lookup_schema(table_name.clone())
                     .iter()
                     .map(|(i, t)| Field::new(i.value.as_str(), t.into(), false))
                     .collect::<Vec<_>>(),
@@ -212,7 +212,7 @@ fn main() {
             let append_batch =
                 read_record_batch_from_csv(schema, &file_path).expect("Failed to read csv file.");
             csv_accessor
-                .append_batch(&table_name, &append_batch)
+                .append_batch(&table_name.clone(), &append_batch)
                 .expect("Failed to write batch");
             let timer = start_timer("Updating Commitment");
             table_commitment
@@ -228,19 +228,19 @@ fn main() {
                 CommitAccessor::<DynamicDoryCommitment>::new(PathBuf::from(args.path.clone()));
             let mut csv_accessor = CsvDataAccessor::new(PathBuf::from(args.path.clone()));
             let tables = query.get_table_references("example".parse().unwrap());
-            for table in tables.into_iter().map(TableRef::new) {
+            for table in tables.into_iter().map(Into::into) {
                 commit_accessor
-                    .load_commit(table)
+                    .load_commit(&table)
                     .expect("Failed to load commit");
                 let schema = Schema::new(
                     commit_accessor
-                        .lookup_schema(table)
+                        .lookup_schema(table.clone())
                         .iter()
                         .map(|(i, t)| Field::new(i.value.as_str(), t.into(), false))
                         .collect::<Vec<_>>(),
                 );
                 csv_accessor
-                    .load_table(table, schema)
+                    .load_table(table.clone(), schema)
                     .expect("Failed to load table");
             }
             let query = QueryExpr::try_new(query, "example".into(), &commit_accessor).unwrap();
@@ -262,9 +262,9 @@ fn main() {
                 CommitAccessor::<DynamicDoryCommitment>::new(PathBuf::from(args.path.clone()));
             let table_refs = query.get_table_references("example".parse().unwrap());
             for table_ref in table_refs {
-                let table_name = TableRef::new(table_ref);
+                let table_name: TableRef = table_ref.into();
                 commit_accessor
-                    .load_commit(table_name)
+                    .load_commit(&table_name)
                     .expect("Failed to load commit");
             }
             let query = QueryExpr::try_new(query, "example".into(), &commit_accessor).unwrap();

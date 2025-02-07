@@ -27,7 +27,7 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
         setup: &C::PublicSetup<'_>,
     ) {
         self.table_schemas.insert(
-            table_ref,
+            table_ref.clone(),
             columns
                 .iter()
                 .map(|(id, col)| (id.clone(), col.column_type()))
@@ -44,15 +44,17 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
         let mut length = None;
         for (column, commitment) in columns.iter().zip(commitments) {
             self.columns.insert(
-                ColumnRef::new(table_ref, column.0.clone(), column.1.column_type()),
+                ColumnRef::new(table_ref.clone(), column.0.clone(), column.1.column_type()),
                 column.1,
             );
             self.commitments.insert(
-                ColumnRef::new(table_ref, column.0.clone(), column.1.column_type()),
+                ColumnRef::new(table_ref.clone(), column.0.clone(), column.1.column_type()),
                 commitment,
             );
-            self.column_types
-                .insert((table_ref, column.0.clone()), column.1.column_type());
+            self.column_types.insert(
+                (table_ref.clone(), column.0.clone()),
+                column.1.column_type(),
+            );
 
             if let Some(len) = length {
                 assert!(len == column.1.len());
@@ -76,10 +78,10 @@ impl<C: Commitment> MetadataAccessor for BenchmarkAccessor<'_, C> {
     /// # Panics
     ///
     /// Will panic if the table reference does not exist in the lengths map.
-    fn get_length(&self, table_ref: TableRef) -> usize {
+    fn get_length(&self, table_ref: &TableRef) -> usize {
         *self.lengths.get(&table_ref).unwrap()
     }
-    fn get_offset(&self, _table_ref: TableRef) -> usize {
+    fn get_offset(&self, _table_ref: &TableRef) -> usize {
         0
     }
 }

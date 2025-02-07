@@ -12,19 +12,19 @@ use bumpalo::Bump;
 #[test]
 fn we_can_create_and_prove_an_empty_table_exec() {
     let alloc = Bump::new();
-    let table_ref = TableRef::new("namespace.table_name".parse().unwrap());
+    let table_ref = TableRef::new("namespace", "table_name");
     let plan = table_exec(
-        table_ref,
+        table_ref.clone(),
         vec![ColumnField::new("a".into(), ColumnType::BigInt)],
     );
     let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-        table_ref,
+        table_ref.clone(),
         table([borrowed_bigint("a", [0_i64; 0], &alloc)]),
         0_usize,
         (),
     );
     let verifiable_res = VerifiableQueryResult::new(&plan, &accessor, &());
-    exercise_verification(&verifiable_res, &plan, &accessor, table_ref);
+    exercise_verification(&verifiable_res, &plan, &accessor, &table_ref);
     let res = verifiable_res.verify(&plan, &accessor, &()).unwrap().table;
     let expected = owned_table([bigint("a", [0_i64; 0])]);
     assert_eq!(res, expected);
@@ -33,9 +33,9 @@ fn we_can_create_and_prove_an_empty_table_exec() {
 #[test]
 fn we_can_create_and_prove_a_table_exec() {
     let alloc = Bump::new();
-    let table_ref = TableRef::new("namespace.table_name".parse().unwrap());
+    let table_ref = TableRef::new("namespace", "table_name");
     let plan = table_exec(
-        table_ref,
+        table_ref.clone(),
         vec![
             ColumnField::new("language_rank".into(), ColumnType::BigInt),
             ColumnField::new("language_name".into(), ColumnType::VarChar),
@@ -43,7 +43,7 @@ fn we_can_create_and_prove_a_table_exec() {
         ],
     );
     let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-        table_ref,
+        table_ref.clone(),
         table([
             borrowed_bigint("language_rank", [0_i64, 1, 2, 3], &alloc),
             borrowed_varchar(
@@ -66,7 +66,7 @@ fn we_can_create_and_prove_a_table_exec() {
         (),
     );
     let verifiable_res = VerifiableQueryResult::new(&plan, &accessor, &());
-    exercise_verification(&verifiable_res, &plan, &accessor, table_ref);
+    exercise_verification(&verifiable_res, &plan, &accessor, &table_ref);
     let res = verifiable_res.verify(&plan, &accessor, &()).unwrap().table;
     let expected = owned_table([
         bigint("language_rank", [0, 1, 2, 3]),
