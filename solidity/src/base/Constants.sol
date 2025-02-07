@@ -8,6 +8,8 @@ uint256 constant MODULUS = 0x30644e72_e131a029_b85045b6_8181585d_2833e848_79b970
 uint256 constant MODULUS_MASK = 0x1FFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF;
 /// @dev MODULUS + 1. Needs to be explicit for Yul usage.
 uint256 constant MODULUS_PLUS_ONE = 0x30644e72_e131a029_b85045b6_8181585d_2833e848_79b97091_43e1f593_f0000002;
+/// @dev MODULUS - 1. Needs to be explicit for Yul usage.
+uint256 constant MODULUS_MINUS_ONE = 0x30644e72_e131a029_b85045b6_8181585d_2833e848_79b97091_43e1f593_f0000000;
 /// @dev Size of a word in bytes: 32.
 uint256 constant WORD_SIZE = 0x20;
 /// @dev Size of two words in bytes.
@@ -16,6 +18,8 @@ uint256 constant WORDX2_SIZE = 0x20 * 2;
 uint256 constant WORDX3_SIZE = 0x20 * 3;
 /// @dev Size of four words in bytes.
 uint256 constant WORDX4_SIZE = 0x20 * 4;
+/// @dev Size of six words in bytes.
+uint256 constant WORDX6_SIZE = 0x20 * 6;
 /// @dev Size of twelve words in bytes.
 uint256 constant WORDX12_SIZE = 0x20 * 12;
 
@@ -53,6 +57,8 @@ uint256 constant TOO_FEW_FINAL_ROUND_MLES = 0xfb828ab5_00000000_00000000_0000000
 uint256 constant TOO_FEW_CHI_EVALUATIONS = 0x8ef4e6c9_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 /// @dev Error code for when too few rho evaluations are provided to the verification builder.
 uint256 constant TOO_FEW_RHO_EVALUATIONS = 0x3784ad97_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+/// @dev Error code for when the HyperKZG proof has an inconsistent v.
+uint256 constant HYPER_KZG_INCONSISTENT_V = 0x6a5ae827_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
 /// @dev The X coordinate of the G1 generator point.
 uint256 constant G1_GEN_X = 1;
@@ -126,4 +132,6 @@ library Errors {
     error TooFewChiEvaluations();
     /// @notice Error thrown when too few rho evaluations are provided to the verification builder.
     error TooFewRhoEvaluations();
+    /// @notice Error thrown when the HyperKZG proof has an inconsistent v.
+    error HyperKZGInconsistentV();
 }
