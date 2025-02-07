@@ -32,7 +32,7 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
     fn num_bytes(&self, length: u64) -> usize {
         match self {
             Column::Boolean(col) => col.num_bytes(length),
-            Column::Uint8(col) => col.num_bytes(length),
+            Column::Uint8(col) | Column::FixedSizeBinary(_, col) => col.num_bytes(length),
             Column::TinyInt(col) => col.num_bytes(length),
             Column::SmallInt(col) => col.num_bytes(length),
             Column::Int(col) => col.num_bytes(length),
@@ -46,7 +46,7 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
     fn write(&self, out: &mut [u8], length: u64) -> usize {
         match self {
             Column::Boolean(col) => col.write(out, length),
-            Column::Uint8(col) => col.write(out, length),
+            Column::Uint8(col) | Column::FixedSizeBinary(_, col) => col.write(out, length),
             Column::TinyInt(col) => col.write(out, length),
             Column::SmallInt(col) => col.write(out, length),
             Column::Int(col) => col.write(out, length),

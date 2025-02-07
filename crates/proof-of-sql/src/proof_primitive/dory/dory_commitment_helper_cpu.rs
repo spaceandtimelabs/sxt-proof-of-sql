@@ -1,8 +1,14 @@
 use super::{pairings, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Projective};
-use crate::{base::commitment::CommittableColumn, utils::log};
+use crate::{
+    base::{commitment::CommittableColumn, math::non_negative_i32::NonNegativeI32},
+    utils::log,
+};
 use alloc::vec::Vec;
-use ark_ec::VariableBaseMSM;
+use ark_bls12_381::Bls12_381 as E;
+use ark_ec::{pairing::Pairing, VariableBaseMSM};
 use core::iter::once;
+type Fr = <E as Pairing>::ScalarField;
+use ark_ff::PrimeField;
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
 /// # Panics
@@ -59,6 +65,35 @@ where
     res
 }
 
+fn compute_dory_commitment_impl_fixed_size_binary_simple(
+    col_bytes: &[u8],
+    width: NonNegativeI32,
+    setup: &DoryProverPublicSetup,
+) -> DoryCommitment {
+    let bw = width.width_as_usize();
+    let num_elems = col_bytes.len() / bw;
+
+    let mut sum_g1 = G1Projective::default();
+    for i in 0..num_elems {
+        let start = i * bw;
+        let end = start + bw;
+        // Parse an arbitrary number of little-endian bytes into the field:
+        let field_elem: Fr = Fr::from_le_bytes_mod_order(&col_bytes[start..end]);
+
+        let partial_commit = G1Projective::msm_unchecked(
+            &[setup.prover_setup().Gamma_1.last().unwrap()[i]],
+            &[field_elem.into_bigint().into()],
+        );
+        sum_g1 += partial_commit;
+    }
+
+    let gamma2_0 = setup.prover_setup().Gamma_2.last().unwrap()[0];
+    let final_gt =
+        pairings::multi_pairing(core::iter::once(sum_g1), core::slice::from_ref(&gamma2_0));
+
+    DoryCommitment(final_gt)
+}
+
 fn compute_dory_commitment(
     committable_column: &CommittableColumn,
     offset: usize,
@@ -79,6 +114,9 @@ fn compute_dory_commitment(
         CommittableColumn::Boolean(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::TimestampTZ(_, _, column) => {
             compute_dory_commitment_impl(column, offset, setup)
+        }
+        CommittableColumn::FixedSizeBinary(width, column) => {
+            compute_dory_commitment_impl_fixed_size_binary_simple(column, *width, setup)
         }
     }
 }
