@@ -11,14 +11,17 @@ import {
     WORDX2_SIZE,
     WORDX3_SIZE,
     WORDX4_SIZE,
+    WORDX6_SIZE,
     WORDX12_SIZE,
     MODULUS,
     MODULUS_PLUS_ONE,
+    MODULUS_MINUS_ONE,
     MODULUS_MASK,
     INVALID_EC_ADD_INPUTS,
     INVALID_EC_MUL_INPUTS,
     INVALID_EC_PAIRING_INPUTS,
-    ROUND_EVALUATION_MISMATCH
+    ROUND_EVALUATION_MISMATCH,
+    HYPER_KZG_INCONSISTENT_V
 } from "../../src/base/Constants.sol";
 /* solhint-enable no-unused-import */
 
@@ -55,6 +58,14 @@ contract ConstantsTest is Test {
         }
     }
 
+    function testErrorFailedHyperKZGInconsistentV() public {
+        vm.expectRevert(Errors.HyperKZGInconsistentV.selector);
+        assembly {
+            mstore(0, HYPER_KZG_INCONSISTENT_V)
+            revert(0, 4)
+        }
+    }
+
     function testModulusMaskIsCorrect() public pure {
         assert(MODULUS > MODULUS_MASK);
         assert(MODULUS < (MODULUS_MASK << 1));
@@ -69,6 +80,7 @@ contract ConstantsTest is Test {
 
     function testModulusPlusOneIsCorrect() public pure {
         assert(MODULUS_PLUS_ONE == MODULUS + 1);
+        assert(MODULUS_MINUS_ONE == MODULUS - 1);
     }
 
     function testWordSizesAreCrrect() public pure {
@@ -76,6 +88,7 @@ contract ConstantsTest is Test {
         assert(WORDX2_SIZE == 2 * WORD_SIZE);
         assert(WORDX3_SIZE == 3 * WORD_SIZE);
         assert(WORDX4_SIZE == 4 * WORD_SIZE);
+        assert(WORDX6_SIZE == 6 * WORD_SIZE);
         assert(WORDX12_SIZE == 12 * WORD_SIZE);
     }
 }

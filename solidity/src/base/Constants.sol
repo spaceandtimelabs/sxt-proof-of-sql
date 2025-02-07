@@ -8,6 +8,8 @@ uint256 constant MODULUS = 0x30644e72_e131a029_b85045b6_8181585d_2833e848_79b970
 uint256 constant MODULUS_MASK = 0x1FFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF_FFFFFFFF;
 /// @dev MODULUS + 1. Needs to be explicit for Yul usage.
 uint256 constant MODULUS_PLUS_ONE = 0x30644e72_e131a029_b85045b6_8181585d_2833e848_79b97091_43e1f593_f0000002;
+/// @dev MODULUS - 1. Needs to be explicit for Yul usage.
+uint256 constant MODULUS_MINUS_ONE = 0x30644e72_e131a029_b85045b6_8181585d_2833e848_79b97091_43e1f593_f0000000;
 /// @dev Size of a word in bytes: 32.
 uint256 constant WORD_SIZE = 0x20;
 /// @dev Size of two words in bytes.
@@ -16,6 +18,8 @@ uint256 constant WORDX2_SIZE = 0x20 * 2;
 uint256 constant WORDX3_SIZE = 0x20 * 3;
 /// @dev Size of four words in bytes.
 uint256 constant WORDX4_SIZE = 0x20 * 4;
+/// @dev Size of six words in bytes.
+uint256 constant WORDX6_SIZE = 0x20 * 6;
 /// @dev Size of twelve words in bytes.
 uint256 constant WORDX12_SIZE = 0x20 * 12;
 
@@ -43,6 +47,8 @@ uint256 constant INVALID_EC_MUL_INPUTS = 0xe32c7472_00000000_00000000_00000000_0
 uint256 constant INVALID_EC_PAIRING_INPUTS = 0x4385b511_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 /// @dev Error code for when the evaluation of a round in a sumcheck proof does not match the expected value.
 uint256 constant ROUND_EVALUATION_MISMATCH = 0x741f5c3f_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+/// @dev Error code for when the HyperKZG proof has an inconsistent v.
+uint256 constant HYPER_KZG_INCONSISTENT_V = 0x6a5ae827_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
 /// @title Errors library
 /// @notice Library containing custom error definitions.
@@ -55,4 +61,6 @@ library Errors {
     error InvalidECPairingInputs();
     /// @notice Error thrown when the evaluation of a round in a sumcheck proof does not match the expected value.
     error RoundEvaluationMismatch();
+    /// @notice Error thrown when the HyperKZG proof has an inconsistent v.
+    error HyperKZGInconsistentV();
 }
