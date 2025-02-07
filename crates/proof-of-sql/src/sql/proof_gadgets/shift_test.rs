@@ -153,21 +153,21 @@ mod tests {
             borrowed_varchar("d", ["", "Space", "and", "Time"], &alloc),
             borrowed_boolean("e", [false, true, false, true], &alloc),
         ]);
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
+        let source_table_ref: TableRef = "sxt.source_table".parse().unwrap();
+        let candidate_table_ref: TableRef = "sxt.candidate_table".parse().unwrap();
         let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
+            source_table_ref.clone(),
             source_table,
             0,
             (),
         );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
+        accessor.add_table(candidate_table_ref.clone(), candidate_table, 0);
 
         // BigInt column
         let plan = ShiftTestPlan {
-            column: ColumnRef::new(source_table_ref, "a".into(), ColumnType::BigInt),
+            column: ColumnRef::new(source_table_ref.clone(), "a".into(), ColumnType::BigInt),
             candidate_shifted_column: ColumnRef::new(
-                candidate_table_ref,
+                candidate_table_ref.clone(),
                 "c".into(),
                 ColumnType::BigInt,
             ),
@@ -179,9 +179,9 @@ mod tests {
 
         // Varchar column
         let plan = ShiftTestPlan {
-            column: ColumnRef::new(source_table_ref, "b".into(), ColumnType::VarChar),
+            column: ColumnRef::new(source_table_ref.clone(), "b".into(), ColumnType::VarChar),
             candidate_shifted_column: ColumnRef::new(
-                candidate_table_ref,
+                candidate_table_ref.clone(),
                 "d".into(),
                 ColumnType::VarChar,
             ),
@@ -221,21 +221,21 @@ mod tests {
             borrowed_boolean("e", [true, true, false, true], &alloc),
             borrowed_bigint("f", [0, 5, 6, 7], &alloc),
         ]);
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
+        let source_table_ref: TableRef = "sxt.source_table".parse().unwrap();
+        let candidate_table_ref: TableRef = "sxt.candidate_table".parse().unwrap();
         let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
+            source_table_ref.clone(),
             source_table,
             0,
             (),
         );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
+        accessor.add_table(candidate_table_ref.clone(), candidate_table, 0);
 
         // BigInt column
         let plan = ShiftTestPlan {
-            column: ColumnRef::new(source_table_ref, "a".into(), ColumnType::BigInt),
+            column: ColumnRef::new(source_table_ref.clone(), "a".into(), ColumnType::BigInt),
             candidate_shifted_column: ColumnRef::new(
-                candidate_table_ref,
+                candidate_table_ref.clone(),
                 "c".into(),
                 ColumnType::BigInt,
             ),
@@ -246,9 +246,9 @@ mod tests {
 
         // Varchar column
         let plan = ShiftTestPlan {
-            column: ColumnRef::new(source_table_ref, "b".into(), ColumnType::VarChar),
+            column: ColumnRef::new(source_table_ref.clone(), "b".into(), ColumnType::VarChar),
             candidate_shifted_column: ColumnRef::new(
-                candidate_table_ref,
+                candidate_table_ref.clone(),
                 "d".into(),
                 ColumnType::VarChar,
             ),
@@ -259,9 +259,9 @@ mod tests {
 
         // Boolean column
         let plan = ShiftTestPlan {
-            column: ColumnRef::new(source_table_ref, "c".into(), ColumnType::Boolean),
+            column: ColumnRef::new(source_table_ref.clone(), "c".into(), ColumnType::Boolean),
             candidate_shifted_column: ColumnRef::new(
-                candidate_table_ref,
+                candidate_table_ref.clone(),
                 "e".into(),
                 ColumnType::Boolean,
             ),
@@ -294,15 +294,15 @@ mod tests {
             [102, 101, 102, 103, 104, 105, 106, -102],
             &alloc,
         )]);
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
+        let source_table_ref: TableRef = "sxt.source_table".parse().unwrap();
+        let candidate_table_ref: TableRef = "sxt.candidate_table".parse().unwrap();
         let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
+            source_table_ref.clone(),
             source_table,
             0,
             (),
         );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
+        accessor.add_table(candidate_table_ref.clone(), candidate_table, 0);
 
         // BigInt column
         let plan = ShiftTestPlan {

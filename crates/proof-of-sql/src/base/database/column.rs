@@ -572,7 +572,7 @@ impl ColumnRef {
     /// Returns the table reference of this column
     #[must_use]
     pub fn table_ref(&self) -> TableRef {
-        self.table_ref
+        self.table_ref.clone()
     }
 
     /// Returns the column identifier of this column

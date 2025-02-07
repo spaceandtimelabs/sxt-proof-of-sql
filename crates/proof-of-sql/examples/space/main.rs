@@ -7,11 +7,10 @@
 // Note: the space_travellers.csv file was obtained from
 // https://www.kaggle.com/datasets/kaushiksinghrawat/humans-to-have-visited-space
 // under the Apache 2.0 license.
-
 use arrow::datatypes::SchemaRef;
 use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
-    base::database::{OwnedTable, OwnedTableTestAccessor, TestAccessor},
+    base::database::{OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor},
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
@@ -100,12 +99,12 @@ fn main() {
     let mut accessor =
         OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
     accessor.add_table(
-        "space.travellers".parse().unwrap(),
+        TableRef::new("space", "travellers"),
         OwnedTable::try_from(space_travellers_batch).unwrap(),
         0,
     );
     accessor.add_table(
-        "space.planets".parse().unwrap(),
+        TableRef::new("space", "planets"),
         OwnedTable::try_from(planets_batch).unwrap(),
         0,
     );

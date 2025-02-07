@@ -211,29 +211,35 @@ mod tests {
     ) {
         let precision = Precision::new(50).unwrap();
         check_monotonic::<STRICT, ASC>(
-            table_ref,
+            table_ref.clone(),
             accessor,
             "smallint",
             ColumnType::SmallInt,
             shall_error,
         );
-        check_monotonic::<STRICT, ASC>(table_ref, accessor, "int", ColumnType::Int, shall_error);
         check_monotonic::<STRICT, ASC>(
-            table_ref,
+            table_ref.clone(),
+            accessor,
+            "int",
+            ColumnType::Int,
+            shall_error,
+        );
+        check_monotonic::<STRICT, ASC>(
+            table_ref.clone(),
             accessor,
             "bigint",
             ColumnType::BigInt,
             shall_error,
         );
         check_monotonic::<STRICT, ASC>(
-            table_ref,
+            table_ref.clone(),
             accessor,
             "boolean",
             ColumnType::Boolean,
             shall_error,
         );
         check_monotonic::<STRICT, ASC>(
-            table_ref,
+            table_ref.clone(),
             accessor,
             "decimal",
             ColumnType::Decimal75(precision, 1),
@@ -253,21 +259,21 @@ mod tests {
         table: Table<Curve25519Scalar>,
         expected_monotonicity: &Monotonicity,
     ) {
-        let table_ref = "sxt.table".parse().unwrap();
+        let table_ref: TableRef = "sxt.table".parse().unwrap();
         let accessor =
-            TableTestAccessor::<InnerProductProof>::new_from_table(table_ref, table, 0, ());
+            TableTestAccessor::<InnerProductProof>::new_from_table(table_ref.clone(), table, 0, ());
         check_monotonic_for_table::<true, true>(
-            table_ref,
+            table_ref.clone(),
             &accessor,
             !expected_monotonicity.is_strict_asc(),
         );
         check_monotonic_for_table::<false, true>(
-            table_ref,
+            table_ref.clone(),
             &accessor,
             !expected_monotonicity.is_asc(),
         );
         check_monotonic_for_table::<true, false>(
-            table_ref,
+            table_ref.clone(),
             &accessor,
             !expected_monotonicity.is_strict_desc(),
         );

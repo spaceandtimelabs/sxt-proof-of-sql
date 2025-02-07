@@ -21,8 +21,8 @@ pub trait TestAccessor<C: Commitment>:
     fn add_table(&mut self, table_ref: TableRef, data: Self::Table, table_offset: usize);
 
     /// Get the column names for a given table
-    fn get_column_names(&self, table_ref: TableRef) -> Vec<&str>;
+    fn get_column_names(&self, table_ref: &TableRef) -> Vec<&str>;
 
     /// Update the table offset alongside its column commitments
-    fn update_offset(&mut self, table_ref: TableRef, new_offset: usize);
+    fn update_offset(&mut self, table_ref: &TableRef, new_offset: usize);
 }

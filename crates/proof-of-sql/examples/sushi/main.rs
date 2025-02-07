@@ -6,7 +6,7 @@
 use arrow::datatypes::SchemaRef;
 use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
-    base::database::{OwnedTable, OwnedTableTestAccessor, TestAccessor},
+    base::database::{OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor},
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
@@ -14,7 +14,6 @@ use proof_of_sql::{
 };
 use rand::{rngs::StdRng, SeedableRng};
 use std::{fs::File, time::Instant};
-
 const DORY_SETUP_MAX_NU: usize = 8;
 const DORY_SEED: [u8; 32] = *b"sushi-is-the-best-food-available";
 
@@ -74,7 +73,7 @@ fn main() {
     let mut accessor =
         OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
     accessor.add_table(
-        "sushi.fish".parse().unwrap(),
+        TableRef::new("sushi", "fish"),
         OwnedTable::try_from(fish_batch).unwrap(),
         0,
     );

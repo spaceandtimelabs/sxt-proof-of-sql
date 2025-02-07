@@ -3,13 +3,12 @@
 //!
 //! NOTE: If this doesn't work because you do not have the appropriate GPU drivers installed,
 //! you can run `cargo run --release --example dinosaurs --no-default-features --features="arrow cpu-perf"` instead. It will be slower for proof generation.
-
 use arrow::datatypes::SchemaRef;
 use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
     base::database::{
         arrow_schema_utility::get_posql_compatible_schema, OwnedTable, OwnedTableTestAccessor,
-        TestAccessor,
+        TableRef, TestAccessor,
     },
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
@@ -89,7 +88,7 @@ fn main() {
     let mut accessor =
         OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
     accessor.add_table(
-        "dinosaurs.dinosaurs".parse().unwrap(),
+        TableRef::new("dinosaurs", "dinosaurs"),
         OwnedTable::try_from(dinosaurs_batch).unwrap(),
         0,
     );

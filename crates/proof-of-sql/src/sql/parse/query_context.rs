@@ -239,12 +239,16 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
             .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
-        let table = value.table.map(|table_ref| TableExpr { table_ref }).ok_or(
-            ConversionError::InvalidExpression {
+        let table = value
+            .table
+            .as_ref()
+            .map(|table_ref| TableExpr {
+                table_ref: table_ref.clone(),
+            })
+            .ok_or(ConversionError::InvalidExpression {
                 expression: "QueryContext has no table_ref".to_owned(),
-            },
-        )?;
-        let resource_id = table.table_ref.resource_id();
+            })?;
+
         let group_by_exprs = value
             .group_by_exprs
             .iter()
@@ -252,9 +256,9 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
                 value
                     .column_mapping
                     .get(expr)
-                    .ok_or(ConversionError::MissingColumn {
-                        identifier: Box::new((expr).clone()),
-                        resource_id: Box::new(resource_id),
+                    .ok_or_else(|| ConversionError::MissingColumn {
+                        identifier: Box::new(expr.clone()),
+                        table_ref: table.table_ref.clone(),
                     })
                     .map(|column_ref| ColumnExpr::new(column_ref.clone()))
             })

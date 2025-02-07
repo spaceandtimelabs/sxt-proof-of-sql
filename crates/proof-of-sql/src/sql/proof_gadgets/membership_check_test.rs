@@ -150,7 +150,7 @@ impl ProofPlan for MembershipCheckTestPlan {
 
     #[doc = "Return all the tables referenced in the Query"]
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        indexset! {self.source_table, self.candidate_table}
+        indexset! {self.source_table.clone(), self.candidate_table.clone()}
     }
 
     #[doc = "Form components needed to verify and proof store into `VerificationBuilder`"]
@@ -204,18 +204,18 @@ mod tests {
         let alloc = Bump::new();
         let source_table = table([borrowed_bigint("a", [1, 2, 3], &alloc)]);
         let candidate_table = table([borrowed_bigint("c", [1, 2, 2, 1, 2], &alloc)]);
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
+        let source_table_ref: TableRef = "sxt.source_table".parse().unwrap();
+        let candidate_table_ref: TableRef = "sxt.candidate_table".parse().unwrap();
         let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
+            source_table_ref.clone(),
             source_table,
             0,
             (),
         );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
+        accessor.add_table(candidate_table_ref.clone(), candidate_table, 0);
         let plan = MembershipCheckTestPlan {
-            source_table: source_table_ref,
-            candidate_table: candidate_table_ref,
+            source_table: source_table_ref.clone(),
+            candidate_table: candidate_table_ref.clone(),
             source_columns: vec![ColumnRef::new(
                 source_table_ref,
                 "a".into(),
@@ -248,26 +248,26 @@ mod tests {
             borrowed_boolean("e", [true, false, true, true, false], &alloc),
             borrowed_bigint("f", [5, 6, 7, 8, 9], &alloc),
         ]);
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
+        let source_table_ref: TableRef = "sxt.source_table".parse().unwrap();
+        let candidate_table_ref: TableRef = "sxt.candidate_table".parse().unwrap();
         let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
+            source_table_ref.clone(),
             source_table,
             0,
             (),
         );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
+        accessor.add_table(candidate_table_ref.clone(), candidate_table, 0);
         let plan = MembershipCheckTestPlan {
-            source_table: source_table_ref,
-            candidate_table: candidate_table_ref,
+            source_table: source_table_ref.clone(),
+            candidate_table: candidate_table_ref.clone(),
             source_columns: vec![
-                ColumnRef::new(source_table_ref, "a".into(), ColumnType::BigInt),
-                ColumnRef::new(source_table_ref, "b".into(), ColumnType::VarChar),
+                ColumnRef::new(source_table_ref.clone(), "a".into(), ColumnType::BigInt),
+                ColumnRef::new(source_table_ref.clone(), "b".into(), ColumnType::VarChar),
                 ColumnRef::new(source_table_ref, "c".into(), ColumnType::Boolean),
             ],
             candidate_columns: vec![
-                ColumnRef::new(candidate_table_ref, "c".into(), ColumnType::BigInt),
-                ColumnRef::new(candidate_table_ref, "d".into(), ColumnType::VarChar),
+                ColumnRef::new(candidate_table_ref.clone(), "c".into(), ColumnType::BigInt),
+                ColumnRef::new(candidate_table_ref.clone(), "d".into(), ColumnType::VarChar),
                 ColumnRef::new(candidate_table_ref, "e".into(), ColumnType::Boolean),
             ],
         };
@@ -292,26 +292,26 @@ mod tests {
             borrowed_boolean("e", [true; 0], &alloc),
             borrowed_bigint("f", [0_i64; 0], &alloc),
         ]);
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
+        let source_table_ref: TableRef = "sxt.source_table".parse().unwrap();
+        let candidate_table_ref: TableRef = "sxt.candidate_table".parse().unwrap();
         let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
+            source_table_ref.clone(),
             source_table,
             0,
             (),
         );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
+        accessor.add_table(candidate_table_ref.clone(), candidate_table, 0);
         let plan = MembershipCheckTestPlan {
-            source_table: source_table_ref,
-            candidate_table: candidate_table_ref,
+            source_table: source_table_ref.clone(),
+            candidate_table: candidate_table_ref.clone(),
             source_columns: vec![
-                ColumnRef::new(source_table_ref, "a".into(), ColumnType::BigInt),
-                ColumnRef::new(source_table_ref, "b".into(), ColumnType::VarChar),
+                ColumnRef::new(source_table_ref.clone(), "a".into(), ColumnType::BigInt),
+                ColumnRef::new(source_table_ref.clone(), "b".into(), ColumnType::VarChar),
                 ColumnRef::new(source_table_ref, "c".into(), ColumnType::Boolean),
             ],
             candidate_columns: vec![
-                ColumnRef::new(candidate_table_ref, "c".into(), ColumnType::BigInt),
-                ColumnRef::new(candidate_table_ref, "d".into(), ColumnType::VarChar),
+                ColumnRef::new(candidate_table_ref.clone(), "c".into(), ColumnType::BigInt),
+                ColumnRef::new(candidate_table_ref.clone(), "d".into(), ColumnType::VarChar),
                 ColumnRef::new(candidate_table_ref, "e".into(), ColumnType::Boolean),
             ],
         };
@@ -330,20 +330,20 @@ mod tests {
             borrowed_bigint("b", [3, 4], &alloc),
         ]);
         let candidate_table = table([borrowed_bigint("a", [1, 2, 1, 1, 2], &alloc)]);
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
+        let source_table_ref: TableRef = "sxt.source_table".parse().unwrap();
+        let candidate_table_ref: TableRef = "sxt.candidate_table".parse().unwrap();
         let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
+            source_table_ref.clone(),
             source_table,
             0,
             (),
         );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
+        accessor.add_table(candidate_table_ref.clone(), candidate_table, 0);
         let plan = MembershipCheckTestPlan {
-            source_table: source_table_ref,
-            candidate_table: candidate_table_ref,
+            source_table: source_table_ref.clone(),
+            candidate_table: candidate_table_ref.clone(),
             source_columns: vec![
-                ColumnRef::new(source_table_ref, "a".into(), ColumnType::BigInt),
+                ColumnRef::new(source_table_ref.clone(), "a".into(), ColumnType::BigInt),
                 ColumnRef::new(source_table_ref, "b".into(), ColumnType::BigInt),
             ],
             candidate_columns: vec![ColumnRef::new(
@@ -368,15 +368,15 @@ mod tests {
             TableOptions { row_count: Some(4) },
         )
         .unwrap();
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
+        let source_table_ref: TableRef = "sxt.source_table".parse().unwrap();
+        let candidate_table_ref: TableRef = "sxt.candidate_table".parse().unwrap();
         let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
+            source_table_ref.clone(),
             source_table,
             0,
             (),
         );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
+        accessor.add_table(candidate_table_ref.clone(), candidate_table, 0);
         let plan = MembershipCheckTestPlan {
             source_table: source_table_ref,
             candidate_table: candidate_table_ref,
@@ -401,15 +401,15 @@ mod tests {
             TableOptions { row_count: Some(0) },
         )
         .unwrap();
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
+        let source_table_ref: TableRef = "sxt.source_table".parse().unwrap();
+        let candidate_table_ref: TableRef = "sxt.candidate_table".parse().unwrap();
         let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
+            source_table_ref.clone(),
             source_table,
             0,
             (),
         );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
+        accessor.add_table(candidate_table_ref.clone(), candidate_table, 0);
         let plan = MembershipCheckTestPlan {
             source_table: source_table_ref,
             candidate_table: candidate_table_ref,
@@ -433,15 +433,15 @@ mod tests {
             TableOptions { row_count: Some(0) },
         )
         .unwrap();
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
+        let source_table_ref: TableRef = "sxt.source_table".parse().unwrap();
+        let candidate_table_ref: TableRef = "sxt.candidate_table".parse().unwrap();
         let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
+            source_table_ref.clone(),
             source_table,
             0,
             (),
         );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
+        accessor.add_table(candidate_table_ref.clone(), candidate_table, 0);
         let plan = MembershipCheckTestPlan {
             source_table: source_table_ref,
             candidate_table: candidate_table_ref,
@@ -466,15 +466,15 @@ mod tests {
             borrowed_bigint("a", [1, 2, 1, 1, 2], &alloc),
             borrowed_bigint("b", [3, 4, 3, 3, 4], &alloc),
         ]);
-        let source_table_ref = "sxt.source_table".parse().unwrap();
-        let candidate_table_ref = "sxt.candidate_table".parse().unwrap();
+        let source_table_ref: TableRef = "sxt.source_table".parse().unwrap();
+        let candidate_table_ref: TableRef = "sxt.candidate_table".parse().unwrap();
         let mut accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-            source_table_ref,
+            source_table_ref.clone(),
             source_table,
             0,
             (),
         );
-        accessor.add_table(candidate_table_ref, candidate_table, 0);
+        accessor.add_table(candidate_table_ref.clone(), candidate_table, 0);
         let plan = MembershipCheckTestPlan {
             source_table: source_table_ref,
             candidate_table: candidate_table_ref,

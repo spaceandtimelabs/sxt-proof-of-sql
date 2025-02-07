@@ -6,7 +6,7 @@
 use arrow::datatypes::SchemaRef;
 use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
-    base::database::{OwnedTable, OwnedTableTestAccessor},
+    base::database::{OwnedTable, OwnedTableTestAccessor, TableRef},
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
@@ -88,7 +88,7 @@ fn main() {
 
     // Load the table into an "Accessor" so that the prover and verifier can access the data/commitments.
     let accessor = OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_from_table(
-        "avocado.prices".parse().unwrap(),
+        TableRef::new("avocado", "prices"),
         OwnedTable::try_from(data_batch).unwrap(),
         0,
         &prover_setup,

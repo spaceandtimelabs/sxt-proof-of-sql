@@ -85,10 +85,10 @@ impl<S: Scalar> DataAccessor<S> for CsvDataAccessor {
     }
 }
 impl MetadataAccessor for CsvDataAccessor {
-    fn get_length(&self, table_ref: TableRef) -> usize {
+    fn get_length(&self, table_ref: &TableRef) -> usize {
         self.inner.get_length(table_ref)
     }
-    fn get_offset(&self, table_ref: TableRef) -> usize {
+    fn get_offset(&self, table_ref: &TableRef) -> usize {
         self.inner.get_offset(table_ref)
     }
 }

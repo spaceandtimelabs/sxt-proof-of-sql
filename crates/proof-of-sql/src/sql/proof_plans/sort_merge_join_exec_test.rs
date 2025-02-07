@@ -1,7 +1,8 @@
 use super::test_utility::*;
 use crate::{
     base::database::{
-        owned_table_utility::*, table_utility::*, ColumnType, TableTestAccessor, TestAccessor,
+        owned_table_utility::*, table_utility::*, ColumnType, TableRef, TableTestAccessor,
+        TestAccessor,
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
@@ -24,7 +25,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_sort_merge_join() {
             &alloc,
         ),
     ]);
-    let table_left = "sxt.cats".parse().unwrap();
+    let table_left: TableRef = "sxt.cats".parse().unwrap();
     let right = table([
         borrowed_bigint("id", [1_i64, 2, 98, 4, 1, 2, 7], &alloc),
         borrowed_varchar(
@@ -33,19 +34,19 @@ fn we_can_prove_and_get_the_correct_result_from_a_sort_merge_join() {
             &alloc,
         ),
     ]);
-    let table_right = "sxt.cat_details".parse().unwrap();
-    accessor.add_table(table_left, left, 0);
-    accessor.add_table(table_right, right, 0);
+    let table_right: TableRef = "sxt.cat_details".parse().unwrap();
+    accessor.add_table(table_left.clone(), left, 0);
+    accessor.add_table(table_right.clone(), right, 0);
     let ast = sort_merge_join(
         table_exec(
-            table_left,
+            table_left.clone(),
             vec![
                 column_field("id", ColumnType::BigInt),
                 column_field("name", ColumnType::VarChar),
             ],
         ),
         table_exec(
-            table_right,
+            table_right.clone(),
             vec![
                 column_field("id", ColumnType::BigInt),
                 column_field("human", ColumnType::VarChar),
@@ -57,7 +58,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_sort_merge_join() {
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
         VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, table_left);
+    exercise_verification(&verifiable_res, &ast, &accessor, &table_left);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([
         bigint("id", [1_i64, 1, 2, 2, 4]),
@@ -82,7 +83,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_sort_m
             &alloc,
         ),
     ]);
-    let table_cats = "sxt.cats".parse().unwrap();
+    let table_cats: TableRef = "sxt.cats".parse().unwrap();
     let cat_details = table([
         borrowed_bigint("id", [1_i64, 2, 98, 4, 1, 2, 7, 5, 6], &alloc),
         borrowed_varchar(
@@ -93,21 +94,21 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_sort_m
             &alloc,
         ),
     ]);
-    let table_cat_details = "sxt.cat_details".parse().unwrap();
-    accessor.add_table(table_cats, cats, 0);
-    accessor.add_table(table_cat_details, cat_details, 0);
+    let table_cat_details: TableRef = "sxt.cat_details".parse().unwrap();
+    accessor.add_table(table_cats.clone(), cats, 0);
+    accessor.add_table(table_cat_details.clone(), cat_details, 0);
     let ast = slice_exec(
         sort_merge_join(
             filter(
-                cols_expr_plan(table_cats, &["id", "name"], &accessor),
-                tab(table_cats),
-                lte(column(table_cats, "id", &accessor), const_int128(20)),
+                cols_expr_plan(&table_cats, &["id", "name"], &accessor),
+                tab(&table_cats),
+                lte(column(&table_cats, "id", &accessor), const_int128(20)),
             ),
             filter(
-                cols_expr_plan(table_cat_details, &["id", "human"], &accessor),
-                tab(table_cat_details),
+                cols_expr_plan(&table_cat_details, &["id", "human"], &accessor),
+                tab(&table_cat_details),
                 not(equal(
-                    column(table_cat_details, "human", &accessor),
+                    column(&table_cat_details, "human", &accessor),
                     const_varchar("Gretta"),
                 )),
             ),
@@ -120,7 +121,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_sort_m
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
         VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, table_cats);
+    exercise_verification(&verifiable_res, &ast, &accessor, &table_cats);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([
         bigint("id", [2_i64, 2]),
@@ -146,7 +147,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_two_so
             &alloc,
         ),
     ]);
-    let table_cats = "sxt.cats".parse().unwrap();
+    let table_cats: TableRef = "sxt.cats".parse().unwrap();
     let cat_human = table([
         borrowed_bigint("id", [1_i64, 2, 98, 4, 10, 1, 2, 7, 5, 6], &alloc),
         borrowed_varchar(
@@ -163,7 +164,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_two_so
             &alloc,
         ),
     ]);
-    let table_cat_human = "sxt.cat_human".parse().unwrap();
+    let table_cat_human: TableRef = "sxt.cat_human".parse().unwrap();
     let cat_vet = table([
         borrowed_bigint("id", [1_i64, 2, 3, 4, 5, 6, 9, 8, 10], &alloc),
         borrowed_varchar(
@@ -182,22 +183,22 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_two_so
             &alloc,
         ),
     ]);
-    let table_cat_vet = "sxt.cat_vet".parse().unwrap();
-    accessor.add_table(table_cats, cats, 0);
-    accessor.add_table(table_cat_human, cat_human, 0);
-    accessor.add_table(table_cat_vet, cat_vet, 0);
+    let table_cat_vet: TableRef = "sxt.cat_vet".parse().unwrap();
+    accessor.add_table(table_cats.clone(), cats, 0);
+    accessor.add_table(table_cat_human.clone(), cat_human, 0);
+    accessor.add_table(table_cat_vet.clone(), cat_vet, 0);
     let ast = sort_merge_join(
         sort_merge_join(
             filter(
-                cols_expr_plan(table_cats, &["id", "name"], &accessor),
-                tab(table_cats),
-                lte(column(table_cats, "id", &accessor), const_int128(20)),
+                cols_expr_plan(&table_cats, &["id", "name"], &accessor),
+                tab(&table_cats),
+                lte(column(&table_cats, "id", &accessor), const_int128(20)),
             ),
             filter(
-                cols_expr_plan(table_cat_human, &["id", "human", "state"], &accessor),
-                tab(table_cat_human),
+                cols_expr_plan(&table_cat_human, &["id", "human", "state"], &accessor),
+                tab(&table_cat_human),
                 not(equal(
-                    column(table_cat_human, "human", &accessor),
+                    column(&table_cat_human, "human", &accessor),
                     const_varchar("Gretta"),
                 )),
             ),
@@ -211,10 +212,10 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_two_so
             ],
         ),
         filter(
-            cols_expr_plan(table_cat_vet, &["id", "hospital"], &accessor),
-            tab(table_cat_vet),
+            cols_expr_plan(&table_cat_vet, &["id", "hospital"], &accessor),
+            tab(&table_cat_vet),
             not(equal(
-                column(table_cat_vet, "hospital", &accessor),
+                column(&table_cat_vet, "hospital", &accessor),
                 const_varchar("Clear Creek"),
             )),
         ),
@@ -231,7 +232,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_two_so
 
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
         VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, table_cats);
+    exercise_verification(&verifiable_res, &ast, &accessor, &table_cats);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([
         bigint("id", [1_i64, 1, 2, 2, 10]),
@@ -264,24 +265,24 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join() {
             &alloc,
         ),
     ]);
-    let table_left = "sxt.cats".parse().unwrap();
+    let table_left: TableRef = "sxt.cats".parse().unwrap();
     let right = table([
         borrowed_bigint("id", [10_i64, 11, 12], &alloc),
         borrowed_varchar("human", ["Rachel", "Rachel", "Megan"], &alloc),
     ]);
-    let table_right = "sxt.cat_details".parse().unwrap();
-    accessor.add_table(table_left, left, 0);
-    accessor.add_table(table_right, right, 0);
+    let table_right: TableRef = "sxt.cat_details".parse().unwrap();
+    accessor.add_table(table_left.clone(), left, 0);
+    accessor.add_table(table_right.clone(), right, 0);
     let ast = sort_merge_join(
         table_exec(
-            table_left,
+            table_left.clone(),
             vec![
                 column_field("id", ColumnType::BigInt),
                 column_field("name", ColumnType::VarChar),
             ],
         ),
         table_exec(
-            table_right,
+            table_right.clone(),
             vec![
                 column_field("id", ColumnType::BigInt),
                 column_field("human", ColumnType::VarChar),
@@ -293,7 +294,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join() {
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
         VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, table_left);
+    exercise_verification(&verifiable_res, &ast, &accessor, &table_left);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([
         bigint("id", [0_i64; 0]),
@@ -314,24 +315,24 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
         borrowed_bigint("id", [0_i64; 0], &alloc),
         borrowed_varchar("name", [""; 0], &alloc),
     ]);
-    let table_left = "sxt.cats".parse().unwrap();
+    let table_left: TableRef = "sxt.cats".parse().unwrap();
     let right = table([
         borrowed_bigint("id", [10_i64, 11, 12], &alloc),
         borrowed_varchar("human", ["Rachel", "Rachel", "Megan"], &alloc),
     ]);
-    let table_right = "sxt.cat_details".parse().unwrap();
-    accessor.add_table(table_left, left, 0);
-    accessor.add_table(table_right, right, 0);
+    let table_right: TableRef = "sxt.cat_details".parse().unwrap();
+    accessor.add_table(table_left.clone(), left, 0);
+    accessor.add_table(table_right.clone(), right, 0);
     let ast = sort_merge_join(
         table_exec(
-            table_left,
+            table_left.clone(),
             vec![
                 column_field("id", ColumnType::BigInt),
                 column_field("name", ColumnType::VarChar),
             ],
         ),
         table_exec(
-            table_right,
+            table_right.clone(),
             vec![
                 column_field("id", ColumnType::BigInt),
                 column_field("human", ColumnType::VarChar),
@@ -343,7 +344,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
         VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, table_right);
+    exercise_verification(&verifiable_res, &ast, &accessor, &table_right);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([
         bigint("id", [0_i64; 0]),
@@ -362,24 +363,24 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
             &alloc,
         ),
     ]);
-    let table_left = "sxt.cats".parse().unwrap();
+    let table_left: TableRef = "sxt.cats".parse().unwrap();
     let right = table([
         borrowed_bigint("id", [0_i64; 0], &alloc),
         borrowed_varchar("human", [""; 0], &alloc),
     ]);
-    let table_right = "sxt.cat_details".parse().unwrap();
-    accessor.add_table(table_left, left, 0);
-    accessor.add_table(table_right, right, 0);
+    let table_right: TableRef = "sxt.cat_details".parse().unwrap();
+    accessor.add_table(table_left.clone(), left, 0);
+    accessor.add_table(table_right.clone(), right, 0);
     let ast = sort_merge_join(
         table_exec(
-            table_left,
+            table_left.clone(),
             vec![
                 column_field("id", ColumnType::BigInt),
                 column_field("name", ColumnType::VarChar),
             ],
         ),
         table_exec(
-            table_right,
+            table_right.clone(),
             vec![
                 column_field("id", ColumnType::BigInt),
                 column_field("human", ColumnType::VarChar),
@@ -391,7 +392,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
         VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, table_left);
+    exercise_verification(&verifiable_res, &ast, &accessor, &table_left);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([
         bigint("id", [0_i64; 0]),
@@ -406,24 +407,24 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
         borrowed_bigint("id", [0_i64; 0], &alloc),
         borrowed_varchar("name", [""; 0], &alloc),
     ]);
-    let table_left = "sxt.cats".parse().unwrap();
+    let table_left: TableRef = "sxt.cats".parse().unwrap();
     let right = table([
         borrowed_bigint("id", [0_i64; 0], &alloc),
         borrowed_varchar("human", [""; 0], &alloc),
     ]);
-    let table_right = "sxt.cat_details".parse().unwrap();
-    accessor.add_table(table_left, left, 0);
-    accessor.add_table(table_right, right, 0);
+    let table_right: TableRef = "sxt.cat_details".parse().unwrap();
+    accessor.add_table(table_left.clone(), left, 0);
+    accessor.add_table(table_right.clone(), right, 0);
     let ast = sort_merge_join(
         table_exec(
-            table_left,
+            table_left.clone(),
             vec![
                 column_field("id", ColumnType::BigInt),
                 column_field("name", ColumnType::VarChar),
             ],
         ),
         table_exec(
-            table_right,
+            table_right.clone(),
             vec![
                 column_field("id", ColumnType::BigInt),
                 column_field("human", ColumnType::VarChar),
@@ -435,7 +436,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
         VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, table_left);
+    exercise_verification(&verifiable_res, &ast, &accessor, &table_left);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([
         bigint("id", [0_i64; 0]),

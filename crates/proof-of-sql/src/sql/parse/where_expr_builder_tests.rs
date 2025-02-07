@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
+        database::{ColumnRef, ColumnType, LiteralValue, TableRef, TestSchemaAccessor},
         map::{indexmap, IndexMap},
         math::decimal::Precision,
     },
@@ -28,38 +28,46 @@ use sqlparser::ast::Ident;
 ///   call is expected to succeed; however, if it encounters an invalid precision value, it will
 ///   cause a panic when `unwrap()` is called.
 fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
-    let tab_ref = "sxt.sxt_tab".parse().unwrap();
+    let tab_ref = TableRef::new("sxt", "sxt_tab");
     let mut column_mapping = IndexMap::default();
     // Setup column mapping
     column_mapping.insert(
         "boolean_column".into(),
-        ColumnRef::new(tab_ref, "boolean_column".into(), ColumnType::Boolean),
+        ColumnRef::new(
+            tab_ref.clone(),
+            "boolean_column".into(),
+            ColumnType::Boolean,
+        ),
     );
     column_mapping.insert(
         "decimal_column".into(),
         ColumnRef::new(
-            tab_ref,
+            tab_ref.clone(),
             "decimal_column".into(),
             ColumnType::Decimal75(Precision::new(7).unwrap(), 2),
         ),
     );
     column_mapping.insert(
         "int128_column".into(),
-        ColumnRef::new(tab_ref, "int128_column".into(), ColumnType::Int128),
+        ColumnRef::new(tab_ref.clone(), "int128_column".into(), ColumnType::Int128),
     );
     column_mapping.insert(
         "bigint_column".into(),
-        ColumnRef::new(tab_ref, "bigint_column".into(), ColumnType::BigInt),
+        ColumnRef::new(tab_ref.clone(), "bigint_column".into(), ColumnType::BigInt),
     );
 
     column_mapping.insert(
         "varchar_column".into(),
-        ColumnRef::new(tab_ref, "varchar_column".into(), ColumnType::VarChar),
+        ColumnRef::new(
+            tab_ref.clone(),
+            "varchar_column".into(),
+            ColumnType::VarChar,
+        ),
     );
     column_mapping.insert(
         "timestamp_second_column".into(),
         ColumnRef::new(
-            tab_ref,
+            tab_ref.clone(),
             "timestamp_second_column".into(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
         ),
@@ -67,7 +75,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
     column_mapping.insert(
         "timestamp_millisecond_column".into(),
         ColumnRef::new(
-            tab_ref,
+            tab_ref.clone(),
             "timestamp_millisecond_column".into(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::utc()),
         ),
@@ -75,7 +83,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
     column_mapping.insert(
         "timestamp_microsecond_column".into(),
         ColumnRef::new(
-            tab_ref,
+            tab_ref.clone(),
             "timestamp_microsecond_column".into(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Microsecond, PoSQLTimeZone::utc()),
         ),
@@ -83,7 +91,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
     column_mapping.insert(
         "timestamp_nanosecond_column".into(),
         ColumnRef::new(
-            tab_ref,
+            tab_ref.clone(),
             "timestamp_nanosecond_column".into(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::utc()),
         ),
@@ -306,9 +314,9 @@ fn we_can_not_have_non_boolean_literal_as_where_clause() {
 
 #[test]
 fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
-    let t = "sxt.sxt_tab".parse().unwrap();
+    let t = TableRef::new("sxt", "sxt_tab");
     let accessor = TestSchemaAccessor::new(indexmap! {
-        t => indexmap! {
+        t.clone() => indexmap! {
             "b".into() => ColumnType::VarChar,
         },
     });
@@ -316,7 +324,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
     assert!(matches!(
         QueryExpr::try_new(
             SelectStatement::from_str("select * from sxt_tab where b = 123").unwrap(),
-            t.schema_id(),
+            t.schema_id().cloned().unwrap(),
             &accessor,
         ),
         Err(ConversionError::DataTypeMismatch { .. })
@@ -325,9 +333,9 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
 
 #[test]
 fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
-    let t = "sxt.sxt_tab".parse().unwrap();
+    let t = TableRef::new("sxt", "sxt_tab");
     let accessor = TestSchemaAccessor::new(indexmap! {
-        t => indexmap! {
+        t.clone() => indexmap! {
             "b".into() => ColumnType::VarChar,
         },
     });
@@ -335,7 +343,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
     assert!(matches!(
         QueryExpr::try_new(
             SelectStatement::from_str("select * from sxt_tab where b >= 123").unwrap(),
-            t.schema_id(),
+            t.schema_id().cloned().unwrap(),
             &accessor,
         ),
         Err(ConversionError::DataTypeMismatch { .. })
@@ -344,16 +352,16 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
 
 #[test]
 fn we_do_not_expect_an_error_while_trying_to_check_int128_column_eq_decimal_with_zero_scale() {
-    let t = "sxt.sxt_tab".parse().unwrap();
+    let t = TableRef::new("sxt", "sxt_tab");
     let accessor = TestSchemaAccessor::new(indexmap! {
-        t => indexmap! {
+        t.clone() => indexmap! {
             "b".into() => ColumnType::Int128,
         },
     });
 
     assert!(QueryExpr::try_new(
         SelectStatement::from_str("select * from sxt_tab where b = 123.000").unwrap(),
-        t.schema_id(),
+        t.schema_id().cloned().unwrap(),
         &accessor,
     )
     .is_ok());
@@ -361,16 +369,16 @@ fn we_do_not_expect_an_error_while_trying_to_check_int128_column_eq_decimal_with
 
 #[test]
 fn we_do_not_expect_an_error_while_trying_to_check_bigint_column_eq_decimal_with_zero_scale() {
-    let t = "sxt.sxt_tab".parse().unwrap();
+    let t = TableRef::new("sxt", "sxt_tab");
     let accessor = TestSchemaAccessor::new(indexmap! {
-        t => indexmap! {
+        t.clone() => indexmap! {
             "b".into() => ColumnType::BigInt,
         },
     });
 
     assert!(QueryExpr::try_new(
         SelectStatement::from_str("select * from sxt_tab where b = 123.000").unwrap(),
-        t.schema_id(),
+        t.schema_id().cloned().unwrap(),
         &accessor,
     )
     .is_ok());

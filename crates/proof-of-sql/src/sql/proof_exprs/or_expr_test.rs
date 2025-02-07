@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor,
+            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor, TableRef,
             TableTestAccessor, TestAccessor,
         },
     },
@@ -27,18 +27,19 @@ fn we_can_prove_a_simple_or_query() {
         varchar("d", ["ab", "t", "g", "efg"]),
         bigint("b", [0_i64, 1, 0, 2]),
     ]);
-    let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let t = TableRef::new("sxt", "t");
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
-        cols_expr_plan(t, &["a", "d"], &accessor),
-        tab(t),
+        cols_expr_plan(&t, &["a", "d"], &accessor),
+        tab(&t),
         or(
-            equal(column(t, "b", &accessor), const_bigint(1)),
-            equal(column(t, "d", &accessor), const_varchar("g")),
+            equal(column(&t, "b", &accessor), const_bigint(1)),
+            equal(column(&t, "d", &accessor), const_varchar("g")),
         ),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([bigint("a", [2_i64, 3]), varchar("d", ["t", "g"])]);
     assert_eq!(res, expected_res);
@@ -51,18 +52,19 @@ fn we_can_prove_a_simple_or_query_with_variable_integer_types() {
         varchar("d", ["ab", "t", "g", "efg"]),
         smallint("b", [0_i16, 1, 0, 2]),
     ]);
-    let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let t = TableRef::new("sxt", "t");
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
-        cols_expr_plan(t, &["a", "d"], &accessor),
-        tab(t),
+        cols_expr_plan(&t, &["a", "d"], &accessor),
+        tab(&t),
         or(
-            equal(column(t, "b", &accessor), const_bigint(1)),
-            equal(column(t, "d", &accessor), const_varchar("g")),
+            equal(column(&t, "b", &accessor), const_bigint(1)),
+            equal(column(&t, "d", &accessor), const_varchar("g")),
         ),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([int128("a", [2_i64, 3]), varchar("d", ["t", "g"])]);
     assert_eq!(res, expected_res);
@@ -76,18 +78,19 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
         int("c", [0_i32, 2, 2, 0]),
         varchar("d", ["ab", "t", "g", "efg"]),
     ]);
-    let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let t = TableRef::new("sxt", "t");
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
-        cols_expr_plan(t, &["a", "d"], &accessor),
-        tab(t),
+        cols_expr_plan(&t, &["a", "d"], &accessor),
+        tab(&t),
         or(
-            equal(column(t, "b", &accessor), const_bigint(1)),
-            equal(column(t, "d", &accessor), const_varchar("g")),
+            equal(column(&t, "b", &accessor), const_bigint(1)),
+            equal(column(&t, "d", &accessor), const_varchar("g")),
         ),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([bigint("a", [2_i64, 3, 4]), varchar("d", ["t", "g", "efg"])]);
     assert_eq!(res, expected_res);
@@ -117,26 +120,26 @@ fn test_random_tables_with_given_offset(offset: usize) {
         let filter_val2 = dist.sample(&mut rng);
 
         // Create and verify proof
-        let t = "sxt.t".parse().unwrap();
+        let t = TableRef::new("sxt", "t");
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-            t,
+            t.clone(),
             data.clone(),
             offset,
             (),
         );
         let ast = filter(
-            cols_expr_plan(t, &["a", "d"], &accessor),
-            tab(t),
+            cols_expr_plan(&t, &["a", "d"], &accessor),
+            tab(&t),
             or(
                 equal(
-                    column(t, "b", &accessor),
+                    column(&t, "b", &accessor),
                     const_varchar(filter_val1.as_str()),
                 ),
-                equal(column(t, "c", &accessor), const_bigint(filter_val2)),
+                equal(column(&t, "c", &accessor), const_bigint(filter_val2)),
             ),
         );
         let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-        exercise_verification(&verifiable_res, &ast, &accessor, t);
+        exercise_verification(&verifiable_res, &ast, &accessor, &t);
         let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
 
         // Calculate/compare expected result
@@ -180,11 +183,11 @@ fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
         borrowed_varchar("d", ["ab", "t", "g", "efg"], &alloc),
     ]);
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    let t = "sxt.t".parse().unwrap();
-    accessor.add_table(t, data.clone(), 0);
+    let t = TableRef::new("sxt", "t");
+    accessor.add_table(t.clone(), data.clone(), 0);
     let and_expr: DynProofExpr = or(
-        equal(column(t, "b", &accessor), const_int128(1)),
-        equal(column(t, "d", &accessor), const_varchar("g")),
+        equal(column(&t, "b", &accessor), const_int128(1)),
+        equal(column(&t, "d", &accessor), const_varchar("g")),
     );
     let res = and_expr.result_evaluate(&alloc, &data);
     let expected_res = Column::Boolean(&[false, true, true, true]);

@@ -4,6 +4,7 @@ use crate::{
         commitment::InnerProductProof,
         database::{
             owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor, Table,
+            TableRef,
         },
         scalar::Curve25519Scalar,
     },
@@ -39,20 +40,20 @@ fn test_random_tables_with_given_offset(offset: usize) {
         let lit = dist.sample(&mut rng) < 0;
 
         // Create and verify proof
-        let t = "sxt.t".parse().unwrap();
+        let t = TableRef::new("sxt", "t");
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-            t,
+            t.clone(),
             data.clone(),
             offset,
             (),
         );
         let ast = filter(
-            cols_expr_plan(t, &["a", "b", "c"], &accessor),
-            tab(t),
+            cols_expr_plan(&t, &["a", "b", "c"], &accessor),
+            tab(&t),
             const_bool(lit),
         );
         let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-        exercise_verification(&verifiable_res, &ast, &accessor, t);
+        exercise_verification(&verifiable_res, &ast, &accessor, &t);
         let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
 
         // Calculate/compare expected result
@@ -89,15 +90,16 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 fn we_can_prove_a_query_with_a_single_selected_row() {
     let data = owned_table([bigint("a", [123_i64])]);
     let expected_res = data.clone();
-    let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let t = TableRef::new("sxt", "t");
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
-        cols_expr_plan(t, &["a"], &accessor),
-        tab(t),
+        cols_expr_plan(&t, &["a"], &accessor),
+        tab(&t),
         const_bool(true),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     assert_eq!(res, expected_res);
 }
@@ -105,15 +107,16 @@ fn we_can_prove_a_query_with_a_single_selected_row() {
 #[test]
 fn we_can_prove_a_query_with_a_single_non_selected_row() {
     let data = owned_table([bigint("a", [123_i64])]);
-    let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let t = TableRef::new("sxt", "t");
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
-        cols_expr_plan(t, &["a"], &accessor),
-        tab(t),
+        cols_expr_plan(&t, &["a"], &accessor),
+        tab(&t),
         const_bool(false),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([bigint("a", [1_i64; 0])]);
     assert_eq!(res, expected_res);

@@ -27,15 +27,16 @@ fn we_can_prove_and_get_the_correct_result_from_a_slice_exec() {
         bigint("a", [1_i64, 2, 3, 4, 5]),
         varchar("b", ["1", "2", "3", "4", "5"]),
     ]);
-    let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let t: TableRef = "sxt.t".parse().unwrap();
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = slice_exec(
-        projection(cols_expr_plan(t, &["a", "b"], &accessor), tab(t)),
+        projection(cols_expr_plan(&t, &["a", "b"], &accessor), tab(&t)),
         1,
         Some(2),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([bigint("a", [2_i64, 3]), varchar("b", ["2", "3"])]);
     assert_eq!(res, expected_res);
@@ -47,20 +48,21 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_slice_exec() {
         bigint("a", [1_i64, 2, 3, 4, 5]),
         varchar("b", ["1", "2", "3", "4", "5"]),
     ]);
-    let t = "sxt.t".parse().unwrap();
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(2));
+    let t: TableRef = "sxt.t".parse().unwrap();
+    let accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
+    let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(2));
     let ast = slice_exec(
         filter(
-            cols_expr_plan(t, &["a", "b"], &accessor),
-            tab(t),
+            cols_expr_plan(&t, &["a", "b"], &accessor),
+            tab(&t),
             where_clause,
         ),
         1,
         Some(2),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([bigint("a", [0_i64; 0]), varchar("b", [""; 0])]);
     assert_eq!(res, expected_res);
@@ -77,17 +79,17 @@ fn we_can_get_an_empty_result_from_a_slice_on_an_empty_table_using_first_round_e
         borrowed_scalar("e", [0; 0], &alloc),
     ]);
     let data_length = data.num_rows();
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let table_map = indexmap! {
-        t => data.clone()
+        t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
-    let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(999));
+    accessor.add_table(t.clone(), data, 0);
+    let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(999));
     let expr = slice_exec(
         filter(
-            cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
-            tab(t),
+            cols_expr_plan(&t, &["b", "c", "d", "e"], &accessor),
+            tab(&t),
             where_clause,
         ),
         1,
@@ -132,17 +134,17 @@ fn we_can_get_an_empty_result_from_a_slice_using_first_round_evaluate() {
         borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
     let data_length = data.num_rows();
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let table_map = indexmap! {
-        t => data.clone()
+        t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
-    let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(999));
+    accessor.add_table(t.clone(), data, 0);
+    let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(999));
     let expr = slice_exec(
         filter(
-            cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
-            tab(t),
+            cols_expr_plan(&t, &["b", "c", "d", "e"], &accessor),
+            tab(&t),
             where_clause,
         ),
         1,
@@ -187,15 +189,15 @@ fn we_can_get_no_columns_from_a_slice_with_empty_input_using_first_round_evaluat
         borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
     let data_length = data.num_rows();
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let table_map = indexmap! {
-        t => data.clone()
+        t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
-    let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(5));
+    accessor.add_table(t.clone(), data, 0);
+    let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(5));
     let expr = slice_exec(
-        filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause),
+        filter(cols_expr_plan(&t, &[], &accessor), tab(&t), where_clause),
         2,
         None,
     );
@@ -223,17 +225,17 @@ fn we_can_get_the_correct_result_from_a_slice_using_first_round_evaluate() {
         borrowed_scalar("e", [1, 2, 3, 4, 5], &alloc),
     ]);
     let data_length = data.num_rows();
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let table_map = indexmap! {
-        t => data.clone()
+        t.clone() => data.clone()
     };
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
-    let where_clause: DynProofExpr = equal(column(t, "a", &accessor), const_int128(5));
+    accessor.add_table(t.clone(), data, 0);
+    let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(5));
     let expr = slice_exec(
         filter(
-            cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
-            tab(t),
+            cols_expr_plan(&t, &["b", "c", "d", "e"], &accessor),
+            tab(&t),
             where_clause,
         ),
         1,
@@ -274,30 +276,30 @@ fn we_can_prove_a_slice_exec() {
         varchar("d", ["1", "2", "3", "4", "5"]),
         scalar("e", [1, 2, 3, 4, 5]),
     ]);
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = slice_exec(
         filter(
             vec![
-                col_expr_plan(t, "b", &accessor),
-                col_expr_plan(t, "c", &accessor),
-                col_expr_plan(t, "d", &accessor),
-                col_expr_plan(t, "e", &accessor),
+                col_expr_plan(&t, "b", &accessor),
+                col_expr_plan(&t, "c", &accessor),
+                col_expr_plan(&t, "d", &accessor),
+                col_expr_plan(&t, "e", &accessor),
                 aliased_plan(const_int128(105), "const"),
                 aliased_plan(
-                    equal(column(t, "b", &accessor), column(t, "c", &accessor)),
+                    equal(column(&t, "b", &accessor), column(&t, "c", &accessor)),
                     "bool",
                 ),
             ],
-            tab(t),
-            equal(column(t, "a", &accessor), const_int128(105)),
+            tab(&t),
+            equal(column(&t, "a", &accessor), const_int128(105)),
         ),
         2,
         Some(1),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, t);
+    exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table([
         bigint("b", [4]),
@@ -319,25 +321,25 @@ fn we_can_prove_a_nested_slice_exec() {
         varchar("d", ["1", "2", "3", "4", "5"]),
         scalar("e", [1, 2, 3, 4, 5]),
     ]);
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = slice_exec(
         slice_exec(
             filter(
                 vec![
-                    col_expr_plan(t, "b", &accessor),
-                    col_expr_plan(t, "c", &accessor),
-                    col_expr_plan(t, "d", &accessor),
-                    col_expr_plan(t, "e", &accessor),
+                    col_expr_plan(&t, "b", &accessor),
+                    col_expr_plan(&t, "c", &accessor),
+                    col_expr_plan(&t, "d", &accessor),
+                    col_expr_plan(&t, "e", &accessor),
                     aliased_plan(const_int128(105), "const"),
                     aliased_plan(
-                        equal(column(t, "b", &accessor), column(t, "c", &accessor)),
+                        equal(column(&t, "b", &accessor), column(&t, "c", &accessor)),
                         "bool",
                     ),
                 ],
-                tab(t),
-                equal(column(t, "a", &accessor), const_int128(105)),
+                tab(&t),
+                equal(column(&t, "a", &accessor), const_int128(105)),
             ),
             1,
             Some(3),
@@ -346,7 +348,7 @@ fn we_can_prove_a_nested_slice_exec() {
         Some(1),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, t);
+    exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table([
         bigint("b", [4]),
@@ -368,25 +370,25 @@ fn we_can_prove_a_nested_slice_exec_with_no_rows() {
         varchar("d", ["1", "2", "3", "4", "5"]),
         scalar("e", [1, 2, 3, 4, 5]),
     ]);
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = slice_exec(
         slice_exec(
             filter(
                 vec![
-                    col_expr_plan(t, "b", &accessor),
-                    col_expr_plan(t, "c", &accessor),
-                    col_expr_plan(t, "d", &accessor),
-                    col_expr_plan(t, "e", &accessor),
+                    col_expr_plan(&t, "b", &accessor),
+                    col_expr_plan(&t, "c", &accessor),
+                    col_expr_plan(&t, "d", &accessor),
+                    col_expr_plan(&t, "e", &accessor),
                     aliased_plan(const_int128(105), "const"),
                     aliased_plan(
-                        equal(column(t, "b", &accessor), column(t, "c", &accessor)),
+                        equal(column(&t, "b", &accessor), column(&t, "c", &accessor)),
                         "bool",
                     ),
                 ],
-                tab(t),
-                equal(column(t, "a", &accessor), const_int128(105)),
+                tab(&t),
+                equal(column(&t, "a", &accessor), const_int128(105)),
             ),
             1,
             Some(3),
@@ -395,7 +397,7 @@ fn we_can_prove_a_nested_slice_exec_with_no_rows() {
         None,
     );
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, t);
+    exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table([
         bigint("b", [0; 0]),
@@ -417,25 +419,25 @@ fn we_can_prove_another_nested_slice_exec_with_no_rows() {
         varchar("d", ["1", "2", "3", "4", "5"]),
         scalar("e", [1, 2, 3, 4, 5]),
     ]);
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = slice_exec(
         slice_exec(
             filter(
                 vec![
-                    col_expr_plan(t, "b", &accessor),
-                    col_expr_plan(t, "c", &accessor),
-                    col_expr_plan(t, "d", &accessor),
-                    col_expr_plan(t, "e", &accessor),
+                    col_expr_plan(&t, "b", &accessor),
+                    col_expr_plan(&t, "c", &accessor),
+                    col_expr_plan(&t, "d", &accessor),
+                    col_expr_plan(&t, "e", &accessor),
                     aliased_plan(const_int128(105), "const"),
                     aliased_plan(
-                        equal(column(t, "b", &accessor), column(t, "c", &accessor)),
+                        equal(column(&t, "b", &accessor), column(&t, "c", &accessor)),
                         "bool",
                     ),
                 ],
-                tab(t),
-                equal(column(t, "a", &accessor), const_int128(105)),
+                tab(&t),
+                equal(column(&t, "a", &accessor), const_int128(105)),
             ),
             6,
             Some(3),
@@ -444,7 +446,7 @@ fn we_can_prove_another_nested_slice_exec_with_no_rows() {
         None,
     );
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, t);
+    exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table([
         bigint("b", [0; 0]),
@@ -460,10 +462,10 @@ fn we_can_prove_another_nested_slice_exec_with_no_rows() {
 #[test]
 fn we_can_create_and_prove_a_slice_exec_on_top_of_a_table_exec() {
     let alloc = Bump::new();
-    let table_ref = TableRef::new("namespace.table_name".parse().unwrap());
+    let table_ref = TableRef::new("namespace", "table_name");
     let plan = slice_exec(
         table_exec(
-            table_ref,
+            table_ref.clone(),
             vec![
                 ColumnField::new("language_rank".into(), ColumnType::BigInt),
                 ColumnField::new("language_name".into(), ColumnType::VarChar),
@@ -474,7 +476,7 @@ fn we_can_create_and_prove_a_slice_exec_on_top_of_a_table_exec() {
         Some(4),
     );
     let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(
-        table_ref,
+        table_ref.clone(),
         table([
             borrowed_bigint("language_rank", [0_i64, 1, 2, 3], &alloc),
             borrowed_varchar(
@@ -497,7 +499,7 @@ fn we_can_create_and_prove_a_slice_exec_on_top_of_a_table_exec() {
         (),
     );
     let verifiable_res = VerifiableQueryResult::new(&plan, &accessor, &());
-    exercise_verification(&verifiable_res, &plan, &accessor, table_ref);
+    exercise_verification(&verifiable_res, &plan, &accessor, &table_ref);
     let res = verifiable_res.verify(&plan, &accessor, &()).unwrap().table;
     let expected = owned_table([
         bigint("language_rank", [1_i64, 2, 3]),
@@ -513,11 +515,11 @@ fn we_can_create_and_prove_a_slice_exec_on_top_of_a_table_exec() {
 #[test]
 fn we_can_create_and_prove_a_slice_exec_on_top_of_an_empty_exec() {
     let empty_table = owned_table([]);
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let expr = slice_exec(empty_exec(), 3, Some(2));
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, t);
+    exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
     assert_eq!(res, empty_table);
 }
@@ -529,16 +531,16 @@ fn we_cannot_prove_a_slice_exec_if_it_has_groupby_as_input_for_now() {
         bigint("b", [99, 99, 99, 99, 0]),
         bigint("c", [101, 102, 103, 104, 105]),
     ]);
-    let t = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
+    accessor.add_table(t.clone(), data, 0);
     let expr = slice_exec(
         group_by(
-            cols_expr(t, &["a"], &accessor),
-            vec![sum_expr(column(t, "c", &accessor), "sum_c")],
+            cols_expr(&t, &["a"], &accessor),
+            vec![sum_expr(column(&t, "c", &accessor), "sum_c")],
             "__count__",
-            tab(t),
-            equal(column(t, "b", &accessor), const_int128(99)),
+            tab(&t),
+            equal(column(&t, "b", &accessor), const_int128(99)),
         ),
         2,
         None,

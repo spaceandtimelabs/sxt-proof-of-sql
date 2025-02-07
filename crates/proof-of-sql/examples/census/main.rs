@@ -9,7 +9,7 @@
 use arrow::datatypes::SchemaRef;
 use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
-    base::database::{OwnedTable, OwnedTableTestAccessor},
+    base::database::{OwnedTable, OwnedTableTestAccessor, TableRef},
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
@@ -19,7 +19,6 @@ use proof_of_sql::{
 };
 use rand::{rngs::StdRng, SeedableRng};
 use std::{fs::File, time::Instant};
-
 // We generate the public parameters and the setups used by the prover and verifier for the Dory PCS.
 // The `max_nu` should be set such that the maximum table size is less than `2^(2*max_nu-1)`.
 // For a sampling:
@@ -91,7 +90,7 @@ fn main() {
 
     // Load the table into an "Accessor" so that the prover and verifier can access the data/commitments.
     let accessor = OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_from_table(
-        "census.income".parse().unwrap(),
+        TableRef::new("census", "income"),
         OwnedTable::try_from(census_income_batch).unwrap(),
         0,
         &prover_setup,

@@ -1,5 +1,5 @@
 use crate::base::{
-    database::{ColumnOperationError, ColumnType},
+    database::{ColumnOperationError, ColumnType, TableRef},
     math::decimal::{DecimalError, IntermediateDecimalError},
 };
 use alloc::{
@@ -8,20 +8,27 @@ use alloc::{
     string::{String, ToString},
 };
 use core::result::Result;
-use proof_of_sql_parser::{posql_time::PoSQLTimestampError, ResourceId};
+use proof_of_sql_parser::posql_time::PoSQLTimestampError;
 use snafu::Snafu;
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Ident, ObjectName};
 
 /// Errors from converting an intermediate AST into a provable AST.
 #[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum ConversionError {
-    #[snafu(display("Column '{identifier}' was not found in table '{resource_id}'"))]
+    #[snafu(display("Column '{identifier}' was not found in table '{table_ref}'"))]
     /// The column is missing in the table
     MissingColumn {
         /// The missing column identifier
         identifier: Box<Ident>,
-        /// The table resource id
-        resource_id: Box<ResourceId>,
+        /// The table ref
+        table_ref: TableRef,
+    },
+
+    #[snafu(display("Missing schema or table identifier in ObjectName"))]
+    /// Missing schema or table identifier
+    MissingSchemaOrTable {
+        /// The `ObjectName`
+        object_name: ObjectName,
     },
 
     #[snafu(display("Column '{identifier}' was not found"))]

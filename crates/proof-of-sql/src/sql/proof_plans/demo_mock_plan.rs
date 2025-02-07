@@ -91,7 +91,8 @@ mod tests {
     fn we_can_create_and_prove_a_demo_mock_plan() {
         let table_ref = "namespace.table_name".parse::<TableRef>().unwrap();
         let table = owned_table([bigint("column_name", [0, 1, 2, 3])]);
-        let column_ref = ColumnRef::new(table_ref, "column_name".into(), ColumnType::BigInt);
+        let column_ref =
+            ColumnRef::new(table_ref.clone(), "column_name".into(), ColumnType::BigInt);
         let plan = DemoMockPlan { column: column_ref };
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
             table_ref,

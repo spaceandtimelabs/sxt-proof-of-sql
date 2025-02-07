@@ -7,7 +7,7 @@ use crate::base::{
         naive_commitment::NaiveCommitment, naive_evaluation_proof::NaiveEvaluationProof,
         Commitment, CommittableColumn,
     },
-    database::table_utility::*,
+    database::{table_utility::*, TableRef},
     scalar::test_scalar::TestScalar,
 };
 use bumpalo::Bump;
@@ -17,41 +17,41 @@ use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 fn we_can_query_the_length_of_a_table() {
     let alloc = Bump::new();
     let mut accessor = TableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
-    let table_ref_1 = "sxt.test".parse().unwrap();
-    let table_ref_2 = "sxt.test2".parse().unwrap();
+    let table_ref_1 = TableRef::new("sxt", "test");
+    let table_ref_2 = TableRef::new("sxt", "test2");
 
     let data1 = table([
         borrowed_bigint("a", [1, 2, 3], &alloc),
         borrowed_bigint("b", [4, 5, 6], &alloc),
     ]);
-    accessor.add_table(table_ref_1, data1, 0_usize);
+    accessor.add_table(table_ref_1.clone(), data1, 0_usize);
 
-    assert_eq!(accessor.get_length(table_ref_1), 3);
+    assert_eq!(accessor.get_length(&table_ref_1), 3);
 
     let data2 = table([
         borrowed_bigint("a", [1, 2, 3, 4], &alloc),
         borrowed_bigint("b", [4, 5, 6, 5], &alloc),
     ]);
-    accessor.add_table(table_ref_2, data2, 0_usize);
+    accessor.add_table(table_ref_2.clone(), data2, 0_usize);
 
-    assert_eq!(accessor.get_length(table_ref_1), 3);
-    assert_eq!(accessor.get_length(table_ref_2), 4);
+    assert_eq!(accessor.get_length(&table_ref_1), 3);
+    assert_eq!(accessor.get_length(&table_ref_2), 4);
 }
 
 #[test]
 fn we_can_access_the_columns_of_a_table() {
     let alloc = Bump::new();
     let mut accessor = TableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
-    let table_ref_1 = "sxt.test".parse().unwrap();
-    let table_ref_2 = "sxt.test2".parse().unwrap();
+    let table_ref_1 = TableRef::new("sxt", "test");
+    let table_ref_2 = TableRef::new("sxt", "test2");
 
     let data1 = table([
         borrowed_bigint("a", [1, 2, 3], &alloc),
         borrowed_bigint("b", [4, 5, 6], &alloc),
     ]);
-    accessor.add_table(table_ref_1, data1, 0_usize);
+    accessor.add_table(table_ref_1.clone(), data1, 0_usize);
 
-    let column = ColumnRef::new(table_ref_1, "b".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref_1.clone(), "b".into(), ColumnType::BigInt);
     match accessor.get_column(column) {
         Column::BigInt(col) => assert_eq!(col.to_vec(), vec![4, 5, 6]),
         _ => panic!("Invalid column type"),
@@ -72,21 +72,21 @@ fn we_can_access_the_columns_of_a_table() {
             &alloc,
         ),
     ]);
-    accessor.add_table(table_ref_2, data2, 0_usize);
+    accessor.add_table(table_ref_2.clone(), data2, 0_usize);
 
-    let column = ColumnRef::new(table_ref_1, "a".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref_1.clone(), "a".into(), ColumnType::BigInt);
     match accessor.get_column(column) {
         Column::BigInt(col) => assert_eq!(col.to_vec(), vec![1, 2, 3]),
         _ => panic!("Invalid column type"),
     };
 
-    let column = ColumnRef::new(table_ref_2, "b".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref_2.clone(), "b".into(), ColumnType::BigInt);
     match accessor.get_column(column) {
         Column::BigInt(col) => assert_eq!(col.to_vec(), vec![4, 5, 6, 5]),
         _ => panic!("Invalid column type"),
     };
 
-    let column = ColumnRef::new(table_ref_2, "c128".into(), ColumnType::Int128);
+    let column = ColumnRef::new(table_ref_2.clone(), "c128".into(), ColumnType::Int128);
     match accessor.get_column(column) {
         Column::Int128(col) => assert_eq!(col.to_vec(), vec![1, 2, 3, 4]),
         _ => panic!("Invalid column type"),
@@ -97,7 +97,7 @@ fn we_can_access_the_columns_of_a_table() {
         .iter()
         .map(core::convert::Into::into)
         .collect();
-    let column = ColumnRef::new(table_ref_2, "varchar".into(), ColumnType::VarChar);
+    let column = ColumnRef::new(table_ref_2.clone(), "varchar".into(), ColumnType::VarChar);
     match accessor.get_column(column) {
         Column::VarChar((col, scals)) => {
             assert_eq!(col.to_vec(), col_slice);
@@ -106,7 +106,7 @@ fn we_can_access_the_columns_of_a_table() {
         _ => panic!("Invalid column type"),
     };
 
-    let column = ColumnRef::new(table_ref_2, "scalar".into(), ColumnType::Scalar);
+    let column = ColumnRef::new(table_ref_2.clone(), "scalar".into(), ColumnType::Scalar);
     match accessor.get_column(column) {
         Column::Scalar(col) => assert_eq!(
             col.to_vec(),
@@ -120,14 +120,14 @@ fn we_can_access_the_columns_of_a_table() {
         _ => panic!("Invalid column type"),
     };
 
-    let column = ColumnRef::new(table_ref_2, "boolean".into(), ColumnType::Boolean);
+    let column = ColumnRef::new(table_ref_2.clone(), "boolean".into(), ColumnType::Boolean);
     match accessor.get_column(column) {
         Column::Boolean(col) => assert_eq!(col.to_vec(), vec![true, false, true, false]),
         _ => panic!("Invalid column type"),
     };
 
     let column = ColumnRef::new(
-        table_ref_2,
+        table_ref_2.clone(),
         "time".into(),
         ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
     );
@@ -141,16 +141,16 @@ fn we_can_access_the_columns_of_a_table() {
 fn we_can_access_the_commitments_of_table_columns() {
     let alloc = Bump::new();
     let mut accessor = TableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
-    let table_ref_1 = "sxt.test".parse().unwrap();
-    let table_ref_2 = "sxt.test2".parse().unwrap();
+    let table_ref_1 = TableRef::new("sxt", "test");
+    let table_ref_2 = TableRef::new("sxt", "test2");
 
     let data1 = table([
         borrowed_bigint("a", [1, 2, 3], &alloc),
         borrowed_bigint("b", [4, 5, 6], &alloc),
     ]);
-    accessor.add_table(table_ref_1, data1, 0_usize);
+    accessor.add_table(table_ref_1.clone(), data1, 0_usize);
 
-    let column = ColumnRef::new(table_ref_1, "b".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref_1.clone(), "b".into(), ColumnType::BigInt);
     assert_eq!(
         accessor.get_commitment(column),
         NaiveCommitment::compute_commitments(
@@ -164,9 +164,9 @@ fn we_can_access_the_commitments_of_table_columns() {
         borrowed_bigint("a", [1, 2, 3, 4], &alloc),
         borrowed_bigint("b", [4, 5, 6, 5], &alloc),
     ]);
-    accessor.add_table(table_ref_2, data2, 0_usize);
+    accessor.add_table(table_ref_2.clone(), data2, 0_usize);
 
-    let column = ColumnRef::new(table_ref_1, "a".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref_1.clone(), "a".into(), ColumnType::BigInt);
     assert_eq!(
         accessor.get_commitment(column),
         NaiveCommitment::compute_commitments(
@@ -176,7 +176,7 @@ fn we_can_access_the_commitments_of_table_columns() {
         )[0]
     );
 
-    let column = ColumnRef::new(table_ref_2, "b".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref_2.clone(), "b".into(), ColumnType::BigInt);
     assert_eq!(
         accessor.get_commitment(column),
         NaiveCommitment::compute_commitments(
@@ -191,22 +191,22 @@ fn we_can_access_the_commitments_of_table_columns() {
 fn we_can_access_the_type_of_table_columns() {
     let alloc = Bump::new();
     let mut accessor = TableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
-    let table_ref_1 = "sxt.test".parse().unwrap();
-    let table_ref_2 = "sxt.test2".parse().unwrap();
+    let table_ref_1 = TableRef::new("sxt", "test");
+    let table_ref_2 = TableRef::new("sxt", "test2");
 
     let data1 = table([
         borrowed_bigint("a", [1, 2, 3], &alloc),
         borrowed_bigint("b", [4, 5, 6], &alloc),
     ]);
-    accessor.add_table(table_ref_1, data1, 0_usize);
+    accessor.add_table(table_ref_1.clone(), data1, 0_usize);
 
-    let column = ColumnRef::new(table_ref_1, "b".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref_1.clone(), "b".into(), ColumnType::BigInt);
     assert_eq!(
         accessor.lookup_column(column.table_ref(), column.column_id()),
         Some(ColumnType::BigInt)
     );
 
-    let column = ColumnRef::new(table_ref_1, "c".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref_1.clone(), "c".into(), ColumnType::BigInt);
     assert!(accessor
         .lookup_column(column.table_ref(), column.column_id())
         .is_none());
@@ -215,21 +215,21 @@ fn we_can_access_the_type_of_table_columns() {
         borrowed_bigint("a", [1, 2, 3, 4], &alloc),
         borrowed_bigint("b", [4, 5, 6, 5], &alloc),
     ]);
-    accessor.add_table(table_ref_2, data2, 0_usize);
+    accessor.add_table(table_ref_2.clone(), data2, 0_usize);
 
-    let column = ColumnRef::new(table_ref_1, "a".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref_1.clone(), "a".into(), ColumnType::BigInt);
     assert_eq!(
         accessor.lookup_column(column.table_ref(), column.column_id()),
         Some(ColumnType::BigInt)
     );
 
-    let column = ColumnRef::new(table_ref_2, "b".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref_2.clone(), "b".into(), ColumnType::BigInt);
     assert_eq!(
         accessor.lookup_column(column.table_ref(), column.column_id()),
         Some(ColumnType::BigInt)
     );
 
-    let column = ColumnRef::new(table_ref_2, "c".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref_2.clone(), "c".into(), ColumnType::BigInt);
     assert!(accessor
         .lookup_column(column.table_ref(), column.column_id())
         .is_none());
@@ -239,67 +239,67 @@ fn we_can_access_the_type_of_table_columns() {
 fn we_can_access_schema_and_column_names() {
     let alloc = Bump::new();
     let mut accessor = TableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
-    let table_ref_1 = "sxt.test".parse().unwrap();
+    let table_ref_1 = TableRef::new("sxt", "test");
 
     let data1 = table([
         borrowed_bigint("a", [1, 2, 3], &alloc),
         borrowed_varchar("b", ["x", "y", "z"], &alloc),
     ]);
-    accessor.add_table(table_ref_1, data1, 0_usize);
+    accessor.add_table(table_ref_1.clone(), data1, 0_usize);
 
     assert_eq!(
-        accessor.lookup_schema(table_ref_1),
+        accessor.lookup_schema(table_ref_1.clone()),
         vec![
             ("a".into(), ColumnType::BigInt),
             ("b".into(), ColumnType::VarChar)
         ]
     );
-    assert_eq!(accessor.get_column_names(table_ref_1), vec!["a", "b"]);
+    assert_eq!(accessor.get_column_names(&table_ref_1), vec!["a", "b"]);
 }
 
 #[test]
 fn we_can_correctly_update_offsets() {
     let alloc = Bump::new();
     let mut accessor1 = TableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
-    let table_ref = "sxt.test".parse().unwrap();
+    let table_ref = TableRef::new("sxt", "test");
 
     let data = table([
         borrowed_bigint("a", [1, 2, 3], &alloc),
         borrowed_bigint("b", [123, 5, 123], &alloc),
     ]);
-    accessor1.add_table(table_ref, data.clone(), 0_usize);
+    accessor1.add_table(table_ref.clone(), data.clone(), 0_usize);
 
     let offset = 123;
     let mut accessor2 = TableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
-    accessor2.add_table(table_ref, data, offset);
+    accessor2.add_table(table_ref.clone(), data, offset);
 
-    let column = ColumnRef::new(table_ref, "a".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref.clone(), "a".into(), ColumnType::BigInt);
     assert_ne!(
         accessor1.get_commitment(column.clone()),
         accessor2.get_commitment(column)
     );
-    let column = ColumnRef::new(table_ref, "b".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref.clone(), "b".into(), ColumnType::BigInt);
     assert_ne!(
         accessor1.get_commitment(column.clone()),
         accessor2.get_commitment(column)
     );
 
-    assert_eq!(accessor1.get_offset(table_ref), 0);
-    assert_eq!(accessor2.get_offset(table_ref), offset);
+    assert_eq!(accessor1.get_offset(&table_ref), 0);
+    assert_eq!(accessor2.get_offset(&table_ref), offset);
 
-    accessor1.update_offset(table_ref, offset);
+    accessor1.update_offset(&table_ref, offset);
 
-    let column = ColumnRef::new(table_ref, "a".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref.clone(), "a".into(), ColumnType::BigInt);
     assert_eq!(
         accessor1.get_commitment(column.clone()),
         accessor2.get_commitment(column)
     );
-    let column = ColumnRef::new(table_ref, "b".into(), ColumnType::BigInt);
+    let column = ColumnRef::new(table_ref.clone(), "b".into(), ColumnType::BigInt);
     assert_eq!(
         accessor1.get_commitment(column.clone()),
         accessor2.get_commitment(column)
     );
 
-    assert_eq!(accessor1.get_offset(table_ref), offset);
-    assert_eq!(accessor2.get_offset(table_ref), offset);
+    assert_eq!(accessor1.get_offset(&table_ref), offset);
+    assert_eq!(accessor2.get_offset(&table_ref), offset);
 }

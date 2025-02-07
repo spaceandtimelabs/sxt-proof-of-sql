@@ -3,7 +3,7 @@ use ark_std::test_rng;
 use proof_of_sql::{
     base::database::{
         owned_table_utility::{bigint, owned_table, varchar},
-        OwnedTableTestAccessor, TestAccessor,
+        OwnedTableTestAccessor, TableRef, TestAccessor,
     },
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
@@ -14,7 +14,6 @@ use std::{
     io::{stdout, Write},
     time::Instant,
 };
-
 /// # Panics
 ///
 /// Will panic if flushing the output fails, which can happen due to issues with the underlying output stream.
@@ -53,7 +52,7 @@ fn main() {
     let mut accessor =
         OwnedTableTestAccessor::<DynamicDoryEvaluationProof>::new_empty_with_setup(&prover_setup);
     accessor.add_table(
-        "sxt.table".parse().unwrap(),
+        TableRef::new("sxt", "table"),
         owned_table([
             bigint("a", [1, 2, 3, 2]),
             varchar("b", ["hi", "hello", "there", "world"]),
