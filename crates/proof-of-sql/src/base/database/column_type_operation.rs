@@ -112,8 +112,35 @@ pub fn try_multiply_column_types(
     }
 }
 
+/// Determine the output type of a divide/modulo operation if it is possible
+/// to divide and modulo the two input types. If the types are not compatible, return
+/// an error.
+pub fn try_divide_modulo_column_types(
+    lhs: ColumnType,
+    rhs: ColumnType,
+) -> ColumnOperationResult<(ColumnType, ColumnType)> {
+    if (lhs.is_integer() && lhs.is_signed() && rhs.is_integer() && lhs.is_signed())
+        || (lhs == ColumnType::Uint8 && rhs == ColumnType::Uint8)
+    {
+        Ok((
+            lhs,
+            if lhs.byte_size() > rhs.byte_size() {
+                lhs
+            } else {
+                rhs
+            },
+        ))
+    } else {
+        Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+            operator: "/".to_string(),
+            left_type: lhs,
+            right_type: rhs,
+        })
+    }
+}
+
 /// Determine the output type of a division operation if it is possible
-/// to multiply the two input types. If the types are not compatible, return
+/// to divide the two input types. If the types are not compatible, return
 /// an error.
 ///
 /// # Panics
