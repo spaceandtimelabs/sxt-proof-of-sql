@@ -1,4 +1,5 @@
 //! This module contains shared proof logic for multiple `ProofExpr` / `ProofPlan` implementations.
+pub(crate) mod divide_and_modulo_expr;
 mod membership_check;
 mod monotonic;
 mod shift;
