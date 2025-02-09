@@ -44,6 +44,34 @@ uint256 constant INVALID_EC_PAIRING_INPUTS = 0x4385b511_00000000_00000000_000000
 /// @dev Error code for when the evaluation of a round in a sumcheck proof does not match the expected value.
 uint256 constant ROUND_EVALUATION_MISMATCH = 0x741f5c3f_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
+/// @dev The X coordinate of the G1 generator point.
+uint256 constant G1_GEN_X = 1;
+/// @dev The Y coordinate of the G1 generator point.
+uint256 constant G1_GEN_Y = 2;
+
+/// @dev The G2 generator point's x-coordinate real component.
+uint256 constant G2_GEN_X_REAL = 0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed;
+/// @dev The G2 generator point's x-coordinate imaginary component.
+uint256 constant G2_GEN_X_IMAG = 0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2;
+/// @dev The G2 generator point's y-coordinate real component.
+uint256 constant G2_GEN_Y_REAL = 0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa;
+/// @dev The G2 generator point's y-coordinate imaginary component.
+uint256 constant G2_GEN_Y_IMAG = 0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b;
+
+/// @dev The X coordinate of the negated G1 generator point.
+uint256 constant G1_NEG_GEN_X = 1;
+/// @dev The Y coordinate of the negated G1 generator point.
+uint256 constant G1_NEG_GEN_Y = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd45;
+
+/// @dev The G2 negated generator point's x-coordinate real component.
+uint256 constant G2_NEG_GEN_X_REAL = 0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed;
+/// @dev The G2 negated generator point's x-coordinate imaginary component.
+uint256 constant G2_NEG_GEN_X_IMAG = 0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2;
+/// @dev The G2 negated generator point's y-coordinate real component.
+uint256 constant G2_NEG_GEN_Y_REAL = 0x1d9befcd05a5323e6da4d435f3b617cdb3af83285c2df711ef39c01571827f9d;
+/// @dev The G2 negated generator point's y-coordinate imaginary component.
+uint256 constant G2_NEG_GEN_Y_IMAG = 0x275dc4a288d1afb3cbb1ac09187524c7db36395df7be3b99e673b13a075a65ec;
+
 /// @title Errors library
 /// @notice Library containing custom error definitions.
 library Errors {
