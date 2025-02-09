@@ -154,4 +154,63 @@ library ECPrecompiles {
         }
         __resultArgs = __args;
     }
+
+    /// @notice Convenience function for multiplying a constant point by a scalar and adding to another point in place.
+    /// @dev In effect, this function does the operation `a += c * scalar`, where c is a constant point.
+    /// The first point is in memory, and the constant point coordinates are provided as arguments.
+    /// The input memory is in the format [a_x, a_y, _, _, _].
+    /// The third, fourth, and fifth slots are used as scratch space.
+    /// @param __args The input memory containing the first point and scratch space.
+    /// @param __cx The x-coordinate of the constant point.
+    /// @param __cy The y-coordinate of the constant point.
+    /// @param __scalar The scalar to multiply the constant point by.
+    function __constantECMulAddAssign(uint256[5] memory __args, uint256 __cx, uint256 __cy, uint256 __scalar)
+        internal
+        view
+    {
+        assembly {
+            // IMPORT-YUL ECPrecompiles.pre.sol
+            function ec_add(args_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ECPrecompiles.pre.sol
+            function ec_mul(args_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ECPrecompiles.pre.sol
+            function ec_mul_assign(args_ptr, scalar) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            function constant_ec_mul_add_assign(args_ptr, c_x, c_y, scalar) {
+                mstore(add(args_ptr, WORDX2_SIZE), c_x)
+                mstore(add(args_ptr, WORDX3_SIZE), c_y)
+                ec_mul_assign(add(args_ptr, WORDX2_SIZE), scalar)
+                ec_add(args_ptr)
+            }
+            constant_ec_mul_add_assign(__args, __cx, __cy, __scalar)
+        }
+    }
+
+    /// @notice Convenience function for adding a point from memory to another point.
+    /// @dev In effect, this function does the operation `a += c`, where both points are in memory.
+    /// The input memory is in the format [a_x, a_y, _, _]. The third and fourth slots are used as scratch space.
+    /// @param __args The input memory containing the first point and scratch space.
+    /// @param __c The memory pointer to the second point [c_x, c_y].
+    function __ecAddAssign(uint256[4] memory __args, uint256[2] memory __c) internal view {
+        assembly {
+            // IMPORT-YUL ECPrecompiles.pre.sol
+            function ec_add(args_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            function ec_add_assign(args_ptr, c_ptr) {
+                mcopy(add(args_ptr, WORDX2_SIZE), c_ptr, WORDX2_SIZE)
+                ec_add(args_ptr)
+            }
+            ec_add_assign(__args, __c)
+        }
+    }
 }
