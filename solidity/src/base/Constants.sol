@@ -43,9 +43,15 @@ uint256 constant INVALID_EC_MUL_INPUTS = 0xe32c7472_00000000_00000000_00000000_0
 uint256 constant INVALID_EC_PAIRING_INPUTS = 0x4385b511_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 /// @dev Error code for when the evaluation of a round in a sumcheck proof does not match the expected value.
 uint256 constant ROUND_EVALUATION_MISMATCH = 0x741f5c3f_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+/// @dev Error code for when too few challenges are provided to the verification builder.
+uint256 constant TOO_FEW_CHALLENGES = 0x700caebe_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
 /// @dev Size of the verification builder in bytes.
-uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 0;
+uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 2;
+/// @dev Offset of the pointer to the head of the challenge queue in the verification builder.
+uint256 constant CHALLENGE_HEAD_OFFSET = 0x20 * 0;
+/// @dev Offset of the pointer to the tail of the challenge queue in the verification builder.
+uint256 constant CHALLENGE_TAIL_OFFSET = 0x20 * 1;
 
 /// @title Errors library
 /// @notice Library containing custom error definitions.
@@ -58,4 +64,6 @@ library Errors {
     error InvalidECPairingInputs();
     /// @notice Error thrown when the evaluation of a round in a sumcheck proof does not match the expected value.
     error RoundEvaluationMismatch();
+    /// @notice Error thrown when too few challenges are provided to the verification builder.
+    error TooFewChallenges();
 }
