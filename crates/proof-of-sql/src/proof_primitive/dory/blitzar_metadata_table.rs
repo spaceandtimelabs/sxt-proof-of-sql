@@ -38,6 +38,7 @@ pub const fn min_as_f(column_type: ColumnType) -> F {
         ColumnType::Int128 => MontFp!("-170141183460469231731687303715884105728"),
         ColumnType::Decimal75(_, _)
         | ColumnType::Uint8
+        | ColumnType::FixedSizeBinary(_)
         | ColumnType::Scalar
         | ColumnType::VarChar
         | ColumnType::Boolean => MontFp!("0"),
@@ -133,6 +134,20 @@ fn copy_column_data_to_slice(
         | CommittableColumn::Decimal75(_, _, column)
         | CommittableColumn::VarChar(column) => {
             scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+        }
+        CommittableColumn::FixedSizeBinary(bw, items) => {
+            // Convert bw (i32) to usize safely:
+            let width = bw.width_as_usize();
+
+            // Compute where in items the row at index starts/ends:
+            let row_start = index * width;
+            let row_end = row_start + width;
+
+            // Slice out that row:
+            let row_bytes = &items[row_start..row_end];
+
+            // Copy into scalar_row_slice[start..end]
+            scalar_row_slice[start..end].copy_from_slice(row_bytes);
         }
     }
 }

@@ -78,5 +78,21 @@ pub fn filter_column_by_index<'a, S: Scalar>(
             *tz,
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
         ),
+        Column::FixedSizeBinary(byte_width, col) => {
+            let bw = byte_width.width_as_usize();
+            let required_len = indexes.len() * bw;
+
+            let allocated_bytes = alloc.alloc_slice_fill_default::<u8>(required_len);
+
+            let mut out_pos = 0;
+            for &idx in indexes {
+                let start = idx * bw;
+                let end = start + bw;
+                allocated_bytes[out_pos..(out_pos + bw)].copy_from_slice(&col[start..end]);
+                out_pos += bw;
+            }
+
+            Column::FixedSizeBinary(*byte_width, allocated_bytes)
+        }
     }
 }

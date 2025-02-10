@@ -1,5 +1,8 @@
 use crate::{
-    base::{commitment::CommittableColumn, math::decimal::Precision},
+    base::{
+        commitment::CommittableColumn,
+        math::{decimal::Precision, non_negative_i32::NonNegativeI32},
+    },
     proof_primitive::dory::{
         compute_dory_commitments, DoryProverPublicSetup, ProverSetup, PublicParameters, F, GT,
     },
@@ -8,6 +11,65 @@ use ark_ec::pairing::Pairing;
 use ark_std::test_rng;
 use num_traits::Zero;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+
+#[test]
+fn we_can_compute_a_dory_commitment_with_fixed_size_binary_values() {
+    use ark_bls12_381::Bls12_381 as E;
+    use ark_ec::pairing::{Pairing, PairingOutput as GT};
+    use ark_ff::PrimeField as F;
+    use std::convert::TryInto;
+    type Fr = <E as Pairing>::ScalarField;
+
+    // A helper function to parse a slice of exactly 4 bytes as a little-endian u32,
+    // then convert that into field element.
+    fn bytes_to_field_le<Fr: F>(bytes: &[u8]) -> Fr {
+        assert_eq!(bytes.len(), 4);
+        let val = u32::from_le_bytes(bytes.try_into().unwrap());
+        Fr::from(u64::from(val))
+    }
+
+    // Each "element" is 4 bytes in little-endian format.
+    let bw = NonNegativeI32::new(4).unwrap();
+    let column = vec![
+        // Element #1 = 0x0403_0201 in little-endian
+        0x01, 0x02, 0x03, 0x04, // Element #2 = 0x0807_0605 in little-endian
+        0x05, 0x06, 0x07, 0x08, // Element #3 = 0x0C0B_0A09 in little-endian
+        0x09, 0x0A, 0x0B, 0x0C,
+    ];
+
+    // Set up prover, random number generator
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let setup = DoryProverPublicSetup::new(&prover_setup, 2);
+
+    // Actual Dory commitments computed
+    let res = compute_dory_commitments(
+        &[CommittableColumn::FixedSizeBinary(bw, &column)],
+        0,
+        &setup,
+    );
+
+    // Interpret each 4-byte chunk in the column as a u32 (little-endian) -> field element
+    let field_elems: Vec<Fr> = column
+        .chunks_exact(bw.width_as_usize())
+        .map(bytes_to_field_le)
+        .collect();
+
+    // For convenience
+    let Gamma_1 = public_parameters.Gamma_1;
+    let Gamma_2 = public_parameters.Gamma_2;
+
+    // Build the "expected" result using exactly the same interpretation
+    let gt_sum: GT<E> = field_elems
+        .iter()
+        .enumerate()
+        .fold(GT::<E>::default(), |acc, (i, &elem)| {
+            acc + (E::pairing(Gamma_1[i], Gamma_2[0]) * elem)
+        });
+
+    // Compare
+    assert_eq!(res[0].0, gt_sum);
+}
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_int128_values() {

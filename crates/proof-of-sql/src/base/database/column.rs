@@ -1,6 +1,6 @@
 use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
-    math::decimal::Precision,
+    math::{decimal::Precision, non_negative_i32::NonNegativeI32},
     scalar::{Scalar, ScalarExt},
     slice_ops::slice_cast_with,
 };
@@ -52,6 +52,9 @@ pub enum Column<'a, S: Scalar> {
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    /// Fixed size binary columns
+    /// - the i32 specifies the number of bytes per value
+    FixedSizeBinary(NonNegativeI32, &'a [u8]),
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
@@ -72,6 +75,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::TimestampTZ(time_unit, timezone, _) => {
                 ColumnType::TimestampTZ(*time_unit, *timezone)
             }
+            Self::FixedSizeBinary(bw, _) => ColumnType::FixedSizeBinary(*bw),
         }
     }
     /// Returns the length of the column.
@@ -92,6 +96,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             }
             Self::Int128(col) => col.len(),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col.len(),
+            Self::FixedSizeBinary(bw, col) => col.len() / bw.width_as_usize(),
         }
     }
     /// Returns `true` if the column has no elements.
@@ -177,6 +182,7 @@ impl<'a, S: Scalar> Column<'a, S> {
                 ))
             }
             OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col.as_slice()),
+            OwnedColumn::FixedSizeBinary(bw, col) => Column::FixedSizeBinary(*bw, col.as_slice()),
         }
     }
 
@@ -268,6 +274,15 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 
+    /// Returns the column as a slice of u8 if it is a fixed size binary column. Otherwise, returns None.
+    #[must_use]
+    pub fn as_fixed_size_binary(&self) -> Option<(NonNegativeI32, &'a [u8])> {
+        match self {
+            Column::FixedSizeBinary(width, data) => Some((*width, *data)),
+            _ => None,
+        }
+    }
+
     /// Returns element at index as scalar
     ///
     /// Note that if index is out of bounds, this function will return None
@@ -282,6 +297,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => S::from(col[index]),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
             Self::VarChar((_, scals)) => scals[index],
+            Self::FixedSizeBinary(_bw, col) => S::from(col[index]),
         })
     }
 
@@ -301,6 +317,16 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::FixedSizeBinary(bw, col) => {
+                let num_elements = col.len() / bw.width_as_usize();
+                (0..num_elements)
+                    .map(|i| {
+                        let start = i * bw.width_as_usize();
+                        let end = start + bw.width_as_usize();
+                        S::from(&col[start..end]) * scale_factor
+                    })
+                    .collect()
+            }
         }
     }
 }
@@ -345,6 +371,9 @@ pub enum ColumnType {
     /// Mapped to `S`
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
+    /// Mapped to fixed size binary
+    #[serde(alias = "FIXEDSIZEBINARY", alias = "fixedsizebinary")]
+    FixedSizeBinary(NonNegativeI32),
 }
 
 impl ColumnType {
@@ -459,7 +488,7 @@ impl ColumnType {
             // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
             // so that they do not cause errors when used in comparisons.
             Self::Scalar => Some(0_u8),
-            Self::Boolean | Self::VarChar => None,
+            Self::Boolean | Self::VarChar | Self::FixedSizeBinary(_) => None,
         }
     }
     /// Returns scale of a [`ColumnType`] if it is convertible to a decimal wrapped in `Some()`. Otherwise return None.
@@ -474,7 +503,7 @@ impl ColumnType {
             | Self::BigInt
             | Self::Int128
             | Self::Scalar => Some(0),
-            Self::Boolean | Self::VarChar => None,
+            Self::Boolean | Self::VarChar | Self::FixedSizeBinary(_) => None,
             Self::TimestampTZ(tu, _) => match tu {
                 PoSQLTimeUnit::Second => Some(0),
                 PoSQLTimeUnit::Millisecond => Some(3),
@@ -496,6 +525,7 @@ impl ColumnType {
             Self::BigInt | Self::TimestampTZ(_, _) => size_of::<i64>(),
             Self::Int128 => size_of::<i128>(),
             Self::Scalar | Self::Decimal75(_, _) | Self::VarChar => size_of::<[u64; 4]>(),
+            Self::FixedSizeBinary(bw) => bw.width_as_usize(),
         }
     }
 
@@ -516,9 +546,12 @@ impl ColumnType {
             | Self::BigInt
             | Self::Int128
             | Self::TimestampTZ(_, _) => true,
-            Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean | Self::Uint8 => {
-                false
-            }
+            Self::Decimal75(_, _)
+            | Self::Scalar
+            | Self::VarChar
+            | Self::Boolean
+            | Self::Uint8
+            | Self::FixedSizeBinary(_) => false,
         }
     }
 }
@@ -546,6 +579,7 @@ impl Display for ColumnType {
             ColumnType::TimestampTZ(timeunit, timezone) => {
                 write!(f, "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone})")
             }
+            ColumnType::FixedSizeBinary(bw) => write!(f, "FIXEDSIZEBINARY({bw})"),
         }
     }
 }
