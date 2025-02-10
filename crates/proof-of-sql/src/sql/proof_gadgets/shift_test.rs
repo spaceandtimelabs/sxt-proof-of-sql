@@ -102,9 +102,9 @@ impl ProofPlan for ShiftTestPlan {
     }
 
     #[doc = "Form components needed to verify and proof store into `VerificationBuilder`"]
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _one_eval_map: &IndexMap<TableRef, S>,

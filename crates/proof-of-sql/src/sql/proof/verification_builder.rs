@@ -3,8 +3,38 @@ use crate::base::{bit::BitDistribution, proof::ProofSizeMismatch, scalar::Scalar
 use alloc::{collections::VecDeque, vec::Vec};
 use core::iter;
 
+pub trait VerificationBuilder<S: Scalar> {
+    fn try_consume_one_evaluation(&mut self) -> Result<S, ProofSizeMismatch>;
+
+    fn try_consume_rho_evaluation(&mut self) -> Result<S, ProofSizeMismatch>;
+
+    fn try_consume_first_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch>;
+
+    fn try_consume_final_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch>;
+
+    fn try_consume_final_round_mle_evaluations(
+        &mut self,
+        count: usize,
+    ) -> Result<Vec<S>, ProofSizeMismatch>;
+
+    fn try_consume_bit_distribution(&mut self) -> Result<BitDistribution, ProofSizeMismatch>;
+
+    fn try_produce_sumcheck_subpolynomial_evaluation(
+        &mut self,
+        subpolynomial_type: SumcheckSubpolynomialType,
+        eval: S,
+        degree: usize,
+    ) -> Result<(), ProofSizeMismatch>;
+
+    fn try_consume_post_result_challenge(&mut self) -> Result<S, ProofSizeMismatch>;
+
+    fn singleton_one_evaluation(&self) -> S;
+
+    fn rho_256_evaluation(&self) -> Option<S>;
+}
+
 /// Track components used to verify a query's proof
-pub struct VerificationBuilder<'a, S: Scalar> {
+pub struct StandardVerificationBuilder<'a, S: Scalar> {
     pub mle_evaluations: SumcheckMleEvaluations<'a, S>,
     generator_offset: usize,
     subpolynomial_multipliers: &'a [S],
@@ -28,7 +58,7 @@ pub struct VerificationBuilder<'a, S: Scalar> {
     subpolynomial_max_multiplicands: usize,
 }
 
-impl<'a, S: Scalar> VerificationBuilder<'a, S> {
+impl<'a, S: Scalar> StandardVerificationBuilder<'a, S> {
     #[allow(
         clippy::missing_panics_doc,
         reason = "The only possible panic is from the assertion comparing lengths, which is clear from context."
@@ -62,11 +92,49 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         }
     }
 
+    pub fn generator_offset(&self) -> usize {
+        self.generator_offset
+    }
+
+    /// Consume multiple first round MLE evaluations
+    pub fn try_consume_first_round_mle_evaluations(
+        &mut self,
+        count: usize,
+    ) -> Result<Vec<S>, ProofSizeMismatch> {
+        iter::repeat_with(|| self.try_consume_first_round_mle_evaluation())
+            .take(count)
+            .collect()
+    }
+
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The panic condition is clear due to the assertion that checks if the computation is completed."
+    )]
+    /// Get the evaluation of the sumcheck polynomial at its randomly selected point
+    pub fn sumcheck_evaluation(&self) -> S {
+        assert!(self.completed());
+        self.sumcheck_evaluation
+    }
+
+    /// Check that the verification builder is completely built up
+    fn completed(&self) -> bool {
+        self.bit_distributions.is_empty()
+            && self.produced_subpolynomials == self.subpolynomial_multipliers.len()
+            && self.consumed_first_round_pcs_proof_mles
+                == self.mle_evaluations.first_round_pcs_proof_evaluations.len()
+            && self.consumed_final_round_pcs_proof_mles
+                == self.mle_evaluations.final_round_pcs_proof_evaluations.len()
+            && self.post_result_challenges.is_empty()
+    }
+}
+
+
+impl<'a, S: Scalar> VerificationBuilder<S> for StandardVerificationBuilder<'a, S> {
     /// Consume the evaluation of a one evaluation
     ///
     /// # Panics
     /// It should never panic, as the length of the one evaluation is guaranteed to be present
-    pub fn try_consume_one_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
+    fn try_consume_one_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         let index = self.consumed_one_evaluations;
         let length = self
             .one_evaluation_length_queue
@@ -85,7 +153,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     ///
     /// # Panics
     /// It should never panic, as the length of the rho evaluation is guaranteed to be present
-    pub fn try_consume_rho_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
+    fn try_consume_rho_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         let index = self.consumed_rho_evaluations;
         let length = self
             .rho_evaluation_length_queue
@@ -100,12 +168,8 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             .ok_or(ProofSizeMismatch::RhoLengthNotFound)?)
     }
 
-    pub fn generator_offset(&self) -> usize {
-        self.generator_offset
-    }
-
     /// Consume the evaluation of a first round MLE used in sumcheck and provide the commitment of the MLE
-    pub fn try_consume_first_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
+    fn try_consume_first_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         let index = self.consumed_first_round_pcs_proof_mles;
         self.consumed_first_round_pcs_proof_mles += 1;
         self.mle_evaluations
@@ -115,18 +179,8 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             .ok_or(ProofSizeMismatch::TooFewMLEEvaluations)
     }
 
-    /// Consume multiple first round MLE evaluations
-    pub fn try_consume_first_round_mle_evaluations(
-        &mut self,
-        count: usize,
-    ) -> Result<Vec<S>, ProofSizeMismatch> {
-        iter::repeat_with(|| self.try_consume_first_round_mle_evaluation())
-            .take(count)
-            .collect()
-    }
-
     /// Consume the evaluation of a final round MLE used in sumcheck and provide the commitment of the MLE
-    pub fn try_consume_final_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
+    fn try_consume_final_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         let index = self.consumed_final_round_pcs_proof_mles;
         self.consumed_final_round_pcs_proof_mles += 1;
         self.mle_evaluations
@@ -137,7 +191,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     }
 
     /// Consume multiple final round MLE evaluations
-    pub fn try_consume_final_round_mle_evaluations(
+    fn try_consume_final_round_mle_evaluations(
         &mut self,
         count: usize,
     ) -> Result<Vec<S>, ProofSizeMismatch> {
@@ -148,7 +202,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
 
     /// Consume a bit distribution that describes which bits are constant
     /// and which bits varying in a column of data
-    pub fn try_consume_bit_distribution(&mut self) -> Result<BitDistribution, ProofSizeMismatch> {
+    fn try_consume_bit_distribution(&mut self) -> Result<BitDistribution, ProofSizeMismatch> {
         let res = self
             .bit_distributions
             .first()
@@ -159,7 +213,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     }
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
-    pub fn try_produce_sumcheck_subpolynomial_evaluation(
+    fn try_produce_sumcheck_subpolynomial_evaluation(
         &mut self,
         subpolynomial_type: SumcheckSubpolynomialType,
         eval: S,
@@ -188,27 +242,6 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         Ok(())
     }
 
-    #[allow(
-        clippy::missing_panics_doc,
-        reason = "The panic condition is clear due to the assertion that checks if the computation is completed."
-    )]
-    /// Get the evaluation of the sumcheck polynomial at its randomly selected point
-    pub fn sumcheck_evaluation(&self) -> S {
-        assert!(self.completed());
-        self.sumcheck_evaluation
-    }
-
-    /// Check that the verification builder is completely built up
-    fn completed(&self) -> bool {
-        self.bit_distributions.is_empty()
-            && self.produced_subpolynomials == self.subpolynomial_multipliers.len()
-            && self.consumed_first_round_pcs_proof_mles
-                == self.mle_evaluations.first_round_pcs_proof_evaluations.len()
-            && self.consumed_final_round_pcs_proof_mles
-                == self.mle_evaluations.final_round_pcs_proof_evaluations.len()
-            && self.post_result_challenges.is_empty()
-    }
-
     /// Pops a challenge off the stack of post-result challenges.
     ///
     /// These challenges are used in creation of the constraints in the proof.
@@ -222,9 +255,17 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
     /// # Panics
     /// This function will panic if `post_result_challenges` is empty,
     /// as it attempts to pop an element from the vector and unwraps the result.
-    pub fn try_consume_post_result_challenge(&mut self) -> Result<S, ProofSizeMismatch> {
+    fn try_consume_post_result_challenge(&mut self) -> Result<S, ProofSizeMismatch> {
         self.post_result_challenges
             .pop_front()
             .ok_or(ProofSizeMismatch::PostResultCountMismatch)
+    }
+
+    fn singleton_one_evaluation(&self) -> S {
+        self.mle_evaluations.singleton_one_evaluation
+    }
+
+    fn rho_256_evaluation(&self) -> Option<S> {
+        self.mle_evaluations.rho_256_evaluation
     }
 }

@@ -82,9 +82,9 @@ impl ProofExpr for ColumnExpr {
 
     /// Evaluate the column expression at the sumcheck's random point,
     /// add components needed to verify this column expression
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        _builder: &mut VerificationBuilder<S>,
+        _builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         _one_eval: S,
     ) -> Result<S, ProofError> {

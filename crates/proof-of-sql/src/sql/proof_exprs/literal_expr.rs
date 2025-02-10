@@ -72,9 +72,9 @@ impl ProofExpr for LiteralExpr {
         res
     }
 
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        _builder: &mut VerificationBuilder<S>,
+        _builder: &mut B,
         _accessor: &IndexMap<ColumnRef, S>,
         one_eval: S,
     ) -> Result<S, ProofError> {

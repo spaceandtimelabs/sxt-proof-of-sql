@@ -71,9 +71,9 @@ impl ProofExpr for OrExpr {
         res
     }
 
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         one_eval: S,
     ) -> Result<S, ProofError> {
@@ -134,8 +134,8 @@ pub fn prover_evaluate_or<'a, S: Scalar>(
     alloc.alloc_slice_fill_with(n, |i| lhs[i] || rhs[i])
 }
 
-pub fn verifier_evaluate_or<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+pub fn verifier_evaluate_or<S: Scalar, B: VerificationBuilder<S>>(
+    builder: &mut B,
     lhs: &S,
     rhs: &S,
 ) -> Result<S, ProofError> {

@@ -78,8 +78,13 @@ pub(crate) fn final_round_evaluate_monotonic<'a, S: Scalar, const STRICT: bool, 
     prover_evaluate_sign(builder, alloc, ind);
 }
 
-pub(crate) fn verify_monotonic<S: Scalar, const STRICT: bool, const ASC: bool>(
-    builder: &mut VerificationBuilder<S>,
+pub(crate) fn verify_monotonic<
+    S: Scalar,
+    const STRICT: bool,
+    const ASC: bool,
+    B: VerificationBuilder<S>,
+>(
+    builder: &mut B,
     alpha: S,
     beta: S,
     column_eval: S,
@@ -103,7 +108,7 @@ pub(crate) fn verify_monotonic<S: Scalar, const STRICT: bool, const ASC: bool>(
         _ => column_eval - shifted_column_eval,
     };
     let sign_eval = verifier_evaluate_sign(builder, ind_eval, shifted_one_eval)?;
-    let singleton_one_eval = builder.mle_evaluations.singleton_one_evaluation;
+    let singleton_one_eval = builder.singleton_one_evaluation();
     let allowed_evals = if STRICT {
         // sign(ind) == 1 for all but the first element and the last element
         // The first and last elements can only fit into three patterns

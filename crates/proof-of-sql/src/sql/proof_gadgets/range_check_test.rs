@@ -157,9 +157,9 @@ impl ProofPlan for RangeCheckTestPlan {
     }
 
     #[doc = " Form components needed to verify and proof store into `VerificationBuilder`"]
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         one_eval_map: &IndexMap<TableRef, S>,

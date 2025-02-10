@@ -127,8 +127,8 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
 }
 
 #[allow(dead_code)]
-pub(crate) fn verify_membership_check<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+pub(crate) fn verify_membership_check<S: Scalar, B: VerificationBuilder<S>>(
+    builder: &mut B,
     alpha: S,
     beta: S,
     input_one_eval: S,

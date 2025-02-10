@@ -1,6 +1,8 @@
 //! TODO: add docs
 
 mod final_round_builder;
+#[cfg(test)]
+pub(crate) mod mock_verification_builder;
 pub(crate) use final_round_builder::FinalRoundBuilder;
 #[cfg(all(test, feature = "blitzar"))]
 mod final_round_builder_test;
@@ -11,7 +13,7 @@ pub(crate) use composite_polynomial_builder::CompositePolynomialBuilder;
 mod composite_polynomial_builder_test;
 
 mod verification_builder;
-pub(crate) use verification_builder::VerificationBuilder;
+pub(crate) use verification_builder::{StandardVerificationBuilder, VerificationBuilder};
 #[cfg(test)]
 mod verification_builder_test;
 
