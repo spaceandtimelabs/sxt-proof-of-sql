@@ -174,11 +174,26 @@ fn verify_bit_decomposition<S: ScalarExt>(
 mod tests {
     use crate::{
         base::{
-            bit::BitDistribution,
+            bit::{BitDistribution, BitDistrubutionError},
             scalar::{test_scalar::TestScalar, Scalar},
         },
         sql::proof_gadgets::sign_expr::verify_bit_decomposition,
     };
+
+    fn evaluate_matrix(matrix: &[&[i32]], terms: &[TestScalar]) -> Vec<TestScalar> {
+        matrix
+            .iter()
+            .map(|row| evaluate_terms(row, terms))
+            .collect()
+    }
+
+    fn evaluate_terms(coeffs: &[i32], terms: &[TestScalar]) -> TestScalar {
+        coeffs
+            .iter()
+            .zip(terms)
+            .map(|(&coef, &term)| TestScalar::from(coef) * term)
+            .sum()
+    }
 
     #[test]
     fn we_can_verify_bit_decomposition() {
@@ -195,13 +210,13 @@ mod tests {
     }
 
     #[test]
-    fn we_can_verify_bit_decomposition_constant_sign() {
+    fn we_can_verify_bit_decomposition_positive_sign() {
         let dist = BitDistribution {
             vary_mask: [629, 0, 0, 0],
             leading_bit_mask: [2, 0, 0, 9_223_372_036_854_775_808],
         };
-        let a = TestScalar::ONE;
-        let b = TestScalar::ONE;
+        let a = TestScalar::TEN;
+        let b = TestScalar::TWO;
         let expr_eval = TestScalar::from(118) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
             + TestScalar::from(562) * a * (TestScalar::ONE - b)
             + TestScalar::from(3) * (TestScalar::ONE - a) * b;
@@ -231,5 +246,47 @@ mod tests {
         let sign_eval =
             verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist, 128).unwrap();
         assert_eq!(sign_eval, one_eval);
+    }
+
+    #[test]
+    fn we_can_verify_bit_decomposition_i8_sign() {
+        let dist = BitDistribution {
+            vary_mask: [125, 0, 0, 9_223_372_036_854_775_808],
+            leading_bit_mask: [2, 0, 0, 9_223_372_036_854_775_808],
+        };
+        let a = TestScalar::TEN;
+        let b = TestScalar::TWO;
+        let one_minus_a = TestScalar::ONE - a;
+        let one_minus_b = TestScalar::ONE - b;
+
+        let s = [
+            one_minus_a * one_minus_b,
+            a * one_minus_b,
+            one_minus_a * b,
+            a * b,
+        ];
+
+        let expr_eval = evaluate_terms(&[106, 23, -60, -76], &s);
+        let one_eval = evaluate_terms(&[1, 1, 1, 1], &s);
+
+        let bit_matrix: &[&[i32]] = &[
+            &[0, 1, 0, 0],
+            &[0, 1, 1, 1],
+            &[1, 0, 0, 0],
+            &[0, 1, 0, 1],
+            &[1, 0, 0, 1],
+            &[1, 0, 1, 0],
+            &[1, 1, 0, 0],
+        ];
+
+        let bit_evals = evaluate_matrix(bit_matrix, &s);
+
+        let expected_eval = evaluate_terms(&[1, 1, 0, 0], &s);
+
+        let sign_eval =
+            verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist, 8).unwrap();
+        assert_eq!(sign_eval, expected_eval);
+        let err = verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist, 7).unwrap_err();
+        assert!(matches!(err, BitDistrubutionError::Verification));
     }
 }
