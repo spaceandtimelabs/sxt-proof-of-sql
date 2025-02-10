@@ -220,6 +220,7 @@ fn we_can_verify_a_simple_proof() {
         .clone()
         .map(|evaluation_point| final_round_builder.evaluate_pcs_proof_mles(&evaluation_point))
         .collect();
+    dbg!(&final_round_mles);
     let mut verification_builder = MockVerificationBuilder::new(
         final_round_builder
             .bit_distributions()
@@ -245,5 +246,56 @@ fn we_can_verify_a_simple_proof() {
     assert_eq!(
         verification_builder.identity_subpolynomial_evaluations,
         vec![zero_vec; 4]
+    );
+}
+
+#[test]
+fn we_can_reject_a_simple_tampered_proof() {
+    let alloc = Bump::new();
+    let t: TableRef = "sxt.t".parse().unwrap();
+    let lhs = &[true, true, false, false];
+    let rhs = &[true, false, true, false];
+    let a = ColumnRef::new(t.clone(), Ident::from("a"), ColumnType::Boolean);
+    let b = ColumnRef::new(t, Ident::from("b"), ColumnType::Boolean);
+    let and_expr = AndExpr::new(
+        Box::new(DynProofExpr::Column(ColumnExpr::new(a.clone()))),
+        Box::new(DynProofExpr::Column(ColumnExpr::new(b.clone()))),
+    );
+
+    let evaluation_points = (0..4).into_iter().map(|i| {
+        alloc.alloc_slice_fill_with(4, |j| {
+            if i == j {
+                TestScalar::ONE
+            } else {
+                TestScalar::ZERO
+            }
+        })
+    });
+    let zero_vec = vec![TestScalar::ZERO];
+    let final_round_mles: Vec<_> = evaluation_points
+        .clone()
+        .map(|_| zero_vec.clone())
+        .collect();
+    let mut verification_builder = MockVerificationBuilder::new(Vec::new(), 3, final_round_mles);
+
+    for evaluation_point in evaluation_points {
+        let one_eval = (&[1, 1, 1, 1]).inner_product(&evaluation_point);
+        let accessor = indexmap! {
+            a.clone() => lhs.inner_product(evaluation_point),
+            b.clone() => rhs.inner_product(evaluation_point)
+        };
+        and_expr
+            .verifier_evaluate(&mut verification_builder, &accessor, one_eval)
+            .unwrap();
+        verification_builder.increment_row_index();
+    }
+    assert_eq!(
+        verification_builder.identity_subpolynomial_evaluations,
+        vec![
+            vec![-TestScalar::ONE],
+            zero_vec.clone(),
+            zero_vec.clone(),
+            zero_vec
+        ]
     );
 }

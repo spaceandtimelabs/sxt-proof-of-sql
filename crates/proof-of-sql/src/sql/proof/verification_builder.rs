@@ -35,7 +35,7 @@ pub trait VerificationBuilder<S: Scalar> {
 
 /// Track components used to verify a query's proof
 pub struct StandardVerificationBuilder<'a, S: Scalar> {
-    pub mle_evaluations: SumcheckMleEvaluations<'a, S>,
+    mle_evaluations: SumcheckMleEvaluations<'a, S>,
     generator_offset: usize,
     subpolynomial_multipliers: &'a [S],
     sumcheck_evaluation: S,
