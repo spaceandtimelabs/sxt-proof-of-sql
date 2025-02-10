@@ -95,10 +95,8 @@ contract SumcheckTest is Test {
         vm.assume(numVars > 0);
         // The proof with entirely 0s (expect for the last prover message) will succeed and is not fully random, so we should not include it
         bool allZeros = true;
-        uint256 nonZeroLength = proof.length;
-        if (nonZeroLength > uint256(numVars - 1) * (uint256(degree) + 1)) {
-            nonZeroLength = uint256(numVars - 1) * (uint256(degree) + 1);
-        }
+        uint256 realProofLength = uint256(numVars - 1) * (uint256(degree) + 1);
+        uint256 nonZeroLength = proof.length > realProofLength ? realProofLength : proof.length;
         for (uint256 i = 0; i < nonZeroLength; ++i) {
             allZeros = allZeros && (proof[i] == 0);
         }
