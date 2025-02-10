@@ -111,7 +111,7 @@ impl ProofExpr for InequalityExpr {
         };
 
         // sign(diff) == -1
-        verifier_evaluate_sign(builder, diff_eval, one_eval)
+        verifier_evaluate_sign(builder, diff_eval, one_eval, 251)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
