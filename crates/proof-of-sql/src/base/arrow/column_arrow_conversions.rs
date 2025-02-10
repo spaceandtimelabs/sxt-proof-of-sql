@@ -32,6 +32,7 @@ impl From<&ColumnType> for DataType {
                 };
                 DataType::Timestamp(arrow_timeunit, arrow_timezone)
             }
+            ColumnType::FixedSizeBinary(bw) => DataType::FixedSizeBinary(bw.width()),
         }
     }
 }

@@ -125,6 +125,9 @@ impl ProvableQueryResult {
                     ColumnType::TimestampTZ(_, _) => {
                         decode_and_convert::<i64, S>(&self.data[offset..])
                     }
+                    ColumnType::FixedSizeBinary(bw) => decode_and_convert::<&[u8], S>(
+                        &self.data[offset..offset + bw.width_as_usize()],
+                    ),
                 }?;
                 val += *entry * x;
                 offset += sz;
@@ -214,6 +217,12 @@ impl ProvableQueryResult {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::TimestampTZ(tu, tz, col)))
+                    }
+                    ColumnType::FixedSizeBinary(byte_width) => {
+                        let bw = byte_width.width_as_usize();
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        offset += num_read * bw;
+                        Ok((field.name(), OwnedColumn::FixedSizeBinary(byte_width, col)))
                     }
                 })
                 .collect::<Result<_, QueryError>>()?,
