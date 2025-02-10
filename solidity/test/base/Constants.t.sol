@@ -33,6 +33,13 @@ library ErrorTest {
             revert(0, 4)
         }
     }
+
+    function causeTooFewChallenges() public pure {
+        assembly {
+            mstore(0, TOO_FEW_CHALLENGES)
+            revert(0, 4)
+        }
+    }
 }
 
 contract ConstantsTest is Test {
@@ -54,6 +61,11 @@ contract ConstantsTest is Test {
     function testErrorFailedRoundEvaluationMismatch() public {
         vm.expectRevert(Errors.RoundEvaluationMismatch.selector);
         ErrorTest.causeRoundEvaluationMismatch();
+    }
+
+    function testErrorFailedTooFewChallenges() public {
+        vm.expectRevert(Errors.TooFewChallenges.selector);
+        ErrorTest.causeTooFewChallenges();
     }
 
     function testModulusMaskIsCorrect() public pure {
@@ -78,5 +90,18 @@ contract ConstantsTest is Test {
         assert(WORDX3_SIZE == 3 * WORD_SIZE);
         assert(WORDX4_SIZE == 4 * WORD_SIZE);
         assert(WORDX12_SIZE == 12 * WORD_SIZE);
+    }
+
+    function testVerificationBuilderOffsetsAreValid() public pure {
+        uint256[2] memory offsets = [CHALLENGE_HEAD_OFFSET, CHALLENGE_TAIL_OFFSET];
+        uint256 offsetsLength = offsets.length;
+        assert(VERIFICATION_BUILDER_SIZE == offsetsLength * WORD_SIZE);
+        for (uint256 i = 0; i < offsetsLength; ++i) {
+            assert(offsets[i] % WORD_SIZE == 0); // Offsets must be word-aligned
+            assert(offsets[i] < VERIFICATION_BUILDER_SIZE); // Offsets must be within the builder
+            for (uint256 j = i + 1; j < offsetsLength; ++j) {
+                assert(offsets[i] != offsets[j]); // Offsets must be unique
+            }
+        }
     }
 }

@@ -43,6 +43,8 @@ uint256 constant INVALID_EC_MUL_INPUTS = 0xe32c7472_00000000_00000000_00000000_0
 uint256 constant INVALID_EC_PAIRING_INPUTS = 0x4385b511_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 /// @dev Error code for when the evaluation of a round in a sumcheck proof does not match the expected value.
 uint256 constant ROUND_EVALUATION_MISMATCH = 0x741f5c3f_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+/// @dev Error code for when too few challenges are provided to the verification builder.
+uint256 constant TOO_FEW_CHALLENGES = 0x700caebe_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
 /// @dev The X coordinate of the G1 generator point.
 uint256 constant G1_GEN_X = 1;
@@ -73,7 +75,11 @@ uint256 constant G2_NEG_GEN_Y_REAL = 0x1d9befcd05a5323e6da4d435f3b617cdb3af83285
 uint256 constant G2_NEG_GEN_Y_IMAG = 0x275dc4a288d1afb3cbb1ac09187524c7db36395df7be3b99e673b13a075a65ec;
 
 /// @dev Size of the verification builder in bytes.
-uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 0;
+uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 2;
+/// @dev Offset of the pointer to the head of the challenge queue in the verification builder.
+uint256 constant CHALLENGE_HEAD_OFFSET = 0x20 * 0;
+/// @dev Offset of the pointer to the tail of the challenge queue in the verification builder.
+uint256 constant CHALLENGE_TAIL_OFFSET = 0x20 * 1;
 
 /// @title Errors library
 /// @notice Library containing custom error definitions.
@@ -86,4 +92,6 @@ library Errors {
     error InvalidECPairingInputs();
     /// @notice Error thrown when the evaluation of a round in a sumcheck proof does not match the expected value.
     error RoundEvaluationMismatch();
+    /// @notice Error thrown when too few challenges are provided to the verification builder.
+    error TooFewChallenges();
 }
