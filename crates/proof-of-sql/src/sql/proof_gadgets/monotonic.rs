@@ -102,7 +102,7 @@ pub(crate) fn verify_monotonic<S: Scalar, const STRICT: bool, const ASC: bool>(
         (true, true) | (false, false) => shifted_column_eval - column_eval,
         _ => column_eval - shifted_column_eval,
     };
-    let sign_eval = verifier_evaluate_sign(builder, ind_eval, shifted_one_eval)?;
+    let sign_eval = verifier_evaluate_sign(builder, ind_eval, shifted_one_eval, 251)?;
     let singleton_one_eval = builder.mle_evaluations.singleton_one_evaluation;
     let allowed_evals = if STRICT {
         // sign(ind) == 1 for all but the first element and the last element
