@@ -2,9 +2,7 @@
 // This is licensed under the Cryptographic Open Software License 1.0
 pragma solidity ^0.8.28;
 
-// assembly only constants
-// solhint-disable-next-line no-unused-import
-import {FREE_PTR, MODULUS_MASK, WORD_SIZE} from "./Constants.sol";
+import "./Constants.sol";
 
 /// @title Transcript Library
 /// @notice Provides functions to manage a simple public coin transcript

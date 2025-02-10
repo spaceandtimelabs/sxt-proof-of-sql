@@ -2,11 +2,8 @@
 // This is licensed under the Cryptographic Open Software License 1.0
 pragma solidity ^0.8.28;
 
+import "../../src/base/Constants.sol";
 import {Transcript} from "../../src/base/Transcript.sol";
-import {MODULUS, WORD_SIZE} from "../../src/base/Constants.sol";
-// assembly only constants
-// solhint-disable-next-line no-unused-import
-import {FREE_PTR} from "../../src/base/Constants.sol";
 
 library TranscriptTest {
     function testWeCanDrawChallenge() public pure {

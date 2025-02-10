@@ -2,7 +2,7 @@
 // This is licensed under the Cryptographic Open Software License 1.0
 pragma solidity ^0.8.28;
 
-import {MODULUS} from "../../src/base/Constants.sol";
+import "../../src/base/Constants.sol";
 import {LagrangeBasisEvaluation} from "../../src/base/LagrangeBasisEvaluation.sol";
 
 /// A library for efficiently computing sums over Lagrange basis polynomials evaluated at points.

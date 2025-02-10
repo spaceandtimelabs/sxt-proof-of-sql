@@ -1,25 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-// assembly only constants
-/* solhint-disable no-unused-import */
-import {
-    ECADD_ADDRESS,
-    ECADD_GAS,
-    ECMUL_ADDRESS,
-    ECMUL_GAS,
-    ECPAIRING_ADDRESS,
-    ECPAIRINGX2_GAS,
-    INVALID_EC_ADD_INPUTS,
-    INVALID_EC_MUL_INPUTS,
-    INVALID_EC_PAIRING_INPUTS,
-    WORD_SIZE,
-    WORDX2_SIZE,
-    WORDX3_SIZE,
-    WORDX4_SIZE,
-    WORDX12_SIZE
-} from "./Constants.sol";
-/* solhint-enable no-unused-import */
+import "./Constants.sol";
 
 /// @title ECPrecompiles Library
 /// @notice A library holding Yul wrappers for the precompiled contracts.
@@ -43,7 +25,8 @@ library ECPrecompiles {
     }
 
     /// @notice Wrapper around the ECMUL precompile.
-    /// @dev The words are in the format [a_x, a_y, scalar], where the point a = (a_x, a_y) and scalar is the scalar to multiply by.
+    /// @dev The words are in the format [a_x, a_y, scalar], where the point
+    /// a = (a_x, a_y) and scalar is the scalar to multiply by.
     /// This function does an in-place multiplication of the point a by the scalar. In other words, it sets a *= scalar.
     /// The result is stored in the first two words of the input. If c = a * scalar, then the input memory is
     /// modified to be [c_x, c_y, scalar].
@@ -61,7 +44,8 @@ library ECPrecompiles {
     }
 
     /// @notice Wrapper around the ECPAIRING precompile.
-    /// @dev The words are in the format [a_x, a_y, g_x_imag, g_x_real, g_y_imag, g_y_real, b_x, b_y, h_x_imag, h_x_real, h_y_imag, h_y_real].
+    /// @dev The words are in the format
+    /// [a_x, a_y, g_x_imag, g_x_real, g_y_imag, g_y_real, b_x, b_y, h_x_imag, h_x_real, h_y_imag, h_y_real].
     /// Where the point a = (a_x, a_y) and the points g = (g_x_real + g_x_imag * i, g_y_real + g_y_imag * i),
     /// b = (b_x, b_y), and h = (h_x_real + h_x_imag * i, h_y_real + h_y_imag * i).
     /// This function computes the pairing check e(a, b) + e(g, h) == 0.

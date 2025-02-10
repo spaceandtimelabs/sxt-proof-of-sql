@@ -3,24 +3,7 @@
 pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-
-import {Errors} from "../../src/base/Constants.sol";
-/* solhint-disable no-unused-import */
-import {
-    WORD_SIZE,
-    WORDX2_SIZE,
-    WORDX3_SIZE,
-    WORDX4_SIZE,
-    WORDX12_SIZE,
-    MODULUS,
-    MODULUS_PLUS_ONE,
-    MODULUS_MASK,
-    INVALID_EC_ADD_INPUTS,
-    INVALID_EC_MUL_INPUTS,
-    INVALID_EC_PAIRING_INPUTS,
-    ROUND_EVALUATION_MISMATCH
-} from "../../src/base/Constants.sol";
-/* solhint-enable no-unused-import */
+import "../../src/base/Constants.sol";
 
 contract ConstantsTest is Test {
     function testErrorFailedInvalidECAddInputs() public {
