@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
-import { ECPrecompiles } from "../../src/base/ECPrecompiles.pre.sol";
+import {ECPrecompiles} from "../../src/base/ECPrecompiles.pre.sol";
 
 library ECPrecompilesTestWrapper {
     function ecAdd(uint256[4] calldata args) external view {

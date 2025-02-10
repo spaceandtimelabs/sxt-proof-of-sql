@@ -72,6 +72,9 @@ uint256 constant G2_NEG_GEN_Y_REAL = 0x1d9befcd05a5323e6da4d435f3b617cdb3af83285
 /// @dev The G2 negated generator point's y-coordinate imaginary component.
 uint256 constant G2_NEG_GEN_Y_IMAG = 0x275dc4a288d1afb3cbb1ac09187524c7db36395df7be3b99e673b13a075a65ec;
 
+/// @dev Size of the verification builder in bytes.
+uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 0;
+
 /// @title Errors library
 /// @notice Library containing custom error definitions.
 library Errors {
