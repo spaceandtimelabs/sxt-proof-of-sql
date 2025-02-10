@@ -66,7 +66,7 @@ fn we_can_verify_a_constant_decomposition() {
         3,
     );
     let data_eval = (&data).evaluate_at_point(&evaluation_point);
-    let eval = verifier_evaluate_sign(&mut builder, data_eval, *chi_eval).unwrap();
+    let eval = verifier_evaluate_sign(&mut builder, data_eval, *chi_eval, 8).unwrap();
     assert_eq!(eval, Curve25519Scalar::ZERO);
 }
 
@@ -100,7 +100,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         3,
     );
     let data_eval = Curve25519Scalar::from(2) * (&data).evaluate_at_point(&evaluation_point);
-    assert!(verifier_evaluate_sign(&mut builder, data_eval, *chi_eval).is_err());
+    assert!(verifier_evaluate_sign(&mut builder, data_eval, *chi_eval, 128).is_err());
 }
 
 #[test]
