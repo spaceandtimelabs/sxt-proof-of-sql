@@ -44,6 +44,9 @@ uint256 constant INVALID_EC_PAIRING_INPUTS = 0x4385b511_00000000_00000000_000000
 /// @dev Error code for when the evaluation of a round in a sumcheck proof does not match the expected value.
 uint256 constant ROUND_EVALUATION_MISMATCH = 0x741f5c3f_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
+/// @dev Size of the verification builder in bytes.
+uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 0;
+
 /// @title Errors library
 /// @notice Library containing custom error definitions.
 library Errors {
