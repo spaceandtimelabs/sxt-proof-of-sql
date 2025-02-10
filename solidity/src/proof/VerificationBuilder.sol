@@ -91,4 +91,44 @@ library VerificationBuilder {
             __evaluation := builder_consume_final_round_mle(__builderPtr)
         }
     }
+
+    /// @notice Sets the chi evaluations in the verification builder.
+    /// @param __builderPtr The pointer to the verification builder.
+    /// @param __chiEvaluationPtr The pointer to the chi evaluations.
+    /// @param __chiEvaluationLength The number of chi evaluations.
+    function __setChiEvaluations(uint256 __builderPtr, uint256 __chiEvaluationPtr, uint256 __chiEvaluationLength)
+        internal
+        pure
+    {
+        assembly {
+            function builder_set_chi_evaluations(builder_ptr, chi_evaluation_ptr, chi_evaluation_length) {
+                mstore(add(builder_ptr, CHI_EVALUATION_HEAD_OFFSET), chi_evaluation_ptr)
+                mstore(
+                    add(builder_ptr, CHI_EVALUATION_TAIL_OFFSET),
+                    add(chi_evaluation_ptr, mul(WORD_SIZE, chi_evaluation_length))
+                )
+            }
+            builder_set_chi_evaluations(__builderPtr, __chiEvaluationPtr, __chiEvaluationLength)
+        }
+    }
+
+    /// @notice Consumes a chi evaluation from the verification builder.
+    /// @param __builderPtr The pointer to the verification builder.
+    /// @return __evaluation The consumed chi evaluation.
+    /// @dev Reverts if there are no chi evaluations left.
+    function __consumeChiEvaluation(uint256 __builderPtr) internal pure returns (uint256 __evaluation) {
+        assembly {
+            function builder_consume_chi_evaluation(builder_ptr) -> evaluation {
+                let head_ptr := mload(add(builder_ptr, CHI_EVALUATION_HEAD_OFFSET))
+                evaluation := mload(head_ptr)
+                head_ptr := add(head_ptr, WORD_SIZE)
+                if gt(head_ptr, mload(add(builder_ptr, CHI_EVALUATION_TAIL_OFFSET))) {
+                    mstore(0, TOO_FEW_CHI_EVALUATIONS)
+                    revert(0, 4)
+                }
+                mstore(add(builder_ptr, CHI_EVALUATION_HEAD_OFFSET), head_ptr)
+            }
+            __evaluation := builder_consume_chi_evaluation(__builderPtr)
+        }
+    }
 }

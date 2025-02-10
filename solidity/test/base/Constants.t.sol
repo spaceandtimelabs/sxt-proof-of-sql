@@ -47,6 +47,13 @@ library ErrorTest {
             revert(0, 4)
         }
     }
+
+    function causeTooFewChiEvaluations() public pure {
+        assembly {
+            mstore(0, TOO_FEW_CHI_EVALUATIONS)
+            revert(0, 4)
+        }
+    }
 }
 
 contract ConstantsTest is Test {
@@ -80,6 +87,11 @@ contract ConstantsTest is Test {
         ErrorTest.causeTooFewFinalRoundMLEs();
     }
 
+    function testErrorFailedTooFewChiEvaluations() public {
+        vm.expectRevert(Errors.TooFewChiEvaluations.selector);
+        ErrorTest.causeTooFewChiEvaluations();
+    }
+
     function testModulusMaskIsCorrect() public pure {
         assert(MODULUS > MODULUS_MASK);
         assert(MODULUS < (MODULUS_MASK << 1));
@@ -105,8 +117,14 @@ contract ConstantsTest is Test {
     }
 
     function testVerificationBuilderOffsetsAreValid() public pure {
-        uint256[4] memory offsets =
-            [CHALLENGE_HEAD_OFFSET, CHALLENGE_TAIL_OFFSET, FINAL_ROUND_MLE_HEAD_OFFSET, FINAL_ROUND_MLE_TAIL_OFFSET];
+        uint256[6] memory offsets = [
+            CHALLENGE_HEAD_OFFSET,
+            CHALLENGE_TAIL_OFFSET,
+            FINAL_ROUND_MLE_HEAD_OFFSET,
+            FINAL_ROUND_MLE_TAIL_OFFSET,
+            CHI_EVALUATION_HEAD_OFFSET,
+            CHI_EVALUATION_TAIL_OFFSET
+        ];
         uint256 offsetsLength = offsets.length;
         assert(VERIFICATION_BUILDER_SIZE == offsetsLength * WORD_SIZE);
         for (uint256 i = 0; i < offsetsLength; ++i) {

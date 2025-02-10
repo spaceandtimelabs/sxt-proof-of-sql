@@ -47,6 +47,8 @@ uint256 constant ROUND_EVALUATION_MISMATCH = 0x741f5c3f_00000000_00000000_000000
 uint256 constant TOO_FEW_CHALLENGES = 0x700caebe_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 /// @dev Error code for when too few final round mles are provided to the verification builder.
 uint256 constant TOO_FEW_FINAL_ROUND_MLES = 0xfb828ab5_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+/// @dev Error code for when too few chi evaluations are provided to the verification builder.
+uint256 constant TOO_FEW_CHI_EVALUATIONS = 0x8ef4e6c9_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
 
 /// @dev The X coordinate of the G1 generator point.
 uint256 constant G1_GEN_X = 1;
@@ -77,7 +79,7 @@ uint256 constant G2_NEG_GEN_Y_REAL = 0x1d9befcd05a5323e6da4d435f3b617cdb3af83285
 uint256 constant G2_NEG_GEN_Y_IMAG = 0x275dc4a288d1afb3cbb1ac09187524c7db36395df7be3b99e673b13a075a65ec;
 
 /// @dev Size of the verification builder in bytes.
-uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 4;
+uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 6;
 /// @dev Offset of the pointer to the head of the challenge queue in the verification builder.
 uint256 constant CHALLENGE_HEAD_OFFSET = 0x20 * 0;
 /// @dev Offset of the pointer to the tail of the challenge queue in the verification builder.
@@ -86,6 +88,10 @@ uint256 constant CHALLENGE_TAIL_OFFSET = 0x20 * 1;
 uint256 constant FINAL_ROUND_MLE_HEAD_OFFSET = 0x20 * 2;
 /// @dev Offset of the pointer to the tail of the final round mles in the verification builder.
 uint256 constant FINAL_ROUND_MLE_TAIL_OFFSET = 0x20 * 3;
+/// @dev Offset of the pointer to the head of the chi evaluations in the verification builder.
+uint256 constant CHI_EVALUATION_HEAD_OFFSET = 0x20 * 4;
+/// @dev Offset of the pointer to the tail of the chi evaluations in the verification builder.
+uint256 constant CHI_EVALUATION_TAIL_OFFSET = 0x20 * 5;
 
 /// @title Errors library
 /// @notice Library containing custom error definitions.
@@ -102,4 +108,6 @@ library Errors {
     error TooFewChallenges();
     /// @notice Error thrown when too few final round mles are provided to the verification builder.
     error TooFewFinalRoundMLEs();
+    /// @notice Error thrown when too few chi evaluations are provided to the verification builder.
+    error TooFewChiEvaluations();
 }

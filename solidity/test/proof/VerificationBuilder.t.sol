@@ -22,6 +22,14 @@ library VerificationBuilderTestHelper {
         }
         VerificationBuilder.__setFinalRoundMLEs(builderPtr, finalRoundMLEsPtr, finalRoundMLEs.length);
     }
+
+    function setChiEvaluations(uint256 builderPtr, uint256[] memory chiEvaluations) internal pure {
+        uint256 chiEvaluationsPtr;
+        assembly {
+            chiEvaluationsPtr := add(chiEvaluations, WORD_SIZE)
+        }
+        VerificationBuilder.__setChiEvaluations(builderPtr, chiEvaluationsPtr, chiEvaluations.length);
+    }
 }
 
 contract VerificationBuilderTest is Test {
@@ -182,5 +190,79 @@ contract VerificationBuilderTest is Test {
         }
         vm.expectRevert(Errors.TooFewFinalRoundMLEs.selector);
         VerificationBuilder.__consumeFinalRoundMLE(builderPtr);
+    }
+
+    function testSetChiEvaluations() public pure {
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilder.__setChiEvaluations(builderPtr, 0xABCD, 0x1234);
+        uint256 head;
+        uint256 tail;
+        assembly {
+            head := mload(add(builderPtr, CHI_EVALUATION_HEAD_OFFSET))
+            tail := mload(add(builderPtr, CHI_EVALUATION_TAIL_OFFSET))
+        }
+        assert(head == 0xABCD);
+        assert(tail == 0xABCD + WORD_SIZE * 0x1234);
+    }
+
+    function testFuzzSetChiEvaluations(uint256[] memory, uint256 chiEvaluationPtr, uint64 chiEvaluationLength)
+        public
+        pure
+    {
+        vm.assume(chiEvaluationPtr < 2 ** 64);
+        vm.assume(chiEvaluationLength < 2 ** 64);
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilder.__setChiEvaluations(builderPtr, chiEvaluationPtr, chiEvaluationLength);
+        uint256 head;
+        uint256 tail;
+        assembly {
+            head := mload(add(builderPtr, CHI_EVALUATION_HEAD_OFFSET))
+            tail := mload(add(builderPtr, CHI_EVALUATION_TAIL_OFFSET))
+        }
+        assert(head == chiEvaluationPtr);
+        assert(tail == chiEvaluationPtr + WORD_SIZE * chiEvaluationLength);
+    }
+
+    function testSetAndConsumeZeroChiEvaluations() public {
+        uint256[] memory chiEvaluations = new uint256[](0);
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilderTestHelper.setChiEvaluations(builderPtr, chiEvaluations);
+        vm.expectRevert(Errors.TooFewChiEvaluations.selector);
+        VerificationBuilder.__consumeChiEvaluation(builderPtr);
+    }
+
+    function testSetAndConsumeOneChiEvaluation() public {
+        uint256[] memory chiEvaluations = new uint256[](1);
+        chiEvaluations[0] = 0x12345678;
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilderTestHelper.setChiEvaluations(builderPtr, chiEvaluations);
+        assert(VerificationBuilder.__consumeChiEvaluation(builderPtr) == 0x12345678);
+        vm.expectRevert(Errors.TooFewChiEvaluations.selector);
+        VerificationBuilder.__consumeChiEvaluation(builderPtr);
+    }
+
+    function testSetAndConsumeChiEvaluations() public {
+        uint256[] memory chiEvaluations = new uint256[](3);
+        chiEvaluations[0] = 0x12345678;
+        chiEvaluations[1] = 0x23456789;
+        chiEvaluations[2] = 0x3456789A;
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilderTestHelper.setChiEvaluations(builderPtr, chiEvaluations);
+        assert(VerificationBuilder.__consumeChiEvaluation(builderPtr) == 0x12345678);
+        assert(VerificationBuilder.__consumeChiEvaluation(builderPtr) == 0x23456789);
+        assert(VerificationBuilder.__consumeChiEvaluation(builderPtr) == 0x3456789A);
+        vm.expectRevert(Errors.TooFewChiEvaluations.selector);
+        VerificationBuilder.__consumeChiEvaluation(builderPtr);
+    }
+
+    function testFuzzSetAndConsumeChiEvaluations(uint256[] memory, uint256[] memory chiEvaluations) public {
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilderTestHelper.setChiEvaluations(builderPtr, chiEvaluations);
+        uint256 chiEvaluationsLength = chiEvaluations.length;
+        for (uint256 i = 0; i < chiEvaluationsLength; ++i) {
+            assert(VerificationBuilder.__consumeChiEvaluation(builderPtr) == chiEvaluations[i]);
+        }
+        vm.expectRevert(Errors.TooFewChiEvaluations.selector);
+        VerificationBuilder.__consumeChiEvaluation(builderPtr);
     }
 }
