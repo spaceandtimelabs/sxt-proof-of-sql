@@ -40,6 +40,13 @@ library ErrorTest {
             revert(0, 4)
         }
     }
+
+    function causeTooFewFinalRoundMLEs() public pure {
+        assembly {
+            mstore(0, TOO_FEW_FINAL_ROUND_MLES)
+            revert(0, 4)
+        }
+    }
 }
 
 contract ConstantsTest is Test {
@@ -68,6 +75,11 @@ contract ConstantsTest is Test {
         ErrorTest.causeTooFewChallenges();
     }
 
+    function testErrorFailedTooFewFinalRoundMLEs() public {
+        vm.expectRevert(Errors.TooFewFinalRoundMLEs.selector);
+        ErrorTest.causeTooFewFinalRoundMLEs();
+    }
+
     function testModulusMaskIsCorrect() public pure {
         assert(MODULUS > MODULUS_MASK);
         assert(MODULUS < (MODULUS_MASK << 1));
@@ -93,7 +105,8 @@ contract ConstantsTest is Test {
     }
 
     function testVerificationBuilderOffsetsAreValid() public pure {
-        uint256[2] memory offsets = [CHALLENGE_HEAD_OFFSET, CHALLENGE_TAIL_OFFSET];
+        uint256[4] memory offsets =
+            [CHALLENGE_HEAD_OFFSET, CHALLENGE_TAIL_OFFSET, FINAL_ROUND_MLE_HEAD_OFFSET, FINAL_ROUND_MLE_TAIL_OFFSET];
         uint256 offsetsLength = offsets.length;
         assert(VERIFICATION_BUILDER_SIZE == offsetsLength * WORD_SIZE);
         for (uint256 i = 0; i < offsetsLength; ++i) {

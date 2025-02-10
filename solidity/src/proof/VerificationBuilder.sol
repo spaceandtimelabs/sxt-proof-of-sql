@@ -51,4 +51,44 @@ library VerificationBuilder {
             __challenge := builder_consume_challenge(__builderPtr)
         }
     }
+
+    /// @notice Sets the final round mles in the verification builder.
+    /// @param __builderPtr The pointer to the verification builder.
+    /// @param __finalRoundMLEPtr The pointer to the final round mles.
+    /// @param __finalRoundMLELength The number of final round mles.
+    function __setFinalRoundMLEs(uint256 __builderPtr, uint256 __finalRoundMLEPtr, uint256 __finalRoundMLELength)
+        internal
+        pure
+    {
+        assembly {
+            function builder_set_final_round_mles(builder_ptr, final_round_mle_ptr, final_round_mle_length) {
+                mstore(add(builder_ptr, FINAL_ROUND_MLE_HEAD_OFFSET), final_round_mle_ptr)
+                mstore(
+                    add(builder_ptr, FINAL_ROUND_MLE_TAIL_OFFSET),
+                    add(final_round_mle_ptr, mul(WORD_SIZE, final_round_mle_length))
+                )
+            }
+            builder_set_final_round_mles(__builderPtr, __finalRoundMLEPtr, __finalRoundMLELength)
+        }
+    }
+
+    /// @notice Consumes a final round mle from the verification builder.
+    /// @param __builderPtr The pointer to the verification builder.
+    /// @return __evaluation The consumed final round mle.
+    /// @dev Reverts if there are no final round mles left.
+    function __consumeFinalRoundMLE(uint256 __builderPtr) internal pure returns (uint256 __evaluation) {
+        assembly {
+            function builder_consume_final_round_mle(builder_ptr) -> evaluation {
+                let head_ptr := mload(add(builder_ptr, FINAL_ROUND_MLE_HEAD_OFFSET))
+                evaluation := mload(head_ptr)
+                head_ptr := add(head_ptr, WORD_SIZE)
+                if gt(head_ptr, mload(add(builder_ptr, FINAL_ROUND_MLE_TAIL_OFFSET))) {
+                    mstore(0, TOO_FEW_FINAL_ROUND_MLES)
+                    revert(0, 4)
+                }
+                mstore(add(builder_ptr, FINAL_ROUND_MLE_HEAD_OFFSET), head_ptr)
+            }
+            __evaluation := builder_consume_final_round_mle(__builderPtr)
+        }
+    }
 }
