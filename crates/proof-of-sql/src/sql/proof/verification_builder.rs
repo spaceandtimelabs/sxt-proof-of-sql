@@ -128,7 +128,6 @@ impl<'a, S: Scalar> StandardVerificationBuilder<'a, S> {
     }
 }
 
-
 impl<'a, S: Scalar> VerificationBuilder<S> for StandardVerificationBuilder<'a, S> {
     /// Consume the evaluation of a one evaluation
     ///
