@@ -12,17 +12,16 @@ use crate::base::{
 use alloc::{boxed::Box, format, string::ToString, vec::Vec};
 use proof_of_sql_parser::{
     intermediate_ast::{
-        AggregationOperator, AliasedResultExpr, Expression, Literal, OrderBy, SelectResultExpr,
-        Slice, TableExpression,
+        AggregationOperator, AliasedResultExpr, Expression, Literal, SelectResultExpr, Slice,
+        TableExpression,
     },
     Identifier,
 };
-use sqlparser::ast::{BinaryOperator, UnaryOperator};
+use sqlparser::ast::{BinaryOperator, Expr, Ident, OrderByExpr, UnaryOperator};
 pub struct QueryContextBuilder<'a> {
     context: QueryContext,
     schema_accessor: &'a dyn SchemaAccessor,
 }
-use sqlparser::ast::Ident;
 
 // Public interface
 impl<'a> QueryContextBuilder<'a> {
@@ -79,9 +78,48 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
-    pub fn visit_order_by_exprs(mut self, order_by_exprs: Vec<OrderBy>) -> Self {
-        self.context.set_order_by_exprs(order_by_exprs);
-        self
+    pub fn visit_order_by_exprs(
+        mut self,
+        order_by_exprs: Vec<OrderByExpr>,
+    ) -> ConversionResult<Self> {
+        let ident_direction_pairs: Vec<(Ident, bool)> = order_by_exprs
+            .into_iter()
+            .map(|order_by_expr| -> ConversionResult<(Ident, bool)> {
+                let ident_direction_pair = match order_by_expr {
+                    OrderByExpr {
+                        expr: Expr::Identifier(id),
+                        asc: Some(true) | None,
+                        ..
+                    } => Ok((id, true)),
+                    OrderByExpr {
+                        expr: Expr::Identifier(id),
+                        asc: Some(false),
+                        ..
+                    } => Ok((id, false)),
+                    _ => Err(ConversionError::UnsupportedOperation {
+                        message: "Order by columns other than result columns not supported yet"
+                            .to_string(),
+                    }),
+                }?;
+                Ok(ident_direction_pair)
+            })
+            .collect::<ConversionResult<Vec<_>>>()?;
+        let index_direction_pairs: Vec<(usize, bool)> = ident_direction_pairs
+            .into_iter()
+            .map(|ident_direction_pair| -> ConversionResult<(usize, bool)> {
+                let ident = ident_direction_pair.0;
+                let index = self
+                    .context
+                    .get_result_column_set()
+                    .get_index_of(&ident)
+                    .ok_or(ConversionError::MissingColumnWithoutTable {
+                        identifier: Box::new(ident),
+                    })?;
+                Ok((index, ident_direction_pair.1))
+            })
+            .collect::<ConversionResult<Vec<_>>>()?;
+        self.context.set_order_by_exprs(index_direction_pairs);
+        Ok(self)
     }
 
     pub fn visit_slice_expr(mut self, slice: Option<Slice>) -> Self {
