@@ -3,9 +3,8 @@
 pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-
+import "../../src/base/Constants.sol";
 import {Sumcheck} from "../../src/proof/Sumcheck.pre.sol";
-import {Errors, MODULUS, MODULUS_MASK, WORD_SIZE} from "../../src/base/Constants.sol";
 
 library SumcheckTestWrapper {
     /// @notice Wrapper function to verify a sumcheck proof
@@ -93,7 +92,8 @@ contract SumcheckTest is Test {
     ) public {
         // If numVars == 0, it is an empty proof and will always verify.
         vm.assume(numVars > 0);
-        // The proof with entirely 0s (expect for the last prover message) will succeed and is not fully random, so we should not include it
+        // The proof with entirely 0s (expect for the last prover message) will succeed and is not fully random,
+        // so we should not include it
         bool allZeros = true;
         uint256 realProofLength = uint256(numVars - 1) * (uint256(degree) + 1);
         uint256 nonZeroLength = proof.length > realProofLength ? realProofLength : proof.length;

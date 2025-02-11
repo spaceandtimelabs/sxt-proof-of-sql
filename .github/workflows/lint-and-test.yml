@@ -267,5 +267,7 @@ jobs:
         run: npm install -g solhint
       - name: Run lints
         run: |
-          cd solidity/src
+          cd solidity
+          scripts/preprocess_yul_imports.sh src
+          scripts/preprocess_yul_imports.sh test
           solhint '**/*.sol' -w 0

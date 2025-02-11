@@ -2,15 +2,14 @@
 // This is licensed under the Cryptographic Open Software License 1.0
 pragma solidity ^0.8.28;
 
-// assembly only constants
-// solhint-disable-next-line no-unused-import
-import {MODULUS, MODULUS_PLUS_ONE, WORD_SIZE} from "./Constants.sol";
+import "./Constants.sol";
 
 /// @title Lagrange Basis Evaluation Library
 /// @notice A library for efficiently computing sums over Lagrange basis polynomials evaluated at points.
 library LagrangeBasisEvaluation {
     /// @notice Computes the sum of the Lagrange basis polynomials evaluated at a given point.
-    /// @notice This is a wrapper around the `compute_truncated_lagrange_basis_sum` Yul function. This wrapper is only intended to be used for testing.
+    /// @notice This is a wrapper around the `compute_truncated_lagrange_basis_sum` Yul function.
+    /// This wrapper is only intended to be used for testing.
     /// @param __length The length of the sum.
     /// @param __x The point at which to evaluate the Lagrange basis.
     /// @return __result The sum of the Lagrange basis polynomials evaluated at the given point.
@@ -51,14 +50,18 @@ library LagrangeBasisEvaluation {
 
     /// @notice Computes the inner product of the Lagrange basis polynomials evaluated at two given points.
     /// @notice Reverts if `__x` and `__y` have different lengths.
-    /// @notice This is a wrapper around the `compute_truncated_lagrange_basis_inner_product` Yul function. This wrapper is only intended to be used for testing.
+    /// @notice This is a wrapper around the `compute_truncated_lagrange_basis_inner_product` Yul function.
+    /// This wrapper is only intended to be used for testing.
     /// @param __length The length of the sum.
     /// @param __x The first point at which to evaluate the Lagrange basis.
     /// @param __y The second point at which to evaluate the Lagrange basis.
     /// @return __result The inner product of the Lagrange basis polynomials evaluated at the two points.
-    /// @dev Let \\(\chi_i(x)\\) be the \\(i\\)th Lagrange basis polynomial as described in [__computeTruncatedLagrangeBasisSum](#__computetruncatedlagrangebasissum).
-    /// @dev This function computes \\[ \sum_{i=0}^{\ell-1}\chi_i(x_0,\ldots,x_{\nu-1},0,\ldots)\chi_i(y_0,\ldots,y_{\nu-1},0,\ldots),\\]
-    /// where \\(\ell = \texttt{length}\\) and \\(\nu = \texttt{num_vars} = \texttt{__x.length} = \texttt{__y.length}\\).
+    /// @dev Let \\(\chi_i(x)\\) be the \\(i\\)th Lagrange basis polynomial as described in
+    /// [__computeTruncatedLagrangeBasisSum](#__computetruncatedlagrangebasissum).
+    /// @dev This function computes
+    /// \\[ \sum_{i=0}^{\ell-1}\chi_i(x_0,\ldots,x_{\nu-1},0,\ldots)\chi_i(y_0,\ldots,y_{\nu-1},0,\ldots),\\]
+    /// where \\(\ell = \texttt{length}\\) and
+    /// \\(\nu = \texttt{num_vars} = \texttt{__x.length} = \texttt{__y.length}\\).
     function __computeTruncatedLagrangeBasisInnerProduct(uint256 __length, uint256[] memory __x, uint256[] memory __y)
         internal
         pure

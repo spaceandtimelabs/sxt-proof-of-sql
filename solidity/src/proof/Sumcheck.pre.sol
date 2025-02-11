@@ -2,9 +2,7 @@
 // This is licensed under the Cryptographic Open Software License 1.0
 pragma solidity ^0.8.28;
 
-// assembly only constants
-// solhint-disable-next-line no-unused-import
-import {ROUND_EVALUATION_MISMATCH, FREE_PTR, WORD_SIZE, MODULUS, MODULUS_MASK} from "../base/Constants.sol";
+import "../base/Constants.sol";
 
 /// @title Sumcheck Protocol Verification Library
 /// @notice This library provides functions to verify sumcheck proofs in zero-knowledge protocols.
@@ -20,7 +18,8 @@ library Sumcheck {
     /// @param degree0 Degree of the polynomial being checked
     /// @return evaluationPointPtr0 Pointer to the evaluation points in memory
     /// @return expectedEvaluation0 The expected evaluation result
-    function verifySumcheckProof(uint256[1] memory transcript0, uint256 proofPtr0, uint256 numVars0, uint256 degree0)
+    function verifySumcheckProof( // solhint-disable-line function-max-lines
+    uint256[1] memory transcript0, uint256 proofPtr0, uint256 numVars0, uint256 degree0)
         internal
         pure
         returns (uint256 evaluationPointPtr0, uint256 expectedEvaluation0)
