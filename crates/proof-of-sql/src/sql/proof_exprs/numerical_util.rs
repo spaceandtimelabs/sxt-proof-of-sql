@@ -135,7 +135,6 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
 
 /// Convert column to scalar slice.
 #[allow(clippy::missing_panics_doc)]
-#[allow(dead_code)]
 pub(crate) fn columns_to_scalar_slice<'a, S: Scalar>(
     column: &Column<'a, S>,
     alloc: &'a Bump,
@@ -198,7 +197,6 @@ pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
 }
 
 #[allow(clippy::missing_panics_doc)]
-#[allow(dead_code)]
 fn divide_integer_columns<
     'a,
     L: NumCast + Copy + PrimInt,
@@ -237,7 +235,6 @@ fn divide_integer_columns<
 }
 
 #[allow(clippy::missing_panics_doc)]
-#[allow(dead_code)]
 fn modulo_integer_columns<
     'a,
     L: NumCast + Copy + PrimInt,
@@ -271,7 +268,6 @@ fn modulo_integer_columns<
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length.
 #[allow(clippy::too_many_lines)]
-#[allow(dead_code)]
 pub(crate) fn divide_columns<'a, S: Scalar>(
     lhs: &Column<'a, S>,
     rhs: &Column<'a, S>,
@@ -392,7 +388,6 @@ pub(crate) fn divide_columns<'a, S: Scalar>(
     }
 }
 
-#[allow(dead_code)]
 /// Take the modulo of one column against another.
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length.
