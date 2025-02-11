@@ -1,9 +1,14 @@
 use super::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr};
-use crate::base::{
-    database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
-    math::{decimal::Precision, i256::I256},
-    scalar::Scalar,
+use crate::{
+    base::{
+        database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
+        math::{decimal::Precision, i256::I256},
+        polynomial::MultilinearExtension,
+        scalar::{test_scalar::TestScalar, Scalar},
+    },
+    sql::proof::{mock_verification_builder::MockVerificationBuilder, FinalRoundBuilder},
 };
+use bumpalo::Bump;
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use sqlparser::ast::Ident;
 
@@ -217,4 +222,48 @@ pub fn sum_expr(expr: DynProofExpr, alias: &str) -> AliasedDynProofExpr {
         expr: DynProofExpr::new_aggregate(AggregationOperator::Sum, expr),
         alias: alias.into(),
     }
+}
+
+pub fn verify_row_by_row<
+    'a,
+    F: FnMut(&mut MockVerificationBuilder<TestScalar>, TestScalar, &[TestScalar]),
+>(
+    alloc: &'a Bump,
+    table_length: usize,
+    final_round_builder: FinalRoundBuilder<'_, TestScalar>,
+    mut row_verification: F,
+) -> Vec<Vec<bool>> {
+    let evaluation_points = (0..table_length).into_iter().map(|i| {
+        alloc.alloc_slice_fill_with(table_length, |j| {
+            if i == j {
+                TestScalar::ONE
+            } else {
+                TestScalar::ZERO
+            }
+        })
+    });
+    let final_round_mles: Vec<_> = evaluation_points
+        .clone()
+        .map(|evaluation_point| final_round_builder.evaluate_pcs_proof_mles(&evaluation_point))
+        .collect();
+    let mut verification_builder = MockVerificationBuilder::new(
+        final_round_builder
+            .bit_distributions()
+            .iter()
+            .cloned()
+            .collect(),
+        3,
+        final_round_mles,
+    );
+
+    for evaluation_point in evaluation_points {
+        let one_eval = (&[1, 1, 1, 1]).inner_product(&evaluation_point);
+        row_verification(&mut verification_builder, one_eval, &evaluation_point);
+        verification_builder.increment_row_index();
+    }
+    verification_builder
+        .identity_subpolynomial_evaluations
+        .iter()
+        .map(|v| v.iter().map(|s| *s == TestScalar::ZERO).collect())
+        .collect()
 }

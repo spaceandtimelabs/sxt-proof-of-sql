@@ -1,5 +1,3 @@
-use core::marker::PhantomData;
-
 use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
 use crate::{
     base::{
@@ -117,60 +115,38 @@ pub fn result_evaluate_equals_zero<'a, S: Scalar>(
     alloc.alloc_slice_fill_with(table_length, |i| lhs[i] == S::zero())
 }
 
-
-trait EqualsExprProverUtilities {
-    fn get_lhs_inverse<'a, S: Scalar>(alloc: &'a Bump, lhs: &[S]) -> &'a mut [S];
-    fn get_selection<'a, S: Scalar>(alloc: &'a Bump, table_length: usize, lhs: &[S]) -> &'a [bool];
-}
-
-trait EqualsExprProverMockableFunctionality{
-    fn get_lhs_inverse<S: Scalar>(lhs: &[S]) -> Vec<S>{
-        lhs.into_iter().copied().collect()
-    }
-    fn get_selection<S: Scalar>(lhs: &[S]) -> Vec<bool>{
-        lhs.into_iter().copied().map(|s| s == S::zero()).collect()
-    }
+trait EqualsExprProverUtilities<S: Scalar> {
+    fn get_lhs_inverse<'a>(&self, alloc: &'a Bump, lhs: &[S]) -> &'a mut [S];
+    fn get_selection<'a>(&self, alloc: &'a Bump, table_length: usize, lhs: &[S]) -> &'a [bool];
 }
 
 struct EqualsExprProverStandardUtilities;
 
-impl EqualsExprProverUtilities for EqualsExprProverStandardUtilities {
-    fn get_lhs_inverse<'a, S: Scalar>(alloc: &'a Bump, lhs: &[S]) -> &'a mut [S]{
-        alloc.alloc_slice_copy(lhs)
+impl<S: Scalar> EqualsExprProverUtilities<S> for EqualsExprProverStandardUtilities {
+    fn get_lhs_inverse<'a>(&self, alloc: &'a Bump, lhs: &[S]) -> &'a mut [S] {
+        let lhs_pseudo_inv = alloc.alloc_slice_copy(lhs);
+        slice_ops::batch_inversion(lhs_pseudo_inv);
+        lhs_pseudo_inv
     }
-    fn get_selection<'a, S: Scalar>(alloc: &'a Bump, table_length: usize, lhs: &[S]) -> &'a [bool]{
+    fn get_selection<'a>(&self, alloc: &'a Bump, table_length: usize, lhs: &[S]) -> &'a [bool] {
         alloc.alloc_slice_fill_with(table_length, |i| lhs[i] == S::zero())
     }
 }
 
-struct EqualsExprProverTestUtilities<F: EqualsExprProverMockableFunctionality>{
-    phantom: PhantomData<F>
-}
-
-impl<F: EqualsExprProverMockableFunctionality> EqualsExprProverUtilities for EqualsExprProverTestUtilities<F>{
-    fn get_lhs_inverse<'a, S: Scalar>(alloc: &'a Bump, lhs: &[S]) -> &'a mut [S] {
-        todo!()
-    }
-
-    fn get_selection<'a, S: Scalar>(alloc: &'a Bump, table_length: usize, lhs: &[S]) -> &'a [bool] {
-        todo!()
-    }
-}
-
-fn prover_evaluate_equals_zero_base<'a, S: Scalar, U: EqualsExprProverUtilities>(
+fn prover_evaluate_equals_zero_base<'a, S: Scalar, U: EqualsExprProverUtilities<S>>(
     table_length: usize,
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     lhs: &'a [S],
+    utils: U,
 ) -> &'a [bool] {
     // lhs_pseudo_inv
-    let lhs_pseudo_inv = U::get_lhs_inverse(alloc, lhs);
-    slice_ops::batch_inversion(lhs_pseudo_inv);
+    let lhs_pseudo_inv = utils.get_lhs_inverse(alloc, lhs);
 
     builder.produce_intermediate_mle(lhs_pseudo_inv as &[_]);
 
     // selection
-    let selection = U::get_selection(alloc, table_length, lhs);
+    let selection = utils.get_selection(alloc, table_length, lhs);
     builder.produce_intermediate_mle(selection);
 
     // selection_not
@@ -208,6 +184,7 @@ pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
         builder,
         &alloc,
         &lhs,
+        EqualsExprProverStandardUtilities {},
     )
 }
 
@@ -240,57 +217,102 @@ pub fn verifier_evaluate_equals_zero<S: Scalar, B: VerificationBuilder<S>>(
 
 #[cfg(test)]
 mod tests {
+    use super::EqualsExprProverUtilities;
+    use crate::{
+        base::{
+            polynomial::MultilinearExtension,
+            scalar::{test_scalar::TestScalar, Scalar},
+        },
+        sql::{
+            proof::{mock_verification_builder::MockVerificationBuilder, FinalRoundBuilder},
+            proof_exprs::{
+                equals_expr::{prover_evaluate_equals_zero_base, verifier_evaluate_equals_zero},
+                test_utility::verify_row_by_row,
+            },
+        },
+    };
+    use ark_ff::Zero;
+    use bumpalo::Bump;
+    use itertools::Itertools;
+    use mockall::automock;
+    use num_traits::Inv;
     use std::collections::VecDeque;
 
-    use bumpalo::Bump;
-    use sqlparser::ast::Ident;
+    #[automock]
+    trait EqualsExprProverMockableFunctionality {
+        fn get_lhs_inverse(&self, lhs: Vec<TestScalar>) -> Vec<TestScalar>;
+        fn get_selection(&self, lhs: Vec<TestScalar>) -> Vec<bool>;
+    }
 
-    use crate::{base::{polynomial::MultilinearExtension, scalar::{test_scalar::TestScalar, Scalar}}, sql::{proof::{mock_verification_builder::MockVerificationBuilder, FinalRoundBuilder}, proof_exprs::equals_expr::{prover_evaluate_equals_zero_base, verifier_evaluate_equals_zero}}};
+    fn get_lhs_inverse(lhs: Vec<TestScalar>) -> Vec<TestScalar> {
+        lhs.iter()
+            .map(|s| s.inv().unwrap_or(TestScalar::ZERO))
+            .collect()
+    }
+
+    fn get_selection(lhs: Vec<TestScalar>) -> Vec<bool> {
+        lhs.iter().copied().map(|s| s == TestScalar::ZERO).collect()
+    }
+
+    struct EqualsExprProverTestUtilities<F: EqualsExprProverMockableFunctionality> {
+        utils: F,
+    }
+
+    impl<F: EqualsExprProverMockableFunctionality> EqualsExprProverUtilities<TestScalar>
+        for EqualsExprProverTestUtilities<F>
+    {
+        fn get_lhs_inverse<'a>(&self, alloc: &'a Bump, lhs: &[TestScalar]) -> &'a mut [TestScalar] {
+            alloc.alloc_slice_copy(&self.utils.get_lhs_inverse(lhs.iter().copied().collect()))
+        }
+
+        fn get_selection<'a>(
+            &self,
+            alloc: &'a Bump,
+            _table_length: usize,
+            lhs: &[TestScalar],
+        ) -> &'a [bool] {
+            alloc.alloc_slice_copy(&self.utils.get_selection(lhs.iter().copied().collect()))
+        }
+    }
 
     #[test]
     fn we_can_reject_proof_if_selection_tampered() {
         let alloc = Bump::new();
-        let lhs = &[TestScalar::from(1u8)];
+        let lhs = &[
+            TestScalar::from(1),
+            TestScalar::from(-3),
+            TestScalar::from(0),
+        ];
 
         let mut final_round_builder: FinalRoundBuilder<'_, TestScalar> =
-            FinalRoundBuilder::new(1, VecDeque::new());
+            FinalRoundBuilder::new(3, VecDeque::new());
 
-        prover_evaluate_equals_zero_base::<_, >(1, &mut final_round_builder, &alloc, lhs);
+        let mut mock_utils = MockEqualsExprProverMockableFunctionality::new();
+        mock_utils
+            .expect_get_lhs_inverse()
+            .returning(get_lhs_inverse);
+        let column_of_non_zeroes = vec![false; 3];
+        // Here we try to claim that the last row is not 0.
+        mock_utils
+            .expect_get_selection()
+            .return_const(column_of_non_zeroes);
 
-        let evaluation_points = (0..1).into_iter().map(|i| {
-            alloc.alloc_slice_fill_with(1, |j| {
-                if i == j {
-                    TestScalar::ONE
-                } else {
-                    TestScalar::ZERO
-                }
-            })
-        });
-        let final_round_mles: Vec<_> = evaluation_points
-            .clone()
-            .map(|evaluation_point| final_round_builder.evaluate_pcs_proof_mles(&evaluation_point))
-            .collect();
-        dbg!(&final_round_mles);
-        let mut verification_builder = MockVerificationBuilder::new(
-            final_round_builder
-                .bit_distributions()
-                .iter()
-                .cloned()
-                .collect(),
+        let utils: EqualsExprProverTestUtilities<MockEqualsExprProverMockableFunctionality> =
+            EqualsExprProverTestUtilities { utils: mock_utils };
+
+        prover_evaluate_equals_zero_base(1, &mut final_round_builder, &alloc, lhs, utils);
+
+        let matrix = verify_row_by_row(
+            &alloc,
             3,
-            final_round_mles,
+            final_round_builder,
+            |verification_builder, one_eval, evaluation_point| {
+                let lhs_eval = lhs.inner_product(&evaluation_point);
+                verifier_evaluate_equals_zero(verification_builder, lhs_eval, one_eval).unwrap();
+            },
         );
-
-        for evaluation_point in evaluation_points {
-            let one_eval = (&[1, 1, 1, 1]).inner_product(&evaluation_point);
-            let lhs_eval = lhs.inner_product(&evaluation_point);
-            verifier_evaluate_equals_zero(&mut verification_builder, lhs_eval, one_eval).unwrap();
-            verification_builder.increment_row_index();
-        }
-        let zero_vec = vec![TestScalar::ZERO];
-        assert_eq!(
-            verification_builder.identity_subpolynomial_evaluations,
-            vec![zero_vec; 4]
-        );
+        // Only the last row is wrong, and only the second constraint
+        let expected_matrix = vec![vec![true, true], vec![true, true], vec![true, false]];
+        assert_eq!(matrix, expected_matrix);
     }
 }

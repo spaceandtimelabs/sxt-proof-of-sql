@@ -87,10 +87,10 @@ impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
         self.consumed_final_round_pcs_proof_mles += 1;
         Ok(*self
             .final_round_mles
-            .get(index)
+            .get(self.evaluation_row_index)
             .cloned()
             .ok_or(ProofSizeMismatch::TooFewMLEEvaluations)?
-            .get(self.evaluation_row_index)
+            .get(index)
             .unwrap_or(&S::ZERO))
     }
 

@@ -207,45 +207,18 @@ fn we_can_verify_a_simple_proof() {
 
     and_expr.prover_evaluate(&mut final_round_builder, &alloc, &table);
 
-    let evaluation_points = (0..4).into_iter().map(|i| {
-        alloc.alloc_slice_fill_with(4, |j| {
-            if i == j {
-                TestScalar::ONE
-            } else {
-                TestScalar::ZERO
-            }
-        })
-    });
-    let final_round_mles: Vec<_> = evaluation_points
-        .clone()
-        .map(|evaluation_point| final_round_builder.evaluate_pcs_proof_mles(&evaluation_point))
-        .collect();
-    dbg!(&final_round_mles);
-    let mut verification_builder = MockVerificationBuilder::new(
-        final_round_builder
-            .bit_distributions()
-            .iter()
-            .cloned()
-            .collect(),
-        3,
-        final_round_mles,
-    );
-
-    for evaluation_point in evaluation_points {
-        let one_eval = (&[1, 1, 1, 1]).inner_product(&evaluation_point);
+    let matrix = verify_row_by_row(&alloc, 4, final_round_builder, |verification_builder, one_eval, evaluation_point|{
         let accessor = indexmap! {
             a.clone() => lhs.inner_product(evaluation_point),
             b.clone() => rhs.inner_product(evaluation_point)
         };
         and_expr
-            .verifier_evaluate(&mut verification_builder, &accessor, one_eval)
+            .verifier_evaluate(verification_builder, &accessor, one_eval)
             .unwrap();
-        verification_builder.increment_row_index();
-    }
-    let zero_vec = vec![TestScalar::ZERO];
+    });
     assert_eq!(
-        verification_builder.identity_subpolynomial_evaluations,
-        vec![zero_vec; 4]
+        matrix,
+        vec![vec![true]; 4]
     );
 }
 
