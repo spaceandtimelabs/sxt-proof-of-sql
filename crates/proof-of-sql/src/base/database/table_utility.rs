@@ -16,10 +16,12 @@
 //! ]);
 //! ```
 use super::{Column, Table, TableOptions};
-use crate::base::scalar::Scalar;
+use crate::base::{
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    scalar::Scalar,
+};
 use alloc::{string::String, vec::Vec};
 use bumpalo::Bump;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use sqlparser::ast::Ident;
 
 /// Creates an [`Table`] from a list of `(Ident, Column)` pairs.
