@@ -491,3 +491,120 @@ pub(crate) fn modulo_columns<'a, S: Scalar>(
         ),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::divide_integer_columns;
+    use crate::{
+        base::scalar::test_scalar::TestScalar,
+        sql::proof_exprs::numerical_util::modulo_integer_columns,
+    };
+    use bumpalo::Bump;
+    use itertools::Itertools;
+
+    fn verify_tinyint_division(
+        lhs: &[i8],
+        rhs: &[i8],
+        wrapped_quotient: &[i8],
+        q: &[i16],
+        r: &[i8],
+    ) {
+        let alloc = Bump::new();
+        let quotient = divide_integer_columns::<_, _, TestScalar>(&lhs, &rhs, &alloc, false);
+        let remainder: &[i8] = modulo_integer_columns(&lhs, &rhs, &alloc, false);
+        assert_eq!(quotient.0, wrapped_quotient);
+        assert_eq!(
+            quotient.1.iter().copied().collect_vec(),
+            q.iter().map(TestScalar::from).collect_vec()
+        );
+        assert_eq!(remainder, r);
+    }
+
+    #[test]
+    fn we_can_divide_and_modulo_by_different_size_types() {
+        let alloc = Bump::new();
+        let a: &[i8] = &[2i8, 7, 0, 54];
+        let b: &[i128] = &[-1i128, 300, 6, 0];
+        let quotient_ab = divide_integer_columns::<_, _, TestScalar>(&a, &b, &alloc, true);
+        let remainder_ab: &[i128] = modulo_integer_columns(&a, &b, &alloc, true);
+        assert_eq!(quotient_ab.0, &[-2i8, 0, 0, 0]);
+        assert_eq!(remainder_ab, &[0i128, 7, 0, 54]);
+        let quotient_ba = divide_integer_columns::<_, _, TestScalar>(&b, &a, &alloc, false);
+        let remainder_ba: &[i128] = modulo_integer_columns(&b, &a, &alloc, false);
+        assert_eq!(quotient_ba.0, &[0i128, 42, 0, 0]);
+        assert_eq!(remainder_ba, &[-1i128, 6, 6, 0]);
+    }
+
+    #[test]
+    fn we_can_divide_nonnegative_only_columns() {
+        verify_tinyint_division(
+            &[2, 7, 0, 54],
+            &[1, 33, 6, 36],
+            &[2, 0, 0, 1],
+            &[2, 0, 0, 1],
+            &[0, 7, 0, 18],
+        );
+    }
+
+    #[test]
+    fn we_can_divide_nonpositive_only_columns() {
+        verify_tinyint_division(
+            &[-2, -7, 0, -54],
+            &[-1, -33, -6, -36],
+            &[2, 0, 0, 1],
+            &[2, 0, 0, 1],
+            &[0, -7, 0, -18],
+        );
+    }
+
+    #[test]
+    fn we_can_divide_nonpositive_numerator_and_positive_denominator_columns() {
+        verify_tinyint_division(
+            &[-2, -7, 0, -54],
+            &[1, 33, 6, 36],
+            &[-2, 0, 0, -1],
+            &[-2, 0, 0, -1],
+            &[0, -7, 0, -18],
+        );
+    }
+
+    #[test]
+    fn we_can_divide_nonnegative_numerator_and_negative_denominator_columns() {
+        verify_tinyint_division(
+            &[2, 7, 0, 54],
+            &[-1, -33, -6, -36],
+            &[-2, 0, 0, -1],
+            &[-2, 0, 0, -1],
+            &[0, 7, 0, 18],
+        );
+    }
+
+    #[test]
+    fn we_can_divide_zero_denominator_columns() {
+        verify_tinyint_division(
+            &[1, -1, 0, i8::MAX, i8::MIN],
+            &[0, 0, 0, 0, 0],
+            &[0, 0, 0, 0, 0],
+            &[0, 0, 0, 0, 0],
+            &[1, -1, 0, i8::MAX, i8::MIN],
+        );
+    }
+
+    #[test]
+    fn we_can_divide_minmax_numerator_and_plusminusonezero_denominator_columns() {
+        verify_tinyint_division(
+            &[i8::MAX, i8::MIN, i8::MAX, i8::MIN, i8::MAX, i8::MIN],
+            &[1, 1, -1, -1, 0, 0],
+            &[i8::MAX, i8::MIN, -i8::MAX, i8::MIN, 0, 0],
+            &[
+                i16::from(i8::MAX),
+                i16::from(i8::MIN),
+                -i16::from(i8::MAX),
+                -i16::from(i8::MIN),
+                0,
+                0,
+            ],
+            &[0, 0, 0, 0, i8::MAX, i8::MIN],
+        );
+    }
+}
