@@ -356,10 +356,8 @@ impl DivideAndModuloExpr {
         // sign(sqrt(-min) + s) = 1
         // sign(sqrt(-min) - s) = 1
         let min_sqrt_eval = S::from(SQRT_MIN_I128) * one_eval;
-        let sqrt_min_plus_s =
-            verifier_evaluate_sign(builder, min_sqrt_eval + s, one_eval, 128)?;
-        let sqrt_min_less_s =
-            verifier_evaluate_sign(builder, min_sqrt_eval - s, one_eval, 128)?;
+        let sqrt_min_plus_s = verifier_evaluate_sign(builder, min_sqrt_eval + s, one_eval, 128)?;
+        let sqrt_min_less_s = verifier_evaluate_sign(builder, min_sqrt_eval - s, one_eval, 128)?;
 
         if sqrt_min_plus_s != S::ZERO || sqrt_min_less_s != S::ZERO {
             return Err(ProofError::VerificationError {
