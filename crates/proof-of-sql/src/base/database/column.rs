@@ -521,6 +521,19 @@ impl ColumnType {
             }
         }
     }
+
+    /// Returns if the column type supports signed values.
+    #[must_use]
+    pub fn min_scalar<S: Scalar>(&self) -> Option<S> {
+        match self {
+            ColumnType::TinyInt => Some(S::from(i8::MIN)),
+            ColumnType::SmallInt => Some(S::from(i16::MIN)),
+            ColumnType::Int => Some(S::from(i32::MIN)),
+            ColumnType::BigInt => Some(S::from(i64::MIN)),
+            ColumnType::Int128 => Some(S::from(i128::MIN)),
+            _ => None,
+        }
+    }
 }
 
 /// Display the column type as a str name (in all caps)
