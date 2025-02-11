@@ -54,9 +54,9 @@ impl ProofExpr for DivideExpr {
         self.inner_expr.prover_evaluate(builder, alloc, table).0
     }
 
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         one_eval: S,
     ) -> Result<S, ProofError> {

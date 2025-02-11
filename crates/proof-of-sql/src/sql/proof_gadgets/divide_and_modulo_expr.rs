@@ -27,6 +27,64 @@ pub struct DivideAndModuloExpr {
 
 const SQRT_MIN_I128: u64 = 13_043_817_825_332_782_212;
 
+trait DivideAndModuloExprUtilities<S: Scalar>{
+    fn divide_columns<'a>(
+        &self,
+        lhs: &Column<'a, S>,
+        rhs: &Column<'a, S>,
+        alloc: &'a Bump,
+    ) -> (Column<'a, S>, &'a [S]);
+
+    fn modulo_columns<'a>(
+        &self,
+        lhs: &Column<'a, S>,
+        rhs: &Column<'a, S>,
+        alloc: &'a Bump,
+    ) -> Column<'a, S>;
+
+    fn get_in_range_column_from_quotient_and_rhs<'a>(&self, alloc: &'a Bump, quotient: &'a [S], rhs: Vec<S>) -> &'a [S];
+}
+
+struct StandardDivideAndModuloExprUtilities;
+
+impl<S: Scalar> DivideAndModuloExprUtilities<S> for StandardDivideAndModuloExprUtilities{
+    fn divide_columns<'a>(
+        &self,
+        lhs: &Column<'a, S>,
+        rhs: &Column<'a, S>,
+        alloc: &'a Bump,
+    ) -> (Column<'a, S>, &'a [S]) {
+        divide_columns(lhs, rhs, alloc)
+    }
+
+    fn modulo_columns<'a>(
+        &self,
+        lhs: &Column<'a, S>,
+        rhs: &Column<'a, S>,
+        alloc: &'a Bump,
+    ) -> Column<'a, S> {
+        modulo_columns(lhs, rhs, alloc)
+    }
+
+    fn get_in_range_column_from_quotient_and_rhs<'a>(&self, alloc: &'a Bump, quotient: &'a [S], rhs: Vec<S>) -> &'a [S] {
+        let min_sqrt_scalar = -S::from(SQRT_MIN_I128);
+        let in_range_q_or_b = alloc.alloc_slice_fill_with(quotient.len(), |_i| S::ZERO);
+        for (res, (q, b)) in in_range_q_or_b
+            .iter_mut()
+            .zip(quotient.iter().copied().zip(rhs.clone()))
+        {
+            // We do or rather than and here because scalars wrap negative values, so only one can be true at a time
+            let in_range_value = if q > min_sqrt_scalar || q < -min_sqrt_scalar {
+                q
+            } else {
+                b
+            };
+            *res = in_range_value;
+        }
+        in_range_q_or_b
+    }
+}
+
 impl DivideAndModuloExpr {
     pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
         Self { lhs, rhs }
@@ -52,12 +110,13 @@ impl DivideAndModuloExpr {
         table: &Table<'a, S>,
     ) -> (Column<'a, S>, Column<'a, S>) {
         log::log_memory_usage("Start");
+        let utilities = StandardDivideAndModuloExprUtilities{};
 
         let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
         let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
 
-        let (quotient_wrapped, quotient) = divide_columns(&lhs_column, &rhs_column, alloc);
-        let remainder = modulo_columns(&lhs_column, &rhs_column, alloc);
+        let (quotient_wrapped, quotient) = utilities.divide_columns(&lhs_column, &rhs_column, alloc);
+        let remainder = utilities.modulo_columns(&lhs_column, &rhs_column, alloc);
         builder.produce_intermediate_mle(quotient_wrapped);
         builder.produce_intermediate_mle(quotient);
         builder.produce_intermediate_mle(remainder);
@@ -109,20 +168,7 @@ impl DivideAndModuloExpr {
         // (s - q) * (s - b) = 0
         // Introduces a value s that must be either q or b.
         // We choose s to be a value of q or b such that -sqrt(-MIN) < s < sqrt(-MIN)
-        let min_sqrt_scalar = -S::from(SQRT_MIN_I128);
-        let in_range_q_or_b = alloc.alloc_slice_fill_with(quotient.len(), |_i| S::ZERO);
-        for (res, (q, b)) in in_range_q_or_b
-            .iter_mut()
-            .zip(quotient.iter().copied().zip(rhs_as_scalars.clone()))
-        {
-            // We do or rather than and here because scalars wrap negative values, so only one can be true at a time
-            let in_range_value = if q > min_sqrt_scalar || q < -min_sqrt_scalar {
-                q
-            } else {
-                b
-            };
-            *res = in_range_value;
-        }
+        let in_range_q_or_b = utilities.get_in_range_column_from_quotient_and_rhs(alloc, quotient, rhs_as_scalars.clone());
         let s = Column::Scalar(in_range_q_or_b);
         builder.produce_intermediate_mle(s);
 
@@ -233,8 +279,9 @@ impl DivideAndModuloExpr {
         // sign(sqrt(-min) + s) = 1
         // sign(sqrt(-min) - s) = 1
         // These confirm that q * b does not wrap in the Scalar field. Either q or b must be smaller than sqrt(-min), which confines qb to less than the order of the field.
+        let min_sqrt_scalar = S::from(SQRT_MIN_I128);
         let neg_min_sqrt_scalar_column =
-            Column::Scalar(alloc.alloc_slice_fill_with(quotient.len(), |_i| -min_sqrt_scalar));
+            Column::Scalar(alloc.alloc_slice_fill_with(quotient.len(), |_i| min_sqrt_scalar));
         prover_evaluate_sign(
             builder,
             alloc,
@@ -291,9 +338,9 @@ impl DivideAndModuloExpr {
         (quotient_wrapped, remainder)
     }
 
-    pub fn verifier_evaluate<S: Scalar>(
+    pub fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         one_eval: S,
     ) -> Result<(S, S), ProofError> {
@@ -396,5 +443,93 @@ impl DivideAndModuloExpr {
     pub fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         self.lhs.get_column_references(columns);
         self.rhs.get_column_references(columns);
+    }
+}
+
+#[cfg(test)]
+mod tests{
+    use bumpalo::Bump;
+
+    use crate::{base::{database::Column, scalar::test_scalar::TestScalar}, sql::proof_exprs::{divide_integer_columns, modulo_integer_columns}};
+
+    use super::{DivideAndModuloExprUtilities, StandardDivideAndModuloExprUtilities};
+
+    trait MockableDivideAndModuloExprFunctionality{
+        fn divide_columns(
+            &self,
+            lhs: Vec<i128>,
+            rhs: Vec<i128>,
+        ) -> (Vec<i128>, Vec<TestScalar>);
+    
+        fn modulo_columns(
+            &self,
+            lhs: Vec<i128>,
+            rhs: Vec<i128>,
+        ) -> Vec<i128>;
+    
+        fn get_in_range_column_from_quotient_and_rhs(&self, quotient: Vec<TestScalar>, rhs: Vec<TestScalar>) -> Vec<TestScalar>;
+    }
+
+    struct MockDivideAndModuloExprUtilities<F: MockableDivideAndModuloExprFunctionality>{
+        functions: F
+    }
+
+    impl<F: MockableDivideAndModuloExprFunctionality> DivideAndModuloExprUtilities<TestScalar> for MockDivideAndModuloExprUtilities<F>{
+        fn divide_columns<'a>(
+            &self,
+            lhs: &Column<'a, TestScalar>,
+            rhs: &Column<'a, TestScalar>,
+            alloc: &'a Bump,
+        ) -> (Column<'a, TestScalar>, &'a [TestScalar]) {
+            if let (Column::Int128(a), Column::Int128(b)) = (lhs, rhs){
+                let (quotient_wrapped, quotient) = self.functions.divide_columns(a.to_vec(), b.to_vec());
+                let quotient_wrapped_slice = alloc.alloc_slice_copy(&quotient_wrapped);
+                let quotient_slice = alloc.alloc_slice_copy(&quotient);
+                (Column::Int128(quotient_wrapped_slice), quotient_slice)
+            } else{
+                panic!("MockDivideAndModuloExprUtilities should only be used with int128 columns");
+            }
+        }
+    
+        fn modulo_columns<'a>(
+            &self,
+            lhs: &Column<'a, TestScalar>,
+            rhs: &Column<'a, TestScalar>,
+            alloc: &'a Bump,
+        ) -> Column<'a, TestScalar> {
+            if let (Column::Int128(a), Column::Int128(b)) = (lhs, rhs){
+                let remainder = self.functions.modulo_columns(a.to_vec(), b.to_vec());
+                let remainder_slice = alloc.alloc_slice_copy(&remainder);
+                Column::Int128(remainder_slice)
+            } else{
+                panic!("MockDivideAndModuloExprUtilities should only be used with int128 columns");
+            }
+        }
+    
+        fn get_in_range_column_from_quotient_and_rhs<'a>(&self, alloc: &'a Bump, quotient: &'a [TestScalar], rhs: Vec<TestScalar>) -> &'a [TestScalar] {
+            alloc.alloc_slice_copy(&self.functions.get_in_range_column_from_quotient_and_rhs(quotient.to_vec(), rhs))
+        }
+    }
+
+    fn default_divide_columns(lhs: Vec<i128>,
+        rhs: Vec<i128>,
+    ) -> (Vec<i128>, Vec<TestScalar>){
+        let alloc = Bump::new();
+        let (quotient_wrapped, quotient) = divide_integer_columns::<_, _, TestScalar>(&lhs.as_slice(), &rhs.as_slice(), &alloc, false);
+        (quotient_wrapped.to_vec(), quotient.to_vec())
+    }
+
+    fn default_modulo_columns(lhs: Vec<i128>,
+        rhs: Vec<i128>,
+    ) -> Vec<i128>{
+        let alloc = Bump::new();
+        let standard_utilities = StandardDivideAndModuloExprUtilities;
+        standard_utilities.modulo_columns(&Column::Int128::<TestScalar>(&lhs.as_slice()), &Column::Int128(&rhs.as_slice()), &alloc).as_int128().unwrap().to_vec()
+    }
+
+    fn default_get_in_range_column_from_quotient_and_rhs(quotient: Vec<TestScalar>, rhs: Vec<TestScalar>) -> Vec<TestScalar>{
+        let alloc = Bump::new();
+        let standard_utilities = StandardDivideAndModuloExprUtilities;
+        standard_utilities.get_in_range_column_from_quotient_and_rhs(&alloc, &quotient, rhs).to_vec()
     }
 }
