@@ -10,7 +10,7 @@ pub struct VerificationBuilder<'a, S: Scalar> {
     subpolynomial_multipliers: &'a [S],
     sumcheck_evaluation: S,
     bit_distributions: &'a [BitDistribution],
-    consumed_one_evaluations: usize,
+    consumed_chi_evaluations: usize,
     consumed_rho_evaluations: usize,
     consumed_first_round_pcs_proof_mles: usize,
     consumed_final_round_pcs_proof_mles: usize,
@@ -23,7 +23,7 @@ pub struct VerificationBuilder<'a, S: Scalar> {
     /// Note: this vector is treated as a stack and the first
     /// challenge is the last entry in the vector.
     post_result_challenges: VecDeque<S>,
-    one_evaluation_length_queue: Vec<usize>,
+    chi_evaluation_length_queue: Vec<usize>,
     rho_evaluation_length_queue: Vec<usize>,
     subpolynomial_max_multiplicands: usize,
 }
@@ -40,7 +40,7 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
         bit_distributions: &'a [BitDistribution],
         subpolynomial_multipliers: &'a [S],
         post_result_challenges: VecDeque<S>,
-        one_evaluation_length_queue: Vec<usize>,
+        chi_evaluation_length_queue: Vec<usize>,
         rho_evaluation_length_queue: Vec<usize>,
         subpolynomial_max_multiplicands: usize,
     ) -> Self {
@@ -50,35 +50,35 @@ impl<'a, S: Scalar> VerificationBuilder<'a, S> {
             bit_distributions,
             subpolynomial_multipliers,
             sumcheck_evaluation: S::zero(),
-            consumed_one_evaluations: 0,
+            consumed_chi_evaluations: 0,
             consumed_rho_evaluations: 0,
             consumed_first_round_pcs_proof_mles: 0,
             consumed_final_round_pcs_proof_mles: 0,
             produced_subpolynomials: 0,
             post_result_challenges,
-            one_evaluation_length_queue,
+            chi_evaluation_length_queue,
             rho_evaluation_length_queue,
             subpolynomial_max_multiplicands,
         }
     }
 
-    /// Consume the evaluation of a one evaluation
+    /// Consume the evaluation of a chi evaluation
     ///
     /// # Panics
-    /// It should never panic, as the length of the one evaluation is guaranteed to be present
-    pub fn try_consume_one_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
-        let index = self.consumed_one_evaluations;
+    /// It should never panic, as the length of the chi evaluation is guaranteed to be present
+    pub fn try_consume_chi_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
+        let index = self.consumed_chi_evaluations;
         let length = self
-            .one_evaluation_length_queue
+            .chi_evaluation_length_queue
             .get(index)
             .copied()
-            .ok_or(ProofSizeMismatch::TooFewOneLengths)?;
-        self.consumed_one_evaluations += 1;
+            .ok_or(ProofSizeMismatch::TooFewChiLengths)?;
+        self.consumed_chi_evaluations += 1;
         Ok(*self
             .mle_evaluations
-            .one_evaluations
+            .chi_evaluations
             .get(&length)
-            .ok_or(ProofSizeMismatch::OneLengthNotFound)?)
+            .ok_or(ProofSizeMismatch::ChiLengthNotFound)?)
     }
 
     /// Consume the evaluation of a rho evaluation

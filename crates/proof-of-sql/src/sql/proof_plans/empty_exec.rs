@@ -42,11 +42,11 @@ impl ProofPlan for EmptyExec {
         builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         Ok(TableEvaluation::new(
             Vec::<S>::new(),
-            builder.mle_evaluations.singleton_one_evaluation,
+            builder.mle_evaluations.singleton_chi_evaluation,
         ))
     }
 

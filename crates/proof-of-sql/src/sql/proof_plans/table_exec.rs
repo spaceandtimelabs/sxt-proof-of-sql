@@ -40,7 +40,7 @@ impl ProofPlan for TableExec {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        one_eval_map: &IndexMap<TableRef, S>,
+        chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         let column_evals = self
             .schema
@@ -51,10 +51,10 @@ impl ProofPlan for TableExec {
                 *accessor.get(&column_ref).expect("Column does not exist")
             })
             .collect::<Vec<_>>();
-        let one_eval = *one_eval_map
+        let chi_eval = *chi_eval_map
             .get(&self.table_ref)
-            .expect("One eval not found");
-        Ok(TableEvaluation::new(column_evals, one_eval))
+            .expect("Chi eval not found");
+        Ok(TableEvaluation::new(column_evals, chi_eval))
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

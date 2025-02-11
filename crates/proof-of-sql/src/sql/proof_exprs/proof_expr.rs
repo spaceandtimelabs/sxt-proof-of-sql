@@ -41,7 +41,7 @@ pub trait ProofExpr: Debug + Send + Sync {
         &self,
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
-        one_eval: S,
+        chi_eval: S,
     ) -> Result<S, ProofError>;
 
     /// Insert in the [`IndexSet`] `columns` all the column

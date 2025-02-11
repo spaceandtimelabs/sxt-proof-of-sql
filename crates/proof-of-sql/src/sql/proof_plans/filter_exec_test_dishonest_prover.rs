@@ -70,7 +70,7 @@ impl ProverEvaluate for DishonestFilterExec {
         )
         .expect("Failed to create table from iterator");
         builder.request_post_result_challenges(2);
-        builder.produce_one_evaluation_length(output_length);
+        builder.produce_chi_evaluation_length(output_length);
 
         log::log_memory_usage("End");
 

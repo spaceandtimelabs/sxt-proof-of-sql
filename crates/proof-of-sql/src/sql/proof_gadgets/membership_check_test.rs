@@ -55,9 +55,9 @@ impl ProverEvaluate for MembershipCheckTestPlan {
         let candidate_table = table_map
             .get(&self.candidate_table)
             .expect("Table not found");
-        // Produce one evaluation lengths
-        builder.produce_one_evaluation_length(source_table.num_rows());
-        builder.produce_one_evaluation_length(candidate_table.num_rows());
+        // Produce chi evaluation lengths
+        builder.produce_chi_evaluation_length(source_table.num_rows());
+        builder.produce_chi_evaluation_length(candidate_table.num_rows());
         // Evaluate the first round
         let source_columns = source_table.columns().copied().collect::<Vec<_>>();
         let candidate_columns = candidate_table.columns().copied().collect::<Vec<_>>();
@@ -154,12 +154,13 @@ impl ProofPlan for MembershipCheckTestPlan {
     }
 
     #[doc = "Form components needed to verify and proof store into `VerificationBuilder`"]
+    #[allow(clippy::similar_names)]
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         // Get the challenges from the builder
         let alpha = builder.try_consume_post_result_challenge()?;
@@ -170,20 +171,20 @@ impl ProofPlan for MembershipCheckTestPlan {
         // Get the target columns
         let candidate_subset_evals =
             builder.try_consume_final_round_mle_evaluations(num_columns)?;
-        // Get the one evaluations
-        let one_eval = builder.try_consume_one_evaluation()?;
-        let candidate_subset_one_eval = builder.try_consume_one_evaluation()?;
+        // Get the chi evaluations
+        let chi_n_eval = builder.try_consume_chi_evaluation()?;
+        let chi_m_eval = builder.try_consume_chi_evaluation()?;
         // Evaluate the verifier
         let multiplicities_eval = verify_membership_check(
             builder,
             alpha,
             beta,
-            one_eval,
-            candidate_subset_one_eval,
+            chi_n_eval,
+            chi_m_eval,
             &column_evals,
             &candidate_subset_evals,
         )?;
-        Ok(TableEvaluation::new(vec![multiplicities_eval], one_eval))
+        Ok(TableEvaluation::new(vec![multiplicities_eval], chi_n_eval))
     }
 }
 

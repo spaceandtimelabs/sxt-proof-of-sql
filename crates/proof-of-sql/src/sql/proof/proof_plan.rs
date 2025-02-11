@@ -18,7 +18,7 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
-        one_eval_map: &IndexMap<TableRef, S>,
+        chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError>;
 
     /// Return all the result column fields
