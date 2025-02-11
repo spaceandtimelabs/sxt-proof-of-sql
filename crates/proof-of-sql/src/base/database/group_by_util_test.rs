@@ -574,3 +574,78 @@ fn we_can_min_aggregate_columns_by_counts() {
     let result = min_aggregate_column_by_index_counts(&alloc, &columns_c, counts, indexes);
     assert_eq!(result, expected);
 }
+
+#[test]
+fn we_can_aggregate_columns_with_varbinary_in_group_by() {
+    let raw_bytes = [
+        b"foo".as_ref(),
+        b"bar".as_ref(),
+        b"bar".as_ref(),
+        b"baz".as_ref(),
+    ];
+    let scalars: Vec<TestScalar> = raw_bytes
+        .iter()
+        .map(|b| TestScalar::from_le_bytes_mod_order(b))
+        .collect();
+
+    let col_varbinary = Column::VarBinary((raw_bytes.as_slice(), scalars.as_slice()));
+    let col_bigint = Column::BigInt(&[10, 20, 30, 40]);
+    let binding = [
+        TestScalar::from(100),
+        TestScalar::from(200),
+        TestScalar::from(300),
+        TestScalar::from(400),
+    ];
+    let col_scalar = Column::Scalar(&binding);
+
+    let selection = &[true, true, true, true];
+
+    let alloc = Bump::new();
+    let group_by = &[col_varbinary];
+    let sum_columns = &[col_bigint, col_scalar];
+    let min_columns = &[];
+    let max_columns = &[];
+
+    let aggregate_result = aggregate_columns(
+        &alloc,
+        group_by,
+        sum_columns,
+        min_columns,
+        max_columns,
+        selection,
+    )
+    .expect("Aggregation should succeed");
+
+    let expected_bytes = [b"bar".as_ref(), b"baz".as_ref(), b"foo".as_ref()];
+    let expected_bytes_scalars: Vec<TestScalar> = expected_bytes
+        .iter()
+        .map(|b| TestScalar::from_le_bytes_mod_order(b))
+        .collect();
+
+    let expected_group_by = vec![Column::VarBinary((
+        expected_bytes.as_slice(),
+        expected_bytes_scalars.as_slice(),
+    ))];
+
+    let expected_sum_bigint = [
+        TestScalar::from(50),
+        TestScalar::from(40),
+        TestScalar::from(10),
+    ];
+
+    let expected_sum_scalar = [
+        TestScalar::from(500),
+        TestScalar::from(400),
+        TestScalar::from(100),
+    ];
+
+    let expected_sum = vec![&expected_sum_bigint[..], &expected_sum_scalar[..]];
+
+    let expected_count = &[2, 1, 1];
+
+    assert_eq!(aggregate_result.group_by_columns, expected_group_by);
+    assert_eq!(aggregate_result.sum_columns, expected_sum);
+    assert_eq!(aggregate_result.count_column, expected_count);
+    assert!(aggregate_result.max_columns.is_empty());
+    assert!(aggregate_result.min_columns.is_empty());
+}

@@ -27,6 +27,7 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
             Column::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
             Column::Scalar(col) => col[i].cmp(&col[j]),
             Column::VarChar((col, _)) => col[i].cmp(col[j]),
+            Column::VarBinary((col, _)) => col[i].cmp(col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
@@ -142,6 +143,7 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
                 OwnedColumn::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
                 OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
                 OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
+                OwnedColumn::VarBinary(col) => col[i].cmp(&col[j]),
             };
             match direction {
                 OrderByDirection::Asc => ordering,

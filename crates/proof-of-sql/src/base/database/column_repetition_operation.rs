@@ -7,6 +7,7 @@ use bumpalo::Bump;
 use core::iter::Iterator;
 
 #[allow(dead_code)]
+#[allow(clippy::too_many_lines)]
 pub trait RepetitionOp {
     fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T>;
 
@@ -86,6 +87,27 @@ pub trait RepetitionOp {
                 let mut scalar_iter = Self::op(raw_scalars, n);
 
                 Column::VarChar((
+                    alloc.alloc_slice_fill_with(len, |_| {
+                        result_iter
+                            .next()
+                            .expect("Iterator should have enough elements")
+                    }) as &[_],
+                    alloc.alloc_slice_fill_with(len, |_| {
+                        scalar_iter
+                            .next()
+                            .expect("Iterator should have enough elements")
+                    }) as &[_],
+                ))
+            }
+            ColumnType::VarBinary => {
+                let (raw_result, raw_scalars) =
+                    column.as_varbinary().expect("Column types should match");
+
+                // Create iterators for both the result and scalars
+                let mut result_iter = Self::op(raw_result, n);
+                let mut scalar_iter = Self::op(raw_scalars, n);
+
+                Column::VarBinary((
                     alloc.alloc_slice_fill_with(len, |_| {
                         result_iter
                             .next()
@@ -180,5 +202,60 @@ mod tests {
             result,
             Column::VarChar((&doubled_strings, &doubled_scalars))
         );
+    }
+
+    #[test]
+    fn test_column_repetition_op_varbinary() {
+        let bump = Bump::new();
+
+        let bytes = vec![b"foo".as_ref(), b"bar".as_ref()];
+        let scalars = vec![TestScalar::from(1), TestScalar::from(2)];
+
+        let column: Column<TestScalar> = Column::VarBinary((bytes.as_slice(), scalars.as_slice()));
+        let result = ColumnRepeatOp::column_op::<TestScalar>(&column, &bump, 2);
+
+        let expected_bytes = vec![
+            b"foo".as_ref(),
+            b"bar".as_ref(),
+            b"foo".as_ref(),
+            b"bar".as_ref(),
+        ];
+        let expected_scalars: Vec<TestScalar> = vec![
+            TestScalar::from(1),
+            TestScalar::from(2),
+            TestScalar::from(1),
+            TestScalar::from(2),
+        ];
+        let expected = Column::VarBinary((expected_bytes.as_slice(), expected_scalars.as_slice()));
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_elementwise_repetition_op_varbinary() {
+        let bump = Bump::new();
+
+        let bytes = vec![b"foo".as_ref(), b"bar".as_ref(), b"baz".as_ref()];
+        let scalars: Vec<TestScalar> = bytes
+            .iter()
+            .map(|b| TestScalar::from_le_bytes_mod_order(b))
+            .collect();
+
+        let column: Column<TestScalar> = Column::VarBinary((bytes.as_slice(), scalars.as_slice()));
+        let result = ElementwiseRepeatOp::column_op::<TestScalar>(&column, &bump, 2);
+
+        let expected_bytes = vec![
+            b"foo".as_ref(),
+            b"foo".as_ref(),
+            b"bar".as_ref(),
+            b"bar".as_ref(),
+            b"baz".as_ref(),
+            b"baz".as_ref(),
+        ];
+        let expected_scalars: Vec<TestScalar> = expected_bytes
+            .iter()
+            .map(|b| TestScalar::from_le_bytes_mod_order(b))
+            .collect();
+        let expected = Column::VarBinary((expected_bytes.as_slice(), expected_scalars.as_slice()));
+        assert_eq!(result, expected);
     }
 }

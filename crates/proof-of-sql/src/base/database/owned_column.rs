@@ -9,7 +9,7 @@ use crate::base::{
         permutation::{Permutation, PermutationError},
     },
     scalar::Scalar,
-    slice_ops::inner_product_ref_cast,
+    slice_ops::{inner_product_ref_cast, inner_product_with_bytes},
 };
 use alloc::{
     string::{String, ToString},
@@ -37,6 +37,8 @@ pub enum OwnedColumn<S: Scalar> {
     BigInt(Vec<i64>),
     /// String columns
     VarChar(Vec<String>),
+    /// Variable length binary columns
+    VarBinary(Vec<Vec<u8>>),
     /// i128 columns
     Int128(Vec<i128>),
     /// Decimal columns
@@ -60,6 +62,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 inner_product_ref_cast(col, vec)
             }
             OwnedColumn::VarChar(col) => inner_product_ref_cast(col, vec),
+            OwnedColumn::VarBinary(col) => inner_product_with_bytes(col, vec),
             OwnedColumn::Int128(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => {
                 inner_product_ref_cast(col, vec)
@@ -78,6 +81,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int(col) => col.len(),
             OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col.len(),
             OwnedColumn::VarChar(col) => col.len(),
+            OwnedColumn::VarBinary(col) => col.len(),
             OwnedColumn::Int128(col) => col.len(),
             OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col.len(),
         }
@@ -93,6 +97,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int(col) => OwnedColumn::Int(permutation.try_apply(col)?),
             OwnedColumn::BigInt(col) => OwnedColumn::BigInt(permutation.try_apply(col)?),
             OwnedColumn::VarChar(col) => OwnedColumn::VarChar(permutation.try_apply(col)?),
+            OwnedColumn::VarBinary(col) => OwnedColumn::VarBinary(permutation.try_apply(col)?),
             OwnedColumn::Int128(col) => OwnedColumn::Int128(permutation.try_apply(col)?),
             OwnedColumn::Decimal75(precision, scale, col) => {
                 OwnedColumn::Decimal75(*precision, *scale, permutation.try_apply(col)?)
@@ -115,6 +120,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int(col) => OwnedColumn::Int(col[start..end].to_vec()),
             OwnedColumn::BigInt(col) => OwnedColumn::BigInt(col[start..end].to_vec()),
             OwnedColumn::VarChar(col) => OwnedColumn::VarChar(col[start..end].to_vec()),
+            OwnedColumn::VarBinary(col) => OwnedColumn::VarBinary(col[start..end].to_vec()),
             OwnedColumn::Int128(col) => OwnedColumn::Int128(col[start..end].to_vec()),
             OwnedColumn::Decimal75(precision, scale, col) => {
                 OwnedColumn::Decimal75(*precision, *scale, col[start..end].to_vec())
@@ -137,6 +143,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int(col) => col.is_empty(),
             OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col.is_empty(),
             OwnedColumn::VarChar(col) => col.is_empty(),
+            OwnedColumn::VarBinary(col) => col.is_empty(),
             OwnedColumn::Int128(col) => col.is_empty(),
             OwnedColumn::Scalar(col) | OwnedColumn::Decimal75(_, _, col) => col.is_empty(),
         }
@@ -152,6 +159,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int(_) => ColumnType::Int,
             OwnedColumn::BigInt(_) => ColumnType::BigInt,
             OwnedColumn::VarChar(_) => ColumnType::VarChar,
+            OwnedColumn::VarBinary(_) => ColumnType::VarBinary,
             OwnedColumn::Int128(_) => ColumnType::Int128,
             OwnedColumn::Scalar(_) => ColumnType::Scalar,
             OwnedColumn::Decimal75(precision, scale, _) => {
@@ -242,7 +250,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 Ok(OwnedColumn::TimestampTZ(tu, tz, raw_values))
             }
             // Can not convert scalars to VarChar
-            ColumnType::VarChar => Err(OwnedColumnError::TypeCastError {
+            ColumnType::VarChar | ColumnType::VarBinary => Err(OwnedColumnError::TypeCastError {
                 from_type: ColumnType::Scalar,
                 to_type: ColumnType::VarChar,
             }),
@@ -358,6 +366,9 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
             Column::VarChar((col, _)) => {
                 OwnedColumn::VarChar(col.iter().map(ToString::to_string).collect())
             }
+            Column::VarBinary((col, _)) => {
+                OwnedColumn::VarBinary(col.iter().map(|slice| slice.to_vec()).collect())
+            }
             Column::Int128(col) => OwnedColumn::Int128(col.to_vec()),
             Column::Decimal75(precision, scale, col) => {
                 OwnedColumn::Decimal75(*precision, *scale, col.to_vec())
@@ -447,7 +458,10 @@ impl<S: Scalar> OwnedColumn<S> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::base::{math::decimal::Precision, scalar::test_scalar::TestScalar};
+    use crate::base::{
+        math::decimal::Precision,
+        scalar::{test_scalar::TestScalar, ScalarExt},
+    };
     use alloc::vec;
     use bumpalo::Bump;
 
@@ -812,5 +826,81 @@ mod test {
         // Attempt to coerce to Int128
         let res = col.try_coerce_scalar_to_numeric(ColumnType::Int128);
         assert!(matches!(res, Err(ColumnCoercionError::Overflow)));
+    }
+
+    #[test]
+    fn we_can_slice_and_permute_varbinary_columns() {
+        let col = OwnedColumn::<TestScalar>::VarBinary(vec![
+            b"foo".to_vec(),
+            b"bar".to_vec(),
+            b"baz".to_vec(),
+            b"qux".to_vec(),
+        ]);
+        assert_eq!(
+            col.slice(1, 3),
+            OwnedColumn::VarBinary(vec![b"bar".to_vec(), b"baz".to_vec()])
+        );
+        let permutation = Permutation::try_new(vec![2, 0, 3, 1]).unwrap();
+        assert_eq!(
+            col.try_permute(&permutation).unwrap(),
+            OwnedColumn::VarBinary(vec![
+                b"baz".to_vec(),
+                b"foo".to_vec(),
+                b"qux".to_vec(),
+                b"bar".to_vec()
+            ])
+        );
+    }
+
+    #[test]
+    fn we_can_convert_varbinary_column_round_trip_using_hash() {
+        let raw_bytes = [b"abc".as_ref(), b"xyz".as_ref()];
+
+        let scalars: Vec<TestScalar> = raw_bytes
+            .iter()
+            .map(|&b| TestScalar::from_byte_slice_via_hash(b))
+            .collect();
+
+        let col: Column<'_, TestScalar> =
+            Column::VarBinary((raw_bytes.as_slice(), scalars.as_slice()));
+
+        let owned_col: OwnedColumn<TestScalar> = (&col).into();
+
+        assert_eq!(
+            owned_col,
+            OwnedColumn::VarBinary(vec![b"abc".to_vec(), b"xyz".to_vec()])
+        );
+
+        let bump = bumpalo::Bump::new();
+        let new_col = Column::<TestScalar>::from_owned_column(&owned_col, &bump);
+
+        assert_eq!(col, new_col);
+    }
+
+    #[test]
+    fn we_can_compute_inner_product_with_varbinary_columns_using_hash() {
+        let lhs = OwnedColumn::<TestScalar>::VarBinary(vec![
+            b"foo".to_vec(),
+            b"bar".to_vec(),
+            b"baz".to_vec(),
+        ]);
+
+        let scalars = vec![
+            TestScalar::from(10),
+            TestScalar::from(20),
+            TestScalar::from(30),
+        ];
+
+        let product = lhs.inner_product(&scalars);
+
+        let lhs_hashes: Vec<TestScalar> = [b"foo".as_ref(), b"bar".as_ref(), b"baz".as_ref()]
+            .iter()
+            .map(|&bytes| TestScalar::from_byte_slice_via_hash(bytes))
+            .collect();
+
+        let expected =
+            lhs_hashes[0] * scalars[0] + lhs_hashes[1] * scalars[1] + lhs_hashes[2] * scalars[2];
+
+        assert_eq!(product, expected);
     }
 }

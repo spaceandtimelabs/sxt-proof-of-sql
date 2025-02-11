@@ -87,3 +87,34 @@ fn we_can_filter_empty_columns() {
         ]
     );
 }
+
+#[test]
+fn we_can_filter_columns_with_varbinary() {
+    let selection = vec![true, false, true, true, false];
+    let raw_bytes = [b"foo".as_ref(), b"bar", b"baz", b"qux", b"quux"];
+    let scalars: [TestScalar; 5] = raw_bytes
+        .iter()
+        .map(|b| TestScalar::from_le_bytes_mod_order(b))
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    let columns = vec![
+        Column::VarBinary((&raw_bytes, &scalars)),
+        Column::BigInt(&[10, 20, 30, 40, 50]),
+    ];
+    let alloc = Bump::new();
+    let (result, len) = filter_columns(&alloc, &columns, &selection);
+    assert_eq!(len, 3);
+    let filtered_bytes = [b"foo".as_ref(), b"baz", b"qux"];
+    let filtered_scalars = filtered_bytes
+        .iter()
+        .map(|b| TestScalar::from_le_bytes_mod_order(b))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        result,
+        vec![
+            Column::VarBinary((filtered_bytes.as_slice(), filtered_scalars.as_slice())),
+            Column::BigInt(&[10, 30, 40]),
+        ]
+    );
+}

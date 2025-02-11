@@ -1,6 +1,8 @@
 use super::Scalar;
 use bnum::types::U256;
+use bytemuck::cast;
 use core::cmp::Ordering;
+use tiny_keccak::Hasher;
 
 /// Extension trait for blanket implementations for `Scalar` types.
 /// This trait is primarily to avoid cluttering the core `Scalar` implementation with default implementations
@@ -30,6 +32,37 @@ pub trait ScalarExt: Scalar {
     fn into_u256_wrapping(self) -> U256 {
         U256::from(Into::<[u64; 4]>::into(self))
     }
+
+    /// Converts a byte slice to a Scalar using a hash function, preventing collisions.
+    /// WARNING: Only up to 31 bytes (2^248 bits) are supported by `PoSQL` cryptographic
+    /// objects. This function masks off the last byte of the hash to ensure the result
+    /// fits in this range.
+    #[must_use]
+    fn from_byte_slice_via_hash(bytes: &[u8]) -> Self {
+        if bytes.is_empty() {
+            return Self::zero();
+        }
+
+        let mut hasher = tiny_keccak::Keccak::v256();
+        hasher.update(bytes);
+        let mut hashed_bytes = [0u8; 32];
+        hasher.finalize(&mut hashed_bytes);
+        hashed_bytes[31] &= 0b0000_1111_u8;
+
+        // This cast is "safe" in that bytemuck ensures no UB,
+        // but it yields a [u64;4] in native endianness:
+        let limbs_native: [u64; 4] = cast(hashed_bytes);
+
+        // Convert to little-endian:
+        let limbs_le = [
+            u64::from_le(limbs_native[0]),
+            u64::from_le(limbs_native[1]),
+            u64::from_le(limbs_native[2]),
+            u64::from_le(limbs_native[3]),
+        ];
+
+        Self::from(limbs_le)
+    }
 }
 
 impl<S: Scalar> ScalarExt for S {}
@@ -55,7 +88,42 @@ pub(crate) fn test_scalar_constants<S: Scalar>() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar};
+    use crate::{
+        base::scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar},
+        proof_primitive::dory::DoryScalar,
+    };
+
+    #[test]
+    fn we_can_get_zero_from_zero_bytes() {
+        assert_eq!(DoryScalar::from_byte_slice_via_hash(&[]), DoryScalar::ZERO);
+    }
+
+    #[test]
+    fn we_can_get_scalar_from_hashed_bytes() {
+        // Raw bytes of test string "abc" with 31st byte zeroed out:
+        let expected: [u8; 32] = [
+            0x4e, 0x03, 0x65, 0x7a, 0xea, 0x45, 0xa9, 0x4f, 0xc7, 0xd4, 0x7b, 0xa8, 0x26, 0xc8,
+            0xd6, 0x67, 0xc0, 0xd1, 0xe6, 0xe3, 0x3a, 0x64, 0xa0, 0x36, 0xec, 0x44, 0xf5, 0x8f,
+            0xa1, 0x2d, 0x6c, 0x05,
+        ];
+
+        let scalar_from_bytes = DoryScalar::from_byte_slice_via_hash(b"abc");
+
+        let limbs_native: [u64; 4] = cast(expected);
+        let limbs_le = [
+            u64::from_le_bytes(limbs_native[0].to_le_bytes()),
+            u64::from_le_bytes(limbs_native[1].to_le_bytes()),
+            u64::from_le_bytes(limbs_native[2].to_le_bytes()),
+            u64::from_le_bytes(limbs_native[3].to_le_bytes()),
+        ];
+        let scalar_from_ref = DoryScalar::from(limbs_le);
+
+        assert_eq!(
+            scalar_from_bytes, scalar_from_ref,
+            "The masked keccak v256 of 'abc' must match"
+        );
+    }
+
     #[test]
     fn scalar_comparison_works() {
         let zero = Curve25519Scalar::ZERO;
