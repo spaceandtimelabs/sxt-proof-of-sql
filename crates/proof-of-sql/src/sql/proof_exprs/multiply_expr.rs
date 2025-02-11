@@ -86,10 +86,10 @@ impl ProofExpr for MultiplyExpr {
         &self,
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
-        one_eval: S,
+        chi_eval: S,
     ) -> Result<S, ProofError> {
-        let lhs = self.lhs.verifier_evaluate(builder, accessor, one_eval)?;
-        let rhs = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
+        let lhs = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
+        let rhs = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
 
         // lhs_times_rhs
         let lhs_times_rhs = builder.try_consume_final_round_mle_evaluation()?;

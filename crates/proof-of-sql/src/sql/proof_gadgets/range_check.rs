@@ -253,8 +253,7 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
 
         inv_column.copy_from_slice(words_inv);
 
-        let input_ones =
-            alloc.alloc_slice_fill_copy(inverted_word_columns[0].len(), true) as &[_];
+        let chi_n = alloc.alloc_slice_fill_copy(inverted_word_columns[0].len(), true) as &[_];
 
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
@@ -264,7 +263,7 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
                     S::one(),
                     vec![Box::new(byte_column as &[_]), Box::new(words_inv as &[_])],
                 ),
-                (-S::one(), vec![Box::new(input_ones as &[_])]),
+                (-S::one(), vec![Box::new(chi_n as &[_])]),
             ],
         );
     }
@@ -314,7 +313,7 @@ fn prove_word_values<'a, S: Scalar + 'a>(
 ) {
     builder.produce_intermediate_mle(inv_word_vals_plus_alpha_table as &[_]);
 
-    let input_ones = alloc.alloc_slice_fill_copy(256, true);
+    let chi_n = alloc.alloc_slice_fill_copy(256, true);
 
     // Argument:
     // (word_values + α)⁻¹ * (word_values + α) - 1 = 0
@@ -332,7 +331,7 @@ fn prove_word_values<'a, S: Scalar + 'a>(
                     Box::new(word_val_table as &[_]),
                 ],
             ),
-            (-S::one(), vec![Box::new(input_ones as &[_])]),
+            (-S::one(), vec![Box::new(chi_n as &[_])]),
         ],
     );
 }
@@ -390,11 +389,11 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
 pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
     builder: &mut VerificationBuilder<'_, S>,
     input_column_eval: S,
-    input_ones_eval: S,
+    chi_n_eval: S,
 ) -> Result<(), ProofSizeMismatch> {
     // Retrieve the post-result challenge α
     let alpha = builder.try_consume_post_result_challenge()?;
-    let chi_ones_256_eval = builder.try_consume_one_evaluation()?;
+    let chi_ones_256_eval = builder.try_consume_chi_evaluation()?;
 
     // We will accumulate ∑(wᵢ * 256ⁱ) in `sum`.
     // Additionally, we'll collect all (wᵢ + α)⁻¹ evaluations in `w_plus_alpha_inv_evals`
@@ -425,7 +424,7 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
         // Argue that ( (wᵢ + α)⁻¹ * (wᵢ + α) ) - 1 = 0
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
-            word_eval - input_ones_eval,
+            word_eval - chi_n_eval,
             2,
         )?;
 

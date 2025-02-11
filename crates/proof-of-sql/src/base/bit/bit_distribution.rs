@@ -80,7 +80,7 @@ impl BitDistribution {
     pub fn leading_bit_eval<S: ScalarExt>(
         &self,
         bit_evals: &[S],
-        one_eval: S,
+        chi_eval: S,
     ) -> Result<S, BitDistrubutionError> {
         if U256::from(self.vary_mask) & (U256::ONE.shl(255)) != U256::ZERO {
             bit_evals
@@ -90,7 +90,7 @@ impl BitDistribution {
         } else if U256::from(self.leading_bit_mask) & U256::ONE.shl(255) == U256::ZERO {
             Ok(S::ZERO)
         } else {
-            Ok(one_eval)
+            Ok(chi_eval)
         }
     }
 

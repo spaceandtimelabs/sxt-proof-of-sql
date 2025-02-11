@@ -54,7 +54,7 @@ impl ProverEvaluate for TrivialTestProofPlan {
     ) -> Table<'a, S> {
         let col = vec![self.column_fill_value; self.length];
         if self.produce_length {
-            builder.produce_one_evaluation_length(self.length);
+            builder.produce_chi_evaluation_length(self.length);
         }
         table([borrowed_bigint("a1", col, alloc)])
     }
@@ -87,7 +87,7 @@ impl ProofPlan for TrivialTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         assert_eq!(builder.try_consume_final_round_mle_evaluation()?, S::ZERO);
         builder.try_produce_sumcheck_subpolynomial_evaluation(
@@ -98,7 +98,7 @@ impl ProofPlan for TrivialTestProofPlan {
         let _ = builder.try_consume_bit_distribution()?;
         Ok(TableEvaluation::new(
             vec![S::ZERO],
-            builder.try_consume_one_evaluation()?,
+            builder.try_consume_chi_evaluation()?,
         ))
     }
     ///
@@ -267,7 +267,7 @@ impl ProverEvaluate for SquareTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        builder.produce_one_evaluation_length(2);
+        builder.produce_chi_evaluation_length(2);
         table([borrowed_bigint("a1", self.res, alloc)])
     }
 
@@ -301,7 +301,7 @@ impl ProofPlan for SquareTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         let x_eval = S::from(self.anchored_commit_multiplier)
             * *accessor
@@ -319,7 +319,7 @@ impl ProofPlan for SquareTestProofPlan {
         )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
-            builder.try_consume_one_evaluation()?,
+            builder.try_consume_chi_evaluation()?,
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -446,7 +446,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
-        builder.produce_one_evaluation_length(2);
+        builder.produce_chi_evaluation_length(2);
         table([borrowed_bigint("a1", self.res, alloc)])
     }
 
@@ -493,7 +493,7 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         let x_eval = *accessor
             .get(&ColumnRef::new(
@@ -520,7 +520,7 @@ impl ProofPlan for DoubleSquareTestProofPlan {
         )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
-            builder.try_consume_one_evaluation()?,
+            builder.try_consume_chi_evaluation()?,
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -658,7 +658,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         builder.request_post_result_challenges(2);
-        builder.produce_one_evaluation_length(2);
+        builder.produce_chi_evaluation_length(2);
         table([borrowed_bigint("a1", [9, 25], alloc)])
     }
 
@@ -694,7 +694,7 @@ impl ProofPlan for ChallengeTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         let alpha = builder.try_consume_post_result_challenge()?;
         let _beta = builder.try_consume_post_result_challenge()?;
@@ -713,7 +713,7 @@ impl ProofPlan for ChallengeTestProofPlan {
         )?;
         Ok(TableEvaluation::new(
             vec![res_eval],
-            builder.try_consume_one_evaluation()?,
+            builder.try_consume_chi_evaluation()?,
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -800,7 +800,7 @@ impl ProverEvaluate for FirstRoundSquareTestProofPlan {
     ) -> Table<'a, S> {
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         builder.produce_intermediate_mle(res);
-        builder.produce_one_evaluation_length(2);
+        builder.produce_chi_evaluation_length(2);
         table([borrowed_bigint("a1", self.res, alloc)])
     }
 
@@ -834,7 +834,7 @@ impl ProofPlan for FirstRoundSquareTestProofPlan {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         let x_eval = S::from(self.anchored_commit_multiplier)
             * *accessor
@@ -854,7 +854,7 @@ impl ProofPlan for FirstRoundSquareTestProofPlan {
         )?;
         Ok(TableEvaluation::new(
             vec![final_round_res_eval],
-            builder.try_consume_one_evaluation()?,
+            builder.try_consume_chi_evaluation()?,
         ))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

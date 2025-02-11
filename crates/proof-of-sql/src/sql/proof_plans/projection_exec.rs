@@ -46,23 +46,23 @@ impl ProofPlan for ProjectionExec {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        one_eval_map: &IndexMap<TableRef, S>,
+        chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        // For projections input and output have the same length and hence the same one eval
-        let one_eval = *one_eval_map
+        // For projections input and output have the same length and hence the same chi eval
+        let chi_eval = *chi_eval_map
             .get(&self.table.table_ref)
-            .expect("One eval not found");
+            .expect("Chi eval not found");
         self.aliased_results
             .iter()
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .verifier_evaluate(builder, accessor, one_eval)
+                    .verifier_evaluate(builder, accessor, chi_eval)
             })
             .collect::<Result<Vec<_>, _>>()?;
         let column_evals =
             builder.try_consume_final_round_mle_evaluations(self.aliased_results.len())?;
-        Ok(TableEvaluation::new(column_evals, one_eval))
+        Ok(TableEvaluation::new(column_evals, chi_eval))
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

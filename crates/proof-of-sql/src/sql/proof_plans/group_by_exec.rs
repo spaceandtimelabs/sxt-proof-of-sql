@@ -74,20 +74,20 @@ impl ProofPlan for GroupByExec {
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
-        one_eval_map: &IndexMap<TableRef, S>,
+        chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        let input_one_eval = *one_eval_map
+        let input_chi_eval = *chi_eval_map
             .get(&self.table.table_ref)
-            .expect("One eval not found");
+            .expect("Chi eval not found");
         // 1. selection
         let where_eval = self
             .where_clause
-            .verifier_evaluate(builder, accessor, input_one_eval)?;
+            .verifier_evaluate(builder, accessor, input_chi_eval)?;
         // 2. columns
         let group_by_evals = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.verifier_evaluate(builder, accessor, input_one_eval))
+            .map(|expr| expr.verifier_evaluate(builder, accessor, input_chi_eval))
             .collect::<Result<Vec<_>, _>>()?;
         let aggregate_evals = self
             .sum_expr
@@ -95,7 +95,7 @@ impl ProofPlan for GroupByExec {
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .verifier_evaluate(builder, accessor, input_one_eval)
+                    .verifier_evaluate(builder, accessor, input_chi_eval)
             })
             .collect::<Result<Vec<_>, _>>()?;
         // 3. filtered_columns
@@ -107,14 +107,14 @@ impl ProofPlan for GroupByExec {
 
         let alpha = builder.try_consume_post_result_challenge()?;
         let beta = builder.try_consume_post_result_challenge()?;
-        let output_one_eval = builder.try_consume_one_evaluation()?;
+        let output_chi_eval = builder.try_consume_chi_evaluation()?;
 
         verify_group_by(
             builder,
             alpha,
             beta,
-            input_one_eval,
-            output_one_eval,
+            input_chi_eval,
+            output_chi_eval,
             (group_by_evals, aggregate_evals, where_eval),
             (
                 group_by_result_columns_evals.clone(),
@@ -152,7 +152,7 @@ impl ProofPlan for GroupByExec {
             .chain(sum_result_columns_evals)
             .chain(iter::once(count_column_eval))
             .collect::<Vec<_>>();
-        Ok(TableEvaluation::new(column_evals, output_one_eval))
+        Ok(TableEvaluation::new(column_evals, output_chi_eval))
     }
 
     #[allow(clippy::redundant_closure_for_method_calls)]
@@ -243,7 +243,7 @@ impl ProverEvaluate for GroupByExec {
         )
         .expect("Failed to create table from column references");
         builder.request_post_result_challenges(2);
-        builder.produce_one_evaluation_length(count_column.len());
+        builder.produce_chi_evaluation_length(count_column.len());
 
         log::log_memory_usage("End");
 
@@ -333,8 +333,8 @@ fn verify_group_by<S: Scalar>(
     builder: &mut VerificationBuilder<S>,
     alpha: S,
     beta: S,
-    input_one_eval: S,
-    output_one_eval: S,
+    input_chi_eval: S,
+    output_chi_eval: S,
     (g_in_evals, sum_in_evals, sel_in_eval): (Vec<S>, Vec<S>, S),
     (g_out_evals, sum_out_evals, count_out_eval): (Vec<S>, Vec<S>, S),
 ) -> Result<(), ProofError> {
@@ -342,8 +342,8 @@ fn verify_group_by<S: Scalar>(
     let g_in_fold_eval = alpha * fold_vals(beta, &g_in_evals);
     // g_out_fold = alpha * sum beta^j * g_out[j]
     let g_out_fold_eval = alpha * fold_vals(beta, &g_out_evals);
-    // sum_in_fold = input_ones + sum beta^(j+1) * sum_in[j]
-    let sum_in_fold_eval = input_one_eval + beta * fold_vals(beta, &sum_in_evals);
+    // sum_in_fold = chi_n + sum beta^(j+1) * sum_in[j]
+    let sum_in_fold_eval = input_chi_eval + beta * fold_vals(beta, &sum_in_evals);
     // sum_out_fold = count_out + sum beta^(j+1) * sum_out[j]
     let sum_out_fold_eval = count_out_eval + beta * fold_vals(beta, &sum_out_evals);
 
@@ -357,17 +357,17 @@ fn verify_group_by<S: Scalar>(
         3,
     )?;
 
-    // g_in_star + g_in_star * g_in_fold - input_ones = 0
+    // g_in_star + g_in_star * g_in_fold - chi_n = 0
     builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        g_in_star_eval + g_in_star_eval * g_in_fold_eval - input_one_eval,
+        g_in_star_eval + g_in_star_eval * g_in_fold_eval - input_chi_eval,
         2,
     )?;
 
-    // g_out_star + g_out_star * g_out_fold - output_ones = 0
+    // g_out_star + g_out_star * g_out_fold - chi_m = 0
     builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        g_out_star_eval + g_out_star_eval * g_out_fold_eval - output_one_eval,
+        g_out_star_eval + g_out_star_eval * g_out_fold_eval - output_chi_eval,
         2,
     )?;
 
@@ -388,8 +388,8 @@ pub fn prove_group_by<'a, S: Scalar>(
     n: usize,
 ) {
     let m = count_out.len();
-    let input_ones = alloc.alloc_slice_fill_copy(n, true);
-    let output_ones = alloc.alloc_slice_fill_copy(m, true);
+    let chi_n = alloc.alloc_slice_fill_copy(n, true);
+    let chi_m = alloc.alloc_slice_fill_copy(m, true);
 
     // g_in_fold = alpha * sum beta^j * g_in[j]
     let g_in_fold = alloc.alloc_slice_fill_copy(n, Zero::zero());
@@ -440,7 +440,7 @@ pub fn prove_group_by<'a, S: Scalar>(
         ],
     );
 
-    // g_in_star + g_in_star * g_in_fold - input_ones = 0
+    // g_in_star + g_in_star * g_in_fold - chi_n = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -449,11 +449,11 @@ pub fn prove_group_by<'a, S: Scalar>(
                 S::one(),
                 vec![Box::new(g_in_star as &[_]), Box::new(g_in_fold as &[_])],
             ),
-            (-S::one(), vec![Box::new(input_ones as &[_])]),
+            (-S::one(), vec![Box::new(chi_n as &[_])]),
         ],
     );
 
-    // g_out_star + g_out_star * g_out_fold - output_ones = 0
+    // g_out_star + g_out_star * g_out_fold - chi_m = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -462,7 +462,7 @@ pub fn prove_group_by<'a, S: Scalar>(
                 S::one(),
                 vec![Box::new(g_out_star as &[_]), Box::new(g_out_fold as &[_])],
             ),
-            (-S::one(), vec![Box::new(output_ones as &[_])]),
+            (-S::one(), vec![Box::new(chi_m as &[_])]),
         ],
     );
 }

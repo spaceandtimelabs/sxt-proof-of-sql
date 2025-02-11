@@ -24,13 +24,13 @@ impl ProofPlan for DemoMockPlan {
         _builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        one_eval_map: &IndexMap<TableRef, S>,
+        chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         // place verification logic you want to test here
 
         Ok(TableEvaluation::new(
             vec![accessor[&self.column]],
-            one_eval_map[&self.column.table_ref()],
+            chi_eval_map[&self.column.table_ref()],
         ))
     }
 

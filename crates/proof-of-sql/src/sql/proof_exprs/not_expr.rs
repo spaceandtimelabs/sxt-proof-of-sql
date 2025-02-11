@@ -70,10 +70,10 @@ impl ProofExpr for NotExpr {
         &self,
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
-        one_eval: S,
+        chi_eval: S,
     ) -> Result<S, ProofError> {
-        let eval = self.expr.verifier_evaluate(builder, accessor, one_eval)?;
-        Ok(one_eval - eval)
+        let eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
+        Ok(chi_eval - eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

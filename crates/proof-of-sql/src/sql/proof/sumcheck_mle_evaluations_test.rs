@@ -41,7 +41,7 @@ fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {
         + (evaluation_point[0]) * (Curve25519Scalar::one() - evaluation_point[1])
         + (Curve25519Scalar::one() - evaluation_point[0]) * (evaluation_point[1]);
     assert_eq!(
-        *evals.one_evaluations.values().next().unwrap(),
+        *evals.chi_evaluations.values().next().unwrap(),
         expected_eval
     );
 }

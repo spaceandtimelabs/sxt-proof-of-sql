@@ -75,10 +75,10 @@ impl ProofExpr for OrExpr {
         &self,
         builder: &mut VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
-        one_eval: S,
+        chi_eval: S,
     ) -> Result<S, ProofError> {
-        let lhs = self.lhs.verifier_evaluate(builder, accessor, one_eval)?;
-        let rhs = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
+        let lhs = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
+        let rhs = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
 
         verifier_evaluate_or(builder, &lhs, &rhs)
     }

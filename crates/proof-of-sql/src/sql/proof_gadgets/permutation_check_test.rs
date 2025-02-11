@@ -40,8 +40,8 @@ impl ProverEvaluate for PermutationCheckTestPlan {
         // Get the tables from the map using the table reference
         let source_table: &Table<'a, S> =
             table_map.get(&self.source_table).expect("Table not found");
-        // Produce one evaluation length
-        builder.produce_one_evaluation_length(source_table.num_rows());
+        // Produce chi evaluation length
+        builder.produce_chi_evaluation_length(source_table.num_rows());
         builder.request_post_result_challenges(2);
         table_with_row_count([], 0)
     }
@@ -130,7 +130,7 @@ impl ProofPlan for PermutationCheckTestPlan {
         builder: &mut VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         // Get the challenges from the builder
         let alpha = builder.try_consume_post_result_challenge()?;
@@ -139,10 +139,10 @@ impl ProofPlan for PermutationCheckTestPlan {
         // Get the columns
         let column_evals = builder.try_consume_final_round_mle_evaluations(num_columns)?;
         // Get the target columns
-        let candidate_subset_evals =
+        let candidate_permutation_evals =
             builder.try_consume_final_round_mle_evaluations(num_columns)?;
-        // Get the one evaluations
-        let chi_eval = builder.try_consume_one_evaluation()?;
+        // Get the chi evaluations
+        let chi_eval = builder.try_consume_chi_evaluation()?;
         // Evaluate the verifier
         verify_permutation_check(
             builder,
@@ -150,7 +150,7 @@ impl ProofPlan for PermutationCheckTestPlan {
             beta,
             chi_eval,
             &column_evals,
-            &candidate_subset_evals,
+            &candidate_permutation_evals,
         )?;
         Ok(TableEvaluation::new(vec![], S::ZERO))
     }

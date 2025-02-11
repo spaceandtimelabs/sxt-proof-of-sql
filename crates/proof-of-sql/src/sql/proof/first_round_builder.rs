@@ -16,8 +16,8 @@ pub struct FirstRoundBuilder<'a, S> {
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
     num_post_result_challenges: usize,
-    /// The extra one evaluation lengths used in the proof.
-    one_evaluation_lengths: Vec<usize>,
+    /// The extra chi evaluation lengths used in the proof.
+    chi_evaluation_lengths: Vec<usize>,
     /// The rho evaluation lengths used in the proof.
     rho_evaluation_lengths: Vec<usize>,
     // The range_length used in sumcheck which is max of all possible ones.
@@ -30,7 +30,7 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
             commitment_descriptor: Vec::new(),
             pcs_proof_mles: Vec::new(),
             num_post_result_challenges: 0,
-            one_evaluation_lengths: Vec::new(),
+            chi_evaluation_lengths: Vec::new(),
             rho_evaluation_lengths: Vec::new(),
             range_length: initial_range_length,
         }
@@ -52,15 +52,15 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
         &self.pcs_proof_mles
     }
 
-    /// Get the one evaluation lengths used in the proof.
-    pub(crate) fn one_evaluation_lengths(&self) -> &[usize] {
-        &self.one_evaluation_lengths
+    /// Get the chi evaluation lengths used in the proof.
+    pub(crate) fn chi_evaluation_lengths(&self) -> &[usize] {
+        &self.chi_evaluation_lengths
     }
 
-    /// Append the length to the list of one evaluation lengths.
-    pub(crate) fn produce_one_evaluation_length(&mut self, length: usize) {
+    /// Append the length to the list of chi evaluation lengths.
+    pub(crate) fn produce_chi_evaluation_length(&mut self, length: usize) {
         self.update_range_length(length);
-        self.one_evaluation_lengths.push(length);
+        self.chi_evaluation_lengths.push(length);
     }
 
     /// Get the rho evaluation lengths used in the proof.

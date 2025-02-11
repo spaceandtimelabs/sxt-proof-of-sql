@@ -7,16 +7,16 @@ pub struct TableEvaluation<S: Scalar> {
     /// Evaluation of each column in the table
     column_evals: Vec<S>,
     /// Evaluation of an all-one column with the same length as the table
-    one_eval: S,
+    chi_eval: S,
 }
 
 impl<S: Scalar> TableEvaluation<S> {
     /// Creates a new [`TableEvaluation`].
     #[must_use]
-    pub fn new(column_evals: Vec<S>, one_eval: S) -> Self {
+    pub fn new(column_evals: Vec<S>, chi_eval: S) -> Self {
         Self {
             column_evals,
-            one_eval,
+            chi_eval,
         }
     }
 
@@ -28,7 +28,7 @@ impl<S: Scalar> TableEvaluation<S> {
 
     /// Returns the evaluation of an all-one column with the same length as the table.
     #[must_use]
-    pub fn one_eval(&self) -> S {
-        self.one_eval
+    pub fn chi_eval(&self) -> S {
+        self.chi_eval
     }
 }
