@@ -5,8 +5,8 @@ use super::{
 use crate::base::scalar::Scalar;
 use alloc::vec::Vec;
 use bumpalo::Bump;
+use core::iter;
 use core::iter::Iterator;
-use std::iter;
 
 pub trait RepetitionOp {
     fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T>;

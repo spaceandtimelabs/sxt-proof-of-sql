@@ -249,7 +249,7 @@ fn repeat_elementwise_fixed_size_binary_no_prealloc(
 ) -> Vec<u8> {
     col_bytes
         .chunks_exact(width)
-        .flat_map(|row| std::iter::repeat(row).take(n))
+        .flat_map(|row| core::iter::repeat(row).take(n))
         .flatten() // turns iterator of &[u8] into iterator of &u8
         .copied() // copies each &u8 into a real u8
         .collect()
