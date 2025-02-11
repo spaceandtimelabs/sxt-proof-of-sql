@@ -224,16 +224,15 @@ mod tests {
             scalar::{test_scalar::TestScalar, Scalar},
         },
         sql::{
-            proof::{mock_verification_builder::MockVerificationBuilder, FinalRoundBuilder},
+            proof::FinalRoundBuilder,
             proof_exprs::{
                 equals_expr::{prover_evaluate_equals_zero_base, verifier_evaluate_equals_zero},
                 test_utility::verify_row_by_row,
             },
         },
     };
-    use ark_ff::Zero;
+    
     use bumpalo::Bump;
-    use itertools::Itertools;
     use mockall::automock;
     use num_traits::Inv;
     use std::collections::VecDeque;
@@ -244,14 +243,10 @@ mod tests {
         fn get_selection(&self, lhs: Vec<TestScalar>) -> Vec<bool>;
     }
 
-    fn get_lhs_inverse(lhs: Vec<TestScalar>) -> Vec<TestScalar> {
+    fn default_get_lhs_inverse(lhs: Vec<TestScalar>) -> Vec<TestScalar> {
         lhs.iter()
             .map(|s| s.inv().unwrap_or(TestScalar::ZERO))
             .collect()
-    }
-
-    fn get_selection(lhs: Vec<TestScalar>) -> Vec<bool> {
-        lhs.iter().copied().map(|s| s == TestScalar::ZERO).collect()
     }
 
     struct EqualsExprProverTestUtilities<F: EqualsExprProverMockableFunctionality> {
@@ -290,7 +285,7 @@ mod tests {
         let mut mock_utils = MockEqualsExprProverMockableFunctionality::new();
         mock_utils
             .expect_get_lhs_inverse()
-            .returning(get_lhs_inverse);
+            .returning(default_get_lhs_inverse);
         let column_of_non_zeroes = vec![false; 3];
         // Here we try to claim that the last row is not 0.
         mock_utils
@@ -313,6 +308,45 @@ mod tests {
         );
         // Only the last row is wrong, and only the second constraint
         let expected_matrix = vec![vec![true, true], vec![true, true], vec![true, false]];
+        assert_eq!(matrix, expected_matrix);
+    }
+
+    #[test]
+    fn we_can_reject_proof_if_lhs_inverse_is_tampered() {
+        let alloc = Bump::new();
+        let lhs = &[
+            TestScalar::from(1),
+            TestScalar::from(-3),
+            TestScalar::from(0),
+        ];
+
+        let mut final_round_builder: FinalRoundBuilder<'_, TestScalar> =
+            FinalRoundBuilder::new(3, VecDeque::new());
+
+        let mut mock_utils = MockEqualsExprProverMockableFunctionality::new();
+        mock_utils
+            .expect_get_lhs_inverse()
+            .return_const(vec![TestScalar::ZERO; 3]);
+        // Here we try to claim that the last row is not 0.
+        mock_utils
+            .expect_get_selection()
+            .return_const(vec![true; 3]);
+
+        let utils: EqualsExprProverTestUtilities<MockEqualsExprProverMockableFunctionality> =
+            EqualsExprProverTestUtilities { utils: mock_utils };
+
+        prover_evaluate_equals_zero_base(1, &mut final_round_builder, &alloc, lhs, utils);
+
+        let matrix = verify_row_by_row(
+            &alloc,
+            3,
+            final_round_builder,
+            |verification_builder, one_eval, evaluation_point| {
+                let lhs_eval = lhs.inner_product(&evaluation_point);
+                verifier_evaluate_equals_zero(verification_builder, lhs_eval, one_eval).unwrap();
+            },
+        );
+        let expected_matrix = vec![vec![false, true], vec![false, true], vec![true, true]];
         assert_eq!(matrix, expected_matrix);
     }
 }
