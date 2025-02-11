@@ -3,7 +3,8 @@ use crate::base::{
     scalar::{Scalar, ScalarExt},
 };
 use bumpalo::Bump;
-use core::cmp::Ordering;
+use core::{cmp::Ordering, ops::Neg};
+use num_traits::{NumCast, PrimInt};
 
 #[allow(clippy::cast_sign_loss)]
 /// Add or subtract two literals together.
@@ -132,6 +133,16 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
     })
 }
 
+/// Convert column to scalar slice.
+#[allow(clippy::missing_panics_doc)]
+#[allow(dead_code)]
+pub(crate) fn columns_to_scalar_slice<'a, S: Scalar>(
+    column: &Column<'a, S>,
+    alloc: &'a Bump,
+) -> &'a [S] {
+    alloc.alloc_slice_fill_with(column.len(), |i| column.scalar_at(i).unwrap())
+}
+
 #[allow(dead_code)]
 /// Multiply two [`ColumnarValues`] together.
 /// # Panics
@@ -183,5 +194,300 @@ pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
         left_scaled_eval - right_scaled_eval
     } else {
         left_scaled_eval + right_scaled_eval
+    }
+}
+
+#[allow(clippy::missing_panics_doc)]
+#[allow(dead_code)]
+fn divide_integer_columns<
+    'a,
+    L: NumCast + Copy + PrimInt,
+    R: NumCast + Copy + PrimInt + Neg<Output = R>,
+    S: Scalar + From<L>,
+>(
+    lhs: &&[L],
+    rhs: &&[R],
+    alloc: &'a Bump,
+    is_right_bigger_int_type: bool,
+) -> (&'a [L], &'a [S]) {
+    let division_wrapped = alloc.alloc_slice_fill_with(lhs.len(), |_| L::zero());
+    let division = alloc.alloc_slice_fill_with(lhs.len(), |_| S::ZERO);
+    division_wrapped
+        .iter_mut()
+        .zip(division.iter_mut())
+        .zip(lhs.iter().copied().zip(rhs.iter().copied()))
+        .for_each(|(d, (l, r))| {
+            *d.0 = if l == L::min_value() && r == -R::one() {
+                L::min_value()
+            } else if r == R::zero() {
+                L::zero()
+            } else if is_right_bigger_int_type {
+                NumCast::from(R::from(l).unwrap() / r).unwrap()
+            } else {
+                l / L::from(r).unwrap()
+            };
+            *d.1 = S::from(*d.0)
+                * (if *d.0 == L::min_value() && r == -R::one() {
+                    -S::ONE
+                } else {
+                    S::ONE
+                });
+        });
+    (division_wrapped, division)
+}
+
+#[allow(clippy::missing_panics_doc)]
+#[allow(dead_code)]
+fn modulo_integer_columns<
+    'a,
+    L: NumCast + Copy + PrimInt,
+    R: NumCast + Copy + PrimInt + Neg<Output = R>,
+    O: NumCast + PrimInt,
+>(
+    lhs: &&[L],
+    rhs: &&[R],
+    alloc: &'a Bump,
+    is_right_bigger_int_type: bool,
+) -> &'a [O] {
+    let remainder = alloc.alloc_slice_fill_with(lhs.len(), |_| O::zero());
+    remainder
+        .iter_mut()
+        .zip(lhs.iter().copied().zip(rhs.iter().copied()))
+        .for_each(|(m, (l, r))| {
+            *m = if l == L::min_value() && r == -R::one() {
+                O::zero()
+            } else if r == R::zero() {
+                NumCast::from(l).unwrap()
+            } else if is_right_bigger_int_type {
+                NumCast::from(R::from(l).unwrap() % r).unwrap()
+            } else {
+                NumCast::from(l % L::from(r).unwrap()).unwrap()
+            }
+        });
+    remainder
+}
+
+/// Divide one column by another.
+/// # Panics
+/// Panics if: `lhs` and `rhs` are not of the same length.
+#[allow(clippy::too_many_lines)]
+#[allow(dead_code)]
+pub(crate) fn divide_columns<'a, S: Scalar>(
+    lhs: &Column<'a, S>,
+    rhs: &Column<'a, S>,
+    alloc: &'a Bump,
+) -> (Column<'a, S>, &'a [S]) {
+    let lhs_len = lhs.len();
+    let rhs_len = rhs.len();
+    assert!(
+        lhs_len == rhs_len,
+        "lhs and rhs should have the same length"
+    );
+    match (lhs, rhs) {
+        (Column::Int128(left), Column::Int128(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::Int128(columns.0), columns.1)
+        }
+        (Column::Int128(left), Column::BigInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::Int128(columns.0), columns.1)
+        }
+        (Column::Int128(left), Column::Int(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::Int128(columns.0), columns.1)
+        }
+        (Column::Int128(left), Column::SmallInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::Int128(columns.0), columns.1)
+        }
+        (Column::Int128(left), Column::TinyInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::Int128(columns.0), columns.1)
+        }
+        (Column::BigInt(left), Column::Int128(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, true);
+            (Column::BigInt(columns.0), columns.1)
+        }
+        (Column::BigInt(left), Column::BigInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::BigInt(columns.0), columns.1)
+        }
+        (Column::BigInt(left), Column::Int(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::BigInt(columns.0), columns.1)
+        }
+        (Column::BigInt(left), Column::SmallInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::BigInt(columns.0), columns.1)
+        }
+        (Column::BigInt(left), Column::TinyInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::BigInt(columns.0), columns.1)
+        }
+        (Column::Int(left), Column::Int128(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, true);
+            (Column::Int(columns.0), columns.1)
+        }
+        (Column::Int(left), Column::BigInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, true);
+            (Column::Int(columns.0), columns.1)
+        }
+        (Column::Int(left), Column::Int(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::Int(columns.0), columns.1)
+        }
+        (Column::Int(left), Column::SmallInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::Int(columns.0), columns.1)
+        }
+        (Column::Int(left), Column::TinyInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::Int(columns.0), columns.1)
+        }
+        (Column::SmallInt(left), Column::Int128(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, true);
+            (Column::SmallInt(columns.0), columns.1)
+        }
+        (Column::SmallInt(left), Column::BigInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, true);
+            (Column::SmallInt(columns.0), columns.1)
+        }
+        (Column::SmallInt(left), Column::Int(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, true);
+            (Column::SmallInt(columns.0), columns.1)
+        }
+        (Column::SmallInt(left), Column::SmallInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::SmallInt(columns.0), columns.1)
+        }
+        (Column::SmallInt(left), Column::TinyInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::SmallInt(columns.0), columns.1)
+        }
+        (Column::TinyInt(left), Column::Int128(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, true);
+            (Column::TinyInt(columns.0), columns.1)
+        }
+        (Column::TinyInt(left), Column::BigInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, true);
+            (Column::TinyInt(columns.0), columns.1)
+        }
+        (Column::TinyInt(left), Column::Int(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, true);
+            (Column::TinyInt(columns.0), columns.1)
+        }
+        (Column::TinyInt(left), Column::SmallInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, true);
+            (Column::TinyInt(columns.0), columns.1)
+        }
+        (Column::TinyInt(left), Column::TinyInt(right)) => {
+            let columns = divide_integer_columns(left, right, alloc, false);
+            (Column::TinyInt(columns.0), columns.1)
+        }
+        _ => panic!(
+            "Division not supported between {} and {}",
+            lhs.column_type(),
+            rhs.column_type()
+        ),
+    }
+}
+
+#[allow(dead_code)]
+/// Take the modulo of one column against another.
+/// # Panics
+/// Panics if: `lhs` and `rhs` are not of the same length.
+pub(crate) fn modulo_columns<'a, S: Scalar>(
+    lhs: &Column<'a, S>,
+    rhs: &Column<'a, S>,
+    alloc: &'a Bump,
+) -> Column<'a, S> {
+    let lhs_len = lhs.len();
+    let rhs_len = rhs.len();
+    assert!(
+        lhs_len == rhs_len,
+        "lhs and rhs should have the same length"
+    );
+
+    match (lhs, rhs) {
+        (Column::Int128(left), Column::Int128(right)) => {
+            Column::Int128(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::Int128(left), Column::BigInt(right)) => {
+            Column::Int128(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::Int128(left), Column::Int(right)) => {
+            Column::Int128(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::Int128(left), Column::SmallInt(right)) => {
+            Column::Int128(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::Int128(left), Column::TinyInt(right)) => {
+            Column::Int128(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::BigInt(left), Column::Int128(right)) => {
+            Column::Int128(modulo_integer_columns(left, right, alloc, true))
+        }
+        (Column::BigInt(left), Column::BigInt(right)) => {
+            Column::BigInt(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::BigInt(left), Column::Int(right)) => {
+            Column::BigInt(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::BigInt(left), Column::SmallInt(right)) => {
+            Column::BigInt(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::BigInt(left), Column::TinyInt(right)) => {
+            Column::BigInt(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::Int(left), Column::Int128(right)) => {
+            Column::Int128(modulo_integer_columns(left, right, alloc, true))
+        }
+        (Column::Int(left), Column::BigInt(right)) => {
+            Column::BigInt(modulo_integer_columns(left, right, alloc, true))
+        }
+        (Column::Int(left), Column::Int(right)) => {
+            Column::Int(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::Int(left), Column::SmallInt(right)) => {
+            Column::Int(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::Int(left), Column::TinyInt(right)) => {
+            Column::Int(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::SmallInt(left), Column::Int128(right)) => {
+            Column::Int128(modulo_integer_columns(left, right, alloc, true))
+        }
+        (Column::SmallInt(left), Column::BigInt(right)) => {
+            Column::BigInt(modulo_integer_columns(left, right, alloc, true))
+        }
+        (Column::SmallInt(left), Column::Int(right)) => {
+            Column::Int(modulo_integer_columns(left, right, alloc, true))
+        }
+        (Column::SmallInt(left), Column::SmallInt(right)) => {
+            Column::SmallInt(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::SmallInt(left), Column::TinyInt(right)) => {
+            Column::SmallInt(modulo_integer_columns(left, right, alloc, false))
+        }
+        (Column::TinyInt(left), Column::Int128(right)) => {
+            Column::Int128(modulo_integer_columns(left, right, alloc, true))
+        }
+        (Column::TinyInt(left), Column::BigInt(right)) => {
+            Column::BigInt(modulo_integer_columns(left, right, alloc, true))
+        }
+        (Column::TinyInt(left), Column::Int(right)) => {
+            Column::Int(modulo_integer_columns(left, right, alloc, true))
+        }
+        (Column::TinyInt(left), Column::SmallInt(right)) => {
+            Column::SmallInt(modulo_integer_columns(left, right, alloc, true))
+        }
+        (Column::TinyInt(left), Column::TinyInt(right)) => {
+            Column::TinyInt(modulo_integer_columns(left, right, alloc, false))
+        }
+        _ => panic!(
+            "Modulo not supported between {} and {}",
+            lhs.column_type(),
+            rhs.column_type()
+        ),
     }
 }
