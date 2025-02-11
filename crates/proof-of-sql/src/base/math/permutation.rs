@@ -100,22 +100,19 @@ impl Permutation {
                 slice_length: slice.len(),
             });
         }
-
-        let num_chunks = slice.len() / chunk_size;
+        let num_chunks = slice.len();
         if self.size() != num_chunks {
             return Err(PermutationError::PermutationSizeMismatch {
                 permutation_size: self.size(),
                 slice_length: num_chunks,
             });
         }
-
-        let mut result = Vec::with_capacity(slice.len());
-        for &i in &self.permutation {
-            let start = i * chunk_size;
-            let end = start + chunk_size;
-            result.extend_from_slice(&slice[start..end]);
-        }
-
+        let result = self
+            .permutation
+            .iter()
+            .flat_map(|&i| slice[i * chunk_size..(i + 1) * chunk_size].iter())
+            .cloned()
+            .collect();
         Ok(result)
     }
 }

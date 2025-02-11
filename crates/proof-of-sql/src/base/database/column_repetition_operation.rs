@@ -6,6 +6,7 @@ use crate::base::scalar::Scalar;
 use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::iter::Iterator;
+use std::iter;
 
 pub trait RepetitionOp {
     fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T>;
@@ -138,15 +139,10 @@ impl RepetitionOp for ColumnRepeatOp {
     }
 
     fn op_fixed_size_binary(col_bytes: &[u8], width: usize, n: usize) -> Vec<u8> {
-        let num_rows = col_bytes.len() / width;
-        let mut out = Vec::with_capacity(col_bytes.len() * n);
-
-        for _ in 0..n {
-            for row_idx in 0..num_rows {
-                let start = row_idx * width;
-                let end = start + width;
-                out.extend_from_slice(&col_bytes[start..end]);
-            }
+        let rows: Vec<_> = col_bytes.chunks_exact(width).collect();
+        let mut out = Vec::with_capacity(rows.len() * width * n);
+        for row in rows.iter().cycle().take(rows.len() * n) {
+            out.extend_from_slice(row);
         }
         out
     }
@@ -159,17 +155,14 @@ impl RepetitionOp for ElementwiseRepeatOp {
     }
 
     fn op_fixed_size_binary(col_bytes: &[u8], width: usize, n: usize) -> Vec<u8> {
-        let num_rows = col_bytes.len() / width;
         let mut out = Vec::with_capacity(col_bytes.len() * n);
-
-        for row_idx in 0..num_rows {
-            let start = row_idx * width;
-            let end = start + width;
-            let chunk = &col_bytes[start..end];
-            for _ in 0..n {
-                out.extend_from_slice(chunk);
-            }
-        }
+        out.extend(
+            col_bytes
+                .chunks_exact(width)
+                .flat_map(|row| iter::repeat(row).take(n))
+                .flatten()
+                .cloned(),
+        );
         out
     }
 }

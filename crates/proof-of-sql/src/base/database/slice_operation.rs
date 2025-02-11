@@ -242,20 +242,17 @@ pub(super) fn repeat_elementwise<S: Clone>(slice: &[S], n: usize) -> impl Iterat
         .flat_map(move |s| core::iter::repeat(s).take(n).cloned())
 }
 
-fn repeat_elementwise_fixed_size_binary(col_bytes: &[u8], width: usize, n: usize) -> Vec<u8> {
-    let num_rows = col_bytes.len() / width;
-    let mut out = Vec::with_capacity(num_rows * width * n);
-
-    // For each row, copy it `n` times before moving on
-    for row_idx in 0..num_rows {
-        let start = row_idx * width;
-        let end = start + width;
-        let chunk = &col_bytes[start..end];
-        for _ in 0..n {
-            out.extend_from_slice(chunk);
-        }
-    }
-    out
+fn repeat_elementwise_fixed_size_binary_no_prealloc(
+    col_bytes: &[u8],
+    width: usize,
+    n: usize,
+) -> Vec<u8> {
+    col_bytes
+        .chunks_exact(width)
+        .flat_map(|row| std::iter::repeat(row).take(n))
+        .flatten() // turns iterator of &[u8] into iterator of &u8
+        .copied() // copies each &u8 into a real u8
+        .collect()
 }
 
 /// Apply a slice to a slice of indexes.
