@@ -82,7 +82,7 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     builder: &mut impl VerificationBuilder<S>,
     eval: S,
     chi_eval: S,
-    num_bits_allowed: u8,
+    num_bits_allowed: Option<u8>,
 ) -> Result<S, ProofError> {
     // bit_distribution
     let dist = builder.try_consume_bit_distribution()?;
@@ -142,12 +142,13 @@ fn verify_bits_are_binary<S: Scalar>(
 }
 
 /// This function checks the consistency of the bit evaluations with the expression evaluation.
+/// The column of data is restricted to an unsigned integer type of `num_bits_allowed` bits.
 fn verify_bit_decomposition<S: ScalarExt>(
     expr_eval: S,
     chi_eval: S,
     bit_evals: &[S],
     dist: &BitDistribution,
-    num_bits_allowed: u8,
+    num_bits_allowed: Option<u8>,
 ) -> Result<S, BitDistrubutionError> {
     let sign_eval = dist.leading_bit_eval(bit_evals, chi_eval)?;
     let mut rhs = sign_eval * S::from_wrapping(dist.leading_bit_mask())
@@ -161,11 +162,13 @@ fn verify_bit_decomposition<S: ScalarExt>(
             rhs += S::from_wrapping(mult) * bit_eval;
         }
     }
-    let bits_that_must_match_inverse_lead_bit =
-        U256::MAX.shl(num_bits_allowed - 1) ^ U256::ONE.shl(255);
-    (rhs == expr_eval
-        && bits_that_must_match_inverse_lead_bit & dist.leading_bit_inverse_mask()
-            == bits_that_must_match_inverse_lead_bit)
+    let bits_that_must_match_inverse_lead_bit = U256::MAX
+        .shl(num_bits_allowed.unwrap_or(S::MAX_BITS).min(S::MAX_BITS) - 1)
+        ^ U256::ONE.shl(255);
+    let is_eval_too_many_bits = bits_that_must_match_inverse_lead_bit
+        & dist.leading_bit_inverse_mask()
+        == bits_that_must_match_inverse_lead_bit;
+    (rhs == expr_eval && is_eval_too_many_bits)
         .then_some(sign_eval)
         .ok_or(BitDistrubutionError::Verification)
 }
@@ -205,7 +208,7 @@ mod tests {
         let bit_evals = [0, 0, 1, 1, 0, 1].map(TestScalar::from);
         let expr_eval = TestScalar::from(562);
         let sign_eval =
-            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, 128).unwrap();
+            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, None).unwrap();
         assert_eq!(sign_eval, TestScalar::ONE);
     }
 
@@ -244,7 +247,7 @@ mod tests {
                 + TestScalar::from(0) * (TestScalar::ONE - a) * b,
         ];
         let sign_eval =
-            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, 128).unwrap();
+            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, None).unwrap();
         assert_eq!(sign_eval, chi_eval);
     }
 
@@ -284,9 +287,10 @@ mod tests {
         let expected_eval = evaluate_terms(&[1, 1, 0, 0], &s);
 
         let sign_eval =
-            verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist, 8).unwrap();
+            verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist, Some(8)).unwrap();
         assert_eq!(sign_eval, expected_eval);
-        let err = verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist, 7).unwrap_err();
+        let err =
+            verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist, Some(7)).unwrap_err();
         assert!(matches!(err, BitDistrubutionError::Verification));
     }
 }
