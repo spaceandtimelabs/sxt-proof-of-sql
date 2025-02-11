@@ -5,14 +5,16 @@ use ark_std::test_rng;
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::commitment::InnerProductProof;
 use proof_of_sql::{
-    base::database::{owned_table_utility::*, OwnedTableTestAccessor, TableRef, TestAccessor},
+    base::{
+        database::{owned_table_utility::*, OwnedTableTestAccessor, TableRef, TestAccessor},
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    },
     proof_primitive::dory::{
         DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
         PublicParameters, VerifierSetup,
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {

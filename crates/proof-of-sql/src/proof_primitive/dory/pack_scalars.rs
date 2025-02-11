@@ -468,8 +468,10 @@ pub fn bit_table_and_scalars_for_packed_msm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::math::decimal::Precision;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use crate::base::{
+        math::decimal::Precision,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    };
 
     #[test]
     fn we_can_get_a_bit_table() {

@@ -2,7 +2,6 @@ use crate::intermediate_ast;
 use crate::select_statement;
 use crate::identifier;
 use lalrpop_util::ParseError::User;
-use crate::posql_time::PoSQLTimestamp;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec;
