@@ -92,10 +92,12 @@ impl<'a, S: Scalar> StandardVerificationBuilder<'a, S> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn generator_offset(&self) -> usize {
         self.generator_offset
     }
 
+    #[allow(dead_code)]
     /// Consume multiple first round MLE evaluations
     pub fn try_consume_first_round_mle_evaluations(
         &mut self,
