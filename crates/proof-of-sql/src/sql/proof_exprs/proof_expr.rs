@@ -37,9 +37,9 @@ pub trait ProofExpr: Debug + Send + Sync {
     /// Compute the evaluation of a multilinear extension from this expression
     /// at the random sumcheck point and adds components needed to verify the expression to
     /// [`VerificationBuilder<S>`]
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
     ) -> Result<S, ProofError>;

@@ -1,7 +1,7 @@
 use super::{
     make_sumcheck_state::make_sumcheck_prover_state, FinalRoundBuilder, FirstRoundBuilder,
-    ProofPlan, QueryData, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars,
-    VerificationBuilder,
+    ProofPlan, QueryData, QueryResult, StandardVerificationBuilder, SumcheckMleEvaluations,
+    SumcheckRandomScalars,
 };
 use crate::{
     base::{
@@ -392,7 +392,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .into_iter()
             .map(|(table_ref, length)| (table_ref, sumcheck_evaluations.chi_evaluations[&length]))
             .collect();
-        let mut builder = VerificationBuilder::new(
+        let mut builder = StandardVerificationBuilder::new(
             min_row_num,
             sumcheck_evaluations,
             &self.final_round_message.bit_distributions,

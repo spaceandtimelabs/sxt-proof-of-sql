@@ -19,9 +19,9 @@ pub(crate) struct DemoMockPlan {
 }
 
 impl ProofPlan for DemoMockPlan {
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        _builder: &mut VerificationBuilder<S>,
+        _builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,

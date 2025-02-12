@@ -82,9 +82,9 @@ impl ProverEvaluate for TrivialTestProofPlan {
     }
 }
 impl ProofPlan for TrivialTestProofPlan {
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
@@ -296,9 +296,9 @@ impl ProverEvaluate for SquareTestProofPlan {
     }
 }
 impl ProofPlan for SquareTestProofPlan {
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
@@ -488,9 +488,9 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
     }
 }
 impl ProofPlan for DoubleSquareTestProofPlan {
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
@@ -689,9 +689,9 @@ impl ProverEvaluate for ChallengeTestProofPlan {
     }
 }
 impl ProofPlan for ChallengeTestProofPlan {
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
@@ -829,9 +829,9 @@ impl ProverEvaluate for FirstRoundSquareTestProofPlan {
     }
 }
 impl ProofPlan for FirstRoundSquareTestProofPlan {
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,

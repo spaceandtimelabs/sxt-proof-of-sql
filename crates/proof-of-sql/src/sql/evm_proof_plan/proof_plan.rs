@@ -84,9 +84,9 @@ impl Serialize for EVMProofPlan {
 }
 
 impl ProofPlan for EVMProofPlan {
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
