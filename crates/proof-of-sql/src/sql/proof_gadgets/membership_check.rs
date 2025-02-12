@@ -127,8 +127,8 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
 }
 
 #[allow(dead_code, clippy::similar_names)]
-pub(crate) fn verify_membership_check<S: Scalar, B: VerificationBuilder<S>>(
-    builder: &mut B,
+pub(crate) fn verify_membership_check<S: Scalar>(
+    builder: &mut impl VerificationBuilder<S>,
     alpha: S,
     beta: S,
     chi_n_eval: S,

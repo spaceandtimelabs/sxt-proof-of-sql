@@ -386,8 +386,8 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
 /// # Panics
 ///
 /// if a column contains values outside of the selected range.
-pub(crate) fn verifier_evaluate_range_check<S: Scalar, B: VerificationBuilder<S>>(
-    builder: &mut B,
+pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
+    builder: &mut impl VerificationBuilder<S>,
     input_column_eval: S,
     chi_n_eval: S,
 ) -> Result<(), ProofSizeMismatch> {

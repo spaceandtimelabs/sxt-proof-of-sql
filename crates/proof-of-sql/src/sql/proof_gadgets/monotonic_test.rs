@@ -87,9 +87,9 @@ impl<const STRICT: bool, const ASC: bool> ProofPlan for MonotonicTestPlan<STRICT
     }
 
     #[doc = "Form components needed to verify and proof store into `VerificationBuilder`"]
-    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut B,
+        builder: &mut impl VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
@@ -101,7 +101,7 @@ impl<const STRICT: bool, const ASC: bool> ProofPlan for MonotonicTestPlan<STRICT
         let column_eval = builder.try_consume_final_round_mle_evaluation()?;
         let chi_eval = builder.try_consume_chi_evaluation()?;
         // Evaluate the verifier
-        verify_monotonic::<S, STRICT, ASC, _>(builder, alpha, beta, column_eval, chi_eval)?;
+        verify_monotonic::<S, STRICT, ASC>(builder, alpha, beta, column_eval, chi_eval)?;
         Ok(TableEvaluation::new(vec![], S::zero()))
     }
 }

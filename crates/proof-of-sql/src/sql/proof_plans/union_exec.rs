@@ -48,9 +48,9 @@ where
     UnionExec: ProverEvaluate,
 {
     #[allow(unused_variables)]
-    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut B,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
@@ -170,8 +170,8 @@ impl ProverEvaluate for UnionExec {
 /// # Panics
 /// Should never panic if the code is correct.
 #[allow(clippy::too_many_arguments)]
-fn verify_union<S: Scalar, B: VerificationBuilder<S>>(
-    builder: &mut B,
+fn verify_union<S: Scalar>(
+    builder: &mut impl VerificationBuilder<S>,
     gamma: S,
     beta: S,
     input_evals: &[&[S]],

@@ -61,9 +61,9 @@ where
     OstensibleFilterExec<H>: ProverEvaluate,
 {
     #[allow(unused_variables)]
-    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut B,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
@@ -254,8 +254,8 @@ impl ProverEvaluate for FilterExec {
     clippy::too_many_arguments,
     clippy::similar_names
 )]
-pub(super) fn verify_filter<S: Scalar, B: VerificationBuilder<S>>(
-    builder: &mut B,
+pub(super) fn verify_filter<S: Scalar>(
+    builder: &mut impl VerificationBuilder<S>,
     alpha: S,
     beta: S,
     chi_n_eval: S,

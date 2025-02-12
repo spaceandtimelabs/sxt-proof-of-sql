@@ -84,9 +84,9 @@ impl ProofExpr for AddSubtractExpr {
         res
     }
 
-    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut B,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
     ) -> Result<S, ProofError> {
