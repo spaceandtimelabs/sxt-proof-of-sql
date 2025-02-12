@@ -197,6 +197,10 @@ pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
     }
 }
 
+/// Divides two columns of data, where the data types are some unsigned int type(s).
+/// Note that `i128::MIN / -1`, for example, results in a value that is not contained by i128.
+/// Therefore, this value wraps around to `i128::MIN`.
+/// Division by 0 returns 0.
 #[allow(clippy::missing_panics_doc)]
 #[allow(dead_code)]
 fn divide_integer_columns<
@@ -205,8 +209,8 @@ fn divide_integer_columns<
     R: NumCast + Copy + PrimInt + Neg<Output = R>,
     S: Scalar + From<L>,
 >(
-    lhs: &&[L],
-    rhs: &&[R],
+    lhs: &[L],
+    rhs: &[R],
     alloc: &'a Bump,
     is_right_bigger_int_type: bool,
 ) -> (&'a [L], &'a [S]) {
@@ -236,6 +240,11 @@ fn divide_integer_columns<
     (division_wrapped, division)
 }
 
+/// Modulo two columns of data, where the data types are some unsigned int type(s).
+/// Note that `i128::MIN % -1`, for example, is unusual in that `i128::MIN / -1`
+/// ordinarily returns a value that is not containe dby i128. Division wraps this operation,
+/// but modulo still returns 0 here.
+/// Division by 0 returns the numerator for modulo.
 #[allow(clippy::missing_panics_doc)]
 #[allow(dead_code)]
 fn modulo_integer_columns<
@@ -269,7 +278,7 @@ fn modulo_integer_columns<
 
 /// Divide one column by another.
 /// # Panics
-/// Panics if: `lhs` and `rhs` are not of the same length.
+/// Panics if: `lhs` and `rhs` are not of the same length or column type division is unsupported.
 #[allow(clippy::too_many_lines)]
 #[allow(dead_code)]
 pub(crate) fn divide_columns<'a, S: Scalar>(
@@ -510,7 +519,7 @@ mod tests {
         r: &[i8],
     ) {
         let alloc = Bump::new();
-        let quotient = divide_integer_columns::<_, _, TestScalar>(&lhs, &rhs, &alloc, false);
+        let quotient = divide_integer_columns::<_, _, TestScalar>(lhs, rhs, &alloc, false);
         let remainder: &[i8] = modulo_integer_columns(&lhs, &rhs, &alloc, false);
         assert_eq!(quotient.0, wrapped_quotient);
         assert_eq!(
@@ -525,11 +534,11 @@ mod tests {
         let alloc = Bump::new();
         let a: &[i8] = &[2i8, 7, 0, 54];
         let b: &[i128] = &[-1i128, 300, 6, 0];
-        let quotient_ab = divide_integer_columns::<_, _, TestScalar>(&a, &b, &alloc, true);
+        let quotient_ab = divide_integer_columns::<_, _, TestScalar>(a, b, &alloc, true);
         let remainder_ab: &[i128] = modulo_integer_columns(&a, &b, &alloc, true);
         assert_eq!(quotient_ab.0, &[-2i8, 0, 0, 0]);
         assert_eq!(remainder_ab, &[0i128, 7, 0, 54]);
-        let quotient_ba = divide_integer_columns::<_, _, TestScalar>(&b, &a, &alloc, false);
+        let quotient_ba = divide_integer_columns::<_, _, TestScalar>(b, a, &alloc, false);
         let remainder_ba: &[i128] = modulo_integer_columns(&b, &a, &alloc, false);
         assert_eq!(quotient_ba.0, &[0i128, 42, 0, 0]);
         assert_eq!(remainder_ba, &[-1i128, 6, 6, 0]);
