@@ -162,9 +162,12 @@ fn verify_bit_decomposition<S: ScalarExt>(
             rhs += S::from_wrapping(mult) * bit_eval;
         }
     }
-    let bits_that_must_match_inverse_lead_bit = U256::MAX
-        .shl(num_bits_allowed.unwrap_or(S::MAX_BITS).min(S::MAX_BITS) - 1)
-        ^ U256::ONE.shl(255);
+    let num_bits_allowed = num_bits_allowed.unwrap_or(S::MAX_BITS);
+    if num_bits_allowed > S::MAX_BITS {
+        return Err(BitDistrubutionError::Verification);
+    }
+    let bits_that_must_match_inverse_lead_bit =
+        U256::MAX.shl(num_bits_allowed - 1) ^ U256::ONE.shl(255);
     let is_eval_too_many_bits = bits_that_must_match_inverse_lead_bit
         & dist.leading_bit_inverse_mask()
         == bits_that_must_match_inverse_lead_bit;
