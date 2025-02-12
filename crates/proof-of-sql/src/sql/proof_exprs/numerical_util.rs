@@ -197,7 +197,7 @@ pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
 }
 
 #[allow(clippy::missing_panics_doc)]
-pub(crate) fn divide_integer_columns<
+fn divide_integer_columns<
     'a,
     L: NumCast + Copy + PrimInt,
     R: NumCast + Copy + PrimInt + Neg<Output = R>,
@@ -235,7 +235,7 @@ pub(crate) fn divide_integer_columns<
 }
 
 #[allow(clippy::missing_panics_doc)]
-pub(crate) fn modulo_integer_columns<
+fn modulo_integer_columns<
     'a,
     L: NumCast + Copy + PrimInt,
     R: NumCast + Copy + PrimInt + Neg<Output = R>,

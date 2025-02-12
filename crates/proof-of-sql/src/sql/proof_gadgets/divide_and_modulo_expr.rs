@@ -450,7 +450,7 @@ impl DivideAndModuloExpr {
 mod tests{
     use bumpalo::Bump;
 
-    use crate::{base::{database::Column, scalar::test_scalar::TestScalar}, sql::proof_exprs::{divide_integer_columns, modulo_integer_columns}};
+    use crate::base::{database::Column, scalar::test_scalar::TestScalar};
 
     use super::{DivideAndModuloExprUtilities, StandardDivideAndModuloExprUtilities};
 
@@ -515,8 +515,9 @@ mod tests{
         rhs: Vec<i128>,
     ) -> (Vec<i128>, Vec<TestScalar>){
         let alloc = Bump::new();
-        let (quotient_wrapped, quotient) = divide_integer_columns::<_, _, TestScalar>(&lhs.as_slice(), &rhs.as_slice(), &alloc, false);
-        (quotient_wrapped.to_vec(), quotient.to_vec())
+        let standard_utilities = StandardDivideAndModuloExprUtilities;
+        let (quotient_wrapped, quotient) = standard_utilities.divide_columns(&Column::Int128::<TestScalar>(&lhs.as_slice()), &Column::Int128(&rhs.as_slice()), &alloc);
+        (quotient_wrapped.as_int128().unwrap().to_vec(), quotient.to_vec())
     }
 
     fn default_modulo_columns(lhs: Vec<i128>,
@@ -532,4 +533,6 @@ mod tests{
         let standard_utilities = StandardDivideAndModuloExprUtilities;
         standard_utilities.get_in_range_column_from_quotient_and_rhs(&alloc, &quotient, rhs).to_vec()
     }
+
+    
 }
