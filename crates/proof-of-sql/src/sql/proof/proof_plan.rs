@@ -1,4 +1,4 @@
-use super::{FinalRoundBuilder, FirstRoundBuilder, VerificationBuilder};
+use super::{verification_builder::VerificationBuilder, FinalRoundBuilder, FirstRoundBuilder};
 use crate::base::{
     database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
     map::{IndexMap, IndexSet},
@@ -13,9 +13,9 @@ use core::fmt::Debug;
 #[enum_dispatch::enum_dispatch(DynProofPlan)]
 pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
     /// Form components needed to verify and proof store into `VerificationBuilder`
-    fn verifier_evaluate<S: Scalar>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
