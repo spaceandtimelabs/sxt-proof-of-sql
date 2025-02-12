@@ -69,9 +69,9 @@ impl GroupByExec {
 
 impl ProofPlan for GroupByExec {
     #[allow(unused_variables)]
-    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut B,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
@@ -329,8 +329,8 @@ impl ProverEvaluate for GroupByExec {
 }
 
 #[allow(clippy::unnecessary_wraps)]
-fn verify_group_by<S: Scalar, B: VerificationBuilder<S>>(
-    builder: &mut B,
+fn verify_group_by<S: Scalar>(
+    builder: &mut impl VerificationBuilder<S>,
     alpha: S,
     beta: S,
     input_chi_eval: S,

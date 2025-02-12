@@ -155,9 +155,9 @@ impl ProofPlan for MembershipCheckTestPlan {
 
     #[doc = "Form components needed to verify and proof store into `VerificationBuilder`"]
     #[allow(clippy::similar_names)]
-    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut B,
+        builder: &mut impl VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,

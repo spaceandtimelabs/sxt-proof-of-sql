@@ -78,13 +78,8 @@ pub(crate) fn final_round_evaluate_monotonic<'a, S: Scalar, const STRICT: bool, 
     prover_evaluate_sign(builder, alloc, ind);
 }
 
-pub(crate) fn verify_monotonic<
-    S: Scalar,
-    const STRICT: bool,
-    const ASC: bool,
-    B: VerificationBuilder<S>,
->(
-    builder: &mut B,
+pub(crate) fn verify_monotonic<S: Scalar, const STRICT: bool, const ASC: bool>(
+    builder: &mut impl VerificationBuilder<S>,
     alpha: S,
     beta: S,
     column_eval: S,

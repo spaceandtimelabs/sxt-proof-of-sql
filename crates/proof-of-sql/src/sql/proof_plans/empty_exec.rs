@@ -37,9 +37,9 @@ impl EmptyExec {
 
 impl ProofPlan for EmptyExec {
     #[allow(unused_variables)]
-    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut B,
+        builder: &mut impl VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,

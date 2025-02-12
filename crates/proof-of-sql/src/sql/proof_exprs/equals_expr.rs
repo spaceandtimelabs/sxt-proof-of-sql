@@ -82,9 +82,9 @@ impl ProofExpr for EqualsExpr {
         res
     }
 
-    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut B,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
     ) -> Result<S, ProofError> {
@@ -155,8 +155,8 @@ pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
     selection
 }
 
-pub fn verifier_evaluate_equals_zero<S: Scalar, B: VerificationBuilder<S>>(
-    builder: &mut B,
+pub fn verifier_evaluate_equals_zero<S: Scalar>(
+    builder: &mut impl VerificationBuilder<S>,
     lhs_eval: S,
     chi_eval: S,
 ) -> Result<S, ProofError> {

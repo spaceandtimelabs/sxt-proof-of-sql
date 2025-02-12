@@ -98,9 +98,9 @@ where
     SortMergeJoinExec: ProverEvaluate,
 {
     #[allow(clippy::too_many_lines, clippy::similar_names)]
-    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
+    fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut B,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
@@ -233,8 +233,8 @@ where
             &right_join_column_evals,
         )?;
         // 7. Monotonicity checks
-        verify_monotonic::<S, true, true, _>(builder, alpha, beta, i_eval, res_chi_eval)?;
-        verify_monotonic::<S, true, true, _>(builder, alpha, beta, u_column_eval, u_chi_eval)?;
+        verify_monotonic::<S, true, true>(builder, alpha, beta, i_eval, res_chi_eval)?;
+        verify_monotonic::<S, true, true>(builder, alpha, beta, u_column_eval, u_chi_eval)?;
         // 8. Prove that sum w_l * w_r = chi_m
         // sum w_l * w_r - chi_m = 0
         builder.try_produce_sumcheck_subpolynomial_evaluation(
