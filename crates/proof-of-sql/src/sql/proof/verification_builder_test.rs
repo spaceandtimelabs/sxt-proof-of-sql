@@ -9,11 +9,9 @@ use num_traits::Zero;
 #[test]
 fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
     let mle_evaluations = SumcheckMleEvaluations {
-        num_sumcheck_variables: 1,
         ..Default::default()
     };
     let builder = StandardVerificationBuilder::<Curve25519Scalar>::new(
-        0,
         mle_evaluations,
         &[][..],
         &[][..],
@@ -28,7 +26,6 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
 #[test]
 fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations() {
     let mle_evaluations = SumcheckMleEvaluations {
-        num_sumcheck_variables: 1,
         ..Default::default()
     };
     let subpolynomial_multipliers = [
@@ -36,7 +33,6 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         Curve25519Scalar::from(100u64),
     ];
     let mut builder = StandardVerificationBuilder::new(
-        0,
         mle_evaluations,
         &[][..],
         &subpolynomial_multipliers,
@@ -67,7 +63,6 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
 #[test]
 fn we_can_consume_post_result_challenges_in_verification_builder() {
     let mut builder = StandardVerificationBuilder::new(
-        0,
         SumcheckMleEvaluations::default(),
         &[][..],
         &[][..],

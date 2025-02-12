@@ -52,7 +52,6 @@ pub trait VerificationBuilder<S: Scalar> {
 /// Track components used to verify a query's proof
 pub struct StandardVerificationBuilder<'a, S: Scalar> {
     mle_evaluations: SumcheckMleEvaluations<'a, S>,
-    generator_offset: usize,
     subpolynomial_multipliers: &'a [S],
     sumcheck_evaluation: S,
     bit_distributions: &'a [BitDistribution],
@@ -81,7 +80,6 @@ impl<'a, S: Scalar> StandardVerificationBuilder<'a, S> {
     )]
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        generator_offset: usize,
         mle_evaluations: SumcheckMleEvaluations<'a, S>,
         bit_distributions: &'a [BitDistribution],
         subpolynomial_multipliers: &'a [S],
@@ -92,7 +90,6 @@ impl<'a, S: Scalar> StandardVerificationBuilder<'a, S> {
     ) -> Self {
         Self {
             mle_evaluations,
-            generator_offset,
             bit_distributions,
             subpolynomial_multipliers,
             sumcheck_evaluation: S::zero(),
@@ -106,22 +103,6 @@ impl<'a, S: Scalar> StandardVerificationBuilder<'a, S> {
             rho_evaluation_length_queue,
             subpolynomial_max_multiplicands,
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn generator_offset(&self) -> usize {
-        self.generator_offset
-    }
-
-    #[allow(dead_code)]
-    /// Consume multiple first round MLE evaluations
-    pub fn try_consume_first_round_mle_evaluations(
-        &mut self,
-        count: usize,
-    ) -> Result<Vec<S>, ProofSizeMismatch> {
-        iter::repeat_with(|| self.try_consume_first_round_mle_evaluation())
-            .take(count)
-            .collect()
     }
 
     #[allow(
