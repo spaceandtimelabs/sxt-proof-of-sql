@@ -4,21 +4,29 @@ use alloc::{collections::VecDeque, vec::Vec};
 use core::iter;
 
 pub trait VerificationBuilder<S: Scalar> {
+    /// Consume the evaluation of a chi evaluation
     fn try_consume_chi_evaluation(&mut self) -> Result<S, ProofSizeMismatch>;
 
+    /// Consume the evaluation of a rho evaluation
     fn try_consume_rho_evaluation(&mut self) -> Result<S, ProofSizeMismatch>;
 
+    /// Consume the evaluation of a first round MLE used in sumcheck and provide the commitment of the MLE
     fn try_consume_first_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch>;
 
+    /// Consume the evaluation of a final round MLE used in sumcheck and provide the commitment of the MLE
     fn try_consume_final_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch>;
 
+    /// Consume multiple final round MLE evaluations
     fn try_consume_final_round_mle_evaluations(
         &mut self,
         count: usize,
     ) -> Result<Vec<S>, ProofSizeMismatch>;
 
+    /// Consume a bit distribution that describes which bits are constant
+    /// and which bits varying in a column of data
     fn try_consume_bit_distribution(&mut self) -> Result<BitDistribution, ProofSizeMismatch>;
 
+    /// Produce the evaluation of a subpolynomial used in sumcheck
     fn try_produce_sumcheck_subpolynomial_evaluation(
         &mut self,
         subpolynomial_type: SumcheckSubpolynomialType,
@@ -26,10 +34,18 @@ pub trait VerificationBuilder<S: Scalar> {
         degree: usize,
     ) -> Result<(), ProofSizeMismatch>;
 
+    /// Pops a challenge off the stack of post-result challenges.
+    ///
+    /// These challenges are used in creation of the constraints in the proof.
+    /// Specifically, these are the challenges that the verifier sends to
+    /// the prover after the prover sends the result, but before the prover
+    /// send commitments to the intermediate witness columns.
     fn try_consume_post_result_challenge(&mut self) -> Result<S, ProofSizeMismatch>;
 
+    /// Retrieves the `singleton_chi_evaluation` from the `mle_evaluations`
     fn singleton_chi_evaluation(&self) -> S;
 
+    /// Retrieves the `rho_256_evaluation` from the `mle_evaluations`
     fn rho_256_evaluation(&self) -> Option<S>;
 }
 
@@ -131,10 +147,6 @@ impl<'a, S: Scalar> StandardVerificationBuilder<'a, S> {
 }
 
 impl<S: Scalar> VerificationBuilder<S> for StandardVerificationBuilder<'_, S> {
-    /// Consume the evaluation of a chi evaluation
-    ///
-    /// # Panics
-    /// It should never panic, as the length of the chi evaluation is guaranteed to be present
     fn try_consume_chi_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         let index = self.consumed_chi_evaluations;
         let length = self
@@ -150,10 +162,6 @@ impl<S: Scalar> VerificationBuilder<S> for StandardVerificationBuilder<'_, S> {
             .ok_or(ProofSizeMismatch::ChiLengthNotFound)?)
     }
 
-    /// Consume the evaluation of a rho evaluation
-    ///
-    /// # Panics
-    /// It should never panic, as the length of the rho evaluation is guaranteed to be present
     fn try_consume_rho_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         let index = self.consumed_rho_evaluations;
         let length = self
@@ -169,7 +177,6 @@ impl<S: Scalar> VerificationBuilder<S> for StandardVerificationBuilder<'_, S> {
             .ok_or(ProofSizeMismatch::RhoLengthNotFound)?)
     }
 
-    /// Consume the evaluation of a first round MLE used in sumcheck and provide the commitment of the MLE
     fn try_consume_first_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         let index = self.consumed_first_round_pcs_proof_mles;
         self.consumed_first_round_pcs_proof_mles += 1;
@@ -180,7 +187,6 @@ impl<S: Scalar> VerificationBuilder<S> for StandardVerificationBuilder<'_, S> {
             .ok_or(ProofSizeMismatch::TooFewMLEEvaluations)
     }
 
-    /// Consume the evaluation of a final round MLE used in sumcheck and provide the commitment of the MLE
     fn try_consume_final_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         let index = self.consumed_final_round_pcs_proof_mles;
         self.consumed_final_round_pcs_proof_mles += 1;
@@ -191,7 +197,6 @@ impl<S: Scalar> VerificationBuilder<S> for StandardVerificationBuilder<'_, S> {
             .ok_or(ProofSizeMismatch::TooFewMLEEvaluations)
     }
 
-    /// Consume multiple final round MLE evaluations
     fn try_consume_final_round_mle_evaluations(
         &mut self,
         count: usize,
@@ -201,8 +206,6 @@ impl<S: Scalar> VerificationBuilder<S> for StandardVerificationBuilder<'_, S> {
             .collect()
     }
 
-    /// Consume a bit distribution that describes which bits are constant
-    /// and which bits varying in a column of data
     fn try_consume_bit_distribution(&mut self) -> Result<BitDistribution, ProofSizeMismatch> {
         let res = self
             .bit_distributions
@@ -213,7 +216,6 @@ impl<S: Scalar> VerificationBuilder<S> for StandardVerificationBuilder<'_, S> {
         Ok(res)
     }
 
-    /// Produce the evaluation of a subpolynomial used in sumcheck
     fn try_produce_sumcheck_subpolynomial_evaluation(
         &mut self,
         subpolynomial_type: SumcheckSubpolynomialType,
@@ -243,13 +245,6 @@ impl<S: Scalar> VerificationBuilder<S> for StandardVerificationBuilder<'_, S> {
         Ok(())
     }
 
-    /// Pops a challenge off the stack of post-result challenges.
-    ///
-    /// These challenges are used in creation of the constraints in the proof.
-    /// Specifically, these are the challenges that the verifier sends to
-    /// the prover after the prover sends the result, but before the prover
-    /// send commitments to the intermediate witness columns.
-    ///
     /// # Panics
     /// This function will panic if there are no post-result challenges available to pop from the stack.
     ///
