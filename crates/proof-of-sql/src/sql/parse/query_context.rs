@@ -228,7 +228,7 @@ impl QueryContext {
     }
 }
 
-/// Converts a `QueryContext` into a `Option<GroupByExec>`.
+/// Converts a `QueryContext` into an `Option<GroupByExec>`.
 ///
 /// We use Some if the query is provable and None if it is not
 /// We error out if the query is wrong

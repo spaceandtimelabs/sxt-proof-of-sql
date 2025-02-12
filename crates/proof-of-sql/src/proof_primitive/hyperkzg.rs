@@ -28,7 +28,7 @@ use tracing::{span, Level};
 pub type BNScalar = MontScalar<ark_bn254::FrConfig>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-/// The `HyperKZG` engine that implememts nova's `Engine` trait.
+/// The `HyperKZG` engine that implements nova's `Engine` trait.
 pub struct HyperKZGEngine;
 
 type NovaCommitment = nova_snark::provider::hyperkzg::Commitment<HyperKZGEngine>;

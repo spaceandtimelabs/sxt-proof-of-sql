@@ -76,7 +76,7 @@ fn we_can_evaluate_a_simple_column() {
 }
 
 #[test]
-fn we_can_not_evaluate_a_nonexisting_column() {
+fn we_cannot_evaluate_a_nonexisting_column() {
     let table: OwnedTable<TestScalar> =
         owned_table([varchar("cats", ["Chloe", "Margaret", "Prudence", "Lucy"])]);
     // "not_a_column" is not a column in the table

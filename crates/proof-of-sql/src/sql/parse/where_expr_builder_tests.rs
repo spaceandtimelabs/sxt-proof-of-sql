@@ -273,7 +273,7 @@ fn we_can_check_varying_precision_eq_for_timestamp() {
 }
 
 #[test]
-fn we_can_not_have_missing_column_as_where_clause() {
+fn we_cannot_have_missing_column_as_where_clause() {
     let column_mapping = get_column_mappings_for_testing();
     let builder = WhereExprBuilder::new(&column_mapping);
     let expr_missing = col("not_a_column");
@@ -285,7 +285,7 @@ fn we_can_not_have_missing_column_as_where_clause() {
 }
 
 #[test]
-fn we_can_not_have_non_boolean_column_as_where_clause() {
+fn we_cannot_have_non_boolean_column_as_where_clause() {
     let column_mapping = get_column_mappings_for_testing();
 
     let builder = WhereExprBuilder::new(&column_mapping);
@@ -299,7 +299,7 @@ fn we_can_not_have_non_boolean_column_as_where_clause() {
 }
 
 #[test]
-fn we_can_not_have_non_boolean_literal_as_where_clause() {
+fn we_cannot_have_non_boolean_literal_as_where_clause() {
     let column_mapping = IndexMap::default();
 
     let builder = WhereExprBuilder::new(&column_mapping);
