@@ -15,6 +15,14 @@ library VerificationBuilderTestHelper {
         VerificationBuilder.__setChallenges(builderPtr, challengePtr, challenges.length);
     }
 
+    function setFirstRoundMLEs(uint256 builderPtr, uint256[] memory firstRoundMLEs) internal pure {
+        uint256 firstRoundMLEsPtr;
+        assembly {
+            firstRoundMLEsPtr := add(firstRoundMLEs, WORD_SIZE)
+        }
+        VerificationBuilder.__setFirstRoundMLEs(builderPtr, firstRoundMLEsPtr, firstRoundMLEs.length);
+    }
+
     function setFinalRoundMLEs(uint256 builderPtr, uint256[] memory finalRoundMLEs) internal pure {
         uint256 finalRoundMLEsPtr;
         assembly {
@@ -29,6 +37,14 @@ library VerificationBuilderTestHelper {
             chiEvaluationsPtr := add(chiEvaluations, WORD_SIZE)
         }
         VerificationBuilder.__setChiEvaluations(builderPtr, chiEvaluationsPtr, chiEvaluations.length);
+    }
+
+    function setRhoEvaluations(uint256 builderPtr, uint256[] memory rhoEvaluations) internal pure {
+        uint256 rhoEvaluationsPtr;
+        assembly {
+            rhoEvaluationsPtr := add(rhoEvaluations, WORD_SIZE)
+        }
+        VerificationBuilder.__setRhoEvaluations(builderPtr, rhoEvaluationsPtr, rhoEvaluations.length);
     }
 }
 
@@ -116,6 +132,69 @@ contract VerificationBuilderTest is Test {
         }
         vm.expectRevert(Errors.TooFewChallenges.selector);
         VerificationBuilder.__consumeChallenge(builderPtr);
+    }
+
+    function testSetFirstRoundMLEs() public pure {
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilder.__setFirstRoundMLEs(builderPtr, 0xABCD, 0x1234);
+        uint256 head;
+        uint256 tail;
+        assembly {
+            head := mload(add(builderPtr, FIRST_ROUND_MLE_HEAD_OFFSET))
+            tail := mload(add(builderPtr, FIRST_ROUND_MLE_TAIL_OFFSET))
+        }
+        assert(head == 0xABCD);
+        assert(tail == 0xABCD + WORD_SIZE * 0x1234);
+    }
+
+    function testFuzzSetFirstRoundMLEs(uint256[] memory, uint256 firstRoundMLEPtr, uint64 firstRoundMLELength)
+        public
+        pure
+    {
+        vm.assume(firstRoundMLEPtr < 2 ** 64);
+        vm.assume(firstRoundMLELength < 2 ** 64);
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilder.__setFirstRoundMLEs(builderPtr, firstRoundMLEPtr, firstRoundMLELength);
+        uint256 head;
+        uint256 tail;
+        assembly {
+            head := mload(add(builderPtr, FIRST_ROUND_MLE_HEAD_OFFSET))
+            tail := mload(add(builderPtr, FIRST_ROUND_MLE_TAIL_OFFSET))
+        }
+        assert(head == firstRoundMLEPtr);
+        assert(tail == firstRoundMLEPtr + WORD_SIZE * firstRoundMLELength);
+    }
+
+    function testSetAndConsumeZeroFirstRoundMLEs() public {
+        uint256[] memory firstRoundMLEs = new uint256[](0);
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilderTestHelper.setFirstRoundMLEs(builderPtr, firstRoundMLEs);
+        vm.expectRevert(Errors.TooFewFirstRoundMLEs.selector);
+        VerificationBuilder.__consumeFirstRoundMLE(builderPtr);
+    }
+
+    function testSetAndConsumeOneFirstRoundMLE() public {
+        uint256[] memory firstRoundMLEs = new uint256[](1);
+        firstRoundMLEs[0] = 0x12345678;
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilderTestHelper.setFirstRoundMLEs(builderPtr, firstRoundMLEs);
+        assert(VerificationBuilder.__consumeFirstRoundMLE(builderPtr) == 0x12345678);
+        vm.expectRevert(Errors.TooFewFirstRoundMLEs.selector);
+        VerificationBuilder.__consumeFirstRoundMLE(builderPtr);
+    }
+
+    function testSetAndConsumeFirstRoundMLEs() public {
+        uint256[] memory firstRoundMLEs = new uint256[](3);
+        firstRoundMLEs[0] = 0x12345678;
+        firstRoundMLEs[1] = 0x23456789;
+        firstRoundMLEs[2] = 0x3456789A;
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilderTestHelper.setFirstRoundMLEs(builderPtr, firstRoundMLEs);
+        assert(VerificationBuilder.__consumeFirstRoundMLE(builderPtr) == 0x12345678);
+        assert(VerificationBuilder.__consumeFirstRoundMLE(builderPtr) == 0x23456789);
+        assert(VerificationBuilder.__consumeFirstRoundMLE(builderPtr) == 0x3456789A);
+        vm.expectRevert(Errors.TooFewFirstRoundMLEs.selector);
+        VerificationBuilder.__consumeFirstRoundMLE(builderPtr);
     }
 
     function testSetFinalRoundMLEs() public pure {
@@ -264,5 +343,79 @@ contract VerificationBuilderTest is Test {
         }
         vm.expectRevert(Errors.TooFewChiEvaluations.selector);
         VerificationBuilder.__consumeChiEvaluation(builderPtr);
+    }
+
+    function testSetRhoEvaluations() public pure {
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilder.__setRhoEvaluations(builderPtr, 0xABCD, 0x1234);
+        uint256 head;
+        uint256 tail;
+        assembly {
+            head := mload(add(builderPtr, RHO_EVALUATION_HEAD_OFFSET))
+            tail := mload(add(builderPtr, RHO_EVALUATION_TAIL_OFFSET))
+        }
+        assert(head == 0xABCD);
+        assert(tail == 0xABCD + WORD_SIZE * 0x1234);
+    }
+
+    function testFuzzSetRhoEvaluations(uint256[] memory, uint256 rhoEvaluationPtr, uint64 rhoEvaluationLength)
+        public
+        pure
+    {
+        vm.assume(rhoEvaluationPtr < 2 ** 64);
+        vm.assume(rhoEvaluationLength < 2 ** 64);
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilder.__setRhoEvaluations(builderPtr, rhoEvaluationPtr, rhoEvaluationLength);
+        uint256 head;
+        uint256 tail;
+        assembly {
+            head := mload(add(builderPtr, RHO_EVALUATION_HEAD_OFFSET))
+            tail := mload(add(builderPtr, RHO_EVALUATION_TAIL_OFFSET))
+        }
+        assert(head == rhoEvaluationPtr);
+        assert(tail == rhoEvaluationPtr + WORD_SIZE * rhoEvaluationLength);
+    }
+
+    function testSetAndConsumeZeroRhoEvaluations() public {
+        uint256[] memory rhoEvaluations = new uint256[](0);
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilderTestHelper.setRhoEvaluations(builderPtr, rhoEvaluations);
+        vm.expectRevert(Errors.TooFewRhoEvaluations.selector);
+        VerificationBuilder.__consumeRhoEvaluation(builderPtr);
+    }
+
+    function testSetAndConsumeOneRhoEvaluation() public {
+        uint256[] memory rhoEvaluations = new uint256[](1);
+        rhoEvaluations[0] = 0x12345678;
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilderTestHelper.setRhoEvaluations(builderPtr, rhoEvaluations);
+        assert(VerificationBuilder.__consumeRhoEvaluation(builderPtr) == 0x12345678);
+        vm.expectRevert(Errors.TooFewRhoEvaluations.selector);
+        VerificationBuilder.__consumeRhoEvaluation(builderPtr);
+    }
+
+    function testSetAndConsumeRhoEvaluations() public {
+        uint256[] memory rhoEvaluations = new uint256[](3);
+        rhoEvaluations[0] = 0x12345678;
+        rhoEvaluations[1] = 0x23456789;
+        rhoEvaluations[2] = 0x3456789A;
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilderTestHelper.setRhoEvaluations(builderPtr, rhoEvaluations);
+        assert(VerificationBuilder.__consumeRhoEvaluation(builderPtr) == 0x12345678);
+        assert(VerificationBuilder.__consumeRhoEvaluation(builderPtr) == 0x23456789);
+        assert(VerificationBuilder.__consumeRhoEvaluation(builderPtr) == 0x3456789A);
+        vm.expectRevert(Errors.TooFewRhoEvaluations.selector);
+        VerificationBuilder.__consumeRhoEvaluation(builderPtr);
+    }
+
+    function testFuzzSetAndConsumeRhoEvaluations(uint256[] memory, uint256[] memory rhoEvaluations) public {
+        uint256 builderPtr = VerificationBuilder.__allocate();
+        VerificationBuilderTestHelper.setRhoEvaluations(builderPtr, rhoEvaluations);
+        uint256 rhoEvaluationsLength = rhoEvaluations.length;
+        for (uint256 i = 0; i < rhoEvaluationsLength; ++i) {
+            assert(VerificationBuilder.__consumeRhoEvaluation(builderPtr) == rhoEvaluations[i]);
+        }
+        vm.expectRevert(Errors.TooFewRhoEvaluations.selector);
+        VerificationBuilder.__consumeRhoEvaluation(builderPtr);
     }
 }

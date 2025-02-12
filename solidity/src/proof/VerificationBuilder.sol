@@ -52,6 +52,46 @@ library VerificationBuilder {
         }
     }
 
+    /// @notice Sets the first round mles in the verification builder.
+    /// @param __builderPtr The pointer to the verification builder.
+    /// @param __firstRoundMLEPtr The pointer to the first round mles.
+    /// @param __firstRoundMLELength The number of first round mles.
+    function __setFirstRoundMLEs(uint256 __builderPtr, uint256 __firstRoundMLEPtr, uint256 __firstRoundMLELength)
+        internal
+        pure
+    {
+        assembly {
+            function builder_set_first_round_mles(builder_ptr, first_round_mle_ptr, first_round_mle_length) {
+                mstore(add(builder_ptr, FIRST_ROUND_MLE_HEAD_OFFSET), first_round_mle_ptr)
+                mstore(
+                    add(builder_ptr, FIRST_ROUND_MLE_TAIL_OFFSET),
+                    add(first_round_mle_ptr, mul(WORD_SIZE, first_round_mle_length))
+                )
+            }
+            builder_set_first_round_mles(__builderPtr, __firstRoundMLEPtr, __firstRoundMLELength)
+        }
+    }
+
+    /// @notice Consumes a first round mle from the verification builder.
+    /// @param __builderPtr The pointer to the verification builder.
+    /// @return __evaluation The consumed first round mle.
+    /// @dev Reverts if there are no first round mles left.
+    function __consumeFirstRoundMLE(uint256 __builderPtr) internal pure returns (uint256 __evaluation) {
+        assembly {
+            function builder_consume_first_round_mle(builder_ptr) -> evaluation {
+                let head_ptr := mload(add(builder_ptr, FIRST_ROUND_MLE_HEAD_OFFSET))
+                evaluation := mload(head_ptr)
+                head_ptr := add(head_ptr, WORD_SIZE)
+                if gt(head_ptr, mload(add(builder_ptr, FIRST_ROUND_MLE_TAIL_OFFSET))) {
+                    mstore(0, TOO_FEW_FIRST_ROUND_MLES)
+                    revert(0, 4)
+                }
+                mstore(add(builder_ptr, FIRST_ROUND_MLE_HEAD_OFFSET), head_ptr)
+            }
+            __evaluation := builder_consume_first_round_mle(__builderPtr)
+        }
+    }
+
     /// @notice Sets the final round mles in the verification builder.
     /// @param __builderPtr The pointer to the verification builder.
     /// @param __finalRoundMLEPtr The pointer to the final round mles.
@@ -129,6 +169,46 @@ library VerificationBuilder {
                 mstore(add(builder_ptr, CHI_EVALUATION_HEAD_OFFSET), head_ptr)
             }
             __evaluation := builder_consume_chi_evaluation(__builderPtr)
+        }
+    }
+
+    /// @notice Sets the rho evaluations in the verification builder.
+    /// @param __builderPtr The pointer to the verification builder.
+    /// @param __rhoEvaluationPtr The pointer to the rho evaluations.
+    /// @param __rhoEvaluationLength The number of rho evaluations.
+    function __setRhoEvaluations(uint256 __builderPtr, uint256 __rhoEvaluationPtr, uint256 __rhoEvaluationLength)
+        internal
+        pure
+    {
+        assembly {
+            function builder_set_rho_evaluations(builder_ptr, rho_evaluation_ptr, rho_evaluation_length) {
+                mstore(add(builder_ptr, RHO_EVALUATION_HEAD_OFFSET), rho_evaluation_ptr)
+                mstore(
+                    add(builder_ptr, RHO_EVALUATION_TAIL_OFFSET),
+                    add(rho_evaluation_ptr, mul(WORD_SIZE, rho_evaluation_length))
+                )
+            }
+            builder_set_rho_evaluations(__builderPtr, __rhoEvaluationPtr, __rhoEvaluationLength)
+        }
+    }
+
+    /// @notice Consumes a rho evaluation from the verification builder.
+    /// @param __builderPtr The pointer to the verification builder.
+    /// @return __evaluation The consumed rho evaluation.
+    /// @dev Reverts if there are no rho evaluations left.
+    function __consumeRhoEvaluation(uint256 __builderPtr) internal pure returns (uint256 __evaluation) {
+        assembly {
+            function builder_consume_rho_evaluation(builder_ptr) -> evaluation {
+                let head_ptr := mload(add(builder_ptr, RHO_EVALUATION_HEAD_OFFSET))
+                evaluation := mload(head_ptr)
+                head_ptr := add(head_ptr, WORD_SIZE)
+                if gt(head_ptr, mload(add(builder_ptr, RHO_EVALUATION_TAIL_OFFSET))) {
+                    mstore(0, TOO_FEW_RHO_EVALUATIONS)
+                    revert(0, 4)
+                }
+                mstore(add(builder_ptr, RHO_EVALUATION_HEAD_OFFSET), head_ptr)
+            }
+            __evaluation := builder_consume_rho_evaluation(__builderPtr)
         }
     }
 }
