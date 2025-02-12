@@ -205,7 +205,7 @@ pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
 #[allow(dead_code)]
 fn divide_integer_columns<
     'a,
-    L: NumCast + Copy + PrimInt,
+    L: NumCast + Copy + PrimInt + Neg<Output = L>,
     R: NumCast + Copy + PrimInt + Neg<Output = R>,
     S: Scalar + From<L>,
 >(
@@ -249,7 +249,7 @@ fn divide_integer_columns<
 #[allow(dead_code)]
 fn modulo_integer_columns<
     'a,
-    L: NumCast + Copy + PrimInt,
+    L: NumCast + Copy + PrimInt + Neg<Output = L>,
     R: NumCast + Copy + PrimInt + Neg<Output = R>,
     O: NumCast + PrimInt,
 >(
