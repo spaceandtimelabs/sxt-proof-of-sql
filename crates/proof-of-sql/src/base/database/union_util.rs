@@ -190,8 +190,7 @@ pub fn column_union<'a, S: Scalar>(
             assert_eq!(
                 flattened.len(),
                 total_bytes,
-                "Expected total of {} bytes",
-                total_bytes
+                "Expected total of {total_bytes} bytes"
             );
             let allocated = alloc.alloc_slice_copy(&flattened);
             Column::FixedSizeBinary(width, allocated)

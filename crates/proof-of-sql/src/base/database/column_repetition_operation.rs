@@ -5,8 +5,7 @@ use super::{
 use crate::base::scalar::Scalar;
 use alloc::vec::Vec;
 use bumpalo::Bump;
-use core::iter;
-use core::iter::Iterator;
+use core::{iter, iter::Iterator};
 
 pub trait RepetitionOp {
     fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T>;
@@ -161,7 +160,7 @@ impl RepetitionOp for ElementwiseRepeatOp {
                 .chunks_exact(width)
                 .flat_map(|row| iter::repeat(row).take(n))
                 .flatten()
-                .cloned(),
+                .copied(),
         );
         out
     }
