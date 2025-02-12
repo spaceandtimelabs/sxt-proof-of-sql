@@ -58,7 +58,6 @@ fn we_can_verify_a_constant_decomposition() {
     let chi_eval = chi_evals.values().next().unwrap();
 
     let mut builder = StandardVerificationBuilder::new(
-        0,
         sumcheck_evaluations,
         &dists,
         &[],
@@ -93,7 +92,6 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     let chi_eval = chi_evals.values().next().unwrap();
 
     let mut builder = StandardVerificationBuilder::new(
-        0,
         sumcheck_evaluations,
         &dists,
         &[],

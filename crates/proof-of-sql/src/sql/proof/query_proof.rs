@@ -393,7 +393,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .map(|(table_ref, length)| (table_ref, sumcheck_evaluations.chi_evaluations[&length]))
             .collect();
         let mut builder = StandardVerificationBuilder::new(
-            min_row_num,
             sumcheck_evaluations,
             &self.final_round_message.bit_distributions,
             sumcheck_random_scalars.subpolynomial_multipliers,
