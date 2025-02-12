@@ -79,7 +79,7 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
 ///
 /// See [`prover_evaluate_sign`].
 pub fn verifier_evaluate_sign<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+    builder: &mut impl VerificationBuilder<S>,
     eval: S,
     chi_eval: S,
 ) -> Result<S, ProofError> {
@@ -127,7 +127,7 @@ fn prove_bits_are_binary<'a, S: Scalar>(
 }
 
 fn verify_bits_are_binary<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+    builder: &mut impl VerificationBuilder<S>,
     bit_evals: &[S],
 ) -> Result<(), ProofError> {
     for bit_eval in bit_evals {

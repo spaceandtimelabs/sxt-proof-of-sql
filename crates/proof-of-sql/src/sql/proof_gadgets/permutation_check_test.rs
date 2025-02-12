@@ -127,7 +127,7 @@ impl ProofPlan for PermutationCheckTestPlan {
     #[doc = "Form components needed to verify and proof store into `VerificationBuilder`"]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,

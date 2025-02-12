@@ -84,7 +84,7 @@ impl ProofExpr for ColumnExpr {
     /// add components needed to verify this column expression
     fn verifier_evaluate<S: Scalar>(
         &self,
-        _builder: &mut VerificationBuilder<S>,
+        _builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _chi_eval: S,
     ) -> Result<S, ProofError> {

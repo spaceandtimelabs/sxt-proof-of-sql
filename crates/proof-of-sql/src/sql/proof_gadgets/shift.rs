@@ -100,7 +100,7 @@ pub(crate) fn final_round_evaluate_shift<'a, S: Scalar>(
 }
 
 pub(crate) fn verify_shift<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+    builder: &mut impl VerificationBuilder<S>,
     alpha: S,
     beta: S,
     column_eval: S,

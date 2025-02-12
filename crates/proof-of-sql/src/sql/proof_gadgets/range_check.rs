@@ -387,7 +387,7 @@ fn prove_row_zero_sum<'a, S: Scalar + 'a>(
 ///
 /// if a column contains values outside of the selected range.
 pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
-    builder: &mut VerificationBuilder<'_, S>,
+    builder: &mut impl VerificationBuilder<S>,
     input_column_eval: S,
     chi_n_eval: S,
 ) -> Result<(), ProofSizeMismatch> {
@@ -445,8 +445,7 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
     // Retrieve word_vals_eval (evaluation for w-values)
     // from the builder’s MLE evaluations
     let word_vals_eval = builder
-        .mle_evaluations
-        .rho_256_evaluation
+        .rho_256_evaluation()
         .ok_or(ProofSizeMismatch::TooFewSumcheckVariables)?;
 
     // Retrieve the final-round MLE evaluation for (word_vals + α)⁻¹

@@ -61,7 +61,7 @@ impl ProverEvaluate for EmptyTestQueryExpr {
 impl ProofPlan for EmptyTestQueryExpr {
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
