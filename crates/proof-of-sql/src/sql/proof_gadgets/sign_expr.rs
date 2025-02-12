@@ -270,7 +270,7 @@ mod tests {
         ];
 
         let expr_eval = evaluate_terms(&[106, 23, -60, -76], &s);
-        let one_eval = evaluate_terms(&[1, 1, 1, 1], &s);
+        let chi_eval = evaluate_terms(&[1, 1, 1, 1], &s);
 
         let bit_matrix: &[&[i32]] = &[
             &[0, 1, 0, 0],
@@ -287,10 +287,10 @@ mod tests {
         let expected_eval = evaluate_terms(&[1, 1, 0, 0], &s);
 
         let sign_eval =
-            verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist, Some(8)).unwrap();
+            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(8)).unwrap();
         assert_eq!(sign_eval, expected_eval);
         let err =
-            verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist, Some(7)).unwrap_err();
+            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(7)).unwrap_err();
         assert!(matches!(err, BitDistrubutionError::Verification));
     }
 }
