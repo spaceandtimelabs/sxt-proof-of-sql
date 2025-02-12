@@ -251,23 +251,16 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lcov
       - name: Check code coverage
         run: solidity/scripts/check_coverage.sh
+      - name: Check fmt
+        run: solidity/scripts/pre_forge.sh fmt --check
+      - name: Run solhint
+        run: |
+          npm install -g solhint
+          cd solidity
+          solhint '**/*.sol' -w 0
+          cd ..
       - name: Run slither
         uses: crytic/slither-action@v0.4.0
         with:
           target: solidity
           slither-config: solidity/slither.config.json
-
-  solhint:
-    name: solhint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Install solhint
-        run: npm install -g solhint
-      - name: Run lints
-        run: |
-          cd solidity
-          scripts/preprocess_yul_imports.sh src
-          scripts/preprocess_yul_imports.sh test
-          solhint '**/*.sol' -w 0
