@@ -223,6 +223,9 @@ pub fn sum_expr(expr: DynProofExpr, alias: &str) -> AliasedDynProofExpr {
     }
 }
 
+/// Allows testing `verify_evaluate` and other verify gadgets row by row.
+/// The return matrix will tell which constraints failed.
+/// The length of the vector should be the length of the data.
 pub fn verify_row_by_row<
     F: FnMut(&mut MockVerificationBuilder<TestScalar>, TestScalar, &[TestScalar]),
 >(
