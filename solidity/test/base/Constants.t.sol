@@ -5,91 +5,61 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
 
-library ErrorTest {
-    function causeInvalidECAddInputs() public pure {
+contract ConstantsTest is Test {
+    function testErrorFailedInvalidECAddInputs() public {
+        vm.expectRevert(Errors.InvalidECAddInputs.selector);
         assembly {
             mstore(0, INVALID_EC_ADD_INPUTS)
             revert(0, 4)
         }
     }
 
-    function causeInvalidECMulInputs() public pure {
+    function testErrorFailedInvalidECMulInputs() public {
+        vm.expectRevert(Errors.InvalidECMulInputs.selector);
         assembly {
             mstore(0, INVALID_EC_MUL_INPUTS)
             revert(0, 4)
         }
     }
 
-    function causeInvalidECPairingInputs() public pure {
+    function testErrorFailedInvalidECPairingInputs() public {
+        vm.expectRevert(Errors.InvalidECPairingInputs.selector);
         assembly {
             mstore(0, INVALID_EC_PAIRING_INPUTS)
             revert(0, 4)
         }
     }
 
-    function causeRoundEvaluationMismatch() public pure {
+    function testErrorFailedRoundEvaluationMismatch() public {
+        vm.expectRevert(Errors.RoundEvaluationMismatch.selector);
         assembly {
             mstore(0, ROUND_EVALUATION_MISMATCH)
             revert(0, 4)
         }
     }
 
-    function causeTooFewChallenges() public pure {
+    function testErrorFailedTooFewChallenges() public {
+        vm.expectRevert(Errors.TooFewChallenges.selector);
         assembly {
             mstore(0, TOO_FEW_CHALLENGES)
             revert(0, 4)
         }
     }
 
-    function causeTooFewFinalRoundMLEs() public pure {
+    function testErrorFailedTooFewFinalRoundMLEs() public {
+        vm.expectRevert(Errors.TooFewFinalRoundMLEs.selector);
         assembly {
             mstore(0, TOO_FEW_FINAL_ROUND_MLES)
             revert(0, 4)
         }
     }
 
-    function causeTooFewChiEvaluations() public pure {
+    function testErrorFailedTooFewChiEvaluations() public {
+        vm.expectRevert(Errors.TooFewChiEvaluations.selector);
         assembly {
             mstore(0, TOO_FEW_CHI_EVALUATIONS)
             revert(0, 4)
         }
-    }
-}
-
-contract ConstantsTest is Test {
-    function testErrorFailedInvalidECAddInputs() public {
-        vm.expectRevert(Errors.InvalidECAddInputs.selector);
-        ErrorTest.causeInvalidECAddInputs();
-    }
-
-    function testErrorFailedInvalidECMulInputs() public {
-        vm.expectRevert(Errors.InvalidECMulInputs.selector);
-        ErrorTest.causeInvalidECMulInputs();
-    }
-
-    function testErrorFailedInvalidECPairingInputs() public {
-        vm.expectRevert(Errors.InvalidECPairingInputs.selector);
-        ErrorTest.causeInvalidECPairingInputs();
-    }
-
-    function testErrorFailedRoundEvaluationMismatch() public {
-        vm.expectRevert(Errors.RoundEvaluationMismatch.selector);
-        ErrorTest.causeRoundEvaluationMismatch();
-    }
-
-    function testErrorFailedTooFewChallenges() public {
-        vm.expectRevert(Errors.TooFewChallenges.selector);
-        ErrorTest.causeTooFewChallenges();
-    }
-
-    function testErrorFailedTooFewFinalRoundMLEs() public {
-        vm.expectRevert(Errors.TooFewFinalRoundMLEs.selector);
-        ErrorTest.causeTooFewFinalRoundMLEs();
-    }
-
-    function testErrorFailedTooFewChiEvaluations() public {
-        vm.expectRevert(Errors.TooFewChiEvaluations.selector);
-        ErrorTest.causeTooFewChiEvaluations();
     }
 
     function testModulusMaskIsCorrect() public pure {
