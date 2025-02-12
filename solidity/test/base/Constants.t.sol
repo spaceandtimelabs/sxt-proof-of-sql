@@ -46,6 +46,14 @@ contract ConstantsTest is Test {
         }
     }
 
+    function testErrorFailedTooFewFirstRoundMLEs() public {
+        vm.expectRevert(Errors.TooFewFirstRoundMLEs.selector);
+        assembly {
+            mstore(0, TOO_FEW_FIRST_ROUND_MLES)
+            revert(0, 4)
+        }
+    }
+
     function testErrorFailedTooFewFinalRoundMLEs() public {
         vm.expectRevert(Errors.TooFewFinalRoundMLEs.selector);
         assembly {
@@ -58,6 +66,14 @@ contract ConstantsTest is Test {
         vm.expectRevert(Errors.TooFewChiEvaluations.selector);
         assembly {
             mstore(0, TOO_FEW_CHI_EVALUATIONS)
+            revert(0, 4)
+        }
+    }
+
+    function testErrorFailedTooFewRhoEvaluations() public {
+        vm.expectRevert(Errors.TooFewRhoEvaluations.selector);
+        assembly {
+            mstore(0, TOO_FEW_RHO_EVALUATIONS)
             revert(0, 4)
         }
     }
@@ -87,13 +103,17 @@ contract ConstantsTest is Test {
     }
 
     function testVerificationBuilderOffsetsAreValid() public pure {
-        uint256[6] memory offsets = [
+        uint256[10] memory offsets = [
             CHALLENGE_HEAD_OFFSET,
             CHALLENGE_TAIL_OFFSET,
+            FIRST_ROUND_MLE_HEAD_OFFSET,
+            FIRST_ROUND_MLE_TAIL_OFFSET,
             FINAL_ROUND_MLE_HEAD_OFFSET,
             FINAL_ROUND_MLE_TAIL_OFFSET,
             CHI_EVALUATION_HEAD_OFFSET,
-            CHI_EVALUATION_TAIL_OFFSET
+            CHI_EVALUATION_TAIL_OFFSET,
+            RHO_EVALUATION_HEAD_OFFSET,
+            RHO_EVALUATION_TAIL_OFFSET
         ];
         uint256 offsetsLength = offsets.length;
         assert(VERIFICATION_BUILDER_SIZE == offsetsLength * WORD_SIZE);
