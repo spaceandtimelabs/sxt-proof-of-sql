@@ -5,37 +5,55 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
 
-contract ConstantsTest is Test {
-    function testErrorFailedInvalidECAddInputs() public {
-        vm.expectRevert(Errors.InvalidECAddInputs.selector);
+library ErrorTest {
+    function causeInvalidECAddInputs() public pure {
         assembly {
             mstore(0, INVALID_EC_ADD_INPUTS)
             revert(0, 4)
         }
     }
 
-    function testErrorFailedInvalidECMulInputs() public {
-        vm.expectRevert(Errors.InvalidECMulInputs.selector);
+    function causeInvalidECMulInputs() public pure {
         assembly {
             mstore(0, INVALID_EC_MUL_INPUTS)
             revert(0, 4)
         }
     }
 
-    function testErrorFailedInvalidECPairingInputs() public {
-        vm.expectRevert(Errors.InvalidECPairingInputs.selector);
+    function causeInvalidECPairingInputs() public pure {
         assembly {
             mstore(0, INVALID_EC_PAIRING_INPUTS)
             revert(0, 4)
         }
     }
 
-    function testErrorFailedRoundEvaluationMismatch() public {
-        vm.expectRevert(Errors.RoundEvaluationMismatch.selector);
+    function causeRoundEvaluationMismatch() public pure {
         assembly {
             mstore(0, ROUND_EVALUATION_MISMATCH)
             revert(0, 4)
         }
+    }
+}
+
+contract ConstantsTest is Test {
+    function testErrorFailedInvalidECAddInputs() public {
+        vm.expectRevert(Errors.InvalidECAddInputs.selector);
+        ErrorTest.causeInvalidECAddInputs();
+    }
+
+    function testErrorFailedInvalidECMulInputs() public {
+        vm.expectRevert(Errors.InvalidECMulInputs.selector);
+        ErrorTest.causeInvalidECMulInputs();
+    }
+
+    function testErrorFailedInvalidECPairingInputs() public {
+        vm.expectRevert(Errors.InvalidECPairingInputs.selector);
+        ErrorTest.causeInvalidECPairingInputs();
+    }
+
+    function testErrorFailedRoundEvaluationMismatch() public {
+        vm.expectRevert(Errors.RoundEvaluationMismatch.selector);
+        ErrorTest.causeRoundEvaluationMismatch();
     }
 
     function testModulusMaskIsCorrect() public pure {
@@ -54,7 +72,7 @@ contract ConstantsTest is Test {
         assert(MODULUS_PLUS_ONE == MODULUS + 1);
     }
 
-    function testWordSizesAreCrrect() public pure {
+    function testWordSizesAreCorrect() public pure {
         assert(WORD_SIZE == 32);
         assert(WORDX2_SIZE == 2 * WORD_SIZE);
         assert(WORDX3_SIZE == 3 * WORD_SIZE);
