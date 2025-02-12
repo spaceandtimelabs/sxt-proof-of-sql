@@ -168,10 +168,10 @@ fn verify_bit_decomposition<S: ScalarExt>(
     }
     let bits_that_must_match_inverse_lead_bit =
         U256::MAX.shl(num_bits_allowed - 1) ^ U256::ONE.shl(255);
-    let is_eval_too_many_bits = bits_that_must_match_inverse_lead_bit
+    let is_eval_correct_number_of_bits = bits_that_must_match_inverse_lead_bit
         & dist.leading_bit_inverse_mask()
         == bits_that_must_match_inverse_lead_bit;
-    (rhs == expr_eval && is_eval_too_many_bits)
+    (rhs == expr_eval && is_eval_correct_number_of_bits)
         .then_some(sign_eval)
         .ok_or(BitDistrubutionError::Verification)
 }
@@ -181,23 +181,34 @@ mod tests {
     use crate::{
         base::{
             bit::{BitDistribution, BitDistrubutionError},
-            scalar::{test_scalar::TestScalar, Scalar},
+            scalar::{test_scalar::TestScalar, Scalar, ScalarExt},
         },
         sql::proof_gadgets::sign_expr::verify_bit_decomposition,
     };
+    use bnum::{
+        cast::As,
+        types::{I256, U256},
+    };
+    use core::ops::Shl;
 
-    fn evaluate_matrix(matrix: &[&[i32]], terms: &[TestScalar]) -> Vec<TestScalar> {
+    fn evaluate_matrix(matrix: &[&[I256]], terms: &[TestScalar]) -> Vec<TestScalar> {
         matrix
             .iter()
             .map(|row| evaluate_terms(row, terms))
             .collect()
     }
 
-    fn evaluate_terms(coeffs: &[i32], terms: &[TestScalar]) -> TestScalar {
+    fn evaluate_terms(coeffs: &[I256], terms: &[TestScalar]) -> TestScalar {
         coeffs
             .iter()
             .zip(terms)
-            .map(|(&coef, &term)| TestScalar::from(coef) * term)
+            .map(|(&coef, &term)| {
+                if coef < I256::ZERO {
+                    -TestScalar::from_wrapping((-coef).as_::<U256>()) * term
+                } else {
+                    TestScalar::from_wrapping(coef.as_::<U256>()) * term
+                }
+            })
             .sum()
     }
 
@@ -272,28 +283,68 @@ mod tests {
             a * b,
         ];
 
-        let expr_eval = evaluate_terms(&[106, 23, -60, -76], &s);
-        let chi_eval = evaluate_terms(&[1, 1, 1, 1], &s);
+        let expr_eval = evaluate_terms(&[106, 23, -60, -76].map(I256::from), &s);
+        let chi_eval = evaluate_terms(&[1, 1, 1, 1].map(I256::from), &s);
 
-        let bit_matrix: &[&[i32]] = &[
-            &[0, 1, 0, 0],
-            &[0, 1, 1, 1],
-            &[1, 0, 0, 0],
-            &[0, 1, 0, 1],
-            &[1, 0, 0, 1],
-            &[1, 0, 1, 0],
-            &[1, 1, 0, 0],
+        let bit_matrix: &[&[I256]] = &[
+            &[0, 1, 0, 0].map(I256::from),
+            &[0, 1, 1, 1].map(I256::from),
+            &[1, 0, 0, 0].map(I256::from),
+            &[0, 1, 0, 1].map(I256::from),
+            &[1, 0, 0, 1].map(I256::from),
+            &[1, 0, 1, 0].map(I256::from),
+            &[1, 1, 0, 0].map(I256::from),
         ];
 
         let bit_evals = evaluate_matrix(bit_matrix, &s);
 
-        let expected_eval = evaluate_terms(&[1, 1, 0, 0], &s);
+        let expected_eval = evaluate_terms(&[I256::ONE, I256::ONE, I256::ZERO, I256::ZERO], &s);
 
         let sign_eval =
             verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(8)).unwrap();
         assert_eq!(sign_eval, expected_eval);
         let err =
             verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(7)).unwrap_err();
+        assert!(matches!(err, BitDistrubutionError::Verification));
+    }
+
+    #[test]
+    fn we_can_verify_bit_decomposition_with_max_data_type() {
+        // Note that this is not i251 because i251::MIN would theoretically be -2^250
+        let i252_val = -TestScalar::from_wrapping(U256::ONE.shl(250)) - TestScalar::ONE;
+        let data = [TestScalar::ZERO, i252_val];
+        let dist = BitDistribution::new::<TestScalar, TestScalar>(&data);
+        let a = TestScalar::TEN;
+        let b = TestScalar::TWO;
+        let one_minus_a = TestScalar::ONE - a;
+        let one_minus_b = TestScalar::ONE - b;
+
+        let s = [
+            one_minus_a * one_minus_b,
+            a * one_minus_b,
+            one_minus_a * b,
+            a * b,
+        ];
+
+        let expr_eval = evaluate_terms(&[I256::ZERO, -I256::ONE.shl(250u8) - I256::ONE], &s);
+        let chi_eval = evaluate_terms(&[1, 1].map(I256::from), &s);
+
+        let bit_matrix: &[&[I256]] = &[&[0, 0].map(I256::from), &[1, 0].map(I256::from)];
+
+        let bit_evals = evaluate_matrix(bit_matrix, &s);
+
+        let expected_eval = evaluate_terms(&[I256::ONE, I256::ZERO], &s);
+
+        let sign_eval =
+            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(252)).unwrap();
+        assert_eq!(sign_eval, expected_eval);
+        // Should fail because the TestScalar can only securely hold i252 values
+        let err = verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(253))
+            .unwrap_err();
+        assert!(matches!(err, BitDistrubutionError::Verification));
+        // Should fail because the highest value is too big to be held by an i251
+        let err = verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(251))
+            .unwrap_err();
         assert!(matches!(err, BitDistrubutionError::Verification));
     }
 }
