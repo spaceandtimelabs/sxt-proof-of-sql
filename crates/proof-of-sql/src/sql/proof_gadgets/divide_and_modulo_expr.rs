@@ -729,6 +729,70 @@ mod tests {
         assert!(matrix.iter().all(|v| v.iter().all(|b| *b)));
     }
 
+    /// Shifting remainder by a very small amount will only fail the division algorithm
+    #[test]
+    fn we_can_reject_if_division_algorithm_fails(){
+        let mut mock_functionality = MockMockableDivideAndModuloExprFunctionality::new();
+        mock_functionality.expect_get_in_range_column_from_quotient_and_rhs().returning(default_get_in_range_column_from_quotient_and_rhs);
+        mock_functionality
+            .expect_divide_columns()
+            .returning(default_divide_columns);
+        mock_functionality
+            .expect_modulo_columns()
+            .return_const(vec![1i128, -4, 1, -1]);
+        let lhs = &[8i128, -12, 8, -8];
+        let rhs = &[3i128, 7, -3, -3];
+        let matrix = get_constraint_bool_matrix(mock_functionality, lhs, rhs);
+        for row in matrix{
+            let failing_constraints = get_failing_constraints(row);
+            assert_eq!(failing_constraints, vec![TestableConstraints::DivisionAlgorithm]);
+        }
+    }
+
+    /// When the remainder is 0, shifting the remainder to have the same magnitude as the denominator can trick both the
+    /// division algorithm and the remainder bound. However, this should result in the failure of
+    /// `TestableConstraints::DenominatorZeroIfRemainderAndDenominatorMagnitudeEqual`
+    #[test]
+    fn we_can_reject_if_nonzero_remainder_magnitude_equals_denominator_magnitude(){
+        let mut mock_functionality = MockMockableDivideAndModuloExprFunctionality::new();
+        mock_functionality.expect_get_in_range_column_from_quotient_and_rhs().returning(default_get_in_range_column_from_quotient_and_rhs);
+        mock_functionality
+            .expect_divide_columns()
+            .return_const((vec![1i128, -1], vec![TestScalar::ONE, -TestScalar::ONE]));
+        mock_functionality
+            .expect_modulo_columns()
+            .return_const(vec![-4i128, -6]);
+        let lhs = &[-8i128, -12];
+        let rhs = &[-4i128, 6];
+        let matrix = get_constraint_bool_matrix(mock_functionality, lhs, rhs);
+        for row in matrix{
+            let failing_constraints = get_failing_constraints(row);
+            assert_eq!(failing_constraints, vec![TestableConstraints::DenominatorZeroIfRemainderAndDenominatorMagnitudeEqual]);
+        }
+    }
+
+    /// When the denominator is zero, the quotient must be zero. Lying about quotient in this scenario
+    /// is handled easily by `TestableConstraints::ZeroDenominatorDictatesQuotient`
+    #[test]
+    fn we_can_reject_if_denominator_is_zero_but_quotient_is_not() {
+        let mut mock_functionality = MockMockableDivideAndModuloExprFunctionality::new();
+        mock_functionality.expect_get_in_range_column_from_quotient_and_rhs().returning(default_get_in_range_column_from_quotient_and_rhs);
+        mock_functionality
+            .expect_divide_columns()
+            .return_const((vec![10000i128, -10000, 10000i128, -10000], vec![TestScalar::from(10000), TestScalar::from(-10000), TestScalar::from(10000), TestScalar::from(-10000)]));
+        mock_functionality
+            .expect_modulo_columns()
+            .returning(default_modulo_columns);
+        let lhs = &[8i128, -12, -8, 12];
+        let rhs = &[0i128, 0, 0, 0];
+        let matrix = get_constraint_bool_matrix(mock_functionality, lhs, rhs);
+        for row in matrix{
+            let failing_constraints = get_failing_constraints(row);
+            assert_eq!(failing_constraints, vec![TestableConstraints::ZeroDenominatorDictatesQuotient]);
+        }
+    }
+    
+
     /// A malicious prover can try to shift the quotient by 1, adjusting the remainder accordingly,
     /// which still satisfies the division algorithm and stays within the bounds of the +/- denominator.
     /// However, this necessarily requires that the remainder flip sign, violating `TestableConstraints::RemainderSignMatchesNumerator`
