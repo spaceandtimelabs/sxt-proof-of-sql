@@ -163,7 +163,6 @@ fn verify_bit_decomposition<S: ScalarExt>(
     }
     let bits_that_must_match_inverse_lead_bit =
         U256::MAX.shl(num_bits_allowed - 1) ^ U256::ONE.shl(255);
-    assert_eq!(rhs, expr_eval);
     (rhs == expr_eval
         && bits_that_must_match_inverse_lead_bit & dist.leading_bit_inverse_mask()
             == bits_that_must_match_inverse_lead_bit)

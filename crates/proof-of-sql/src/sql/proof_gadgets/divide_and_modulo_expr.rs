@@ -213,10 +213,10 @@ impl DivideAndModuloExpr {
                 (-S::one(), vec![Box::new(quotient)]),
             ],
         );
-        // (q′ − q) * (q′ − MIN) = 0
-        // Ensures that either q = q' or q' = MIN
+        // (q′ − q) * (q + MIN) = 0
+        // Ensures that either q = q' or q = -MIN
         // Simplifies to
-        // q' * q' + MIN * q - q * q' - MIN * q'
+        // q' * q - MIN * q - q * q + MIN * q'
 
         let min_scalar = self.min_scalar();
         let min_column =
@@ -227,17 +227,17 @@ impl DivideAndModuloExpr {
             vec![
                 (
                     S::one(),
-                    vec![Box::new(quotient_wrapped), Box::new(quotient_wrapped)],
-                ),
-                (S::one(), vec![Box::new(quotient), Box::new(min_column)]),
-                (
-                    -S::one(),
                     vec![Box::new(quotient_wrapped), Box::new(quotient)],
                 ),
                 (
                     -S::one(),
-                    vec![Box::new(quotient_wrapped), Box::new(min_column)],
+                    vec![Box::new(min_column), Box::new(quotient)],
                 ),
+                (
+                    -S::one(),
+                    vec![Box::new(quotient), Box::new(quotient)],
+                ),
+                (S::one(), vec![Box::new(quotient_wrapped), Box::new(min_column)]),
             ],
         );
 
@@ -411,11 +411,11 @@ impl DivideAndModuloExpr {
             2,
         )?;
 
-        // (q′ − q) * (q′ − MIN) = 0
+        // (q′ − q) * (q + MIN) = 0
         let min_eval = self.min_scalar::<S>() * one_eval;
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
-            (quotient_wrapped - quotient) * (quotient_wrapped - min_eval),
+            (quotient_wrapped - quotient) * (quotient + min_eval),
             2,
         )?;
 
@@ -480,25 +480,23 @@ mod tests {
     };
     use crate::{
         base::{
-            database::{Column, ColumnRef, ColumnType, Table, TableRef},
-            map::indexmap,
-            polynomial::MultilinearExtension,
-            scalar::{test_scalar::TestScalar, Scalar},
+            database::{Column, ColumnRef, ColumnType, Table, TableRef}, map::indexmap, polynomial::MultilinearExtension, scalar::{test_scalar::TestScalar, Scalar, ScalarExt}
         },
         sql::{
             proof::FinalRoundBuilder,
-            proof_exprs::{test_utility::verify_row_by_row, ColumnExpr, DynProofExpr},
+            proof_exprs::{columns_to_scalar_slice, test_utility::verify_row_by_row, ColumnExpr, DynProofExpr},
         },
     };
+    use bnum::types::U256;
     use bumpalo::Bump;
     use mockall::automock;
-    use num_traits::FromPrimitive;
+    use num_traits::Inv;
     use sqlparser::ast::Ident;
     use std::collections::VecDeque;
 
     #[automock]
     trait MockableDivideAndModuloExprFunctionality {
-        fn divide_columns(&self, lhs: Vec<i128>, rhs: Vec<i128>) -> (Vec<i128>, Vec<TestScalar>);
+        fn divide_columns(&self, lhs: Vec<i128>, rhs: Vec<i128>) -> (Vec<TestScalar>, Vec<TestScalar>);
 
         fn modulo_columns(&self, lhs: Vec<i128>, rhs: Vec<i128>) -> Vec<i128>;
 
@@ -527,7 +525,7 @@ mod tests {
                     self.functions.divide_columns(a.to_vec(), b.to_vec());
                 let quotient_wrapped_slice = alloc.alloc_slice_copy(&quotient_wrapped);
                 let quotient_slice = alloc.alloc_slice_copy(&quotient);
-                (Column::Int128(quotient_wrapped_slice), quotient_slice)
+                (Column::Scalar(quotient_wrapped_slice), quotient_slice)
             } else {
                 panic!("MockDivideAndModuloExprUtilities should only be used with int128 columns");
             }
@@ -562,7 +560,7 @@ mod tests {
         }
     }
 
-    fn default_divide_columns(lhs: Vec<i128>, rhs: Vec<i128>) -> (Vec<i128>, Vec<TestScalar>) {
+    fn default_divide_columns(lhs: Vec<i128>, rhs: Vec<i128>) -> (Vec<TestScalar>, Vec<TestScalar>) {
         let alloc = Bump::new();
         let standard_utilities = StandardDivideAndModuloExprUtilities;
         let (quotient_wrapped, quotient) = standard_utilities.divide_columns(
@@ -571,7 +569,7 @@ mod tests {
             &alloc,
         );
         (
-            quotient_wrapped.as_int128().unwrap().to_vec(),
+            columns_to_scalar_slice(&quotient_wrapped, &alloc).to_vec(),
             quotient.to_vec(),
         )
     }
@@ -681,7 +679,7 @@ mod tests {
         BoundedValueIsQuotientOrDenominator,
         /// b * u - q = 0
         ZeroDenominatorDictatesQuotient,
-        /// (q′ − q) * (q′ − MIN) = 0
+        /// (q′ − q) * (q + MIN) = 0
         WrappedIsQuotientOrMin,
         /// (q' - MIN) * (q + MIN) * v - (q' - MIN) = 0
         WrappedIsMinIfQuotientIsNegativeMin,
@@ -758,7 +756,7 @@ mod tests {
         mock_functionality.expect_get_in_range_column_from_quotient_and_rhs().returning(default_get_in_range_column_from_quotient_and_rhs);
         mock_functionality
             .expect_divide_columns()
-            .return_const((vec![1i128, -1], vec![TestScalar::ONE, -TestScalar::ONE]));
+            .return_const((vec![TestScalar::ONE, -TestScalar::ONE], vec![TestScalar::ONE, -TestScalar::ONE]));
         mock_functionality
             .expect_modulo_columns()
             .return_const(vec![-4i128, -6]);
@@ -771,15 +769,43 @@ mod tests {
         }
     }
 
+    /// There is a check to verify that quotient * denominator does not overflow the scalar field.
+    /// That check verifies that either quotient or denominator is less than a certain number.
+    /// This requires committing to a column of values composed of quotients and denominators.
+    /// Providing a value that is not either the quotient or denominator should fail
+    /// `TestableContraints::BoundedValueIsQuotientOrDenominator`
+    #[test]
+    fn we_can_reject_if_committed_in_range_column_is_not_quotient_or_denominator(){
+        let mut mock_functionality = MockMockableDivideAndModuloExprFunctionality::new();
+        mock_functionality.expect_get_in_range_column_from_quotient_and_rhs().return_const(vec![TestScalar::ONE]);
+        let quotient = vec![TestScalar::from(1i128 << 126)];
+        mock_functionality
+            .expect_divide_columns()
+            .return_const((quotient.clone(), quotient));
+        let rhs_i128 = (1i128 << 126) + 1;
+        let overflow: i128 = (TestScalar::from(1i128 << 126) * TestScalar::from(rhs_i128)).try_into().unwrap();
+        mock_functionality
+            .expect_modulo_columns()
+            .return_const(vec![rhs_i128 - overflow]);
+        let lhs = &[rhs_i128];
+        let rhs = &[rhs_i128];
+        let matrix = get_constraint_bool_matrix(mock_functionality, lhs, rhs);
+        for row in matrix{
+            let failing_constraints = get_failing_constraints(row);
+            assert_eq!(failing_constraints, vec![TestableConstraints::BoundedValueIsQuotientOrDenominator]);
+        }
+    }
+
     /// When the denominator is zero, the quotient must be zero. Lying about quotient in this scenario
-    /// is handled easily by `TestableConstraints::ZeroDenominatorDictatesQuotient`
+    /// is rejected easily by `TestableConstraints::ZeroDenominatorDictatesQuotient`
     #[test]
     fn we_can_reject_if_denominator_is_zero_but_quotient_is_not() {
         let mut mock_functionality = MockMockableDivideAndModuloExprFunctionality::new();
         mock_functionality.expect_get_in_range_column_from_quotient_and_rhs().returning(default_get_in_range_column_from_quotient_and_rhs);
+        let quotient = vec![TestScalar::from(10000), TestScalar::from(-10000), TestScalar::from(10000), TestScalar::from(-10000)];
         mock_functionality
             .expect_divide_columns()
-            .return_const((vec![10000i128, -10000, 10000i128, -10000], vec![TestScalar::from(10000), TestScalar::from(-10000), TestScalar::from(10000), TestScalar::from(-10000)]));
+            .return_const((quotient.clone(), quotient));
         mock_functionality
             .expect_modulo_columns()
             .returning(default_modulo_columns);
@@ -791,7 +817,48 @@ mod tests {
             assert_eq!(failing_constraints, vec![TestableConstraints::ZeroDenominatorDictatesQuotient]);
         }
     }
-    
+
+    /// If the wrapped version of quotient is completely incorrect and quotient is not -MIN, the constraint
+    /// `TestableConstraints::WrappedIsQuotientOrMin` will catch it.
+    #[test]
+    fn we_can_reject_if_quotient_wrapped_is_incorrect() {
+        let mut mock_functionality = MockMockableDivideAndModuloExprFunctionality::new();
+        mock_functionality.expect_get_in_range_column_from_quotient_and_rhs().returning(default_get_in_range_column_from_quotient_and_rhs);
+        mock_functionality
+            .expect_divide_columns()
+            .return_const((vec![TestScalar::from(-20i128), TestScalar::from(-20), TestScalar::from(20), TestScalar::from(20)], vec![TestScalar::from(2), TestScalar::from(-2), TestScalar::from(2), TestScalar::from(-2)]));
+        mock_functionality
+            .expect_modulo_columns()
+            .returning(default_modulo_columns);
+        let lhs = &[8i128, -12, -8, 12];
+        let rhs = &[3i128, 5, -3, -5];
+        let matrix = get_constraint_bool_matrix(mock_functionality, lhs, rhs);
+        for row in matrix{
+            let failing_constraints = get_failing_constraints(row);
+            assert_eq!(failing_constraints, vec![TestableConstraints::WrappedIsQuotientOrMin]);
+        }
+    }
+
+    /// If the wrapped version of quotient is completely incorrect and quotient is -MIN, the constraint
+    /// `TestableConstraints::WrappedIsMinIfQuotientIsNegativeMin` will catch it.
+    #[test]
+    fn we_can_reject_if_quotient_is_negative_min_and_quotient_wrapped_is_incorrect() {
+        let mut mock_functionality = MockMockableDivideAndModuloExprFunctionality::new();
+        mock_functionality.expect_get_in_range_column_from_quotient_and_rhs().returning(default_get_in_range_column_from_quotient_and_rhs);
+        mock_functionality
+            .expect_divide_columns()
+            .return_const((vec![TestScalar::from(-20)], vec![-TestScalar::from(i128::MIN)]));
+        mock_functionality
+            .expect_modulo_columns()
+            .returning(default_modulo_columns);
+        let lhs = &[i128::MIN];
+        let rhs = &[-1i128];
+        let matrix = get_constraint_bool_matrix(mock_functionality, lhs, rhs);
+        for row in matrix{
+            let failing_constraints = get_failing_constraints(row);
+            assert_eq!(failing_constraints, vec![TestableConstraints::WrappedIsMinIfQuotientIsNegativeMin]);
+        }
+    } 
 
     /// A malicious prover can try to shift the quotient by 1, adjusting the remainder accordingly,
     /// which still satisfies the division algorithm and stays within the bounds of the +/- denominator.
@@ -800,9 +867,10 @@ mod tests {
     fn we_can_reject_if_remainder_sign_matches_numerator_fails() {
         let mut mock_functionality = MockMockableDivideAndModuloExprFunctionality::new();
         mock_functionality.expect_get_in_range_column_from_quotient_and_rhs().returning(default_get_in_range_column_from_quotient_and_rhs);
+        let quotient = vec![TestScalar::from(3i128), TestScalar::from(-2), TestScalar::from(-3), TestScalar::from(3)];
         mock_functionality
             .expect_divide_columns()
-            .return_const((vec![3i128, -2, -3, 3], vec![TestScalar::ONE + TestScalar::TWO, -TestScalar::TWO, -TestScalar::ONE - TestScalar::TWO, TestScalar::ONE + TestScalar::TWO]));
+            .return_const((quotient.clone(), quotient));
         mock_functionality
             .expect_modulo_columns()
             .return_const(vec![-1i128, 2, -1, 1]);
