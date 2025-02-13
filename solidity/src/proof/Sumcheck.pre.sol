@@ -19,8 +19,7 @@ library Sumcheck {
     /// @param degree0 Degree of the polynomial being checked
     /// @return evaluationPointPtr0 Pointer to the evaluation points in memory
     /// @return expectedEvaluation0 The expected evaluation result
-    function verifySumcheckProof( // solhint-disable-line function-max-lines
-    uint256[1] memory transcript0, uint256 proofPtr0, uint256 numVars0, uint256 degree0)
+    function verifySumcheckProof(uint256[1] memory transcript0, uint256 proofPtr0, uint256 numVars0, uint256 degree0)
         internal
         pure
         returns (uint256 evaluationPointPtr0, uint256 expectedEvaluation0)

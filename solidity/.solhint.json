@@ -6,6 +6,7 @@
         "no-global-import": "off",
         "no-inline-assembly": "off",
         "one-contract-per-file": "off",
-        "ordering": "off"
+        "ordering": "off",
+        "function-max-lines": "off"
     }
 }
