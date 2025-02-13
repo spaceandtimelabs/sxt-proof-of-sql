@@ -249,6 +249,7 @@ pub fn verify_row_by_row<
     alloc: &'a Bump,
     table_length: usize,
     final_round_builder: FinalRoundBuilder<'_, TestScalar>,
+    subpolynomial_max_multiplicands: usize,
     mut row_verification: F,
 ) -> Vec<Vec<bool>> {
     let evaluation_points = (0..table_length).into_iter().map(|i| {
@@ -270,7 +271,7 @@ pub fn verify_row_by_row<
             .iter()
             .cloned()
             .collect(),
-        3,
+        subpolynomial_max_multiplicands,
         final_round_mles,
     );
 

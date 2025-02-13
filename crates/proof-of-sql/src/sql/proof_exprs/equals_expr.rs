@@ -231,7 +231,6 @@ mod tests {
             },
         },
     };
-    
     use bumpalo::Bump;
     use mockall::automock;
     use num_traits::Inv;
@@ -301,6 +300,7 @@ mod tests {
             &alloc,
             3,
             final_round_builder,
+            3,
             |verification_builder, one_eval, evaluation_point| {
                 let lhs_eval = lhs.inner_product(&evaluation_point);
                 verifier_evaluate_equals_zero(verification_builder, lhs_eval, one_eval).unwrap();
@@ -341,6 +341,7 @@ mod tests {
             &alloc,
             3,
             final_round_builder,
+            3,
             |verification_builder, one_eval, evaluation_point| {
                 let lhs_eval = lhs.inner_product(&evaluation_point);
                 verifier_evaluate_equals_zero(verification_builder, lhs_eval, one_eval).unwrap();

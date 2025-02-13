@@ -207,19 +207,22 @@ fn we_can_verify_a_simple_proof() {
 
     and_expr.prover_evaluate(&mut final_round_builder, &alloc, &table);
 
-    let matrix = verify_row_by_row(&alloc, 4, final_round_builder, |verification_builder, one_eval, evaluation_point|{
-        let accessor = indexmap! {
-            a.clone() => lhs.inner_product(evaluation_point),
-            b.clone() => rhs.inner_product(evaluation_point)
-        };
-        and_expr
-            .verifier_evaluate(verification_builder, &accessor, one_eval)
-            .unwrap();
-    });
-    assert_eq!(
-        matrix,
-        vec![vec![true]; 4]
+    let matrix = verify_row_by_row(
+        &alloc,
+        4,
+        final_round_builder,
+        3,
+        |verification_builder, one_eval, evaluation_point| {
+            let accessor = indexmap! {
+                a.clone() => lhs.inner_product(evaluation_point),
+                b.clone() => rhs.inner_product(evaluation_point)
+            };
+            and_expr
+                .verifier_evaluate(verification_builder, &accessor, one_eval)
+                .unwrap();
+        },
     );
+    assert_eq!(matrix, vec![vec![true]; 4]);
 }
 
 #[test]
