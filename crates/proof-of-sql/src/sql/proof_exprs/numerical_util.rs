@@ -135,7 +135,7 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
 
 /// Convert column to scalar slice.
 #[allow(clippy::missing_panics_doc)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) fn columns_to_scalar_slice<'a, S: Scalar>(
     column: &Column<'a, S>,
     alloc: &'a Bump,
@@ -202,7 +202,7 @@ pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
 /// Therefore, this value wraps around to `i128::MIN`.
 /// Division by 0 returns 0.
 #[allow(clippy::missing_panics_doc)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 fn divide_integer_columns<
     'a,
     L: NumCast + Copy + PrimInt + Neg<Output = L>,
@@ -246,7 +246,7 @@ fn divide_integer_columns<
 /// but modulo still returns 0 here.
 /// Division by 0 returns the numerator for modulo.
 #[allow(clippy::missing_panics_doc)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 fn modulo_integer_columns<
     'a,
     L: NumCast + Copy + PrimInt + Neg<Output = L>,
@@ -280,7 +280,7 @@ fn modulo_integer_columns<
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length or column type division is unsupported.
 #[allow(clippy::too_many_lines)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) fn divide_columns<'a, S: Scalar>(
     lhs: &Column<'a, S>,
     rhs: &Column<'a, S>,
@@ -401,7 +401,7 @@ pub(crate) fn divide_columns<'a, S: Scalar>(
     }
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 /// Take the modulo of one column against another.
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length.
