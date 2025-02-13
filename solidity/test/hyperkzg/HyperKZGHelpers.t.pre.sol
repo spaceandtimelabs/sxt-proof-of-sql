@@ -256,4 +256,124 @@ contract HyperKZGHelpersTest is Test {
         }
     }
 
+    function testComputeGLMSMWithAllZeros() public view {
+        uint256[2][] memory com = new uint256[2][](1);
+        com[0] = [uint256(0), 0];
+        uint256[2][3] memory w;
+        w[0] = [uint256(0), 0];
+        w[1] = [uint256(0), 0];
+        w[2] = [uint256(0), 0];
+        uint256[2] memory commitment = [uint256(0), 0];
+        uint256[4] memory rqdb = [uint256(0), 0, 0, 0];
+        uint256[5] memory scratch;
+        scratch = HyperKZGHelpers.__computeGLMSM({
+            __com: com,
+            __w: w,
+            __commitment: commitment,
+            __rqdb: rqdb,
+            __scratch: scratch
+        });
+        assert(scratch[0] == 0);
+        assert(scratch[1] == 0);
+    }
+
+    function testComputeGLMSMWithSimpleValues() public view {
+        uint256[2][] memory com = new uint256[2][](2);
+        (uint256 comx, uint256 comy) = ECPrecompilesTestHelper.ecBasePower(2);
+        com[0] = [comx, comy];
+        (comx, comy) = ECPrecompilesTestHelper.ecBasePower(3);
+        com[1] = [comx, comy];
+
+        uint256[2][3] memory w;
+        (uint256 wx, uint256 wy) = ECPrecompilesTestHelper.ecBasePower(5);
+        w[0] = [wx, wy];
+        (wx, wy) = ECPrecompilesTestHelper.ecBasePower(7);
+        w[1] = [wx, wy];
+        (wx, wy) = ECPrecompilesTestHelper.ecBasePower(11);
+        w[2] = [wx, wy];
+
+        (uint256 commitmentx, uint256 commitmenty) = ECPrecompilesTestHelper.ecBasePower(13);
+        uint256[2] memory commitment = [commitmentx, commitmenty];
+
+        uint256[4] memory rqdb = [uint256(17), 19, 23, 29];
+
+        uint256[5] memory scratch;
+        scratch = HyperKZGHelpers.__computeGLMSM({
+            __com: com,
+            __w: w,
+            __commitment: commitment,
+            __rqdb: rqdb,
+            __scratch: scratch
+        });
+
+        uint256 expectedPower =
+            (23 ** 2 + 23 + 1) * (13 + 2 * 19 + 3 * 19 ** 2) + (17 * 23) ** 2 * 11 - 17 * 23 * 7 + 17 * 5 - 29;
+        (uint256 expectedx, uint256 expectedy) = ECPrecompilesTestHelper.ecBasePower(expectedPower);
+
+        assert(scratch[0] == expectedx);
+        assert(scratch[1] == expectedy);
+    }
+
+    function testFuzzComputeGLMSM(
+        uint256[] memory comPower,
+        uint256[3] memory wPower,
+        uint256 commitmentPower,
+        uint256[4] memory rqdb,
+        uint256[5] memory scratch
+    ) public view {
+        uint256 expectedPower = MODULUS - (rqdb[3] % MODULUS);
+        expectedPower = addmod(expectedPower, mulmod(rqdb[0], wPower[0], MODULUS), MODULUS);
+        expectedPower =
+            addmod(expectedPower, mulmod(MODULUS - mulmod(rqdb[0], rqdb[2], MODULUS), wPower[1], MODULUS), MODULUS);
+        expectedPower = addmod(
+            expectedPower,
+            mulmod(
+                mulmod(mulmod(rqdb[0], rqdb[2], MODULUS), mulmod(rqdb[0], rqdb[2], MODULUS), MODULUS),
+                wPower[2],
+                MODULUS
+            ),
+            MODULUS
+        );
+
+        uint256 qToTheIPlusOne = 1;
+        uint256 comSum = 0;
+
+        uint256[2][] memory com = new uint256[2][](comPower.length);
+        uint256 comLength = comPower.length;
+        for (uint256 i = 0; i < comLength; ++i) {
+            (uint256 comx, uint256 comy) = ECPrecompilesTestHelper.ecBasePower(comPower[i]);
+            com[i] = [comx, comy];
+            qToTheIPlusOne = mulmod(qToTheIPlusOne, rqdb[1], MODULUS);
+            comSum = addmod(comSum, mulmod(comPower[i], qToTheIPlusOne, MODULUS), MODULUS);
+        }
+        expectedPower = addmod(
+            expectedPower,
+            mulmod(
+                addmod(mulmod(rqdb[2], rqdb[2], MODULUS), addmod(rqdb[2], 1, MODULUS), MODULUS),
+                addmod(commitmentPower, comSum, MODULUS),
+                MODULUS
+            ),
+            MODULUS
+        );
+
+        uint256[2][3] memory w;
+        for (uint256 i = 0; i < 3; ++i) {
+            (uint256 wx, uint256 wy) = ECPrecompilesTestHelper.ecBasePower(wPower[i]);
+            w[i] = [wx, wy];
+        }
+
+        (uint256 commitmentx, uint256 commitmenty) = ECPrecompilesTestHelper.ecBasePower(commitmentPower);
+        uint256[2] memory commitment = [commitmentx, commitmenty];
+        scratch = HyperKZGHelpers.__computeGLMSM({
+            __com: com,
+            __w: w,
+            __commitment: commitment,
+            __rqdb: rqdb,
+            __scratch: scratch
+        });
+
+        (uint256 expectedx, uint256 expectedy) = ECPrecompilesTestHelper.ecBasePower(expectedPower);
+        assert(scratch[0] == expectedx);
+        assert(scratch[1] == expectedy);
+    }
 }
