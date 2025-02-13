@@ -173,4 +173,81 @@ library HyperKZGHelpers {
             check_v_consistency(__v.offset, __r, __x, __y)
         }
     }
+
+    /// @notice Perform a multi-scalar multiplication of EC points using an evaluation scalar
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// univariate_group_evaluation(g_ptr, e, length, scratch)
+    /// ```
+    /// ##### Parameters
+    /// * `g_ptr` - the calldata pointer to the beginning of the data in `__g`
+    /// * `e` - the evaluation scalar
+    /// * `length` - the number of points in the input array
+    /// * `scratch` - memory pointer to the scratch space
+    /// @dev This function computes the multi-scalar multiplication:
+    /// \\[ \sum_{i=0}^{m-1} e^i \mathbf{g}_i \\]
+    /// @dev This function uses an approach akin to Horner's method.
+    /// @param __g Array of EC points
+    /// @param __e Evaluation scalar
+    /// @param __scratch Memory space for intermediate calculations
+    /// @return __resultScratch The resulting EC point stored in scratch space
+
+    function __univariateGroupEvaluation( // solhint-disable-line gas-calldata-parameters
+    uint256[2][] calldata __g, uint256 __e, uint256[4] memory __scratch)
+        external
+        view
+        returns (uint256[4] memory __resultScratch)
+    {
+        assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function ec_add(args_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function ec_mul(args_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function ec_mul_assign(args_ptr, scalar) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function calldata_ec_add_assign(args_ptr, c_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+
+            function univariate_group_evaluation(g_ptr, e, length, scratch) {
+                switch length
+                case 0 {
+                    mstore(scratch, 0)
+                    mstore(add(scratch, WORD_SIZE), 0)
+                }
+                default {
+                    length := sub(length, 1)
+                    g_ptr := add(g_ptr, mul(length, WORDX2_SIZE))
+                    // result = g.pop()
+                    calldatacopy(scratch, g_ptr, WORDX2_SIZE)
+                    for {} length { length := sub(length, 1) } {
+                        // g_l *= e
+                        ec_mul_assign(scratch, e)
+                        // g_l += com.pop()
+                        g_ptr := sub(g_ptr, WORDX2_SIZE)
+                        calldata_ec_add_assign(scratch, g_ptr)
+                    }
+                }
+            }
+            univariate_group_evaluation(__g.offset, __e, __g.length, __scratch)
+        }
+        __resultScratch = __scratch;
+    }
 }

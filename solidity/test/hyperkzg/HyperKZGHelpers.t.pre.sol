@@ -6,6 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
 import "../../src/base/Errors.sol";
 import {HyperKZGHelpers} from "../../src/hyperkzg/HyperKZGHelpers.pre.sol";
+import {ECPrecompilesTestHelper} from "../base/ECPrecompiles.t.pre.sol";
 
 contract HyperKZGHelpersTest is Test {
     function testFuzzRunTranscriptWhenEllIs1(uint256[3] memory v, uint256[6] memory w, uint256[1] memory transcript)
@@ -183,4 +184,76 @@ contract HyperKZGHelpersTest is Test {
         vm.expectRevert(Errors.HyperKZGInconsistentV.selector);
         HyperKZGHelpers.__checkVConsistency(v, r, x, y);
     }
+
+    function testEmptyUnivariateGroupEvaluation() public view {
+        uint256[4] memory scratch = [uint256(0xDEAD), 0xDEAD, 0xDEAD, 0xDEAD];
+        uint256[2][] memory g = new uint256[2][](0);
+        scratch = HyperKZGHelpers.__univariateGroupEvaluation(g, 7, scratch);
+        assert(scratch[0] == 0);
+        assert(scratch[1] == 0);
+        // scratch space
+        assert(scratch[2] == 0xDEAD);
+        assert(scratch[3] == 0xDEAD);
+    }
+
+    function testSmallUnivariateGroupEvaluation() public view {
+        uint256[4] memory scratch = [uint256(0xDEAD), 0xDEAD, 0xDEAD, 0xDEAD];
+        uint256[2][] memory g = new uint256[2][](1);
+        (uint256 gx, uint256 gy) = ECPrecompilesTestHelper.ecBasePower(2);
+        g[0] = [gx, gy];
+        scratch = HyperKZGHelpers.__univariateGroupEvaluation(g, 7, scratch);
+        (gx, gy) = ECPrecompilesTestHelper.ecBasePower(2);
+        assert(scratch[0] == gx);
+        assert(scratch[1] == gy);
+        // scratch space
+        assert(scratch[2] == 0xDEAD);
+        assert(scratch[3] == 0xDEAD);
+    }
+
+    function testSimpleUnivariateGroupEvaluation() public view {
+        uint256[4] memory scratch = [uint256(0xDEAD), 0xDEAD, 0xDEAD, 0xDEAD];
+        uint256[2][] memory g = new uint256[2][](3);
+        (uint256 gx, uint256 gy) = ECPrecompilesTestHelper.ecBasePower(2);
+        g[0] = [gx, gy];
+        (gx, gy) = ECPrecompilesTestHelper.ecBasePower(3);
+        g[1] = [gx, gy];
+        (gx, gy) = ECPrecompilesTestHelper.ecBasePower(5);
+        g[2] = [gx, gy];
+        scratch = HyperKZGHelpers.__univariateGroupEvaluation(g, 7, scratch);
+        (gx, gy) = ECPrecompilesTestHelper.ecBasePower(2 + 3 * 7 + 5 * (7 ** 2));
+        assert(scratch[0] == gx);
+        assert(scratch[1] == gy);
+        // scratch space
+        assert(scratch[2] == g[0][0]);
+        assert(scratch[3] == g[0][1]);
+    }
+
+    function testFuzzUnivariateGroupEvaluation(uint256[] memory p, uint256 e) public view {
+        uint256[4] memory scratch = [uint256(0xDEAD), 0xDEAD, 0xDEAD, 0xDEAD];
+        uint256[2][] memory g = new uint256[2][](p.length);
+        uint256 pOfE = 0;
+        uint256 n = p.length;
+        uint256 eToTheI = 1;
+        uint256 gx;
+        uint256 gy;
+        for (uint256 i = 0; i < n; ++i) {
+            pOfE = addmod(pOfE, mulmod(p[i], eToTheI, MODULUS), MODULUS);
+            (gx, gy) = ECPrecompilesTestHelper.ecBasePower(p[i]);
+            g[i] = [gx, gy];
+            eToTheI = mulmod(eToTheI, e, MODULUS);
+        }
+        scratch = HyperKZGHelpers.__univariateGroupEvaluation(g, e, scratch);
+        (gx, gy) = ECPrecompilesTestHelper.ecBasePower(pOfE);
+        assert(scratch[0] == gx);
+        assert(scratch[1] == gy);
+        if (n > 1) {
+            // scratch space
+            assert(scratch[2] == g[0][0]);
+            assert(scratch[3] == g[0][1]);
+        } else {
+            assert(scratch[2] == 0xDEAD);
+            assert(scratch[3] == 0xDEAD);
+        }
+    }
+
 }
