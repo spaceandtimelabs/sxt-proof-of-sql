@@ -2,20 +2,8 @@
 // This is licensed under the Cryptographic Open Software License 1.0
 pragma solidity ^0.8.28;
 
-// assembly only constants
-/* solhint-disable no-unused-import */
-import {
-    FREE_PTR,
-    MODULUS,
-    MODULUS_MINUS_ONE,
-    MODULUS_MASK,
-    WORD_SIZE,
-    WORDX2_SIZE,
-    WORDX3_SIZE,
-    WORDX6_SIZE,
-    HYPER_KZG_INCONSISTENT_V
-} from "../base/Constants.sol";
-/* solhint-enable no-unused-import */
+import "../base/Constants.sol";
+import "../base/Errors.sol";
 
 /// @title HyperKZGHelpers
 /// @dev Library providing helper functions for the HyperKZG polynomial commitment verifier.
@@ -145,6 +133,10 @@ library HyperKZGHelpers {
     {
         assert(__x.length == __v.length);
         assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             function check_v_consistency(v_ptr, r, x, y) {
                 let ell := mload(x)
                 let v_stack := add(v_ptr, mul(WORDX3_SIZE, ell))
@@ -173,10 +165,7 @@ library HyperKZGHelpers {
                         ),
                         mulmod(xi, addmod(v1i, sub(MODULUS, mod(v0i, MODULUS)), MODULUS), MODULUS),
                         MODULUS
-                    ) {
-                        mstore(0, HYPER_KZG_INCONSISTENT_V)
-                        revert(0, 4)
-                    }
+                    ) { err(ERR_HYPER_KZG_INCONSISTENT_V) }
 
                     last_v2 := v2i
                 }

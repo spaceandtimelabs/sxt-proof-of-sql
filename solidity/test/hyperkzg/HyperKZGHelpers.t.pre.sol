@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
+import "../../src/base/Errors.sol";
 import {HyperKZGHelpers} from "../../src/hyperkzg/HyperKZGHelpers.pre.sol";
 
 contract HyperKZGHelpersTest is Test {

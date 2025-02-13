@@ -2,7 +2,8 @@
 // This is licensed under the Cryptographic Open Software License 1.0
 pragma solidity ^0.8.28;
 
-import "../base/Constants.sol"; // solhint-disable-line no-global-import
+import "../base/Constants.sol";
+import "../base/Errors.sol";
 
 library VerificationBuilder {
     /// @notice Allocates and reserves a block of memory for a verification builder.
@@ -38,14 +39,15 @@ library VerificationBuilder {
     /// @dev This function will revert if there are no challenges left to consume.
     function __consumeChallenge(uint256 __builderPtr) internal pure returns (uint256 __challenge) {
         assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             function builder_consume_challenge(builder_ptr) -> challenge {
                 let head_ptr := mload(add(builder_ptr, CHALLENGE_HEAD_OFFSET))
                 challenge := mload(head_ptr)
                 head_ptr := add(head_ptr, WORD_SIZE)
-                if gt(head_ptr, mload(add(builder_ptr, CHALLENGE_TAIL_OFFSET))) {
-                    mstore(0, TOO_FEW_CHALLENGES)
-                    revert(0, 4)
-                }
+                if gt(head_ptr, mload(add(builder_ptr, CHALLENGE_TAIL_OFFSET))) { err(ERR_TOO_FEW_CHALLENGES) }
                 mstore(add(builder_ptr, CHALLENGE_HEAD_OFFSET), head_ptr)
             }
             __challenge := builder_consume_challenge(__builderPtr)
@@ -78,13 +80,16 @@ library VerificationBuilder {
     /// @dev Reverts if there are no first round mles left.
     function __consumeFirstRoundMLE(uint256 __builderPtr) internal pure returns (uint256 __evaluation) {
         assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             function builder_consume_first_round_mle(builder_ptr) -> evaluation {
                 let head_ptr := mload(add(builder_ptr, FIRST_ROUND_MLE_HEAD_OFFSET))
                 evaluation := mload(head_ptr)
                 head_ptr := add(head_ptr, WORD_SIZE)
                 if gt(head_ptr, mload(add(builder_ptr, FIRST_ROUND_MLE_TAIL_OFFSET))) {
-                    mstore(0, TOO_FEW_FIRST_ROUND_MLES)
-                    revert(0, 4)
+                    err(ERR_TOO_FEW_FIRST_ROUND_MLES)
                 }
                 mstore(add(builder_ptr, FIRST_ROUND_MLE_HEAD_OFFSET), head_ptr)
             }
@@ -118,13 +123,16 @@ library VerificationBuilder {
     /// @dev Reverts if there are no final round mles left.
     function __consumeFinalRoundMLE(uint256 __builderPtr) internal pure returns (uint256 __evaluation) {
         assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             function builder_consume_final_round_mle(builder_ptr) -> evaluation {
                 let head_ptr := mload(add(builder_ptr, FINAL_ROUND_MLE_HEAD_OFFSET))
                 evaluation := mload(head_ptr)
                 head_ptr := add(head_ptr, WORD_SIZE)
                 if gt(head_ptr, mload(add(builder_ptr, FINAL_ROUND_MLE_TAIL_OFFSET))) {
-                    mstore(0, TOO_FEW_FINAL_ROUND_MLES)
-                    revert(0, 4)
+                    err(ERR_TOO_FEW_FINAL_ROUND_MLES)
                 }
                 mstore(add(builder_ptr, FINAL_ROUND_MLE_HEAD_OFFSET), head_ptr)
             }
@@ -158,13 +166,16 @@ library VerificationBuilder {
     /// @dev Reverts if there are no chi evaluations left.
     function __consumeChiEvaluation(uint256 __builderPtr) internal pure returns (uint256 __evaluation) {
         assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             function builder_consume_chi_evaluation(builder_ptr) -> evaluation {
                 let head_ptr := mload(add(builder_ptr, CHI_EVALUATION_HEAD_OFFSET))
                 evaluation := mload(head_ptr)
                 head_ptr := add(head_ptr, WORD_SIZE)
                 if gt(head_ptr, mload(add(builder_ptr, CHI_EVALUATION_TAIL_OFFSET))) {
-                    mstore(0, TOO_FEW_CHI_EVALUATIONS)
-                    revert(0, 4)
+                    err(ERR_TOO_FEW_CHI_EVALUATIONS)
                 }
                 mstore(add(builder_ptr, CHI_EVALUATION_HEAD_OFFSET), head_ptr)
             }
@@ -198,13 +209,16 @@ library VerificationBuilder {
     /// @dev Reverts if there are no rho evaluations left.
     function __consumeRhoEvaluation(uint256 __builderPtr) internal pure returns (uint256 __evaluation) {
         assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             function builder_consume_rho_evaluation(builder_ptr) -> evaluation {
                 let head_ptr := mload(add(builder_ptr, RHO_EVALUATION_HEAD_OFFSET))
                 evaluation := mload(head_ptr)
                 head_ptr := add(head_ptr, WORD_SIZE)
                 if gt(head_ptr, mload(add(builder_ptr, RHO_EVALUATION_TAIL_OFFSET))) {
-                    mstore(0, TOO_FEW_RHO_EVALUATIONS)
-                    revert(0, 4)
+                    err(ERR_TOO_FEW_RHO_EVALUATIONS)
                 }
                 mstore(add(builder_ptr, RHO_EVALUATION_HEAD_OFFSET), head_ptr)
             }
