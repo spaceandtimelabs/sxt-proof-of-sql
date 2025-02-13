@@ -50,7 +50,7 @@ pub trait VerificationBuilder<S: Scalar> {
 }
 
 /// Track components used to verify a query's proof
-pub struct StandardVerificationBuilder<'a, S: Scalar> {
+pub struct VerificationBuilderImpl<'a, S: Scalar> {
     mle_evaluations: SumcheckMleEvaluations<'a, S>,
     subpolynomial_multipliers: &'a [S],
     sumcheck_evaluation: S,
@@ -73,7 +73,7 @@ pub struct StandardVerificationBuilder<'a, S: Scalar> {
     subpolynomial_max_multiplicands: usize,
 }
 
-impl<'a, S: Scalar> StandardVerificationBuilder<'a, S> {
+impl<'a, S: Scalar> VerificationBuilderImpl<'a, S> {
     #[allow(
         clippy::missing_panics_doc,
         reason = "The only possible panic is from the assertion comparing lengths, which is clear from context."
@@ -127,7 +127,7 @@ impl<'a, S: Scalar> StandardVerificationBuilder<'a, S> {
     }
 }
 
-impl<S: Scalar> VerificationBuilder<S> for StandardVerificationBuilder<'_, S> {
+impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
     fn try_consume_chi_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         let index = self.consumed_chi_evaluations;
         let length = self

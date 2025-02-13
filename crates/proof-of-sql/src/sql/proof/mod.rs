@@ -11,7 +11,7 @@ pub(crate) use composite_polynomial_builder::CompositePolynomialBuilder;
 mod composite_polynomial_builder_test;
 
 mod verification_builder;
-pub(crate) use verification_builder::{StandardVerificationBuilder, VerificationBuilder};
+pub(crate) use verification_builder::{VerificationBuilder, VerificationBuilderImpl};
 #[cfg(test)]
 mod verification_builder_test;
 

@@ -1,4 +1,4 @@
-use super::{StandardVerificationBuilder, SumcheckMleEvaluations};
+use super::{SumcheckMleEvaluations, VerificationBuilderImpl};
 use crate::{
     base::scalar::Curve25519Scalar,
     sql::proof::{SumcheckSubpolynomialType, VerificationBuilder},
@@ -11,7 +11,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
     let mle_evaluations = SumcheckMleEvaluations {
         ..Default::default()
     };
-    let builder = StandardVerificationBuilder::<Curve25519Scalar>::new(
+    let builder = VerificationBuilderImpl::<Curve25519Scalar>::new(
         mle_evaluations,
         &[][..],
         &[][..],
@@ -32,7 +32,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
     ];
-    let mut builder = StandardVerificationBuilder::new(
+    let mut builder = VerificationBuilderImpl::new(
         mle_evaluations,
         &[][..],
         &subpolynomial_multipliers,
@@ -62,7 +62,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
 
 #[test]
 fn we_can_consume_post_result_challenges_in_verification_builder() {
-    let mut builder = StandardVerificationBuilder::new(
+    let mut builder = VerificationBuilderImpl::new(
         SumcheckMleEvaluations::default(),
         &[][..],
         &[][..],
