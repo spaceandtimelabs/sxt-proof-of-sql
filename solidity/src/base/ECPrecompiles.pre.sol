@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 import "./Constants.sol";
+import "./Errors.sol";
 
 /// @title ECPrecompiles Library
 /// @notice A library holding Yul wrappers for the precompiled contracts.
@@ -14,10 +15,13 @@ library ECPrecompiles {
     /// @param __args The input memory containing the points to be added.
     function __ecAdd(uint256[4] memory __args) internal view {
         assembly {
+            // IMPORT-YUL Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             function ec_add(args_ptr) {
                 if iszero(staticcall(ECADD_GAS, ECADD_ADDRESS, args_ptr, WORDX4_SIZE, args_ptr, WORDX2_SIZE)) {
-                    mstore(0, INVALID_EC_ADD_INPUTS)
-                    revert(0, 4)
+                    err(ERR_INVALID_EC_ADD_INPUTS)
                 }
             }
             ec_add(__args)
@@ -33,10 +37,13 @@ library ECPrecompiles {
     /// @param __args The input memory containing the point and scalar to be multiplied.
     function __ecMul(uint256[3] memory __args) internal view {
         assembly {
+            // IMPORT-YUL Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             function ec_mul(args_ptr) {
                 if iszero(staticcall(ECMUL_GAS, ECMUL_ADDRESS, args_ptr, WORDX3_SIZE, args_ptr, WORDX2_SIZE)) {
-                    mstore(0, INVALID_EC_MUL_INPUTS)
-                    revert(0, 4)
+                    err(ERR_INVALID_EC_MUL_INPUTS)
                 }
             }
             ec_mul(__args)
@@ -55,10 +62,13 @@ library ECPrecompiles {
     /// @return success0 The result of the pairing check.
     function __ecPairingX2(uint256[12] memory __args) internal view returns (uint256 success0) {
         assembly {
+            // IMPORT-YUL Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             function ec_pairing_x2(args_ptr) -> success {
                 if iszero(staticcall(ECPAIRINGX2_GAS, ECPAIRING_ADDRESS, args_ptr, WORDX12_SIZE, args_ptr, WORD_SIZE)) {
-                    mstore(0, INVALID_EC_PAIRING_INPUTS)
-                    revert(0, 4)
+                    err(ERR_INVALID_EC_PAIRING_INPUTS)
                 }
                 success := mload(args_ptr)
             }
@@ -74,6 +84,10 @@ library ECPrecompiles {
     /// @param __scalar The scalar to multiply the point by.
     function __ecMulAssign(uint256[3] memory __args, uint256 __scalar) internal view {
         assembly {
+            // IMPORT-YUL Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             // IMPORT-YUL ECPrecompiles.pre.sol
             function ec_mul(args_ptr) {
                 pop(staticcall(0, 0, 0, 0, 0, 0))
@@ -101,6 +115,10 @@ library ECPrecompiles {
         returns (uint256[4] memory __resultArgs)
     {
         assembly {
+            // IMPORT-YUL Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             // IMPORT-YUL ECPrecompiles.pre.sol
             function ec_add(args_ptr) {
                 pop(staticcall(0, 0, 0, 0, 0, 0))
@@ -130,6 +148,10 @@ library ECPrecompiles {
         returns (uint256[5] memory __resultArgs)
     {
         assembly {
+            // IMPORT-YUL Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             // IMPORT-YUL ECPrecompiles.pre.sol
             function ec_add(args_ptr) {
                 pop(staticcall(0, 0, 0, 0, 0, 0))
@@ -169,6 +191,10 @@ library ECPrecompiles {
         view
     {
         assembly {
+            // IMPORT-YUL Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             // IMPORT-YUL ECPrecompiles.pre.sol
             function ec_add(args_ptr) {
                 pop(staticcall(0, 0, 0, 0, 0, 0))
@@ -201,6 +227,10 @@ library ECPrecompiles {
     /// @param __c The memory pointer to the second point [c_x, c_y].
     function __ecAddAssign(uint256[4] memory __args, uint256[2] memory __c) internal view {
         assembly {
+            // IMPORT-YUL Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             // IMPORT-YUL ECPrecompiles.pre.sol
             function ec_add(args_ptr) {
                 pop(staticcall(0, 0, 0, 0, 0, 0))

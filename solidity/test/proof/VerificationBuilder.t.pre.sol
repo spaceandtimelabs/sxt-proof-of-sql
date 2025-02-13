@@ -4,7 +4,8 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
-import {VerificationBuilder} from "../../src/proof/VerificationBuilder.sol";
+import "../../src/base/Errors.sol";
+import {VerificationBuilder} from "../../src/proof/VerificationBuilder.pre.sol";
 
 library VerificationBuilderTestHelper {
     function setChallenges(uint256 builderPtr, uint256[] memory challenges) internal pure {

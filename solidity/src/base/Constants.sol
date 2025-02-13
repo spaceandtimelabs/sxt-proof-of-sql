@@ -39,27 +39,6 @@ uint256 constant ECMUL_GAS = 6000;
 /// @dev Gas cost for the ECPAIRING precompile with two pairings.
 uint256 constant ECPAIRINGX2_GAS = 45000 + 2 * 34000;
 
-/// @dev Error code for when ECADD inputs are invalid.
-uint256 constant INVALID_EC_ADD_INPUTS = 0x765bcba0_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
-/// @dev Error code for when ECMUL inputs are invalid.
-uint256 constant INVALID_EC_MUL_INPUTS = 0xe32c7472_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
-/// @dev Error code for when ECPAIRING inputs are invalid.
-uint256 constant INVALID_EC_PAIRING_INPUTS = 0x4385b511_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
-/// @dev Error code for when the evaluation of a round in a sumcheck proof does not match the expected value.
-uint256 constant ROUND_EVALUATION_MISMATCH = 0x741f5c3f_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
-/// @dev Error code for when too few challenges are provided to the verification builder.
-uint256 constant TOO_FEW_CHALLENGES = 0x700caebe_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
-/// @dev Error code for when too few first round mles are provided to the verification builder.
-uint256 constant TOO_FEW_FIRST_ROUND_MLES = 0x82a47d4f_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
-/// @dev Error code for when too few final round mles are provided to the verification builder.
-uint256 constant TOO_FEW_FINAL_ROUND_MLES = 0xfb828ab5_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
-/// @dev Error code for when too few chi evaluations are provided to the verification builder.
-uint256 constant TOO_FEW_CHI_EVALUATIONS = 0x8ef4e6c9_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
-/// @dev Error code for when too few rho evaluations are provided to the verification builder.
-uint256 constant TOO_FEW_RHO_EVALUATIONS = 0x3784ad97_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
-/// @dev Error code for when the HyperKZG proof has an inconsistent v.
-uint256 constant HYPER_KZG_INCONSISTENT_V = 0x6a5ae827_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
-
 /// @dev The X coordinate of the G1 generator point.
 uint256 constant G1_GEN_X = 1;
 /// @dev The Y coordinate of the G1 generator point.
@@ -110,28 +89,3 @@ uint256 constant CHI_EVALUATION_TAIL_OFFSET = 0x20 * 7;
 uint256 constant RHO_EVALUATION_HEAD_OFFSET = 0x20 * 8;
 /// @dev Offset of the pointer to the tail of the rho evaluations in the verification builder.
 uint256 constant RHO_EVALUATION_TAIL_OFFSET = 0x20 * 9;
-
-/// @title Errors library
-/// @notice Library containing custom error definitions.
-library Errors {
-    /// @notice Error thrown when the inputs to the ECADD precompile are invalid.
-    error InvalidECAddInputs();
-    /// @notice Error thrown when the inputs to the ECMUL precompile are invalid.
-    error InvalidECMulInputs();
-    /// @notice Error thrown when the inputs to the ECPAIRING precompile are invalid.
-    error InvalidECPairingInputs();
-    /// @notice Error thrown when the evaluation of a round in a sumcheck proof does not match the expected value.
-    error RoundEvaluationMismatch();
-    /// @notice Error thrown when too few challenges are provided to the verification builder.
-    error TooFewChallenges();
-    /// @notice Error thrown when too few first round mles are provided to the verification builder.
-    error TooFewFirstRoundMLEs();
-    /// @notice Error thrown when too few final round mles are provided to the verification builder.
-    error TooFewFinalRoundMLEs();
-    /// @notice Error thrown when too few chi evaluations are provided to the verification builder.
-    error TooFewChiEvaluations();
-    /// @notice Error thrown when too few rho evaluations are provided to the verification builder.
-    error TooFewRhoEvaluations();
-    /// @notice Error thrown when the HyperKZG proof has an inconsistent v.
-    error HyperKZGInconsistentV();
-}
