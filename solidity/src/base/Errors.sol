@@ -10,16 +10,6 @@ uint32 constant ERR_INVALID_EC_MUL_INPUTS = 0xe32c7472;
 uint32 constant ERR_INVALID_EC_PAIRING_INPUTS = 0x4385b511;
 /// @dev Error code for when the evaluation of a round in a sumcheck proof does not match the expected value.
 uint32 constant ERR_ROUND_EVALUATION_MISMATCH = 0x741f5c3f;
-/// @dev Error code for when too few challenges are provided to the verification builder.
-uint32 constant ERR_TOO_FEW_CHALLENGES = 0x700caebe;
-/// @dev Error code for when too few first round mles are provided to the verification builder.
-uint32 constant ERR_TOO_FEW_FIRST_ROUND_MLES = 0x82a47d4f;
-/// @dev Error code for when too few final round mles are provided to the verification builder.
-uint32 constant ERR_TOO_FEW_FINAL_ROUND_MLES = 0xfb828ab5;
-/// @dev Error code for when too few chi evaluations are provided to the verification builder.
-uint32 constant ERR_TOO_FEW_CHI_EVALUATIONS = 0x8ef4e6c9;
-/// @dev Error code for when too few rho evaluations are provided to the verification builder.
-uint32 constant ERR_TOO_FEW_RHO_EVALUATIONS = 0x3784ad97;
 /// @dev Error code for when a dequeue attempt was made on an empty queue.
 uint32 constant ERR_EMPTY_QUEUE = 0x31dcf2b5;
 /// @dev Error code for when the HyperKZG proof has an inconsistent v.
@@ -34,16 +24,6 @@ library Errors {
     error InvalidECPairingInputs();
     /// @notice Error thrown when the evaluation of a round in a sumcheck proof does not match the expected value.
     error RoundEvaluationMismatch();
-    /// @notice Error thrown when too few challenges are provided to the verification builder.
-    error TooFewChallenges();
-    /// @notice Error thrown when too few first round mles are provided to the verification builder.
-    error TooFewFirstRoundMLEs();
-    /// @notice Error thrown when too few final round mles are provided to the verification builder.
-    error TooFewFinalRoundMLEs();
-    /// @notice Error thrown when too few chi evaluations are provided to the verification builder.
-    error TooFewChiEvaluations();
-    /// @notice Error thrown when too few rho evaluations are provided to the verification builder.
-    error TooFewRhoEvaluations();
     /// @notice Error thrown when a dequeue attempt was made on an empty queue.
     error EmptyQueue();
     /// @notice Error thrown when the HyperKZG proof has an inconsistent v.
