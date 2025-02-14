@@ -38,51 +38,61 @@ contract ErrorsTest is Test {
         }
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorFailedInvalidECAddInputs() public {
         vm.expectRevert(Errors.InvalidECAddInputs.selector);
         Errors.__err(ERR_INVALID_EC_ADD_INPUTS);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorFailedInvalidECMulInputs() public {
         vm.expectRevert(Errors.InvalidECMulInputs.selector);
         Errors.__err(ERR_INVALID_EC_MUL_INPUTS);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorFailedInvalidECPairingInputs() public {
         vm.expectRevert(Errors.InvalidECPairingInputs.selector);
         Errors.__err(ERR_INVALID_EC_PAIRING_INPUTS);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorFailedRoundEvaluationMismatch() public {
         vm.expectRevert(Errors.RoundEvaluationMismatch.selector);
         Errors.__err(ERR_ROUND_EVALUATION_MISMATCH);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorFailedTooFewChallenges() public {
         vm.expectRevert(Errors.TooFewChallenges.selector);
         Errors.__err(ERR_TOO_FEW_CHALLENGES);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorFailedTooFewFirstRoundMLEs() public {
         vm.expectRevert(Errors.TooFewFirstRoundMLEs.selector);
         Errors.__err(ERR_TOO_FEW_FIRST_ROUND_MLES);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorFailedTooFewFinalRoundMLEs() public {
         vm.expectRevert(Errors.TooFewFinalRoundMLEs.selector);
         Errors.__err(ERR_TOO_FEW_FINAL_ROUND_MLES);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorFailedTooFewChiEvaluations() public {
         vm.expectRevert(Errors.TooFewChiEvaluations.selector);
         Errors.__err(ERR_TOO_FEW_CHI_EVALUATIONS);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorFailedTooFewRhoEvaluations() public {
         vm.expectRevert(Errors.TooFewRhoEvaluations.selector);
         Errors.__err(ERR_TOO_FEW_RHO_EVALUATIONS);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorFailedHyperKZGInconsistentV() public {
         vm.expectRevert(Errors.HyperKZGInconsistentV.selector);
         Errors.__err(ERR_HYPER_KZG_INCONSISTENT_V);
