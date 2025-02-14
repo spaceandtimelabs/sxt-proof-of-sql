@@ -197,10 +197,12 @@ pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
     }
 }
 
-/// Divides two columns of data, where the data types are some unsigned int type(s).
+/// Divides two columns of data, where the data types are some signed int type(s).
 /// Note that `i128::MIN / -1`, for example, results in a value that is not contained by i128.
-/// Therefore, this value wraps around to `i128::MIN`.
-/// Division by 0 returns 0.
+/// Therefore, this value wraps around to `i128::MIN`. Division by 0 returns 0.
+/// The first slice in the tuple represents this wrapped value, whereas the second is the
+/// proper value of the quotient. Note that it is a scalar because it can represent
+///  a value (`-i128::MIN`, for example) that is out of range of the integer type.
 #[allow(clippy::missing_panics_doc)]
 fn divide_integer_columns<
     'a,
@@ -274,7 +276,9 @@ fn modulo_integer_columns<
     remainder
 }
 
-/// Divide one column by another.
+/// Divide one column by another. The first value in the tuple wraps `MIN / -1` back to `MIN`,
+/// whereas the second returns `-MIN`, where `MIN` is the minimum value of a signed int.
+/// For now, only signed integer types are supported.
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length or column type division is unsupported.
 #[allow(clippy::too_many_lines)]
