@@ -1,4 +1,8 @@
-use crate::base::if_rayon;
+use crate::base::{
+    if_rayon,
+    scalar::{Scalar, ScalarExt},
+};
+use alloc::vec::Vec;
 use core::{iter::Sum, ops::Mul};
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -24,5 +28,13 @@ where
     if_rayon!(a.par_iter().with_min_len(super::MIN_RAYON_LEN), a.iter())
         .zip(b)
         .map(|(a, b)| a.into() * *b)
+        .sum()
+}
+
+/// Cannot use blanket impls for `Vec<u8>` because bytes might have different embeddings as scalars
+pub fn inner_product_with_bytes<S: Scalar>(a: &[Vec<u8>], b: &[S]) -> S {
+    if_rayon!(a.par_iter().with_min_len(super::MIN_RAYON_LEN), a.iter())
+        .zip(b)
+        .map(|(lhs_bytes, &rhs)| S::from_byte_slice_via_hash(lhs_bytes) * rhs)
         .sum()
 }

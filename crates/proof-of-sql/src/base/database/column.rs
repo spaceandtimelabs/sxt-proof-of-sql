@@ -52,6 +52,8 @@ pub enum Column<'a, S: Scalar> {
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    /// Variable length binary columns
+    VarBinary((&'a [&'a [u8]], &'a [S])),
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
@@ -72,6 +74,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::TimestampTZ(time_unit, timezone, _) => {
                 ColumnType::TimestampTZ(*time_unit, *timezone)
             }
+            Self::VarBinary(..) => ColumnType::VarBinary,
         }
     }
     /// Returns the length of the column.
@@ -87,6 +90,10 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int(col) => col.len(),
             Self::BigInt(col) | Self::TimestampTZ(_, _, col) => col.len(),
             Self::VarChar((col, scals)) => {
+                assert_eq!(col.len(), scals.len());
+                col.len()
+            }
+            Self::VarBinary((col, scals)) => {
                 assert_eq!(col.len(), scals.len());
                 col.len()
             }
@@ -176,6 +183,17 @@ impl<'a, S: Scalar> Column<'a, S> {
                     alloc.alloc_slice_copy(scalars.as_slice()),
                 ))
             }
+            OwnedColumn::VarBinary(col) => {
+                let scalars = col
+                    .iter()
+                    .map(|b| S::from_byte_slice_via_hash(b))
+                    .collect::<Vec<_>>();
+                let bytes = col.iter().map(|s| s as &'a [u8]).collect::<Vec<_>>();
+                Column::VarBinary((
+                    alloc.alloc_slice_clone(&bytes),
+                    alloc.alloc_slice_copy(scalars.as_slice()),
+                ))
+            }
             OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col.as_slice()),
         }
     }
@@ -260,6 +278,14 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 
+    /// Returns the column as a slice of strings and a slice of scalars if it is a varchar column. Otherwise, returns None.
+    pub(crate) fn as_varbinary(&self) -> Option<(&'a [&'a [u8]], &'a [S])> {
+        match self {
+            Self::VarBinary((col, scals)) => Some((col, scals)),
+            _ => None,
+        }
+    }
+
     /// Returns the column as a slice of i64 if it is a timestamp column. Otherwise, returns None.
     pub(crate) fn as_timestamptz(&self) -> Option<&'a [i64]> {
         match self {
@@ -281,7 +307,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::BigInt(col) | Self::TimestampTZ(_, _, col) => S::from(col[index]),
             Self::Int128(col) => S::from(col[index]),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
-            Self::VarChar((_, scals)) => scals[index],
+            Self::VarChar((_, scals)) | Self::VarBinary((_, scals)) => scals[index],
         })
     }
 
@@ -293,6 +319,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Boolean(col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
             Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
             Self::VarChar((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
+            Self::VarBinary((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
             Self::Uint8(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::TinyInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
@@ -345,6 +372,9 @@ pub enum ColumnType {
     /// Mapped to `S`
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
+    /// Mapped to [u8]
+    #[serde(alias = "BINARY", alias = "BINARY")]
+    VarBinary,
 }
 
 impl ColumnType {
@@ -459,7 +489,7 @@ impl ColumnType {
             // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
             // so that they do not cause errors when used in comparisons.
             Self::Scalar => Some(0_u8),
-            Self::Boolean | Self::VarChar => None,
+            Self::Boolean | Self::VarChar | Self::VarBinary => None,
         }
     }
     /// Returns scale of a [`ColumnType`] if it is convertible to a decimal wrapped in `Some()`. Otherwise return None.
@@ -474,7 +504,7 @@ impl ColumnType {
             | Self::BigInt
             | Self::Int128
             | Self::Scalar => Some(0),
-            Self::Boolean | Self::VarChar => None,
+            Self::Boolean | Self::VarBinary | Self::VarChar => None,
             Self::TimestampTZ(tu, _) => match tu {
                 PoSQLTimeUnit::Second => Some(0),
                 PoSQLTimeUnit::Millisecond => Some(3),
@@ -495,7 +525,9 @@ impl ColumnType {
             Self::Int => size_of::<i32>(),
             Self::BigInt | Self::TimestampTZ(_, _) => size_of::<i64>(),
             Self::Int128 => size_of::<i128>(),
-            Self::Scalar | Self::Decimal75(_, _) | Self::VarChar => size_of::<[u64; 4]>(),
+            Self::Scalar | Self::Decimal75(_, _) | Self::VarBinary | Self::VarChar => {
+                size_of::<[u64; 4]>()
+            }
         }
     }
 
@@ -516,9 +548,12 @@ impl ColumnType {
             | Self::BigInt
             | Self::Int128
             | Self::TimestampTZ(_, _) => true,
-            Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean | Self::Uint8 => {
-                false
-            }
+            Self::Decimal75(_, _)
+            | Self::Scalar
+            | Self::VarBinary
+            | Self::VarChar
+            | Self::Boolean
+            | Self::Uint8 => false,
         }
     }
 }
@@ -542,6 +577,7 @@ impl Display for ColumnType {
                 )
             }
             ColumnType::VarChar => write!(f, "VARCHAR"),
+            ColumnType::VarBinary => write!(f, "BINARY"),
             ColumnType::Scalar => write!(f, "SCALAR"),
             ColumnType::TimestampTZ(timeunit, timezone) => {
                 write!(f, "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone})")
@@ -1128,5 +1164,41 @@ mod tests {
             Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[1, 2, 3]);
         assert_eq!(column.column_type().byte_size(), 8);
         assert_eq!(column.column_type().bit_size(), 64);
+    }
+
+    #[test]
+    fn we_can_get_length_of_varbinary_column() {
+        let raw_bytes: &[&[u8]] = &[b"foo", b"bar", b""];
+        let scalars: Vec<TestScalar> = raw_bytes
+            .iter()
+            .map(|b| TestScalar::from_le_bytes_mod_order(b))
+            .collect();
+
+        let column = Column::VarBinary((raw_bytes, &scalars));
+        assert_eq!(column.len(), 3);
+        assert!(!column.is_empty());
+        assert_eq!(column.column_type(), ColumnType::VarBinary);
+    }
+
+    #[test]
+    fn we_can_convert_varbinary_owned_column_to_column_and_back() {
+        use bumpalo::Bump;
+        let alloc = Bump::new();
+
+        let owned_varbinary = OwnedColumn::VarBinary(vec![b"abc".to_vec(), b"xyz".to_vec()]);
+
+        let column = Column::<TestScalar>::from_owned_column(&owned_varbinary, &alloc);
+        match column {
+            Column::VarBinary((bytes, scalars)) => {
+                assert_eq!(bytes.len(), 2);
+                assert_eq!(scalars.len(), 2);
+                assert_eq!(bytes[0], b"abc");
+                assert_eq!(bytes[1], b"xyz");
+            }
+            _ => panic!("Expected VarBinary column"),
+        }
+
+        let round_trip_owned: OwnedColumn<TestScalar> = (&column).into();
+        assert_eq!(owned_varbinary, round_trip_owned);
     }
 }

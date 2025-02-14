@@ -160,6 +160,29 @@ pub fn column_union<'a, S: Scalar>(
                 }) as &[_],
             ))
         }
+        ColumnType::VarBinary => {
+            let (nested_results, nested_scalars): (Vec<_>, Vec<_>) = columns
+                .iter()
+                .map(|col| col.as_varbinary().expect("Column types should match"))
+                .unzip();
+
+            // Create iterators for both results and scalars
+            let mut result_iter = nested_results.into_iter().flatten().copied();
+            let mut scalar_iter = nested_scalars.into_iter().flatten().copied();
+
+            Column::VarBinary((
+                alloc.alloc_slice_fill_with(len, |_| {
+                    result_iter
+                        .next()
+                        .expect("Iterator should have enough elements")
+                }) as &[_],
+                alloc.alloc_slice_fill_with(len, |_| {
+                    scalar_iter
+                        .next()
+                        .expect("Iterator should have enough elements")
+                }) as &[_],
+            ))
+        }
         ColumnType::TimestampTZ(tu, tz) => {
             let mut iter = columns
                 .iter()
@@ -386,5 +409,101 @@ mod tests {
             result,
             Err(TableOperationError::UnionIncompatibleSchemas { .. })
         ));
+    }
+
+    #[test]
+    fn we_can_union_varbinary_columns() {
+        let alloc = Bump::new();
+
+        let raw0 = [b"foo".as_ref(), b"bar".as_ref()];
+        let scalars0: Vec<TestScalar> = raw0
+            .iter()
+            .map(|b| TestScalar::from_le_bytes_mod_order(b))
+            .collect();
+        let col0: Column<TestScalar> = Column::VarBinary((raw0.as_slice(), scalars0.as_slice()));
+
+        let raw1 = [b"baz".as_ref(), b"qux".as_ref()];
+        let scalars1: Vec<TestScalar> = raw1
+            .iter()
+            .map(|b| TestScalar::from_le_bytes_mod_order(b))
+            .collect();
+        let col1: Column<TestScalar> = Column::VarBinary((raw1.as_slice(), scalars1.as_slice()));
+
+        let result = column_union(&[&col0, &col1], &alloc, ColumnType::VarBinary).unwrap();
+
+        let expected_raw = [
+            b"foo".as_ref(),
+            b"bar".as_ref(),
+            b"baz".as_ref(),
+            b"qux".as_ref(),
+        ];
+        let expected_scalars: Vec<TestScalar> = expected_raw
+            .iter()
+            .map(|b| TestScalar::from_le_bytes_mod_order(b))
+            .collect();
+        assert_eq!(
+            result,
+            Column::VarBinary((expected_raw.as_slice(), expected_scalars.as_slice()))
+        );
+    }
+
+    #[test]
+    fn we_can_union_tables_with_varbinary_columns() {
+        let alloc = Bump::new();
+        let binary_binding = [b"foo".as_ref(), b"bar".as_ref()];
+        let scalar_binding = [
+            TestScalar::from_le_bytes_mod_order(b"foo"),
+            TestScalar::from_le_bytes_mod_order(b"bar"),
+        ];
+        let table0 = Table::<'_, TestScalar>::try_new_with_options(
+            IndexMap::from_iter(vec![(
+                "vb".into(),
+                Column::VarBinary((binary_binding.as_slice(), scalar_binding.as_slice())),
+            )]),
+            TableOptions::new(Some(2)),
+        )
+        .unwrap();
+
+        let binary_binding = [b"baz".as_ref(), b"qux".as_ref()];
+        let scalar_binding2 = [
+            TestScalar::from_le_bytes_mod_order(b"baz"),
+            TestScalar::from_le_bytes_mod_order(b"qux"),
+        ];
+        let table1 = Table::<'_, TestScalar>::try_new_with_options(
+            IndexMap::from_iter(vec![(
+                "some_name".into(),
+                Column::VarBinary((binary_binding.as_slice(), scalar_binding2.as_slice())),
+            )]),
+            TableOptions::new(Some(2)),
+        )
+        .unwrap();
+
+        let schema = vec![ColumnField::new(
+            "doesnt_matter".into(),
+            ColumnType::VarBinary,
+        )];
+        let result = table_union(&[table0, table1], &alloc, schema.clone()).unwrap();
+
+        let expected_raw = [
+            b"foo".as_ref(),
+            b"bar".as_ref(),
+            b"baz".as_ref(),
+            b"qux".as_ref(),
+        ];
+        let expected_scalars: Vec<TestScalar> = expected_raw
+            .iter()
+            .map(|b| TestScalar::from_le_bytes_mod_order(b))
+            .collect();
+
+        let expected = Table::try_new_with_options(
+            IndexMap::from_iter(vec![(
+                "doesnt_matter".into(),
+                Column::VarBinary((expected_raw.as_slice(), expected_scalars.as_slice())),
+            )]),
+            TableOptions::new(Some(4)),
+        )
+        .unwrap();
+
+        assert_eq!(result, expected);
     }
 }

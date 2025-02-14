@@ -15,7 +15,7 @@
 //! ```
 use super::{OwnedColumn, OwnedTable};
 use crate::base::scalar::Scalar;
-use alloc::string::String;
+use alloc::{string::String, vec::Vec};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use sqlparser::ast::Ident;
 
@@ -214,6 +214,25 @@ pub fn varchar<S: Scalar>(
     (
         name.into(),
         OwnedColumn::VarChar(data.into_iter().map(Into::into).collect()),
+    )
+}
+
+/// Creates a `(Ident, OwnedColumn)` pair for a varbinary column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
+/// # Example
+/// ```
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// let result = owned_table::<Curve25519Scalar>([
+///    varbinary("a", [[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+/// ]);
+/// ```
+pub fn varbinary<S: Scalar>(
+    name: impl Into<Ident>,
+    data: impl IntoIterator<Item = impl Into<Vec<u8>>>,
+) -> (Ident, OwnedColumn<S>) {
+    (
+        name.into(),
+        OwnedColumn::VarBinary(data.into_iter().map(Into::into).collect()),
     )
 }
 

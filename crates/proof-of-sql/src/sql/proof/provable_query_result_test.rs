@@ -7,7 +7,7 @@ use crate::base::{
 };
 use alloc::sync::Arc;
 use arrow::{
-    array::{Decimal128Array, Decimal256Array, Int64Array, StringArray},
+    array::{BinaryArray, Decimal128Array, Decimal256Array, Int64Array, StringArray},
     datatypes::{i256, Field, Schema},
     record_batch::RecordBatch,
 };
@@ -380,4 +380,38 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     )
     .unwrap();
     assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_can_convert_a_provable_result_to_a_final_result_with_varbinary() {
+    let raw_bytes = [b"foo".as_ref(), b"bar"];
+    let scalars: Vec<Curve25519Scalar> = raw_bytes
+        .iter()
+        .map(|b| Curve25519Scalar::from_le_bytes_mod_order(b))
+        .collect();
+    let col = Column::VarBinary((raw_bytes.as_slice(), scalars.as_slice()));
+    let res = ProvableQueryResult::new(2, &[col]);
+    let column_fields = vec![ColumnField::new("vb_col".into(), ColumnType::VarBinary)];
+
+    let record_batch = RecordBatch::try_from(
+        res.to_owned_table::<Curve25519Scalar>(&column_fields)
+            .unwrap(),
+    )
+    .unwrap();
+
+    let schema = Arc::new(Schema::new(vec![Field::new(
+        "vb_col",
+        arrow::datatypes::DataType::Binary,
+        false,
+    )]));
+    let expected = RecordBatch::try_new(
+        schema,
+        vec![Arc::new(BinaryArray::from_vec(vec![
+            b"foo".as_slice(),
+            b"bar".as_slice(),
+        ]))],
+    )
+    .unwrap();
+
+    assert_eq!(record_batch, expected);
 }

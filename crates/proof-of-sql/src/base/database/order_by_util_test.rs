@@ -292,3 +292,26 @@ fn we_can_compare_columns_with_direction() {
         Ordering::Less
     );
 }
+
+#[test]
+fn we_can_compare_indexes_by_columns_for_varbinary_columns() {
+    let raw_bytes = [
+        b"foo".as_ref(),
+        b"bar".as_ref(),
+        b"baz".as_ref(),
+        b"baz".as_ref(),
+        b"bar".as_ref(),
+    ];
+    let scalars: Vec<TestScalar> = raw_bytes
+        .iter()
+        .map(|b| TestScalar::from_le_bytes_mod_order(b))
+        .collect();
+    let col_varbinary = Column::VarBinary((raw_bytes.as_slice(), scalars.as_slice()));
+    let columns = &[col_varbinary];
+
+    assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater); // "foo" vs "bar"
+    assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less); // "bar" vs "baz"
+    assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Equal); // "baz" vs "baz"
+    assert_eq!(compare_indexes_by_columns(columns, 3, 4), Ordering::Greater); // "baz" vs "bar"
+    assert_eq!(compare_indexes_by_columns(columns, 1, 4), Ordering::Equal); // "bar" vs "bar"
+}
