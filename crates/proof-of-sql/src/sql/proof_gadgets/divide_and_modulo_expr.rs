@@ -27,8 +27,6 @@ pub struct DivideAndModuloExpr {
     pub rhs: Box<DynProofExpr>,
 }
 
-const SQRT_MIN_I128: u64 = 13_043_817_825_332_782_212;
-
 trait DivideAndModuloExprUtilities<S: Scalar> {
     fn divide_columns<'a>(
         &self,
@@ -49,6 +47,7 @@ trait DivideAndModuloExprUtilities<S: Scalar> {
         alloc: &'a Bump,
         quotient: &'a [S],
         rhs: Vec<S>,
+        min_sqrt_scalar: S,
     ) -> &'a [S];
 }
 
@@ -78,15 +77,15 @@ impl<S: Scalar> DivideAndModuloExprUtilities<S> for StandardDivideAndModuloExprU
         alloc: &'a Bump,
         quotient: &'a [S],
         rhs: Vec<S>,
+        min_sqrt_scalar: S,
     ) -> &'a [S] {
-        let min_sqrt_scalar = -S::from(SQRT_MIN_I128);
         let in_range_q_or_b = alloc.alloc_slice_fill_with(quotient.len(), |_i| S::ZERO);
         for (res, (q, b)) in in_range_q_or_b
             .iter_mut()
             .zip(quotient.iter().copied().zip(rhs.clone()))
         {
             // We do or rather than and here because scalars wrap negative values, so only one can be true at a time
-            let in_range_value = if q > min_sqrt_scalar || q < -min_sqrt_scalar {
+            let in_range_value = if q < min_sqrt_scalar || q > -min_sqrt_scalar {
                 q
             } else {
                 b
@@ -117,6 +116,8 @@ impl DivideAndModuloExpr {
     /// This is abstracted into its own function for ease of unit testing.
     /// The `utilities` function is where any functionality that needs to be mocked
     /// can be provided.
+    /// # Panics
+    /// Panics if the datatype is not supported
     #[expect(clippy::too_many_lines)]
     fn prover_evaluate_base<'a, S: Scalar, U: DivideAndModuloExprUtilities<S>>(
         &self,
@@ -182,10 +183,12 @@ impl DivideAndModuloExpr {
         // (s - q) * (s - b) = 0
         // Introduces a value s that must be either q or b.
         // We choose s to be a value of q or b such that -sqrt(-MIN) < s < sqrt(-MIN)
+        let min_sqrt_scalar = S::from(self.lhs.data_type().sqrt_negative_min().unwrap());
         let in_range_q_or_b = utilities.get_in_range_column_from_quotient_and_rhs(
             alloc,
             quotient,
             rhs_as_scalars.clone(),
+            min_sqrt_scalar,
         );
         let s = Column::Scalar(in_range_q_or_b);
         builder.produce_intermediate_mle(s);
@@ -294,7 +297,6 @@ impl DivideAndModuloExpr {
         // sign(sqrt(-min) + s) = 1
         // sign(sqrt(-min) - s) = 1
         // These confirm that q * b does not wrap in the Scalar field. Either q or b must be smaller than sqrt(-min), which confines qb to less than the order of the field.
-        let min_sqrt_scalar = S::from(SQRT_MIN_I128);
         let neg_min_sqrt_scalar_column =
             Column::Scalar(alloc.alloc_slice_fill_with(quotient.len(), |_i| min_sqrt_scalar));
         prover_evaluate_sign(
@@ -435,7 +437,7 @@ impl DivideAndModuloExpr {
 
         // sign(sqrt(-min) + s) = 1
         // sign(sqrt(-min) - s) = 1
-        let min_sqrt_eval = S::from(SQRT_MIN_I128) * one_eval;
+        let min_sqrt_eval = S::from(self.data_type().0.sqrt_negative_min().unwrap()) * one_eval;
         let sqrt_min_plus_s = verifier_evaluate_sign(builder, min_sqrt_eval + s, one_eval, None)?;
         let sqrt_min_less_s = verifier_evaluate_sign(builder, min_sqrt_eval - s, one_eval, None)?;
 
@@ -569,6 +571,7 @@ mod tests {
             alloc: &'a Bump,
             quotient: &'a [TestScalar],
             rhs: Vec<TestScalar>,
+            _min_sqrt_scalar: TestScalar,
         ) -> &'a [TestScalar] {
             alloc.alloc_slice_copy(
                 &self
@@ -613,7 +616,12 @@ mod tests {
         let alloc = Bump::new();
         let standard_utilities = StandardDivideAndModuloExprUtilities;
         standard_utilities
-            .get_in_range_column_from_quotient_and_rhs(&alloc, quotient, rhs.to_vec())
+            .get_in_range_column_from_quotient_and_rhs(
+                &alloc,
+                quotient,
+                rhs.to_vec(),
+                TestScalar::from(ColumnType::Int128.sqrt_negative_min().unwrap()),
+            )
             .to_vec()
     }
 
