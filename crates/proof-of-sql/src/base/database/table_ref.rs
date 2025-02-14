@@ -7,7 +7,7 @@ use core::{
 };
 use indexmap::Equivalent;
 use proof_of_sql_parser::{impl_serde_from_str, ResourceId};
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Ident, ObjectName};
 
 /// Expression for an SQL table
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -82,6 +82,24 @@ impl TableRef {
                     .collect::<Vec<_>>()
                     .join(","),
             }),
+        }
+    }
+}
+
+/// Creates a [`TableRef`] from an [`sqlparser::ast::ObjectName`].
+impl TryFrom<ObjectName> for TableRef {
+    type Error = ParseError;
+
+    fn try_from(object_name: sqlparser::ast::ObjectName) -> Result<Self, Self::Error> {
+        let schema_name = object_name.0;
+        let table_name = object_name.1;
+
+        match schema_name {
+            Some(schema) => Ok(Self::from_names(
+                Some(schema.value.as_str()),
+                table_name.value.as_str(),
+            )),
+            None => Ok(Self::from_names(None, table_name.value.as_str())),
         }
     }
 }
