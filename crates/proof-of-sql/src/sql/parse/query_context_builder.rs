@@ -337,7 +337,9 @@ pub(crate) fn type_check_binary_operation(
             try_add_subtract_column_types(left_dtype, right_dtype).is_ok()
         }
         BinaryOperator::Multiply => try_multiply_column_types(left_dtype, right_dtype).is_ok(),
-        BinaryOperator::Divide => left_dtype.is_numeric() && right_dtype.is_numeric(),
+        BinaryOperator::Divide | BinaryOperator::Modulo => {
+            left_dtype.is_numeric() && right_dtype.is_numeric()
+        }
         _ => {
             // Handle unsupported binary operations
             false
