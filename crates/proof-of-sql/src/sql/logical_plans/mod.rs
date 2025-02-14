@@ -5,3 +5,4 @@ mod expr;
 pub use expr::Expr;
 mod plan;
 pub use plan::LogicalPlan;
+mod sqlparser;
