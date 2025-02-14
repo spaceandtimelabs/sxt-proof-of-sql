@@ -1,6 +1,5 @@
 use super::Scalar;
 use bnum::types::U256;
-use bytemuck::cast;
 use core::cmp::Ordering;
 use tiny_keccak::Hasher;
 
@@ -47,21 +46,10 @@ pub trait ScalarExt: Scalar {
         hasher.update(bytes);
         let mut hashed_bytes = [0u8; 32];
         hasher.finalize(&mut hashed_bytes);
-        hashed_bytes[31] &= 0b0000_1111_u8;
-
-        // This cast is "safe" in that bytemuck ensures no UB,
-        // but it yields a [u64;4] in native endianness:
-        let limbs_native: [u64; 4] = cast(hashed_bytes);
-
-        // Convert to little-endian:
-        let limbs_le = [
-            u64::from_le(limbs_native[0]),
-            u64::from_le(limbs_native[1]),
-            u64::from_le(limbs_native[2]),
-            u64::from_le(limbs_native[3]),
-        ];
-
-        Self::from(limbs_le)
+        let hashed_val =
+            U256::from_le_slice(&hashed_bytes).expect("32 bytes => guaranteed to parse as U256");
+        let masked_val = hashed_val & Self::CHALLENGE_MASK;
+        Self::from_wrapping(masked_val)
     }
 }
 
@@ -92,6 +80,7 @@ mod tests {
         base::scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar},
         proof_primitive::dory::DoryScalar,
     };
+    use bytemuck::cast;
 
     #[test]
     fn we_can_get_zero_from_zero_bytes() {
@@ -107,7 +96,7 @@ mod tests {
             0xa1, 0x2d, 0x6c, 0x05,
         ];
 
-        let scalar_from_bytes = DoryScalar::from_byte_slice_via_hash(b"abc");
+        let scalar_from_bytes: DoryScalar = DoryScalar::from_byte_slice_via_hash(b"abc");
 
         let limbs_native: [u64; 4] = cast(expected);
         let limbs_le = [

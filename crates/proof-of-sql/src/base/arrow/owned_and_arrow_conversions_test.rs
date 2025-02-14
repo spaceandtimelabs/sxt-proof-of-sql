@@ -9,7 +9,9 @@ use crate::{
 };
 use alloc::sync::Arc;
 use arrow::{
-    array::{ArrayRef, BooleanArray, Decimal128Array, Float32Array, Int64Array, StringArray},
+    array::{
+        ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Float32Array, Int64Array, StringArray,
+    },
     datatypes::Schema,
     record_batch::RecordBatch,
 };
@@ -24,6 +26,17 @@ fn we_can_convert_between_owned_column_and_array_ref_impl(
     assert!(ic_to_ar == array_ref);
     assert_eq!(*owned_column, ar_to_ic);
 }
+
+fn we_can_convert_between_varbinary_owned_column_and_array_ref_impl(data: &[Vec<u8>]) {
+    let owned_col = OwnedColumn::<TestScalar>::VarBinary(data.to_owned());
+    let arrow_col = Arc::new(BinaryArray::from(
+        data.iter()
+            .map(std::vec::Vec::as_slice)
+            .collect::<Vec<&[u8]>>(),
+    ));
+    we_can_convert_between_owned_column_and_array_ref_impl(&owned_col, arrow_col);
+}
+
 fn we_can_convert_between_boolean_owned_column_and_array_ref_impl(data: Vec<bool>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
         &OwnedColumn::<TestScalar>::Boolean(data.clone()),
@@ -68,6 +81,15 @@ fn we_can_convert_between_owned_column_and_array_ref() {
     we_can_convert_between_varchar_owned_column_and_array_ref_impl(
         data.into_iter().map(String::from).collect(),
     );
+
+    let varbin_data = vec![
+        b"foo".to_vec(),
+        b"bar".to_vec(),
+        b"baz".to_vec(),
+        vec![],
+        b"some bytes".to_vec(),
+    ];
+    we_can_convert_between_varbinary_owned_column_and_array_ref_impl(&varbin_data);
 }
 
 #[test]
