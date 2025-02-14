@@ -89,8 +89,26 @@ pub fn multiply(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
     DynProofExpr::try_new_multiply(left, right).unwrap()
 }
 
+/// # Panics
+/// Panics if:
+/// - `DynProofExpr::try_new_divide()` returns an error.
+pub fn divide(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
+    DynProofExpr::try_new_divide(left, right).unwrap()
+}
+
+/// # Panics
+/// Panics if:
+/// - `DynProofExpr::try_new_modulo()` returns an error.
+pub fn modulo(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
+    DynProofExpr::try_new_modulo(left, right).unwrap()
+}
+
 pub fn const_bool(val: bool) -> DynProofExpr {
     DynProofExpr::new_literal(LiteralValue::Boolean(val))
+}
+
+pub fn const_tinyint(val: i8) -> DynProofExpr {
+    DynProofExpr::new_literal(LiteralValue::TinyInt(val))
 }
 
 pub fn const_smallint(val: i16) -> DynProofExpr {

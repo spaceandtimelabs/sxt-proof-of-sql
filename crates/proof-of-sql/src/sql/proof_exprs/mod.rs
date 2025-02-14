@@ -1,6 +1,10 @@
 //! This module proves provable expressions.
 mod divide_expr;
+#[cfg(all(test, feature = "blitzar"))]
+mod divide_expr_test;
 mod modulo_expr;
+#[cfg(all(test, feature = "blitzar"))]
+mod modulo_expr_test;
 mod proof_expr;
 pub(crate) use proof_expr::ProofExpr;
 #[cfg(all(test, feature = "blitzar"))]
