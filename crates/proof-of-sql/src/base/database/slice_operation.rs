@@ -242,6 +242,19 @@ pub(super) fn repeat_elementwise<S: Clone>(slice: &[S], n: usize) -> impl Iterat
         .flat_map(move |s| core::iter::repeat(s).take(n).cloned())
 }
 
+fn repeat_elementwise_fixed_size_binary_no_prealloc(
+    col_bytes: &[u8],
+    width: usize,
+    n: usize,
+) -> Vec<u8> {
+    col_bytes
+        .chunks_exact(width)
+        .flat_map(|row| core::iter::repeat(row).take(n))
+        .flatten() // turns iterator of &[u8] into iterator of &u8
+        .copied() // copies each &u8 into a real u8
+        .collect()
+}
+
 /// Apply a slice to a slice of indexes.
 ///
 /// e.g. `apply_slice_to_indexes(&[1, 2, 3], &[0, 0, 1, 0]).unwrap()` -> `vec![1, 1, 2, 1]`

@@ -84,6 +84,37 @@ impl Permutation {
             })
         }
     }
+
+    /// Apply the permutation to chunks of the given size within the slice
+    pub fn try_chunked_apply<T>(
+        &self,
+        slice: &[T],
+        chunk_size: usize,
+    ) -> Result<Vec<T>, PermutationError>
+    where
+        T: Clone,
+    {
+        if slice.len() % chunk_size != 0 {
+            return Err(PermutationError::PermutationSizeMismatch {
+                permutation_size: self.size(),
+                slice_length: slice.len(),
+            });
+        }
+        let num_chunks = slice.len();
+        if self.size() != num_chunks {
+            return Err(PermutationError::PermutationSizeMismatch {
+                permutation_size: self.size(),
+                slice_length: num_chunks,
+            });
+        }
+        let result = self
+            .permutation
+            .iter()
+            .flat_map(|&i| slice[i * chunk_size..(i + 1) * chunk_size].iter())
+            .cloned()
+            .collect();
+        Ok(result)
+    }
 }
 
 #[cfg(test)]

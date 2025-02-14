@@ -174,6 +174,27 @@ pub fn column_union<'a, S: Scalar>(
                 }) as &[_],
             )
         }
+        ColumnType::FixedSizeBinary(width) => {
+            let bw = width.width_as_usize();
+            let total_bytes = len * bw;
+            let flattened: Vec<u8> = columns
+                .iter()
+                .flat_map(|col| {
+                    let (col_width, col_data) = col
+                        .as_fixed_size_binary()
+                        .expect("column_type check above should guarantee same type");
+                    assert_eq!(col_width, width, "Inconsistent FixedSizeBinary width");
+                    col_data.iter().copied()
+                })
+                .collect();
+            assert_eq!(
+                flattened.len(),
+                total_bytes,
+                "Expected total of {total_bytes} bytes"
+            );
+            let allocated = alloc.alloc_slice_copy(&flattened);
+            Column::FixedSizeBinary(width, allocated)
+        }
     })
 }
 

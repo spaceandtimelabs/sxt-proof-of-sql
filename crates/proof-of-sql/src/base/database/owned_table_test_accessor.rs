@@ -111,6 +111,10 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
                 Column::VarChar((col, scals))
             }
             OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col),
+            OwnedColumn::FixedSizeBinary(bw, col) => {
+                let col: &mut [u8] = self.alloc.alloc_slice_copy(col);
+                Column::FixedSizeBinary(*bw, col)
+            }
         }
     }
 }

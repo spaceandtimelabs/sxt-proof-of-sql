@@ -134,6 +134,9 @@ impl Commitment for HyperKZGCommitment {
                 CommittableColumn::Decimal75(_, _, vals)
                 | CommittableColumn::Scalar(vals)
                 | CommittableColumn::VarChar(vals) => compute_commitments_impl(setup, offset, vals),
+                CommittableColumn::FixedSizeBinary(_, items) => {
+                    compute_commitments_impl(setup, offset, items)
+                }
             })
             .collect()
     }

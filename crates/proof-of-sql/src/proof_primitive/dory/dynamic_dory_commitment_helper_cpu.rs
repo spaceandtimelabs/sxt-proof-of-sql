@@ -88,6 +88,9 @@ fn compute_dory_commitment(
         CommittableColumn::TimestampTZ(_, _, column) => {
             compute_dory_commitment_impl(column, offset, setup)
         }
+        CommittableColumn::FixedSizeBinary(_, column) => {
+            compute_dory_commitment_impl(column, offset, setup)
+        }
     }
 }
 
