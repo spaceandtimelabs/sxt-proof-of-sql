@@ -68,24 +68,14 @@ uint256 constant G2_NEG_GEN_Y_REAL = 0x1d9befcd05a5323e6da4d435f3b617cdb3af83285
 uint256 constant G2_NEG_GEN_Y_IMAG = 0x275dc4a288d1afb3cbb1ac09187524c7db36395df7be3b99e673b13a075a65ec;
 
 /// @dev Size of the verification builder in bytes.
-uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 10;
-/// @dev Offset of the pointer to the head of the challenge queue in the verification builder.
-uint256 constant CHALLENGE_HEAD_OFFSET = 0x20 * 0;
-/// @dev Offset of the pointer to the tail of the challenge queue in the verification builder.
-uint256 constant CHALLENGE_TAIL_OFFSET = 0x20 * 1;
-/// @dev Offset of the pointer to the head of the first round mles in the verification builder.
-uint256 constant FIRST_ROUND_MLE_HEAD_OFFSET = 0x20 * 2;
-/// @dev Offset of the pointer to the tail of the first round mles in the verification builder.
-uint256 constant FIRST_ROUND_MLE_TAIL_OFFSET = 0x20 * 3;
-/// @dev Offset of the pointer to the head of the final round mles in the verification builder.
-uint256 constant FINAL_ROUND_MLE_HEAD_OFFSET = 0x20 * 4;
-/// @dev Offset of the pointer to the tail of the final round mles in the verification builder.
-uint256 constant FINAL_ROUND_MLE_TAIL_OFFSET = 0x20 * 5;
-/// @dev Offset of the pointer to the head of the chi evaluations in the verification builder.
-uint256 constant CHI_EVALUATION_HEAD_OFFSET = 0x20 * 6;
-/// @dev Offset of the pointer to the tail of the chi evaluations in the verification builder.
-uint256 constant CHI_EVALUATION_TAIL_OFFSET = 0x20 * 7;
-/// @dev Offset of the pointer to the head of the rho evaluations in the verification builder.
-uint256 constant RHO_EVALUATION_HEAD_OFFSET = 0x20 * 8;
-/// @dev Offset of the pointer to the tail of the rho evaluations in the verification builder.
-uint256 constant RHO_EVALUATION_TAIL_OFFSET = 0x20 * 9;
+uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 5;
+/// @dev Offset of the pointer to the challenge queue in the verification builder.
+uint256 constant BUILDER_CHALLENGES_OFFSET = 0x20 * 0;
+/// @dev Offset of the pointer to the first round MLEs in the verification builder.
+uint256 constant BUILDER_FIRST_ROUND_MLES_OFFSET = 0x20 * 1;
+/// @dev Offset of the pointer to the final round MLEs in the verification builder.
+uint256 constant BUILDER_FINAL_ROUND_MLES_OFFSET = 0x20 * 2;
+/// @dev Offset of the pointer to the chi evaluations in the verification builder.
+uint256 constant BUILDER_CHI_EVALUATIONS_OFFSET = 0x20 * 3;
+/// @dev Offset of the pointer to the rho evaluations in the verification builder.
+uint256 constant BUILDER_RHO_EVALUATIONS_OFFSET = 0x20 * 4;
