@@ -92,6 +92,7 @@ contract VerificationBuilderTest is Test {
         assert(tail == challengePtr + WORD_SIZE * challengeLength);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeZeroChallenges() public {
         uint256[] memory challenges = new uint256[](0);
         uint256 builderPtr = VerificationBuilder.__allocate();
@@ -100,6 +101,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeChallenge(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeOneChallenge() public {
         uint256[] memory challenges = new uint256[](1);
         challenges[0] = 0x12345678;
@@ -110,6 +112,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeChallenge(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeChallenges() public {
         uint256[] memory challenges = new uint256[](3);
         challenges[0] = 0x12345678;
@@ -124,6 +127,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeChallenge(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testFuzzSetAndConsumeChallenges(uint256[] memory, uint256[] memory challenges) public {
         uint256 builderPtr = VerificationBuilder.__allocate();
         VerificationBuilderTestHelper.setChallenges(builderPtr, challenges);
@@ -166,6 +170,7 @@ contract VerificationBuilderTest is Test {
         assert(tail == firstRoundMLEPtr + WORD_SIZE * firstRoundMLELength);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeZeroFirstRoundMLEs() public {
         uint256[] memory firstRoundMLEs = new uint256[](0);
         uint256 builderPtr = VerificationBuilder.__allocate();
@@ -174,6 +179,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeFirstRoundMLE(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeOneFirstRoundMLE() public {
         uint256[] memory firstRoundMLEs = new uint256[](1);
         firstRoundMLEs[0] = 0x12345678;
@@ -184,6 +190,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeFirstRoundMLE(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeFirstRoundMLEs() public {
         uint256[] memory firstRoundMLEs = new uint256[](3);
         firstRoundMLEs[0] = 0x12345678;
@@ -229,6 +236,7 @@ contract VerificationBuilderTest is Test {
         assert(tail == finalRoundMLEPtr + WORD_SIZE * finalRoundMLELength);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeZeroFinalRoundMLEs() public {
         uint256[] memory finalRoundMLEs = new uint256[](0);
         uint256 builderPtr = VerificationBuilder.__allocate();
@@ -237,6 +245,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeFinalRoundMLE(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeOneFinalRoundMLE() public {
         uint256[] memory finalRoundMLEs = new uint256[](1);
         finalRoundMLEs[0] = 0x12345678;
@@ -247,6 +256,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeFinalRoundMLE(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeFinalRoundMLEs() public {
         uint256[] memory finalRoundMLEs = new uint256[](3);
         finalRoundMLEs[0] = 0x12345678;
@@ -261,6 +271,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeFinalRoundMLE(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testFuzzSetAndConsumeFinalRoundMLEs(uint256[] memory, uint256[] memory finalRoundMLEs) public {
         uint256 builderPtr = VerificationBuilder.__allocate();
         VerificationBuilderTestHelper.setFinalRoundMLEs(builderPtr, finalRoundMLEs);
@@ -303,6 +314,7 @@ contract VerificationBuilderTest is Test {
         assert(tail == chiEvaluationPtr + WORD_SIZE * chiEvaluationLength);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeZeroChiEvaluations() public {
         uint256[] memory chiEvaluations = new uint256[](0);
         uint256 builderPtr = VerificationBuilder.__allocate();
@@ -311,6 +323,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeChiEvaluation(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeOneChiEvaluation() public {
         uint256[] memory chiEvaluations = new uint256[](1);
         chiEvaluations[0] = 0x12345678;
@@ -321,6 +334,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeChiEvaluation(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeChiEvaluations() public {
         uint256[] memory chiEvaluations = new uint256[](3);
         chiEvaluations[0] = 0x12345678;
@@ -335,6 +349,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeChiEvaluation(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testFuzzSetAndConsumeChiEvaluations(uint256[] memory, uint256[] memory chiEvaluations) public {
         uint256 builderPtr = VerificationBuilder.__allocate();
         VerificationBuilderTestHelper.setChiEvaluations(builderPtr, chiEvaluations);
@@ -377,6 +392,7 @@ contract VerificationBuilderTest is Test {
         assert(tail == rhoEvaluationPtr + WORD_SIZE * rhoEvaluationLength);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeZeroRhoEvaluations() public {
         uint256[] memory rhoEvaluations = new uint256[](0);
         uint256 builderPtr = VerificationBuilder.__allocate();
@@ -385,6 +401,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeRhoEvaluation(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeOneRhoEvaluation() public {
         uint256[] memory rhoEvaluations = new uint256[](1);
         rhoEvaluations[0] = 0x12345678;
@@ -395,6 +412,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeRhoEvaluation(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testSetAndConsumeRhoEvaluations() public {
         uint256[] memory rhoEvaluations = new uint256[](3);
         rhoEvaluations[0] = 0x12345678;
@@ -409,6 +427,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeRhoEvaluation(builderPtr);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function testFuzzSetAndConsumeRhoEvaluations(uint256[] memory, uint256[] memory rhoEvaluations) public {
         uint256 builderPtr = VerificationBuilder.__allocate();
         VerificationBuilderTestHelper.setRhoEvaluations(builderPtr, rhoEvaluations);
