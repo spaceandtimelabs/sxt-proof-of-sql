@@ -89,7 +89,7 @@ pub(crate) fn final_round_evaluate_permutation_check<'a, S: Scalar>(
 
 #[allow(dead_code)]
 pub(crate) fn verify_permutation_check<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+    builder: &mut impl VerificationBuilder<S>,
     alpha: S,
     beta: S,
     chi_eval: S,

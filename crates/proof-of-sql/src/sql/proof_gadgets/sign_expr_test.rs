@@ -6,7 +6,7 @@ use crate::{
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::proof::{
-        FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
+        FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilderImpl,
     },
 };
 use alloc::collections::VecDeque;
@@ -56,8 +56,7 @@ fn we_can_verify_a_constant_decomposition() {
     let chi_evals = sumcheck_evaluations.chi_evaluations.clone();
     let chi_eval = chi_evals.values().next().unwrap();
 
-    let mut builder = VerificationBuilder::new(
-        0,
+    let mut builder = VerificationBuilderImpl::new(
         sumcheck_evaluations,
         &dists,
         &[],
@@ -91,8 +90,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     let chi_evals = sumcheck_evaluations.chi_evaluations.clone();
     let chi_eval = chi_evals.values().next().unwrap();
 
-    let mut builder = VerificationBuilder::new(
-        0,
+    let mut builder = VerificationBuilderImpl::new(
         sumcheck_evaluations,
         &dists,
         &[],

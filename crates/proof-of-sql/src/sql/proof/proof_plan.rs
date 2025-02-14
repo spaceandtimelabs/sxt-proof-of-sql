@@ -1,4 +1,4 @@
-use super::{FinalRoundBuilder, FirstRoundBuilder, VerificationBuilder};
+use super::{verification_builder::VerificationBuilder, FinalRoundBuilder, FirstRoundBuilder};
 use crate::base::{
     database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
     map::{IndexMap, IndexSet},
@@ -15,7 +15,7 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
     /// Form components needed to verify and proof store into `VerificationBuilder`
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
