@@ -65,6 +65,7 @@ zerocopy = { workspace = true }
 arrow-csv = { workspace = true }
 criterion = { workspace = true, features = ["html_reports"] }
 merlin = { workspace = true }
+mockall = "0.13.1"
 opentelemetry = { workspace = true }
 opentelemetry-jaeger = { workspace = true }
 rand = { workspace = true, default-features = false }

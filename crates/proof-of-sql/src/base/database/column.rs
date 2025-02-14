@@ -379,7 +379,7 @@ impl ColumnType {
     }
 
     /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
-    fn to_integer_bits(self) -> Option<usize> {
+    pub(crate) fn to_integer_bits(self) -> Option<usize> {
         match self {
             ColumnType::Uint8 | ColumnType::TinyInt => Some(8),
             ColumnType::SmallInt => Some(16),
