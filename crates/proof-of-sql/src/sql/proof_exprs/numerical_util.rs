@@ -4,6 +4,7 @@ use crate::base::{
 };
 use bumpalo::Bump;
 use core::{cmp::Ordering, ops::Neg};
+use itertools::izip;
 use num_traits::{NumCast, PrimInt};
 
 #[allow(clippy::cast_sign_loss)]
@@ -217,27 +218,23 @@ fn divide_integer_columns<
 ) -> (&'a [L], &'a [S]) {
     let division_wrapped = alloc.alloc_slice_fill_with(lhs.len(), |_| L::zero());
     let division = alloc.alloc_slice_fill_with(lhs.len(), |_| S::ZERO);
-    division_wrapped
-        .iter_mut()
-        .zip(division.iter_mut())
-        .zip(lhs.iter().copied().zip(rhs.iter().copied()))
-        .for_each(|(d, (l, r))| {
-            *d.0 = if l == L::min_value() && r == -R::one() {
-                L::min_value()
-            } else if r == R::zero() {
-                L::zero()
-            } else if is_right_bigger_int_type {
-                NumCast::from(R::from(l).unwrap() / r).unwrap()
+    for (dw, d, &l, &r) in izip!(&mut *division_wrapped, &mut *division, lhs, rhs) {
+        *dw = if l == L::min_value() && r == -R::one() {
+            L::min_value()
+        } else if r == R::zero() {
+            L::zero()
+        } else if is_right_bigger_int_type {
+            NumCast::from(R::from(l).unwrap() / r).unwrap()
+        } else {
+            l / L::from(r).unwrap()
+        };
+        *d = S::from(*dw)
+            * (if *dw == L::min_value() && r == -R::one() {
+                -S::ONE
             } else {
-                l / L::from(r).unwrap()
-            };
-            *d.1 = S::from(*d.0)
-                * (if *d.0 == L::min_value() && r == -R::one() {
-                    -S::ONE
-                } else {
-                    S::ONE
-                });
-        });
+                S::ONE
+            });
+    }
     (division_wrapped, division)
 }
 
