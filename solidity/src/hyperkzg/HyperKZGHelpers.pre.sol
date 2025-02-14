@@ -173,4 +173,192 @@ library HyperKZGHelpers {
             check_v_consistency(__v.offset, __r, __x, __y)
         }
     }
+
+    /// @notice Perform a multi-scalar multiplication of EC points using an evaluation scalar
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// univariate_group_evaluation(g_ptr, e, length, scratch)
+    /// ```
+    /// ##### Parameters
+    /// * `g_ptr` - the calldata pointer to the beginning of the data in `__g`
+    /// * `e` - the evaluation scalar
+    /// * `length` - the number of points in the input array
+    /// * `scratch` - memory pointer to the scratch space
+    /// @dev This function computes the multi-scalar multiplication:
+    /// \\[ \sum_{i=0}^{m-1} e^i \mathbf{g}_i \\]
+    /// @dev This function uses an approach akin to Horner's method.
+    /// @param __g Array of EC points
+    /// @param __e Evaluation scalar
+    /// @param __scratch Memory space for intermediate calculations
+    /// @return __resultScratch The resulting EC point stored in scratch space
+
+    function __univariateGroupEvaluation( // solhint-disable-line gas-calldata-parameters
+    uint256[2][] calldata __g, uint256 __e, uint256[4] memory __scratch)
+        external
+        view
+        returns (uint256[4] memory __resultScratch)
+    {
+        assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function ec_add(args_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function ec_mul(args_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function ec_mul_assign(args_ptr, scalar) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function calldata_ec_add_assign(args_ptr, c_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+
+            function univariate_group_evaluation(g_ptr, e, length, scratch) {
+                switch length
+                case 0 {
+                    mstore(scratch, 0)
+                    mstore(add(scratch, WORD_SIZE), 0)
+                }
+                default {
+                    length := sub(length, 1)
+                    g_ptr := add(g_ptr, mul(length, WORDX2_SIZE))
+                    // result = g.pop()
+                    calldatacopy(scratch, g_ptr, WORDX2_SIZE)
+                    for {} length { length := sub(length, 1) } {
+                        // g_l *= e
+                        ec_mul_assign(scratch, e)
+                        // g_l += com.pop()
+                        g_ptr := sub(g_ptr, WORDX2_SIZE)
+                        calldata_ec_add_assign(scratch, g_ptr)
+                    }
+                }
+            }
+            univariate_group_evaluation(__g.offset, __e, __g.length, __scratch)
+        }
+        __resultScratch = __scratch;
+    }
+
+    /// @notice Compute the \\( g_L \\) value for the proof
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// compute_gl_msm(com_ptr, length, w_ptr, commitment_ptr, r, q, d, b, scratch)
+    /// ```
+    /// ##### Parameters
+    /// * `com_ptr` - the calldata pointer to the beginning of the data in `__com`
+    /// * `length` - the length of the `__com` array
+    /// * `w_ptr` - the calldata pointer to the beginning of the data in `__w`
+    /// * `commitment_ptr` - the memory pointer to `__commitment`
+    /// * `r, q, d, b` - the challenge values
+    /// * `scratch` - memory pointer to the scratch space
+    /// @dev This function computes:
+    /// \\[ g_L := \left(d^2 + d + 1\right)\cdot \left(\mathbf{C} + \sum_{i=0}^{m-1} q^{i+1}\cdot \mathbf{com}_i\right)
+    ///     + r\cdot\mathbf{w}_0 - dr \cdot\mathbf{w}_1 + (dr)^2\cdot\mathbf{w}_2 + b\cdot (-\mathbf{G}) \\]
+    /// @dev The computation is performed using EC operations via precompiles in a specific order to optimize gas usage
+    /// @param __com Array of commitment points
+    /// @param __w Array of witness points
+    /// @param __commitment The commitment point C
+    /// @param __rqdb Array containing [r, q, d, b] values
+    /// @param __scratch Memory space for intermediate calculations
+    /// @return __resultScratch The resulting g_L point stored in scratch space
+    function __computeGLMSM( // solhint-disable-line gas-calldata-parameters
+        uint256[2][] calldata __com,
+        uint256[2][3] calldata __w,
+        uint256[2] memory __commitment,
+        uint256[4] memory __rqdb,
+        uint256[5] memory __scratch
+    ) external view returns (uint256[5] memory __resultScratch) {
+        assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function ec_add(args_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function ec_mul(args_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function ec_mul_assign(args_ptr, scalar) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function calldata_ec_mul_add_assign(args_ptr, c_ptr, scalar) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function constant_ec_mul_add_assign(args_ptr, x, y, scalar) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function calldata_ec_add_assign(args_ptr, c_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/ECPrecompiles.pre.sol
+            function ec_add_assign(args_ptr, c_ptr) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+            // IMPORT-YUL HyperKZGHelpers.pre.sol
+            function univariate_group_evaluation(g_ptr, e, length, scratch) {
+                pop(staticcall(0, 0, 0, 0, 0, 0))
+                revert(0, 0)
+            }
+
+            function compute_gl_msm(com_ptr, length, w_ptr, commitment_ptr, r, q, d, b, scratch) {
+                univariate_group_evaluation(com_ptr, q, length, scratch)
+                // g_l *= q
+                ec_mul_assign(scratch, q)
+                // g_l += commitment
+                ec_add_assign(scratch, commitment_ptr)
+                // g_l *= d * (d + 1) + 1
+                ec_mul_assign(scratch, addmod(mulmod(d, addmod(d, 1, MODULUS), MODULUS), 1, MODULUS))
+                // g_l += -G * b
+                constant_ec_mul_add_assign(scratch, G1_NEG_GEN_X, G1_NEG_GEN_Y, b)
+
+                let dr := mulmod(d, r, MODULUS)
+                // g_l += w[0] * r
+                calldata_ec_mul_add_assign(scratch, w_ptr, r)
+                // g_l += w[1] * -d * r
+                calldata_ec_mul_add_assign(scratch, add(w_ptr, WORDX2_SIZE), sub(MODULUS, dr))
+                // g_l += w[2] * (d * r)^2
+                calldata_ec_mul_add_assign(scratch, add(w_ptr, WORDX4_SIZE), mulmod(dr, dr, MODULUS))
+            }
+            compute_gl_msm(
+                __com.offset,
+                __com.length,
+                __w,
+                __commitment,
+                mload(__rqdb),
+                mload(add(__rqdb, WORD_SIZE)),
+                mload(add(__rqdb, WORDX2_SIZE)),
+                mload(add(__rqdb, WORDX3_SIZE)),
+                __scratch
+            )
+        }
+        __resultScratch = __scratch;
+    }
 }
