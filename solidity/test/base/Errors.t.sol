@@ -7,7 +7,7 @@ import "../../src/base/Errors.sol";
 
 contract ErrorsTest is Test {
     function testErrorConstantsMatchSelectors() public pure {
-        bytes4[10] memory selectors = [
+        bytes4[11] memory selectors = [
             Errors.InvalidECAddInputs.selector,
             Errors.InvalidECMulInputs.selector,
             Errors.InvalidECPairingInputs.selector,
@@ -17,9 +17,10 @@ contract ErrorsTest is Test {
             Errors.TooFewFinalRoundMLEs.selector,
             Errors.TooFewChiEvaluations.selector,
             Errors.TooFewRhoEvaluations.selector,
+            Errors.EmptyQueue.selector,
             Errors.HyperKZGInconsistentV.selector
         ];
-        uint32[10] memory selectorConstants = [
+        uint32[11] memory selectorConstants = [
             ERR_INVALID_EC_ADD_INPUTS,
             ERR_INVALID_EC_MUL_INPUTS,
             ERR_INVALID_EC_PAIRING_INPUTS,
@@ -29,6 +30,7 @@ contract ErrorsTest is Test {
             ERR_TOO_FEW_FINAL_ROUND_MLES,
             ERR_TOO_FEW_CHI_EVALUATIONS,
             ERR_TOO_FEW_RHO_EVALUATIONS,
+            ERR_EMPTY_QUEUE,
             ERR_HYPER_KZG_INCONSISTENT_V
         ];
         assert(selectors.length == selectorConstants.length);
@@ -63,33 +65,9 @@ contract ErrorsTest is Test {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedTooFewChallenges() public {
-        vm.expectRevert(Errors.TooFewChallenges.selector);
-        Errors.__err(ERR_TOO_FEW_CHALLENGES);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedTooFewFirstRoundMLEs() public {
-        vm.expectRevert(Errors.TooFewFirstRoundMLEs.selector);
-        Errors.__err(ERR_TOO_FEW_FIRST_ROUND_MLES);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedTooFewFinalRoundMLEs() public {
-        vm.expectRevert(Errors.TooFewFinalRoundMLEs.selector);
-        Errors.__err(ERR_TOO_FEW_FINAL_ROUND_MLES);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedTooFewChiEvaluations() public {
-        vm.expectRevert(Errors.TooFewChiEvaluations.selector);
-        Errors.__err(ERR_TOO_FEW_CHI_EVALUATIONS);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedTooFewRhoEvaluations() public {
-        vm.expectRevert(Errors.TooFewRhoEvaluations.selector);
-        Errors.__err(ERR_TOO_FEW_RHO_EVALUATIONS);
+    function testErrorFailedEmptyQueue() public {
+        vm.expectRevert(Errors.EmptyQueue.selector);
+        Errors.__err(ERR_EMPTY_QUEUE);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true

@@ -20,6 +20,8 @@ uint32 constant ERR_TOO_FEW_FINAL_ROUND_MLES = 0xfb828ab5;
 uint32 constant ERR_TOO_FEW_CHI_EVALUATIONS = 0x8ef4e6c9;
 /// @dev Error code for when too few rho evaluations are provided to the verification builder.
 uint32 constant ERR_TOO_FEW_RHO_EVALUATIONS = 0x3784ad97;
+/// @dev Error code for when a dequeue attempt was made on an empty queue.
+uint32 constant ERR_EMPTY_QUEUE = 0x31dcf2b5;
 /// @dev Error code for when the HyperKZG proof has an inconsistent v.
 uint32 constant ERR_HYPER_KZG_INCONSISTENT_V = 0x6a5ae827;
 
@@ -42,6 +44,8 @@ library Errors {
     error TooFewChiEvaluations();
     /// @notice Error thrown when too few rho evaluations are provided to the verification builder.
     error TooFewRhoEvaluations();
+    /// @notice Error thrown when a dequeue attempt was made on an empty queue.
+    error EmptyQueue();
     /// @notice Error thrown when the HyperKZG proof has an inconsistent v.
     error HyperKZGInconsistentV();
 
