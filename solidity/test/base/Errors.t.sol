@@ -7,29 +7,19 @@ import "../../src/base/Errors.sol";
 
 contract ErrorsTest is Test {
     function testErrorConstantsMatchSelectors() public pure {
-        bytes4[11] memory selectors = [
+        bytes4[6] memory selectors = [
             Errors.InvalidECAddInputs.selector,
             Errors.InvalidECMulInputs.selector,
             Errors.InvalidECPairingInputs.selector,
             Errors.RoundEvaluationMismatch.selector,
-            Errors.TooFewChallenges.selector,
-            Errors.TooFewFirstRoundMLEs.selector,
-            Errors.TooFewFinalRoundMLEs.selector,
-            Errors.TooFewChiEvaluations.selector,
-            Errors.TooFewRhoEvaluations.selector,
             Errors.EmptyQueue.selector,
             Errors.HyperKZGInconsistentV.selector
         ];
-        uint32[11] memory selectorConstants = [
+        uint32[6] memory selectorConstants = [
             ERR_INVALID_EC_ADD_INPUTS,
             ERR_INVALID_EC_MUL_INPUTS,
             ERR_INVALID_EC_PAIRING_INPUTS,
             ERR_ROUND_EVALUATION_MISMATCH,
-            ERR_TOO_FEW_CHALLENGES,
-            ERR_TOO_FEW_FIRST_ROUND_MLES,
-            ERR_TOO_FEW_FINAL_ROUND_MLES,
-            ERR_TOO_FEW_CHI_EVALUATIONS,
-            ERR_TOO_FEW_RHO_EVALUATIONS,
             ERR_EMPTY_QUEUE,
             ERR_HYPER_KZG_INCONSISTENT_V
         ];
