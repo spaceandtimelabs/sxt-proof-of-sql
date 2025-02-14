@@ -795,8 +795,8 @@ mod tests {
     fn we_can_reject_if_nonzero_remainder_magnitude_equals_denominator_magnitude() {
         check_constraints(
             Some((
-                vec![TestScalar::ONE, -TestScalar::ONE],
-                vec![TestScalar::ONE, -TestScalar::ONE],
+                [1, -1].map(TestScalar::from).to_vec(),
+                [1, -1].map(TestScalar::from).to_vec(),
             )),
             Some(vec![-4i128, -6]),
             None,
@@ -832,12 +832,9 @@ mod tests {
     /// is rejected easily by `TestableConstraints::ZeroDenominatorDictatesQuotient`
     #[test]
     fn we_can_reject_if_denominator_is_zero_but_quotient_is_not() {
-        let quotient = vec![
-            TestScalar::from(10000),
-            TestScalar::from(-10000),
-            TestScalar::from(10000),
-            TestScalar::from(-10000),
-        ];
+        let quotient = [10000, -10000, 10000, -10000]
+            .map(TestScalar::from)
+            .to_vec();
         check_constraints(
             Some((quotient.clone(), quotient)),
             None,
@@ -854,18 +851,8 @@ mod tests {
     fn we_can_reject_if_quotient_wrapped_is_incorrect() {
         check_constraints(
             Some((
-                vec![
-                    TestScalar::from(-20i128),
-                    TestScalar::from(-20),
-                    TestScalar::from(20),
-                    TestScalar::from(20),
-                ],
-                vec![
-                    TestScalar::from(2),
-                    TestScalar::from(-2),
-                    TestScalar::from(2),
-                    TestScalar::from(-2),
-                ],
+                [-20i128, -20, 20, 20].map(TestScalar::from).to_vec(),
+                [2, -2, 2, -2].map(TestScalar::from).to_vec(),
             )),
             None,
             None,
@@ -897,12 +884,7 @@ mod tests {
     /// However, this necessarily requires that the remainder flip sign, violating `TestableConstraints::RemainderSignMatchesNumerator`
     #[test]
     fn we_can_reject_if_remainder_sign_matches_numerator_fails() {
-        let quotient = vec![
-            TestScalar::from(3i128),
-            TestScalar::from(-2),
-            TestScalar::from(-3),
-            TestScalar::from(3),
-        ];
+        let quotient = [3i128, -2, -3, 3].map(TestScalar::from).to_vec();
         check_constraints(
             Some((quotient.clone(), quotient)),
             Some(vec![-1i128, 2, -1, 1]),
