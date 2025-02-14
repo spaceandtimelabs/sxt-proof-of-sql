@@ -8,7 +8,7 @@ use proof_of_sql::{
 use rand::prelude::Rng;
 mod benchmark_accessor;
 use benchmark_accessor::BenchmarkAccessor;
-pub mod querys;
+pub mod queries;
 mod random_util;
 use random_util::{generate_random_columns, OptionalRandBound};
 /// # Panics
