@@ -60,6 +60,21 @@ pub fn schema_accessor_from_table_ref_with_schema(
 }
 
 #[test]
+fn we_can_convert_an_ast_without_tables() {
+    let accessor = TestSchemaAccessor::new(IndexMap::default());
+    let ast = query_to_provable_ast(&t, "select 'Chloe' as cat", &accessor);
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_expr_plan(&t, &["a"], &accessor),
+            tab(&t),
+            equal(column(&t, "a", &accessor), const_bigint(3)),
+        ),
+        vec![],
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
 fn we_can_convert_an_ast_with_one_column() {
     let t = TableRef::new("sxt", "sxt_tab");
     let accessor = schema_accessor_from_table_ref_with_schema(
