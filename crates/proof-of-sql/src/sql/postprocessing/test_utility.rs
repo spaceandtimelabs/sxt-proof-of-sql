@@ -1,5 +1,5 @@
 use super::*;
-use proof_of_sql_parser::intermediate_ast::{AliasedResultExpr, OrderBy, OrderByDirection};
+use proof_of_sql_parser::intermediate_ast::AliasedResultExpr;
 use sqlparser::ast::Ident;
 
 #[must_use]
@@ -31,14 +31,11 @@ pub fn slice(limit: Option<u64>, offset: Option<i64>) -> OwnedTablePostprocessin
 
 /// Producing a postprocessing object that represents an order by operation.
 #[must_use]
-pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> OwnedTablePostprocessing {
-    let by_exprs = cols
+pub fn orders(indexes: &[usize], directions: &[bool]) -> OwnedTablePostprocessing {
+    let index_direction_pairs: Vec<(usize, bool)> = indexes
         .iter()
-        .zip(directions.iter())
-        .map(|(col, direction)| OrderBy {
-            expr: col.parse().unwrap(),
-            direction: *direction,
-        })
+        .copied()
+        .zip(directions.iter().copied())
         .collect();
-    OwnedTablePostprocessing::new_order_by(OrderByPostprocessing::new(by_exprs))
+    OwnedTablePostprocessing::new_order_by(OrderByPostprocessing::new(index_direction_pairs))
 }
