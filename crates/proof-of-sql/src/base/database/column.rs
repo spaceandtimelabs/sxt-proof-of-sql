@@ -11,9 +11,9 @@ use core::{
     fmt::{Display, Formatter},
     mem::size_of,
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::Ident;
+use sqlparser::ast::{Ident, TimezoneInfo};
 
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -51,7 +51,7 @@ pub enum Column<'a, S: Scalar> {
     /// - the first element maps to the stored `TimeUnit`
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
-    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    TimestampTZ(PoSQLTimeUnit, TimezoneInfo, &'a [i64]),
     /// Variable length binary columns
     VarBinary((&'a [&'a [u8]], &'a [S])),
 }
@@ -368,7 +368,7 @@ pub enum ColumnType {
     Decimal75(Precision, i8),
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
-    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
+    TimestampTZ(PoSQLTimeUnit, TimezoneInfo),
     /// Mapped to `S`
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
@@ -662,9 +662,9 @@ mod tests {
 
     #[test]
     fn column_type_serializes_to_string() {
-        let column_type = ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc());
+        let column_type = ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None);
         let serialized = serde_json::to_string(&column_type).unwrap();
-        assert_eq!(serialized, r#"{"TimestampTZ":["Second",{"offset":0}]}"#);
+        assert_eq!(serialized, r#"{"TimestampTZ":["Second","None"]}"#);
 
         let column_type = ColumnType::Boolean;
         let serialized = serde_json::to_string(&column_type).unwrap();
@@ -706,9 +706,9 @@ mod tests {
     #[test]
     fn we_can_deserialize_columns_from_valid_strings() {
         let expected_column_type =
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc());
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None);
         let deserialized: ColumnType =
-            serde_json::from_str(r#"{"TimestampTZ":["Second",{"offset":0}]}"#).unwrap();
+            serde_json::from_str(r#"{"TimestampTZ":["Second","None"]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
         let expected_column_type = ColumnType::Boolean;
@@ -1161,7 +1161,7 @@ mod tests {
         assert_eq!(column.column_type().bit_size(), 256);
 
         let column: Column<'_, DoryScalar> =
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[1, 2, 3]);
+            Column::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, &[1, 2, 3]);
         assert_eq!(column.column_type().byte_size(), 8);
         assert_eq!(column.column_type().bit_size(), 64);
     }

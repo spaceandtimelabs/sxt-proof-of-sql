@@ -11,7 +11,8 @@ use crate::base::{
     scalar::test_scalar::TestScalar,
 };
 use bumpalo::Bump;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+use sqlparser::ast::TimezoneInfo;
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
@@ -67,7 +68,7 @@ fn we_can_access_the_columns_of_a_table() {
         borrowed_timestamptz(
             "time",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [4, 5, 6, 5],
             &alloc,
         ),
@@ -129,7 +130,7 @@ fn we_can_access_the_columns_of_a_table() {
     let column = ColumnRef::new(
         table_ref_2.clone(),
         "time".into(),
-        ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
+        ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None),
     );
     match accessor.get_column(column) {
         Column::TimestampTZ(_, _, col) => assert_eq!(col.to_vec(), vec![4, 5, 6, 5]),

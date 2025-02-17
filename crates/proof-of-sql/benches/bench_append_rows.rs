@@ -24,8 +24,9 @@ use proof_of_sql::{
         DoryCommitment, DoryProverPublicSetup, DoryScalar, ProverSetup, PublicParameters,
     },
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use rand::Rng;
+use sqlparser::ast::TimezoneInfo;
 
 /// Bench dory performance when appending rows to a table. This includes the computation of
 /// commitments. Chose the number of columns to randomly generate across supported `PoSQL`
@@ -121,7 +122,7 @@ pub fn generate_random_owned_table<S: Scalar>(
             "timestamptz" => columns.push(timestamptz(
                 &*identifier,
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 vec![rng.gen::<i64>(); num_rows],
             )),
             _ => unreachable!(),
