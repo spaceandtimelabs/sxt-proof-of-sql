@@ -17,12 +17,8 @@ pub struct MockVerificationBuilder<S: Scalar> {
 }
 
 impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
-    /// Consume the evaluation of a one evaluation
-    ///
-    /// # Panics
-    /// It should never panic, as the length of the one evaluation is guaranteed to be present
     fn try_consume_chi_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
-        unimplemented!()
+        unimplemented!("No tests currently use this function")
     }
 
     fn try_produce_sumcheck_subpolynomial_evaluation(
@@ -75,11 +71,11 @@ impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
     }
 
     fn try_consume_rho_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
-        unimplemented!()
+        unimplemented!("No tests currently use this function")
     }
 
     fn try_consume_first_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
-        unimplemented!()
+        unimplemented!("No tests currently use this function")
     }
 
     fn try_consume_final_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
@@ -95,15 +91,15 @@ impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
     }
 
     fn singleton_chi_evaluation(&self) -> S {
-        unimplemented!()
+        unimplemented!("No tests currently use this function")
     }
 
     fn rho_256_evaluation(&self) -> Option<S> {
-        unimplemented!()
+        unimplemented!("No tests currently use this function")
     }
 
     fn try_consume_post_result_challenge(&mut self) -> Result<S, ProofSizeMismatch> {
-        unimplemented!()
+        unimplemented!("No tests currently use this function")
     }
 
     fn try_consume_final_round_mle_evaluations(
