@@ -195,4 +195,11 @@ impl ConversionError {
     }
 }
 
+/// Create a `ConversionError::UnsupportedOperation` error.
+pub(crate) fn unsupported(message: &str) -> ConversionError {
+    ConversionError::UnsupportedOperation {
+        message: message.to_string(),
+    }
+}
+
 pub type ConversionResult<T> = Result<T, ConversionError>;

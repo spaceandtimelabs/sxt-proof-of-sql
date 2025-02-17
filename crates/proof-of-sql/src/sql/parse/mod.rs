@@ -2,7 +2,7 @@
 mod error;
 
 pub use error::ConversionError;
-pub(crate) use error::ConversionResult;
+pub(crate) use error::{unsupported, ConversionResult};
 
 mod enriched_expr;
 pub(crate) use enriched_expr::EnrichedExpr;
@@ -30,3 +30,5 @@ mod where_expr_builder;
 pub(crate) use where_expr_builder::WhereExprBuilder;
 #[cfg(test)]
 mod where_expr_builder_tests;
+
+mod sqlparser;
