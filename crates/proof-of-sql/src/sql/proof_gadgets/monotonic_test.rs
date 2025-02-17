@@ -118,7 +118,8 @@ mod tests {
         sql::proof::{QueryError, VerifiableQueryResult},
     };
     use blitzar::proof::InnerProductProof;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+    use sqlparser::ast::TimezoneInfo;
 
     fn check_monotonic<const STRICT: bool, const ASC: bool>(
         table_ref: TableRef,
@@ -249,7 +250,7 @@ mod tests {
             table_ref,
             accessor,
             "timestamp",
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None),
             shall_error,
         );
     }
@@ -296,7 +297,7 @@ mod tests {
             borrowed_timestamptz(
                 "timestamp",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 vec![0; 0],
                 &alloc,
             ),
@@ -317,7 +318,7 @@ mod tests {
             borrowed_timestamptz(
                 "timestamp",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 vec![0; 3],
                 &alloc,
             ),
@@ -337,7 +338,7 @@ mod tests {
             borrowed_timestamptz(
                 "timestamp",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 vec![1_625_072_400; 3],
                 &alloc,
             ),
@@ -357,7 +358,7 @@ mod tests {
             borrowed_timestamptz(
                 "timestamp",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 vec![1_625_072_400, 1_625_076_000],
                 &alloc,
             ),
@@ -377,7 +378,7 @@ mod tests {
             borrowed_timestamptz(
                 "timestamp",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 vec![1_625_072_400, 1_625_076_000, 1_625_076_000],
                 &alloc,
             ),
@@ -397,7 +398,7 @@ mod tests {
             borrowed_timestamptz(
                 "timestamp",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 vec![1_625_076_000, 1_625_072_400],
                 &alloc,
             ),
@@ -417,7 +418,7 @@ mod tests {
             borrowed_timestamptz(
                 "timestamp",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 vec![1_625_076_000, 1_625_076_000, 1_625_072_400],
                 &alloc,
             ),
@@ -437,7 +438,7 @@ mod tests {
             borrowed_timestamptz(
                 "timestamp",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 vec![1_625_072_400, 1_625_076_000, 1_625_072_400],
                 &alloc,
             ),
