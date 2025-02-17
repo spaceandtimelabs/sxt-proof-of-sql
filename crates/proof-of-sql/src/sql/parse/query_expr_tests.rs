@@ -13,7 +13,6 @@ use crate::{
 };
 use itertools::Itertools;
 use proof_of_sql_parser::{
-    intermediate_ast::OrderByDirection::*,
     sql::SelectStatementParser,
     utility::{
         add as padd, aliased_expr, col, count, count_all, lit, max, min, mul as pmul, sub as psub,
@@ -638,7 +637,7 @@ fn we_can_parse_order_by_with_a_single_column() {
             tab(&t),
             equal(column(&t, "a", &accessor), const_bigint(3)),
         ),
-        vec![orders(&["b"], &[Asc])],
+        vec![orders(&[0_usize], &[true])],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -667,7 +666,7 @@ fn we_can_parse_order_by_with_multiple_columns() {
                 add(column(&t, "b", &accessor), const_bigint(3)),
             ),
         ),
-        vec![orders(&["b", "a"], &[Desc, Asc])],
+        vec![orders(&[1_usize, 0], &[false, true])],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -697,7 +696,7 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
             tab(&t),
             equal(column(&t, "salary", &accessor), const_bigint(5)),
         ),
-        vec![orders(&["salary"], &[Desc])],
+        vec![orders(&[1_usize], &[false])],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -784,7 +783,7 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
             "name".into() => ColumnType::VarChar,
         },
     );
-    for order_by in ["s", "d"] {
+    for (index, order_by) in [(0_usize, "s"), (2_usize, "d")] {
         let ast = query_to_provable_ast(
             &t,
             &("select salary as s, name, salary as d from sxt_tab order by ".to_owned() + order_by),
@@ -800,7 +799,7 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
                 tab(&t),
                 const_bool(true),
             ),
-            vec![orders(&[order_by], &[Asc])],
+            vec![orders(&[index], &[true])],
         );
         assert_eq!(ast, expected_ast);
     }
@@ -949,7 +948,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
             tab(&t),
             equal(column(&t, "a", &accessor), const_bigint(-3)),
         ),
-        vec![orders(&["a"], &[Desc]), slice(Some(55), Some(3))],
+        vec![orders(&[0_usize], &[false]), slice(Some(55), Some(3))],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1153,7 +1152,7 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
                     aliased_expr(count(col("department_budget")), "__count__"),
                 ],
             ),
-            orders(&["max_sal"], &[Asc]),
+            orders(&[0_usize], &[true]),
         ],
     );
     assert_eq!(query, expected_query);
@@ -2067,7 +2066,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
         },
     );
     let base_cols: [&str; N] = ["salary", "department", "tax", "name"]; // sorted because of `select: [cols = ... ]`
-    let base_ordering = [Asc, Desc, Asc, Desc];
+    let base_ordering = [true, false, true, false];
     for (idx, perm_cols) in base_cols
         .into_iter()
         .permutations(N)
@@ -2090,6 +2089,13 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
         let order_cols_vec = order_cols.clone().collect::<Vec<_>>();
         let ordering = base_ordering.into_iter().cycle().skip(idx).take(N);
         let ordering_vec = ordering.clone().collect::<Vec<_>>();
+        let ordering_query_vec = ordering_vec
+            .iter()
+            .map(|b| match b {
+                true => "ASC",
+                false => "DESC",
+            })
+            .collect::<Vec<_>>();
         let query_text = format!(
             "SELECT {} FROM {} GROUP BY {} ORDER BY {}",
             perm_cols.join(", "),
@@ -2097,7 +2103,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
             group_cols_vec.join(", "),
             order_cols_vec
                 .iter()
-                .zip(ordering_vec.iter())
+                .zip(ordering_query_vec.iter())
                 .map(|(c, o)| format!("{c} {o}"))
                 .collect::<Vec<_>>()
                 .join(", ")
@@ -2112,7 +2118,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
             filter(perm_col_plans, tab(&t), const_bool(true)),
             vec![
                 group_by_postprocessing(&group_cols_vec, &aliased_perm_cols),
-                orders(&order_cols_vec, &ordering_vec),
+                orders(&[2_usize, 3, 0, 1], &ordering_vec),
             ],
         );
         assert_eq!(query, expected_query);

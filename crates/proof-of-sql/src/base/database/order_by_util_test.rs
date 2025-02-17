@@ -7,7 +7,6 @@ use crate::{
     proof_primitive::dory::DoryScalar,
 };
 use core::cmp::Ordering;
-use proof_of_sql_parser::intermediate_ast::OrderByDirection;
 
 #[test]
 fn we_can_compare_indexes_by_columns_with_no_columns() {
@@ -266,11 +265,7 @@ fn we_can_compare_columns_with_direction() {
             .map(|&i| TestScalar::from(i))
             .collect(),
     );
-    let order_by_pairs = vec![
-        (col1, OrderByDirection::Asc),
-        (col2, OrderByDirection::Desc),
-        (col3, OrderByDirection::Asc),
-    ];
+    let order_by_pairs = vec![(col1, true), (col2, false), (col3, true)];
     // Equal on col1 and col2, less on col3
     assert_eq!(
         compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 0, 1),
