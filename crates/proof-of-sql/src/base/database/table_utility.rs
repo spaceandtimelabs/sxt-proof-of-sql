@@ -19,8 +19,8 @@ use super::{Column, Table, TableOptions};
 use crate::base::scalar::Scalar;
 use alloc::{string::String, vec::Vec};
 use bumpalo::Bump;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
-use sqlparser::ast::Ident;
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+use sqlparser::ast::{Ident, TimezoneInfo};
 
 /// Creates an [`Table`] from a list of `(Ident, Column)` pairs.
 /// This is a convenience wrapper around [`Table::try_from_iter`] primarily for use in tests and
@@ -317,18 +317,17 @@ pub fn borrowed_decimal75<S: Scalar>(
 /// use proof_of_sql::base::{database::table_utility::*,
 ///     scalar::Curve25519Scalar,
 /// };
-/// use proof_of_sql_parser::{
-///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
-///
+/// use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+/// use sqlparser::ast::TimezoneInfo;
 /// let alloc = Bump::new();
 /// let result = table::<Curve25519Scalar>([
-///     borrowed_timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), vec![1625072400, 1625076000, 1625079600], &alloc),
+///     borrowed_timestamptz("event_time", PoSQLTimeUnit::Second, TimezoneInfo::None,vec![1625072400, 1625076000, 1625079600], &alloc),
 /// ]);
 /// ```
 pub fn borrowed_timestamptz<S: Scalar>(
     name: impl Into<Ident>,
     time_unit: PoSQLTimeUnit,
-    timezone: PoSQLTimeZone,
+    timezone: TimezoneInfo,
     data: impl IntoIterator<Item = i64>,
     alloc: &Bump,
 ) -> (Ident, Column<'_, S>) {

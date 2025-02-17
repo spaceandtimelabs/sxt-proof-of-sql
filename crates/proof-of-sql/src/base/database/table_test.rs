@@ -4,8 +4,8 @@ use crate::base::{
     scalar::test_scalar::TestScalar,
 };
 use bumpalo::Bump;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
-use sqlparser::ast::Ident;
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+use sqlparser::ast::{Ident, TimezoneInfo};
 #[test]
 fn we_can_create_a_table_with_no_columns_specifying_row_count() {
     let table =
@@ -151,7 +151,7 @@ fn we_can_create_a_table_with_data() {
         borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
             &alloc,
         ),
@@ -162,7 +162,7 @@ fn we_can_create_a_table_with_data() {
     let time_stamp_data = alloc.alloc_slice_copy(&[0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]);
     expected_table.insert(
         Ident::new("time_stamp"),
-        Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), time_stamp_data),
+        Column::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, time_stamp_data),
     );
 
     let bigint_data = alloc.alloc_slice_copy(&[0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]);
@@ -206,7 +206,7 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [0_i64; 0],
             &alloc,
         ),
@@ -220,7 +220,7 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [0_i64; 0],
             &alloc,
         ),
@@ -241,7 +241,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
         borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [1_625_072_400],
             &alloc,
         ),
@@ -255,7 +255,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
         borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [1_625_076_000],
             &alloc,
         ),
@@ -294,7 +294,7 @@ fn we_can_add_rho_column_to_table_with_no_rows() {
         borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [0_i64; 0],
             &alloc,
         ),
@@ -308,7 +308,7 @@ fn we_can_add_rho_column_to_table_with_no_rows() {
         borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [0_i64; 0],
             &alloc,
         ),
@@ -329,7 +329,7 @@ fn we_can_add_rho_column() {
             borrowed_timestamptz(
                 "time_stamp",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 [0_i64, 1, 2],
                 &alloc,
             ),
@@ -345,7 +345,7 @@ fn we_can_add_rho_column() {
         borrowed_timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::utc(),
+            TimezoneInfo::None,
             [0_i64, 1, 2],
             &alloc,
         ),

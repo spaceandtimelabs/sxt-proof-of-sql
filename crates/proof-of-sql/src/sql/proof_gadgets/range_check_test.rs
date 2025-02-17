@@ -189,7 +189,8 @@ mod tests {
     };
     use blitzar::proof::InnerProductProof;
     use num_bigint::BigUint;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+    use sqlparser::ast::TimezoneInfo;
 
     fn check_range(
         table_name: TableRef,
@@ -216,7 +217,7 @@ mod tests {
             timestamptz(
                 "times",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 [0, i64::MAX],
             ),
             decimal75(
@@ -255,7 +256,7 @@ mod tests {
         check_range(
             t,
             "times",
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None),
             &accessor,
         );
     }

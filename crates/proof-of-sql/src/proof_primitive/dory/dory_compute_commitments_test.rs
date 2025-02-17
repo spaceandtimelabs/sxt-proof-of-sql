@@ -7,7 +7,8 @@ use crate::{
 use ark_ec::pairing::Pairing;
 use ark_std::test_rng;
 use num_traits::Zero;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+use sqlparser::ast::TimezoneInfo;
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_varbinary_values() {
@@ -434,7 +435,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_fewer_ro
             CommittableColumn::VarChar(vec![[16, 0, 0, 0]]),
             CommittableColumn::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 &[17, 18, 19, 20],
             ),
         ],
@@ -511,7 +512,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
             CommittableColumn::VarChar(vec![[16, 0, 0, 0]]),
             CommittableColumn::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 &[17, 18, 19, 20],
             ),
         ],
@@ -587,7 +588,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_signed_v
             CommittableColumn::VarChar(vec![[16, 0, 0, 0]]),
             CommittableColumn::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 &[-18, -17, 17, 18],
             ),
         ],
@@ -676,7 +677,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
             CommittableColumn::VarChar(vec![[16, 0, 0, 0]]),
             CommittableColumn::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 &[-18, -17, 17, 18],
             ),
         ],
