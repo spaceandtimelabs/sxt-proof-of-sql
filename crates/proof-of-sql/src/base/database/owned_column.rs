@@ -8,6 +8,7 @@ use crate::base::{
         decimal::Precision,
         permutation::{Permutation, PermutationError},
     },
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::Scalar,
     slice_ops::{inner_product_ref_cast, inner_product_with_bytes},
 };
@@ -16,7 +17,6 @@ use alloc::{
     vec::Vec,
 };
 use itertools::Itertools;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Clone, Eq, Serialize, Deserialize)]

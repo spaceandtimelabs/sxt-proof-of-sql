@@ -1,12 +1,15 @@
 use crate::{
-    base::{commitment::CommittableColumn, math::decimal::Precision},
+    base::{
+        commitment::CommittableColumn,
+        math::decimal::Precision,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    },
     proof_primitive::dory::{
         compute_dynamic_dory_commitments, test_rng, ProverSetup, PublicParameters, F, GT,
     },
 };
 use ark_ec::pairing::Pairing;
 use num_traits::Zero;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_handle_calling_with_an_empty_committable_column() {

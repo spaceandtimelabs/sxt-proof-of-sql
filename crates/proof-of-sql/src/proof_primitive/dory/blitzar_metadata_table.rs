@@ -295,8 +295,10 @@ pub fn create_blitzar_metadata_tables(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::math::decimal::Precision;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use crate::base::{
+        math::decimal::Precision,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    };
 
     fn assert_blitzar_metadata(
         committable_columns: &[CommittableColumn],

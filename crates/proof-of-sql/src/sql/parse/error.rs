@@ -1,6 +1,7 @@
 use crate::base::{
     database::{ColumnOperationError, ColumnType, TableRef},
     math::decimal::{DecimalError, IntermediateDecimalError},
+    posql_time::PoSQLTimestampError,
 };
 use alloc::{
     boxed::Box,
@@ -8,7 +9,6 @@ use alloc::{
     string::{String, ToString},
 };
 use core::result::Result;
-use proof_of_sql_parser::posql_time::PoSQLTimestampError;
 use snafu::Snafu;
 use sqlparser::ast::{Ident, ObjectName};
 
