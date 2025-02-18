@@ -1,9 +1,9 @@
+use crate::base::posql_time::PoSQLTimeUnit;
 use alloc::sync::Arc;
 use arrow::array::{
     TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
     TimestampSecondArray,
 };
-use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 
 /// Extension trait for `Vec<T>` to convert it to an Arrow array
 pub trait ToArrow {

@@ -1,5 +1,10 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
-use crate::base::{database::Column, math::decimal::Precision, scalar::Scalar};
+use crate::base::{
+    database::Column,
+    math::decimal::Precision,
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
+    scalar::Scalar,
+};
 use arrow::{
     array::{
         Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
@@ -10,7 +15,6 @@ use arrow::{
 };
 use bumpalo::Bump;
 use core::ops::Range;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use snafu::Snafu;
 
 #[derive(Snafu, Debug, PartialEq)]
