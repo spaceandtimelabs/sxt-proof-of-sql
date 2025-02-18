@@ -250,8 +250,8 @@ fn modulo_integer_columns<
     R: NumCast + Copy + PrimInt + Neg<Output = R>,
     O: NumCast + PrimInt,
 >(
-    lhs: &&[L],
-    rhs: &&[R],
+    lhs: &[L],
+    rhs: &[R],
     alloc: &'a Bump,
     is_right_bigger_int_type: bool,
 ) -> &'a [O] {
@@ -519,7 +519,7 @@ mod tests {
     ) {
         let alloc = Bump::new();
         let quotient = divide_integer_columns::<_, _, TestScalar>(lhs, rhs, &alloc, false);
-        let remainder: &[i8] = modulo_integer_columns(&lhs, &rhs, &alloc, false);
+        let remainder: &[i8] = modulo_integer_columns(lhs, rhs, &alloc, false);
         assert_eq!(quotient.0, wrapped_quotient);
         assert_eq!(
             quotient.1.iter().copied().collect_vec(),
@@ -534,11 +534,11 @@ mod tests {
         let a: &[i8] = &[2i8, 7, 0, 54];
         let b: &[i128] = &[-1i128, 300, 6, 0];
         let quotient_ab = divide_integer_columns::<_, _, TestScalar>(a, b, &alloc, true);
-        let remainder_ab: &[i128] = modulo_integer_columns(&a, &b, &alloc, true);
+        let remainder_ab: &[i128] = modulo_integer_columns(a, b, &alloc, true);
         assert_eq!(quotient_ab.0, &[-2i8, 0, 0, 0]);
         assert_eq!(remainder_ab, &[0i128, 7, 0, 54]);
         let quotient_ba = divide_integer_columns::<_, _, TestScalar>(b, a, &alloc, false);
-        let remainder_ba: &[i128] = modulo_integer_columns(&b, &a, &alloc, false);
+        let remainder_ba: &[i128] = modulo_integer_columns(b, a, &alloc, false);
         assert_eq!(quotient_ba.0, &[0i128, 42, 0, 0]);
         assert_eq!(remainder_ba, &[-1i128, 6, 6, 0]);
     }
