@@ -16,8 +16,9 @@ use alloc::{
     vec::Vec,
 };
 use itertools::Itertools;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::TimezoneInfo;
 
 #[derive(Debug, PartialEq, Clone, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -46,7 +47,7 @@ pub enum OwnedColumn<S: Scalar> {
     /// Scalar columns
     Scalar(Vec<S>),
     /// Timestamp columns
-    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
+    TimestampTZ(PoSQLTimeUnit, TimezoneInfo, Vec<i64>),
 }
 
 impl<S: Scalar> OwnedColumn<S> {

@@ -9,9 +9,10 @@ use crate::base::{
 use bigdecimal::BigDecimal;
 use proof_of_sql_parser::{
     intermediate_ast::Literal,
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
+    posql_time::{PoSQLTimeUnit, PoSQLTimestamp},
     utility::*,
 };
+use sqlparser::ast::TimezoneInfo;
 
 #[test]
 fn we_can_evaluate_a_simple_literal() {
@@ -40,7 +41,7 @@ fn we_can_evaluate_a_simple_literal() {
     let actual_timestamp = 1_646_092_800;
     let expected_column = OwnedColumn::TimestampTZ(
         PoSQLTimeUnit::Second,
-        PoSQLTimeZone::utc(),
+        TimezoneInfo::None,
         vec![actual_timestamp; 5],
     );
     assert_eq!(actual_column, expected_column);
