@@ -252,7 +252,7 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
-          files: lcov.info
+          files: solidity/lcov.info
           fail_ci_if_error: true
       - name: Check fmt
         run: solidity/scripts/pre_forge.sh fmt --check
