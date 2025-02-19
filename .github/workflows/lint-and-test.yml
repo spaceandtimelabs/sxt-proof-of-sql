@@ -247,6 +247,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lcov
       - name: Check code coverage
         run: solidity/scripts/check_coverage.sh
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          files: lcov.info
+          fail_ci_if_error: true
       - name: Check fmt
         run: solidity/scripts/pre_forge.sh fmt --check
       - name: Run solhint
