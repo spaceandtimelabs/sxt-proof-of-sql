@@ -16,9 +16,6 @@ pub mod record_batch_conversion;
 /// Module for record batch error definitions.
 pub mod record_batch_errors;
 
-/// Utility functions for record batches.
-pub mod record_batch_utility;
-
 /// Module for scalar and i256 conversions.
 pub mod scalar_and_i256_conversions;
 
