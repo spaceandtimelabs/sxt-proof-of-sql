@@ -1,18 +1,15 @@
 use super::owned_and_arrow_conversions::OwnedArrowConversionError;
-use crate::{
-    base::{
-        database::{owned_table_utility::*, OwnedColumn, OwnedTable},
-        map::IndexMap,
-        scalar::test_scalar::TestScalar,
-    },
-    record_batch,
+use crate::base::{
+    database::{owned_table_utility::*, OwnedColumn, OwnedTable},
+    map::IndexMap,
+    scalar::test_scalar::TestScalar,
 };
 use alloc::sync::Arc;
 use arrow::{
     array::{
         ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Float32Array, Int64Array, StringArray,
     },
-    datatypes::Schema,
+    datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
 
@@ -118,6 +115,29 @@ fn we_can_convert_between_owned_table_and_record_batch() {
         &OwnedTable::<TestScalar>::try_new(IndexMap::default()).unwrap(),
         &RecordBatch::new_empty(Arc::new(Schema::empty())),
     );
+
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("int64", DataType::Int64, false),
+        Field::new("int128", DataType::Decimal128(38, 0), false),
+        Field::new("string", DataType::Utf8, false),
+        Field::new("boolean", DataType::Boolean, false),
+    ]));
+
+    let batch1 = RecordBatch::try_new(
+        schema.clone(),
+        vec![
+            Arc::new(Int64Array::from(vec![0_i64; 0])),
+            Arc::new(
+                Decimal128Array::from(vec![0_i128; 0])
+                    .with_precision_and_scale(38, 0)
+                    .unwrap(),
+            ),
+            Arc::new(StringArray::from(vec!["0"; 0])),
+            Arc::new(BooleanArray::from(vec![true; 0])),
+        ],
+    )
+    .unwrap();
+
     we_can_convert_between_owned_table_and_record_batch_impl(
         &owned_table([
             bigint("int64", [0; 0]),
@@ -125,13 +145,38 @@ fn we_can_convert_between_owned_table_and_record_batch() {
             varchar("string", ["0"; 0]),
             boolean("boolean", [true; 0]),
         ]),
-        &record_batch!(
-            "int64" => [0_i64; 0],
-            "int128" => [0_i128; 0],
-            "string" => ["0"; 0],
-            "boolean" => [true; 0],
-        ),
+        &batch1,
     );
+
+    let batch2 = RecordBatch::try_new(
+        schema.clone(),
+        vec![
+            Arc::new(Int64Array::from(vec![
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                i64::MIN,
+                i64::MAX,
+            ])),
+            Arc::new(
+                Decimal128Array::from(vec![0, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX])
+                    .with_precision_and_scale(38, 0)
+                    .unwrap(),
+            ),
+            Arc::new(StringArray::from(vec![
+                "0", "1", "2", "3", "4", "5", "6", "7", "8",
+            ])),
+            Arc::new(BooleanArray::from(vec![
+                true, false, true, false, true, false, true, false, true,
+            ])),
+        ],
+    )
+    .unwrap();
+
     we_can_convert_between_owned_table_and_record_batch_impl(
         &owned_table([
             bigint("int64", [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
@@ -142,12 +187,7 @@ fn we_can_convert_between_owned_table_and_record_batch() {
                 [true, false, true, false, true, false, true, false, true],
             ),
         ]),
-        &record_batch!(
-            "int64" => [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
-            "int128" => [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX],
-            "string" => ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
-            "boolean" => [true, false, true, false, true, false, true, false, true],
-        ),
+        &batch2,
     );
 }
 
