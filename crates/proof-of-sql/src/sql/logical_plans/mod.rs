@@ -3,3 +3,5 @@ mod error;
 pub use error::LogicalPlanError;
 mod expr;
 pub use expr::Expr;
+mod plan;
+pub use plan::LogicalPlan;
