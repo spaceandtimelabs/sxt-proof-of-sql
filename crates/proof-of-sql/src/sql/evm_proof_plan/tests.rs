@@ -8,18 +8,19 @@ use crate::{
         proof_plans::{DynProofPlan, EmptyExec, FilterExec},
     },
 };
-use bincode::Options;
 use core::iter;
 
 #[test]
 fn we_cannot_generate_serialized_proof_plan_for_unsupported_plan() {
     let plan = DynProofPlan::Empty(EmptyExec::new());
 
-    bincode::DefaultOptions::new()
-        .with_fixint_encoding()
-        .with_big_endian()
-        .serialize(&EVMProofPlan::new(plan))
-        .unwrap_err();
+    bincode::serde::encode_to_vec(
+        EVMProofPlan::new(plan),
+        bincode::config::legacy()
+            .with_fixed_int_encoding()
+            .with_big_endian(),
+    )
+    .unwrap_err();
 }
 
 #[test]
@@ -46,11 +47,13 @@ fn we_can_generate_serialized_proof_plan_for_simple_filter() {
         )),
     ));
 
-    let bytes = bincode::DefaultOptions::new()
-        .with_fixint_encoding()
-        .with_big_endian()
-        .serialize(&EVMProofPlan::new(plan))
-        .unwrap();
+    let bytes = bincode::serde::encode_to_vec(
+        EVMProofPlan::new(plan),
+        bincode::config::legacy()
+            .with_fixed_int_encoding()
+            .with_big_endian(),
+    )
+    .unwrap();
 
     let expected_bytes: Vec<_> = iter::empty()
         .chain(&1_usize.to_be_bytes())
