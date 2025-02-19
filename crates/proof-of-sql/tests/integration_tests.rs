@@ -4,6 +4,8 @@
 use ark_std::test_rng;
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::commitment::InnerProductProof;
+#[cfg(feature = "hyperkzg")]
+use proof_of_sql::proof_primitive::hyperkzg::HyperKZGCommitmentEvaluationProof;
 use proof_of_sql::{
     base::{
         database::{
@@ -11,12 +13,9 @@ use proof_of_sql::{
         },
         scalar::Curve25519Scalar,
     },
-    proof_primitive::{
-        dory::{
-            DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
-            DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
-        },
-        hyperkzg::HyperKZGCommitmentEvaluationProof,
+    proof_primitive::dory::{
+        DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
+        DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
     sql::{
         parse::{ConversionError, QueryExpr},
@@ -176,6 +175,7 @@ fn we_can_prove_a_basic_equality_query_with_dory() {
 }
 
 #[test]
+#[cfg(feature = "hyperkzg")]
 fn we_can_prove_a_basic_equality_query_with_hyperkzg() {
     use nova_snark::{
         provider::hyperkzg::{CommitmentEngine, CommitmentKey, EvaluationEngine},
