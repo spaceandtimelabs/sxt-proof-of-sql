@@ -1,5 +1,7 @@
 use super::*;
-use crate::base::scalar::{test_scalar::TestScalar, Curve25519Scalar};
+use crate::{
+    base::scalar::test_scalar::TestScalar, proof_primitive::inner_product::Curve25519Scalar,
+};
 use curve25519_dalek::scalar::Scalar;
 
 #[test]

@@ -6,8 +6,8 @@ use crate::{
             OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
         },
         map::indexmap,
-        scalar::Curve25519Scalar,
     },
+    proof_primitive::inner_product::Curve25519Scalar,
     sql::{
         proof::{
             exercise_verification, FirstRoundBuilder, ProvableQueryResult, ProverEvaluate,

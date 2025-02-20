@@ -77,8 +77,8 @@ pub(crate) fn test_scalar_constants<S: Scalar>() {
 mod tests {
     use super::*;
     use crate::{
-        base::scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar},
-        proof_primitive::dory::DoryScalar,
+        base::scalar::{test_scalar::TestScalar, MontScalar},
+        proof_primitive::{dory::DoryScalar, inner_product::Curve25519Scalar},
     };
     use bytemuck::cast;
 
