@@ -9,7 +9,6 @@ repository = "https://github.com/spaceandtimelabs/sxt-proof-of-sql"
 version = "0.0.0" # DO NOT CHANGE THIS LINE! This will be automatically updated
 license-file = "LICENSE"
 
-
 [workspace.dependencies]
 ahash = { version = "0.8.11", default-features = false }
 ark-bls12-381 = { version = "0.5.0" }
