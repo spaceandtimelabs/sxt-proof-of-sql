@@ -1,9 +1,13 @@
 use super::{ProvableQueryResult, QueryError};
-use crate::base::{
-    database::{Column, ColumnField, ColumnType},
-    math::decimal::Precision,
-    polynomial::compute_evaluation_vector,
-    scalar::{Curve25519Scalar, Scalar},
+use crate::base::scalar::test_scalar::TestScalar;
+use crate::{
+    base::{
+        database::{Column, ColumnField, ColumnType},
+        math::decimal::Precision,
+        polynomial::compute_evaluation_vector,
+        scalar::Scalar,
+    },
+    // proof_primitive::inner_product::TestScalar,
 };
 use alloc::sync::Arc;
 use arrow::{
@@ -15,14 +19,11 @@ use num_traits::Zero;
 
 #[test]
 fn we_can_convert_an_empty_provable_result_to_a_final_result() {
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[0_i64; 0])];
+    let cols: [Column<TestScalar>; 1] = [Column::BigInt(&[0_i64; 0])];
     let res = ProvableQueryResult::new(0, &cols);
     let column_fields = vec![ColumnField::new("a1".into(), ColumnType::BigInt)];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
+    let res =
+        RecordBatch::try_from(res.to_owned_table::<TestScalar>(&column_fields).unwrap()).unwrap();
     let column_fields: Vec<Field> = column_fields
         .iter()
         .map(core::convert::Into::into)
@@ -35,13 +36,10 @@ fn we_can_convert_an_empty_provable_result_to_a_final_result() {
 
 #[test]
 fn we_can_evaluate_result_columns_as_mles() {
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, -12])];
+    let cols: [Column<TestScalar>; 1] = [Column::BigInt(&[10, -12])];
     let res = ProvableQueryResult::new(2, &cols);
-    let evaluation_point = [
-        Curve25519Scalar::from(10u64),
-        Curve25519Scalar::from(100u64),
-    ];
-    let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
+    let evaluation_point = [TestScalar::from(10u64), TestScalar::from(100u64)];
+    let mut evaluation_vec = [TestScalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
 
     let column_fields = vec![ColumnField::new("a".into(), ColumnType::BigInt); cols.len()];
@@ -49,68 +47,59 @@ fn we_can_evaluate_result_columns_as_mles() {
         .evaluate(&evaluation_point, 2, &column_fields[..])
         .unwrap();
     #[allow(clippy::possible_missing_comma)]
-    let expected_evals = [Curve25519Scalar::from(10u64) * evaluation_vec[0]
-        - Curve25519Scalar::from(12u64) * evaluation_vec[1]];
+    let expected_evals = [
+        TestScalar::from(10u64) * evaluation_vec[0] - TestScalar::from(12u64) * evaluation_vec[1]
+    ];
     assert_eq!(evals, expected_evals);
 }
 
 #[test]
 fn we_can_evaluate_result_columns_with_no_rows() {
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[0; 0])];
+    let cols: [Column<TestScalar>; 1] = [Column::BigInt(&[0; 0])];
     let res = ProvableQueryResult::new(0, &cols);
     let evaluation_point = [];
-    let mut evaluation_vec = [Curve25519Scalar::ZERO; 0];
+    let mut evaluation_vec = [TestScalar::ZERO; 0];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields = vec![ColumnField::new("a".into(), ColumnType::BigInt); cols.len()];
     let evals = res
         .evaluate(&evaluation_point, 0, &column_fields[..])
         .unwrap();
-    let expected_evals = [Curve25519Scalar::zero()];
+    let expected_evals = [TestScalar::zero()];
     assert_eq!(evals, expected_evals);
 }
 
 #[test]
 fn we_can_evaluate_multiple_result_columns_as_mles() {
-    let cols: [Column<Curve25519Scalar>; 2] = [Column::BigInt(&[10, 12]), Column::BigInt(&[5, 9])];
+    let cols: [Column<TestScalar>; 2] = [Column::BigInt(&[10, 12]), Column::BigInt(&[5, 9])];
     let res = ProvableQueryResult::new(2, &cols);
-    let evaluation_point = [
-        Curve25519Scalar::from(10u64),
-        Curve25519Scalar::from(100u64),
-    ];
-    let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
+    let evaluation_point = [TestScalar::from(10u64), TestScalar::from(100u64)];
+    let mut evaluation_vec = [TestScalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields = vec![ColumnField::new("a".into(), ColumnType::BigInt); cols.len()];
     let evals = res
         .evaluate(&evaluation_point, 2, &column_fields[..])
         .unwrap();
     let expected_evals = [
-        Curve25519Scalar::from(10u64) * evaluation_vec[0]
-            + Curve25519Scalar::from(12u64) * evaluation_vec[1],
-        Curve25519Scalar::from(5u64) * evaluation_vec[0]
-            + Curve25519Scalar::from(9u64) * evaluation_vec[1],
+        TestScalar::from(10u64) * evaluation_vec[0] + TestScalar::from(12u64) * evaluation_vec[1],
+        TestScalar::from(5u64) * evaluation_vec[0] + TestScalar::from(9u64) * evaluation_vec[1],
     ];
     assert_eq!(evals, expected_evals);
 }
 
 #[test]
 fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
-    let cols: [Column<Curve25519Scalar>; 2] = [Column::Int128(&[10, 12]), Column::Int128(&[5, 9])];
+    let cols: [Column<TestScalar>; 2] = [Column::Int128(&[10, 12]), Column::Int128(&[5, 9])];
     let res = ProvableQueryResult::new(2, &cols);
-    let evaluation_point = [
-        Curve25519Scalar::from(10u64),
-        Curve25519Scalar::from(100u64),
-    ];
-    let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
+    let evaluation_point = [TestScalar::from(10u64), TestScalar::from(100u64)];
+    let mut evaluation_vec = [TestScalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields = vec![ColumnField::new("a".into(), ColumnType::Int128); cols.len()];
     let evals = res
         .evaluate(&evaluation_point, 2, &column_fields[..])
         .unwrap();
     let expected_evals = [
-        Curve25519Scalar::from(10u64) * evaluation_vec[0]
-            + Curve25519Scalar::from(12u64) * evaluation_vec[1],
-        Curve25519Scalar::from(5u64) * evaluation_vec[0]
-            + Curve25519Scalar::from(9u64) * evaluation_vec[1],
+        TestScalar::from(10u64) * evaluation_vec[0] + TestScalar::from(12u64) * evaluation_vec[1],
+        TestScalar::from(5u64) * evaluation_vec[0] + TestScalar::from(9u64) * evaluation_vec[1],
     ];
     assert_eq!(evals, expected_evals);
 }
@@ -120,42 +109,34 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
 fn we_can_evaluate_multiple_result_columns_as_mles_with_scalar_columns() {
     let col0 = [10, 12]
         .iter()
-        .map(|v| Curve25519Scalar::from(*v))
+        .map(|v| TestScalar::from(*v))
         .collect::<Vec<_>>();
     let col1 = [5, 9]
         .iter()
-        .map(|v| Curve25519Scalar::from(*v))
+        .map(|v| TestScalar::from(*v))
         .collect::<Vec<_>>();
-    let cols: [Column<Curve25519Scalar>; 2] = [Column::Scalar(&col0), Column::Scalar(&col1)];
+    let cols: [Column<TestScalar>; 2] = [Column::Scalar(&col0), Column::Scalar(&col1)];
     let res = ProvableQueryResult::new(2, &cols);
-    let evaluation_point = [
-        Curve25519Scalar::from(10u64),
-        Curve25519Scalar::from(100u64),
-    ];
-    let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
+    let evaluation_point = [TestScalar::from(10u64), TestScalar::from(100u64)];
+    let mut evaluation_vec = [TestScalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields = vec![ColumnField::new("a".into(), ColumnType::Scalar); cols.len()];
     let evals = res
         .evaluate(&evaluation_point, 2, &column_fields[..])
         .unwrap();
     let expected_evals = [
-        Curve25519Scalar::from(10u64) * evaluation_vec[0]
-            + Curve25519Scalar::from(12u64) * evaluation_vec[1],
-        Curve25519Scalar::from(5u64) * evaluation_vec[0]
-            + Curve25519Scalar::from(9u64) * evaluation_vec[1],
+        TestScalar::from(10u64) * evaluation_vec[0] + TestScalar::from(12u64) * evaluation_vec[1],
+        TestScalar::from(5u64) * evaluation_vec[0] + TestScalar::from(9u64) * evaluation_vec[1],
     ];
     assert_eq!(evals, expected_evals);
 }
 
 #[test]
 fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
-    let cols: [Column<Curve25519Scalar>; 2] = [Column::BigInt(&[10, 12]), Column::Int128(&[5, 9])];
+    let cols: [Column<TestScalar>; 2] = [Column::BigInt(&[10, 12]), Column::Int128(&[5, 9])];
     let res = ProvableQueryResult::new(2, &cols);
-    let evaluation_point = [
-        Curve25519Scalar::from(10u64),
-        Curve25519Scalar::from(100u64),
-    ];
-    let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
+    let evaluation_point = [TestScalar::from(10u64), TestScalar::from(100u64)];
+    let mut evaluation_vec = [TestScalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields = [
         ColumnField::new("a".into(), ColumnType::BigInt),
@@ -165,24 +146,19 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
         .evaluate(&evaluation_point, 2, &column_fields[..])
         .unwrap();
     let expected_evals = [
-        Curve25519Scalar::from(10u64) * evaluation_vec[0]
-            + Curve25519Scalar::from(12u64) * evaluation_vec[1],
-        Curve25519Scalar::from(5u64) * evaluation_vec[0]
-            + Curve25519Scalar::from(9u64) * evaluation_vec[1],
+        TestScalar::from(10u64) * evaluation_vec[0] + TestScalar::from(12u64) * evaluation_vec[1],
+        TestScalar::from(5u64) * evaluation_vec[0] + TestScalar::from(9u64) * evaluation_vec[1],
     ];
     assert_eq!(evals, expected_evals);
 }
 
 #[test]
 fn evaluation_fails_if_extra_data_is_included() {
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 12])];
+    let cols: [Column<TestScalar>; 1] = [Column::BigInt(&[10, 12])];
     let mut res = ProvableQueryResult::new(2, &cols);
     res.data_mut().push(3u8);
-    let evaluation_point = [
-        Curve25519Scalar::from(10u64),
-        Curve25519Scalar::from(100u64),
-    ];
-    let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
+    let evaluation_point = [TestScalar::from(10u64), TestScalar::from(100u64)];
+    let mut evaluation_vec = [TestScalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields = vec![ColumnField::new("a".into(), ColumnType::BigInt); cols.len()];
     assert!(matches!(
@@ -195,11 +171,8 @@ fn evaluation_fails_if_extra_data_is_included() {
 fn evaluation_fails_if_the_result_cant_be_decoded() {
     let mut res = ProvableQueryResult::new_from_raw_data(1, 1, vec![0b1111_1111_u8; 38]);
     res.data_mut()[37] = 0b0000_0001_u8;
-    let evaluation_point = [
-        Curve25519Scalar::from(10u64),
-        Curve25519Scalar::from(100u64),
-    ];
-    let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
+    let evaluation_point = [TestScalar::from(10u64), TestScalar::from(100u64)];
+    let mut evaluation_vec = [TestScalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields = vec![ColumnField::new("a".into(), ColumnType::BigInt); res.num_columns()];
     assert!(matches!(
@@ -211,13 +184,10 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
 #[test]
 fn evaluation_fails_if_integer_overflow_happens() {
     let binding = [i64::from(i32::MAX) + 1_i64, 12];
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&binding)];
+    let cols: [Column<TestScalar>; 1] = [Column::BigInt(&binding)];
     let res = ProvableQueryResult::new(2, &cols);
-    let evaluation_point = [
-        Curve25519Scalar::from(10u64),
-        Curve25519Scalar::from(100u64),
-    ];
-    let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
+    let evaluation_point = [TestScalar::from(10u64), TestScalar::from(100u64)];
+    let mut evaluation_vec = [TestScalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields = vec![ColumnField::new("a".into(), ColumnType::Int); res.num_columns()];
     assert!(matches!(
@@ -228,14 +198,11 @@ fn evaluation_fails_if_integer_overflow_happens() {
 
 #[test]
 fn evaluation_fails_if_data_is_missing() {
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 12])];
+    let cols: [Column<TestScalar>; 1] = [Column::BigInt(&[10, 12])];
     let mut res = ProvableQueryResult::new(2, &cols);
     *res.num_columns_mut() = 3;
-    let evaluation_point = [
-        Curve25519Scalar::from(10u64),
-        Curve25519Scalar::from(100u64),
-    ];
-    let mut evaluation_vec = [Curve25519Scalar::ZERO; 2];
+    let evaluation_point = [TestScalar::from(10u64), TestScalar::from(100u64)];
+    let mut evaluation_vec = [TestScalar::ZERO; 2];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields = vec![ColumnField::new("a".into(), ColumnType::BigInt); res.num_columns()];
     assert!(matches!(
@@ -246,14 +213,11 @@ fn evaluation_fails_if_data_is_missing() {
 
 #[test]
 fn we_can_convert_a_provable_result_to_a_final_result() {
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 12])];
+    let cols: [Column<TestScalar>; 1] = [Column::BigInt(&[10, 12])];
     let res = ProvableQueryResult::new(2, &cols);
     let column_fields = vec![ColumnField::new("a1".into(), ColumnType::BigInt)];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
+    let res =
+        RecordBatch::try_from(res.to_owned_table::<TestScalar>(&column_fields).unwrap()).unwrap();
     let column_fields: Vec<Field> = column_fields
         .iter()
         .map(core::convert::Into::into)
@@ -266,14 +230,11 @@ fn we_can_convert_a_provable_result_to_a_final_result() {
 
 #[test]
 fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::Int128(&[10, i128::MAX])];
+    let cols: [Column<TestScalar>; 1] = [Column::Int128(&[10, i128::MAX])];
     let res = ProvableQueryResult::new(2, &cols);
     let column_fields = vec![ColumnField::new("a1".into(), ColumnType::Int128)];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
+    let res =
+        RecordBatch::try_from(res.to_owned_table::<TestScalar>(&column_fields).unwrap()).unwrap();
     let column_fields: Vec<Field> = column_fields
         .iter()
         .map(core::convert::Into::into)
@@ -293,19 +254,16 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
 
 #[test]
 fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
-    let values = [Curve25519Scalar::from(10), Curve25519Scalar::MAX_SIGNED];
+    let values = [TestScalar::from(10), TestScalar::MAX_SIGNED];
 
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::Scalar(&values)];
+    let cols: [Column<TestScalar>; 1] = [Column::Scalar(&values)];
     let res = ProvableQueryResult::new(2, &cols);
     let column_fields = vec![ColumnField::new(
         "a1".into(),
         ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
     )];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
+    let res =
+        RecordBatch::try_from(res.to_owned_table::<TestScalar>(&column_fields).unwrap()).unwrap();
     let column_fields: Vec<Field> = column_fields
         .iter()
         .map(core::convert::Into::into)
@@ -315,7 +273,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
     let expected_res = RecordBatch::try_new(
         schema,
         vec![Arc::new(
-            Decimal256Array::from([i256::from(10), Curve25519Scalar::MAX_SIGNED.into()].to_vec())
+            Decimal256Array::from([i256::from(10), TestScalar::MAX_SIGNED.into()].to_vec())
                 .with_precision_and_scale(75, 0)
                 .unwrap(),
         )],
@@ -331,11 +289,11 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     let values3 = ["abc", "de"];
     let scalars3 = values3
         .iter()
-        .map(|v| Curve25519Scalar::from(*v))
+        .map(|v| TestScalar::from(*v))
         .collect::<Vec<_>>();
-    let values4 = [Curve25519Scalar::from(10), Curve25519Scalar::MAX_SIGNED];
+    let values4 = [TestScalar::from(10), TestScalar::MAX_SIGNED];
 
-    let cols: [Column<Curve25519Scalar>; 4] = [
+    let cols: [Column<TestScalar>; 4] = [
         Column::BigInt(&values1),
         Column::Int128(&values2),
         Column::VarChar((&values3, &scalars3)),
@@ -351,11 +309,8 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
+    let res =
+        RecordBatch::try_from(res.to_owned_table::<TestScalar>(&column_fields).unwrap()).unwrap();
     let column_fields: Vec<Field> = column_fields
         .iter()
         .map(core::convert::Into::into)
@@ -372,7 +327,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
             ),
             Arc::new(StringArray::from(vec!["abc", "de"])),
             Arc::new(
-                Decimal256Array::from(vec![i256::from(10), Curve25519Scalar::MAX_SIGNED.into()])
+                Decimal256Array::from(vec![i256::from(10), TestScalar::MAX_SIGNED.into()])
                     .with_precision_and_scale(75, 0)
                     .unwrap(),
             ),
@@ -385,19 +340,16 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
 #[test]
 fn we_can_convert_a_provable_result_to_a_final_result_with_varbinary() {
     let raw_bytes = [b"foo".as_ref(), b"bar"];
-    let scalars: Vec<Curve25519Scalar> = raw_bytes
+    let scalars: Vec<TestScalar> = raw_bytes
         .iter()
-        .map(|b| Curve25519Scalar::from_le_bytes_mod_order(b))
+        .map(|b| TestScalar::from_le_bytes_mod_order(b))
         .collect();
     let col = Column::VarBinary((raw_bytes.as_slice(), scalars.as_slice()));
     let res = ProvableQueryResult::new(2, &[col]);
     let column_fields = vec![ColumnField::new("vb_col".into(), ColumnType::VarBinary)];
 
-    let record_batch = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
+    let record_batch =
+        RecordBatch::try_from(res.to_owned_table::<TestScalar>(&column_fields).unwrap()).unwrap();
 
     let schema = Arc::new(Schema::new(vec![Field::new(
         "vb_col",

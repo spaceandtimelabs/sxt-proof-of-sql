@@ -6,8 +6,8 @@ use crate::{
             owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor, Table,
             TableRef,
         },
-        scalar::Curve25519Scalar,
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
         proof_exprs::test_utility::*,

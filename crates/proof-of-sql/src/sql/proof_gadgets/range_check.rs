@@ -486,7 +486,8 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
 mod tests {
     use super::*;
     use crate::{
-        base::scalar::{Curve25519Scalar as S, Scalar},
+        base::scalar::Scalar,
+        proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar as S,
         sql::proof::FinalRoundBuilder,
     };
     use alloc::collections::VecDeque;
