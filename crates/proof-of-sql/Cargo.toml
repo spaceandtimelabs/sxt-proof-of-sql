@@ -49,7 +49,7 @@ num-bigint = { workspace = true, default-features = false }
 postcard = { workspace = true, features = ["alloc"] }
 proof-of-sql-parser = { workspace = true }
 rand = { workspace = true, default-features = false, optional = true }
-rand_chacha = { workspace = true}
+rand_chacha = { workspace = true, optional = true }
 rayon = { workspace = true, optional = true }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json = { workspace = true }
@@ -81,7 +81,7 @@ development = ["arrow-csv"]
 
 [features]
 default = ["arrow", "perf"]
-utils = ["dep:indicatif"]
+utils = ["dep:indicatif", "dep:rand_chacha"]
 arrow = ["dep:arrow", "std"]
 blitzar = ["dep:blitzar", "dep:merlin", "std"]
 hyperkzg = ["dep:nova-snark", "std", "dep:ff"]
