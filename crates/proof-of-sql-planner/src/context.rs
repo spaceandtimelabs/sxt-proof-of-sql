@@ -150,9 +150,9 @@ mod tests {
     use bumpalo::Bump;
     use core::any::TypeId;
     use indexmap::indexmap;
-    use proof_of_sql::base::{
-        database::{table_utility::*, ColumnType},
-        scalar::Curve25519Scalar,
+    use proof_of_sql::{
+        base::database::{table_utility::*, ColumnType},
+        proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     };
 
     // PoSqlTableSource

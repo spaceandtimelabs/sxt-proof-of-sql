@@ -7,15 +7,15 @@ use proof_of_sql::base::commitment::InnerProductProof;
 #[cfg(feature = "hyperkzg")]
 use proof_of_sql::proof_primitive::hyperkzg::HyperKZGCommitmentEvaluationProof;
 use proof_of_sql::{
-    base::{
-        database::{
-            owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
-        },
-        scalar::Curve25519Scalar,
+    base::database::{
+        owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
     },
-    proof_primitive::dory::{
-        DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
-        DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+    proof_primitive::{
+        dory::{
+            DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
+            DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+        },
+        inner_product::curve_25519_scalar::Curve25519Scalar,
     },
     sql::{
         parse::{ConversionError, QueryExpr},
