@@ -53,7 +53,7 @@ rand_chacha = { workspace = true, optional = true }
 rayon = { workspace = true, optional = true }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json = { workspace = true }
-sha2 = { workspace = true }
+sha2 = { workspace = true, optional = true }
 snafu = { workspace = true }
 sqlparser = { workspace = true, features = ["serde"]  }
 sysinfo = {workspace = true, optional = true }
@@ -67,7 +67,7 @@ criterion = { workspace = true, features = ["html_reports"] }
 merlin = { workspace = true }
 opentelemetry = { workspace = true }
 opentelemetry-jaeger = { workspace = true }
-rand = { workspace = true, default-features = false }
+rand = { workspace = true, default-features = false, features = ["std"] }
 rand_core = { workspace = true, default-features = false }
 serde_json = { workspace = true }
 tempfile = { workspace = true }
@@ -81,7 +81,7 @@ development = ["arrow-csv", "opentelemetry", "opentelemetry-jaeger", "tracing-op
 
 [features]
 default = ["arrow", "perf"]
-utils = ["dep:indicatif", "dep:rand_chacha"]
+utils = ["dep:indicatif", "dep:rand_chacha", "dep:sha2" ]
 arrow = ["dep:arrow", "std"]
 blitzar = ["dep:blitzar", "dep:merlin", "std"]
 hyperkzg = ["dep:nova-snark", "std", "dep:ff"]

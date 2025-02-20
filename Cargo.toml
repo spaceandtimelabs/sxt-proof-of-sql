@@ -59,7 +59,7 @@ rand_core = { version = "0.6", default-features = false }
 rayon = { version = "1.5" }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
-sha2 = "0.10.8"
+sha2 = { version = "0.10.8", default-features = false }
 snafu = { version = "0.8.4", default-features = false }
 sqlparser = { version = "0.45.0", default-features = false }
 sysinfo = { version = "0.33" }
