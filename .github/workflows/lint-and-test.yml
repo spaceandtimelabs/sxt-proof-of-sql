@@ -75,7 +75,7 @@ jobs:
       - name: Run cargo check (proof-of-sql-parser) with no_std target.
         run: |
           rustup target add thumbv7em-none-eabi
-          cargo check -p proof-of-sql-parser --target thumbv7em-none-eabi
+          cargo check --target thumbv7em-none-eabi --no-default-features
 
   test:
     name: Test Suite
