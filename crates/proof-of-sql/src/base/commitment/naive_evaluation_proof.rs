@@ -1,8 +1,8 @@
-use super::{naive_commitment::NaiveCommitment, CommitmentEvaluationProof};
+use super::{CommitmentEvaluationProof, naive_commitment::NaiveCommitment};
 use crate::base::{
     polynomial::compute_evaluation_vector,
     proof::Transcript,
-    scalar::{test_scalar::TestScalar, Scalar},
+    scalar::{Scalar, test_scalar::TestScalar},
 };
 use core::ops::Add;
 

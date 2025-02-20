@@ -4,10 +4,10 @@ use super::permutation_check::{final_round_evaluate_permutation_check, verify_pe
 use crate::{
     base::{
         database::{
-            table_utility::table_with_row_count, ColumnField, ColumnRef, OwnedTable, Table,
-            TableEvaluation, TableOptions, TableRef,
+            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
+            table_utility::table_with_row_count,
         },
-        map::{indexset, IndexMap, IndexSet},
+        map::{IndexMap, IndexSet, indexset},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -16,8 +16,8 @@ use crate::{
     },
 };
 use bumpalo::{
-    collections::{vec::Vec as BumpVec, CollectIn},
     Bump,
+    collections::{CollectIn, vec::Vec as BumpVec},
 };
 use serde::Serialize;
 
@@ -161,7 +161,7 @@ mod tests {
     use super::*;
     use crate::{
         base::{
-            database::{table_utility::*, ColumnType, TableTestAccessor, TestAccessor},
+            database::{ColumnType, TableTestAccessor, TestAccessor, table_utility::*},
             scalar::Curve25519Scalar,
         },
         sql::proof::VerifiableQueryResult,
@@ -352,8 +352,8 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "The number of source columns should be greater than 0")]
-    fn we_cannot_do_permutation_check_if_there_are_no_columns_in_the_tables_and_candidate_has_no_rows_either(
-    ) {
+    fn we_cannot_do_permutation_check_if_there_are_no_columns_in_the_tables_and_candidate_has_no_rows_either()
+     {
         let source_table = Table::<'_, Curve25519Scalar>::try_new_with_options(
             IndexMap::default(),
             TableOptions { row_count: Some(5) },

@@ -1,4 +1,4 @@
-use super::{verification_builder::VerificationBuilder, FinalRoundBuilder, FirstRoundBuilder};
+use super::{FinalRoundBuilder, FirstRoundBuilder, verification_builder::VerificationBuilder};
 use crate::base::{
     database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
     map::{IndexMap, IndexSet},

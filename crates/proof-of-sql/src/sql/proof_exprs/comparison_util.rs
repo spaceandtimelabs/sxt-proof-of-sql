@@ -5,11 +5,11 @@ use crate::{
         scalar::{Scalar, ScalarExt},
         slice_ops,
     },
-    sql::parse::{type_check_binary_operation, ConversionError, ConversionResult},
+    sql::parse::{ConversionError, ConversionResult, type_check_binary_operation},
 };
 use alloc::string::ToString;
 use bumpalo::Bump;
-use core::cmp::{max, Ordering};
+use core::cmp::{Ordering, max};
 use sqlparser::ast::BinaryOperator;
 
 /// Scale LHS and RHS to the same scale if at least one of them is decimal

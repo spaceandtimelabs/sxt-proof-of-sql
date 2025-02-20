@@ -1,16 +1,15 @@
 use super::{
-    apply_column_to_indexes,
+    Column, ColumnOperationResult, ColumnRepeatOp, ElementwiseRepeatOp, RepetitionOp, Table,
+    TableOperationError, TableOperationResult, TableOptions, apply_column_to_indexes,
     order_by_util::{compare_indexes_by_columns, compare_single_row_of_tables},
     union_util::column_union,
-    Column, ColumnOperationResult, ColumnRepeatOp, ElementwiseRepeatOp, RepetitionOp, Table,
-    TableOperationError, TableOperationResult, TableOptions,
 };
 use crate::base::scalar::Scalar;
 use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::cmp::Ordering;
 use itertools::Itertools;
-use tracing::{span, Level};
+use tracing::{Level, span};
 
 /// Compute the set union of two slices of columns, deduplicate and sort the result.
 ///

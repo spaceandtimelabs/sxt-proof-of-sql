@@ -13,7 +13,9 @@ pub enum PermutationError {
     #[snafu(display("Permutation is invalid {error}"))]
     InvalidPermutation { error: String },
     /// Application of a permutation to a slice with an incorrect length
-    #[snafu(display("Application of a permutation to a slice with a different length {permutation_size} != {slice_length}"))]
+    #[snafu(display(
+        "Application of a permutation to a slice with a different length {permutation_size} != {slice_length}"
+    ))]
     PermutationSizeMismatch {
         permutation_size: usize,
         slice_length: usize,

@@ -1,10 +1,10 @@
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::{
+        ColumnType,
         column_type_operation::{
             try_add_subtract_column_types, try_divide_column_types, try_multiply_column_types,
         },
-        ColumnType,
     },
     math::decimal::Precision,
     scalar::{Scalar, ScalarExt},

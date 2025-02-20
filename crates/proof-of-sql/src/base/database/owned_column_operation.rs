@@ -4,8 +4,8 @@ use super::{
 };
 use crate::base::{
     database::{
-        slice_operation::{slice_and, slice_not, slice_or},
         OwnedColumn,
+        slice_operation::{slice_and, slice_not, slice_or},
     },
     scalar::Scalar,
 };

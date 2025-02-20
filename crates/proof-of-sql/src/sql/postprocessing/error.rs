@@ -36,7 +36,9 @@ pub enum PostprocessingError {
         source: crate::base::database::OwnedTableError,
     },
     /// GROUP BY clause references a column not in a group by expression outside aggregate functions
-    #[snafu(display("Invalid group by: column '{column}' must not appear outside aggregate functions or `GROUP BY` clause."))]
+    #[snafu(display(
+        "Invalid group by: column '{column}' must not appear outside aggregate functions or `GROUP BY` clause."
+    ))]
     IdentNotInAggregationOperatorOrGroupByClause {
         /// The column ident
         column: Ident,

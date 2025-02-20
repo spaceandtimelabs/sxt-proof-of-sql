@@ -1,7 +1,7 @@
 use crate::{
     base::{
         database::{ColumnRef, ColumnType, LiteralValue, TableRef, TestSchemaAccessor},
-        map::{indexmap, IndexMap},
+        map::{IndexMap, indexmap},
         math::decimal::Precision,
     },
     sql::{
@@ -12,9 +12,9 @@ use crate::{
 use bigdecimal::BigDecimal;
 use core::str::FromStr;
 use proof_of_sql_parser::{
+    SelectStatement,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
     utility::*,
-    SelectStatement,
 };
 use sqlparser::ast::Ident;
 
@@ -359,12 +359,14 @@ fn we_do_not_expect_an_error_while_trying_to_check_int128_column_eq_decimal_with
         },
     });
 
-    assert!(QueryExpr::try_new(
-        SelectStatement::from_str("select * from sxt_tab where b = 123.000").unwrap(),
-        t.schema_id().cloned().unwrap(),
-        &accessor,
-    )
-    .is_ok());
+    assert!(
+        QueryExpr::try_new(
+            SelectStatement::from_str("select * from sxt_tab where b = 123.000").unwrap(),
+            t.schema_id().cloned().unwrap(),
+            &accessor,
+        )
+        .is_ok()
+    );
 }
 
 #[test]
@@ -376,10 +378,12 @@ fn we_do_not_expect_an_error_while_trying_to_check_bigint_column_eq_decimal_with
         },
     });
 
-    assert!(QueryExpr::try_new(
-        SelectStatement::from_str("select * from sxt_tab where b = 123.000").unwrap(),
-        t.schema_id().cloned().unwrap(),
-        &accessor,
-    )
-    .is_ok());
+    assert!(
+        QueryExpr::try_new(
+            SelectStatement::from_str("select * from sxt_tab where b = 123.000").unwrap(),
+            t.schema_id().cloned().unwrap(),
+            &accessor,
+        )
+        .is_ok()
+    );
 }

@@ -1,4 +1,4 @@
-use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
+use super::{DynProofExpr, ProofExpr, scale_and_add_subtract_eval, scale_and_subtract};
 use crate::{
     base::{
         database::{Column, ColumnRef, ColumnType, Table},

@@ -4,7 +4,7 @@
 //! NOTE: If this doesn't work because you do not have the appropriate GPU drivers installed,
 //! you can run `cargo run --release --example sushi --no-default-features --features="arrow cpu-perf"` instead. It will be slower for proof generation.
 use arrow::datatypes::SchemaRef;
-use arrow_csv::{infer_schema_from_files, ReaderBuilder};
+use arrow_csv::{ReaderBuilder, infer_schema_from_files};
 use proof_of_sql::{
     base::database::{OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor},
     proof_primitive::dory::{
@@ -12,7 +12,7 @@ use proof_of_sql::{
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{SeedableRng, rngs::StdRng};
 use std::{fs::File, time::Instant};
 const DORY_SETUP_MAX_NU: usize = 8;
 const DORY_SEED: [u8; 32] = *b"sushi-is-the-best-food-available";

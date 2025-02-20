@@ -2,8 +2,8 @@
 use ark_std::test_rng;
 use proof_of_sql::{
     base::database::{
-        owned_table_utility::{bigint, owned_table, varchar},
         OwnedTableTestAccessor, TableRef, TestAccessor,
+        owned_table_utility::{bigint, owned_table, varchar},
     },
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
@@ -11,7 +11,7 @@ use proof_of_sql::{
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
 use std::{
-    io::{stdout, Write},
+    io::{Write, stdout},
     time::Instant,
 };
 /// # Panics

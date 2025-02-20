@@ -1,4 +1,4 @@
-use super::{decode_and_convert, decode_multiple_elements, ProvableResultColumn, QueryError};
+use super::{ProvableResultColumn, QueryError, decode_and_convert, decode_multiple_elements};
 use crate::base::{
     database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable, Table},
     polynomial::compute_evaluation_vector,
@@ -62,9 +62,11 @@ impl ProvableQueryResult {
     /// which should never happen.
     #[must_use]
     pub fn new<'a, S: Scalar>(table_length: u64, columns: &'a [Column<'a, S>]) -> Self {
-        assert!(columns
-            .iter()
-            .all(|column| table_length == column.len() as u64));
+        assert!(
+            columns
+                .iter()
+                .all(|column| table_length == column.len() as u64)
+        );
         let mut sz = 0;
         for col in columns {
             sz += col.num_bytes(table_length);

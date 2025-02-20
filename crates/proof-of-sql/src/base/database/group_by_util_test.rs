@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{group_by_util::*, Column},
+        database::{Column, group_by_util::*},
         scalar::test_scalar::TestScalar,
     },
     proof_primitive::dory::DoryScalar,

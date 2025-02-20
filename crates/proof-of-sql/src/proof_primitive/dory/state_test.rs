@@ -1,4 +1,4 @@
-use super::{rand_G_vecs, test_rng, ProverState, PublicParameters};
+use super::{ProverState, PublicParameters, rand_G_vecs, test_rng};
 use ark_ec::pairing::Pairing;
 
 #[test]

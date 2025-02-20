@@ -8,7 +8,7 @@ use crate::base::{
 use alloc::sync::Arc;
 use arrow::{
     array::{BinaryArray, Decimal128Array, Decimal256Array, Int64Array, StringArray},
-    datatypes::{i256, Field, Schema},
+    datatypes::{Field, Schema, i256},
     record_batch::RecordBatch,
 };
 use num_traits::Zero;

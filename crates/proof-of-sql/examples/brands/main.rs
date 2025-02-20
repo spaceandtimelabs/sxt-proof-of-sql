@@ -4,11 +4,11 @@
 //! NOTE: If this doesn't work because you do not have the appropriate GPU drivers installed,
 //! you can run `cargo run --release --example brands --no-default-features --features="arrow cpu-perf"` instead. It will be slower for proof generation.
 use arrow::datatypes::SchemaRef;
-use arrow_csv::{infer_schema_from_files, ReaderBuilder};
+use arrow_csv::{ReaderBuilder, infer_schema_from_files};
 use proof_of_sql::{
     base::database::{
-        arrow_schema_utility::get_posql_compatible_schema, OwnedTable, OwnedTableTestAccessor,
-        TableRef, TestAccessor,
+        OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
+        arrow_schema_utility::get_posql_compatible_schema,
     },
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
@@ -17,7 +17,7 @@ use proof_of_sql::{
         parse::QueryExpr, postprocessing::apply_postprocessing_steps, proof::VerifiableQueryResult,
     },
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{SeedableRng, rngs::StdRng};
 use std::{fs::File, time::Instant};
 
 // We generate the public parameters and the setups used by the prover and verifier for the Dory PCS.

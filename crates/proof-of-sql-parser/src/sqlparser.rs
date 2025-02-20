@@ -1,11 +1,11 @@
 //! This module exists to adapt the current parser to `sqlparser`.
 use crate::{
+    Identifier, ResourceId, SelectStatement,
     intermediate_ast::{
         AliasedResultExpr, BinaryOperator as PoSqlBinaryOperator, Expression, Literal,
         OrderBy as PoSqlOrderBy, OrderByDirection, SelectResultExpr, SetExpression,
         TableExpression, UnaryOperator as PoSqlUnaryOperator,
     },
-    Identifier, ResourceId, SelectStatement,
 };
 use alloc::{boxed::Box, string::ToString, vec};
 use core::fmt::Display;
@@ -289,7 +289,9 @@ mod test {
         check_posql_intermediate_ast_to_sqlparser_equality(
             "select a as a, b as b from namespace.table where c = 4 order by a desc;",
         );
-        check_posql_intermediate_ast_to_sqlparser_equality("select 1 as a, 'Meow' as d, b as b from namespace.table where c = 4 order by a desc limit 10 offset 0;");
+        check_posql_intermediate_ast_to_sqlparser_equality(
+            "select 1 as a, 'Meow' as d, b as b from namespace.table where c = 4 order by a desc limit 10 offset 0;",
+        );
         check_posql_intermediate_ast_to_sqlparser_equality(
             "select true as cons, a and b or c > 4 as comp from tab where d = 'Space and Time';",
         );

@@ -1,4 +1,4 @@
-use super::{test_rng, PublicParameters, F, VMV};
+use super::{F, PublicParameters, VMV, test_rng};
 use ark_ec::pairing::Pairing;
 
 #[test]

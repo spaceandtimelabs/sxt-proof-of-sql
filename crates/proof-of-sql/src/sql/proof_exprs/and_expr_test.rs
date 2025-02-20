@@ -2,19 +2,19 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor, TableRef,
-            TableTestAccessor,
+            Column, OwnedTableTestAccessor, TableRef, TableTestAccessor, owned_table_utility::*,
+            table_utility::*,
         },
         scalar::test_scalar::TestScalar,
     },
     sql::{
-        proof::{exercise_verification, VerifiableQueryResult},
-        proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
+        proof::{VerifiableQueryResult, exercise_verification},
+        proof_exprs::{DynProofExpr, ProofExpr, test_utility::*},
         proof_plans::test_utility::*,
     },
 };
 use bumpalo::Bump;
-use itertools::{multizip, MultiUnzip};
+use itertools::{MultiUnzip, multizip};
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,

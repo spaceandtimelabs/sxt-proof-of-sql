@@ -1,8 +1,8 @@
 use super::ScalarExt;
-use crate::base::scalar::{test_scalar::TestScalar, test_scalar_constants, Scalar};
+use crate::base::scalar::{Scalar, test_scalar::TestScalar, test_scalar_constants};
 use bnum::types::U256;
 use core::str::FromStr;
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::StdRng};
 
 const MAX_TEST_SCALAR_SIGNED_VALUE_AS_STRING: &str =
     "3618502788666131106986593281521497120428558179689953803000975469142727125494";

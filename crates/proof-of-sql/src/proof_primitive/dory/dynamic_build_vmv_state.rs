@@ -1,6 +1,6 @@
 use super::{
-    dynamic_dory_helper::compute_dynamic_v_vec, DeferredGT, DoryScalar, G1Affine, VMVProverState,
-    VMVVerifierState, F,
+    DeferredGT, DoryScalar, F, G1Affine, VMVProverState, VMVVerifierState,
+    dynamic_dory_helper::compute_dynamic_v_vec,
 };
 use crate::proof_primitive::dynamic_matrix_utils::standard_basis_helper::compute_dynamic_vecs;
 use alloc::vec::Vec;

@@ -5,7 +5,7 @@
 //! ```
 #![allow(missing_docs, clippy::missing_docs_in_private_items)]
 use blitzar::proof::InnerProductProof;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 mod scaffold;
 use scaffold::{criterion_scaffold, queries::QUERIES};

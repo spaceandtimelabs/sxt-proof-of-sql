@@ -1,8 +1,8 @@
 use crate::{
+    SelectStatement,
     intermediate_ast::OrderByDirection::{Asc, Desc},
     sql::*,
     utility::*,
-    SelectStatement,
 };
 use alloc::{
     borrow::ToOwned,
@@ -405,8 +405,8 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression() {
 }
 
 #[test]
-fn we_can_parse_a_query_with_one_logical_and_filter_expression_with_both_left_and_right_side_equal_to_string_literals(
-) {
+fn we_can_parse_a_query_with_one_logical_and_filter_expression_with_both_left_and_right_side_equal_to_string_literals()
+ {
     let ast = "select bid_in_usd_over_1e2 from sxt.options_quote where type = 'call' and security = 'eth'".parse::<SelectStatement>().unwrap();
     let expected_ast = select(
         query(
@@ -787,9 +787,11 @@ fn we_cannot_parse_order_by_referencing_reserved_keywords_yet() {
 
 #[test]
 fn we_cannot_parse_queries_with_stray_semicolons() {
-    assert!("select a from tab order by ;x"
-        .parse::<SelectStatement>()
-        .is_err());
+    assert!(
+        "select a from tab order by ;x"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
     assert!("select a from ; tab".parse::<SelectStatement>().is_err());
     assert!("select a from tab;;".parse::<SelectStatement>().is_err());
     assert!("select a ; from tab;".parse::<SelectStatement>().is_err());
@@ -797,25 +799,35 @@ fn we_cannot_parse_queries_with_stray_semicolons() {
 
 #[test]
 fn we_cannot_parse_invalid_order_by_expressions() {
-    assert!("select a from tab order by x y"
-        .parse::<SelectStatement>()
-        .is_err());
-    assert!("select a from tab order by x, y asc desc"
-        .parse::<SelectStatement>()
-        .is_err());
-    assert!("select a from tab order by x, asc y"
-        .parse::<SelectStatement>()
-        .is_err());
-    assert!("select a from tab order by x asc y"
-        .parse::<SelectStatement>()
-        .is_err());
+    assert!(
+        "select a from tab order by x y"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
+    assert!(
+        "select a from tab order by x, y asc desc"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
+    assert!(
+        "select a from tab order by x, asc y"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
+    assert!(
+        "select a from tab order by x asc y"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_two_schemas_followed_by_a_table_name() {
-    assert!("select a from schema.Identifier.tab;"
-        .parse::<SelectStatement>()
-        .is_err());
+    assert!(
+        "select a from schema.Identifier.tab;"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]
@@ -844,22 +856,30 @@ fn we_cannot_parse_a_query_with_select_tablename_followed_by_star() {
 #[test]
 fn we_cannot_parse_a_query_with_schemas_followed_by_column_and_table_names() {
     assert!("select tab.a from tab".parse::<SelectStatement>().is_err());
-    assert!("select tab.a from eth.tab;"
-        .parse::<SelectStatement>()
-        .is_err());
-    assert!("select eth.tab.a from eth.tab"
-        .parse::<SelectStatement>()
-        .is_err());
-    assert!("select a from eth.tab where tab.b = 3;"
-        .parse::<SelectStatement>()
-        .is_err());
+    assert!(
+        "select tab.a from eth.tab;"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
+    assert!(
+        "select eth.tab.a from eth.tab"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
+    assert!(
+        "select a from eth.tab where tab.b = 3;"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_a_subquery() {
-    assert!("select a from (select a from tab where b = 4)"
-        .parse::<SelectStatement>()
-        .is_err());
+    assert!(
+        "select a from (select a from tab where b = 4)"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]
@@ -877,9 +897,11 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
 
 #[test]
 fn we_cannot_parse_a_query_having_a_negative_limit_clause() {
-    assert!("select a from tab limit -3"
-        .parse::<SelectStatement>()
-        .is_err());
+    assert!(
+        "select a from tab limit -3"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]
@@ -932,8 +954,8 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
 }
 
 #[test]
-fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_where_expr_and_order_by(
-) {
+fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_where_expr_and_order_by()
+ {
     let ast = "select a from tab where a = 3 order by a limit 55 offset 3;"
         .parse::<SelectStatement>()
         .unwrap();
@@ -951,8 +973,8 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
 }
 
 #[test]
-fn we_cannot_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_where_expr_but_followed_by_order_by(
-) {
+fn we_cannot_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_where_expr_but_followed_by_order_by()
+ {
     assert!(
         "select a from tab where a = 3 limit 55 offset 3 order by a;"
             .parse::<SelectStatement>()
@@ -1066,9 +1088,11 @@ fn we_cannot_parse_a_query_missing_where_keyword() {
 
 #[test]
 fn we_cannot_parse_a_query_missing_from_table_name() {
-    assert!("select a from where c = 4"
-        .parse::<SelectStatement>()
-        .is_err());
+    assert!(
+        "select a from where c = 4"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]
@@ -1083,9 +1107,11 @@ fn we_cannot_parse_a_query_missing_select_keyword() {
 
 #[test]
 fn we_cannot_parse_a_query_missing_select_result_columns() {
-    assert!("select from b where c = 4"
-        .parse::<SelectStatement>()
-        .is_err());
+    assert!(
+        "select from b where c = 4"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]
@@ -1198,16 +1224,20 @@ fn we_can_parse_a_group_by_clause_containing_multiple_aggregations_where_clause_
 
 #[test]
 fn we_cannot_parse_a_group_by_clause_after_order_by() {
-    assert!("select a from tab order by a group by a"
-        .parse::<SelectStatement>()
-        .is_err());
+    assert!(
+        "select a from tab order by a group by a"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]
 fn we_cannot_parse_a_group_by_clause_before_where_expr() {
-    assert!("select a from tab group by a where a = 3;"
-        .parse::<SelectStatement>()
-        .is_err());
+    assert!(
+        "select a from tab group by a where a = 3;"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]
@@ -1315,18 +1345,22 @@ fn we_can_parse_a_single_boolean_literal_in_the_result_expr() {
 
 #[test]
 fn we_cannot_parse_literals_outside_of_i128_range_in_the_result_expr() {
-    assert!("select 170141183460469231731687303715884105727 from tab"
-        .parse::<SelectStatement>()
-        .is_ok());
+    assert!(
+        "select 170141183460469231731687303715884105727 from tab"
+            .parse::<SelectStatement>()
+            .is_ok()
+    );
     assert_eq!(
         "select 170141183460469231731687303715884105728 from tab".parse::<SelectStatement>(),
         Err(super::error::ParseError::QueryParseError {
             error: "i128 out of range".to_string()
         })
     );
-    assert!("select -170141183460469231731687303715884105728 from tab"
-        .parse::<SelectStatement>()
-        .is_ok());
+    assert!(
+        "select -170141183460469231731687303715884105728 from tab"
+            .parse::<SelectStatement>()
+            .is_ok()
+    );
     assert_eq!(
         "select -170141183460469231731687303715884105729 from tab".parse::<SelectStatement>(),
         Err(super::error::ParseError::QueryParseError {
@@ -1336,8 +1370,8 @@ fn we_cannot_parse_literals_outside_of_i128_range_in_the_result_expr() {
 }
 
 #[test]
-fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_precedence_in_the_result_expr(
-) {
+fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_precedence_in_the_result_expr()
+ {
     let ast = "select (2 + f) * (c + g + 2 * h), ((h - g) * 2 + c + g) * (f + 2) as d from tab"
         .parse::<SelectStatement>()
         .unwrap();

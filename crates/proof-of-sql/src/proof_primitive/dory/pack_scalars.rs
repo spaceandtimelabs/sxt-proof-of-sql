@@ -1,4 +1,4 @@
-use super::{blitzar_metadata_table::min_as_f, G1Affine, G1Projective};
+use super::{G1Affine, G1Projective, blitzar_metadata_table::min_as_f};
 use crate::{
     base::commitment::CommittableColumn, proof_primitive::dory::offset_to_bytes::OffsetToBytes,
     utils::log,

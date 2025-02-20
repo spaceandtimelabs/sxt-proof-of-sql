@@ -1,6 +1,6 @@
 use super::{
-    dory_reduce_prove, dory_reduce_verify, scalar_product_prove, scalar_product_verify,
-    DoryMessages, ProverSetup, ProverState, VerifierSetup, VerifierState,
+    DoryMessages, ProverSetup, ProverState, VerifierSetup, VerifierState, dory_reduce_prove,
+    dory_reduce_verify, scalar_product_prove, scalar_product_verify,
 };
 use crate::base::proof::Transcript;
 

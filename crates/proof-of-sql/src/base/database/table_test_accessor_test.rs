@@ -4,10 +4,10 @@ use super::{
 };
 use crate::base::{
     commitment::{
-        naive_commitment::NaiveCommitment, naive_evaluation_proof::NaiveEvaluationProof,
-        Commitment, CommittableColumn,
+        Commitment, CommittableColumn, naive_commitment::NaiveCommitment,
+        naive_evaluation_proof::NaiveEvaluationProof,
     },
-    database::{table_utility::*, TableRef},
+    database::{TableRef, table_utility::*},
     scalar::test_scalar::TestScalar,
 };
 use bumpalo::Bump;
@@ -207,9 +207,11 @@ fn we_can_access_the_type_of_table_columns() {
     );
 
     let column = ColumnRef::new(table_ref_1.clone(), "c".into(), ColumnType::BigInt);
-    assert!(accessor
-        .lookup_column(column.table_ref(), column.column_id())
-        .is_none());
+    assert!(
+        accessor
+            .lookup_column(column.table_ref(), column.column_id())
+            .is_none()
+    );
 
     let data2 = table([
         borrowed_bigint("a", [1, 2, 3, 4], &alloc),
@@ -230,9 +232,11 @@ fn we_can_access_the_type_of_table_columns() {
     );
 
     let column = ColumnRef::new(table_ref_2.clone(), "c".into(), ColumnType::BigInt);
-    assert!(accessor
-        .lookup_column(column.table_ref(), column.column_id())
-        .is_none());
+    assert!(
+        accessor
+            .lookup_column(column.table_ref(), column.column_id())
+            .is_none()
+    );
 }
 
 #[test]

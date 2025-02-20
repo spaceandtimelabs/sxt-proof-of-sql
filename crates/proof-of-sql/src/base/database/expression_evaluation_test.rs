@@ -1,7 +1,7 @@
 use crate::base::{
     database::{
-        owned_table_utility::*, ColumnOperationError, ExpressionEvaluationError, OwnedColumn,
-        OwnedTable,
+        ColumnOperationError, ExpressionEvaluationError, OwnedColumn, OwnedTable,
+        owned_table_utility::*,
     },
     math::decimal::Precision,
     scalar::test_scalar::TestScalar,

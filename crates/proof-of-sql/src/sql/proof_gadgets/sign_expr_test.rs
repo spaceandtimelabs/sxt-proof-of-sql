@@ -113,8 +113,8 @@ fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_for_a_c
 }
 
 #[test]
-fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_with_varying_bits_and_fixed_sign(
-) {
+fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_with_varying_bits_and_fixed_sign()
+ {
     let data: &[Curve25519Scalar] = &[123.into(), 452.into(), 0.into(), 789.into(), 910.into()];
     let alloc = Bump::new();
     let res = result_evaluate_sign(5, &alloc, data);
@@ -123,8 +123,8 @@ fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_with_va
 }
 
 #[test]
-fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_with_varying_bits_and_sign(
-) {
+fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_with_varying_bits_and_sign()
+ {
     let data: &[Curve25519Scalar] = &[
         123.into(),
         (-452).into(),

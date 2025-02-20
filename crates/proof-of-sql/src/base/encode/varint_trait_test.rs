@@ -1,5 +1,5 @@
 use super::VarInt;
-use crate::base::scalar::{test_scalar::TestScalar, Scalar};
+use crate::base::scalar::{Scalar, test_scalar::TestScalar};
 use alloc::{vec, vec::Vec};
 use core::{
     fmt::Debug,

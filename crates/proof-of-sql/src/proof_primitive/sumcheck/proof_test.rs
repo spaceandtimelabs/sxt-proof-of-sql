@@ -8,7 +8,7 @@ use crate::{
     base::{
         polynomial::CompositePolynomial,
         proof::Transcript as _,
-        scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar, Scalar},
+        scalar::{Curve25519Scalar, MontScalar, Scalar, test_scalar::TestScalar},
     },
     proof_primitive::sumcheck::{ProverState, SumcheckProof},
 };

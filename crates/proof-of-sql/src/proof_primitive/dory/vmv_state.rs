@@ -1,4 +1,4 @@
-use super::{DeferredGT, G1Affine, F};
+use super::{DeferredGT, F, G1Affine};
 use alloc::vec::Vec;
 
 /// The state of the verifier during the VMV evaluation proof verification.

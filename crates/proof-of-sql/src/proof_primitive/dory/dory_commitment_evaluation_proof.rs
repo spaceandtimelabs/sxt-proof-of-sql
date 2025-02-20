@@ -1,9 +1,9 @@
 use super::{
-    build_vmv_prover_state, build_vmv_verifier_state, compute_T_vec_prime, compute_nu,
-    eval_vmv_re_prove, eval_vmv_re_verify, extended_dory_inner_product_prove,
-    extended_dory_inner_product_verify,
-    extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs, DeferredGT,
-    DoryCommitment, DoryMessages, DoryProverPublicSetup, DoryScalar, DoryVerifierPublicSetup, F,
+    DeferredGT, DoryCommitment, DoryMessages, DoryProverPublicSetup, DoryScalar,
+    DoryVerifierPublicSetup, F, build_vmv_prover_state, build_vmv_verifier_state,
+    compute_T_vec_prime, compute_nu, eval_vmv_re_prove, eval_vmv_re_verify,
+    extended_dory_inner_product_prove, extended_dory_inner_product_verify,
+    extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs,
 };
 use crate::{
     base::{commitment::CommitmentEvaluationProof, proof::Transcript},
@@ -24,7 +24,9 @@ pub enum DoryError {
     #[snafu(display("verification error"))]
     VerificationError,
     /// This error occurs when the setup is too small.
-    #[snafu(display("setup is too small: the setup is {actual}, but the proof requires a setup of size {required}"))]
+    #[snafu(display(
+        "setup is too small: the setup is {actual}, but the proof requires a setup of size {required}"
+    ))]
     SmallSetup { actual: usize, required: usize },
 }
 

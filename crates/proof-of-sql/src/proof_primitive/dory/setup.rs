@@ -1,4 +1,4 @@
-use super::{G1Affine, G2Affine, PublicParameters, GT};
+use super::{G1Affine, G2Affine, GT, PublicParameters};
 use crate::{base::impl_serde_for_ark_serde_unchecked, utils::log};
 use alloc::vec::Vec;
 use ark_ec::pairing::{Pairing, PairingOutput};

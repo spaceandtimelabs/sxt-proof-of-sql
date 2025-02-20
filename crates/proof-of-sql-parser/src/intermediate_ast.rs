@@ -4,7 +4,7 @@
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
 ***/
 
-use crate::{posql_time::PoSQLTimestamp, Identifier};
+use crate::{Identifier, posql_time::PoSQLTimestamp};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use bigdecimal::BigDecimal;
 use core::{

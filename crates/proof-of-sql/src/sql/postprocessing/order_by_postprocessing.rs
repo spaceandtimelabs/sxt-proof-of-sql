@@ -1,10 +1,10 @@
 use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
 use crate::base::{
     database::{
-        order_by_util::{
-            compare_indexes_by_owned_columns_with_direction, OrderIndexDirectionPairs,
-        },
         OwnedTable,
+        order_by_util::{
+            OrderIndexDirectionPairs, compare_indexes_by_owned_columns_with_direction,
+        },
     },
     math::permutation::Permutation,
     scalar::Scalar,

@@ -1,11 +1,11 @@
 use super::test_utility::*;
 use crate::{
     base::database::{
-        owned_table_utility::*, table_utility::*, ColumnType, TableRef, TableTestAccessor,
-        TestAccessor,
+        ColumnType, TableRef, TableTestAccessor, TestAccessor, owned_table_utility::*,
+        table_utility::*,
     },
     sql::{
-        proof::{exercise_verification, VerifiableQueryResult},
+        proof::{VerifiableQueryResult, exercise_verification},
         proof_exprs::test_utility::*,
     },
 };
@@ -306,8 +306,8 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join() {
 
 #[allow(clippy::too_many_lines)]
 #[test]
-fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_or_both_tables_have_no_rows(
-) {
+fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_or_both_tables_have_no_rows()
+ {
     // Left table has no rows but right table has rows
     let alloc = Bump::new();
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());

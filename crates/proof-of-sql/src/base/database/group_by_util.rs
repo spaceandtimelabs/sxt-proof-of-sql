@@ -2,7 +2,7 @@
 
 use crate::base::{
     database::{
-        filter_util::filter_column_by_index, order_by_util::compare_indexes_by_columns, Column,
+        Column, filter_util::filter_column_by_index, order_by_util::compare_indexes_by_columns,
     },
     if_rayon,
     scalar::Scalar,

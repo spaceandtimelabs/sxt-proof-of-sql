@@ -1,5 +1,5 @@
 use crate::base::{
-    encode::{ZigZag, U256},
+    encode::{U256, ZigZag},
     scalar::test_scalar::TestScalar,
 };
 
@@ -68,8 +68,8 @@ fn big_scalars_that_are_smaller_than_their_additive_inverses_are_encoded_as_posi
 }
 
 #[test]
-fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_encoded_as_negative_zigzag_values(
-) {
+fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_encoded_as_negative_zigzag_values()
+ {
     // x = (p + 1) / 2 (p is the ristretto group order)
     let val: TestScalar = (&U256::from_words(
         0x0a6f_7cef_517b_ce6b_2c09_318d_2e7a_e9f7,

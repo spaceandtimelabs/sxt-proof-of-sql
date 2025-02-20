@@ -1,4 +1,4 @@
-use super::{slice_operation::apply_slice_to_indexes, Column, ColumnOperationResult, ColumnType};
+use super::{Column, ColumnOperationResult, ColumnType, slice_operation::apply_slice_to_indexes};
 use crate::base::scalar::Scalar;
 use bumpalo::Bump;
 

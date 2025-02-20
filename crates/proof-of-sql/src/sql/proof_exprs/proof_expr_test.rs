@@ -1,7 +1,7 @@
-use super::{test_utility::*, DynProofExpr, ProofExpr};
+use super::{DynProofExpr, ProofExpr, test_utility::*};
 use crate::base::{
     commitment::InnerProductProof,
-    database::{table_utility::*, Column, TableRef, TableTestAccessor, TestAccessor},
+    database::{Column, TableRef, TableTestAccessor, TestAccessor, table_utility::*},
 };
 use bumpalo::Bump;
 

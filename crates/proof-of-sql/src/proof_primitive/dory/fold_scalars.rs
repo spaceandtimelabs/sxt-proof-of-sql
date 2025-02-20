@@ -1,7 +1,8 @@
 use super::{
+    DeferredGT, DoryMessages, F, G1Projective, G2Projective, ProverSetup, ProverState,
+    VerifierSetup, VerifierState,
     extended_state::{ExtendedProverState, ExtendedVerifierState},
-    pairings, DeferredGT, DoryMessages, G1Projective, G2Projective, ProverSetup, ProverState,
-    VerifierSetup, VerifierState, F,
+    pairings,
 };
 use crate::{base::proof::Transcript, utils::log};
 

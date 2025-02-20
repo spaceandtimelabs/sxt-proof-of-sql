@@ -1,10 +1,10 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, OwnedTableTestAccessor, TableRef},
+        database::{OwnedTableTestAccessor, TableRef, owned_table_utility::*},
     },
     sql::{
-        proof::{exercise_verification, VerifiableQueryResult},
+        proof::{VerifiableQueryResult, exercise_verification},
         proof_exprs::test_utility::*,
         proof_plans::test_utility::*,
     },

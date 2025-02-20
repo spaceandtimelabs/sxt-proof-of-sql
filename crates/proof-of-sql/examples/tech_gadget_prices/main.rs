@@ -5,7 +5,7 @@
 //! you can run cargo run --release --example `tech_gadget_prices` --no-default-features --features="arrow cpu-perf" instead. It will be slower for proof generation.
 
 use arrow::datatypes::SchemaRef;
-use arrow_csv::{infer_schema_from_files, ReaderBuilder};
+use arrow_csv::{ReaderBuilder, infer_schema_from_files};
 use proof_of_sql::{
     base::database::{OwnedTable, OwnedTableTestAccessor, TableRef},
     proof_primitive::dory::{
@@ -13,7 +13,7 @@ use proof_of_sql::{
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{SeedableRng, rngs::StdRng};
 use std::{error::Error, fs::File, time::Instant};
 
 const DORY_SETUP_MAX_NU: usize = 8;

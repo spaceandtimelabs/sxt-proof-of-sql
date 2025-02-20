@@ -1,5 +1,5 @@
 //! This file defines the resource identifier type.
-use crate::{impl_serde_from_str, sql::ResourceIdParser, Identifier, ParseError, ParseResult};
+use crate::{Identifier, ParseError, ParseResult, impl_serde_from_str, sql::ResourceIdParser};
 use alloc::{
     format,
     string::{String, ToString},

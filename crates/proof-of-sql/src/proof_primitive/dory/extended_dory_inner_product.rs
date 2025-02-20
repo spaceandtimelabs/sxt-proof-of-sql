@@ -1,6 +1,6 @@
 use super::{
-    scalar_product_prove, scalar_product_verify, DoryMessages, ExtendedProverState,
-    ExtendedVerifierState, ProverSetup, VerifierSetup, F,
+    DoryMessages, ExtendedProverState, ExtendedVerifierState, F, ProverSetup, VerifierSetup,
+    scalar_product_prove, scalar_product_verify,
 };
 use crate::{
     base::proof::Transcript,

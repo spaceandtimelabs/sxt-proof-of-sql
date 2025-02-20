@@ -1,7 +1,7 @@
 use super::{
-    make_sumcheck_state::make_sumcheck_prover_state, FinalRoundBuilder, FirstRoundBuilder,
-    ProofPlan, QueryData, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars,
-    VerificationBuilderImpl,
+    FinalRoundBuilder, FirstRoundBuilder, ProofPlan, QueryData, QueryResult,
+    SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilderImpl,
+    make_sumcheck_state::make_sumcheck_prover_state,
 };
 use crate::{
     base::{
@@ -13,7 +13,7 @@ use crate::{
         },
         map::{IndexMap, IndexSet},
         math::log2_up,
-        polynomial::{compute_evaluation_vector, MultilinearExtension},
+        polynomial::{MultilinearExtension, compute_evaluation_vector},
         proof::{Keccak256Transcript, ProofError, Transcript},
     },
     proof_primitive::sumcheck::SumcheckProof,

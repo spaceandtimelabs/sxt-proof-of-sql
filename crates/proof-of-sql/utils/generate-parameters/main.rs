@@ -77,9 +77,9 @@ fn main() {
         generate_parameters(&args);
     } else {
         eprintln!(
-        "Skipping generation, failed to write or create target directory: {}. Check path and try again.",
-        args.target,
-    );
+            "Skipping generation, failed to write or create target directory: {}. Check path and try again.",
+            args.target,
+        );
         std::process::exit(-1)
     };
 }
@@ -237,12 +237,15 @@ fn save_digests(digests: &[(String, String)], target: &str, nu: usize) {
         .create(true)
         .append(true)
         .open(&digests_path)
-    { Ok(f) => {
-        Some(f)
-    } _ => {
-        println!("Failed to open or create file at {digests_path}. Printing digests to console.");
-        None
-    }};
+    {
+        Ok(f) => Some(f),
+        _ => {
+            println!(
+                "Failed to open or create file at {digests_path}. Printing digests to console."
+            );
+            None
+        }
+    };
 
     for (file_path, digest) in digests {
         if let Some(f) = &mut file {

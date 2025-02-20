@@ -1,5 +1,5 @@
 use super::{
-    eval_vmv_re_prove, eval_vmv_re_verify, test_rng, DoryMessages, PublicParameters, F, GT, VMV,
+    DoryMessages, F, GT, PublicParameters, VMV, eval_vmv_re_prove, eval_vmv_re_verify, test_rng,
 };
 use ark_std::UniformRand;
 use merlin::Transcript;

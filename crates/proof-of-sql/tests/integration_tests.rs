@@ -9,7 +9,7 @@ use proof_of_sql::proof_primitive::hyperkzg::HyperKZGCommitmentEvaluationProof;
 use proof_of_sql::{
     base::{
         database::{
-            owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
+            OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor, owned_table_utility::*,
         },
         scalar::Curve25519Scalar,
     },

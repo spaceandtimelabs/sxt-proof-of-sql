@@ -1,15 +1,15 @@
 use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
 use crate::base::{
-    database::{group_by_util::aggregate_columns, Column, OwnedColumn, OwnedTable},
-    map::{indexmap, IndexMap, IndexSet},
+    database::{Column, OwnedColumn, OwnedTable, group_by_util::aggregate_columns},
+    map::{IndexMap, IndexSet, indexmap},
     scalar::Scalar,
 };
 use alloc::{boxed::Box, format, string::ToString, vec, vec::Vec};
 use bumpalo::Bump;
-use itertools::{izip, Itertools};
+use itertools::{Itertools, izip};
 use proof_of_sql_parser::{
-    intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression},
     Identifier,
+    intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression},
 };
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::Ident;

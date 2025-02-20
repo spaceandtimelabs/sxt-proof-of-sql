@@ -5,7 +5,7 @@ pub use error::{PostprocessingError, PostprocessingResult};
 mod owned_table_postprocessing;
 
 mod postprocessing_step;
-pub use owned_table_postprocessing::{apply_postprocessing_steps, OwnedTablePostprocessing};
+pub use owned_table_postprocessing::{OwnedTablePostprocessing, apply_postprocessing_steps};
 pub use postprocessing_step::PostprocessingStep;
 #[cfg(test)]
 /// Utility functions for testing postprocessing steps.

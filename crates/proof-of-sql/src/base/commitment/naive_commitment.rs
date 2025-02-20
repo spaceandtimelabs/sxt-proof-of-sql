@@ -1,7 +1,7 @@
 use super::Commitment;
 use crate::base::{
     commitment::CommittableColumn,
-    scalar::{test_scalar::TestScalar, Scalar},
+    scalar::{Scalar, test_scalar::TestScalar},
 };
 use alloc::{vec, vec::Vec};
 use ark_serialize::CanonicalSerialize;

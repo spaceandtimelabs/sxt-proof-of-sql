@@ -1,5 +1,5 @@
 use super::{
-    DeferredG1, DeferredG2, DeferredGT, G2Affine, ProverState, VMVProverState, VerifierState, F,
+    DeferredG1, DeferredG2, DeferredGT, F, G2Affine, ProverState, VMVProverState, VerifierState,
 };
 #[cfg(test)]
 use super::{G1Affine, G1Projective, G2Projective, ProverSetup};

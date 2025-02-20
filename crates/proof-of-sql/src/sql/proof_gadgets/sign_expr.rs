@@ -1,8 +1,9 @@
 use crate::{
     base::{
         bit::{
+            BitDistribution, BitDistrubutionError,
             bit_mask_utils::{is_bit_mask_negative_representation, make_bit_mask},
-            compute_varying_bit_matrix, BitDistribution, BitDistrubutionError,
+            compute_varying_bit_matrix,
         },
         proof::ProofError,
         scalar::{Scalar, ScalarExt},
@@ -169,7 +170,7 @@ mod tests {
     use crate::{
         base::{
             bit::BitDistribution,
-            scalar::{test_scalar::TestScalar, Scalar},
+            scalar::{Scalar, test_scalar::TestScalar},
         },
         sql::proof_gadgets::sign_expr::verify_bit_decomposition,
     };

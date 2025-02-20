@@ -460,7 +460,7 @@ mod test {
     use super::*;
     use crate::base::{
         math::decimal::Precision,
-        scalar::{test_scalar::TestScalar, ScalarExt},
+        scalar::{ScalarExt, test_scalar::TestScalar},
     };
     use alloc::vec;
     use bumpalo::Bump;

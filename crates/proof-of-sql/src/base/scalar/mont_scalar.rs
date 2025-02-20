@@ -361,11 +361,7 @@ impl<T: MontConfig<4>> Display for MontScalar<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let sign = if f.sign_plus() {
             let n = -self;
-            if self > &n {
-                Some(Some(n))
-            } else {
-                Some(None)
-            }
+            if self > &n { Some(Some(n)) } else { Some(None) }
         } else {
             None
         };

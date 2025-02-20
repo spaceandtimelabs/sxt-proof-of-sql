@@ -17,12 +17,12 @@ use nova_snark::{
         },
     },
     traits::{
-        commitment::CommitmentEngineTrait, evaluation::EvaluationEngineTrait, Engine,
-        TranscriptEngineTrait, TranscriptReprTrait,
+        Engine, TranscriptEngineTrait, TranscriptReprTrait, commitment::CommitmentEngineTrait,
+        evaluation::EvaluationEngineTrait,
     },
 };
 use serde::{Deserialize, Serialize};
-use tracing::{span, Level};
+use tracing::{Level, span};
 
 /// The scalar used in the `HyperKZG` PCS. This is the BN254 scalar.
 pub type BNScalar = MontScalar<ark_bn254::FrConfig>;

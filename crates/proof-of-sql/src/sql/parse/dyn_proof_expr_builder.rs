@@ -4,15 +4,15 @@ use crate::{
         database::{ColumnRef, LiteralValue},
         map::IndexMap,
         math::{
+            BigDecimalExt,
             decimal::{DecimalError, Precision},
             i256::I256,
-            BigDecimalExt,
         },
     },
     sql::{
         parse::{
-            dyn_proof_expr_builder::DecimalError::{InvalidPrecision, InvalidScale},
             ConversionError::DecimalConversionError,
+            dyn_proof_expr_builder::DecimalError::{InvalidPrecision, InvalidScale},
         },
         proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
     },

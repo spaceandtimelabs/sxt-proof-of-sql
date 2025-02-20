@@ -7,16 +7,16 @@
 //! ```
 #![allow(missing_docs, clippy::missing_docs_in_private_items)]
 use ark_std::test_rng;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use proof_of_sql::{
     base::{
         commitment::TableCommitment,
         database::{
+            OwnedTable,
             owned_table_utility::{
                 bigint, boolean, decimal75, int, int128, owned_table, scalar, smallint,
                 timestamptz, tinyint, varchar,
             },
-            OwnedTable,
         },
         scalar::Scalar,
     },
@@ -153,13 +153,13 @@ fn gen_rnd_str(array_size: usize) -> Vec<String> {
 /// Generates a random [u64; 4]
 fn generate_random_u64_array() -> [u64; 4] {
     let mut rng = rand::thread_rng();
-    [rng.gen(), rng.gen(), rng.gen(), rng.gen()]
+    [rng.r#gen(), rng.r#gen(), rng.r#gen(), rng.r#gen()]
 }
 
 /// Generates a random vec of true/false
 fn generate_random_boolean_vector(size: usize) -> Vec<bool> {
     let mut rng = rand::thread_rng();
-    (0..size).map(|_| rng.gen()).collect()
+    (0..size).map(|_| rng.r#gen()).collect()
 }
 
 fn bench_append_rows_10x10(c: &mut Criterion) {

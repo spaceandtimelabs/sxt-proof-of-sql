@@ -22,7 +22,7 @@
 //! Note: the `VecCommitmentExt` trait requires using this offset when computing commitments.
 //! This is to allow for updateability of the commitments as well as to allow for smart indexing/partitioning.
 
-use super::{DoryScalar, ProverSetup, GT};
+use super::{DoryScalar, GT, ProverSetup};
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
     impl_serde_for_ark_serde_checked,
@@ -95,7 +95,7 @@ mod tests {
     use super::{DynamicDoryCommitment, GT};
     use crate::base::commitment::Commitment;
     use ark_ff::UniformRand;
-    use rand::{rngs::StdRng, SeedableRng};
+    use rand::{SeedableRng, rngs::StdRng};
 
     #[test]
     fn we_get_different_transcript_bytes_from_different_dynamic_dory_commitments() {

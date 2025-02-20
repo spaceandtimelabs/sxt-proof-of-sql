@@ -4,7 +4,7 @@ use crate::{
         proof::{ProofError, Transcript},
         scalar::Scalar,
     },
-    proof_primitive::sumcheck::{prove_round, ProverState},
+    proof_primitive::sumcheck::{ProverState, prove_round},
     utils::log,
 };
 /*

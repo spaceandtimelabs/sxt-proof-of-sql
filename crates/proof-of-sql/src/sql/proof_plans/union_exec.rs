@@ -1,9 +1,9 @@
-use super::{fold_columns, fold_vals, DynProofPlan};
+use super::{DynProofPlan, fold_columns, fold_vals};
 use crate::{
     base::{
         database::{
-            union_util::table_union, Column, ColumnField, ColumnRef, OwnedTable, Table,
-            TableEvaluation, TableRef,
+            Column, ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef,
+            union_util::table_union,
         },
         map::{IndexMap, IndexSet},
         polynomial::MultilinearExtension,

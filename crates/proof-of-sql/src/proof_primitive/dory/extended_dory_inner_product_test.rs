@@ -1,7 +1,8 @@
 use super::{
+    DoryMessages, ExtendedProverState, G1Affine, GT, PublicParameters,
     extended_dory_inner_product_prove, extended_dory_inner_product_verify,
     extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs, rand_F_tensors,
-    rand_G_vecs, test_rng, DoryMessages, ExtendedProverState, G1Affine, PublicParameters, GT,
+    rand_G_vecs, test_rng,
 };
 use ark_std::UniformRand;
 use merlin::Transcript;

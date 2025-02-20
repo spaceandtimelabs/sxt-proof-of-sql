@@ -2,20 +2,20 @@ use super::test_utility::*;
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, table_utility::*, ColumnField, ColumnType, OwnedTable,
-            OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
+            ColumnField, ColumnType, OwnedTable, OwnedTableTestAccessor, TableRef,
+            TableTestAccessor, TestAccessor, owned_table_utility::*, table_utility::*,
         },
-        map::{indexmap, IndexMap},
+        map::{IndexMap, indexmap},
         math::decimal::Precision,
         proof::ProofError,
         scalar::Curve25519Scalar,
     },
     sql::{
         proof::{
-            exercise_verification, FirstRoundBuilder, ProvableQueryResult, ProverEvaluate,
-            QueryError, VerifiableQueryResult,
+            FirstRoundBuilder, ProvableQueryResult, ProverEvaluate, QueryError,
+            VerifiableQueryResult, exercise_verification,
         },
-        proof_exprs::{test_utility::*, DynProofExpr},
+        proof_exprs::{DynProofExpr, test_utility::*},
     },
 };
 use blitzar::proof::InnerProductProof;

@@ -1,7 +1,7 @@
 use super::{
-    test_rng, DoryScalar, DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+    DoryScalar, DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup, test_rng,
 };
-use crate::base::commitment::{commitment_evaluation_proof_test::*, CommitmentEvaluationProof};
+use crate::base::commitment::{CommitmentEvaluationProof, commitment_evaluation_proof_test::*};
 use ark_std::UniformRand;
 use merlin::Transcript;
 

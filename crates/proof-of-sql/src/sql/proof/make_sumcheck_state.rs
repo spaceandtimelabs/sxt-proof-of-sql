@@ -1,6 +1,6 @@
 use super::{
-    sumcheck_term_optimizer::SumcheckTermOptimizer, SumcheckRandomScalars, SumcheckSubpolynomial,
-    SumcheckSubpolynomialType,
+    SumcheckRandomScalars, SumcheckSubpolynomial, SumcheckSubpolynomialType,
+    sumcheck_term_optimizer::SumcheckTermOptimizer,
 };
 use crate::{
     base::{map::IndexMap, polynomial::MultilinearExtension, scalar::Scalar},

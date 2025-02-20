@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{order_by_util::*, Column, ColumnType, OwnedColumn, TableOperationError},
+        database::{Column, ColumnType, OwnedColumn, TableOperationError, order_by_util::*},
         math::decimal::Precision,
         scalar::test_scalar::TestScalar,
     },

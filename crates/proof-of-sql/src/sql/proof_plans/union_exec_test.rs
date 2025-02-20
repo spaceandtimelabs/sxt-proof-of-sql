@@ -2,16 +2,16 @@ use super::test_utility::*;
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, table_utility::*, ColumnType, OwnedTable,
-            OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
+            ColumnType, OwnedTable, OwnedTableTestAccessor, TableRef, TableTestAccessor,
+            TestAccessor, owned_table_utility::*, table_utility::*,
         },
         map::indexmap,
         scalar::Curve25519Scalar,
     },
     sql::{
         proof::{
-            exercise_verification, FirstRoundBuilder, ProvableQueryResult, ProverEvaluate,
-            VerifiableQueryResult,
+            FirstRoundBuilder, ProvableQueryResult, ProverEvaluate, VerifiableQueryResult,
+            exercise_verification,
         },
         proof_exprs::test_utility::*,
     },

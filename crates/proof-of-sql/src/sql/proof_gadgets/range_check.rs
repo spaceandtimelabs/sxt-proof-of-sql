@@ -30,7 +30,7 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use bytemuck::cast_slice;
 use core::iter::repeat_with;
-use tracing::{span, Level};
+use tracing::{Level, span};
 
 #[tracing::instrument(name = "range check first round evaluate", level = "debug", skip_all)]
 pub(crate) fn first_round_evaluate_range_check<'a, S>(

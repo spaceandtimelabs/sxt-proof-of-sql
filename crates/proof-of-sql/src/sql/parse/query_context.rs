@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{order_by_util::OrderIndexDirectionPairs, ColumnRef, LiteralValue, TableRef},
+        database::{ColumnRef, LiteralValue, TableRef, order_by_util::OrderIndexDirectionPairs},
         map::{IndexMap, IndexSet},
     },
     sql::{

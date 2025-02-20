@@ -1,6 +1,6 @@
 use super::{
-    committable_column::CommittableColumn, AppendColumnCommitmentsError, ColumnCommitments,
-    ColumnCommitmentsMismatch, Commitment, DuplicateIdents,
+    AppendColumnCommitmentsError, ColumnCommitments, ColumnCommitmentsMismatch, Commitment,
+    DuplicateIdents, committable_column::CommittableColumn,
 };
 use crate::base::{
     database::{ColumnField, CommitmentAccessor, OwnedTable, TableRef},
@@ -379,7 +379,7 @@ mod tests {
     use super::*;
     use crate::base::{
         commitment::naive_commitment::NaiveCommitment,
-        database::{owned_table_utility::*, Column, OwnedColumn},
+        database::{Column, OwnedColumn, owned_table_utility::*},
         map::IndexMap,
         scalar::test_scalar::TestScalar,
     };

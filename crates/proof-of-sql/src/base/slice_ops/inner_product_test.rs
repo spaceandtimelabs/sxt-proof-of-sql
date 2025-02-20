@@ -1,5 +1,5 @@
 use super::*;
-use crate::base::scalar::{test_scalar::TestScalar, ScalarExt};
+use crate::base::scalar::{ScalarExt, test_scalar::TestScalar};
 
 #[test]
 fn test_inner_product_with_bytes_basic() {

@@ -1,5 +1,5 @@
 use super::intermediate_ast::{OrderBy, SetExpression, Slice, TableExpression};
-use crate::{sql::SelectStatementParser, Identifier, ParseError, ParseResult, ResourceId};
+use crate::{Identifier, ParseError, ParseResult, ResourceId, sql::SelectStatementParser};
 use alloc::{boxed::Box, string::ToString, vec::Vec};
 use core::{fmt, str::FromStr};
 use serde::{Deserialize, Serialize};
@@ -116,8 +116,8 @@ mod tests {
     }
 
     #[test]
-    fn we_can_get_the_correct_table_references_in_case_the_default_schema_equals_the_original_schema(
-    ) {
+    fn we_can_get_the_correct_table_references_in_case_the_default_schema_equals_the_original_schema()
+     {
         let parsed_query_ast = SelectStatementParser::new()
             .parse("SELECT A FROM SCHEMA.TAB WHERE C = 3")
             .unwrap();
@@ -128,8 +128,8 @@ mod tests {
     }
 
     #[test]
-    fn we_can_get_the_correct_table_references_in_case_the_default_schema_differs_from_the_original_schema(
-    ) {
+    fn we_can_get_the_correct_table_references_in_case_the_default_schema_differs_from_the_original_schema()
+     {
         let parsed_query_ast = SelectStatementParser::new()
             .parse("SELECT A FROM SCHEMA.TAB WHERE C = 3")
             .unwrap();

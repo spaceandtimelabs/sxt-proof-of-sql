@@ -1,4 +1,4 @@
-use super::{G1Affine, F};
+use super::{F, G1Affine};
 use crate::{
     base::{commitment::CommittableColumn, database::ColumnType, if_rayon},
     proof_primitive::{
@@ -20,7 +20,7 @@ use rayon::{
     iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator},
     prelude::{ParallelSlice, ParallelSliceMut},
 };
-use tracing::{span, Level};
+use tracing::{Level, span};
 
 const BYTE_SIZE: u32 = 8;
 
@@ -339,8 +339,8 @@ mod tests {
     }
 
     #[test]
-    fn we_can_populate_blitzar_metadata_tables_with_empty_columns_and_offset_that_does_not_fill_row(
-    ) {
+    fn we_can_populate_blitzar_metadata_tables_with_empty_columns_and_offset_that_does_not_fill_row()
+     {
         let committable_columns = [CommittableColumn::BigInt(&[0; 0])];
 
         let offset = 3;

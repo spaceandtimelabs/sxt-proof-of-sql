@@ -7,7 +7,7 @@
 // Note: the census-income.csv was obtained from
 // https://github.com/domoritz/vis-examples/blob/master/data/census-income.csv
 use arrow::datatypes::SchemaRef;
-use arrow_csv::{infer_schema_from_files, ReaderBuilder};
+use arrow_csv::{ReaderBuilder, infer_schema_from_files};
 use proof_of_sql::{
     base::database::{OwnedTable, OwnedTableTestAccessor, TableRef},
     proof_primitive::dory::{
@@ -17,7 +17,7 @@ use proof_of_sql::{
         parse::QueryExpr, postprocessing::apply_postprocessing_steps, proof::VerifiableQueryResult,
     },
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{SeedableRng, rngs::StdRng};
 use std::{fs::File, time::Instant};
 // We generate the public parameters and the setups used by the prover and verifier for the Dory PCS.
 // The `max_nu` should be set such that the maximum table size is less than `2^(2*max_nu-1)`.

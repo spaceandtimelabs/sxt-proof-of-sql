@@ -1,9 +1,9 @@
 use crate::{
     base::{
-        database::{owned_table_utility::*, OwnedTable},
+        database::{OwnedTable, owned_table_utility::*},
         scalar::Curve25519Scalar,
     },
-    sql::postprocessing::{apply_postprocessing_steps, test_utility::*, OwnedTablePostprocessing},
+    sql::postprocessing::{OwnedTablePostprocessing, apply_postprocessing_steps, test_utility::*},
 };
 use proof_of_sql_parser::utility::*;
 

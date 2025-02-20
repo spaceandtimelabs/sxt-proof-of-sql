@@ -1,9 +1,9 @@
 use crate::base::{
-    encode::{ZigZag, U256},
+    encode::{U256, ZigZag},
     scalar::MontScalar,
 };
 use ark_ff::MontConfig;
-use core::cmp::{max, Ordering};
+use core::cmp::{Ordering, max};
 
 /// This function writes the input scalar x as a varint encoding to buf slice
 ///

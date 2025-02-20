@@ -1,7 +1,7 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{try_multiply_column_types, Column, ColumnRef, ColumnType, Table},
+        database::{Column, ColumnRef, ColumnType, Table, try_multiply_column_types},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,

@@ -1,6 +1,6 @@
 use super::{
-    column_commitment_metadata::ColumnCommitmentMetadataMismatch, ColumnCommitmentMetadata,
-    CommittableColumn,
+    ColumnCommitmentMetadata, CommittableColumn,
+    column_commitment_metadata::ColumnCommitmentMetadataMismatch,
 };
 use crate::base::{database::ColumnField, map::IndexMap};
 use alloc::string::{String, ToString};
@@ -139,8 +139,8 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
 mod tests {
     use super::*;
     use crate::base::{
-        commitment::{column_bounds::Bounds, ColumnBounds},
-        database::{owned_table_utility::*, ColumnType, OwnedTable},
+        commitment::{ColumnBounds, column_bounds::Bounds},
+        database::{ColumnType, OwnedTable, owned_table_utility::*},
         scalar::test_scalar::TestScalar,
     };
     use alloc::vec::Vec;
@@ -375,18 +375,24 @@ mod tests {
         for (metadata_map_a, metadata_map_b) in
             mismatched_metadata_maps.into_iter().tuple_combinations()
         {
-            assert!(metadata_map_a
-                .clone()
-                .try_union(metadata_map_b.clone())
-                .is_err());
-            assert!(metadata_map_b
-                .clone()
-                .try_union(metadata_map_a.clone())
-                .is_err());
-            assert!(metadata_map_a
-                .clone()
-                .try_difference(metadata_map_b.clone())
-                .is_err());
+            assert!(
+                metadata_map_a
+                    .clone()
+                    .try_union(metadata_map_b.clone())
+                    .is_err()
+            );
+            assert!(
+                metadata_map_b
+                    .clone()
+                    .try_union(metadata_map_a.clone())
+                    .is_err()
+            );
+            assert!(
+                metadata_map_a
+                    .clone()
+                    .try_difference(metadata_map_b.clone())
+                    .is_err()
+            );
             assert!(metadata_map_b.try_difference(metadata_map_a).is_err());
         }
     }

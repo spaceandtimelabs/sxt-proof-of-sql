@@ -28,8 +28,8 @@ fn big_scalars_with_small_additive_inverses_are_encoded_as_negative_varints_and_
 }
 
 #[test]
-fn big_scalars_that_are_smaller_than_their_additive_inverses_are_encoded_as_positive_varints_and_consume_many_bytes(
-) {
+fn big_scalars_that_are_smaller_than_their_additive_inverses_are_encoded_as_positive_varints_and_consume_many_bytes()
+ {
     // x = (p - 1) / 10 (p is the ristretto group order)
     // y = -x = (p + 1) / 10
     let val: TestScalar = (&U256::from_words(
@@ -41,8 +41,8 @@ fn big_scalars_that_are_smaller_than_their_additive_inverses_are_encoded_as_posi
 }
 
 #[test]
-fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_encoded_as_negative_varints_and_consume_many_bytes(
-) {
+fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_encoded_as_negative_varints_and_consume_many_bytes()
+ {
     // x = (p + 1) / 10 (p is the ristretto group order)
     // y = -x = (p - 1) / 10
     let val: TestScalar = (&U256::from_words(
@@ -145,8 +145,8 @@ fn big_scalars_with_small_additive_inverses_are_correctly_encoded_and_decoded_as
 }
 
 #[test]
-fn big_scalars_that_are_smaller_than_their_additive_inverses_are_correctly_encoded_and_decoded_as_positive_varints(
-) {
+fn big_scalars_that_are_smaller_than_their_additive_inverses_are_correctly_encoded_and_decoded_as_positive_varints()
+ {
     let mut buf = [0_u8; 38];
 
     // (p - 1) / 2 (p is the ristretto group order)
@@ -164,8 +164,8 @@ fn big_scalars_that_are_smaller_than_their_additive_inverses_are_correctly_encod
 }
 
 #[test]
-fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_correctly_encoded_and_decoded_as_negative_varints(
-) {
+fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_correctly_encoded_and_decoded_as_negative_varints()
+ {
     let mut buf = [0_u8; 38];
 
     // x = (p + 1) / 2 (p is the group order)
@@ -184,8 +184,8 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_correctly_e
 }
 
 #[test]
-fn valid_varint_encoded_input_that_map_to_test_scalars_smaller_than_the_p_field_order_in_the_read_scalar_will_not_wrap_around_p(
-) {
+fn valid_varint_encoded_input_that_map_to_test_scalars_smaller_than_the_p_field_order_in_the_read_scalar_will_not_wrap_around_p()
+ {
     let mut buf = [0b1111_1111_u8; 36];
 
     // 252 bits set is fine (252 bits = 36 * 7 as
@@ -204,8 +204,8 @@ fn valid_varint_encoded_input_that_map_to_test_scalars_smaller_than_the_p_field_
 }
 
 #[test]
-fn valid_varint_encoded_input_that_map_to_test_scalars_bigger_than_the_p_field_order_in_the_read_scalar_will_wrap_around_p(
-) {
+fn valid_varint_encoded_input_that_map_to_test_scalars_bigger_than_the_p_field_order_in_the_read_scalar_will_wrap_around_p()
+ {
     let mut buf = [0b1111_1111_u8; 37];
 
     // we set the first bit to 0 so that we have a positive varint encoding
@@ -244,8 +244,8 @@ fn varint_encoded_values_that_never_ends_will_make_the_read_scalar_to_error_out(
 }
 
 #[test]
-fn valid_varint_encoded_input_that_has_length_bigger_than_259_bits_will_make_the_read_scalar_to_error_out(
-) {
+fn valid_varint_encoded_input_that_has_length_bigger_than_259_bits_will_make_the_read_scalar_to_error_out()
+ {
     let mut buf = [0b1111_1111_u8; 38];
 
     // a varint with 260 bit-length will fail (260 bits = 37 * 7 + 1 as

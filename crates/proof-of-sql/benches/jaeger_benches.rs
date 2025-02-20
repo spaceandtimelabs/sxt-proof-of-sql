@@ -33,7 +33,7 @@ const SIZE: usize = 1_000_000;
 fn main() {
     init_backend();
 
-    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+    use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
     let tracer = opentelemetry_jaeger::new_agent_pipeline()
         .with_service_name("benches")

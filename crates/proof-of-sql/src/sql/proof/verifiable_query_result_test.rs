@@ -5,12 +5,12 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::{bigint, owned_table},
-            table_utility::*,
             ColumnField, ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, Table,
             TableEvaluation, TableRef,
+            owned_table_utility::{bigint, owned_table},
+            table_utility::*,
         },
-        map::{indexset, IndexMap, IndexSet},
+        map::{IndexMap, IndexSet, indexset},
         proof::ProofError,
         scalar::Scalar,
     },

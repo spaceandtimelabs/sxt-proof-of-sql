@@ -1,7 +1,7 @@
 use crate::{
     base::{
         database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
-        map::{indexset, IndexMap, IndexSet},
+        map::{IndexMap, IndexSet, indexset},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -78,8 +78,8 @@ mod tests {
     use super::DemoMockPlan;
     use crate::{
         base::database::{
-            owned_table_utility::{bigint, owned_table},
             ColumnRef, ColumnType, OwnedTableTestAccessor, TableRef,
+            owned_table_utility::{bigint, owned_table},
         },
         sql::proof::VerifiableQueryResult,
     };

@@ -5,7 +5,7 @@ use ark_std::test_rng;
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::commitment::InnerProductProof;
 use proof_of_sql::{
-    base::database::{owned_table_utility::*, OwnedTableTestAccessor, TableRef, TestAccessor},
+    base::database::{OwnedTableTestAccessor, TableRef, TestAccessor, owned_table_utility::*},
     proof_primitive::dory::{
         DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
         PublicParameters, VerifierSetup,

@@ -1,9 +1,9 @@
-use super::{filter_exec::prove_filter, OstensibleFilterExec};
+use super::{OstensibleFilterExec, filter_exec::prove_filter};
 use crate::{
     base::{
         database::{
-            filter_util::*, owned_table_utility::*, Column, OwnedTableTestAccessor, Table,
-            TableOptions, TableRef, TestAccessor,
+            Column, OwnedTableTestAccessor, Table, TableOptions, TableRef, TestAccessor,
+            filter_util::*, owned_table_utility::*,
         },
         map::IndexMap,
         proof::ProofError,
@@ -15,8 +15,8 @@ use crate::{
             VerifiableQueryResult,
         },
         proof_exprs::{
-            test_utility::{cols_expr_plan, column, const_int128, equal, tab},
             ProofExpr,
+            test_utility::{cols_expr_plan, column, const_int128, equal, tab},
         },
     },
     utils::log,

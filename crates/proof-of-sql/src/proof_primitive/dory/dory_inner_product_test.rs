@@ -1,6 +1,6 @@
 use super::{
-    dory_inner_product_prove, dory_inner_product_verify, rand_G_vecs, test_rng, DoryMessages,
-    G1Affine, ProverState, PublicParameters, GT,
+    DoryMessages, G1Affine, GT, ProverState, PublicParameters, dory_inner_product_prove,
+    dory_inner_product_verify, rand_G_vecs, test_rng,
 };
 use ark_std::UniformRand;
 use merlin::Transcript;

@@ -1,8 +1,8 @@
 use crate::base::{
     map::IndexSet,
     scalar::{
-        test_scalar::TestScalar, test_scalar_constants, Curve25519Scalar, Scalar,
-        ScalarConversionError,
+        Curve25519Scalar, Scalar, ScalarConversionError, test_scalar::TestScalar,
+        test_scalar_constants,
     },
 };
 use alloc::{format, string::ToString, vec::Vec};
@@ -10,9 +10,9 @@ use byte_slice_cast::AsByteSlice;
 use num_bigint::BigInt;
 use num_traits::{Inv, One, Zero};
 use rand::{
+    Rng,
     distributions::{Distribution, Uniform},
     rngs::StdRng,
-    Rng,
 };
 use rand_core::SeedableRng;
 

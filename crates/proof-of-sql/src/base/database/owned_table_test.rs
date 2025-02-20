@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
+        database::{OwnedColumn, OwnedTable, OwnedTableError, owned_table_utility::*},
         map::IndexMap,
         scalar::test_scalar::TestScalar,
     },

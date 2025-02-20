@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{join_util::get_multiplicities, Column},
+        database::{Column, join_util::get_multiplicities},
         proof::ProofError,
         scalar::Scalar,
         slice_ops,

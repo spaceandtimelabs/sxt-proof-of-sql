@@ -10,9 +10,9 @@ use arrow::{
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
-use clap::{arg, Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum, arg};
 use commit_accessor::CommitAccessor;
-use csv_accessor::{read_record_batch_from_csv, CsvDataAccessor};
+use csv_accessor::{CsvDataAccessor, read_record_batch_from_csv};
 use itertools::Itertools;
 use proof_of_sql::{
     base::{

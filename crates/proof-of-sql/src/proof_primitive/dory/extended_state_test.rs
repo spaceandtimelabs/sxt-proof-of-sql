@@ -1,9 +1,9 @@
 use super::{
-    rand_F_tensors, rand_G_vecs, test_rng, ExtendedProverState, G1Projective, G2Projective,
-    PublicParameters,
+    ExtendedProverState, G1Projective, G2Projective, PublicParameters, rand_F_tensors, rand_G_vecs,
+    test_rng,
 };
 use crate::base::polynomial::compute_evaluation_vector;
-use ark_ec::{pairing::Pairing, VariableBaseMSM};
+use ark_ec::{VariableBaseMSM, pairing::Pairing};
 use ark_ff::Fp;
 
 #[test]

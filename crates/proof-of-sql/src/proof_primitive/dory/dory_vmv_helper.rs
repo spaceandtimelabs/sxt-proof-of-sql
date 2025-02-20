@@ -1,6 +1,6 @@
 #[cfg(not(feature = "blitzar"))]
 use super::G1Projective;
-use super::{transpose, G1Affine, ProverSetup, F};
+use super::{F, G1Affine, ProverSetup, transpose};
 #[cfg(feature = "blitzar")]
 use crate::base::slice_ops::slice_cast;
 use crate::{base::polynomial::compute_evaluation_vector, utils::log};

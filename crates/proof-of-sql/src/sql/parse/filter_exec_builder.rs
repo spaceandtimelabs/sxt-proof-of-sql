@@ -1,4 +1,4 @@
-use super::{where_expr_builder::WhereExprBuilder, ConversionError, EnrichedExpr};
+use super::{ConversionError, EnrichedExpr, where_expr_builder::WhereExprBuilder};
 use crate::{
     base::{
         database::{ColumnRef, LiteralValue, TableRef},

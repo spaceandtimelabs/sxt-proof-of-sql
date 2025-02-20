@@ -1,20 +1,20 @@
-use super::{test_utility::*, DynProofPlan, ProjectionExec};
+use super::{DynProofPlan, ProjectionExec, test_utility::*};
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, table_utility::*, ColumnField, ColumnRef, ColumnType,
-            OwnedTable, OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
+            ColumnField, ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, TableRef,
+            TableTestAccessor, TestAccessor, owned_table_utility::*, table_utility::*,
         },
-        map::{indexmap, IndexMap, IndexSet},
+        map::{IndexMap, IndexSet, indexmap},
         math::decimal::Precision,
         scalar::Curve25519Scalar,
     },
     sql::{
         proof::{
-            exercise_verification, FirstRoundBuilder, ProofPlan, ProvableQueryResult,
-            ProverEvaluate, VerifiableQueryResult,
+            FirstRoundBuilder, ProofPlan, ProvableQueryResult, ProverEvaluate,
+            VerifiableQueryResult, exercise_verification,
         },
-        proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr, TableExpr},
+        proof_exprs::{ColumnExpr, DynProofExpr, TableExpr, test_utility::*},
     },
 };
 use blitzar::proof::InnerProductProof;
@@ -197,8 +197,8 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_fi
 }
 
 #[test]
-fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_first_round_evaluate(
-) {
+fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_first_round_evaluate()
+ {
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint("a", [1, 4, 5, 2, 5], &alloc),

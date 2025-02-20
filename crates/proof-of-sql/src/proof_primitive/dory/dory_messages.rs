@@ -1,4 +1,4 @@
-use super::{DoryScalar, G1Affine, G2Affine, F, GT};
+use super::{DoryScalar, F, G1Affine, G2Affine, GT};
 use crate::base::{impl_serde_for_ark_serde_checked, proof::Transcript};
 use alloc::vec::Vec;
 use ark_ff::Field;

@@ -1,6 +1,7 @@
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::{
+        ColumnType, OwnedColumn,
         slice_decimal_operation::{
             try_add_decimal_columns, try_divide_decimal_columns, try_multiply_decimal_columns,
             try_subtract_decimal_columns,
@@ -9,7 +10,6 @@ use crate::base::{
             try_add, try_div, try_mul, try_slice_binary_op, try_slice_binary_op_left_upcast,
             try_slice_binary_op_right_upcast, try_sub,
         },
-        ColumnType, OwnedColumn,
     },
     math::decimal::Precision,
     scalar::Scalar,

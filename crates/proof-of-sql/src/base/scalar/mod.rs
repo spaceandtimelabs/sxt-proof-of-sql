@@ -15,6 +15,6 @@ pub mod test_scalar;
 mod test_scalar_test;
 
 mod scalar_ext;
+pub use scalar_ext::ScalarExt;
 #[cfg(test)]
 pub(crate) use scalar_ext::test_scalar_constants;
-pub use scalar_ext::ScalarExt;

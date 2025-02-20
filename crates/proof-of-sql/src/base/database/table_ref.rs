@@ -6,7 +6,7 @@ use core::{
     str::FromStr,
 };
 use indexmap::Equivalent;
-use proof_of_sql_parser::{impl_serde_from_str, ResourceId};
+use proof_of_sql_parser::{ResourceId, impl_serde_from_str};
 use sqlparser::ast::Ident;
 
 /// Expression for an SQL table

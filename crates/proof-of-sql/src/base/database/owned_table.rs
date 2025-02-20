@@ -196,8 +196,8 @@ mod tests {
     use super::OwnedTable;
     use crate::base::{
         database::{
-            owned_table_utility::*, table_utility::*, ColumnCoercionError, Table,
-            TableCoercionError, TableOptions,
+            ColumnCoercionError, Table, TableCoercionError, TableOptions, owned_table_utility::*,
+            table_utility::*,
         },
         map::indexmap,
         scalar::test_scalar::TestScalar,

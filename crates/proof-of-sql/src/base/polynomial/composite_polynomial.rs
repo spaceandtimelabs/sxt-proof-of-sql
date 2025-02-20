@@ -60,14 +60,17 @@ impl<S: Scalar> CompositePolynomial<S> {
         self.max_multiplicands = max(self.max_multiplicands, product.len());
         for m in product {
             let m_ptr: *const Vec<S> = Rc::as_ptr(&m);
-            match self.raw_pointers_lookup_table.get(&m_ptr) { Some(index) => {
-                indexed_product.push(*index);
-            } _ => {
-                let curr_index = self.flattened_ml_extensions.len();
-                self.flattened_ml_extensions.push(m.clone());
-                self.raw_pointers_lookup_table.insert(m_ptr, curr_index);
-                indexed_product.push(curr_index);
-            }}
+            match self.raw_pointers_lookup_table.get(&m_ptr) {
+                Some(index) => {
+                    indexed_product.push(*index);
+                }
+                _ => {
+                    let curr_index = self.flattened_ml_extensions.len();
+                    self.flattened_ml_extensions.push(m.clone());
+                    self.raw_pointers_lookup_table.insert(m_ptr, curr_index);
+                    indexed_product.push(curr_index);
+                }
+            }
         }
         self.products.push((coefficient, indexed_product));
     }

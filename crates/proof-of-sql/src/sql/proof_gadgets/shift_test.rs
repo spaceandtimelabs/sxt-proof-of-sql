@@ -6,7 +6,7 @@ use crate::{
         database::{
             ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
         },
-        map::{indexset, IndexMap, IndexSet},
+        map::{IndexMap, IndexSet, indexset},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -135,7 +135,7 @@ impl ProofPlan for ShiftTestPlan {
 mod tests {
     use super::*;
     use crate::{
-        base::database::{table_utility::*, ColumnType, TableTestAccessor, TestAccessor},
+        base::database::{ColumnType, TableTestAccessor, TestAccessor, table_utility::*},
         sql::proof::VerifiableQueryResult,
     };
     use blitzar::proof::InnerProductProof;

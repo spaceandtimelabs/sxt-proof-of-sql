@@ -2,11 +2,11 @@ use super::test_utility::*;
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, OwnedTableTestAccessor, TableRef, TestAccessor},
+        database::{OwnedTableTestAccessor, TableRef, TestAccessor, owned_table_utility::*},
         scalar::Curve25519Scalar,
     },
     sql::{
-        proof::{exercise_verification, VerifiableQueryResult},
+        proof::{VerifiableQueryResult, exercise_verification},
         proof_exprs::test_utility::*,
     },
 };

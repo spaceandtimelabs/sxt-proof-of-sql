@@ -451,8 +451,8 @@ mod tests {
     }
 
     #[test]
-    fn buffers_with_the_first_sizeof_usize_bytes_with_value_bigger_than_the_buffer_size_will_fail_to_decode(
-    ) {
+    fn buffers_with_the_first_sizeof_usize_bytes_with_value_bigger_than_the_buffer_size_will_fail_to_decode()
+     {
         let value = &[43_u8, 27_u8, 1_u8][..];
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
@@ -468,8 +468,8 @@ mod tests {
     }
 
     #[test]
-    fn buffers_with_the_first_sizeof_usize_bytes_with_value_smaller_than_the_buffer_size_will_not_fail_to_decode(
-    ) {
+    fn buffers_with_the_first_sizeof_usize_bytes_with_value_smaller_than_the_buffer_size_will_not_fail_to_decode()
+     {
         let value = &[43_u8, 27_u8, 1_u8][..];
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);

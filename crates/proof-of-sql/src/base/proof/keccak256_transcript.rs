@@ -1,4 +1,4 @@
-use super::{transcript_core::TranscriptCore, Transcript};
+use super::{Transcript, transcript_core::TranscriptCore};
 use core::mem::replace;
 use tiny_keccak::{Hasher, Keccak};
 

@@ -1,6 +1,7 @@
 use super::{
+    DynamicDoryCommitment, G1Affine, ProverSetup,
     blitzar_metadata_table::{create_blitzar_metadata_tables, signed_commits},
-    pairings, DynamicDoryCommitment, G1Affine, ProverSetup,
+    pairings,
 };
 use crate::{
     base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast},
@@ -10,7 +11,7 @@ use crate::{
 use blitzar::compute::ElementP2;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use tracing::{span, Level};
+use tracing::{Level, span};
 
 /// Computes the dynamic Dory commitment using the GPU implementation of the `vlen_msm` algorithm.
 ///

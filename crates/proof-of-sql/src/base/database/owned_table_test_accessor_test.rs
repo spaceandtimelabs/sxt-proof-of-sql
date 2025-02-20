@@ -4,10 +4,10 @@ use super::{
 };
 use crate::base::{
     commitment::{
-        naive_commitment::NaiveCommitment, naive_evaluation_proof::NaiveEvaluationProof,
-        Commitment, CommittableColumn,
+        Commitment, CommittableColumn, naive_commitment::NaiveCommitment,
+        naive_evaluation_proof::NaiveEvaluationProof,
     },
-    database::{owned_table_utility::*, TableRef},
+    database::{TableRef, owned_table_utility::*},
     scalar::test_scalar::TestScalar,
 };
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
@@ -183,9 +183,11 @@ fn we_can_access_the_type_of_table_columns() {
     );
 
     let column = ColumnRef::new(table_ref_1.clone(), "c".into(), ColumnType::BigInt);
-    assert!(accessor
-        .lookup_column(column.table_ref(), column.column_id())
-        .is_none());
+    assert!(
+        accessor
+            .lookup_column(column.table_ref(), column.column_id())
+            .is_none()
+    );
 
     let data2 = owned_table([bigint("a", [1, 2, 3, 4]), bigint("b", [4, 5, 6, 5])]);
     accessor.add_table(table_ref_2.clone(), data2, 0_usize);
@@ -203,9 +205,11 @@ fn we_can_access_the_type_of_table_columns() {
     );
 
     let column = ColumnRef::new(table_ref_2.clone(), "c".into(), ColumnType::BigInt);
-    assert!(accessor
-        .lookup_column(column.table_ref(), column.column_id())
-        .is_none());
+    assert!(
+        accessor
+            .lookup_column(column.table_ref(), column.column_id())
+            .is_none()
+    );
 }
 
 #[test]

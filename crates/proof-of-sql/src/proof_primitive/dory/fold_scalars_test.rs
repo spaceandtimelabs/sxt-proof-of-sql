@@ -1,7 +1,7 @@
 use super::{
+    DoryMessages, ExtendedProverState, PublicParameters,
     extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs, fold_scalars_0_prove,
-    fold_scalars_0_verify, rand_F_tensors, rand_G_vecs, test_rng, DoryMessages,
-    ExtendedProverState, PublicParameters,
+    fold_scalars_0_verify, rand_F_tensors, rand_G_vecs, test_rng,
 };
 use merlin::Transcript;
 

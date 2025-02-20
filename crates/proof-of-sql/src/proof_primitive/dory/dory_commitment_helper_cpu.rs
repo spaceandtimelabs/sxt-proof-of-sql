@@ -1,4 +1,4 @@
-use super::{pairings, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Projective};
+use super::{DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Projective, pairings};
 use crate::{base::commitment::CommittableColumn, utils::log};
 use alloc::vec::Vec;
 use ark_ec::VariableBaseMSM;

@@ -1,6 +1,6 @@
 use crate::base::{
-    database::{table_utility::*, Column, Table, TableError, TableOptions},
-    map::{indexmap, IndexMap},
+    database::{Column, Table, TableError, TableOptions, table_utility::*},
+    map::{IndexMap, indexmap},
     scalar::test_scalar::TestScalar,
 };
 use bumpalo::Bump;

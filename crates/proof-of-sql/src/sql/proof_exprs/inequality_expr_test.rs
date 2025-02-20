@@ -2,20 +2,20 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, LiteralValue, OwnedTable,
-            OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
+            Column, LiteralValue, OwnedTable, OwnedTableTestAccessor, TableRef, TableTestAccessor,
+            TestAccessor, owned_table_utility::*, table_utility::*,
         },
         scalar::{Curve25519Scalar, Scalar, ScalarExt},
     },
     sql::{
         parse::ConversionError,
-        proof::{exercise_verification, VerifiableQueryResult},
-        proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
+        proof::{VerifiableQueryResult, exercise_verification},
+        proof_exprs::{DynProofExpr, ProofExpr, test_utility::*},
         proof_plans::test_utility::*,
     },
 };
 use bumpalo::Bump;
-use itertools::{multizip, MultiUnzip};
+use itertools::{MultiUnzip, multizip};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::{
     distributions::{Distribution, Uniform},

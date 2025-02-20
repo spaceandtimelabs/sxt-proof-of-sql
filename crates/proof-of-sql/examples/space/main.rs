@@ -8,7 +8,7 @@
 // https://www.kaggle.com/datasets/kaushiksinghrawat/humans-to-have-visited-space
 // under the Apache 2.0 license.
 use arrow::datatypes::SchemaRef;
-use arrow_csv::{infer_schema_from_files, ReaderBuilder};
+use arrow_csv::{ReaderBuilder, infer_schema_from_files};
 use proof_of_sql::{
     base::database::{OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor},
     proof_primitive::dory::{
@@ -18,7 +18,7 @@ use proof_of_sql::{
         parse::QueryExpr, postprocessing::apply_postprocessing_steps, proof::VerifiableQueryResult,
     },
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{SeedableRng, rngs::StdRng};
 use std::{fs::File, time::Instant};
 
 // We generate the public parameters and the setups used by the prover and verifier for the Dory PCS.

@@ -103,11 +103,11 @@ mod tests {
             database::{Column, OwnedColumn},
             scalar::test_scalar_constants,
         },
-        proof_primitive::dory::{rand_util::test_rng, ProverSetup, PublicParameters},
+        proof_primitive::dory::{ProverSetup, PublicParameters, rand_util::test_rng},
     };
     use ark_ec::pairing::Pairing;
     use ark_ff::UniformRand;
-    use rand::{rngs::StdRng, SeedableRng};
+    use rand::{SeedableRng, rngs::StdRng};
 
     #[test]
     fn we_have_correct_constants_for_dory_scalar() {

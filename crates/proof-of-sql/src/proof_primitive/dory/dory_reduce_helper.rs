@@ -1,6 +1,6 @@
 use super::{
+    DeferredGT, F, GT, ProverSetup, ProverState, VerifierSetup, VerifierState,
     pairings::{multi_pairing_2, multi_pairing_4},
-    DeferredGT, ProverSetup, ProverState, VerifierSetup, VerifierState, F, GT,
 };
 use crate::{base::if_rayon, utils::log};
 #[cfg(feature = "rayon")]

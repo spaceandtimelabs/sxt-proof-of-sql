@@ -85,13 +85,16 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
         let mut deduplicated_terms = Vec::with_capacity(terms.len());
         for term in terms {
             let id = term.id();
-            match self.mles.get(&id) { Some(cached_term) => {
-                deduplicated_terms.push(cached_term.clone());
-            } _ => {
-                let new_term = term.to_sumcheck_term(self.num_sumcheck_variables);
-                self.mles.insert(id, new_term.clone().into());
-                deduplicated_terms.push(new_term.into());
-            }}
+            match self.mles.get(&id) {
+                Some(cached_term) => {
+                    deduplicated_terms.push(cached_term.clone());
+                }
+                _ => {
+                    let new_term = term.to_sumcheck_term(self.num_sumcheck_variables);
+                    self.mles.insert(id, new_term.clone().into());
+                    deduplicated_terms.push(new_term.into());
+                }
+            }
         }
         deduplicated_terms
     }

@@ -10,7 +10,7 @@ mod benchmark_accessor;
 use benchmark_accessor::BenchmarkAccessor;
 pub mod queries;
 mod random_util;
-use random_util::{generate_random_columns, OptionalRandBound};
+use random_util::{OptionalRandBound, generate_random_columns};
 /// # Panics
 ///
 /// Will panic if:

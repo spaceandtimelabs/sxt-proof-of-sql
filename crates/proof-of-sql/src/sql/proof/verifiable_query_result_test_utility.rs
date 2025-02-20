@@ -1,7 +1,7 @@
 use super::{ProofPlan, VerifiableQueryResult};
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
-    database::{owned_table_utility::*, OwnedColumn, OwnedTable, TableRef, TestAccessor},
+    database::{OwnedColumn, OwnedTable, TableRef, TestAccessor, owned_table_utility::*},
     scalar::{Curve25519Scalar, Scalar},
 };
 use blitzar::proof::InnerProductProof;

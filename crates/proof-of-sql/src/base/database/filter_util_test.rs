@@ -1,5 +1,5 @@
 use crate::base::{
-    database::{filter_util::*, Column},
+    database::{Column, filter_util::*},
     math::decimal::Precision,
     scalar::test_scalar::TestScalar,
 };

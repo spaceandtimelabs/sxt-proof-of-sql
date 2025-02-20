@@ -1,6 +1,6 @@
 use super::{
+    DeferredG1, DeferredG2, F, G1Affine, G1Projective, G2Affine, G2Projective, ProverSetup,
     extended_state::{ExtendedProverState, ExtendedVerifierState},
-    DeferredG1, DeferredG2, G1Affine, G1Projective, G2Affine, G2Projective, ProverSetup, F,
 };
 use crate::utils::log;
 use ark_ec::VariableBaseMSM;

@@ -1,7 +1,7 @@
 use super::bit_mask_utils::make_bit_mask;
 use crate::base::{
     bit::bit_mask_utils::is_bit_mask_negative_representation,
-    scalar::{test_scalar::TestScalar, Scalar},
+    scalar::{Scalar, test_scalar::TestScalar},
 };
 use bnum::types::U256;
 use core::ops::Shl;

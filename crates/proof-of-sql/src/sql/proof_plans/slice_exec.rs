@@ -1,12 +1,12 @@
 use super::{
-    filter_exec::{prove_filter, verify_filter},
     DynProofPlan,
+    filter_exec::{prove_filter, verify_filter},
 };
 use crate::{
     base::{
         database::{
-            filter_util::filter_columns, ColumnField, ColumnRef, OwnedTable, Table,
-            TableEvaluation, TableOptions, TableRef,
+            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
+            filter_util::filter_columns,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,

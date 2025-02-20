@@ -22,17 +22,17 @@ use crate::base::{
 use alloc::sync::Arc;
 use arrow::{
     array::{
-        ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array, Int16Array,
-        Int32Array, Int64Array, Int8Array, StringArray, TimestampMicrosecondArray,
+        ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array, Int8Array,
+        Int16Array, Int32Array, Int64Array, StringArray, TimestampMicrosecondArray,
         TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray, UInt8Array,
     },
-    datatypes::{i256, DataType, Schema, SchemaRef, TimeUnit as ArrowTimeUnit},
+    datatypes::{DataType, Schema, SchemaRef, TimeUnit as ArrowTimeUnit, i256},
     error::ArrowError,
     record_batch::RecordBatch,
 };
 use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
     ParseError,
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
 };
 use snafu::Snafu;
 use sqlparser::ast::Ident;

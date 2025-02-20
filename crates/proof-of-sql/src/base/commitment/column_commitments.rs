@@ -1,6 +1,6 @@
 use super::{
-    committable_column::CommittableColumn, ColumnCommitmentMetadata, ColumnCommitmentMetadataMap,
-    ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch, Commitment, VecCommitmentExt,
+    ColumnCommitmentMetadata, ColumnCommitmentMetadataMap, ColumnCommitmentMetadataMapExt,
+    ColumnCommitmentsMismatch, Commitment, VecCommitmentExt, committable_column::CommittableColumn,
 };
 use crate::base::{
     database::{ColumnField, ColumnRef, CommitmentAccessor, TableRef},
@@ -355,8 +355,8 @@ impl<C> FromIterator<(Ident, ColumnCommitmentMetadata, C)> for ColumnCommitments
 mod tests {
     use super::*;
     use crate::base::{
-        commitment::{column_bounds::Bounds, naive_commitment::NaiveCommitment, ColumnBounds},
-        database::{owned_table_utility::*, ColumnType, OwnedColumn, OwnedTable},
+        commitment::{ColumnBounds, column_bounds::Bounds, naive_commitment::NaiveCommitment},
+        database::{ColumnType, OwnedColumn, OwnedTable, owned_table_utility::*},
         scalar::test_scalar::TestScalar,
     };
 

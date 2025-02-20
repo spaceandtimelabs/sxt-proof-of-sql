@@ -1,6 +1,6 @@
 use super::{
-    pairings, DeferredG2, DoryMessages, ExtendedProverState, ExtendedVerifierState, G1Projective,
-    ProverSetup, VMVProverState, VMVVerifierState, VerifierSetup,
+    DeferredG2, DoryMessages, ExtendedProverState, ExtendedVerifierState, G1Projective,
+    ProverSetup, VMVProverState, VMVVerifierState, VerifierSetup, pairings,
 };
 use crate::{
     base::{if_rayon, proof::Transcript},

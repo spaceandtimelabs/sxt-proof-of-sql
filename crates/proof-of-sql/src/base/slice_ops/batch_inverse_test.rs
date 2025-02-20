@@ -56,8 +56,8 @@ fn we_can_pseudo_invert_arrays_of_length_bigger_than_1_with_zeros_and_non_zeros(
 }
 
 #[test]
-fn we_can_pseudo_invert_arrays_with_nonzero_count_bigger_than_min_chunking_size_with_zeros_and_non_zeros(
-) {
+fn we_can_pseudo_invert_arrays_with_nonzero_count_bigger_than_min_chunking_size_with_zeros_and_non_zeros()
+ {
     let input: Vec<_> = vec![
         TestScalar::from(0_u32),
         TestScalar::from(2_u32),
@@ -87,8 +87,8 @@ fn we_can_pseudo_invert_arrays_with_nonzero_count_bigger_than_min_chunking_size_
 }
 
 #[test]
-fn we_can_pseudo_invert_arrays_with_nonzero_count_smaller_than_min_chunking_size_with_zeros_and_non_zeros(
-) {
+fn we_can_pseudo_invert_arrays_with_nonzero_count_smaller_than_min_chunking_size_with_zeros_and_non_zeros()
+ {
     let input: Vec<_> = vec![
         TestScalar::from(0_u32),
         TestScalar::from(2_u32),

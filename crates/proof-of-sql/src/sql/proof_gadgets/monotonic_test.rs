@@ -8,7 +8,7 @@ use crate::{
         database::{
             ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
         },
-        map::{indexset, IndexMap, IndexSet},
+        map::{IndexMap, IndexSet, indexset},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -111,7 +111,7 @@ mod tests {
     use super::*;
     use crate::{
         base::{
-            database::{table_utility::*, ColumnType, TableTestAccessor},
+            database::{ColumnType, TableTestAccessor, table_utility::*},
             math::decimal::Precision,
             scalar::Curve25519Scalar,
         },

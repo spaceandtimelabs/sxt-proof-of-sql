@@ -2,13 +2,13 @@ use super::ConversionError;
 use crate::{
     base::{
         database::{ColumnType, TableRef, TestSchemaAccessor},
-        map::{indexmap, IndexMap, IndexSet},
+        map::{IndexMap, IndexSet, indexmap},
     },
     sql::{
         parse::QueryExpr,
-        postprocessing::{test_utility::*, PostprocessingError},
+        postprocessing::{PostprocessingError, test_utility::*},
         proof_exprs::test_utility::*,
-        proof_plans::{test_utility::*, DynProofPlan},
+        proof_plans::{DynProofPlan, test_utility::*},
     },
 };
 use itertools::Itertools;
@@ -42,12 +42,14 @@ fn query_to_provable_ast(
 
 fn invalid_query_to_provable_ast(table: &TableRef, query: &str, accessor: &TestSchemaAccessor) {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
-    assert!(QueryExpr::try_new(
-        intermediate_ast,
-        table.schema_id().cloned().unwrap(),
-        accessor
-    )
-    .is_err());
+    assert!(
+        QueryExpr::try_new(
+            intermediate_ast,
+            table.schema_id().cloned().unwrap(),
+            accessor
+        )
+        .is_err()
+    );
 }
 
 #[cfg(test)]
@@ -672,8 +674,8 @@ fn we_can_parse_order_by_with_multiple_columns() {
 }
 
 #[test]
-fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_name_equals_column_a_also_renamed(
-) {
+fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_name_equals_column_a_also_renamed()
+ {
     let t = TableRef::new("sxt", "sxt_tab");
     let accessor = schema_accessor_from_table_ref_with_schema(
         &t,
@@ -773,8 +775,8 @@ fn we_cannot_parse_order_by_referencing_an_alias_name_associated_with_two_differ
 }
 
 #[test]
-fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_once_and_with_different_alias_name(
-) {
+fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_once_and_with_different_alias_name()
+ {
     let t = TableRef::new("sxt", "sxt_tab");
     let accessor = schema_accessor_from_table_ref_with_schema(
         &t,
@@ -918,8 +920,8 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
 // Composition Expressions
 ///////////////////////////
 #[test]
-fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_where_expr_and_order_by(
-) {
+fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_where_expr_and_order_by()
+ {
     let t = TableRef::new("sxt", "sxt_tab");
     let accessor = schema_accessor_from_table_ref_with_schema(
         &t,
@@ -1116,8 +1118,7 @@ fn we_can_group_by_without_using_aggregate_functions() {
 
 #[test]
 fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_alias_result() {
-    let query_text =
-        "select max(salary) max_sal, department_budget d, count(department_budget) from sxt.employees group by department_budget, tax order by max_sal";
+    let query_text = "select max(salary) max_sal, department_budget d, count(department_budget) from sxt.employees group by department_budget, tax order by max_sal";
 
     let t = TableRef::new("sxt", "employees");
     let accessor = schema_accessor_from_table_ref_with_schema(
@@ -1486,8 +1487,8 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
 }
 
 #[test]
-fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_precedence_in_the_result_expr(
-) {
+fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_precedence_in_the_result_expr()
+ {
     let t = TableRef::new("sxt", "employees");
     let accessor = schema_accessor_from_table_ref_with_schema(
         &t,

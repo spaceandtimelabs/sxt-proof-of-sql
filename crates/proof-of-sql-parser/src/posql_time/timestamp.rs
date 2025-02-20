@@ -1,6 +1,6 @@
 use super::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use alloc::{format, string::ToString};
-use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc, offset::LocalResult};
 use core::hash::Hash;
 use serde::{Deserialize, Serialize};
 
@@ -133,9 +133,11 @@ impl PoSQLTimestamp {
                 timeunit: PoSQLTimeUnit::Second,
                 timezone: PoSQLTimeZone::utc(),
             }),
-            LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous{ error:
-                format!("The local time is ambiguous because there is a fold in the local time: earliest: {earliest} latest: {latest} "),
-        }),
+            LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous {
+                error: format!(
+                    "The local time is ambiguous because there is a fold in the local time: earliest: {earliest} latest: {latest} "
+                ),
+            }),
             LocalResult::None => Err(PoSQLTimestampError::LocalTimeDoesNotExist),
         }
     }

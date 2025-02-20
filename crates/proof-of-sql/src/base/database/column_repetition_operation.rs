@@ -1,6 +1,6 @@
 use super::{
-    slice_operation::{repeat_elementwise, repeat_slice},
     Column, ColumnType,
+    slice_operation::{repeat_elementwise, repeat_slice},
 };
 use crate::base::scalar::Scalar;
 use bumpalo::Bump;

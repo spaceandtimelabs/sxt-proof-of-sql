@@ -1,4 +1,4 @@
-use super::{test_rng, DoryMessages, G1Affine, G2Affine, F, GT};
+use super::{DoryMessages, F, G1Affine, G2Affine, GT, test_rng};
 use ark_std::UniformRand;
 use merlin::Transcript;
 

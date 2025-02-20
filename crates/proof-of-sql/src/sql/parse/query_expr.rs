@@ -11,7 +11,7 @@ use crate::{
     },
 };
 use alloc::{fmt, vec, vec::Vec};
-use proof_of_sql_parser::{intermediate_ast::SetExpression, SelectStatement};
+use proof_of_sql_parser::{SelectStatement, intermediate_ast::SetExpression};
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::Ident;
 
@@ -82,50 +82,51 @@ impl QueryExpr {
             ));
         }
         if context.has_agg() {
-            match Option::<GroupByExec>::try_from(&context)? { Some(group_by_expr) => {
-                Ok(Self {
+            match Option::<GroupByExec>::try_from(&context)? {
+                Some(group_by_expr) => Ok(Self {
                     proof_expr: DynProofPlan::GroupBy(group_by_expr),
                     postprocessing,
-                })
-            } _ => {
-                let raw_enriched_exprs = result_aliased_exprs
-                    .iter()
-                    .map(|aliased_expr| EnrichedExpr {
-                        residue_expression: aliased_expr.clone(),
-                        dyn_proof_expr: None,
-                    })
-                    .collect::<Vec<_>>();
-                let filter = FilterExecBuilder::new(context.get_column_mapping())
-                    .add_table_expr(context.get_table_ref().clone())
-                    .add_where_expr(context.get_where_expr().clone())?
-                    .add_result_columns(&raw_enriched_exprs)
-                    .build();
+                }),
+                _ => {
+                    let raw_enriched_exprs = result_aliased_exprs
+                        .iter()
+                        .map(|aliased_expr| EnrichedExpr {
+                            residue_expression: aliased_expr.clone(),
+                            dyn_proof_expr: None,
+                        })
+                        .collect::<Vec<_>>();
+                    let filter = FilterExecBuilder::new(context.get_column_mapping())
+                        .add_table_expr(context.get_table_ref().clone())
+                        .add_where_expr(context.get_where_expr().clone())?
+                        .add_result_columns(&raw_enriched_exprs)
+                        .build();
 
-                let group_by_postprocessing =
-                    GroupByPostprocessing::try_new(group_by.to_vec(), result_aliased_exprs)?;
-                postprocessing.insert(
-                    0,
-                    OwnedTablePostprocessing::new_group_by(group_by_postprocessing.clone()),
-                );
-                let remainder_exprs = group_by_postprocessing.remainder_exprs();
-                // Check whether we need to do select postprocessing.
-                // That is, if any of them is not simply a column reference.
-                if remainder_exprs
-                    .iter()
-                    .any(|expr| expr.try_as_identifier().is_none())
-                {
+                    let group_by_postprocessing =
+                        GroupByPostprocessing::try_new(group_by.to_vec(), result_aliased_exprs)?;
                     postprocessing.insert(
-                        1,
-                        OwnedTablePostprocessing::new_select(SelectPostprocessing::new(
-                            remainder_exprs.to_vec(),
-                        )),
+                        0,
+                        OwnedTablePostprocessing::new_group_by(group_by_postprocessing.clone()),
                     );
+                    let remainder_exprs = group_by_postprocessing.remainder_exprs();
+                    // Check whether we need to do select postprocessing.
+                    // That is, if any of them is not simply a column reference.
+                    if remainder_exprs
+                        .iter()
+                        .any(|expr| expr.try_as_identifier().is_none())
+                    {
+                        postprocessing.insert(
+                            1,
+                            OwnedTablePostprocessing::new_select(SelectPostprocessing::new(
+                                remainder_exprs.to_vec(),
+                            )),
+                        );
+                    }
+                    Ok(Self {
+                        proof_expr: DynProofPlan::Filter(filter),
+                        postprocessing,
+                    })
                 }
-                Ok(Self {
-                    proof_expr: DynProofPlan::Filter(filter),
-                    postprocessing,
-                })
-            }}
+            }
         } else {
             // No group by, so we need to do a filter.
             let column_mapping = context.get_column_mapping();

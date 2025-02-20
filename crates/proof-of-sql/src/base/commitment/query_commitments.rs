@@ -134,16 +134,16 @@ mod tests {
     use super::*;
     use crate::{
         base::{
-            commitment::{naive_commitment::NaiveCommitment, Bounds, ColumnBounds},
+            commitment::{Bounds, ColumnBounds, naive_commitment::NaiveCommitment},
             database::{
-                owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableTestAccessor,
-                TestAccessor,
+                OwnedColumn, OwnedTable, OwnedTableTestAccessor, TestAccessor,
+                owned_table_utility::*,
             },
             scalar::test_scalar::TestScalar,
         },
         proof_primitive::dory::{
-            test_rng, DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup,
-            PublicParameters,
+            DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup,
+            PublicParameters, test_rng,
         },
     };
 

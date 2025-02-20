@@ -58,7 +58,7 @@ pub(crate) use verifiable_query_result_test_utility::exercise_verification;
 
 mod result_element_serialization;
 pub(crate) use result_element_serialization::{
-    decode_and_convert, decode_multiple_elements, ProvableResultElement,
+    ProvableResultElement, decode_and_convert, decode_multiple_elements,
 };
 
 mod first_round_builder;

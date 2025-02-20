@@ -261,8 +261,8 @@ fn compute_truncated_lagrange_basis_inner_product_gives_correct_values_with_3_va
 }
 
 #[test]
-fn compute_truncated_lagrange_basis_inner_product_gives_correct_values_with_3_variables_using_dalek_scalar(
-) {
+fn compute_truncated_lagrange_basis_inner_product_gives_correct_values_with_3_variables_using_dalek_scalar()
+ {
     let a = vec![
         TestScalar::from(2u8),
         TestScalar::from(5u8),
@@ -354,9 +354,9 @@ fn compute_truncated_lagrange_basis_inner_product_gives_correct_values_with_3_va
 #[test]
 fn compute_truncated_lagrange_basis_sum_matches_sum_of_result_from_compute_evaluation_vector() {
     use ark_std::rand::{
+        SeedableRng,
         distributions::{Distribution, Uniform},
         rngs::StdRng,
-        SeedableRng,
     };
 
     let mut rng = StdRng::from_seed([0u8; 32]);
@@ -379,12 +379,12 @@ fn compute_truncated_lagrange_basis_sum_matches_sum_of_result_from_compute_evalu
 }
 
 #[test]
-fn compute_truncated_lagrange_basis_inner_product_matches_inner_product_of_results_compute_evaluation_vector(
-) {
+fn compute_truncated_lagrange_basis_inner_product_matches_inner_product_of_results_compute_evaluation_vector()
+ {
     use ark_std::rand::{
+        SeedableRng,
         distributions::{Distribution, Uniform},
         rngs::StdRng,
-        SeedableRng,
     };
 
     let mut rng = StdRng::from_seed([0u8; 32]);

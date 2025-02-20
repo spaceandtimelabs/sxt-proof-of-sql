@@ -1,4 +1,4 @@
-use super::{pack_scalars, pairings, DoryCommitment, DoryProverPublicSetup, G1Affine};
+use super::{DoryCommitment, DoryProverPublicSetup, G1Affine, pack_scalars, pairings};
 use crate::{
     base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast},
     utils::log,
@@ -6,7 +6,7 @@ use crate::{
 use blitzar::compute::ElementP2;
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
-use tracing::{span, Level};
+use tracing::{Level, span};
 
 #[tracing::instrument(
     name = "compute_dory_commitments_packed_impl (gpu)",

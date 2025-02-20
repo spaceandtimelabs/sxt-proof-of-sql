@@ -3,7 +3,7 @@ use crate::base::scalar::Scalar;
 use alloc::vec::Vec;
 #[cfg(feature = "blitzar")]
 pub use blitzar::{
-    compute::{init_backend, init_backend_with_config, BackendConfig},
+    compute::{BackendConfig, init_backend, init_backend_with_config},
     proof::InnerProductProof,
 };
 use core::ops::{AddAssign, SubAssign};

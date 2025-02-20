@@ -1,5 +1,5 @@
 #![allow(unused_variables)]
-use super::{pairings, DoryMessages, ProverState, VerifierSetup, VerifierState};
+use super::{DoryMessages, ProverState, VerifierSetup, VerifierState, pairings};
 use crate::{base::proof::Transcript, utils::log};
 
 /// This is the prover side of the Scalar-Product algorithm in section 3.1 of <https://eprint.iacr.org/2020/1274.pdf>.

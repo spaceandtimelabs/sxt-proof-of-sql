@@ -2,8 +2,8 @@ use super::{fold_columns, fold_vals};
 use crate::{
     base::{
         database::{
-            filter_util::filter_columns, Column, ColumnField, ColumnRef, OwnedTable, Table,
-            TableEvaluation, TableOptions, TableRef,
+            Column, ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions,
+            TableRef, filter_util::filter_columns,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,

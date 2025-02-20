@@ -1,4 +1,4 @@
-use super::{column_bounds::BoundsInner, committable_column::CommittableColumn, ColumnBounds};
+use super::{ColumnBounds, column_bounds::BoundsInner, committable_column::CommittableColumn};
 use crate::base::database::ColumnType;
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
@@ -414,7 +414,9 @@ mod tests {
             assert_eq!(bounds.min(), &1);
             assert_eq!(bounds.max(), &5);
         } else {
-            panic!("Bounds constructed from nonempty TimestampTZ column should be ColumnBounds::BigInt(Bounds::Sharp(_))");
+            panic!(
+                "Bounds constructed from nonempty TimestampTZ column should be ColumnBounds::BigInt(Bounds::Sharp(_))"
+            );
         }
 
         let varchar_column = OwnedColumn::<TestScalar>::VarChar(
@@ -435,7 +437,9 @@ mod tests {
             assert_eq!(bounds.min(), &0);
             assert_eq!(bounds.max(), &3);
         } else {
-            panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::BigInt(Bounds::Sharp(_))");
+            panic!(
+                "Bounds constructed from nonempty BigInt column should be ColumnBounds::BigInt(Bounds::Sharp(_))"
+            );
         }
 
         let int_column = OwnedColumn::<TestScalar>::Int([1, 2, 3, 1, 0].to_vec());
@@ -446,7 +450,9 @@ mod tests {
             assert_eq!(bounds.min(), &0);
             assert_eq!(bounds.max(), &3);
         } else {
-            panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::Int(Bounds::Sharp(_))");
+            panic!(
+                "Bounds constructed from nonempty BigInt column should be ColumnBounds::Int(Bounds::Sharp(_))"
+            );
         }
 
         let tinyint_column = OwnedColumn::<TestScalar>::TinyInt([1, 2, 3, 1, 0].to_vec());
@@ -457,7 +463,9 @@ mod tests {
             assert_eq!(bounds.min(), &0);
             assert_eq!(bounds.max(), &3);
         } else {
-            panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::TinyInt(Bounds::Sharp(_))");
+            panic!(
+                "Bounds constructed from nonempty BigInt column should be ColumnBounds::TinyInt(Bounds::Sharp(_))"
+            );
         }
 
         let smallint_column = OwnedColumn::<TestScalar>::SmallInt([1, 2, 3, 1, 0].to_vec());
@@ -468,7 +476,9 @@ mod tests {
             assert_eq!(bounds.min(), &0);
             assert_eq!(bounds.max(), &3);
         } else {
-            panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::SmallInt(Bounds::Sharp(_))");
+            panic!(
+                "Bounds constructed from nonempty BigInt column should be ColumnBounds::SmallInt(Bounds::Sharp(_))"
+            );
         }
 
         let int128_column = OwnedColumn::<TestScalar>::Int128([].to_vec());
@@ -946,19 +956,27 @@ mod tests {
             bounds: ColumnBounds::Int128(Bounds::Empty),
         };
 
-        assert!(decimal75_metadata
-            .try_difference(different_decimal75_metadata)
-            .is_err());
-        assert!(different_decimal75_metadata
-            .try_difference(decimal75_metadata)
-            .is_err());
+        assert!(
+            decimal75_metadata
+                .try_difference(different_decimal75_metadata)
+                .is_err()
+        );
+        assert!(
+            different_decimal75_metadata
+                .try_difference(decimal75_metadata)
+                .is_err()
+        );
 
-        assert!(decimal75_metadata
-            .try_union(different_decimal75_metadata)
-            .is_err());
-        assert!(different_decimal75_metadata
-            .try_union(decimal75_metadata)
-            .is_err());
+        assert!(
+            decimal75_metadata
+                .try_union(different_decimal75_metadata)
+                .is_err()
+        );
+        assert!(
+            different_decimal75_metadata
+                .try_union(decimal75_metadata)
+                .is_err()
+        );
 
         let timestamp_tz_metadata_a = ColumnCommitmentMetadata {
             column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
@@ -975,27 +993,39 @@ mod tests {
         assert!(varchar_metadata.try_union(timestamp_tz_metadata_a).is_err());
 
         // Tests for difference operations
-        assert!(timestamp_tz_metadata_a
-            .try_difference(scalar_metadata)
-            .is_err());
-        assert!(scalar_metadata
-            .try_difference(timestamp_tz_metadata_a)
-            .is_err());
+        assert!(
+            timestamp_tz_metadata_a
+                .try_difference(scalar_metadata)
+                .is_err()
+        );
+        assert!(
+            scalar_metadata
+                .try_difference(timestamp_tz_metadata_a)
+                .is_err()
+        );
 
         // Tests for different time units within the same type
-        assert!(timestamp_tz_metadata_a
-            .try_union(timestamp_tz_metadata_b)
-            .is_err());
-        assert!(timestamp_tz_metadata_b
-            .try_union(timestamp_tz_metadata_a)
-            .is_err());
+        assert!(
+            timestamp_tz_metadata_a
+                .try_union(timestamp_tz_metadata_b)
+                .is_err()
+        );
+        assert!(
+            timestamp_tz_metadata_b
+                .try_union(timestamp_tz_metadata_a)
+                .is_err()
+        );
 
         // Difference with different time units
-        assert!(timestamp_tz_metadata_a
-            .try_difference(timestamp_tz_metadata_b)
-            .is_err());
-        assert!(timestamp_tz_metadata_b
-            .try_difference(timestamp_tz_metadata_a)
-            .is_err());
+        assert!(
+            timestamp_tz_metadata_a
+                .try_difference(timestamp_tz_metadata_b)
+                .is_err()
+        );
+        assert!(
+            timestamp_tz_metadata_b
+                .try_difference(timestamp_tz_metadata_a)
+                .is_err()
+        );
     }
 }

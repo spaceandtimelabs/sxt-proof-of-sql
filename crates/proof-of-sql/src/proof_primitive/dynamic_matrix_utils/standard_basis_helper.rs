@@ -362,7 +362,7 @@ pub(crate) mod tests {
 
     #[test]
     fn we_can_compute_dynamic_random_standard_basis_vecs() {
-        use ark_std::{test_rng, UniformRand};
+        use ark_std::{UniformRand, test_rng};
         use itertools::Itertools;
         let mut rng = test_rng();
         for num_vars in 0..10 {
@@ -613,7 +613,7 @@ pub(crate) mod tests {
 
     #[test]
     fn we_can_fold_dynamic_random_standard_basis_tensors() {
-        use ark_std::{test_rng, UniformRand};
+        use ark_std::{UniformRand, test_rng};
         use itertools::Itertools;
         let mut rng = test_rng();
         for num_vars in 0..10 {

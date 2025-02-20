@@ -1,6 +1,6 @@
 use crate::base::{
     commitment::naive_commitment::NaiveCommitment,
-    scalar::{test_scalar::TestScalar, Scalar},
+    scalar::{Scalar, test_scalar::TestScalar},
 };
 use alloc::vec::Vec;
 

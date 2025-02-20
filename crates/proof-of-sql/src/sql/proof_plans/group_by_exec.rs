@@ -2,10 +2,10 @@ use super::{fold_columns, fold_vals};
 use crate::{
     base::{
         database::{
-            group_by_util::{aggregate_columns, AggregatedColumns},
-            order_by_util::compare_indexes_by_owned_columns,
             Column, ColumnField, ColumnRef, ColumnType, OwnedTable, Table, TableEvaluation,
             TableRef,
+            group_by_util::{AggregatedColumns, aggregate_columns},
+            order_by_util::compare_indexes_by_owned_columns,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,

@@ -1,4 +1,4 @@
-use super::{pairings, DoryScalar, DynamicDoryCommitment, G1Projective, ProverSetup, GT};
+use super::{DoryScalar, DynamicDoryCommitment, G1Projective, GT, ProverSetup, pairings};
 use crate::{
     base::{commitment::CommittableColumn, if_rayon, slice_ops::slice_cast},
     proof_primitive::dynamic_matrix_utils::matrix_structure::{

@@ -1,5 +1,5 @@
 use super::*;
-use crate::base::scalar::{test_scalar::TestScalar, Scalar, ScalarExt};
+use crate::base::scalar::{Scalar, ScalarExt, test_scalar::TestScalar};
 use bnum::types::U256;
 use core::ops::Shl;
 

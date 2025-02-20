@@ -1,6 +1,6 @@
 use super::owned_and_arrow_conversions::OwnedArrowConversionError;
 use crate::base::{
-    database::{owned_table_utility::*, OwnedColumn, OwnedTable},
+    database::{OwnedColumn, OwnedTable, owned_table_utility::*},
     map::IndexMap,
     scalar::test_scalar::TestScalar,
 };
@@ -90,8 +90,8 @@ fn we_can_convert_between_owned_column_and_array_ref() {
 }
 
 #[test]
-fn we_get_an_unsupported_type_error_when_trying_to_convert_from_a_float32_array_ref_to_an_owned_column(
-) {
+fn we_get_an_unsupported_type_error_when_trying_to_convert_from_a_float32_array_ref_to_an_owned_column()
+ {
     let array_ref: ArrayRef = Arc::new(Float32Array::from(vec![0.0]));
     assert!(matches!(
         OwnedColumn::<TestScalar>::try_from(array_ref),

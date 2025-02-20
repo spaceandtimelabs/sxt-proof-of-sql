@@ -10,11 +10,11 @@
 // There were significant code changes to simplify the code
 // ---------------------------------------------------------------------------------------------------------------
 use super::{
+    U256,
     scalar_varint::{
         read_scalar_varint, read_u256_varint, scalar_varint_size, u256_varint_size,
         write_scalar_varint, write_u256_varint,
     },
-    U256,
 };
 use crate::base::scalar::MontScalar;
 #[cfg(test)]

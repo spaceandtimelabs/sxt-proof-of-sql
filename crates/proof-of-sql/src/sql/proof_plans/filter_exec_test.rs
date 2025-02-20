@@ -1,21 +1,20 @@
-use super::{test_utility::*, FilterExec};
+use super::{FilterExec, test_utility::*};
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, table_utility::*, ColumnField, ColumnRef, ColumnType,
-            LiteralValue, OwnedTable, OwnedTableTestAccessor, TableRef, TableTestAccessor,
-            TestAccessor,
+            ColumnField, ColumnRef, ColumnType, LiteralValue, OwnedTable, OwnedTableTestAccessor,
+            TableRef, TableTestAccessor, TestAccessor, owned_table_utility::*, table_utility::*,
         },
-        map::{indexmap, IndexMap, IndexSet},
+        map::{IndexMap, IndexSet, indexmap},
         math::decimal::Precision,
         scalar::Curve25519Scalar,
     },
     sql::{
         proof::{
-            exercise_verification, FirstRoundBuilder, ProofPlan, ProvableQueryResult,
-            ProverEvaluate, VerifiableQueryResult,
+            FirstRoundBuilder, ProofPlan, ProvableQueryResult, ProverEvaluate,
+            VerifiableQueryResult, exercise_verification,
         },
-        proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr, LiteralExpr, TableExpr},
+        proof_exprs::{ColumnExpr, DynProofExpr, LiteralExpr, TableExpr, test_utility::*},
     },
 };
 use blitzar::proof::InnerProductProof;

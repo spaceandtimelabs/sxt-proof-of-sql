@@ -48,21 +48,17 @@ impl I256 {
 impl From<i32> for I256 {
     fn from(value: i32) -> Self {
         let abs = Self([value.unsigned_abs().into(), 0, 0, 0]);
-        if value >= 0 {
-            abs
-        } else {
-            abs.neg()
-        }
+        if value >= 0 { abs } else { abs.neg() }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::I256;
-    use crate::base::scalar::{test_scalar::TestScalar, MontScalar, Scalar};
+    use crate::base::scalar::{MontScalar, Scalar, test_scalar::TestScalar};
     use ark_ff::MontFp;
     use num_bigint::BigInt;
-    use rand::{thread_rng, Rng};
+    use rand::{Rng, thread_rng};
 
     const ZERO: I256 = I256([0, 0, 0, 0]);
     const ONE: I256 = I256([1, 0, 0, 0]);
@@ -228,8 +224,8 @@ mod tests {
 
         let mut rng = thread_rng();
         for _ in 0..10 {
-            let x =
-                (BigInt::from(rng.r#gen::<i128>().abs()) << 128) + BigInt::from(rng.r#gen::<u128>());
+            let x = (BigInt::from(rng.r#gen::<i128>().abs()) << 128)
+                + BigInt::from(rng.r#gen::<u128>());
             let y = &x + (BigInt::from(rng.r#gen::<u128>()) << 255);
             assert_eq!(I256::from_num_bigint(&y), I256::from_num_bigint(&x));
             assert_eq!(I256::from_num_bigint(&-&y), I256::from_num_bigint(&-x));

@@ -1,7 +1,7 @@
-use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
+use super::{DynProofExpr, ProofExpr, add_subtract_columns, scale_and_add_subtract_eval};
 use crate::{
     base::{
-        database::{try_add_subtract_column_types, Column, ColumnRef, ColumnType, Table},
+        database::{Column, ColumnRef, ColumnType, Table, try_add_subtract_column_types},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,

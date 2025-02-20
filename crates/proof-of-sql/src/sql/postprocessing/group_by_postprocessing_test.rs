@@ -1,11 +1,11 @@
 use crate::{
     base::{
-        database::{owned_table_utility::*, OwnedTable},
+        database::{OwnedTable, owned_table_utility::*},
         scalar::Curve25519Scalar,
     },
     sql::postprocessing::{
-        apply_postprocessing_steps, group_by_postprocessing::*, test_utility::*,
-        OwnedTablePostprocessing, PostprocessingError,
+        OwnedTablePostprocessing, PostprocessingError, apply_postprocessing_steps,
+        group_by_postprocessing::*, test_utility::*,
     },
 };
 use bigdecimal::BigDecimal;

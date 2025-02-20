@@ -1,11 +1,11 @@
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::{
+        ColumnType, OwnedColumn,
         slice_decimal_operation::{eq_decimal_columns, ge_decimal_columns, le_decimal_columns},
         slice_operation::{
             slice_binary_op, slice_binary_op_left_upcast, slice_binary_op_right_upcast,
         },
-        ColumnType, OwnedColumn,
     },
     scalar::Scalar,
 };
@@ -89,7 +89,7 @@ pub trait ComparisonOp {
                 return Err(ColumnOperationError::SignedCastingError {
                     left_type: ColumnType::TinyInt,
                     right_type: ColumnType::Uint8,
-                })
+                });
             }
             (OwnedColumn::TinyInt(lhs), OwnedColumn::TinyInt(rhs)) => {
                 Ok(slice_binary_op(lhs, rhs, Self::op))

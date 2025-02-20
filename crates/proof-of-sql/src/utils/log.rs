@@ -1,6 +1,6 @@
 #[cfg(feature = "std")]
 use sysinfo::System;
-use tracing::{trace, Level};
+use tracing::{Level, trace};
 
 /// Logs the memory usage of the system at the TRACE level.
 ///
@@ -23,10 +23,7 @@ pub fn log_memory_usage(name: &str) {
 
         trace!(
             "{} Available memory: {:.2} MB, Used memory: {:.2} MB, Percentage memory used: {:.2}%",
-            name,
-            available_memory,
-            used_memory,
-            percentage_memory_used
+            name, available_memory, used_memory, percentage_memory_used
         );
     }
 }

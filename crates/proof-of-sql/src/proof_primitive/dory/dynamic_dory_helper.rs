@@ -1,6 +1,6 @@
 use super::{
-    blitzar_metadata_table::create_blitzar_metadata_tables, ExtendedVerifierState, G1Affine,
-    ProverSetup, F,
+    ExtendedVerifierState, F, G1Affine, ProverSetup,
+    blitzar_metadata_table::create_blitzar_metadata_tables,
 };
 use crate::{
     base::{commitment::CommittableColumn, slice_ops::slice_cast},
@@ -18,7 +18,7 @@ use ark_ff::{AdditiveGroup, Field};
 use blitzar::compute::ElementP2;
 #[cfg(feature = "blitzar")]
 use bytemuck::TransparentWrapper;
-use itertools::{Itertools, __std_iter::repeat};
+use itertools::{__std_iter::repeat, Itertools};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
 ///
@@ -127,13 +127,13 @@ pub(super) fn fold_dynamic_tensors(state: &ExtendedVerifierState) -> (F, F) {
 mod tests {
     use super::*;
     use crate::proof_primitive::{
-        dory::{deferred_msm::DeferredMSM, test_rng, PublicParameters, VerifierState},
+        dory::{PublicParameters, VerifierState, deferred_msm::DeferredMSM, test_rng},
         dynamic_matrix_utils::standard_basis_helper::{compute_dynamic_vecs, tests::naive_fold},
     };
 
     #[test]
     fn we_can_fold_dynamic_tensors() {
-        use ark_std::{test_rng, UniformRand};
+        use ark_std::{UniformRand, test_rng};
         use itertools::Itertools;
         let mut rng = test_rng();
         for num_vars in 0..10 {

@@ -92,9 +92,9 @@ mod test {
     use super::*;
     use ark_bls12_381::{Fr, G1Affine};
     use ark_ec::{
+        AffineRepr, CurveConfig,
         pairing::{Pairing, PairingOutput},
         short_weierstrass::{Affine, SWCurveConfig},
-        AffineRepr, CurveConfig,
     };
     use ark_ff::prelude::UniformRand;
     impl<V: VariableBaseMSM<ScalarField = F>, F: One> PartialEq<V> for DeferredMSM<V::MulBase, F>

@@ -2,12 +2,12 @@ use super::DynProofPlan;
 use crate::{
     base::{
         database::{
+            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
             join_util::{
                 apply_sort_merge_join_indexes, get_columns_of_table, get_sort_merge_join_indexes,
                 ordered_set_union,
             },
             slice_operation::apply_slice_to_indexes,
-            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -27,8 +27,8 @@ use crate::{
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::{
-    collections::{CollectIn, Vec as BumpVec},
     Bump,
+    collections::{CollectIn, Vec as BumpVec},
 };
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};

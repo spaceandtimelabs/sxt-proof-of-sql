@@ -1,7 +1,7 @@
 use crate::{
     base::{commitment::CommittableColumn, math::decimal::Precision},
     proof_primitive::dory::{
-        compute_dynamic_dory_commitments, test_rng, ProverSetup, PublicParameters, F, GT,
+        F, GT, ProverSetup, PublicParameters, compute_dynamic_dory_commitments, test_rng,
     },
 };
 use ark_ec::pairing::Pairing;
@@ -464,8 +464,8 @@ fn we_can_compute_a_dynamic_dory_commitment_with_mixed_committable_columns_with_
 }
 
 #[test]
-fn we_can_compute_a_dynamic_dory_commitment_with_mixed_committable_columns_with_an_offset_and_signed_values(
-) {
+fn we_can_compute_a_dynamic_dory_commitment_with_mixed_committable_columns_with_an_offset_and_signed_values()
+ {
     let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let setup = ProverSetup::from(&public_parameters);
     let res = compute_dynamic_dory_commitments(

@@ -1,9 +1,9 @@
 use crate::{
+    Identifier, SelectStatement,
     intermediate_ast::{
         AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy,
         OrderByDirection, SelectResultExpr, SetExpression, Slice, TableExpression, UnaryOperator,
     },
-    Identifier, SelectStatement,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 

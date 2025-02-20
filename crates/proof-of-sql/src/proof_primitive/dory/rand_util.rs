@@ -1,9 +1,9 @@
 #[cfg(test)]
-use super::{G1Affine, G2Affine, F};
+use super::{F, G1Affine, G2Affine};
 #[cfg(test)]
 use ark_std::{
-    rand::{rngs::StdRng, Rng, SeedableRng},
     UniformRand,
+    rand::{Rng, SeedableRng, rngs::StdRng},
 };
 
 #[cfg(test)]

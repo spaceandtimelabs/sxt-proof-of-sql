@@ -1,4 +1,4 @@
-use super::{test_rng, ProverSetup, PublicParameters, VerifierSetup};
+use super::{ProverSetup, PublicParameters, VerifierSetup, test_rng};
 use ark_ec::pairing::Pairing;
 use std::{fs, path::Path};
 

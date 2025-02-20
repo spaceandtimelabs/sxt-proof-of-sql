@@ -1,6 +1,6 @@
 use super::{
-    compute_L_R_vec, compute_l_r_tensors, compute_v_vec, DeferredGT, G1Affine, VMVProverState,
-    VMVVerifierState, F,
+    DeferredGT, F, G1Affine, VMVProverState, VMVVerifierState, compute_L_R_vec,
+    compute_l_r_tensors, compute_v_vec,
 };
 use alloc::vec::Vec;
 

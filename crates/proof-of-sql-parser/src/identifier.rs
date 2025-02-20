@@ -1,4 +1,4 @@
-use crate::{sql::IdentifierParser, ParseError, ParseResult};
+use crate::{ParseError, ParseResult, sql::IdentifierParser};
 use alloc::{format, string::ToString};
 use arrayvec::ArrayString;
 use core::{cmp::Ordering, fmt, ops::Deref, str::FromStr};

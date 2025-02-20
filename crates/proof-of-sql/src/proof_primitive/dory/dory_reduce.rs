@@ -1,5 +1,5 @@
 use super::{
-    dory_reduce_helper::*, DoryMessages, ProverSetup, ProverState, VerifierSetup, VerifierState,
+    DoryMessages, ProverSetup, ProverState, VerifierSetup, VerifierState, dory_reduce_helper::*,
 };
 use crate::base::proof::Transcript;
 

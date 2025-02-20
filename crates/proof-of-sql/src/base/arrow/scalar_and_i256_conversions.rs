@@ -58,7 +58,7 @@ mod tests {
     use super::{convert_i256_to_scalar, convert_scalar_to_i256};
     use crate::base::{
         database::scalar_and_i256_conversions::{MAX_SUPPORTED_I256, MIN_SUPPORTED_I256},
-        scalar::{test_scalar::TestScalar, Curve25519Scalar, Scalar},
+        scalar::{Curve25519Scalar, Scalar, test_scalar::TestScalar},
     };
     use arrow::datatypes::i256;
     use num_traits::Zero;

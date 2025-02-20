@@ -33,11 +33,7 @@ pub(crate) fn final_round_evaluate_monotonic<'a, S: Scalar, const STRICT: bool, 
         alloc.alloc_slice_fill_with(
             num_rows + 1,
             |i| {
-                if i == 0 {
-                    S::ZERO
-                } else {
-                    column[i - 1]
-                }
+                if i == 0 { S::ZERO } else { column[i - 1] }
             },
         );
     builder.produce_intermediate_mle(shifted_column as &[_]);

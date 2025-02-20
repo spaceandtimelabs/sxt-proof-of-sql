@@ -1,22 +1,22 @@
 use super::{ConversionError, ConversionResult, QueryContext};
 use crate::base::{
     database::{
-        try_add_subtract_column_types, try_multiply_column_types, ColumnRef, ColumnType,
-        SchemaAccessor, TableRef,
+        ColumnRef, ColumnType, SchemaAccessor, TableRef, try_add_subtract_column_types,
+        try_multiply_column_types,
     },
     map::IndexSet,
     math::{
-        decimal::{DecimalError, Precision},
         BigDecimalExt,
+        decimal::{DecimalError, Precision},
     },
 };
 use alloc::{boxed::Box, format, string::ToString, vec::Vec};
 use proof_of_sql_parser::{
+    Identifier,
     intermediate_ast::{
         AggregationOperator, AliasedResultExpr, Expression, Literal, SelectResultExpr, Slice,
         TableExpression,
     },
-    Identifier,
 };
 use sqlparser::ast::{BinaryOperator, Expr, Ident, OrderByExpr, UnaryOperator};
 pub struct QueryContextBuilder<'a> {

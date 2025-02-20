@@ -1,7 +1,7 @@
 use crate::{
     base::{
         database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
-        map::{indexset, IndexMap, IndexSet},
+        map::{IndexMap, IndexSet, indexset},
         proof::ProofError,
         scalar::Scalar,
     },

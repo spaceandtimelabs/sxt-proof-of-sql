@@ -1,10 +1,10 @@
 use super::test_utility::*;
 use crate::{
     base::database::{
-        owned_table_utility::*, table_utility::*, ColumnField, ColumnType, TableRef,
-        TableTestAccessor,
+        ColumnField, ColumnType, TableRef, TableTestAccessor, owned_table_utility::*,
+        table_utility::*,
     },
-    sql::proof::{exercise_verification, VerifiableQueryResult},
+    sql::proof::{VerifiableQueryResult, exercise_verification},
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;

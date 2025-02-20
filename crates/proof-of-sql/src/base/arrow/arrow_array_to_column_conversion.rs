@@ -2,11 +2,11 @@ use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::base::{database::Column, math::decimal::Precision, scalar::Scalar};
 use arrow::{
     array::{
-        Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
-        Int64Array, Int8Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
+        Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int8Array, Int16Array,
+        Int32Array, Int64Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
         TimestampNanosecondArray, TimestampSecondArray, UInt8Array,
     },
-    datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
+    datatypes::{DataType, TimeUnit as ArrowTimeUnit, i256},
 };
 use bumpalo::Bump;
 use core::ops::Range;
@@ -1071,8 +1071,8 @@ mod tests {
     }
 
     #[test]
-    fn we_can_convert_valid_timestamp_array_refs_into_valid_columns_using_ranges_smaller_than_arrays(
-    ) {
+    fn we_can_convert_valid_timestamp_array_refs_into_valid_columns_using_ranges_smaller_than_arrays()
+     {
         let alloc = Bump::new();
         let data = vec![1_625_072_400, 1_625_076_000, 1_625_083_200]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
