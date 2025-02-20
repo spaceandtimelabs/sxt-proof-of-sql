@@ -40,7 +40,7 @@ enum_dispatch = { version = "0.3.13" }
 ff = { version = "0.13.0"}
 flexbuffers = { version = "2.0.0" }
 indexmap = { version = "2.1", default-features = false }
-indicatif = "0.17.8"
+indicatif = { version = "0.17.8", default-features = false }
 itertools = { version = "0.13.0", default-features = false, features = ["use_alloc"] }
 lalrpop = { version = "0.22.0" }
 lalrpop-util = { version = "0.22.0", default-features = false }
