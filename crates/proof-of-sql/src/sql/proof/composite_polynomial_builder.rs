@@ -52,7 +52,7 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
                     .with_min_len(crate::base::slice_ops::MIN_RAYON_LEN),
                 self.fr_multiplicands_degree1.iter_mut()
             )
-            .for_each(|val| *val += *mult);
+            .for_each(|val| *val = *mult);
         } else if terms.len() == 1 {
             terms[0].mul_add(&mut self.fr_multiplicands_degree1, mult);
         } else {
@@ -85,15 +85,12 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
         let mut deduplicated_terms = Vec::with_capacity(terms.len());
         for term in terms {
             let id = term.id();
-            match self.mles.get(&id) {
-                Some(cached_term) => {
-                    deduplicated_terms.push(cached_term.clone());
-                }
-                _ => {
-                    let new_term = term.to_sumcheck_term(self.num_sumcheck_variables);
-                    self.mles.insert(id, new_term.clone().into());
-                    deduplicated_terms.push(new_term.into());
-                }
+            if let Some(cached_term) = self.mles.get(&id) {
+                deduplicated_terms.push(cached_term.clone());
+            } else {
+                let new_term = term.to_sumcheck_term(self.num_sumcheck_variables);
+                self.mles.insert(id, new_term.clone().into());
+                deduplicated_terms.push(new_term.into());
             }
         }
         deduplicated_terms

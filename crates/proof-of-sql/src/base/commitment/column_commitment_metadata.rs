@@ -376,6 +376,7 @@ mod tests {
         ));
     }
 
+    #[allow(clippy::too_many_lines)]
     #[test]
     fn we_can_construct_metadata_from_column() {
         let boolean_column =

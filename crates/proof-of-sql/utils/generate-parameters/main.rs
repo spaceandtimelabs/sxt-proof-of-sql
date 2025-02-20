@@ -233,18 +233,15 @@ fn save_digests(digests: &[(String, String)], target: &str, nu: usize) {
     let digests_path = format!("{target}/digests_nu_{nu}.txt");
 
     // Attempt to open file in append mode, creating it if it doesn't exist
-    let mut file = match OpenOptions::new()
+    let mut file = if let Ok(f) = OpenOptions::new()
         .create(true)
         .append(true)
         .open(&digests_path)
     {
-        Ok(f) => Some(f),
-        _ => {
-            println!(
-                "Failed to open or create file at {digests_path}. Printing digests to console."
-            );
-            None
-        }
+        Some(f)
+    } else {
+        println!("Failed to open or create file at {digests_path}. Printing digests to console.");
+        None
     };
 
     for (file_path, digest) in digests {
