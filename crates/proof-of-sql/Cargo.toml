@@ -40,7 +40,7 @@ derive_more = { workspace = true }
 enum_dispatch = { workspace = true }
 ff = { workspace = true, optional = true }
 indexmap = { workspace = true, features = ["serde"] }
-indicatif = { workspace = true }
+indicatif = { workspace = true, optional = true }
 itertools = { workspace = true }
 merlin = { workspace = true, optional = true }
 nova-snark = { workspace = true, optional = true }
@@ -81,6 +81,7 @@ development = ["arrow-csv"]
 
 [features]
 default = ["arrow", "perf"]
+utils = ["dep:indicatif"]
 arrow = ["dep:arrow", "std"]
 blitzar = ["dep:blitzar", "dep:merlin", "std"]
 hyperkzg = ["dep:nova-snark", "std", "dep:ff"]
@@ -96,12 +97,12 @@ workspace = true
 [[bin]]
 name = "generate-parameters"
 path = "utils/generate-parameters/main.rs"
-required-features = [ "std", "blitzar"]
+required-features = [ "std", "blitzar", "utils" ]
 
 [[bin]]
 name = "commitment-utility"
 path = "utils/commitment-utility/main.rs"
-required-features = [ "std", "blitzar"]
+required-features = [ "std", "blitzar", "utils" ]
 
 [[example]]
 name = "hello_world"
@@ -109,7 +110,7 @@ required-features = ["test"]
 
 [[example]]
 name = "posql_db"
-required-features = ["arrow"]
+required-features = ["arrow", "utils"]
 
 [[example]]
 name = "space"
