@@ -56,7 +56,7 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 snafu = { workspace = true }
 sqlparser = { workspace = true, features = ["serde"]  }
-sysinfo = {workspace = true }
+sysinfo = {workspace = true, optional = true }
 tiny-keccak = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 zerocopy = { workspace = true }
@@ -77,7 +77,7 @@ tracing-subscriber = { workspace = true }
 flexbuffers = { workspace = true }
 
 [package.metadata.cargo-udeps.ignore]
-development = ["arrow-csv"]
+development = ["arrow-csv", "opentelemetry", "opentelemetry-jaeger", "tracing-opentelemetry", "tracing-subscriber"]
 
 [features]
 default = ["arrow", "perf"]
@@ -89,7 +89,7 @@ test = ["dep:rand", "std"]
 perf = ["blitzar", "cpu-perf"]
 cpu-perf = ["rayon", "ark-ec/parallel", "ark-poly/parallel", "ark-ff/asm"]
 rayon = ["dep:rayon", "std"]
-std = ["snafu/std", "ark-serialize/std"]
+std = ["snafu/std", "ark-serialize/std", "dep:sysinfo" ]
 
 [lints]
 workspace = true
