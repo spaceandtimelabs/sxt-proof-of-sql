@@ -75,5 +75,6 @@ zerocopy = { version = "0.7.34" }
 missing_docs = "warn"
 
 [workspace.lints.clippy]
+allow_attributes = ["warn"]
 missing_errors_doc = "allow"
 pedantic = { level = "warn", priority = -1 }
