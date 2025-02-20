@@ -33,7 +33,7 @@ fn test_slice_cast_from_curve25519_scalar_to_dalek_scalar() {
 fn test_slice_cast_with_random() {
     use rand::Rng;
     let mut rng = rand::thread_rng();
-    let a: Vec<u32> = (0..100).map(|_| rng.gen()).collect();
+    let a: Vec<u32> = (0..100).map(|_| rng.r#gen()).collect();
     let b: Vec<u64> = a.iter().map(|&x| u64::from(x)).collect();
     let a: Vec<u64> = slice_cast_with(&a, |&x| u64::from(x));
     assert_eq!(a, b);
@@ -44,7 +44,7 @@ fn test_slice_cast_with_random() {
 fn test_slice_cast_with_random_from_integer_to_testscalar() {
     use rand::Rng;
     let mut rng = rand::thread_rng();
-    let a: Vec<u32> = (0..100).map(|_| rng.gen()).collect();
+    let a: Vec<u32> = (0..100).map(|_| rng.r#gen()).collect();
     let b: Vec<TestScalar> = a.iter().map(|&x| TestScalar::from(x)).collect();
     let a: Vec<TestScalar> = slice_cast_with(&a, |&x| TestScalar::from(x));
     assert_eq!(a, b);
@@ -55,7 +55,7 @@ fn test_slice_cast_with_random_from_integer_to_testscalar() {
 fn test_slice_cast_random_from_integer_to_testscalar() {
     use rand::Rng;
     let mut rng = rand::thread_rng();
-    let a: Vec<u32> = (0..100).map(|_| rng.gen()).collect();
+    let a: Vec<u32> = (0..100).map(|_| rng.r#gen()).collect();
     let b: Vec<TestScalar> = a.iter().map(|&x| TestScalar::from(x)).collect();
     let a: Vec<TestScalar> = slice_cast(&a);
     assert_eq!(a, b);
@@ -75,7 +75,7 @@ fn test_slice_cast_mut() {
 fn test_slice_cast_mut_with_random() {
     use rand::Rng;
     let mut rng = rand::thread_rng();
-    let a: Vec<u32> = (0..100).map(|_| rng.gen()).collect();
+    let a: Vec<u32> = (0..100).map(|_| rng.r#gen()).collect();
     let mut b: Vec<u64> = vec![0; 100];
     slice_cast_mut_with(&a, &mut b, |&x| u64::from(x));
     assert_eq!(b, slice_cast_with(&a, |&x| u64::from(x)));
@@ -86,7 +86,7 @@ fn test_slice_cast_mut_with_random() {
 fn test_slice_cast_mut_random() {
     use rand::Rng;
     let mut rng = rand::thread_rng();
-    let a: Vec<u32> = (0..100).map(|_| rng.gen()).collect();
+    let a: Vec<u32> = (0..100).map(|_| rng.r#gen()).collect();
     let mut b: Vec<TestScalar> = vec![TestScalar::default(); 100];
     slice_cast_mut(&a, &mut b);
     assert_eq!(b, slice_cast(&a));

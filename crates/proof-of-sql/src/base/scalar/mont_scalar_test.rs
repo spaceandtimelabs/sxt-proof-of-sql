@@ -340,8 +340,8 @@ fn the_one_integer_maps_to_the_zero_scalar() {
 fn the_zero_scalar_is_the_additive_identity() {
     let mut rng = StdRng::seed_from_u64(0u64);
     for _ in 0..1000 {
-        let a = Curve25519Scalar::from(rng.gen::<i128>());
-        let b = Curve25519Scalar::from(rng.gen::<i128>());
+        let a = Curve25519Scalar::from(rng.r#gen::<i128>());
+        let b = Curve25519Scalar::from(rng.r#gen::<i128>());
         assert_eq!(a + b, b + a);
         assert_eq!(a + Curve25519Scalar::zero(), a);
         assert_eq!(b + Curve25519Scalar::zero(), b);
@@ -356,8 +356,8 @@ fn the_zero_scalar_is_the_additive_identity() {
 fn the_one_scalar_is_the_multiplicative_identity() {
     let mut rng = StdRng::seed_from_u64(0u64);
     for _ in 0..1000 {
-        let a = Curve25519Scalar::from(rng.gen::<i128>());
-        let b = Curve25519Scalar::from(rng.gen::<i128>());
+        let a = Curve25519Scalar::from(rng.r#gen::<i128>());
+        let b = Curve25519Scalar::from(rng.r#gen::<i128>());
         assert_eq!(a * b, b * a);
         assert_eq!(a * Curve25519Scalar::one(), a);
         assert_eq!(b * Curve25519Scalar::one(), b);

@@ -82,12 +82,12 @@ impl QueryExpr {
             ));
         }
         if context.has_agg() {
-            if let Some(group_by_expr) = Option::<GroupByExec>::try_from(&context)? {
+            match Option::<GroupByExec>::try_from(&context)? { Some(group_by_expr) => {
                 Ok(Self {
                     proof_expr: DynProofPlan::GroupBy(group_by_expr),
                     postprocessing,
                 })
-            } else {
+            } _ => {
                 let raw_enriched_exprs = result_aliased_exprs
                     .iter()
                     .map(|aliased_expr| EnrichedExpr {
@@ -125,7 +125,7 @@ impl QueryExpr {
                     proof_expr: DynProofPlan::Filter(filter),
                     postprocessing,
                 })
-            }
+            }}
         } else {
             // No group by, so we need to do a filter.
             let column_mapping = context.get_column_mapping();

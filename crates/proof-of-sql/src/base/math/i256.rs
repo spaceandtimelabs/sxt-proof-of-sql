@@ -164,7 +164,7 @@ mod tests {
 
         let mut rng = thread_rng();
         for _ in 0..10 {
-            let x = I256([rng.gen(), rng.gen(), rng.gen(), rng.gen()]);
+            let x = I256([rng.r#gen(), rng.r#gen(), rng.r#gen(), rng.r#gen()]);
             assert_eq!(x.neg().neg(), x);
         }
     }
@@ -196,7 +196,7 @@ mod tests {
 
         let mut rng = thread_rng();
         for _ in 0..10 {
-            let x = I256([rng.gen(), rng.gen(), rng.gen(), rng.gen()]);
+            let x = I256([rng.r#gen(), rng.r#gen(), rng.r#gen(), rng.r#gen()]);
             assert_eq!(
                 x.neg().into_scalar::<TestScalar>(),
                 -(x.into_scalar::<TestScalar>())
@@ -229,8 +229,8 @@ mod tests {
         let mut rng = thread_rng();
         for _ in 0..10 {
             let x =
-                (BigInt::from(rng.gen::<i128>().abs()) << 128) + BigInt::from(rng.gen::<u128>());
-            let y = &x + (BigInt::from(rng.gen::<u128>()) << 255);
+                (BigInt::from(rng.r#gen::<i128>().abs()) << 128) + BigInt::from(rng.r#gen::<u128>());
+            let y = &x + (BigInt::from(rng.r#gen::<u128>()) << 255);
             assert_eq!(I256::from_num_bigint(&y), I256::from_num_bigint(&x));
             assert_eq!(I256::from_num_bigint(&-&y), I256::from_num_bigint(&-x));
             assert_eq!(I256::from_num_bigint(&y), I256::from_num_bigint(&-y).neg());
@@ -248,7 +248,7 @@ mod tests {
     fn we_can_convert_i256_between_type_compatibly() {
         let mut rng = thread_rng();
         for _ in 0..10 {
-            let int32: i32 = rng.gen();
+            let int32: i32 = rng.r#gen();
             let neg_int32 = -int32;
             let scalar = TestScalar::from(int32);
             let neg_scalar = -scalar;

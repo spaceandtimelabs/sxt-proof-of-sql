@@ -25,10 +25,10 @@ pub fn generate_random_columns<'a, S: Scalar>(
                 Ident::new(*id),
                 match (ty, bound) {
                     (ColumnType::Boolean, _) => {
-                        Column::Boolean(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
+                        Column::Boolean(alloc.alloc_slice_fill_with(num_rows, |_| rng.r#gen()))
                     }
                     (ColumnType::TinyInt, None) => {
-                        Column::TinyInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
+                        Column::TinyInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.r#gen()))
                     }
                     (ColumnType::TinyInt, Some(b)) => {
                         Column::TinyInt(alloc.alloc_slice_fill_with(num_rows, |_| {
@@ -39,7 +39,7 @@ pub fn generate_random_columns<'a, S: Scalar>(
                         }))
                     }
                     (ColumnType::SmallInt, None) => {
-                        Column::SmallInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
+                        Column::SmallInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.r#gen()))
                     }
                     (ColumnType::SmallInt, Some(b)) => {
                         Column::SmallInt(alloc.alloc_slice_fill_with(num_rows, |_| {
@@ -50,7 +50,7 @@ pub fn generate_random_columns<'a, S: Scalar>(
                         }))
                     }
                     (ColumnType::Int, None) => {
-                        Column::Int(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
+                        Column::Int(alloc.alloc_slice_fill_with(num_rows, |_| rng.r#gen()))
                     }
                     (ColumnType::Int, Some(b)) => {
                         Column::Int(alloc.alloc_slice_fill_with(num_rows, |_| {
@@ -61,7 +61,7 @@ pub fn generate_random_columns<'a, S: Scalar>(
                         }))
                     }
                     (ColumnType::BigInt, None) => {
-                        Column::BigInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
+                        Column::BigInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.r#gen()))
                     }
                     (ColumnType::BigInt, Some(b)) => {
                         Column::BigInt(alloc.alloc_slice_fill_with(num_rows, |_| {
@@ -69,7 +69,7 @@ pub fn generate_random_columns<'a, S: Scalar>(
                         }))
                     }
                     (ColumnType::Int128, None) => {
-                        Column::Int128(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
+                        Column::Int128(alloc.alloc_slice_fill_with(num_rows, |_| rng.r#gen()))
                     }
                     (ColumnType::Int128, Some(b)) => {
                         Column::Int128(alloc.alloc_slice_fill_with(num_rows, |_| {

@@ -1,5 +1,5 @@
 macro_rules! if_rayon {
-    ($rayon_value: expr, $else_value: expr) => {{
+    ($rayon_value: expr_2021, $else_value: expr_2021) => {{
         #[cfg(feature = "rayon")]
         {
             ($rayon_value)

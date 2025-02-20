@@ -75,7 +75,7 @@ mod tests {
 
         // Generate a random low part, adjusted based on the high part
         let low: u128 = if high < max_signed_as_parts.1 {
-            rng.gen()
+            rng.r#gen()
         } else {
             rng.gen_range(0..=max_signed_as_parts.0)
         };

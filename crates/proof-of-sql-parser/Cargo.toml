@@ -16,12 +16,12 @@ test = true
 
 [dependencies]
 arrayvec = { workspace = true, features = ["serde"] }
-bigdecimal = { workspace = true, default_features = false }
+bigdecimal = { workspace = true, default-features = false }
 chrono = { workspace = true, features = ["serde"] }
 lalrpop-util = { workspace = true, features = ["lexer", "unicode"] }
 serde = { workspace = true, features = ["serde_derive", "alloc"] }
 snafu = { workspace = true }
-sqlparser = { workspace = true, default_features = false }
+sqlparser = { workspace = true, default-features = false }
 
 [build-dependencies]
 lalrpop = { workspace = true }

@@ -21,7 +21,7 @@ pub fn filter_columns<'a, S: Scalar>(
     let indexes: Vec<_> = selection
         .iter()
         .enumerate()
-        .filter(|(_, &b)| b)
+        .filter(|&(_, &b)| b)
         .map(|(i, _)| i)
         .collect();
     let result_length = indexes.len();

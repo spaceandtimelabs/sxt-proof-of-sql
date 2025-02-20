@@ -6,8 +6,8 @@ pub(crate) type IndexSet<T> = indexmap::IndexSet<T, core::hash::BuildHasherDefau
 
 /// Create an [`IndexMap`][self::IndexMap] from a list of key-value pairs
 macro_rules! indexmap_macro {
-    ($($key:expr => $value:expr,)+) => { $crate::base::map::indexmap!($($key => $value),+) };
-    ($($key:expr => $value:expr),*) => {
+    ($($key:expr_2021 => $value:expr_2021,)+) => { $crate::base::map::indexmap!($($key => $value),+) };
+    ($($key:expr_2021 => $value:expr_2021),*) => {
         {
             // Note: `stringify!($key)` is just here to consume the repetition,
             // but we throw away that string literal during constant evaluation.
@@ -24,8 +24,8 @@ macro_rules! indexmap_macro {
 
 /// Create an [`IndexSet`][self::IndexSet] from a list of values
 macro_rules! indexset_macro {
-    ($($value:expr,)+) => { $crate::base::map::indexset!($($value),+) };
-    ($($value:expr),*) => {
+    ($($value:expr_2021,)+) => { $crate::base::map::indexset!($($value),+) };
+    ($($value:expr_2021),*) => {
         {
             const CAP: usize = <[()]>::len(&[$({ stringify!($value); }),*]);
             #[allow(unused_mut)]

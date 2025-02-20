@@ -56,7 +56,8 @@ enum Mode {
 
 fn main() {
     // Set the BLITZAR_PARTITION_WINDOW_WIDTH environment variable
-    env::set_var(BLITZAR_PARTITION_WINDOW_WIDTH, "14");
+    // TODO: Audit that the environment access only happens in single-threaded code.
+    unsafe { env::set_var(BLITZAR_PARTITION_WINDOW_WIDTH, "14") };
 
     // Confirm that it was set by reading it back
     match env::var(BLITZAR_PARTITION_WINDOW_WIDTH) {
@@ -232,16 +233,16 @@ fn save_digests(digests: &[(String, String)], target: &str, nu: usize) {
     let digests_path = format!("{target}/digests_nu_{nu}.txt");
 
     // Attempt to open file in append mode, creating it if it doesn't exist
-    let mut file = if let Ok(f) = OpenOptions::new()
+    let mut file = match OpenOptions::new()
         .create(true)
         .append(true)
         .open(&digests_path)
-    {
+    { Ok(f) => {
         Some(f)
-    } else {
+    } _ => {
         println!("Failed to open or create file at {digests_path}. Printing digests to console.");
         None
-    };
+    }};
 
     for (file_path, digest) in digests {
         if let Some(f) = &mut file {

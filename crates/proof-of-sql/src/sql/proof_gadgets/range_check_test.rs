@@ -26,7 +26,7 @@ struct RangeCheckTestPlan {
 }
 
 macro_rules! handle_column_with_match {
-    ($col:expr, $fn_name:ident, $builder:expr, $alloc:expr) => {
+    ($col:expr_2021, $fn_name:ident, $builder:expr_2021, $alloc:expr_2021) => {
         match $col.column_type() {
             ColumnType::BigInt => {
                 let slice = $col
