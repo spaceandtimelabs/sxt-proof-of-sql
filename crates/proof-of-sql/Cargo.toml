@@ -33,7 +33,7 @@ bnum = { workspace = true }
 bumpalo = { workspace = true, features = ["collections"] }
 bytemuck = { workspace = true }
 byte-slice-cast = { workspace = true }
-clap = { workspace = true, features = ["derive"] }
+clap = { workspace = true, features = ["derive"], optional = true }
 curve25519-dalek = { workspace = true, features = ["serde"] }
 chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true }
@@ -81,7 +81,7 @@ development = ["arrow-csv", "opentelemetry", "opentelemetry-jaeger", "tracing-op
 
 [features]
 default = ["arrow", "perf"]
-utils = ["dep:indicatif", "dep:rand_chacha", "dep:sha2" ]
+utils = ["dep:indicatif", "dep:rand_chacha", "dep:sha2", "dep:clap" ]
 arrow = ["dep:arrow", "std"]
 blitzar = ["dep:blitzar", "dep:merlin", "std"]
 hyperkzg = ["dep:nova-snark", "std", "dep:ff"]
