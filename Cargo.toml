@@ -64,7 +64,7 @@ snafu = { version = "0.8.4", default-features = false }
 sqlparser = { version = "0.45.0", default-features = false }
 sysinfo = { version = "0.33" }
 tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
-tempfile = "3.13.0"
+tempfile = { version = "3.13.0", default-features = false }
 tracing = { version = "0.1.36", default-features = false }
 tracing-opentelemetry = { version = "0.22.0" }
 tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
