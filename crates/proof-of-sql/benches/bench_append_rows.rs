@@ -95,15 +95,15 @@ pub fn generate_random_owned_table<S: Scalar>(
 
     for _ in 0..num_columns {
         let column_type = column_types[rng.gen_range(0..column_types.len())];
-        let identifier = format!("column_{}", rng.gen::<u32>());
+        let identifier = format!("column_{}", rng.r#gen::<u32>());
 
         match column_type {
-            "bigint" => columns.push(bigint(&*identifier, vec![rng.gen::<i64>(); num_rows])),
+            "bigint" => columns.push(bigint(&*identifier, vec![rng.r#gen::<i64>(); num_rows])),
             "boolean" => columns.push(boolean(
                 &*identifier,
                 generate_random_boolean_vector(num_rows),
             )),
-            "int128" => columns.push(int128(&*identifier, vec![rng.gen::<i128>(); num_rows])),
+            "int128" => columns.push(int128(&*identifier, vec![rng.r#gen::<i128>(); num_rows])),
             "scalar" => columns.push(scalar(
                 &*identifier,
                 vec![generate_random_u64_array(); num_rows],
@@ -115,14 +115,14 @@ pub fn generate_random_owned_table<S: Scalar>(
                 2,
                 vec![generate_random_u64_array(); num_rows],
             )),
-            "tinyint" => columns.push(tinyint(&*identifier, vec![rng.gen::<i8>(); num_rows])),
-            "smallint" => columns.push(smallint(&*identifier, vec![rng.gen::<i16>(); num_rows])),
-            "int" => columns.push(int(&*identifier, vec![rng.gen::<i32>(); num_rows])),
+            "tinyint" => columns.push(tinyint(&*identifier, vec![rng.r#gen::<i8>(); num_rows])),
+            "smallint" => columns.push(smallint(&*identifier, vec![rng.r#gen::<i16>(); num_rows])),
+            "int" => columns.push(int(&*identifier, vec![rng.r#gen::<i32>(); num_rows])),
             "timestamptz" => columns.push(timestamptz(
                 &*identifier,
                 PoSQLTimeUnit::Second,
                 PoSQLTimeZone::utc(),
-                vec![rng.gen::<i64>(); num_rows],
+                vec![rng.r#gen::<i64>(); num_rows],
             )),
             _ => unreachable!(),
         }
