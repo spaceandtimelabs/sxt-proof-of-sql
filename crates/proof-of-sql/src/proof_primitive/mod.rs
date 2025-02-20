@@ -8,3 +8,6 @@ pub(crate) mod sumcheck;
 /// An implementation of hyper-kzg PCS. This is a wrapper around nova's hyper-kzg implementation.
 #[cfg(feature = "hyperkzg")]
 pub mod hyperkzg;
+
+/// TODO: Add docs
+pub mod inner_product;
