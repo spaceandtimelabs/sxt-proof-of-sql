@@ -6,4 +6,5 @@ pub(super) mod dynamic_matrix_utils;
 pub(crate) mod sumcheck;
 
 /// An implementation of hyper-kzg PCS. This is a wrapper around nova's hyper-kzg implementation.
+#[cfg(feature = "hyperkzg")]
 pub mod hyperkzg;

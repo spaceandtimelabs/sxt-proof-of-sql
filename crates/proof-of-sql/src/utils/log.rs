@@ -1,3 +1,4 @@
+#[cfg(feature = "std")]
 use sysinfo::System;
 use tracing::{trace, Level};
 
@@ -11,6 +12,7 @@ use tracing::{trace, Level};
 /// * `name` - A string slice that holds the name to be included in the log message.
 #[allow(clippy::cast_precision_loss)]
 pub fn log_memory_usage(name: &str) {
+    #[cfg(feature = "std")]
     if tracing::level_enabled!(Level::TRACE) {
         let mut system = System::new_all();
         system.refresh_memory();

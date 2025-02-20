@@ -22,7 +22,7 @@ ark-std = { version = "0.5.0", default-features = false }
 arrayvec = { version = "0.7", default-features = false }
 arrow = { version = "51.0.0" }
 arrow-csv = { version = "51.0.0" }
-bincode = { version = "1.3.3" }
+bincode = { version = "2.0.0-rc.3", default-features = false }
 bit-iter = { version = "1.1.1" }
 bigdecimal = { version = "0.4.5", default-features = false, features = ["serde"] }
 blake3 = { version = "1.3.3", default-features = false }
@@ -40,7 +40,7 @@ enum_dispatch = { version = "0.3.13" }
 ff = { version = "0.13.0"}
 flexbuffers = { version = "2.0.0" }
 indexmap = { version = "2.1", default-features = false }
-indicatif = "0.17.8"
+indicatif = { version = "0.17.8", default-features = false }
 itertools = { version = "0.13.0", default-features = false, features = ["use_alloc"] }
 lalrpop = { version = "0.22.0" }
 lalrpop-util = { version = "0.22.0", default-features = false }
@@ -59,12 +59,12 @@ rand_core = { version = "0.6", default-features = false }
 rayon = { version = "1.5" }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
-sha2 = "0.10.8"
+sha2 = { version = "0.10.8", default-features = false }
 snafu = { version = "0.8.4", default-features = false }
 sqlparser = { version = "0.45.0", default-features = false }
 sysinfo = { version = "0.33" }
 tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
-tempfile = "3.13.0"
+tempfile = { version = "3.13.0", default-features = false }
 tracing = { version = "0.1.36", default-features = false }
 tracing-opentelemetry = { version = "0.22.0" }
 tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
@@ -77,3 +77,8 @@ missing_docs = "warn"
 [workspace.lints.clippy]
 missing_errors_doc = "allow"
 pedantic = { level = "warn", priority = -1 }
+
+[patch.crates-io]
+# patch for sqlparser no_std compatibility with the serde feature enabled.
+# required until sqlparser releases a similar update and proof-of-sql upgrades to it.
+sqlparser = { git = "https://github.com/tlovell-sxt/datafusion-sqlparser-rs.git", rev = "a828cbea22cf19bb6b4596f902bdd6f4d14a00b8" }
