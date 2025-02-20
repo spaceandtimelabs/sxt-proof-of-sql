@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/proof-of-sql", "crates/proof-of-sql-parser"]
 
 [workspace.package]
-edition = "2021"
+edition = "2024"
 exclude = ["**/.gitignore", ".gitignore"]
 repository = "https://github.com/spaceandtimelabs/sxt-proof-of-sql"
 version = "0.0.0" # DO NOT CHANGE THIS LINE! This will be automatically updated
