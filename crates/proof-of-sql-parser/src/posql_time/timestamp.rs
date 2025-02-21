@@ -144,6 +144,7 @@ impl PoSQLTimestamp {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::{TimeZone, Utc};
 
     #[test]
     fn test_unix_epoch_time_timezone() {

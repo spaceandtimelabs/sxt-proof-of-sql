@@ -3,7 +3,7 @@ use crate::base::{
     math::decimal::Precision,
 };
 use alloc::sync::Arc;
-use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
+use arrow::datatypes::{DataType, Field, TimeUnit};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 /// Convert [`ColumnType`] values to some arrow [`DataType`]
@@ -26,10 +26,10 @@ impl From<&ColumnType> for DataType {
             ColumnType::TimestampTZ(timeunit, timezone) => {
                 let arrow_timezone = Some(Arc::from(timezone.to_string()));
                 let arrow_timeunit = match timeunit {
-                    PoSQLTimeUnit::Second => ArrowTimeUnit::Second,
-                    PoSQLTimeUnit::Millisecond => ArrowTimeUnit::Millisecond,
-                    PoSQLTimeUnit::Microsecond => ArrowTimeUnit::Microsecond,
-                    PoSQLTimeUnit::Nanosecond => ArrowTimeUnit::Nanosecond,
+                    PoSQLTimeUnit::Second => TimeUnit::Second,
+                    PoSQLTimeUnit::Millisecond => TimeUnit::Millisecond,
+                    PoSQLTimeUnit::Microsecond => TimeUnit::Microsecond,
+                    PoSQLTimeUnit::Nanosecond => TimeUnit::Nanosecond,
                 };
                 DataType::Timestamp(arrow_timeunit, arrow_timezone)
             }
@@ -38,10 +38,10 @@ impl From<&ColumnType> for DataType {
 }
 
 /// Convert arrow [`DataType`] values to some [`ColumnType`]
-impl TryFrom<DataType> for ColumnType {
+impl TryFrom<&DataType> for ColumnType {
     type Error = String;
 
-    fn try_from(data_type: DataType) -> Result<Self, Self::Error> {
+    fn try_from(data_type: &DataType) -> Result<Self, Self::Error> {
         match data_type {
             DataType::Boolean => Ok(ColumnType::Boolean),
             DataType::UInt8 => Ok(ColumnType::Uint8),
@@ -50,26 +50,28 @@ impl TryFrom<DataType> for ColumnType {
             DataType::Int32 => Ok(ColumnType::Int),
             DataType::Int64 => Ok(ColumnType::BigInt),
             DataType::Decimal128(38, 0) => Ok(ColumnType::Int128),
-            DataType::Decimal256(precision, scale) if precision <= 75 => {
-                Ok(ColumnType::Decimal75(Precision::new(precision)?, scale))
+            DataType::Decimal256(precision, scale) if *precision <= 75 => {
+                Ok(ColumnType::Decimal75(Precision::new(*precision)?, *scale))
             }
             DataType::Timestamp(time_unit, timezone_option) => {
                 let posql_time_unit = match time_unit {
-                    ArrowTimeUnit::Second => PoSQLTimeUnit::Second,
-                    ArrowTimeUnit::Millisecond => PoSQLTimeUnit::Millisecond,
-                    ArrowTimeUnit::Microsecond => PoSQLTimeUnit::Microsecond,
-                    ArrowTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
+                    TimeUnit::Second => PoSQLTimeUnit::Second,
+                    TimeUnit::Millisecond => PoSQLTimeUnit::Millisecond,
+                    TimeUnit::Microsecond => PoSQLTimeUnit::Microsecond,
+                    TimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
                 };
-                Ok(ColumnType::TimestampTZ(
-                    posql_time_unit,
-                    PoSQLTimeZone::try_from(&timezone_option)?,
-                ))
+                let timezone = match timezone_option {
+                    Some(tz) => PoSQLTimeZone::try_from(&Some(tz.clone())).map_err(|e| e.to_string())?,
+                    None => PoSQLTimeZone::utc(),
+                };
+                Ok(ColumnType::TimestampTZ(posql_time_unit, timezone))
             }
             DataType::Utf8 => Ok(ColumnType::VarChar),
             _ => Err(format!("Unsupported arrow data type {data_type:?}")),
         }
     }
 }
+
 /// Convert [`ColumnField`] values to arrow Field
 impl From<&ColumnField> for Field {
     fn from(column_field: &ColumnField) -> Self {

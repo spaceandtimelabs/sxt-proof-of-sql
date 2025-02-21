@@ -54,9 +54,68 @@ pub enum PoSQLTimestampError {
     },
 }
 
-// This exists because TryFrom<DataType> for ColumnType error is String
-impl From<PoSQLTimestampError> for String {
-    fn from(error: PoSQLTimestampError) -> Self {
-        error.to_string()
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloc::string::ToString;
+
+    #[test]
+    fn test_parsing_error() {
+        let error = PoSQLTimestampError::ParsingError {
+            error: "test error".into(),
+        };
+        assert_eq!(error.to_string(), "Unable to parse timestamp");
+    }
+
+    #[test]
+    fn test_invalid_timezone() {
+        let error = PoSQLTimestampError::InvalidTimezone {
+            timezone: "invalid".into(),
+        };
+        assert_eq!(error.to_string(), "Invalid timezone: invalid");
+    }
+
+    #[test]
+    fn test_invalid_timezone_offset() {
+        let error = PoSQLTimestampError::InvalidTimezoneOffset;
+        assert_eq!(error.to_string(), "Invalid timezone offset");
+    }
+
+    #[test]
+    fn test_unsupported_precision() {
+        let error = PoSQLTimestampError::UnsupportedPrecision {
+            error: "7".into(),
+        };
+        assert_eq!(error.to_string(), "Unsupported precision: 7");
+    }
+
+    #[test]
+    fn test_local_time_does_not_exist() {
+        let error = PoSQLTimestampError::LocalTimeDoesNotExist;
+        assert_eq!(error.to_string(), "Local time does not exist");
+    }
+
+    #[test]
+    fn test_ambiguous() {
+        let error = PoSQLTimestampError::Ambiguous {
+            error: "test error".into(),
+        };
+        assert_eq!(error.to_string(), "Ambiguous local time: test error");
+    }
+
+    #[test]
+    fn test_error_equality() {
+        let error1 = PoSQLTimestampError::ParsingError {
+            error: "test error".into(),
+        };
+        let error2 = PoSQLTimestampError::ParsingError {
+            error: "test error".into(),
+        };
+        let error3 = PoSQLTimestampError::ParsingError {
+            error: "different error".into(),
+        };
+
+        assert_eq!(error1, error2);
+        assert_ne!(error1, error3);
     }
 }

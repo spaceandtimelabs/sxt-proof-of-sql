@@ -411,3 +411,324 @@ pub fn slice(number_rows: u64, offset_value: i64) -> Option<Slice> {
 pub fn group_by(ids: &[&str]) -> Vec<Identifier> {
     ids.iter().map(|id| id.parse().unwrap()).collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Identifier;
+
+    #[test]
+    fn test_ident() {
+        let identifier = ident("test_id");
+        assert_eq!(identifier.as_str(), "test_id");
+    }
+
+    #[test]
+    fn test_binary_operations() {
+        let left = Box::new(Expression::Column(Identifier::new("a")));
+        let right = Box::new(Expression::Column(Identifier::new("b")));
+
+        // Test equal
+        let eq = equal(left.clone(), right.clone());
+        assert!(matches!(
+            *eq,
+            Expression::Binary {
+                op: BinaryOperator::Equal,
+                left: _,
+                right: _
+            }
+        ));
+
+        // Test greater than or equal
+        let ge_expr = ge(left.clone(), right.clone());
+        assert!(matches!(
+            *ge_expr,
+            Expression::Unary {
+                op: UnaryOperator::Not,
+                expr: _
+            }
+        ));
+
+        // Test greater than
+        let gt_expr = gt(left.clone(), right.clone());
+        assert!(matches!(
+            *gt_expr,
+            Expression::Binary {
+                op: BinaryOperator::GreaterThan,
+                left: _,
+                right: _
+            }
+        ));
+
+        // Test less than or equal
+        let le_expr = le(left.clone(), right.clone());
+        assert!(matches!(
+            *le_expr,
+            Expression::Unary {
+                op: UnaryOperator::Not,
+                expr: _
+            }
+        ));
+
+        // Test less than
+        let lt_expr = lt(left.clone(), right.clone());
+        assert!(matches!(
+            *lt_expr,
+            Expression::Binary {
+                op: BinaryOperator::LessThan,
+                left: _,
+                right: _
+            }
+        ));
+
+        // Test not
+        let not_expr = not(left.clone());
+        assert!(matches!(
+            *not_expr,
+            Expression::Unary {
+                op: UnaryOperator::Not,
+                expr: _
+            }
+        ));
+
+        // Test and
+        let and_expr = and(left.clone(), right.clone());
+        assert!(matches!(
+            *and_expr,
+            Expression::Binary {
+                op: BinaryOperator::And,
+                left: _,
+                right: _
+            }
+        ));
+
+        // Test or
+        let or_expr = or(left.clone(), right.clone());
+        assert!(matches!(
+            *or_expr,
+            Expression::Binary {
+                op: BinaryOperator::Or,
+                left: _,
+                right: _
+            }
+        ));
+
+        // Test add
+        let add_expr = add(left.clone(), right.clone());
+        assert!(matches!(
+            *add_expr,
+            Expression::Binary {
+                op: BinaryOperator::Add,
+                left: _,
+                right: _
+            }
+        ));
+
+        // Test sub
+        let sub_expr = sub(left.clone(), right.clone());
+        assert!(matches!(
+            *sub_expr,
+            Expression::Binary {
+                op: BinaryOperator::Subtract,
+                left: _,
+                right: _
+            }
+        ));
+
+        // Test mul
+        let mul_expr = mul(left.clone(), right.clone());
+        assert!(matches!(
+            *mul_expr,
+            Expression::Binary {
+                op: BinaryOperator::Multiply,
+                left: _,
+                right: _
+            }
+        ));
+
+        // Test div
+        let div_expr = div(left, right);
+        assert!(matches!(
+            *div_expr,
+            Expression::Binary {
+                op: BinaryOperator::Division,
+                left: _,
+                right: _
+            }
+        ));
+    }
+
+    #[test]
+    fn test_table_operations() {
+        // Test tab with schema
+        let table_with_schema = tab(Some("schema"), "table");
+        assert!(matches!(
+            *table_with_schema,
+            TableExpression::Named { schema: Some(_), table: _ }
+        ));
+
+        // Test tab without schema
+        let table_without_schema = tab(None, "table");
+        assert!(matches!(
+            *table_without_schema,
+            TableExpression::Named { schema: None, table: _ }
+        ));
+    }
+
+    #[test]
+    fn test_column_operations() {
+        // Test col
+        let column = col("test_col");
+        assert!(matches!(*column, Expression::Column(_)));
+
+        // Test lit
+        let literal = lit(42);
+        assert!(matches!(*literal, Expression::Literal(_)));
+    }
+
+    #[test]
+    fn test_aggregation_operations() {
+        let expr = Box::new(Expression::Column(Identifier::new("test_col")));
+
+        // Test sum
+        let sum_expr = sum(expr.clone());
+        assert!(matches!(
+            *sum_expr,
+            Expression::Aggregation {
+                op: AggregationOperator::Sum,
+                expr: _
+            }
+        ));
+
+        // Test min
+        let min_expr = min(expr.clone());
+        assert!(matches!(
+            *min_expr,
+            Expression::Aggregation {
+                op: AggregationOperator::Min,
+                expr: _
+            }
+        ));
+
+        // Test max
+        let max_expr = max(expr.clone());
+        assert!(matches!(
+            *max_expr,
+            Expression::Aggregation {
+                op: AggregationOperator::Max,
+                expr: _
+            }
+        ));
+
+        // Test count
+        let count_expr = count(expr);
+        assert!(matches!(
+            *count_expr,
+            Expression::Aggregation {
+                op: AggregationOperator::Count,
+                expr: _
+            }
+        ));
+
+        // Test count_all
+        let count_all_expr = count_all();
+        assert!(matches!(
+            *count_all_expr,
+            Expression::Aggregation {
+                op: AggregationOperator::Count,
+                expr: _
+            }
+        ));
+    }
+
+    #[test]
+    fn test_result_expressions() {
+        // Test aliased_expr
+        let expr = Box::new(Expression::Column(Identifier::new("test_col")));
+        let aliased = aliased_expr(expr.clone(), "alias");
+        assert_eq!(aliased.alias.as_str(), "alias");
+
+        // Test col_res_all
+        let all = col_res_all();
+        assert!(matches!(all, SelectResultExpr::ALL));
+
+        // Test col_res
+        let col_result = col_res(expr.clone(), "alias");
+        assert!(matches!(col_result, SelectResultExpr::AliasedResultExpr(_)));
+
+        // Test cols_res
+        let cols = cols_res(&["col1", "col2"]);
+        assert_eq!(cols.len(), 2);
+        assert!(matches!(cols[0], SelectResultExpr::AliasedResultExpr(_)));
+    }
+
+    #[test]
+    fn test_aggregation_results() {
+        let expr = Box::new(Expression::Column(Identifier::new("test_col")));
+
+        // Test min_res
+        let min_result = min_res(expr.clone(), "alias");
+        assert!(matches!(min_result, SelectResultExpr::AliasedResultExpr(_)));
+
+        // Test max_res
+        let max_result = max_res(expr.clone(), "alias");
+        assert!(matches!(max_result, SelectResultExpr::AliasedResultExpr(_)));
+
+        // Test sum_res
+        let sum_result = sum_res(expr.clone(), "alias");
+        assert!(matches!(sum_result, SelectResultExpr::AliasedResultExpr(_)));
+
+        // Test count_res
+        let count_result = count_res(expr, "alias");
+        assert!(matches!(count_result, SelectResultExpr::AliasedResultExpr(_)));
+
+        // Test count_all_res
+        let count_all_result = count_all_res("alias");
+        assert!(matches!(count_all_result, SelectResultExpr::AliasedResultExpr(_)));
+    }
+
+    #[test]
+    fn test_query_builders() {
+        let expr = Box::new(Expression::Column(Identifier::new("test_col")));
+        let table = tab(None, "table");
+        let where_expr = equal(expr.clone(), lit(42));
+        let group_by = vec![Identifier::new("group_col")];
+
+        // Test query
+        let query_expr = query(vec![col_res(expr.clone(), "alias")], table.clone(), where_expr, group_by.clone());
+        assert!(matches!(*query_expr, SetExpression::Query { .. }));
+
+        // Test query_all
+        let query_all_expr = query_all(vec![col_res(expr, "alias")], table, group_by);
+        assert!(matches!(*query_all_expr, SetExpression::Query { .. }));
+    }
+
+    #[test]
+    fn test_order_and_slice() {
+        // Test order
+        let order_expr = order("col", OrderByDirection::Asc);
+        assert_eq!(order_expr.len(), 1);
+        assert_eq!(order_expr[0].direction, OrderByDirection::Asc);
+
+        // Test orders
+        let orders_expr = orders(&["col1", "col2"], &[OrderByDirection::Asc, OrderByDirection::Desc]);
+        assert_eq!(orders_expr.len(), 2);
+        assert_eq!(orders_expr[0].direction, OrderByDirection::Asc);
+        assert_eq!(orders_expr[1].direction, OrderByDirection::Desc);
+
+        // Test slice
+        let slice_expr = slice(10, 5);
+        assert!(slice_expr.is_some());
+        let slice_data = slice_expr.unwrap();
+        assert_eq!(slice_data.number_rows, 10);
+        assert_eq!(slice_data.offset_value, 5);
+    }
+
+    #[test]
+    fn test_group_by() {
+        let group_by_expr = group_by(&["col1", "col2"]);
+        assert_eq!(group_by_expr.len(), 2);
+        assert_eq!(group_by_expr[0].as_str(), "col1");
+        assert_eq!(group_by_expr[1].as_str(), "col2");
+    }
+}

@@ -1,5 +1,5 @@
 use crate::{sql::IdentifierParser, ParseError, ParseResult};
-use alloc::{format, string::ToString};
+use alloc::{format, string::{String, ToString}};
 use arrayvec::ArrayString;
 use core::{cmp::Ordering, fmt, ops::Deref, str::FromStr};
 use sqlparser::ast::Ident;
@@ -171,7 +171,7 @@ mod tests {
         assert!(Identifier::from_str(".").is_err());
         assert!(Identifier::from_str("GOOD_IDENTIFIER:GOOD_IDENTIFIER").is_err());
         assert!(Identifier::from_str("BAD$IDENTIFIER").is_err());
-        assert!(Identifier::from_str("BAD_IDENT!FIER").is_err());
+        assert!(Identifier::from_str("BAD IDENT!FIER").is_err());
         assert!(Identifier::from_str("BAD IDENTIFIER").is_err());
         assert!(Identifier::from_str("13AD_IDENTIFIER").is_err());
         assert!(Identifier::from_str("$AD_IDENTIFIER").is_err());
@@ -298,5 +298,50 @@ mod tests {
 
         let invalid_ident = Ident::new("INVALID$IDENTIFIER");
         assert!(Identifier::try_from(invalid_ident).is_err());
+    }
+
+    #[test]
+    fn test_partial_eq_str() {
+        let identifier = Identifier::new("test_id");
+        assert!(identifier.eq("test_id"));
+        assert!(identifier.eq("TEST_ID")); // Case insensitive
+        assert!(!identifier.eq("different"));
+    }
+
+    #[test]
+    fn test_partial_ord_str() {
+        let identifier = Identifier::new("b_test");
+        assert!(identifier.partial_cmp("a_test").unwrap().is_gt());
+        assert!(identifier.partial_cmp("c_test").unwrap().is_lt());
+        assert!(identifier.partial_cmp("b_test").unwrap().is_eq());
+        assert!(identifier.partial_cmp("B_TEST").unwrap().is_eq()); // Case insensitive
+    }
+
+    #[test]
+    fn test_deref_and_as_ref() {
+        let identifier = Identifier::new("test_id");
+        // Test Deref
+        assert_eq!(&*identifier, "test_id");
+        // Test AsRef
+        assert_eq!(identifier.as_ref(), "test_id");
+    }
+
+    #[test]
+    fn test_error_messages() {
+        let err = Identifier::from_str("").unwrap_err();
+        assert!(matches!(err, ParseError::IdentifierParseError { .. }));
+        
+        let err = Identifier::from_str("123invalid").unwrap_err();
+        assert!(matches!(err, ParseError::IdentifierParseError { .. }));
+    }
+
+    #[test]
+    fn test_try_new_convenience() {
+        assert!(Identifier::try_new("valid_id").is_ok());
+        assert!(Identifier::try_new("invalid id").is_err());
+        
+        // Test with different string types
+        assert!(Identifier::try_new(String::from("valid_id")).is_ok());
+        assert!(Identifier::try_new(&String::from("valid_id")).is_ok());
     }
 }

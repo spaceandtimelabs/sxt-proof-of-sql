@@ -6,6 +6,8 @@
 
 use crate::{posql_time::PoSQLTimestamp, Identifier};
 use alloc::{boxed::Box, string::String, vec::Vec};
+#[cfg(test)]
+use alloc::vec;
 use bigdecimal::BigDecimal;
 use core::{
     fmt,
@@ -413,4 +415,200 @@ pub(crate) fn append<T>(list: Vec<T>, item: T) -> Vec<T> {
     let mut result = list;
     result.push(item);
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloc::string::ToString;
+
+    #[test]
+    fn test_append_helper() {
+        let list = vec![1, 2, 3];
+        let result = append(list.clone(), 4);
+        assert_eq!(result, vec![1, 2, 3, 4]);
+        assert_eq!(list, vec![1, 2, 3]); // Original list unchanged
+    }
+
+    #[test]
+    fn test_expression_operations() {
+        // Test sum operation
+        let expr = Expression::Column(Identifier::new("test_col"));
+        let sum_expr = expr.sum();
+        assert!(matches!(
+            *sum_expr,
+            Expression::Aggregation {
+                op: AggregationOperator::Sum,
+                expr: _
+            }
+        ));
+
+        // Test max operation
+        let expr = Expression::Column(Identifier::new("test_col"));
+        let max_expr = expr.max();
+        assert!(matches!(
+            *max_expr,
+            Expression::Aggregation {
+                op: AggregationOperator::Max,
+                expr: _
+            }
+        ));
+
+        // Test min operation
+        let expr = Expression::Column(Identifier::new("test_col"));
+        let min_expr = expr.min();
+        assert!(matches!(
+            *min_expr,
+            Expression::Aggregation {
+                op: AggregationOperator::Min,
+                expr: _
+            }
+        ));
+
+        // Test count operation
+        let expr = Expression::Column(Identifier::new("test_col"));
+        let count_expr = expr.count();
+        assert!(matches!(
+            *count_expr,
+            Expression::Aggregation {
+                op: AggregationOperator::Count,
+                expr: _
+            }
+        ));
+
+        // Test first operation
+        let expr = Expression::Column(Identifier::new("test_col"));
+        let first_expr = expr.first();
+        assert!(matches!(
+            *first_expr,
+            Expression::Aggregation {
+                op: AggregationOperator::First,
+                expr: _
+            }
+        ));
+    }
+
+    #[test]
+    fn test_expression_alias() {
+        let expr = Expression::Column(Identifier::new("test_col"));
+        let aliased = expr.alias("alias_name");
+        assert_eq!(aliased.alias.as_str(), "alias_name");
+        assert!(matches!(*aliased.expr, Expression::Column(_)));
+    }
+
+    #[test]
+    fn test_binary_operators() {
+        let left = Box::new(Expression::Literal(Literal::BigInt(1)));
+        let right = Box::new(Expression::Literal(Literal::BigInt(2)));
+
+        // Test addition
+        let add = left.clone() + right.clone();
+        assert!(matches!(
+            *add,
+            Expression::Binary {
+                op: BinaryOperator::Add,
+                left: _,
+                right: _
+            }
+        ));
+
+        // Test multiplication
+        let mul = left.clone() * right.clone();
+        assert!(matches!(
+            *mul,
+            Expression::Binary {
+                op: BinaryOperator::Multiply,
+                left: _,
+                right: _
+            }
+        ));
+
+        // Test division
+        let div = left.clone() / right.clone();
+        assert!(matches!(
+            *div,
+            Expression::Binary {
+                op: BinaryOperator::Division,
+                left: _,
+                right: _
+            }
+        ));
+
+        // Test subtraction
+        let sub = left - right;
+        assert!(matches!(
+            *sub,
+            Expression::Binary {
+                op: BinaryOperator::Subtract,
+                left: _,
+                right: _
+            }
+        ));
+    }
+
+    #[test]
+    fn test_literal_conversions() {
+        // Test bool conversion
+        let bool_lit: Literal = true.into();
+        assert!(matches!(bool_lit, Literal::Boolean(true)));
+
+        // Test integer conversions
+        let i8_lit: Literal = 42i8.into();
+        assert!(matches!(i8_lit, Literal::BigInt(42)));
+
+        let u8_lit: Literal = 42u8.into();
+        assert!(matches!(u8_lit, Literal::BigInt(42)));
+
+        let i16_lit: Literal = 42i16.into();
+        assert!(matches!(i16_lit, Literal::BigInt(42)));
+
+        let u16_lit: Literal = 42u16.into();
+        assert!(matches!(u16_lit, Literal::BigInt(42)));
+
+        let i32_lit: Literal = 42i32.into();
+        assert!(matches!(i32_lit, Literal::BigInt(42)));
+
+        let u32_lit: Literal = 42u32.into();
+        assert!(matches!(u32_lit, Literal::BigInt(42)));
+
+        let i64_lit: Literal = 42i64.into();
+        assert!(matches!(i64_lit, Literal::BigInt(42)));
+
+        // Test i128 conversion
+        let i128_lit: Literal = 42i128.into();
+        assert!(matches!(i128_lit, Literal::Int128(42)));
+
+        // Test string conversions
+        let str_lit: Literal = "test".into();
+        assert!(matches!(str_lit, Literal::VarChar(_)));
+
+        let string_lit: Literal = "test".to_string().into();
+        assert!(matches!(string_lit, Literal::VarChar(_)));
+    }
+
+    #[test]
+    fn test_aggregation_operator_display() {
+        assert_eq!(AggregationOperator::Max.to_string(), "max");
+        assert_eq!(AggregationOperator::Min.to_string(), "min");
+        assert_eq!(AggregationOperator::Sum.to_string(), "sum");
+        assert_eq!(AggregationOperator::Count.to_string(), "count");
+        assert_eq!(AggregationOperator::First.to_string(), "first");
+    }
+
+    #[test]
+    fn test_order_by_direction_display() {
+        assert_eq!(OrderByDirection::Asc.to_string(), "asc");
+        assert_eq!(OrderByDirection::Desc.to_string(), "desc");
+    }
+
+    #[test]
+    fn test_aliased_result_expr_try_as_identifier() {
+        let col_expr = Expression::Column(Identifier::new("test_col"));
+        let aliased = AliasedResultExpr::new(col_expr, Identifier::new("alias"));
+        assert!(aliased.try_as_identifier().is_some());
+
+        let lit_expr = Expression::Literal(Literal::BigInt(42));
+        let aliased = AliasedResultExpr::new(lit_expr, Identifier::new("alias"));
+        assert!(aliased.try_as_identifier().is_none());
+    }
 }
