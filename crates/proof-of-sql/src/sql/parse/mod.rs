@@ -2,7 +2,7 @@
 mod error;
 
 pub use error::ConversionError;
-pub(crate) use error::ConversionResult;
+pub(crate) use error::{unsupported, ConversionResult};
 
 mod enriched_expr;
 pub(crate) use enriched_expr::EnrichedExpr;
