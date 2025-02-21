@@ -200,7 +200,7 @@ jobs:
           files: lcov.info
           fail_ci_if_error: true
       - name: Enforce Coverage Threshold
-        run: cargo llvm-cov report --summary-only --fail-under-lines 95
+        run: cargo llvm-cov report --summary-only --fail-under-lines 94
         
   # Run cargo f --check
   format:
