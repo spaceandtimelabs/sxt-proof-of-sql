@@ -660,6 +660,48 @@ mod tests {
     use crate::{base::scalar::test_scalar::TestScalar, proof_primitive::dory::DoryScalar};
     use alloc::{string::String, vec};
 
+    type TestColumn<'a> = Column<'a, TestScalar>;
+
+    #[test]
+    fn test_column_len_and_is_empty() {
+        // BigInt column.
+        let col_bigint: TestColumn = Column::BigInt(&[1, 2, 3]);
+        assert_eq!(col_bigint.len(), 3);
+        assert!(!col_bigint.is_empty());
+
+        // VarChar column, ensuring both slices have same length.
+        let strings = [TestScalar::from("h"), TestScalar::from("w")];
+        let col_varchar: TestColumn = Column::VarChar((&["hello", "world"], &strings));
+        assert_eq!(col_varchar.len(), 2);
+        assert!(!col_varchar.is_empty());
+
+        // Empty column
+        let empty_col: TestColumn = Column::BigInt(&[]);
+        assert_eq!(empty_col.len(), 0);
+        assert!(empty_col.is_empty());
+    }
+
+    #[test]
+    fn test_database_column_operations() {
+        // Test column type checks
+        let col: TestColumn = Column::BigInt(&[1, 2, 3]);
+
+        // Test column metadata
+        assert_eq!(col.column_type(), ColumnType::BigInt);
+        assert_eq!(col.len(), 3);
+        assert!(!col.is_empty());
+
+        // Test different column types
+        let bool_col: TestColumn = Column::Boolean(&[true, false, true]);
+        assert_eq!(bool_col.column_type(), ColumnType::Boolean);
+
+        let int_col: TestColumn = Column::Int(&[10, 20, 30]);
+        assert_eq!(int_col.column_type(), ColumnType::Int);
+
+        let small_int_col: TestColumn = Column::SmallInt(&[1, 2, 3]);
+        assert_eq!(small_int_col.column_type(), ColumnType::SmallInt);
+    }
+
     #[test]
     fn column_type_serializes_to_string() {
         let column_type = ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc());

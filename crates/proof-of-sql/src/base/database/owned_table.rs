@@ -193,7 +193,7 @@ impl<'a, S: Scalar> From<Table<'a, S>> for OwnedTable<S> {
 
 #[cfg(test)]
 mod tests {
-    use super::OwnedTable;
+    use super::*;
     use crate::base::{
         database::{
             owned_table_utility::*, table_utility::*, ColumnCoercionError, Table,
@@ -292,6 +292,23 @@ mod tests {
             OwnedTable::from(no_columns_table_two_rows),
             expected_no_columns_table
         );
+    }
+
+    #[test]
+    fn test_table_operations() {
+        // Test non-empty table
+        let table: OwnedTable<TestScalar> =
+            owned_table([bigint("a", [1, 2, 3]), varchar("b", ["x", "y", "z"])]);
+        assert_eq!(table.num_rows(), 3);
+        assert!(!table.is_empty());
+        assert_eq!(table.num_columns(), 2);
+
+        // Test empty table (no columns)
+        let empty_map: IndexMap<Ident, OwnedColumn<TestScalar>> = IndexMap::default();
+        let empty_table: OwnedTable<TestScalar> = OwnedTable::try_new(empty_map).unwrap();
+        assert_eq!(empty_table.num_rows(), 0);
+        assert!(empty_table.is_empty());
+        assert_eq!(empty_table.num_columns(), 0);
     }
 
     #[test]
