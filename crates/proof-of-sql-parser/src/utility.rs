@@ -564,14 +564,20 @@ mod tests {
         let table_with_schema = tab(Some("schema"), "table");
         assert!(matches!(
             *table_with_schema,
-            TableExpression::Named { schema: Some(_), table: _ }
+            TableExpression::Named {
+                schema: Some(_),
+                table: _
+            }
         ));
 
         // Test tab without schema
         let table_without_schema = tab(None, "table");
         assert!(matches!(
             *table_without_schema,
-            TableExpression::Named { schema: None, table: _ }
+            TableExpression::Named {
+                schema: None,
+                table: _
+            }
         ));
     }
 
@@ -680,11 +686,17 @@ mod tests {
 
         // Test count_res
         let count_result = count_res(expr, "alias");
-        assert!(matches!(count_result, SelectResultExpr::AliasedResultExpr(_)));
+        assert!(matches!(
+            count_result,
+            SelectResultExpr::AliasedResultExpr(_)
+        ));
 
         // Test count_all_res
         let count_all_result = count_all_res("alias");
-        assert!(matches!(count_all_result, SelectResultExpr::AliasedResultExpr(_)));
+        assert!(matches!(
+            count_all_result,
+            SelectResultExpr::AliasedResultExpr(_)
+        ));
     }
 
     #[test]
@@ -695,7 +707,12 @@ mod tests {
         let group_by = vec![Identifier::new("group_col")];
 
         // Test query
-        let query_expr = query(vec![col_res(expr.clone(), "alias")], table.clone(), where_expr, group_by.clone());
+        let query_expr = query(
+            vec![col_res(expr.clone(), "alias")],
+            table.clone(),
+            where_expr,
+            group_by.clone(),
+        );
         assert!(matches!(*query_expr, SetExpression::Query { .. }));
 
         // Test query_all
@@ -711,7 +728,10 @@ mod tests {
         assert_eq!(order_expr[0].direction, OrderByDirection::Asc);
 
         // Test orders
-        let orders_expr = orders(&["col1", "col2"], &[OrderByDirection::Asc, OrderByDirection::Desc]);
+        let orders_expr = orders(
+            &["col1", "col2"],
+            &[OrderByDirection::Asc, OrderByDirection::Desc],
+        );
         assert_eq!(orders_expr.len(), 2);
         assert_eq!(orders_expr[0].direction, OrderByDirection::Asc);
         assert_eq!(orders_expr[1].direction, OrderByDirection::Desc);

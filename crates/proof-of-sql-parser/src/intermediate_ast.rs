@@ -5,9 +5,9 @@
 ***/
 
 use crate::{posql_time::PoSQLTimestamp, Identifier};
-use alloc::{boxed::Box, string::String, vec::Vec};
 #[cfg(test)]
 use alloc::vec;
+use alloc::{boxed::Box, string::String, vec::Vec};
 use bigdecimal::BigDecimal;
 use core::{
     fmt,

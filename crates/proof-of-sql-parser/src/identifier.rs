@@ -1,5 +1,8 @@
 use crate::{sql::IdentifierParser, ParseError, ParseResult};
-use alloc::{format, string::{String, ToString}};
+use alloc::{
+    format,
+    string::{String, ToString},
+};
 use arrayvec::ArrayString;
 use core::{cmp::Ordering, fmt, ops::Deref, str::FromStr};
 use sqlparser::ast::Ident;
@@ -330,7 +333,7 @@ mod tests {
     fn test_error_messages() {
         let err = Identifier::from_str("").unwrap_err();
         assert!(matches!(err, ParseError::IdentifierParseError { .. }));
-        
+
         let err = Identifier::from_str("123invalid").unwrap_err();
         assert!(matches!(err, ParseError::IdentifierParseError { .. }));
     }
@@ -339,7 +342,7 @@ mod tests {
     fn test_try_new_convenience() {
         assert!(Identifier::try_new("valid_id").is_ok());
         assert!(Identifier::try_new("invalid id").is_err());
-        
+
         // Test with different string types
         assert!(Identifier::try_new(String::from("valid_id")).is_ok());
         assert!(Identifier::try_new(&String::from("valid_id")).is_ok());

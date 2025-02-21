@@ -61,7 +61,9 @@ impl TryFrom<&DataType> for ColumnType {
                     TimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
                 };
                 let timezone = match timezone_option {
-                    Some(tz) => PoSQLTimeZone::try_from(&Some(tz.clone())).map_err(|e| e.to_string())?,
+                    Some(tz) => {
+                        PoSQLTimeZone::try_from(&Some(tz.clone())).map_err(|e| e.to_string())?
+                    }
                     None => PoSQLTimeZone::utc(),
                 };
                 Ok(ColumnType::TimestampTZ(posql_time_unit, timezone))

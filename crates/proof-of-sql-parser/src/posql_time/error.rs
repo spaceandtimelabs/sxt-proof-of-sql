@@ -83,9 +83,7 @@ mod tests {
 
     #[test]
     fn test_unsupported_precision() {
-        let error = PoSQLTimestampError::UnsupportedPrecision {
-            error: "7".into(),
-        };
+        let error = PoSQLTimestampError::UnsupportedPrecision { error: "7".into() };
         assert_eq!(error.to_string(), "Unsupported precision: 7");
     }
 

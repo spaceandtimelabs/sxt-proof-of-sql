@@ -140,13 +140,13 @@ mod timezone_parsing_tests {
             "-12:0",
             "UTC+01:00", // No compound formats
             "GMT",       // No named timezones
-            "+:",       // Missing numbers
-            ":",        // Just separator
-            "",         // Empty string
-            "+24:00",   // Invalid hour
-            "-24:00",   // Invalid hour
-            "+00:60",   // Invalid minute
-            "-00:60",   // Invalid minute
+            "+:",        // Missing numbers
+            ":",         // Just separator
+            "",          // Empty string
+            "+24:00",    // Invalid hour
+            "-24:00",    // Invalid hour
+            "+00:60",    // Invalid minute
+            "-00:60",    // Invalid minute
         ];
         for invalid in invalid_formats {
             let result = PoSQLTimeZone::try_from(&Some(Arc::from(invalid)));
@@ -162,14 +162,14 @@ mod timezone_parsing_tests {
     fn test_invalid_timezone_offset_parsing() {
         // Test invalid hour/minute values
         let invalid_offsets = [
-            "+aa:00",   // Invalid hour format
-            "+00:xx",   // Invalid minute format
-            "+24:00",   // Hour too large
-            "+00:60",   // Minute too large
-            "-24:00",   // Hour too large negative
-            "-00:60",   // Minute too large negative
-            "+0a:00",   // Partial invalid hour
-            "+00:0x",   // Partial invalid minute
+            "+aa:00", // Invalid hour format
+            "+00:xx", // Invalid minute format
+            "+24:00", // Hour too large
+            "+00:60", // Minute too large
+            "-24:00", // Hour too large negative
+            "-00:60", // Minute too large negative
+            "+0a:00", // Partial invalid hour
+            "+00:0x", // Partial invalid minute
         ];
         for invalid in invalid_offsets {
             let result = PoSQLTimeZone::try_from(&Some(Arc::from(invalid)));
@@ -184,19 +184,19 @@ mod timezone_parsing_tests {
     fn test_timezone_offset_values() {
         // Test edge cases for offset values
         let test_cases = [
-            (0, "+00:00"),           // UTC
-            (3600, "+01:00"),        // +1 hour
-            (-3600, "-01:00"),       // -1 hour
-            (5400, "+01:30"),        // +1.5 hours
-            (-5400, "-01:30"),       // -1.5 hours
-            (43200, "+12:00"),       // +12 hours
-            (-43200, "-12:00"),      // -12 hours
-            (50400, "+14:00"),       // +14 hours (max)
-            (-50400, "-14:00"),      // -14 hours (min)
-            (1800, "+00:30"),        // +30 minutes
-            (-1800, "-00:30"),       // -30 minutes
-            (86340, "+23:59"),       // +23:59
-            (-86340, "-23:59"),      // -23:59
+            (0, "+00:00"),      // UTC
+            (3600, "+01:00"),   // +1 hour
+            (-3600, "-01:00"),  // -1 hour
+            (5400, "+01:30"),   // +1.5 hours
+            (-5400, "-01:30"),  // -1.5 hours
+            (43200, "+12:00"),  // +12 hours
+            (-43200, "-12:00"), // -12 hours
+            (50400, "+14:00"),  // +14 hours (max)
+            (-50400, "-14:00"), // -14 hours (min)
+            (1800, "+00:30"),   // +30 minutes
+            (-1800, "-00:30"),  // -30 minutes
+            (86340, "+23:59"),  // +23:59
+            (-86340, "-23:59"), // -23:59
         ];
 
         for (offset, expected) in test_cases {
