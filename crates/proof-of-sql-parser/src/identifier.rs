@@ -171,7 +171,7 @@ mod tests {
         assert!(Identifier::from_str(".").is_err());
         assert!(Identifier::from_str("GOOD_IDENTIFIER:GOOD_IDENTIFIER").is_err());
         assert!(Identifier::from_str("BAD$IDENTIFIER").is_err());
-        assert!(Identifier::from_str("BAD IDENT!FIER").is_err());
+        assert!(Identifier::from_str("BAD_IDENT!FIER").is_err());
         assert!(Identifier::from_str("BAD IDENTIFIER").is_err());
         assert!(Identifier::from_str("13AD_IDENTIFIER").is_err());
         assert!(Identifier::from_str("$AD_IDENTIFIER").is_err());
