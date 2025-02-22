@@ -4,7 +4,7 @@
 
 To run benchmarks with Jaeger, you need to do the following
 
-1. Spin up Jaeger service on port 6831 to receive the benchmarks trace data, and provides Jaeger UI on port 16686.
+1. Spin up Jaeger service on port 6831 to receive the benchmarks trace data, and provide Jaeger UI on port 16686.
     ```bash
     docker run --rm -d --name jaeger -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one:1.62.0
     ```
