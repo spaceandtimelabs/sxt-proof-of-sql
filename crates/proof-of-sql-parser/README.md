@@ -5,4 +5,4 @@
 
 This crate is a library for SQL parsing for the Proof of SQL execution engine. See the [proof-of-sql](https://docs.rs/proof-of-sql) crate.
 
-Proof of SQL is a high performance zero knowledge (ZK) prover developed by the [Space and Time](https://www.spaceandtime.io/) team, which cryptographically guarantees SQL queries were computed accurately against untampered data. It targets online latencies while proving computations over entire chain histories, an order of magnitude faster than state-of-the art zkVMs and coprocessors.
+Proof of SQL is a high performance zero knowledge (ZK) prover developed by the [Space and Time](https://www.spaceandtime.io/) team, which cryptographically guarantees SQL queries were computed accurately against untampered data. It targets online latencies while proving computations over entire chain histories, an order of magnitude faster than state-of-the-art zkVMs and coprocessors.
