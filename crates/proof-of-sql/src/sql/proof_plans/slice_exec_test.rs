@@ -31,7 +31,16 @@ fn we_can_prove_and_get_the_correct_result_from_a_slice_exec() {
     let accessor =
         OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = slice_exec(
-        projection(cols_expr_plan(&t, &["a", "b"], &accessor), tab(&t)),
+        projection(
+            cols_expr_plan(&t, &["a", "b"], &accessor),
+            table_exec(
+                t.clone(),
+                vec![
+                    ColumnField::new("a".into(), ColumnType::BigInt),
+                    ColumnField::new("b".into(), ColumnType::VarChar),
+                ],
+            ),
+        ),
         1,
         Some(2),
     );
@@ -48,7 +57,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_slice_exec() {
         bigint("a", [1_i64, 2, 3, 4, 5]),
         varchar("b", ["1", "2", "3", "4", "5"]),
     ]);
-    let t: TableRef = "sxt.t".parse().unwrap();
+    let t = TableRef::new("sxt", "t");
     let accessor =
         OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let where_clause: DynProofExpr = equal(column(&t, "a", &accessor), const_int128(2));

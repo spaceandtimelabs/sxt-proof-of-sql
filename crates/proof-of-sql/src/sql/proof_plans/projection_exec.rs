@@ -1,3 +1,4 @@
+use super::DynProofPlan;
 use crate::{
     base::{
         database::{
@@ -11,30 +12,30 @@ use crate::{
         proof::{
             FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
         },
-        proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
+        proof_exprs::{AliasedDynProofExpr, ProofExpr},
     },
     utils::log,
 };
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
 /// Provable expressions for queries of the form
 /// ```ignore
-///     SELECT <result_expr1>, ..., <result_exprN> FROM <table>
+///     SELECT <result_expr1>, ..., <result_exprN> FROM <input>
 /// ```
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ProjectionExec {
     pub(super) aliased_results: Vec<AliasedDynProofExpr>,
-    pub(super) table: TableExpr,
+    pub(super) input: Box<DynProofPlan>,
 }
 
 impl ProjectionExec {
     /// Creates a new projection expression.
-    pub fn new(aliased_results: Vec<AliasedDynProofExpr>, table: TableExpr) -> Self {
+    pub fn new(aliased_results: Vec<AliasedDynProofExpr>, input: Box<DynProofPlan>) -> Self {
         Self {
             aliased_results,
-            table,
+            input,
         }
     }
 }
@@ -49,9 +50,10 @@ impl ProofPlan for ProjectionExec {
         chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         // For projections input and output have the same length and hence the same chi eval
-        let chi_eval = *chi_eval_map
-            .get(&self.table.table_ref)
-            .expect("Chi eval not found");
+        let input_eval = self
+            .input
+            .verifier_evaluate(builder, accessor, None, chi_eval_map)?;
+        let chi_eval = input_eval.chi_eval();
         self.aliased_results
             .iter()
             .map(|aliased_expr| {
@@ -75,15 +77,12 @@ impl ProofPlan for ProjectionExec {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        let mut columns = IndexSet::default();
-        self.aliased_results.iter().for_each(|aliased_expr| {
-            aliased_expr.expr.get_column_references(&mut columns);
-        });
-        columns
+        // For projections any output column reference is a reference to an input column
+        self.input.get_column_references()
     }
 
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        IndexSet::from_iter([self.table.table_ref.clone()])
+        self.input.get_table_references()
     }
 }
 
@@ -95,23 +94,22 @@ impl ProverEvaluate for ProjectionExec {
     )]
     fn first_round_evaluate<'a, S: Scalar>(
         &self,
-        _builder: &mut FirstRoundBuilder<'a, S>,
+        builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
-        let table = table_map
-            .get(&self.table.table_ref)
-            .expect("Table not found");
+        let input = self.input.first_round_evaluate(builder, alloc, table_map);
+
         let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias.clone(),
-                    aliased_expr.expr.result_evaluate(alloc, table),
+                    aliased_expr.expr.result_evaluate(alloc, &input),
                 )
             }),
-            TableOptions::new(Some(table.num_rows())),
+            TableOptions::new(Some(input.num_rows())),
         )
         .expect("Failed to create table from iterator");
 
@@ -134,18 +132,16 @@ impl ProverEvaluate for ProjectionExec {
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
-        let table = table_map
-            .get(&self.table.table_ref)
-            .expect("Table not found");
+        let input = self.input.final_round_evaluate(builder, alloc, table_map);
         // 1. Evaluate result expressions
         let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias.clone(),
-                    aliased_expr.expr.prover_evaluate(builder, alloc, table),
+                    aliased_expr.expr.prover_evaluate(builder, alloc, &input),
                 )
             }),
-            TableOptions::new(Some(table.num_rows())),
+            TableOptions::new(Some(input.num_rows())),
         )
         .expect("Failed to create table from iterator");
         // 2. Produce MLEs
