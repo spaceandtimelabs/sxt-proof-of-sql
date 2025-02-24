@@ -7,7 +7,7 @@ use crate::base::{
 use alloc::vec::Vec;
 use ark_bn254::g1::G1Affine;
 use ark_ec::AffineRepr;
-use ark_ff::PrimeField;
+use ark_ff::{BigInt, PrimeField};
 #[cfg(feature = "blitzar")]
 use blitzar;
 use core::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
@@ -50,7 +50,7 @@ pub struct HyperKZGCommitment {
 impl From<&ark_bn254::G1Affine> for HyperKZGCommitment {
     fn from(value: &ark_bn254::G1Affine) -> Self {
         Self {
-            commitment: NovaCommitment::from_g1_affine(convert_to_nova_g1_affine(value)),
+            commitment: NovaCommitment::new(convert_to_nova_g1_affine(value).into()),
         }
     }
 }
@@ -130,10 +130,15 @@ fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
 fn convert_to_ark_bn254_g1_affine(
     point: &nova_snark::provider::bn256_grumpkin::bn256::Affine,
 ) -> ark_bn254::G1Affine {
-    ark_bn254::G1Affine::new(
-        ark_bn254::Fq::from_le_bytes_mod_order(&point.x.to_bytes()),
-        ark_bn254::Fq::from_le_bytes_mod_order(&point.y.to_bytes()),
-    )
+    if *point == nova_snark::provider::bn256_grumpkin::bn256::Affine::default() {
+        return ark_bn254::G1Affine::default();
+    }
+
+    ark_bn254::G1Affine {
+        x: BigInt::<4>::new(bytemuck::cast(point.x.to_bytes())).into(),
+        y: BigInt::<4>::new(bytemuck::cast(point.y.to_bytes())).into(),
+        infinity: false,
+    }
 }
 
 /// Converts an `ark_bn254::G1Affine` point to a `nova_snark::provider::bn256_grumpkin::bn256::Affine` point.
@@ -519,6 +524,7 @@ mod tests {
                 | CommittableColumn::VarChar(vals) => {
                     expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, vals));
                 }
+                CommittableColumn::VarBinary(_) => todo!(),
             }
         }
         expected
