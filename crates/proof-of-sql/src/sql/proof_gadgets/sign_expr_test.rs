@@ -1,10 +1,7 @@
 use super::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
 use crate::{
-    base::{
-        bit::BitDistribution,
-        polynomial::MultilinearExtension,
-        scalar::{Curve25519Scalar, Scalar},
-    },
+    base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Scalar},
+    proof_primitive::inner_product::Curve25519Scalar,
     sql::proof::{
         FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilderImpl,
     },

@@ -16,7 +16,6 @@ mod vec_commitment_ext;
 pub use vec_commitment_ext::{NumColumnsMismatch, VecCommitmentExt};
 
 mod column_bounds;
-use super::scalar::Curve25519Scalar;
 pub use column_bounds::{Bounds, ColumnBounds, NegativeBounds};
 
 mod column_commitment_metadata;
@@ -137,7 +136,9 @@ impl Commitment for RistrettoPoint {
 }
 
 mod commitment_evaluation_proof;
+use crate::proof_primitive::inner_product::Curve25519Scalar;
 pub use commitment_evaluation_proof::CommitmentEvaluationProof;
+
 #[cfg(test)]
 pub(crate) mod commitment_evaluation_proof_test;
 

@@ -102,7 +102,7 @@ impl<C: Commitment> TableCommitment<C> {
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
-    use crate::base::scalar::Curve25519Scalar;
+    use crate::proof_primitive::inner_product::Curve25519Scalar;
     use arrow::{
         array::{Int64Array, StringArray},
         datatypes::{DataType, Field, Schema},

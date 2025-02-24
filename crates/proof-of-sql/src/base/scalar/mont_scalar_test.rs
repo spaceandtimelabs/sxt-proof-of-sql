@@ -1,9 +1,6 @@
 use crate::base::{
     map::IndexSet,
-    scalar::{
-        test_scalar::TestScalar, test_scalar_constants, Curve25519Scalar, Scalar,
-        ScalarConversionError,
-    },
+    scalar::{test_scalar::TestScalar, test_scalar_constants, Scalar, ScalarConversionError},
 };
 use alloc::{format, string::ToString, vec::Vec};
 use byte_slice_cast::AsByteSlice;
@@ -18,32 +15,15 @@ use rand_core::SeedableRng;
 
 #[test]
 fn we_have_correct_constants_for_curve_25519_scalar() {
-    test_scalar_constants::<Curve25519Scalar>();
-}
-
-#[test]
-fn test_dalek_interop_1() {
-    let x = curve25519_dalek::scalar::Scalar::from(1u64);
-    let xp = Curve25519Scalar::from(1u64);
-    assert_eq!(curve25519_dalek::scalar::Scalar::from(xp), x);
-}
-
-#[test]
-fn test_dalek_interop_m1() {
-    let x = curve25519_dalek::scalar::Scalar::from(123u64);
-    let mx = -x;
-    let xp = Curve25519Scalar::from(123u64);
-    let mxp = -xp;
-    assert_eq!(mxp, Curve25519Scalar::from(-123i64));
-    assert_eq!(curve25519_dalek::scalar::Scalar::from(mxp), mx);
+    test_scalar_constants::<TestScalar>();
 }
 
 #[test]
 fn test_add() {
-    let one = Curve25519Scalar::from(1u64);
-    let two = Curve25519Scalar::from(2u64);
+    let one = TestScalar::from(1u64);
+    let two = TestScalar::from(2u64);
     let sum = one + two;
-    let expected_sum = Curve25519Scalar::from(3u64);
+    let expected_sum = TestScalar::from(3u64);
     assert_eq!(sum, expected_sum);
 }
 
@@ -52,9 +32,9 @@ fn test_mod() {
     let pm1: ark_ff::BigInt<4> = ark_ff::BigInt!(
         "7237005577332262213973186563042994240857116359379907606001950938285454250988"
     );
-    let x = Curve25519Scalar::from(pm1.0);
-    let one = Curve25519Scalar::from(1u64);
-    let zero = Curve25519Scalar::from(0u64);
+    let x = TestScalar::from(pm1.0);
+    let one = TestScalar::from(1u64);
+    let zero = TestScalar::from(0u64);
     let xp1 = x + one;
     assert_eq!(xp1, zero);
 }
@@ -62,19 +42,19 @@ fn test_mod() {
 #[test]
 fn test_curve25519_scalar_serialization() {
     let s = [
-        Curve25519Scalar::from(1u8),
-        -Curve25519Scalar::from(1u8),
-        Curve25519Scalar::from(123),
-        Curve25519Scalar::from(0),
-        Curve25519Scalar::from(255),
-        Curve25519Scalar::from(1234),
-        Curve25519Scalar::from(12345),
-        Curve25519Scalar::from(2357),
-        Curve25519Scalar::from(999),
-        Curve25519Scalar::from(123_456_789),
+        TestScalar::from(1u8),
+        -TestScalar::from(1u8),
+        TestScalar::from(123),
+        TestScalar::from(0),
+        TestScalar::from(255),
+        TestScalar::from(1234),
+        TestScalar::from(12345),
+        TestScalar::from(2357),
+        TestScalar::from(999),
+        TestScalar::from(123_456_789),
     ];
     let serialized = serde_json::to_string(&s).unwrap();
-    let deserialized: [Curve25519Scalar; 10] = serde_json::from_str(&serialized).unwrap();
+    let deserialized: [TestScalar; 10] = serde_json::from_str(&serialized).unwrap();
     assert_eq!(s, deserialized);
 }
 
@@ -82,187 +62,163 @@ fn test_curve25519_scalar_serialization() {
 fn test_curve25519_scalar_display() {
     assert_eq!(
         "0000000000000000000000000000000000000000000000000000000000ABC123",
-        format!("{}", Curve25519Scalar::from(0x00AB_C123))
+        format!("{}", TestScalar::from(0x00AB_C123))
     );
     assert_eq!(
         "1000000000000000000000000000000014DEF9DEA2F79CD65812631A5C4A12CA",
-        format!("{}", Curve25519Scalar::from(-0x00AB_C123))
+        format!("{}", TestScalar::from(-0x00AB_C123))
     );
     assert_eq!(
         "0x0000...C123",
-        format!("{:#}", Curve25519Scalar::from(0x00AB_C123))
+        format!("{:#}", TestScalar::from(0x00AB_C123))
     );
     assert_eq!(
         "0x1000...12CA",
-        format!("{:#}", Curve25519Scalar::from(-0x00AB_C123))
+        format!("{:#}", TestScalar::from(-0x00AB_C123))
     );
     assert_eq!(
         "+0000000000000000000000000000000000000000000000000000000000ABC123",
-        format!("{:+}", Curve25519Scalar::from(0x00AB_C123))
+        format!("{:+}", TestScalar::from(0x00AB_C123))
     );
     assert_eq!(
         "-0000000000000000000000000000000000000000000000000000000000ABC123",
-        format!("{:+}", Curve25519Scalar::from(-0x00AB_C123))
+        format!("{:+}", TestScalar::from(-0x00AB_C123))
     );
     assert_eq!(
         "+0x0000...C123",
-        format!("{:+#}", Curve25519Scalar::from(0x00AB_C123))
+        format!("{:+#}", TestScalar::from(0x00AB_C123))
     );
     assert_eq!(
         "-0x0000...C123",
-        format!("{:+#}", Curve25519Scalar::from(-0x00AB_C123))
+        format!("{:+#}", TestScalar::from(-0x00AB_C123))
     );
 }
 
 #[test]
 fn test_curve25519_scalar_mid() {
     assert_eq!(
-        Curve25519Scalar::MAX_SIGNED,
-        -Curve25519Scalar::one() * Curve25519Scalar::from(2).inv().unwrap()
+        TestScalar::MAX_SIGNED,
+        -TestScalar::one() * TestScalar::from(2).inv().unwrap()
     );
 }
 
 #[test]
 fn test_curve25519_scalar_to_bool() {
-    assert!(!bool::try_from(Curve25519Scalar::ZERO).unwrap());
-    assert!(bool::try_from(Curve25519Scalar::ONE).unwrap());
+    assert!(!bool::try_from(TestScalar::ZERO).unwrap());
+    assert!(bool::try_from(TestScalar::ONE).unwrap());
 }
 
 #[test]
 fn test_curve25519_scalar_to_bool_overflow() {
     matches!(
-        bool::try_from(Curve25519Scalar::from(2)),
+        bool::try_from(TestScalar::from(2)),
         Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
-        bool::try_from(Curve25519Scalar::from(-1)),
+        bool::try_from(TestScalar::from(-1)),
         Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
-        bool::try_from(Curve25519Scalar::from(-2)),
+        bool::try_from(TestScalar::from(-2)),
         Err(ScalarConversionError::Overflow { .. })
     );
 }
 
 #[test]
 fn test_curve25519_scalar_to_i8() {
-    assert_eq!(i8::try_from(Curve25519Scalar::from(0)).unwrap(), 0);
-    assert_eq!(i8::try_from(Curve25519Scalar::ONE).unwrap(), 1);
-    assert_eq!(i8::try_from(Curve25519Scalar::from(-1)).unwrap(), -1);
-    assert_eq!(
-        i8::try_from(Curve25519Scalar::from(i8::MAX)).unwrap(),
-        i8::MAX
-    );
-    assert_eq!(
-        i8::try_from(Curve25519Scalar::from(i8::MIN)).unwrap(),
-        i8::MIN
-    );
+    assert_eq!(i8::try_from(TestScalar::from(0)).unwrap(), 0);
+    assert_eq!(i8::try_from(TestScalar::ONE).unwrap(), 1);
+    assert_eq!(i8::try_from(TestScalar::from(-1)).unwrap(), -1);
+    assert_eq!(i8::try_from(TestScalar::from(i8::MAX)).unwrap(), i8::MAX);
+    assert_eq!(i8::try_from(TestScalar::from(i8::MIN)).unwrap(), i8::MIN);
 }
 
 #[test]
 fn test_curve25519_scalar_to_i8_overflow() {
     matches!(
-        i8::try_from(Curve25519Scalar::from(i128::from(i8::MAX) + 1)),
+        i8::try_from(TestScalar::from(i128::from(i8::MAX) + 1)),
         Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
-        i8::try_from(Curve25519Scalar::from(i128::from(i8::MIN) - 1)),
+        i8::try_from(TestScalar::from(i128::from(i8::MIN) - 1)),
         Err(ScalarConversionError::Overflow { .. })
     );
 }
 
 #[test]
 fn test_curve25519_scalar_to_i16() {
-    assert_eq!(i16::try_from(Curve25519Scalar::from(0)).unwrap(), 0);
-    assert_eq!(i16::try_from(Curve25519Scalar::ONE).unwrap(), 1);
-    assert_eq!(i16::try_from(Curve25519Scalar::from(-1)).unwrap(), -1);
-    assert_eq!(
-        i16::try_from(Curve25519Scalar::from(i16::MAX)).unwrap(),
-        i16::MAX
-    );
-    assert_eq!(
-        i16::try_from(Curve25519Scalar::from(i16::MIN)).unwrap(),
-        i16::MIN
-    );
+    assert_eq!(i16::try_from(TestScalar::from(0)).unwrap(), 0);
+    assert_eq!(i16::try_from(TestScalar::ONE).unwrap(), 1);
+    assert_eq!(i16::try_from(TestScalar::from(-1)).unwrap(), -1);
+    assert_eq!(i16::try_from(TestScalar::from(i16::MAX)).unwrap(), i16::MAX);
+    assert_eq!(i16::try_from(TestScalar::from(i16::MIN)).unwrap(), i16::MIN);
 }
 
 #[test]
 fn test_curve25519_scalar_to_i16_overflow() {
     matches!(
-        i16::try_from(Curve25519Scalar::from(i128::from(i16::MAX) + 1)),
+        i16::try_from(TestScalar::from(i128::from(i16::MAX) + 1)),
         Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
-        i16::try_from(Curve25519Scalar::from(i128::from(i16::MIN) - 1)),
+        i16::try_from(TestScalar::from(i128::from(i16::MIN) - 1)),
         Err(ScalarConversionError::Overflow { .. })
     );
 }
 
 #[test]
 fn test_curve25519_scalar_to_i32() {
-    assert_eq!(i32::try_from(Curve25519Scalar::from(0)).unwrap(), 0);
-    assert_eq!(i32::try_from(Curve25519Scalar::ONE).unwrap(), 1);
-    assert_eq!(i32::try_from(Curve25519Scalar::from(-1)).unwrap(), -1);
-    assert_eq!(
-        i32::try_from(Curve25519Scalar::from(i32::MAX)).unwrap(),
-        i32::MAX
-    );
-    assert_eq!(
-        i32::try_from(Curve25519Scalar::from(i32::MIN)).unwrap(),
-        i32::MIN
-    );
+    assert_eq!(i32::try_from(TestScalar::from(0)).unwrap(), 0);
+    assert_eq!(i32::try_from(TestScalar::ONE).unwrap(), 1);
+    assert_eq!(i32::try_from(TestScalar::from(-1)).unwrap(), -1);
+    assert_eq!(i32::try_from(TestScalar::from(i32::MAX)).unwrap(), i32::MAX);
+    assert_eq!(i32::try_from(TestScalar::from(i32::MIN)).unwrap(), i32::MIN);
 }
 
 #[test]
 fn test_curve25519_scalar_to_i32_overflow() {
     matches!(
-        i32::try_from(Curve25519Scalar::from(i128::from(i32::MAX) + 1)),
+        i32::try_from(TestScalar::from(i128::from(i32::MAX) + 1)),
         Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
-        i32::try_from(Curve25519Scalar::from(i128::from(i32::MIN) - 1)),
+        i32::try_from(TestScalar::from(i128::from(i32::MIN) - 1)),
         Err(ScalarConversionError::Overflow { .. })
     );
 }
 
 #[test]
 fn test_curve25519_scalar_to_i64() {
-    assert_eq!(i64::try_from(Curve25519Scalar::from(0)).unwrap(), 0);
-    assert_eq!(i64::try_from(Curve25519Scalar::ONE).unwrap(), 1);
-    assert_eq!(i64::try_from(Curve25519Scalar::from(-1)).unwrap(), -1);
-    assert_eq!(
-        i64::try_from(Curve25519Scalar::from(i64::MAX)).unwrap(),
-        i64::MAX
-    );
-    assert_eq!(
-        i64::try_from(Curve25519Scalar::from(i64::MIN)).unwrap(),
-        i64::MIN
-    );
+    assert_eq!(i64::try_from(TestScalar::from(0)).unwrap(), 0);
+    assert_eq!(i64::try_from(TestScalar::ONE).unwrap(), 1);
+    assert_eq!(i64::try_from(TestScalar::from(-1)).unwrap(), -1);
+    assert_eq!(i64::try_from(TestScalar::from(i64::MAX)).unwrap(), i64::MAX);
+    assert_eq!(i64::try_from(TestScalar::from(i64::MIN)).unwrap(), i64::MIN);
 }
 
 #[test]
 fn test_curve25519_scalar_to_i64_overflow() {
     matches!(
-        i64::try_from(Curve25519Scalar::from(i128::from(i64::MAX) + 1)),
+        i64::try_from(TestScalar::from(i128::from(i64::MAX) + 1)),
         Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
-        i64::try_from(Curve25519Scalar::from(i128::from(i64::MIN) - 1)),
+        i64::try_from(TestScalar::from(i128::from(i64::MIN) - 1)),
         Err(ScalarConversionError::Overflow { .. })
     );
 }
 
 #[test]
 fn test_curve25519_scalar_to_i128() {
-    assert_eq!(i128::try_from(Curve25519Scalar::from(0)).unwrap(), 0);
-    assert_eq!(i128::try_from(Curve25519Scalar::ONE).unwrap(), 1);
-    assert_eq!(i128::try_from(Curve25519Scalar::from(-1)).unwrap(), -1);
+    assert_eq!(i128::try_from(TestScalar::from(0)).unwrap(), 0);
+    assert_eq!(i128::try_from(TestScalar::ONE).unwrap(), 1);
+    assert_eq!(i128::try_from(TestScalar::from(-1)).unwrap(), -1);
     assert_eq!(
-        i128::try_from(Curve25519Scalar::from(i128::MAX)).unwrap(),
+        i128::try_from(TestScalar::from(i128::MAX)).unwrap(),
         i128::MAX
     );
     assert_eq!(
-        i128::try_from(Curve25519Scalar::from(i128::MIN)).unwrap(),
+        i128::try_from(TestScalar::from(i128::MIN)).unwrap(),
         i128::MIN
     );
 }
@@ -270,26 +226,26 @@ fn test_curve25519_scalar_to_i128() {
 #[test]
 fn test_curve25519_scalar_to_i128_overflow() {
     matches!(
-        i128::try_from(Curve25519Scalar::from(i128::MAX) + Curve25519Scalar::ONE),
+        i128::try_from(TestScalar::from(i128::MAX) + TestScalar::ONE),
         Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
-        i128::try_from(Curve25519Scalar::from(i128::MIN) - Curve25519Scalar::ONE),
+        i128::try_from(TestScalar::from(i128::MIN) - TestScalar::ONE),
         Err(ScalarConversionError::Overflow { .. })
     );
 }
 
 #[test]
 fn test_curve25519_scalar_to_bigint() {
-    assert_eq!(BigInt::from(Curve25519Scalar::ZERO), BigInt::from(0_i8));
-    assert_eq!(BigInt::from(Curve25519Scalar::ONE), BigInt::from(1_i8));
-    assert_eq!(BigInt::from(-Curve25519Scalar::ONE), BigInt::from(-1_i8));
+    assert_eq!(BigInt::from(TestScalar::ZERO), BigInt::from(0_i8));
+    assert_eq!(BigInt::from(TestScalar::ONE), BigInt::from(1_i8));
+    assert_eq!(BigInt::from(-TestScalar::ONE), BigInt::from(-1_i8));
     assert_eq!(
-        BigInt::from(Curve25519Scalar::from(i128::MAX)),
+        BigInt::from(TestScalar::from(i128::MAX)),
         BigInt::from(i128::MAX)
     );
     assert_eq!(
-        BigInt::from(Curve25519Scalar::from(i128::MIN)),
+        BigInt::from(TestScalar::from(i128::MIN)),
         BigInt::from(i128::MIN)
     );
 }
@@ -297,58 +253,55 @@ fn test_curve25519_scalar_to_bigint() {
 #[test]
 fn test_curve25519_scalar_from_bigint() {
     assert_eq!(
-        Curve25519Scalar::try_from(BigInt::from(0_i8)).unwrap(),
-        Curve25519Scalar::ZERO
+        TestScalar::try_from(BigInt::from(0_i8)).unwrap(),
+        TestScalar::ZERO
     );
     assert_eq!(
-        Curve25519Scalar::try_from(BigInt::from(1_i8)).unwrap(),
-        Curve25519Scalar::ONE
+        TestScalar::try_from(BigInt::from(1_i8)).unwrap(),
+        TestScalar::ONE
     );
     assert_eq!(
-        Curve25519Scalar::try_from(BigInt::from(-1_i8)).unwrap(),
-        -Curve25519Scalar::ONE
+        TestScalar::try_from(BigInt::from(-1_i8)).unwrap(),
+        -TestScalar::ONE
     );
 }
 
 #[test]
 fn the_zero_integer_maps_to_the_zero_scalar() {
-    assert_eq!(Curve25519Scalar::from(0_u32), Curve25519Scalar::zero());
-    assert_eq!(Curve25519Scalar::from(0_u64), Curve25519Scalar::zero());
-    assert_eq!(Curve25519Scalar::from(0_u128), Curve25519Scalar::zero());
-    assert_eq!(Curve25519Scalar::from(0_i32), Curve25519Scalar::zero());
-    assert_eq!(Curve25519Scalar::from(0_i64), Curve25519Scalar::zero());
-    assert_eq!(Curve25519Scalar::from(0_i128), Curve25519Scalar::zero());
+    assert_eq!(TestScalar::from(0_u32), TestScalar::zero());
+    assert_eq!(TestScalar::from(0_u64), TestScalar::zero());
+    assert_eq!(TestScalar::from(0_u128), TestScalar::zero());
+    assert_eq!(TestScalar::from(0_i32), TestScalar::zero());
+    assert_eq!(TestScalar::from(0_i64), TestScalar::zero());
+    assert_eq!(TestScalar::from(0_i128), TestScalar::zero());
 }
 
 #[test]
 fn bools_map_to_curve25519_scalar_properly() {
-    assert_eq!(Curve25519Scalar::from(true), Curve25519Scalar::one());
-    assert_eq!(Curve25519Scalar::from(false), Curve25519Scalar::zero());
+    assert_eq!(TestScalar::from(true), TestScalar::one());
+    assert_eq!(TestScalar::from(false), TestScalar::zero());
 }
 
 #[test]
 fn the_one_integer_maps_to_the_zero_scalar() {
-    assert_eq!(Curve25519Scalar::from(1_u32), Curve25519Scalar::one());
-    assert_eq!(Curve25519Scalar::from(1_u64), Curve25519Scalar::one());
-    assert_eq!(Curve25519Scalar::from(1_u128), Curve25519Scalar::one());
-    assert_eq!(Curve25519Scalar::from(1_i32), Curve25519Scalar::one());
-    assert_eq!(Curve25519Scalar::from(1_i64), Curve25519Scalar::one());
-    assert_eq!(Curve25519Scalar::from(1_i128), Curve25519Scalar::one());
+    assert_eq!(TestScalar::from(1_u32), TestScalar::one());
+    assert_eq!(TestScalar::from(1_u64), TestScalar::one());
+    assert_eq!(TestScalar::from(1_u128), TestScalar::one());
+    assert_eq!(TestScalar::from(1_i32), TestScalar::one());
+    assert_eq!(TestScalar::from(1_i64), TestScalar::one());
+    assert_eq!(TestScalar::from(1_i128), TestScalar::one());
 }
 
 #[test]
 fn the_zero_scalar_is_the_additive_identity() {
     let mut rng = StdRng::seed_from_u64(0u64);
     for _ in 0..1000 {
-        let a = Curve25519Scalar::from(rng.gen::<i128>());
-        let b = Curve25519Scalar::from(rng.gen::<i128>());
+        let a = TestScalar::from(rng.gen::<i128>());
+        let b = TestScalar::from(rng.gen::<i128>());
         assert_eq!(a + b, b + a);
-        assert_eq!(a + Curve25519Scalar::zero(), a);
-        assert_eq!(b + Curve25519Scalar::zero(), b);
-        assert_eq!(
-            Curve25519Scalar::zero() + Curve25519Scalar::zero(),
-            Curve25519Scalar::zero()
-        );
+        assert_eq!(a + TestScalar::zero(), a);
+        assert_eq!(b + TestScalar::zero(), b);
+        assert_eq!(TestScalar::zero() + TestScalar::zero(), TestScalar::zero());
     }
 }
 
@@ -356,50 +309,41 @@ fn the_zero_scalar_is_the_additive_identity() {
 fn the_one_scalar_is_the_multiplicative_identity() {
     let mut rng = StdRng::seed_from_u64(0u64);
     for _ in 0..1000 {
-        let a = Curve25519Scalar::from(rng.gen::<i128>());
-        let b = Curve25519Scalar::from(rng.gen::<i128>());
+        let a = TestScalar::from(rng.gen::<i128>());
+        let b = TestScalar::from(rng.gen::<i128>());
         assert_eq!(a * b, b * a);
-        assert_eq!(a * Curve25519Scalar::one(), a);
-        assert_eq!(b * Curve25519Scalar::one(), b);
-        assert_eq!(
-            Curve25519Scalar::one() * Curve25519Scalar::one(),
-            Curve25519Scalar::one()
-        );
+        assert_eq!(a * TestScalar::one(), a);
+        assert_eq!(b * TestScalar::one(), b);
+        assert_eq!(TestScalar::one() * TestScalar::one(), TestScalar::one());
     }
 }
 
 #[test]
 fn the_empty_string_will_be_mapped_to_the_zero_scalar() {
-    assert_eq!(Curve25519Scalar::from(""), Curve25519Scalar::zero());
-    assert_eq!(
-        Curve25519Scalar::from(<&str>::default()),
-        Curve25519Scalar::zero()
-    );
+    assert_eq!(TestScalar::from(""), TestScalar::zero());
+    assert_eq!(TestScalar::from(<&str>::default()), TestScalar::zero());
 }
 
 #[test]
 fn two_different_strings_map_to_different_scalars() {
     let s = "abc12";
-    assert_ne!(Curve25519Scalar::from(s), Curve25519Scalar::zero());
-    assert_ne!(Curve25519Scalar::from(s), Curve25519Scalar::from("abc123"));
+    assert_ne!(TestScalar::from(s), TestScalar::zero());
+    assert_ne!(TestScalar::from(s), TestScalar::from("abc123"));
 }
 
 #[test]
 fn the_empty_buffer_will_be_mapped_to_the_zero_scalar() {
     let buf = Vec::<u8>::default();
-    assert_eq!(Curve25519Scalar::from(&buf[..]), Curve25519Scalar::zero());
+    assert_eq!(TestScalar::from(&buf[..]), TestScalar::zero());
 }
 
 #[test]
 fn byte_arrays_with_the_same_content_but_different_types_map_to_different_scalars() {
     let array = [1_u8, 2_u8, 34_u8];
+    assert_ne!(TestScalar::from(array.as_byte_slice()), TestScalar::zero());
     assert_ne!(
-        Curve25519Scalar::from(array.as_byte_slice()),
-        Curve25519Scalar::zero()
-    );
-    assert_ne!(
-        Curve25519Scalar::from(array.as_byte_slice()),
-        Curve25519Scalar::from([1_u32, 2_u32, 34_u32].as_byte_slice())
+        TestScalar::from(array.as_byte_slice()),
+        TestScalar::from([1_u32, 2_u32, 34_u32].as_byte_slice())
     );
 }
 
@@ -416,7 +360,7 @@ fn strings_of_arbitrary_size_map_to_different_scalars() {
             i,
             "testing string to scalar".repeat(dist.sample(&mut rng))
         );
-        assert!(prev_scalars.insert(Curve25519Scalar::from(s.as_str())));
+        assert!(prev_scalars.insert(TestScalar::from(s.as_str())));
     }
 }
 
@@ -431,7 +375,7 @@ fn byte_arrays_of_arbitrary_size_map_to_different_scalars() {
         let v = (0..dist.sample(&mut rng))
             .map(|_v| (dist.sample(&mut rng) % 255) as u8)
             .collect::<Vec<u8>>();
-        assert!(prev_scalars.insert(Curve25519Scalar::from(&v[..])));
+        assert!(prev_scalars.insert(TestScalar::from(&v[..])));
     }
 }
 
@@ -446,7 +390,7 @@ fn the_string_hash_implementation_uses_the_full_range_of_bits() {
         let mut bset = IndexSet::default();
 
         loop {
-            let s: Curve25519Scalar = dist.sample(&mut rng).to_string().as_str().into();
+            let s: TestScalar = dist.sample(&mut rng).to_string().as_str().into();
             let bytes = s.to_bytes_le(); //Note: this is the only spot that these tests are different from the to_curve25519_scalar tests.
 
             let is_ith_bit_set = bytes[i / 8] & (1 << (i % 8)) != 0;

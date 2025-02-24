@@ -1,8 +1,6 @@
 use crate::{
-    base::{
-        database::{owned_table_utility::*, OwnedTable},
-        scalar::Curve25519Scalar,
-    },
+    base::database::{owned_table_utility::*, OwnedTable},
+    proof_primitive::inner_product::Curve25519Scalar,
     sql::postprocessing::{apply_postprocessing_steps, test_utility::*, OwnedTablePostprocessing},
 };
 use rand::{seq::SliceRandom, Rng};

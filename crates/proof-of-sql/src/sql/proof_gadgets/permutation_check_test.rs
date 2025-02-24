@@ -160,10 +160,8 @@ impl ProofPlan for PermutationCheckTestPlan {
 mod tests {
     use super::*;
     use crate::{
-        base::{
-            database::{table_utility::*, ColumnType, TableTestAccessor, TestAccessor},
-            scalar::Curve25519Scalar,
-        },
+        base::database::{table_utility::*, ColumnType, TableTestAccessor, TestAccessor},
+        proof_primitive::inner_product::Curve25519Scalar,
         sql::proof::VerifiableQueryResult,
     };
     use blitzar::proof::InnerProductProof;
