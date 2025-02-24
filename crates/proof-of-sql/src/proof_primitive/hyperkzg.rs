@@ -21,7 +21,7 @@ use nova_snark::traits::commitment::{CommitmentEngineTrait, CommitmentTrait};
 use nova_snark::{
     errors::NovaError,
     provider::{
-        bn256_grumpkin::bn256::Scalar as NovaScalar,
+        bn256_grumpkin::bn256::{Affine as NovaAffine, Scalar as NovaScalar},
         hyperkzg::{CommitmentKey, EvaluationArgument, EvaluationEngine, VerifierKey},
     },
     traits::{
@@ -47,6 +47,7 @@ pub struct HyperKZGCommitment {
     pub commitment: NovaCommitment,
 }
 
+#[cfg(feature = "blitzar")]
 impl From<&ark_bn254::G1Affine> for HyperKZGCommitment {
     fn from(value: &ark_bn254::G1Affine) -> Self {
         Self {
@@ -127,44 +128,37 @@ fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
 }
 
 #[cfg(feature = "blitzar")]
-fn convert_to_ark_bn254_g1_affine(
-    point: &nova_snark::provider::bn256_grumpkin::bn256::Affine,
-) -> ark_bn254::G1Affine {
-    if *point == nova_snark::provider::bn256_grumpkin::bn256::Affine::default() {
-        return ark_bn254::G1Affine::default();
+fn convert_to_ark_bn254_g1_affine(point: &NovaAffine) -> G1Affine {
+    if *point == NovaAffine::default() {
+        return G1Affine::default();
     }
 
-    ark_bn254::G1Affine {
+    G1Affine {
         x: BigInt::<4>::new(bytemuck::cast(point.x.to_bytes())).into(),
         y: BigInt::<4>::new(bytemuck::cast(point.y.to_bytes())).into(),
         infinity: false,
     }
 }
 
-/// Converts an `ark_bn254::G1Affine` point to a `nova_snark::provider::bn256_grumpkin::bn256::Affine` point.
+/// Converts an `G1Affine` point to a `NovaAffine` point.
 ///
 /// # Panics
 ///
 /// This function will panic if:
 /// - The conversion from bytes to `nova_snark::provider::bn256_grumpkin::bn256::Base` fails.
-fn convert_to_nova_g1_affine(
-    point: &ark_bn254::G1Affine,
-) -> nova_snark::provider::bn256_grumpkin::bn256::Affine {
-    let Some(x) = point.x() else {
-        return nova_snark::provider::bn256_grumpkin::bn256::Affine::default();
-    };
-    let Some(y) = point.y() else {
-        return nova_snark::provider::bn256_grumpkin::bn256::Affine::default();
+#[cfg(feature = "blitzar")]
+fn convert_to_nova_g1_affine(point: &G1Affine) -> NovaAffine {
+    // Empty points unwrap to None
+    let (Some(x), Some(y)) = (point.x(), point.y()) else {
+        return NovaAffine::default();
     };
 
-    let x_bytes: [u8; 32] = bytemuck::cast(x.into_bigint().0);
-    let y_bytes: [u8; 32] = bytemuck::cast(y.into_bigint().0);
+    let x_bytes = bytemuck::cast::<[u64; 4], [u8; 32]>(x.into_bigint().0);
+    let y_bytes = bytemuck::cast::<[u64; 4], [u8; 32]>(y.into_bigint().0);
 
-    nova_snark::provider::bn256_grumpkin::bn256::Affine {
-        x: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(&x_bytes)
-            .expect("Failed to convert x coordinate to bytes"),
-        y: nova_snark::provider::bn256_grumpkin::bn256::Base::from_bytes(&y_bytes)
-            .expect("Failed to convert y coordinate to bytes"),
+    NovaAffine {
+        x: ff::PrimeField::from_repr_vartime(x_bytes.into()).unwrap(),
+        y: ff::PrimeField::from_repr_vartime(y_bytes.into()).unwrap(),
     }
 }
 
