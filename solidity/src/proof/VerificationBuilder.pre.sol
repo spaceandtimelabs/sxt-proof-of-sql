@@ -15,6 +15,7 @@ library VerificationBuilder {
         uint256[] finalRoundMLEs;
         uint256[] chiEvaluations;
         uint256[] rhoEvaluations;
+        uint256[] columnEvaluations;
     }
 
     /// @notice Allocates and reserves a block of memory for a verification builder
@@ -315,6 +316,61 @@ library VerificationBuilder {
                 value := dequeue(add(builder_ptr, BUILDER_RHO_EVALUATIONS_OFFSET))
             }
             __value := builder_consume_rho_evaluation(__builder)
+        }
+    }
+
+    /// @notice Sets the column evaluations in the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_set_column_evaluations(builder_ptr, values_ptr)
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// * `values_ptr` - pointer to the array in memory
+    /// @param __builder The builder struct
+    /// @param __values The column evaluation values array
+    function __setColumnEvaluations(Builder memory __builder, uint256[] memory __values) internal pure {
+        assembly {
+            function builder_set_column_evaluations(builder_ptr, values_ptr) {
+                mstore(add(builder_ptr, BUILDER_COLUMN_EVALUATIONS_OFFSET), values_ptr)
+            }
+            builder_set_column_evaluations(__builder, __values)
+        }
+    }
+
+    /// @notice Gets a column evaluation by column number
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_column_evaluation(builder_ptr, column_num) -> value
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// * `column_num` - the column number to get evaluation for
+    /// ##### Return Values
+    /// * `value` - the column evaluation
+    /// @param __builder The builder struct
+    /// @param __columnNum The column number
+    /// @return __value The column evaluation value
+    function __getColumnEvaluation(Builder memory __builder, uint256 __columnNum)
+        internal
+        pure
+        returns (uint256 __value)
+    {
+        assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
+            function builder_get_column_evaluation(builder_ptr, column_num) -> value {
+                let arr_ptr := mload(add(builder_ptr, BUILDER_COLUMN_EVALUATIONS_OFFSET))
+                if iszero(lt(column_num, mload(arr_ptr))) { err(ERR_INVALID_COLUMN_INDEX) }
+                value := mload(add(add(arr_ptr, WORD_SIZE), mul(column_num, WORD_SIZE)))
+            }
+            __value := builder_get_column_evaluation(__builder, __columnNum)
         }
     }
 }
