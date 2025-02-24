@@ -7,21 +7,23 @@ import "../../src/base/Errors.sol";
 
 contract ErrorsTest is Test {
     function testErrorConstantsMatchSelectors() public pure {
-        bytes4[6] memory selectors = [
+        bytes4[7] memory selectors = [
             Errors.InvalidECAddInputs.selector,
             Errors.InvalidECMulInputs.selector,
             Errors.InvalidECPairingInputs.selector,
             Errors.RoundEvaluationMismatch.selector,
             Errors.EmptyQueue.selector,
-            Errors.HyperKZGInconsistentV.selector
+            Errors.HyperKZGInconsistentV.selector,
+            Errors.ConstraintDegreeTooHigh.selector
         ];
-        uint32[6] memory selectorConstants = [
+        uint32[7] memory selectorConstants = [
             ERR_INVALID_EC_ADD_INPUTS,
             ERR_INVALID_EC_MUL_INPUTS,
             ERR_INVALID_EC_PAIRING_INPUTS,
             ERR_ROUND_EVALUATION_MISMATCH,
             ERR_EMPTY_QUEUE,
-            ERR_HYPER_KZG_INCONSISTENT_V
+            ERR_HYPER_KZG_INCONSISTENT_V,
+            ERR_CONSTRAINT_DEGREE_TOO_HIGH
         ];
         assert(selectors.length == selectorConstants.length);
         uint256 length = selectors.length;
@@ -64,5 +66,11 @@ contract ErrorsTest is Test {
     function testErrorFailedHyperKZGInconsistentV() public {
         vm.expectRevert(Errors.HyperKZGInconsistentV.selector);
         Errors.__err(ERR_HYPER_KZG_INCONSISTENT_V);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorFailedConstraintDegreeTooHigh() public {
+        vm.expectRevert(Errors.ConstraintDegreeTooHigh.selector);
+        Errors.__err(ERR_CONSTRAINT_DEGREE_TOO_HIGH);
     }
 }
