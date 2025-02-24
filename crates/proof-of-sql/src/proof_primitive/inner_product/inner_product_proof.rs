@@ -4,6 +4,7 @@ use crate::base::{
     scalar::{MontScalar, Scalar},
     slice_ops,
 };
+#[cfg(feature = "blitzar")]
 use blitzar::proof::{InnerProductProof, ProofError};
 use curve25519_dalek::RistrettoPoint;
 

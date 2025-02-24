@@ -2,6 +2,7 @@ use crate::{
     base::commitment::{Commitment, CommittableColumn},
     proof_primitive::inner_product::curve_255519_scalar::Curve25519Scalar,
 };
+use alloc::vec::Vec;
 use curve25519_dalek::RistrettoPoint;
 
 impl Commitment for RistrettoPoint {
