@@ -14,6 +14,8 @@ uint32 constant ERR_ROUND_EVALUATION_MISMATCH = 0x741f5c3f;
 uint32 constant ERR_EMPTY_QUEUE = 0x31dcf2b5;
 /// @dev Error code for when the HyperKZG proof has an inconsistent v.
 uint32 constant ERR_HYPER_KZG_INCONSISTENT_V = 0x6a5ae827;
+/// @dev Error code for when the case literal in a switch statement is incorrect.
+uint32 constant ERR_INCORRECT_CASE_CONST = 0x9324fb03;
 /// @dev Error code for when the produces constraint degree is higher than the provided proof.
 uint32 constant ERR_CONSTRAINT_DEGREE_TOO_HIGH = 0x8568ae69;
 
@@ -30,6 +32,8 @@ library Errors {
     error EmptyQueue();
     /// @notice Error thrown when the HyperKZG proof has an inconsistent v.
     error HyperKZGInconsistentV();
+    /// @notice Error thrown when the case literal in a switch statement is incorrect.
+    error IncorrectCaseConst();
     /// @notice Error thrown when the produces constraint degree is higher than the provided proof.
     error ConstraintDegreeTooHigh();
 
