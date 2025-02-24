@@ -37,6 +37,11 @@ contract ConstantsTest is Test {
         assert(UINT32_PADDING_BITS == 256 - 32);
     }
 
+    function testUint64SizesAreCorrect() public pure {
+        assert(UINT64_SIZE * 8 == 64);
+        assert(UINT64_PADDING_BITS == 256 - 64);
+    }
+
     function testInt64SizesAreCorrect() public pure {
         assert(INT64_SIZE * 8 == 64);
         assert(INT64_PADDING_BITS == 256 - 64);

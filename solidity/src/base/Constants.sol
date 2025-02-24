@@ -28,6 +28,11 @@ uint256 constant UINT32_SIZE = 0x04;
 /// @dev Number of bits needed to pad uint32 to 256 bits
 /// @dev This is useful for shifting a uint256 to the right to extract a uint32
 uint256 constant UINT32_PADDING_BITS = 0xE0;
+/// @dev Size of uint64 in bytes
+uint256 constant UINT64_SIZE = 0x08;
+/// @dev Number of bits needed to pad uint64 to 256 bits
+/// @dev This is useful for shifting a uint256 to the right to extract a uint64
+uint256 constant UINT64_PADDING_BITS = 0xC0;
 /// @dev Size of int64 in bytes
 uint256 constant INT64_SIZE = 0x08;
 /// @dev Number of bits needed to pad int64 to 256 bits
