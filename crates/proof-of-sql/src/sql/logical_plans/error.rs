@@ -9,4 +9,10 @@ pub enum LogicalPlanError {
         /// The unsupported binary operator
         op: sqlparser::ast::BinaryOperator,
     },
+    #[snafu(display("Unsupported unary operator: {:?}", op))]
+    /// Used when a unary operator is not supported
+    UnsupportedUnaryOperator {
+        /// The unsupported unary operator
+        op: sqlparser::ast::UnaryOperator,
+    },
 }
