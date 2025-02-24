@@ -2,6 +2,7 @@
 mod error;
 pub use error::LogicalPlanError;
 mod expr;
-pub use expr::Expr;
+pub use expr::{BinaryOperator, Expr};
 mod plan;
 pub use plan::LogicalPlan;
+mod ast_to_plan;
