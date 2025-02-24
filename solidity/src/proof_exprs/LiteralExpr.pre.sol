@@ -17,21 +17,21 @@ library LiteralExpr {
     /// #### Wrapped Yul Function
     /// ##### Signature
     /// ```yul
-    /// literal_expr_evaluate(expr_ptr_in, chi_in_eval) -> expr_ptr, eval
+    /// literal_expr_evaluate(expr_ptr_in, chi_eval) -> expr_ptr, eval
     /// ```
     /// ##### Parameters
     /// * `expr_ptr_in` - the calldata pointer to the beginning of the expression data
-    /// * `chi_in_eval` - the chi value for evaluation
+    /// * `chi_eval` - the chi value for evaluation
     /// ##### Return Values
     /// * `expr_ptr` - the pointer to the remaining expression after consuming the literal expression
     /// * `eval` - the evaluated result
-    /// @dev This function evaluates a literal expression by multiplying the literal value by chi_in_eval.
-    /// This is because `chi_in_eval` is the evaluation of a column of ones of the appropriate length.
-    /// @param __expr The literal expression data
-    /// @param __chiInEval The chi value for evaluation
+    /// @dev This function evaluates a literal expression by multiplying the literal value by chi_eval.
+    /// This is because `chi_eval` is the evaluation of a column of ones of the appropriate length.
+    /// @param __exprIn The literal expression data
+    /// @param __chiEval The chi value for evaluation
     /// @return __exprOut The remaining expression data after processing
     /// @return __eval The evaluated result
-    function __literalExprEvaluate(bytes calldata __expr, uint256 __chiInEval)
+    function __literalExprEvaluate(bytes calldata __exprIn, uint256 __chiEval)
         external
         pure
         returns (bytes calldata __exprOut, uint256 __eval)
@@ -46,7 +46,7 @@ library LiteralExpr {
                 revert(0, 0)
             }
 
-            function literal_expr_evaluate(expr_ptr_in, chi_in_eval) -> expr_ptr, eval {
+            function literal_expr_evaluate(expr_ptr_in, chi_eval) -> expr_ptr, eval {
                 expr_ptr := expr_ptr_in
 
                 let literal_variant := shr(UINT32_PADDING_BITS, calldataload(expr_ptr))
@@ -60,13 +60,13 @@ library LiteralExpr {
                     expr_ptr := add(expr_ptr, INT64_SIZE)
                 }
                 default { err(ERR_UNSUPPORTED_LITERAL_VARIANT) }
-                eval := mulmod(eval, chi_in_eval, MODULUS)
+                eval := mulmod(eval, chi_eval, MODULUS)
             }
             let __exprOutOffset
-            __exprOutOffset, __eval := literal_expr_evaluate(__expr.offset, __chiInEval)
+            __exprOutOffset, __eval := literal_expr_evaluate(__exprIn.offset, __chiEval)
             __exprOut.offset := __exprOutOffset
             // slither-disable-next-line write-after-write
-            __exprOut.length := sub(__expr.length, sub(__exprOutOffset, __expr.offset))
+            __exprOut.length := sub(__exprIn.length, sub(__exprOutOffset, __exprIn.offset))
         }
     }
 }
