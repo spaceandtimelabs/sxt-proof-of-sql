@@ -42,7 +42,7 @@ fn prove_and_verify_query(
     println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
     // Generate the proof and result:
-    print!("Generating proof...");
+    println!("Generating proof...");
     let now = Instant::now();
     let verifiable_result = VerifiableQueryResult::<DynamicDoryEvaluationProof>::new(
         query_plan.proof_expr(),
