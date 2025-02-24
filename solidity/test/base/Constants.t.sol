@@ -32,6 +32,11 @@ contract ConstantsTest is Test {
         assert(WORDX12_SIZE == 12 * WORD_SIZE);
     }
 
+    function testUint64SizesAreCorrect() public pure {
+        assert(UINT64_SIZE * 8 == 64);
+        assert(UINT64_PADDING_BITS == 256 - 64);
+    }
+
     function testVerificationBuilderOffsetsAreValid() public pure {
         uint256[6] memory offsets = [
             BUILDER_CHALLENGES_OFFSET,

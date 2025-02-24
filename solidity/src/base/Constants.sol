@@ -23,6 +23,12 @@ uint256 constant WORDX6_SIZE = 0x20 * 6;
 /// @dev Size of twelve words in bytes.
 uint256 constant WORDX12_SIZE = 0x20 * 12;
 
+/// @dev Size of uint64 in bytes
+uint256 constant UINT64_SIZE = 0x08;
+/// @dev Number of bits needed to pad uint64 to 256 bits
+/// @dev This is useful for shifting a uint256 to the right to extract a uint64
+uint256 constant UINT64_PADDING_BITS = 0xC0;
+
 /// @dev Position of the free memory pointer in the context of the EVM memory.
 uint256 constant FREE_PTR = 0x40;
 
