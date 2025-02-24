@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum LogicalPlan {
     /// Empty
-    Empty,
+    Empty(Empty),
     /// Table scan
-    TableScan(TableRef),
+    TableScan(TableScan),
     /// Projection
     Projection(Projection),
     /// Filter
@@ -26,8 +26,22 @@ pub enum LogicalPlan {
     Union(Union),
 }
 
+/// Empty
+/// e.g. SELECT 1
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct Empty {}
+
+/// Table scan
+///
+/// e.g. SELECT * FROM t
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct TableScan {
+    /// Table reference
+    pub table_ref: TableRef,
+}
+
 /// Projection
-/// e.g. SELECT a, b FROM t
+/// e.g. SELECT a, b FROM <input>
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Projection {
     /// Input plan
@@ -93,6 +107,7 @@ pub struct Slice {
 
 /// Join
 /// e.g. SELECT t1.a, t1.b, t2.c FROM t1 JOIN t2 ON t1.a = t2.a
+/// Note that we only support inner joins for now
 #[allow(clippy::struct_field_names)]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Join {
@@ -102,19 +117,8 @@ pub struct Join {
     pub right: Box<LogicalPlan>,
     /// Equijoin condition
     pub on: Vec<(Expr, Expr)>,
-    /// Join type
-    pub join_type: JoinType,
     /// Output schema
     pub schema: Vec<ColumnField>,
-}
-
-/// Join type
-///
-/// Currently only supports inner join
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub enum JoinType {
-    /// Inner join
-    Inner,
 }
 
 /// Union
@@ -123,6 +127,4 @@ pub enum JoinType {
 pub struct Union {
     /// Input plans
     pub inputs: Vec<LogicalPlan>,
-    /// Schema of the output
-    pub schema: Vec<ColumnField>,
 }
