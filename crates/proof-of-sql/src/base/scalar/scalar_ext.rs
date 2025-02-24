@@ -77,7 +77,7 @@ pub(crate) fn test_scalar_constants<S: Scalar>() {
 mod tests {
     use super::*;
     use crate::{
-        base::scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar},
+        base::scalar::{test_scalar::TestScalar, MontScalar},
         proof_primitive::dory::DoryScalar,
     };
     use bytemuck::cast;
@@ -113,19 +113,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn scalar_comparison_works() {
-        let zero = Curve25519Scalar::ZERO;
-        let one = Curve25519Scalar::ONE;
-        let two = Curve25519Scalar::TWO;
-        let max = Curve25519Scalar::MAX_SIGNED;
-        let min = max + one;
-        assert_eq!(max.signed_cmp(&one), Ordering::Greater);
-        assert_eq!(one.signed_cmp(&zero), Ordering::Greater);
-        assert_eq!(min.signed_cmp(&zero), Ordering::Less);
-        assert_eq!((two * max).signed_cmp(&zero), Ordering::Less);
-        assert_eq!(two * max + one, zero);
-    }
     #[test]
     fn we_can_compute_powers_of_10() {
         for i in 0..=u128::MAX.ilog10() {

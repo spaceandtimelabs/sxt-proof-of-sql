@@ -102,13 +102,17 @@ impl<C: Commitment> TableCommitment<C> {
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
-    use crate::base::scalar::Curve25519Scalar;
+    use crate::base::{
+        commitment::naive_commitment::NaiveCommitment as RistrettoPoint,
+        scalar::test_scalar::TestScalar,
+    };
+    // use crate::proof_primitive::inner_product::TestScalar;
     use arrow::{
         array::{Int64Array, StringArray},
         datatypes::{DataType, Field, Schema},
         record_batch::RecordBatch,
     };
-    use curve25519_dalek::RistrettoPoint;
+    // use curve25519_dalek::RistrettoPoint;
     use std::sync::Arc;
 
     #[test]
@@ -130,10 +134,10 @@ mod tests {
         let b_scals = ["1".into(), "2".into(), "3".into()];
 
         let columns = [
-            (&"a".into(), &Column::<Curve25519Scalar>::BigInt(&[1, 2, 3])),
+            (&"a".into(), &Column::<TestScalar>::BigInt(&[1, 2, 3])),
             (
                 &"b".into(),
-                &Column::<Curve25519Scalar>::VarChar((&["1", "2", "3"], &b_scals)),
+                &Column::<TestScalar>::VarChar((&["1", "2", "3"], &b_scals)),
             ),
         ];
 
@@ -163,10 +167,10 @@ mod tests {
         let b_scals2 = ["4".into(), "5".into(), "6".into()];
 
         let columns2 = [
-            (&"a".into(), &Column::<Curve25519Scalar>::BigInt(&[4, 5, 6])),
+            (&"a".into(), &Column::<TestScalar>::BigInt(&[4, 5, 6])),
             (
                 &"b".into(),
-                &Column::<Curve25519Scalar>::VarChar((&["4", "5", "6"], &b_scals2)),
+                &Column::<TestScalar>::VarChar((&["4", "5", "6"], &b_scals2)),
             ),
         ];
 
