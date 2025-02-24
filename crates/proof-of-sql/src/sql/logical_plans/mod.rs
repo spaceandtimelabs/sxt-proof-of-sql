@@ -5,4 +5,4 @@ mod expr;
 pub use expr::{BinaryOperator, Expr};
 mod plan;
 pub use plan::LogicalPlan;
-mod sqlparser;
+mod ast_to_plan;
