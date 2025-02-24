@@ -14,6 +14,8 @@ uint32 constant ERR_ROUND_EVALUATION_MISMATCH = 0x741f5c3f;
 uint32 constant ERR_EMPTY_QUEUE = 0x31dcf2b5;
 /// @dev Error code for when the HyperKZG proof has an inconsistent v.
 uint32 constant ERR_HYPER_KZG_INCONSISTENT_V = 0x6a5ae827;
+/// @dev Error code for when the case literal in a switch statement is incorrect.
+uint32 constant ERR_INCORRECT_CASE_CONST = 0x9324fb03;
 
 library Errors {
     /// @notice Error thrown when the inputs to the ECADD precompile are invalid.
@@ -28,6 +30,8 @@ library Errors {
     error EmptyQueue();
     /// @notice Error thrown when the HyperKZG proof has an inconsistent v.
     error HyperKZGInconsistentV();
+    /// @notice Error thrown when the case literal in a switch statement is incorrect.
+    error IncorrectCaseConst();
 
     function __err(uint32 __code) internal pure {
         assembly {
