@@ -602,4 +602,61 @@ contract VerificationBuilderTest is Test {
             VerificationBuilder.__produceIdentityConstraint(builder, values[length], 2);
         }
     }
+
+    function testSetColumnEvaluations() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        uint256[] memory values = new uint256[](3);
+        values[0] = 0x12345678;
+        values[1] = 0x23456789;
+        values[2] = 0x3456789A;
+        VerificationBuilder.__setColumnEvaluations(builder, values);
+        assert(builder.columnEvaluations.length == 3);
+        assert(builder.columnEvaluations[0] == 0x12345678);
+        assert(builder.columnEvaluations[1] == 0x23456789);
+        assert(builder.columnEvaluations[2] == 0x3456789A);
+    }
+
+    function testFuzzSetColumnEvaluations(uint256[] memory values) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        VerificationBuilder.__setColumnEvaluations(builder, values);
+        assert(builder.columnEvaluations.length == values.length);
+        uint256 valuesLength = values.length;
+        for (uint256 i = 0; i < valuesLength; ++i) {
+            assert(builder.columnEvaluations[i] == values[i]);
+        }
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testGetColumnEvaluationInvalidIndex() public {
+        VerificationBuilder.Builder memory builder;
+        uint256[] memory values = new uint256[](2);
+        builder.columnEvaluations = values;
+        vm.expectRevert(Errors.InvalidColumnIndex.selector);
+        VerificationBuilder.__getColumnEvaluation(builder, 2);
+    }
+
+    function testGetColumnEvaluation() public pure {
+        VerificationBuilder.Builder memory builder;
+        uint256[] memory values = new uint256[](3);
+        values[0] = 0x12345678;
+        values[1] = 0x23456789;
+        values[2] = 0x3456789A;
+        builder.columnEvaluations = values;
+        assert(VerificationBuilder.__getColumnEvaluation(builder, 0) == 0x12345678);
+        assert(VerificationBuilder.__getColumnEvaluation(builder, 1) == 0x23456789);
+        assert(VerificationBuilder.__getColumnEvaluation(builder, 2) == 0x3456789A);
+        assert(VerificationBuilder.__getColumnEvaluation(builder, 2) == 0x3456789A);
+        assert(VerificationBuilder.__getColumnEvaluation(builder, 0) == 0x12345678);
+        assert(VerificationBuilder.__getColumnEvaluation(builder, 1) == 0x23456789);
+    }
+
+    function testFuzzGetColumnEvaluation(uint256[] memory values) public pure {
+        vm.assume(values.length > 0);
+        VerificationBuilder.Builder memory builder;
+        builder.columnEvaluations = values;
+        uint256 valuesLength = values.length;
+        for (uint256 i = 0; i < valuesLength; ++i) {
+            assert(VerificationBuilder.__getColumnEvaluation(builder, i) == values[i]);
+        }
+    }
 }

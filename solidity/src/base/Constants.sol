@@ -84,7 +84,7 @@ uint256 constant G2_NEG_GEN_Y_REAL = 0x1d9befcd05a5323e6da4d435f3b617cdb3af83285
 uint256 constant G2_NEG_GEN_Y_IMAG = 0x275dc4a288d1afb3cbb1ac09187524c7db36395df7be3b99e673b13a075a65ec;
 
 /// @dev Size of the verification builder in bytes.
-uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 9;
+uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 10;
 /// @dev Offset of the pointer to the challenge queue in the verification builder.
 uint256 constant BUILDER_CHALLENGES_OFFSET = 0x20 * 0;
 /// @dev Offset of the pointer to the first round MLEs in the verification builder.
@@ -103,3 +103,5 @@ uint256 constant BUILDER_MAX_DEGREE_OFFSET = 0x20 * 6;
 uint256 constant BUILDER_AGGREGATE_EVALUATION_OFFSET = 0x20 * 7;
 /// @dev Offset of the row multipliers evaluation in the verification builder.
 uint256 constant BUILDER_ROW_MULTIPLIERS_EVALUATION_OFFSET = 0x20 * 8;
+/// @dev Offset of the pointer to the column evaluations in the verification builder.
+uint256 constant BUILDER_COLUMN_EVALUATIONS_OFFSET = 0x20 * 9;

@@ -44,7 +44,7 @@ contract ConstantsTest is Test {
     }
 
     function testVerificationBuilderOffsetsAreValid() public pure {
-        uint256[9] memory offsets = [
+        uint256[10] memory offsets = [
             BUILDER_CHALLENGES_OFFSET,
             BUILDER_FIRST_ROUND_MLES_OFFSET,
             BUILDER_FINAL_ROUND_MLES_OFFSET,
@@ -53,7 +53,8 @@ contract ConstantsTest is Test {
             BUILDER_CONSTRAINT_MULTIPLIERS_OFFSET,
             BUILDER_MAX_DEGREE_OFFSET,
             BUILDER_AGGREGATE_EVALUATION_OFFSET,
-            BUILDER_ROW_MULTIPLIERS_EVALUATION_OFFSET
+            BUILDER_ROW_MULTIPLIERS_EVALUATION_OFFSET,
+            BUILDER_COLUMN_EVALUATIONS_OFFSET
         ];
         uint256 offsetsLength = offsets.length;
         assert(VERIFICATION_BUILDER_SIZE == offsetsLength * WORD_SIZE);
