@@ -380,6 +380,229 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.__consumeRhoEvaluation(builder);
     }
 
+    function testSetZeroConstraintMultipliers() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        uint256[] memory values = new uint256[](0);
+        VerificationBuilder.__setConstraintMultipliers(builder, values);
+        assert(builder.constraintMultipliers.length == 0);
+    }
+
+    function testSetConstraintMultipliers() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        uint256[] memory values = new uint256[](3);
+        values[0] = 0x12345678;
+        values[1] = 0x23456789;
+        values[2] = 0x3456789A;
+        VerificationBuilder.__setConstraintMultipliers(builder, values);
+        assert(builder.constraintMultipliers.length == 3);
+        assert(builder.constraintMultipliers[0] == 0x12345678);
+        assert(builder.constraintMultipliers[1] == 0x23456789);
+        assert(builder.constraintMultipliers[2] == 0x3456789A);
+    }
+
+    function testFuzzSetConstraintMultipliers(uint256[] memory values) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        VerificationBuilder.__setConstraintMultipliers(builder, values);
+        assert(builder.constraintMultipliers.length == values.length);
+        uint256 valuesLength = values.length;
+        for (uint256 i = 0; i < valuesLength; ++i) {
+            assert(builder.constraintMultipliers[i] == values[i]);
+        }
+    }
+
+    function testSetMaxDegree() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        VerificationBuilder.__setMaxDegree(builder, 42);
+        assert(builder.maxDegree == 42);
+    }
+
+    function testFuzzSetMaxDegree(uint256 value) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        VerificationBuilder.__setMaxDegree(builder, value);
+        assert(builder.maxDegree == value);
+    }
+
+    function testSetAggregateEvaluation() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        VerificationBuilder.__setAggregateEvaluation(builder, 42);
+        assert(builder.aggregateEvaluation == 42);
+    }
+
+    function testFuzzSetAggregateEvaluation(uint256 value) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        VerificationBuilder.__setAggregateEvaluation(builder, value);
+        assert(builder.aggregateEvaluation == value);
+    }
+
+    function testSetRowMultipliersEvaluation() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        VerificationBuilder.__setRowMultipliersEvaluation(builder, 42);
+        assert(builder.rowMultipliersEvaluation == 42);
+    }
+
+    function testFuzzSetRowMultipliersEvaluation(uint256 value) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        VerificationBuilder.__setRowMultipliersEvaluation(builder, value);
+        assert(builder.rowMultipliersEvaluation == value);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testProduceZerosumConstraint() public {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        uint256[] memory multipliers = new uint256[](3);
+        multipliers[0] = 101;
+        multipliers[1] = 103;
+        multipliers[2] = 107;
+        builder.constraintMultipliers = multipliers;
+        builder.maxDegree = 3;
+        builder.aggregateEvaluation = 211;
+
+        VerificationBuilder.__produceZerosumConstraint(builder, 307, 0);
+        assert(builder.aggregateEvaluation == 211 + 101 * 307);
+        VerificationBuilder.__produceZerosumConstraint(builder, 311, 1);
+        assert(builder.aggregateEvaluation == 211 + 101 * 307 + 103 * 311);
+        VerificationBuilder.__produceZerosumConstraint(builder, 313, 2);
+        assert(builder.aggregateEvaluation == 211 + 101 * 307 + 103 * 311 + 107 * 313);
+        vm.expectRevert(Errors.EmptyQueue.selector);
+        VerificationBuilder.__produceZerosumConstraint(builder, 317, 3);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testProduceZerosumConstraintDegreeError() public {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.maxDegree = 3;
+        vm.expectRevert(Errors.ConstraintDegreeTooHigh.selector);
+        VerificationBuilder.__produceZerosumConstraint(builder, 1, 4);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testFuzzProduceZerosumConstraint(uint256[] memory multipliers, uint256[] memory values) public {
+        vm.assume(multipliers.length < values.length);
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.constraintMultipliers = multipliers;
+        builder.maxDegree = 3;
+        builder.aggregateEvaluation = 0;
+
+        uint256 length = multipliers.length;
+
+        uint256 aggregate = 0;
+        for (uint256 i = 0; i < length; ++i) {
+            aggregate = addmod(aggregate, mulmod(multipliers[i], values[i], MODULUS), MODULUS);
+        }
+        for (uint256 i = 0; i < length; ++i) {
+            VerificationBuilder.__produceZerosumConstraint(builder, values[i], 3);
+        }
+        assert(builder.aggregateEvaluation == aggregate);
+
+        vm.expectRevert(Errors.EmptyQueue.selector);
+        VerificationBuilder.__produceZerosumConstraint(builder, values[length], 3);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testProduceIdentityConstraint() public {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        uint256[] memory multipliers = new uint256[](3);
+        multipliers[0] = 101;
+        multipliers[1] = 103;
+        multipliers[2] = 107;
+        builder.constraintMultipliers = multipliers;
+        builder.maxDegree = 4;
+        builder.aggregateEvaluation = 211;
+        builder.rowMultipliersEvaluation = 223;
+
+        VerificationBuilder.__produceIdentityConstraint(builder, 307, 0);
+        assert(builder.aggregateEvaluation == 211 + 223 * (101 * 307));
+        VerificationBuilder.__produceIdentityConstraint(builder, 311, 1);
+        assert(builder.aggregateEvaluation == 211 + 223 * (101 * 307 + 103 * 311));
+        VerificationBuilder.__produceIdentityConstraint(builder, 313, 2);
+        assert(builder.aggregateEvaluation == 211 + 223 * (101 * 307 + 103 * 311 + 107 * 313));
+        vm.expectRevert(Errors.EmptyQueue.selector);
+        VerificationBuilder.__produceIdentityConstraint(builder, 317, 3);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testProduceIdentityConstraintDegreeError() public {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.maxDegree = 3;
+        vm.expectRevert(Errors.ConstraintDegreeTooHigh.selector);
+        VerificationBuilder.__produceIdentityConstraint(builder, 1, 3);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testFuzzProduceIdentityConstraint(
+        uint256[] memory multipliers,
+        uint256[] memory values,
+        uint256 rowMultipliersEvaluation
+    ) public {
+        vm.assume(multipliers.length < values.length);
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.constraintMultipliers = multipliers;
+        builder.maxDegree = 3;
+        builder.aggregateEvaluation = 0;
+        builder.rowMultipliersEvaluation = rowMultipliersEvaluation;
+
+        uint256 length = multipliers.length;
+
+        uint256 aggregate = 0;
+        for (uint256 i = 0; i < length; ++i) {
+            aggregate = addmod(aggregate, mulmod(multipliers[i], values[i], MODULUS), MODULUS);
+        }
+        aggregate = mulmod(aggregate, rowMultipliersEvaluation, MODULUS);
+        for (uint256 i = 0; i < length; ++i) {
+            VerificationBuilder.__produceIdentityConstraint(builder, values[i], 2);
+        }
+        assert(builder.aggregateEvaluation == aggregate);
+
+        vm.expectRevert(Errors.EmptyQueue.selector);
+        VerificationBuilder.__produceIdentityConstraint(builder, values[length], 2);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testFuzzProduceMixedConstraints(
+        uint256[] memory multipliers,
+        uint256[] memory values,
+        bool[] memory isZerosum,
+        uint256 rowMultipliersEvaluation
+    ) public {
+        vm.assume(multipliers.length < values.length);
+        vm.assume(multipliers.length < isZerosum.length);
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.constraintMultipliers = multipliers;
+        builder.maxDegree = 3;
+        builder.aggregateEvaluation = 0;
+        builder.rowMultipliersEvaluation = rowMultipliersEvaluation;
+
+        uint256 length = multipliers.length;
+
+        uint256 aggregate = 0;
+        for (uint256 i = 0; i < length; ++i) {
+            if (isZerosum[i]) {
+                aggregate = addmod(aggregate, mulmod(multipliers[i], values[i], MODULUS), MODULUS);
+            } else {
+                aggregate = addmod(
+                    aggregate,
+                    mulmod(mulmod(multipliers[i], values[i], MODULUS), rowMultipliersEvaluation, MODULUS),
+                    MODULUS
+                );
+            }
+        }
+        for (uint256 i = 0; i < length; ++i) {
+            if (isZerosum[i]) {
+                VerificationBuilder.__produceZerosumConstraint(builder, values[i], 3);
+            } else {
+                VerificationBuilder.__produceIdentityConstraint(builder, values[i], 2);
+            }
+        }
+        assert(builder.aggregateEvaluation == aggregate);
+
+        vm.expectRevert(Errors.EmptyQueue.selector);
+        if (isZerosum[length]) {
+            VerificationBuilder.__produceZerosumConstraint(builder, values[length], 3);
+        } else {
+            VerificationBuilder.__produceIdentityConstraint(builder, values[length], 2);
+        }
+    }
+
     function testSetColumnEvaluations() public pure {
         VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
         uint256[] memory values = new uint256[](3);
