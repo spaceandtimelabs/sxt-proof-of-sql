@@ -1,7 +1,7 @@
 use crate::base::{
     map::IndexSet,
     scalar::{
-        test_scalar::TestScalar, test_scalar_constants, Curve25519Scalar, Scalar,
+        test_scalar::TestScalar, test_scalar_constants, Curve25519Scalar, MontScalar, Scalar,
         ScalarConversionError,
     },
 };
@@ -15,6 +15,25 @@ use rand::{
     Rng,
 };
 use rand_core::SeedableRng;
+
+#[test]
+fn test_try_from_mont_scalar_for_u16() {
+    let val = MontScalar::<ark_curve25519::FrConfig>::from(123u64);
+    let converted: u16 = val.try_into().unwrap();
+    assert_eq!(converted, 123);
+
+    let val = MontScalar::<ark_curve25519::FrConfig>::from(65535u64);
+    let converted: u16 = val.try_into().unwrap();
+    assert_eq!(converted, 65535);
+
+    let val = MontScalar::<ark_curve25519::FrConfig>::from(65536u64);
+
+    let val: Result<u16, _> = val.try_into();
+    assert!(val.is_err());
+
+    let val: Result<u16, _> = MontScalar::<ark_curve25519::FrConfig>::from(-1i64).try_into();
+    assert!(val.is_err());
+}
 
 #[test]
 fn we_have_correct_constants_for_curve_25519_scalar() {

@@ -205,6 +205,8 @@ pub enum ColumnBounds {
     NoOrder,
     /// The bounds of a `Uint8` column.
     Uint8(Bounds<u8>),
+    /// The bounds of a `Uint8` column.
+    Uint16(Bounds<u16>),
     /// The bounds of a `TinyInt` column.
     TinyInt(Bounds<i8>),
     /// The bounds of a `SmallInt` column.
@@ -228,6 +230,7 @@ impl ColumnBounds {
         match column {
             CommittableColumn::TinyInt(ints) => ColumnBounds::TinyInt(Bounds::from_iter(*ints)),
             CommittableColumn::Uint8(ints) => ColumnBounds::Uint8(Bounds::from_iter(*ints)),
+            CommittableColumn::Uint16(ints) => ColumnBounds::Uint16(Bounds::from_iter(*ints)),
             CommittableColumn::SmallInt(ints) => ColumnBounds::SmallInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int(ints) => ColumnBounds::Int(Bounds::from_iter(*ints)),
             CommittableColumn::BigInt(ints) => ColumnBounds::BigInt(Bounds::from_iter(*ints)),

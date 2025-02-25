@@ -124,6 +124,7 @@ impl Commitment for HyperKZGCommitment {
             .map(|column| match column {
                 CommittableColumn::Boolean(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::Uint8(vals) => compute_commitments_impl(setup, offset, vals),
+                CommittableColumn::Uint16(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::TinyInt(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::SmallInt(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::Int(vals) => compute_commitments_impl(setup, offset, vals),

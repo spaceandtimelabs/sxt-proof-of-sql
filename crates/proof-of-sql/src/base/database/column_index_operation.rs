@@ -8,6 +8,7 @@ use bumpalo::Bump;
 /// # Panics
 /// Panics if any of the indexes are out of bounds.
 #[allow(dead_code)]
+#[allow(clippy::too_many_lines)]
 pub(crate) fn apply_column_to_indexes<'a, S>(
     column: &Column<'a, S>,
     alloc: &'a Bump,
@@ -37,6 +38,13 @@ where
                 indexes,
             )?;
             Ok(Column::Uint8(alloc.alloc_slice_copy(&raw_values) as &[_]))
+        }
+        ColumnType::Uint16 => {
+            let raw_values = apply_slice_to_indexes(
+                column.as_uint16().expect("Column types should match"),
+                indexes,
+            )?;
+            Ok(Column::Uint16(alloc.alloc_slice_copy(&raw_values) as &[_]))
         }
         ColumnType::SmallInt => {
             let raw_values = apply_slice_to_indexes(
@@ -126,6 +134,7 @@ mod tests {
     #[test]
     fn test_apply_index_op() {
         let bump = Bump::new();
+
         let column: Column<TestScalar> = Column::Int(&[1, 2, 3, 4, 5]);
         let indexes = [1, 3, 1, 2];
         let result = apply_column_to_indexes(&column, &bump, &indexes).unwrap();
@@ -152,13 +161,27 @@ mod tests {
             result,
             Column::VarChar((&expected_strings, &expected_scalars))
         );
+
+        let column: Column<TestScalar> = Column::Uint16(&[10, 20, 30, 40, 50]);
+        let indexes = [4, 2, 2, 1, 0];
+        let result = apply_column_to_indexes(&column, &bump, &indexes).unwrap();
+        assert_eq!(result, Column::Uint16(&[50, 30, 30, 20, 10]));
     }
 
     #[test]
     fn test_apply_index_op_out_of_bound() {
         let bump = Bump::new();
+
         let column: Column<TestScalar> = Column::Int(&[1, 2, 3, 4, 5]);
         let indexes = [1, 3, 1, 2, 5];
+        let result = apply_column_to_indexes(&column, &bump, &indexes);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::IndexOutOfBounds { .. })
+        ));
+
+        let column: Column<TestScalar> = Column::Uint16(&[10, 20, 30]);
+        let indexes = [2, 3];
         let result = apply_column_to_indexes(&column, &bump, &indexes);
         assert!(matches!(
             result,
@@ -179,8 +202,8 @@ mod tests {
         let column = Column::VarBinary((raw_bytes.as_slice(), scalars.as_slice()));
 
         let indexes = [2, 0];
-
         let result = apply_column_to_indexes(&column, &bump, &indexes).unwrap();
+
         let expected_bytes = vec![b"baz".as_ref(), b"foo".as_ref()];
         let expected_scalars: Vec<TestScalar> = expected_bytes
             .iter()

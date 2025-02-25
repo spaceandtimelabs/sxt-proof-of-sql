@@ -46,6 +46,9 @@ pub fn filter_column_by_index<'a, S: Scalar>(
         Column::Uint8(col) => {
             Column::Uint8(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }
+        Column::Uint16(col) => {
+            Column::Uint16(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
+        }
         Column::TinyInt(col) => {
             Column::TinyInt(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }

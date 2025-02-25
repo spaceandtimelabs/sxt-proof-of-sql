@@ -30,6 +30,12 @@ pub trait RepetitionOp {
                     iter.next().expect("Iterator should have enough elements")
                 }) as &[_])
             }
+            ColumnType::Uint16 => {
+                let mut iter = Self::op(column.as_uint16().expect("Column types should match"), n);
+                Column::Uint16(alloc.alloc_slice_fill_with(len, |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }) as &[_])
+            }
             ColumnType::TinyInt => {
                 let mut iter = Self::op(column.as_tinyint().expect("Column types should match"), n);
                 Column::TinyInt(alloc.alloc_slice_fill_with(len, |_| {
@@ -164,7 +170,6 @@ mod tests {
         let result = ColumnRepeatOp::column_op::<TestScalar>(&column, &bump, 2);
         assert_eq!(result.as_int().unwrap(), &[1, 2, 3, 1, 2, 3]);
 
-        // Varchar
         let strings = vec!["a", "b", "c"];
         let scalars = strings.iter().map(TestScalar::from).collect::<Vec<_>>();
         let column: Column<TestScalar> = Column::VarChar((&strings, &scalars));
@@ -178,6 +183,29 @@ mod tests {
             result,
             Column::VarChar((&doubled_strings, &doubled_scalars))
         );
+
+        let bytes = vec![b"foo".as_ref(), b"bar".as_ref()];
+        let scalars = vec![TestScalar::from(1), TestScalar::from(2)];
+        let column: Column<TestScalar> = Column::VarBinary((bytes.as_slice(), scalars.as_slice()));
+        let result = ColumnRepeatOp::column_op::<TestScalar>(&column, &bump, 2);
+        let expected_bytes = vec![
+            b"foo".as_ref(),
+            b"bar".as_ref(),
+            b"foo".as_ref(),
+            b"bar".as_ref(),
+        ];
+        let expected_scalars: Vec<TestScalar> = vec![
+            TestScalar::from(1),
+            TestScalar::from(2),
+            TestScalar::from(1),
+            TestScalar::from(2),
+        ];
+        let expected = Column::VarBinary((expected_bytes.as_slice(), expected_scalars.as_slice()));
+        assert_eq!(result, expected);
+
+        let column: Column<TestScalar> = Column::Uint16(&[10, 20, 30]);
+        let result = ColumnRepeatOp::column_op::<TestScalar>(&column, &bump, 2);
+        assert_eq!(result, Column::Uint16(&[10, 20, 30, 10, 20, 30]));
     }
 
     #[test]
@@ -188,7 +216,6 @@ mod tests {
         let result = ElementwiseRepeatOp::column_op::<TestScalar>(&column, &bump, 2);
         assert_eq!(result.as_int().unwrap(), &[1, 1, 2, 2, 3, 3]);
 
-        // Varchar
         let strings = vec!["a", "b", "c"];
         let scalars = strings.iter().map(TestScalar::from).collect::<Vec<_>>();
         let column: Column<TestScalar> = Column::VarChar((&strings, &scalars));
@@ -201,6 +228,35 @@ mod tests {
         assert_eq!(
             result,
             Column::VarChar((&doubled_strings, &doubled_scalars))
+        );
+
+        let bytes = vec![b"foo".as_ref(), b"bar".as_ref(), b"baz".as_ref()];
+        let scalars: Vec<TestScalar> = bytes
+            .iter()
+            .map(|b| TestScalar::from_le_bytes_mod_order(b))
+            .collect();
+        let column: Column<TestScalar> = Column::VarBinary((bytes.as_slice(), scalars.as_slice()));
+        let result = ElementwiseRepeatOp::column_op::<TestScalar>(&column, &bump, 2);
+        let expected_bytes = vec![
+            b"foo".as_ref(),
+            b"foo".as_ref(),
+            b"bar".as_ref(),
+            b"bar".as_ref(),
+            b"baz".as_ref(),
+            b"baz".as_ref(),
+        ];
+        let expected_scalars: Vec<TestScalar> = expected_bytes
+            .iter()
+            .map(|b| TestScalar::from_le_bytes_mod_order(b))
+            .collect();
+        let expected = Column::VarBinary((expected_bytes.as_slice(), expected_scalars.as_slice()));
+        assert_eq!(result, expected);
+
+        let column: Column<TestScalar> = Column::Uint16(&[100, 200, 300]);
+        let result = ElementwiseRepeatOp::column_op::<TestScalar>(&column, &bump, 3);
+        assert_eq!(
+            result,
+            Column::Uint16(&[100, 100, 100, 200, 200, 200, 300, 300, 300])
         );
     }
 
