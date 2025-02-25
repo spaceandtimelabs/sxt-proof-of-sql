@@ -39,6 +39,7 @@ chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true }
 enum_dispatch = { workspace = true }
 ff = { workspace = true, optional = true }
+halo2curves = { workspace = true }
 indexmap = { workspace = true, features = ["serde"] }
 indicatif = { workspace = true, optional = true }
 itertools = { workspace = true }

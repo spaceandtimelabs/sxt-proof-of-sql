@@ -5,13 +5,14 @@ use crate::base::{
     slice_ops,
 };
 use alloc::vec::Vec;
-use ark_bn254::g1::G1Affine;
+use ark_bn254::{Fq, G1Affine};
 use ark_ec::AffineRepr;
-use ark_ff::{BigInt, PrimeField};
+use ark_ff::{BigInteger256, PrimeField};
 #[cfg(feature = "blitzar")]
 use blitzar;
 use core::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
 use ff::Field;
+use halo2curves::serde::SerdeObject;
 #[cfg(not(feature = "blitzar"))]
 use itertools::Itertools;
 #[cfg(not(feature = "blitzar"))]
@@ -47,21 +48,20 @@ pub struct HyperKZGCommitment {
     pub commitment: NovaCommitment,
 }
 
-#[cfg(feature = "blitzar")]
-impl From<&ark_bn254::G1Affine> for HyperKZGCommitment {
-    fn from(value: &ark_bn254::G1Affine) -> Self {
-        Self {
-            commitment: NovaCommitment::new(convert_to_nova_g1_affine(value).into()),
-        }
-    }
-}
-
 /// The evaluation proof for the `HyperKZG` PCS.
 pub type HyperKZGCommitmentEvaluationProof = EvaluationArgument<HyperKZGEngine>;
 
 impl AddAssign for HyperKZGCommitment {
     fn add_assign(&mut self, rhs: Self) {
         self.commitment = self.commitment + rhs.commitment;
+    }
+}
+#[cfg(feature = "blitzar")]
+impl From<&ark_bn254::G1Affine> for HyperKZGCommitment {
+    fn from(value: &ark_bn254::G1Affine) -> Self {
+        Self {
+            commitment: NovaCommitment::new(convert_to_nova_g1_affine(value).into()),
+        }
     }
 }
 impl From<&BNScalar> for NovaScalar {
@@ -127,15 +127,26 @@ fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
     HyperKZGCommitment { commitment }
 }
 
+/// Converts an `NovaAffine` point to a `G1Affine` point.
+///
+/// # Panics
+///
+/// Panics if the point is not on the curve.
 #[cfg(feature = "blitzar")]
 fn convert_to_ark_bn254_g1_affine(point: &NovaAffine) -> G1Affine {
     if *point == NovaAffine::default() {
         return G1Affine::default();
     }
 
+    let x_bytes: [u8; 32] = point.x.to_raw_bytes().try_into().unwrap();
+    let y_bytes: [u8; 32] = point.y.to_raw_bytes().try_into().unwrap();
+
+    let x_limbs = bytemuck::cast::<[u8; 32], [u64; 4]>(x_bytes);
+    let y_limbs = bytemuck::cast::<[u8; 32], [u64; 4]>(y_bytes);
+
     G1Affine {
-        x: BigInt::<4>::new(bytemuck::cast(point.x.to_bytes())).into(),
-        y: BigInt::<4>::new(bytemuck::cast(point.y.to_bytes())).into(),
+        x: Fq::new_unchecked(BigInteger256::new(x_limbs)),
+        y: Fq::new_unchecked(BigInteger256::new(y_limbs)),
         infinity: false,
     }
 }
@@ -144,8 +155,7 @@ fn convert_to_ark_bn254_g1_affine(point: &NovaAffine) -> G1Affine {
 ///
 /// # Panics
 ///
-/// This function will panic if:
-/// - The conversion from bytes to `nova_snark::provider::bn256_grumpkin::bn256::Base` fails.
+/// Panics if the point is not on the curve.
 #[cfg(feature = "blitzar")]
 fn convert_to_nova_g1_affine(point: &G1Affine) -> NovaAffine {
     // Empty points unwrap to None
