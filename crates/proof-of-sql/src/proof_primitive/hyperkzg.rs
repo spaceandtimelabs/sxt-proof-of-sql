@@ -134,10 +134,6 @@ fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
 /// Panics if the point is not on the curve.
 #[cfg(feature = "blitzar")]
 fn convert_to_ark_bn254_g1_affine(point: &NovaAffine) -> G1Affine {
-    if *point == NovaAffine::default() {
-        return G1Affine::default();
-    }
-
     let x_bytes: [u8; 32] = point.x.to_raw_bytes().try_into().unwrap();
     let y_bytes: [u8; 32] = point.y.to_raw_bytes().try_into().unwrap();
 
@@ -147,7 +143,7 @@ fn convert_to_ark_bn254_g1_affine(point: &NovaAffine) -> G1Affine {
     G1Affine {
         x: Fq::new_unchecked(BigInteger256::new(x_limbs)),
         y: Fq::new_unchecked(BigInteger256::new(y_limbs)),
-        infinity: false,
+        infinity: *point == NovaAffine::default(),
     }
 }
 
@@ -632,5 +628,35 @@ mod tests {
 
             assert_eq!(res, expected, "Offset: {offset}");
         }
+    }
+
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_convert_to_ark_bn254_g1_affine() {
+        assert_eq!(
+            convert_to_ark_bn254_g1_affine(&NovaAffine::default()),
+            G1Affine::default(),
+            "Conversion of default point failed"
+        );
+        assert_eq!(
+            convert_to_ark_bn254_g1_affine(&NovaAffine::generator()),
+            G1Affine::generator(),
+            "Conversion of generator point failed"
+        );
+    }
+
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_convert_to_nova_g1_affine() {
+        assert_eq!(
+            convert_to_nova_g1_affine(&G1Affine::default()),
+            NovaAffine::default(),
+            "Conversion of default point failed"
+        );
+        assert_eq!(
+            convert_to_nova_g1_affine(&G1Affine::generator()),
+            NovaAffine::generator(),
+            "Conversion of generator point failed"
+        );
     }
 }
