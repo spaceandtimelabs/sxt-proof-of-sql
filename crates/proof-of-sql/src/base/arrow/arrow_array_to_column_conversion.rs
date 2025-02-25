@@ -211,60 +211,69 @@ impl ArrayRefExt for ArrayRef {
                 }
             }
             // Handle all possible TimeStamp TimeUnit instances
-            DataType::Timestamp(time_unit, tz) => match time_unit {
-                ArrowTimeUnit::Second => {
-                    if let Some(array) = self.as_any().downcast_ref::<TimestampSecondArray>() {
-                        Ok(Column::TimestampTZ(
-                            PoSQLTimeUnit::Second,
-                            PoSQLTimeZone::try_from(tz)?,
-                            &array.values()[range.start..range.end],
-                        ))
-                    } else {
-                        Err(ArrowArrayToColumnConversionError::UnsupportedType {
-                            datatype: self.data_type().clone(),
-                        })
+            DataType::Timestamp(time_unit, tz) => {
+                let timezone = PoSQLTimeZone::try_from(tz)?;
+                match time_unit {
+                    ArrowTimeUnit::Second => {
+                        if let Some(array) = self.as_any().downcast_ref::<TimestampSecondArray>() {
+                            Ok(Column::TimestampTZ(
+                                PoSQLTimeUnit::Second,
+                                timezone.into(),
+                                &array.values()[range.start..range.end],
+                            ))
+                        } else {
+                            Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                                datatype: self.data_type().clone(),
+                            })
+                        }
+                    }
+                    ArrowTimeUnit::Millisecond => {
+                        if let Some(array) =
+                            self.as_any().downcast_ref::<TimestampMillisecondArray>()
+                        {
+                            Ok(Column::TimestampTZ(
+                                PoSQLTimeUnit::Millisecond,
+                                timezone.into(),
+                                &array.values()[range.start..range.end],
+                            ))
+                        } else {
+                            Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                                datatype: self.data_type().clone(),
+                            })
+                        }
+                    }
+                    ArrowTimeUnit::Microsecond => {
+                        if let Some(array) =
+                            self.as_any().downcast_ref::<TimestampMicrosecondArray>()
+                        {
+                            Ok(Column::TimestampTZ(
+                                PoSQLTimeUnit::Microsecond,
+                                timezone.into(),
+                                &array.values()[range.start..range.end],
+                            ))
+                        } else {
+                            Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                                datatype: self.data_type().clone(),
+                            })
+                        }
+                    }
+                    ArrowTimeUnit::Nanosecond => {
+                        if let Some(array) =
+                            self.as_any().downcast_ref::<TimestampNanosecondArray>()
+                        {
+                            Ok(Column::TimestampTZ(
+                                PoSQLTimeUnit::Nanosecond,
+                                timezone.into(),
+                                &array.values()[range.start..range.end],
+                            ))
+                        } else {
+                            Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                                datatype: self.data_type().clone(),
+                            })
+                        }
                     }
                 }
-                ArrowTimeUnit::Millisecond => {
-                    if let Some(array) = self.as_any().downcast_ref::<TimestampMillisecondArray>() {
-                        Ok(Column::TimestampTZ(
-                            PoSQLTimeUnit::Millisecond,
-                            PoSQLTimeZone::try_from(tz)?,
-                            &array.values()[range.start..range.end],
-                        ))
-                    } else {
-                        Err(ArrowArrayToColumnConversionError::UnsupportedType {
-                            datatype: self.data_type().clone(),
-                        })
-                    }
-                }
-                ArrowTimeUnit::Microsecond => {
-                    if let Some(array) = self.as_any().downcast_ref::<TimestampMicrosecondArray>() {
-                        Ok(Column::TimestampTZ(
-                            PoSQLTimeUnit::Microsecond,
-                            PoSQLTimeZone::try_from(tz)?,
-                            &array.values()[range.start..range.end],
-                        ))
-                    } else {
-                        Err(ArrowArrayToColumnConversionError::UnsupportedType {
-                            datatype: self.data_type().clone(),
-                        })
-                    }
-                }
-                ArrowTimeUnit::Nanosecond => {
-                    if let Some(array) = self.as_any().downcast_ref::<TimestampNanosecondArray>() {
-                        Ok(Column::TimestampTZ(
-                            PoSQLTimeUnit::Nanosecond,
-                            PoSQLTimeZone::try_from(tz)?,
-                            &array.values()[range.start..range.end],
-                        ))
-                    } else {
-                        Err(ArrowArrayToColumnConversionError::UnsupportedType {
-                            datatype: self.data_type().clone(),
-                        })
-                    }
-                }
-            },
+            }
             DataType::Utf8 => {
                 if let Some(array) = self.as_any().downcast_ref::<StringArray>() {
                     let vals = alloc
@@ -301,6 +310,7 @@ mod tests {
     use alloc::sync::Arc;
     use arrow::array::Decimal256Builder;
     use core::str::FromStr;
+    use sqlparser::ast::TimezoneInfo;
 
     #[test]
     fn we_can_convert_timestamp_array_normal_range() {
@@ -314,7 +324,7 @@ mod tests {
         let result = array.to_column::<TestScalar>(&alloc, &(1..3), None);
         assert_eq!(
             result.unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &data[1..3])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, &data[1..3])
         );
     }
 
@@ -332,7 +342,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, &[])
         );
     }
 
@@ -348,7 +358,7 @@ mod tests {
         let result = array.to_column::<DoryScalar>(&alloc, &(1..1), None);
         assert_eq!(
             result.unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, &[])
         );
     }
 
@@ -1015,7 +1025,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &data[..])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, &data[..])
         );
     }
 
@@ -1085,7 +1095,7 @@ mod tests {
             array
                 .to_column::<TestScalar>(&alloc, &(1..3), None)
                 .unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &data[1..3])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, &data[1..3])
         );
     }
 
@@ -1143,7 +1153,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, TimezoneInfo::None, &[])
         );
     }
 }

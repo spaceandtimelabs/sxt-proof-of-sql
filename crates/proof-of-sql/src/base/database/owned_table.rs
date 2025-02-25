@@ -8,7 +8,6 @@ use itertools::{EitherOrBoth, Itertools};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use sqlparser::ast::Ident;
-
 /// An error that occurs when working with tables.
 #[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum OwnedTableError {
@@ -203,7 +202,8 @@ mod tests {
         scalar::test_scalar::TestScalar,
     };
     use bumpalo::Bump;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+    use sqlparser::ast::TimezoneInfo;
 
     #[test]
     fn test_conversion_from_table_to_owned_table() {
@@ -234,7 +234,7 @@ mod tests {
             borrowed_timestamptz(
                 "time_stamp",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
                 &alloc,
             ),
@@ -252,7 +252,7 @@ mod tests {
             timestamptz(
                 "time_stamp",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::utc(),
+                TimezoneInfo::None,
                 [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
             ),
         ]);
