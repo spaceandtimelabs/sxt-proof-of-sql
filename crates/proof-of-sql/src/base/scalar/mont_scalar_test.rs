@@ -1,11 +1,13 @@
 use crate::base::{
     map::IndexSet,
     scalar::{
-        test_scalar::TestScalar, test_scalar_constants, Curve25519Scalar, Scalar,
-        ScalarConversionError,
+        test_scalar::{TestMontConfig, TestScalar},
+        test_scalar_constants, Curve25519Scalar, Scalar, ScalarConversionError,
     },
 };
 use alloc::{format, string::ToString, vec::Vec};
+use ark_ff::MontConfig;
+use bnum::types::U256;
 use byte_slice_cast::AsByteSlice;
 use num_bigint::BigInt;
 use num_traits::{Inv, One, Zero};
@@ -503,4 +505,13 @@ fn test_bigint_to_scalar_overflow() {
         ),
         Err(ScalarConversionError::Overflow { .. })
     ));
+}
+
+#[test]
+fn we_can_bound_modulus_using_max_bits() {
+    let modulus_of_i_max_bits = U256::ONE << TestScalar::MAX_BITS;
+    let modulus_of_i_max_bits_plus_1 = U256::ONE << (TestScalar::MAX_BITS + 1);
+    let modulus_of_test_scalar = U256::from(TestMontConfig::MODULUS.0);
+    assert!(modulus_of_i_max_bits <= modulus_of_test_scalar);
+    assert!(modulus_of_i_max_bits_plus_1 > modulus_of_test_scalar);
 }
