@@ -63,6 +63,16 @@ pub fn column_union<'a, S: Scalar>(
                 iter.next().expect("Iterator should have enough elements")
             }) as &[_])
         }
+        ColumnType::Uint16 => {
+            let mut iter = columns
+                .iter()
+                .flat_map(|col| col.as_uint16().expect("Column types should match"))
+                .copied();
+
+            Column::Uint16(alloc.alloc_slice_fill_with(len, |_| {
+                iter.next().expect("Iterator should have enough elements")
+            }) as &[_])
+        }
         ColumnType::TinyInt => {
             let mut iter = columns
                 .iter()
@@ -278,6 +288,15 @@ mod tests {
             result,
             Column::VarChar((&doubled_strings, &doubled_scalars))
         );
+
+        let alloc = Bump::new();
+        let col0: Column<TestScalar> = Column::Uint16(&[]);
+        let col1: Column<TestScalar> = Column::Uint16(&[1, 2, 3]);
+        let col2: Column<TestScalar> = Column::Uint16(&[4, 5, 6]);
+        let col3: Column<TestScalar> = Column::Uint16(&[7, 8, 9]);
+        let result =
+            column_union(&[&col0, &col1, &col2, &col3], &alloc, ColumnType::Uint16).unwrap();
+        assert_eq!(result, Column::Uint16(&[1, 2, 3, 4, 5, 6, 7, 8, 9]));
     }
 
     #[test]

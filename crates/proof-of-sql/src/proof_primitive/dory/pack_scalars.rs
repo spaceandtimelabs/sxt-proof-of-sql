@@ -378,6 +378,17 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     num_matrix_commitment_columns,
                 );
             }
+            CommittableColumn::Uint16(column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars,
+                    cumulative_bit_sum_table[i],
+                    offset,
+                    committable_columns[i].column_type().byte_size(),
+                    bit_table_full_sum_in_bytes,
+                    num_matrix_commitment_columns,
+                );
+            }
             CommittableColumn::TinyInt(column) => {
                 pack_bit(
                     column,
@@ -476,6 +487,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
+            CommittableColumn::Uint16(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
@@ -500,8 +512,8 @@ mod tests {
         let bit_table: Vec<u32> =
             output_bit_table(&committable_columns, offset, num_matrix_commitment_columns);
         let expected = [
-            16, 32, 32, 64, 64, 64, 128, 128, 128, 128, 256, 256, 256, 256, 256, 256, 256, 256,
-            256, 256, 256, 256, 8, 8, 64,
+            16, 32, 32, 16, 16, 64, 64, 64, 128, 128, 128, 128, 256, 256, 256, 256, 256, 256, 256,
+            256, 256, 256, 256, 256, 8, 8, 64,
         ];
         assert_eq!(bit_table, expected);
     }
@@ -511,6 +523,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
+            CommittableColumn::Uint16(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
@@ -535,8 +548,8 @@ mod tests {
         let bit_table: Vec<u32> =
             output_bit_table(&committable_columns, offset, num_matrix_commitment_columns);
         let expected = [
-            16, 16, 32, 32, 32, 64, 64, 64, 64, 128, 128, 128, 128, 128, 256, 256, 256, 256, 256,
-            256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 8, 8, 8, 64, 64,
+            16, 16, 32, 32, 32, 16, 16, 16, 64, 64, 64, 64, 128, 128, 128, 128, 128, 256, 256, 256,
+            256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 8, 8, 8, 64, 64,
         ];
         assert_eq!(bit_table, expected);
     }
@@ -546,6 +559,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
+            CommittableColumn::Uint16(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
@@ -567,7 +581,7 @@ mod tests {
 
         let offset = 0;
         let num_matrix_commitment_columns = 1;
-        let expected: Vec<usize> = vec![1, 2, 3, 4, 5, 4, 3, 2, 1];
+        let expected: Vec<usize> = vec![1, 2, 2, 3, 4, 5, 4, 3, 2, 1];
         let num_sub_commits: Vec<usize> = (0..committable_columns.len())
             .map(|i| {
                 num_sub_commits(
@@ -586,6 +600,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
+            CommittableColumn::Uint16(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
@@ -607,7 +622,7 @@ mod tests {
 
         let offset = 2;
         let num_matrix_commitment_columns = 1;
-        let expected: Vec<usize> = vec![3, 4, 5, 6, 7, 6, 5, 4, 3];
+        let expected: Vec<usize> = vec![3, 4, 4, 5, 6, 7, 6, 5, 4, 3];
         let num_sub_commits: Vec<usize> = (0..committable_columns.len())
             .map(|i| {
                 num_sub_commits(
@@ -626,6 +641,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
+            CommittableColumn::Uint16(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
@@ -647,7 +663,7 @@ mod tests {
 
         let offset = 0;
         let num_matrix_commitment_columns = 4;
-        let expected: Vec<usize> = vec![1, 1, 1, 1, 2, 1, 1, 1, 1];
+        let expected: Vec<usize> = vec![1, 1, 1, 1, 1, 2, 1, 1, 1, 1];
         let num_sub_commits: Vec<usize> = (0..committable_columns.len())
             .map(|i| {
                 num_sub_commits(
@@ -666,6 +682,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
+            CommittableColumn::Uint16(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
@@ -687,7 +704,7 @@ mod tests {
 
         let offset = 1;
         let num_matrix_commitment_columns = 4;
-        let expected: Vec<usize> = vec![1, 1, 1, 2, 2, 2, 1, 1, 1];
+        let expected: Vec<usize> = vec![1, 1, 1, 1, 2, 2, 2, 1, 1, 1];
         let num_sub_commits: Vec<usize> = (0..committable_columns.len())
             .map(|i| {
                 num_sub_commits(
@@ -706,6 +723,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0]]),
             CommittableColumn::Scalar(vec![[1, 0, 0, 0]]),
+            CommittableColumn::Uint16(&[1, 2]),
         ];
 
         let offset = 0;
@@ -726,6 +744,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0]]),
             CommittableColumn::Scalar(vec![[1, 0, 0, 0]]),
+            CommittableColumn::Uint16(&[1, 2]),
         ];
 
         let offset = 3;
@@ -748,6 +767,7 @@ mod tests {
                 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
             ]),
             CommittableColumn::Int(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]),
+            CommittableColumn::Uint16(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]),
             CommittableColumn::SmallInt(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
         ];
 
@@ -764,7 +784,7 @@ mod tests {
         );
         assert_eq!(
             num_sub_commits(&committable_columns[2], offset, num_columns),
-            3
+            4
         );
     }
 
@@ -775,6 +795,7 @@ mod tests {
                 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
             ]),
             CommittableColumn::Int(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]),
+            CommittableColumn::Uint16(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]),
             CommittableColumn::SmallInt(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
         ];
 
@@ -791,7 +812,7 @@ mod tests {
         );
         assert_eq!(
             num_sub_commits(&committable_columns[2], offset, num_columns),
-            3
+            4
         );
     }
 
@@ -807,6 +828,9 @@ mod tests {
             CommittableColumn::SmallInt(&[
                 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56,
             ]),
+            CommittableColumn::Uint16(&[
+                38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56,
+            ]),
         ];
 
         let offset = 0;
@@ -816,19 +840,21 @@ mod tests {
             bit_table_and_scalars_for_packed_msm(&committable_columns, offset, num_columns);
 
         let expected_bit_table = [
-            16, 16, 16, 16, 16, 32, 32, 32, 32, 32, 16, 16, 16, 16, 16, 8, 8, 8, 8, 8,
+            16, 16, 16, 16, 16, 32, 32, 32, 32, 32, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 8, 8,
+            8, 8, 8, 8,
         ];
 
         let expected_packed_scalar = [
             0, 128, 4, 128, 8, 128, 12, 128, 16, 128, 19, 0, 0, 128, 23, 0, 0, 128, 27, 0, 0, 128,
-            31, 0, 0, 128, 35, 0, 0, 128, 38, 128, 42, 128, 46, 128, 50, 128, 54, 128, 1, 1, 1, 1,
-            1, 1, 128, 5, 128, 9, 128, 13, 128, 17, 128, 20, 0, 0, 128, 24, 0, 0, 128, 28, 0, 0,
-            128, 32, 0, 0, 128, 36, 0, 0, 128, 39, 128, 43, 128, 47, 128, 51, 128, 55, 128, 1, 1,
-            1, 1, 1, 2, 128, 6, 128, 10, 128, 14, 128, 18, 128, 21, 0, 0, 128, 25, 0, 0, 128, 29,
-            0, 0, 128, 33, 0, 0, 128, 37, 0, 0, 128, 40, 128, 44, 128, 48, 128, 52, 128, 56, 128,
-            1, 1, 1, 1, 1, 3, 128, 7, 128, 11, 128, 15, 128, 0, 0, 22, 0, 0, 128, 26, 0, 0, 128,
-            30, 0, 0, 128, 34, 0, 0, 128, 0, 0, 0, 0, 41, 128, 45, 128, 49, 128, 53, 128, 0, 0, 1,
-            1, 0, 0, 0,
+            31, 0, 0, 128, 35, 0, 0, 128, 38, 128, 42, 128, 46, 128, 50, 128, 54, 128, 38, 0, 42,
+            0, 46, 0, 50, 0, 54, 0, 1, 1, 1, 1, 1, 0, 1, 128, 5, 128, 9, 128, 13, 128, 17, 128, 20,
+            0, 0, 128, 24, 0, 0, 128, 28, 0, 0, 128, 32, 0, 0, 128, 36, 0, 0, 128, 39, 128, 43,
+            128, 47, 128, 51, 128, 55, 128, 39, 0, 43, 0, 47, 0, 51, 0, 55, 0, 1, 1, 1, 1, 1, 0, 2,
+            128, 6, 128, 10, 128, 14, 128, 18, 128, 21, 0, 0, 128, 25, 0, 0, 128, 29, 0, 0, 128,
+            33, 0, 0, 128, 37, 0, 0, 128, 40, 128, 44, 128, 48, 128, 52, 128, 56, 128, 40, 0, 44,
+            0, 48, 0, 52, 0, 56, 0, 1, 1, 1, 1, 1, 0, 3, 128, 7, 128, 11, 128, 15, 128, 0, 0, 22,
+            0, 0, 128, 26, 0, 0, 128, 30, 0, 0, 128, 34, 0, 0, 128, 0, 0, 0, 0, 41, 128, 45, 128,
+            49, 128, 53, 128, 0, 0, 41, 0, 45, 0, 49, 0, 53, 0, 0, 0, 1, 1, 0, 0, 0, 0,
         ];
 
         assert_eq!(bit_table, expected_bit_table);
@@ -841,6 +867,7 @@ mod tests {
             CommittableColumn::SmallInt(&[0, 1, 2, 3]),
             CommittableColumn::Int(&[4, 5, 6, 7]),
             CommittableColumn::SmallInt(&[8, 9, 10, 11]),
+            CommittableColumn::Uint16(&[8, 9, 10, 11]),
         ];
 
         let offset = 1;
@@ -849,13 +876,13 @@ mod tests {
         let (bit_table, packed_scalar) =
             bit_table_and_scalars_for_packed_msm(&committable_columns, offset, num_columns);
 
-        let expected_bit_table = [16, 16, 32, 32, 16, 16, 8, 8, 8, 8, 8];
+        let expected_bit_table = [16, 16, 32, 32, 16, 16, 16, 16, 8, 8, 8, 8, 8, 8];
 
         let expected_packed_scalar = [
-            0, 0, 3, 128, 0, 0, 0, 0, 7, 0, 0, 128, 0, 0, 11, 128, 0, 1, 1, 1, 1, 0, 128, 0, 0, 4,
-            0, 0, 128, 0, 0, 0, 0, 8, 128, 0, 0, 1, 1, 0, 0, 0, 1, 128, 0, 0, 5, 0, 0, 128, 0, 0,
-            0, 0, 9, 128, 0, 0, 1, 1, 0, 0, 0, 2, 128, 0, 0, 6, 0, 0, 128, 0, 0, 0, 0, 10, 128, 0,
-            0, 1, 1, 0, 0, 0,
+            0, 0, 3, 128, 0, 0, 0, 0, 7, 0, 0, 128, 0, 0, 11, 128, 0, 0, 11, 0, 0, 1, 1, 1, 1, 0,
+            0, 128, 0, 0, 4, 0, 0, 128, 0, 0, 0, 0, 8, 128, 0, 0, 8, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1,
+            128, 0, 0, 5, 0, 0, 128, 0, 0, 0, 0, 9, 128, 0, 0, 9, 0, 0, 0, 1, 1, 0, 0, 0, 0, 2,
+            128, 0, 0, 6, 0, 0, 128, 0, 0, 0, 0, 10, 128, 0, 0, 10, 0, 0, 0, 1, 1, 0, 0, 0, 0,
         ];
 
         assert_eq!(bit_table, expected_bit_table);
@@ -878,6 +905,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
             CommittableColumn::BigInt(&[3, 4]),
+            CommittableColumn::Uint16(&[3, 4]),
         ];
 
         let offset = 0;
@@ -887,11 +915,11 @@ mod tests {
             bit_table_and_scalars_for_packed_msm(&committable_columns, offset, num_columns);
 
         let expected_packed_scalar = [
-            1, 0, 0, 0, 0, 0, 0, 128, 3, 0, 0, 0, 0, 0, 0, 128, 1, 1, 1, 1, 2, 0, 0, 0, 0, 0, 0,
-            128, 4, 0, 0, 0, 0, 0, 0, 128, 1, 1, 1, 1,
+            1, 0, 0, 0, 0, 0, 0, 128, 3, 0, 0, 0, 0, 0, 0, 128, 3, 0, 1, 1, 1, 1, 0, 2, 0, 0, 0, 0,
+            0, 0, 128, 4, 0, 0, 0, 0, 0, 0, 128, 4, 0, 1, 1, 1, 1, 0,
         ];
 
-        let expected_bit_table = [64, 64, 8, 8, 8, 8];
+        let expected_bit_table = [64, 64, 16, 8, 8, 8, 8, 8];
 
         assert_eq!(bit_table, expected_bit_table);
         assert_eq!(packed_scalar, expected_packed_scalar);
@@ -902,6 +930,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
             CommittableColumn::BigInt(&[3, 4]),
+            CommittableColumn::Uint16(&[3, 4]),
         ];
 
         let offset = 0;
@@ -911,11 +940,11 @@ mod tests {
             bit_table_and_scalars_for_packed_msm(&committable_columns, offset, num_columns);
 
         let expected_packed_scalar = [
-            1, 0, 0, 0, 0, 0, 0, 128, 3, 0, 0, 0, 0, 0, 0, 128, 1, 1, 1, 1, 2, 0, 0, 0, 0, 0, 0,
-            128, 4, 0, 0, 0, 0, 0, 0, 128, 1, 1, 1, 1,
+            1, 0, 0, 0, 0, 0, 0, 128, 3, 0, 0, 0, 0, 0, 0, 128, 3, 0, 1, 1, 1, 1, 0, 2, 0, 0, 0, 0,
+            0, 0, 128, 4, 0, 0, 0, 0, 0, 0, 128, 4, 0, 1, 1, 1, 1, 0,
         ];
 
-        let expected_bit_table = [64, 64, 8, 8, 8, 8];
+        let expected_bit_table = [64, 64, 16, 8, 8, 8, 8, 8];
 
         assert_eq!(bit_table, expected_bit_table);
         assert_eq!(packed_scalar, expected_packed_scalar);
@@ -926,6 +955,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
             CommittableColumn::BigInt(&[3, 4]),
+            CommittableColumn::Uint16(&[3, 4]),
         ];
 
         let offset = 1;
@@ -936,11 +966,11 @@ mod tests {
 
         let expected_packed_scalar = [
             0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
-            0, 0, 0, 128, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0,
-            0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,
+            0, 0, 0, 128, 0, 0, 4, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0,
+            0, 3, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 1, 1, 0, 0, 0,
         ];
 
-        let expected_bit_table = [64, 64, 64, 64, 8, 8, 8, 8];
+        let expected_bit_table = [64, 64, 64, 64, 16, 16, 8, 8, 8, 8, 8];
 
         assert_eq!(bit_table, expected_bit_table);
         assert_eq!(packed_scalar, expected_packed_scalar);
@@ -951,13 +981,14 @@ mod tests {
         let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
             CommittableColumn::BigInt(&[3, 4]),
+            CommittableColumn::Uint16(&[3, 4]),
         ];
 
         // No offset
         let offset = 0;
         let num_columns = 1 << 1;
 
-        let expected: Vec<u8> = vec![1, 1, 1, 1, 1, 1, 1, 1];
+        let expected: Vec<u8> = vec![1, 1, 1, 1, 1, 1, 1, 1, 0, 0];
 
         let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
         offset_column(&committable_columns, offset, num_columns, &mut buffer);
@@ -968,7 +999,7 @@ mod tests {
         let offset = 1;
         let num_columns = 1 << 1;
 
-        let expected: Vec<u8> = vec![0, 1, 1, 1, 1, 0, 1, 0];
+        let expected: Vec<u8> = vec![0, 1, 1, 1, 1, 0, 1, 0, 0, 0];
 
         let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
         offset_column(&committable_columns, offset, num_columns, &mut buffer);
@@ -979,7 +1010,7 @@ mod tests {
         let offset = 0;
         let num_columns = 1;
 
-        let expected: Vec<u8> = vec![1, 1, 1, 1];
+        let expected: Vec<u8> = vec![1, 1, 1, 1, 0];
 
         let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
         offset_column(&committable_columns, offset, num_columns, &mut buffer);
@@ -993,6 +1024,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
             CommittableColumn::BigInt(&[3, 4]),
+            CommittableColumn::Uint16(&[1, 2]),
         ];
 
         let offset = 1;
@@ -1006,6 +1038,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::SmallInt(&[1, 2, 3, 4, 5]),
             CommittableColumn::Int(&[1, 2, 3, 4, 5, 6]),
+            CommittableColumn::Uint16(&[1, 2, 3, 4, 5, 6]),
             CommittableColumn::BigInt(&[1, 2, 3, 4, 5, 6, 7]),
             CommittableColumn::Int128(&[1, 2, 3, 4, 5, 6, 7, 8]),
             CommittableColumn::Decimal75(
@@ -1034,8 +1067,8 @@ mod tests {
         let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
         offset_column(&committable_columns, offset, num_columns, &mut buffer);
         let expected: Vec<u8> = vec![
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
         ];
         assert_eq!(buffer, expected);
     }
@@ -1045,6 +1078,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::SmallInt(&[1, 2, 3, 4, 5]),
             CommittableColumn::Int(&[1, 2, 3, 4, 5, 6]),
+            CommittableColumn::Uint16(&[1, 2, 3, 4, 5, 6]),
             CommittableColumn::BigInt(&[1, 2, 3, 4, 5, 6, 7]),
             CommittableColumn::Int128(&[1, 2, 3, 4, 5, 6, 7, 8]),
             CommittableColumn::Decimal75(
@@ -1073,8 +1107,8 @@ mod tests {
         let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
         offset_column(&committable_columns, offset, num_columns, &mut buffer);
         let expected: Vec<u8> = vec![
-            0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+            0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
         ];
         assert_eq!(buffer, expected);
     }
@@ -1084,6 +1118,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
             CommittableColumn::BigInt(&[3, 4]),
+            CommittableColumn::Uint16(&[3, 4]),
         ];
 
         let offset = 0;
@@ -1094,10 +1129,10 @@ mod tests {
 
         let expected_packed_scalar = [
             1, 0, 0, 0, 0, 0, 0, 128, 2, 0, 0, 0, 0, 0, 0, 128, 3, 0, 0, 0, 0, 0, 0, 128, 4, 0, 0,
-            0, 0, 0, 0, 128, 1, 1, 1, 1,
+            0, 0, 0, 0, 128, 3, 0, 4, 0, 1, 1, 1, 1, 0,
         ];
 
-        let expected_bit_table = [64, 64, 64, 64, 8, 8, 8, 8];
+        let expected_bit_table = [64, 64, 64, 64, 16, 16, 8, 8, 8, 8, 8];
 
         assert_eq!(bit_table, expected_bit_table);
         assert_eq!(packed_scalar, expected_packed_scalar);
@@ -1108,6 +1143,7 @@ mod tests {
         let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
             CommittableColumn::BigInt(&[3, 4]),
+            CommittableColumn::Uint16(&[3, 4]),
         ];
 
         let offset = 1;
@@ -1118,11 +1154,11 @@ mod tests {
 
         let expected_packed_scalar = [
             0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
-            0, 0, 0, 128, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0,
-            0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,
+            0, 0, 0, 128, 0, 0, 4, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0,
+            0, 3, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 1, 1, 0, 0, 0,
         ];
 
-        let expected_bit_table = [64, 64, 64, 64, 8, 8, 8, 8];
+        let expected_bit_table = [64, 64, 64, 64, 16, 16, 8, 8, 8, 8, 8];
 
         assert_eq!(bit_table, expected_bit_table);
         assert_eq!(packed_scalar, expected_packed_scalar);
@@ -1132,6 +1168,7 @@ mod tests {
     fn we_can_create_a_mixed_packed_scalar_with_offset_and_more_rows_than_columns() {
         let committable_columns = [
             CommittableColumn::SmallInt(&[0, 1, 2, 3, 4, 5]),
+            CommittableColumn::Uint16(&[0, 1, 2, 3, 4, 5]),
             CommittableColumn::Int(&[6, 7, 8, 9]),
             CommittableColumn::Scalar(vec![[10, 0, 0, 0], [11, 0, 0, 0], [12, 0, 0, 0]]),
         ];
@@ -1143,15 +1180,15 @@ mod tests {
             bit_table_and_scalars_for_packed_msm(&committable_columns, offset, num_columns);
 
         let expected_packed_scalar = [
-            0, 128, 3, 128, 6, 0, 0, 128, 9, 0, 0, 128, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 128, 4, 128, 7,
-            0, 0, 128, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 2, 128, 5, 128, 8, 0, 0, 128, 0, 0, 0,
-            0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 1, 1, 1, 0, 0,
+            0, 128, 3, 128, 0, 0, 3, 0, 6, 0, 0, 128, 9, 0, 0, 128, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1,
+            128, 4, 128, 1, 0, 4, 0, 7, 0, 0, 128, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 2, 128,
+            5, 128, 2, 0, 5, 0, 8, 0, 0, 128, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0,
         ];
 
-        let expected_bit_table = [16, 16, 32, 32, 256, 8, 8, 8, 8, 8];
+        let expected_bit_table = [16, 16, 16, 16, 32, 32, 256, 8, 8, 8, 8, 8, 8];
 
         assert_eq!(packed_scalar, expected_packed_scalar);
         assert_eq!(bit_table, expected_bit_table);

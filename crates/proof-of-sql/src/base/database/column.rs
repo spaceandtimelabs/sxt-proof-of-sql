@@ -28,6 +28,8 @@ pub enum Column<'a, S: Scalar> {
     Boolean(&'a [bool]),
     /// u8 columns
     Uint8(&'a [u8]),
+    /// u16 columns
+    Uint16(&'a [u16]),
     /// i8 columns
     TinyInt(&'a [i8]),
     /// i16 columns
@@ -63,6 +65,7 @@ impl<'a, S: Scalar> Column<'a, S> {
         match self {
             Self::Boolean(_) => ColumnType::Boolean,
             Self::Uint8(_) => ColumnType::Uint8,
+            Self::Uint16(_) => ColumnType::Uint16,
             Self::TinyInt(_) => ColumnType::TinyInt,
             Self::SmallInt(_) => ColumnType::SmallInt,
             Self::Int(_) => ColumnType::Int,
@@ -85,6 +88,7 @@ impl<'a, S: Scalar> Column<'a, S> {
         match self {
             Self::Boolean(col) => col.len(),
             Self::Uint8(col) => col.len(),
+            Self::Uint16(col) => col.len(),
             Self::TinyInt(col) => col.len(),
             Self::SmallInt(col) => col.len(),
             Self::Int(col) => col.len(),
@@ -163,6 +167,7 @@ impl<'a, S: Scalar> Column<'a, S> {
         match owned_column {
             OwnedColumn::Boolean(col) => Column::Boolean(col.as_slice()),
             OwnedColumn::Uint8(col) => Column::Uint8(col.as_slice()),
+            OwnedColumn::Uint16(col) => Column::Uint16(col.as_slice()),
             OwnedColumn::TinyInt(col) => Column::TinyInt(col.as_slice()),
             OwnedColumn::SmallInt(col) => Column::SmallInt(col.as_slice()),
             OwnedColumn::Int(col) => Column::Int(col.as_slice()),
@@ -210,6 +215,14 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub(crate) fn as_uint8(&self) -> Option<&'a [u8]> {
         match self {
             Self::Uint8(col) => Some(col),
+            _ => None,
+        }
+    }
+
+    /// Returns the column as a slice of u16 if it is a uint16 column. Otherwise, returns None.
+    pub(crate) fn as_uint16(&self) -> Option<&'a [u16]> {
+        match self {
+            Self::Uint16(col) => Some(col),
             _ => None,
         }
     }
@@ -301,6 +314,7 @@ impl<'a, S: Scalar> Column<'a, S> {
         (index < self.len()).then_some(match self {
             Self::Boolean(col) => S::from(col[index]),
             Self::Uint8(col) => S::from(col[index]),
+            Self::Uint16(col) => S::from(col[index]),
             Self::TinyInt(col) => S::from(col[index]),
             Self::SmallInt(col) => S::from(col[index]),
             Self::Int(col) => S::from(col[index]),
@@ -321,6 +335,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::VarChar((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
             Self::VarBinary((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
             Self::Uint8(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Uint16(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::TinyInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Int(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
@@ -345,6 +360,9 @@ pub enum ColumnType {
     /// Mapped to u8
     #[serde(alias = "UINT8", alias = "uint8")]
     Uint8,
+    /// Mapped to u16
+    #[serde(alias = "UINT16", alias = "uint16")]
+    Uint16,
     /// Mapped to i8
     #[serde(alias = "TINYINT", alias = "tinyint")]
     TinyInt,
@@ -384,6 +402,7 @@ impl ColumnType {
         matches!(
             self,
             ColumnType::Uint8
+                | ColumnType::Uint16
                 | ColumnType::TinyInt
                 | ColumnType::SmallInt
                 | ColumnType::Int
@@ -400,6 +419,7 @@ impl ColumnType {
         matches!(
             self,
             ColumnType::Uint8
+                | ColumnType::Uint16
                 | ColumnType::TinyInt
                 | ColumnType::SmallInt
                 | ColumnType::Int
@@ -412,7 +432,7 @@ impl ColumnType {
     fn to_integer_bits(self) -> Option<usize> {
         match self {
             ColumnType::Uint8 | ColumnType::TinyInt => Some(8),
-            ColumnType::SmallInt => Some(16),
+            ColumnType::SmallInt | ColumnType::Uint16 => Some(16),
             ColumnType::Int => Some(32),
             ColumnType::BigInt => Some(64),
             ColumnType::Int128 => Some(128),
@@ -440,6 +460,7 @@ impl ColumnType {
     fn from_unsigned_integer_bits(bits: usize) -> Option<Self> {
         match bits {
             8 => Some(ColumnType::Uint8),
+            16 => Some(ColumnType::Uint16),
             _ => None,
         }
     }
@@ -481,7 +502,7 @@ impl ColumnType {
     pub fn precision_value(&self) -> Option<u8> {
         match self {
             Self::Uint8 | Self::TinyInt => Some(3_u8),
-            Self::SmallInt => Some(5_u8),
+            Self::SmallInt | Self::Uint16 => Some(5_u8),
             Self::Int => Some(10_u8),
             Self::BigInt | Self::TimestampTZ(_, _) => Some(19_u8),
             Self::Int128 => Some(39_u8),
@@ -499,6 +520,7 @@ impl ColumnType {
             Self::Decimal75(_, scale) => Some(*scale),
             Self::TinyInt
             | Self::Uint8
+            | Self::Uint16
             | Self::SmallInt
             | Self::Int
             | Self::BigInt
@@ -520,6 +542,7 @@ impl ColumnType {
         match self {
             Self::Boolean => size_of::<bool>(),
             Self::Uint8 => size_of::<u8>(),
+            Self::Uint16 => size_of::<u16>(),
             Self::TinyInt => size_of::<i8>(),
             Self::SmallInt => size_of::<i16>(),
             Self::Int => size_of::<i32>(),
@@ -553,7 +576,8 @@ impl ColumnType {
             | Self::VarBinary
             | Self::VarChar
             | Self::Boolean
-            | Self::Uint8 => false,
+            | Self::Uint8
+            | Self::Uint16 => false,
         }
     }
 }
@@ -564,6 +588,7 @@ impl Display for ColumnType {
         match self {
             ColumnType::Boolean => write!(f, "BOOLEAN"),
             ColumnType::Uint8 => write!(f, "UINT8"),
+            ColumnType::Uint16 => write!(f, "UINT16"),
             ColumnType::TinyInt => write!(f, "TINYINT"),
             ColumnType::SmallInt => write!(f, "SMALLINT"),
             ColumnType::Int => write!(f, "INT"),
@@ -659,6 +684,58 @@ mod tests {
     use super::*;
     use crate::{base::scalar::test_scalar::TestScalar, proof_primitive::dory::DoryScalar};
     use alloc::{string::String, vec};
+
+    #[test]
+    fn we_can_handle_uint16_column_length_and_strings() {
+        // Verify length and emptiness
+        let col_non_empty = Column::<TestScalar>::Uint16(&[100, 200, 300]);
+        assert_eq!(col_non_empty.len(), 3);
+        assert!(!col_non_empty.is_empty());
+        assert_eq!(col_non_empty.column_type(), ColumnType::Uint16);
+
+        let col_empty = Column::<TestScalar>::Uint16(&[]);
+        assert_eq!(col_empty.len(), 0);
+        assert!(col_empty.is_empty());
+
+        // Verify JSON serialization / deserialization for Uint16
+        let col_type_uint16 = ColumnType::Uint16;
+        let serialized = serde_json::to_string(&col_type_uint16).unwrap();
+        assert_eq!(serialized, "\"Uint16\"");
+        let deserialized: ColumnType = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(deserialized, ColumnType::Uint16);
+
+        // Check uppercase / lowercase variants also deserialize to ColumnType::Uint16
+        let deserialized_upper: ColumnType = serde_json::from_str(r#""UINT16""#).unwrap();
+        assert_eq!(deserialized_upper, ColumnType::Uint16);
+        let deserialized_lower: ColumnType = serde_json::from_str(r#""uint16""#).unwrap();
+        assert_eq!(deserialized_lower, ColumnType::Uint16);
+    }
+
+    #[test]
+    fn we_can_handle_uint16_columns() {
+        // Test non-empty columns
+        let column = Column::<TestScalar>::Uint16(&[100, 200, 300]);
+        assert_eq!(column.len(), 3);
+        assert!(!column.is_empty());
+        assert_eq!(column.column_type(), ColumnType::Uint16);
+
+        // Test empty columns
+        let column = Column::<TestScalar>::Uint16(&[]);
+        assert_eq!(column.len(), 0);
+        assert!(column.is_empty());
+
+        // Test byte/bit size
+        assert_eq!(column.column_type().byte_size(), 2);
+        assert_eq!(column.column_type().bit_size(), 16);
+
+        // Test round-trip with OwnedColumn
+        let owned_col = OwnedColumn::Uint16(vec![1000, 2000, 3000]);
+        let alloc = bumpalo::Bump::new();
+        let col_from_owned = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(col_from_owned, Column::Uint16(&[1000, 2000, 3000]));
+        let round_trip_owned: OwnedColumn<TestScalar> = (&col_from_owned).into();
+        assert_eq!(owned_col, round_trip_owned);
+    }
 
     #[test]
     fn column_type_serializes_to_string() {

@@ -27,6 +27,8 @@ pub enum CommittableColumn<'a> {
     Boolean(&'a [bool]),
     /// Borrowed `Byte` column, mapped to `u8`.
     Uint8(&'a [u8]),
+    /// Borrowed u16 column, mapped to `u16`.
+    Uint16(&'a [u16]),
     /// Borrowed `TinyInt` column, mapped to `i8`.
     TinyInt(&'a [i8]),
     /// Borrowed `SmallInt` column, mapped to `i16`.
@@ -55,6 +57,7 @@ impl CommittableColumn<'_> {
     pub fn len(&self) -> usize {
         match self {
             CommittableColumn::Uint8(col) => col.len(),
+            CommittableColumn::Uint16(col) => col.len(),
             CommittableColumn::TinyInt(col) => col.len(),
             CommittableColumn::SmallInt(col) => col.len(),
             CommittableColumn::Int(col) => col.len(),
@@ -85,6 +88,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
     fn from(value: &CommittableColumn<'a>) -> Self {
         match value {
             CommittableColumn::Uint8(_) => ColumnType::Uint8,
+            CommittableColumn::Uint16(_) => ColumnType::Uint16,
             CommittableColumn::TinyInt(_) => ColumnType::TinyInt,
             CommittableColumn::SmallInt(_) => ColumnType::SmallInt,
             CommittableColumn::Int(_) => ColumnType::Int,
@@ -107,6 +111,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
         match value {
             Column::Boolean(bools) => CommittableColumn::Boolean(bools),
             Column::Uint8(ints) => CommittableColumn::Uint8(ints),
+            Column::Uint16(ints) => CommittableColumn::Uint16(ints),
             Column::TinyInt(ints) => CommittableColumn::TinyInt(ints),
             Column::SmallInt(ints) => CommittableColumn::SmallInt(ints),
             Column::Int(ints) => CommittableColumn::Int(ints),
@@ -141,6 +146,7 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
         match value {
             OwnedColumn::Boolean(bools) => CommittableColumn::Boolean(bools),
             OwnedColumn::Uint8(ints) => CommittableColumn::Uint8(ints),
+            OwnedColumn::Uint16(ints) => CommittableColumn::Uint16(ints),
             OwnedColumn::TinyInt(ints) => (ints as &[_]).into(),
             OwnedColumn::SmallInt(ints) => (ints as &[_]).into(),
             OwnedColumn::Int(ints) => (ints as &[_]).into(),
@@ -225,6 +231,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
     fn from(value: &'a CommittableColumn<'b>) -> Self {
         match value {
             CommittableColumn::Uint8(ints) => Sequence::from(*ints),
+            CommittableColumn::Uint16(ints) => Sequence::from(*ints),
             CommittableColumn::TinyInt(ints) => Sequence::from(*ints),
             CommittableColumn::SmallInt(ints) => Sequence::from(*ints),
             CommittableColumn::Int(ints) => Sequence::from(*ints),
@@ -869,6 +876,30 @@ mod tests {
         // nonempty case
         let values = [12, 34, 56];
         let committable_column = CommittableColumn::Uint8(&values);
+
+        let sequence_actual = Sequence::from(&committable_column);
+        let sequence_expected = Sequence::from(values.as_slice());
+        let mut commitment_buffer = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(
+            &mut commitment_buffer,
+            &[sequence_actual, sequence_expected],
+            0,
+        );
+        assert_eq!(commitment_buffer[0], commitment_buffer[1]);
+    }
+
+    #[test]
+    fn we_can_commit_to_uint16_column_through_committable_column() {
+        // empty case
+        let committable_column = CommittableColumn::Uint16(&[]);
+        let sequence = Sequence::from(&committable_column);
+        let mut commitment_buffer = [CompressedRistretto::default()];
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
+        assert_eq!(commitment_buffer[0], CompressedRistretto::default());
+
+        // nonempty case
+        let values = [12, 34, 56];
+        let committable_column = CommittableColumn::Uint16(&values);
 
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(values.as_slice());

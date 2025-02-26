@@ -32,9 +32,11 @@ pub trait Scalar:
     + for<'a> core::convert::From<&'a i64> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a i128> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a u8> // Required for `Column` to implement `MultilinearExtension`
+    + for<'a> core::convert::From<&'a u16> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a u64> // Required for `Column` to implement `MultilinearExtension`
     + core::convert::TryInto <bool>
     + core::convert::TryInto<u8>
+    + core::convert::TryInto<u16>
     + core::convert::TryInto <i8>
     + core::convert::TryInto <i16>
     + core::convert::TryInto <i32>
@@ -43,6 +45,7 @@ pub trait Scalar:
     + core::convert::Into<[u64; 4]>
     + core::convert::From<[u64; 4]>
     + core::convert::From<u8>
+    + core::convert::From<u16>
     + core::cmp::Ord
     + core::ops::Neg<Output = Self>
     + num_traits::Zero
