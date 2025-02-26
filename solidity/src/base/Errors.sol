@@ -22,6 +22,8 @@ uint32 constant ERR_INCORRECT_CASE_CONST = 0x9324fb03;
 uint32 constant ERR_UNSUPPORTED_LITERAL_VARIANT = 0xed9d5b00;
 /// @dev Error code for when a column index is invalid.
 uint32 constant ERR_INVALID_COLUMN_INDEX = 0xb9c4d54d;
+/// @dev Error code for when a proof expression variant is unsupported.
+uint32 constant ERR_UNSUPPORTED_PROOF_EXPR_VARIANT = 0xb8a26620;
 
 library Errors {
     /// @notice Error thrown when the inputs to the ECADD precompile are invalid.
@@ -44,6 +46,8 @@ library Errors {
     error UnsupportedLiteralVariant();
     /// @notice Error thrown when a column index is invalid.
     error InvalidColumnIndex();
+    /// @notice Error thrown when a proof expression variant is unsupported.
+    error UnsupportedProofExprVariant();
 
     function __err(uint32 __code) internal pure {
         assembly {

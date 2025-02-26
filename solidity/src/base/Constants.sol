@@ -41,6 +41,10 @@ uint256 constant INT64_PADDING_BITS = 0xC0;
 /// @dev Size of int64 minus one byte
 uint256 constant INT64_SIZE_MINUS_ONE = 0x07;
 
+/// @dev Column variant constant for proof expressions
+uint32 constant COLUMN_EXPR_VARIANT = 0;
+/// @dev Literal variant constant for proof expressions
+uint32 constant LITERAL_EXPR_VARIANT = 1;
 /// @dev BigInt variant constant for literal expressions
 uint32 constant LITERAL_BIGINT_VARIANT = 0;
 
