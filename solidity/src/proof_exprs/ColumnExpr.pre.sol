@@ -14,13 +14,13 @@ library ColumnExpr {
     /// #### Wrapped Yul Function
     /// ##### Signature
     /// ```yul
-    /// column_expr_evaluate(expr_ptr_in, builder_ptr) -> expr_ptr, eval
+    /// column_expr_evaluate(expr_ptr, builder_ptr) -> expr_ptr_out, eval
     /// ```
     /// ##### Parameters
-    /// * `expr_ptr_in` - calldata pointer to the column expression
+    /// * `expr_ptr` - calldata pointer to the column expression
     /// * `builder_ptr` - memory pointer to the verification builder
     /// ##### Return Values
-    /// * `expr_ptr` - pointer to the remaining expression after consuming the column expression
+    /// * `expr_ptr_out` - pointer to the remaining expression after consuming the column expression
     /// * `eval` - the evaluation result from looking up the column value
     /// @dev Reads a uint64 column index from the expression and looks up its evaluation
     /// @param __expr The input column expression
@@ -43,13 +43,13 @@ library ColumnExpr {
                 revert(0, 0)
             }
 
-            function column_expr_evaluate(expr_ptr_in, builder_ptr) -> expr_ptr, eval {
-                expr_ptr := expr_ptr_in
-
+            function column_expr_evaluate(expr_ptr, builder_ptr) -> expr_ptr_out, eval {
                 let column_num := shr(UINT64_PADDING_BITS, calldataload(expr_ptr))
                 expr_ptr := add(expr_ptr, UINT64_SIZE)
 
                 eval := builder_get_column_evaluation(builder_ptr, column_num)
+
+                expr_ptr_out := expr_ptr
             }
             let __exprOutOffset
             __exprOutOffset, __eval := column_expr_evaluate(__expr.offset, __builder)
