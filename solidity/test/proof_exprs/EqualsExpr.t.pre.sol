@@ -4,93 +4,75 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
-import {Errors} from "../../src/base/Errors.sol";
 import {EqualsExpr} from "../../src/proof_exprs/EqualsExpr.pre.sol";
 import {VerificationBuilder} from "../../src/proof/VerificationBuilder.pre.sol";
+import {FieldUtil, F} from "../base/FieldUtil.sol";
 
 contract EqualsExprTest is Test {
-    function testEqualsExpr() public pure {
-        VerificationBuilder.Builder memory builder;
+    function computeEqualsExprAggregateEvaluation(
+        VerificationBuilder.Builder memory builder,
+        F chiEvaluation,
+        F lhsEval,
+        F rhsEval
+    ) public pure returns (F aggregateEvaluation) {
+        F diffEval = lhsEval - rhsEval;
+        F diffStarEval = F.wrap(builder.finalRoundMLEs[0]);
+        F eval = F.wrap(builder.finalRoundMLEs[1]);
+        F identityConstraint0Eval = eval * diffEval;
+        F identityConstraint1Eval = chiEvaluation - (diffEval * diffStarEval + eval);
 
-        // Setup column evaluations for first expression
-        uint256[] memory columnValues = new uint256[](2);
-        columnValues[0] = 0x11111111;
-        columnValues[1] = 0x22222222;
-        builder.columnEvaluations = columnValues;
+        F rowMultipliersEval = F.wrap(builder.rowMultipliersEvaluation);
 
-        // Setup final round MLEs
-        uint256[] memory finalRoundMLEs = new uint256[](2);
-        finalRoundMLEs[0] = 0x33333333; // diff_star_eval
-        finalRoundMLEs[1] = 0x44444444; // eval
-        builder.finalRoundMLEs = finalRoundMLEs;
-
-        // Setup constraint multipliers
-        uint256[] memory constraintMultipliers = new uint256[](2);
-        constraintMultipliers[0] = 1;
-        constraintMultipliers[1] = 1;
-        builder.constraintMultipliers = constraintMultipliers;
-        builder.rowMultipliersEvaluation = 1;
-        builder.maxDegree = 3;
-
-        // Build expression: equals(column(1), literal(2))
-        bytes memory exprIn = abi.encodePacked(
-            abi.encodePacked(COLUMN_EXPR_VARIANT, uint64(1)),
-            abi.encodePacked(LITERAL_EXPR_VARIANT, LITERAL_BIGINT_VARIANT, int64(2)),
-            hex"abcdef"
-        );
-
-        bytes memory expectedExprOut = hex"abcdef";
-
-        (bytes memory exprOut, uint256 eval) = EqualsExpr.__equalsExprEvaluate(exprIn, builder, 3);
-
-        // The eval should be the second final round MLE
-        assert(eval == 0x44444444);
-
-        // Check remaining expression matches expected
-        assert(exprOut.length == expectedExprOut.length);
-        uint256 exprOutLength = exprOut.length;
-        for (uint256 i = 0; i < exprOutLength; ++i) {
-            assert(exprOut[i] == expectedExprOut[i]);
-        }
+        aggregateEvaluation = F.wrap(builder.aggregateEvaluation);
+        aggregateEvaluation = aggregateEvaluation
+            + F.wrap(builder.constraintMultipliers[0]) * rowMultipliersEval * identityConstraint0Eval;
+        aggregateEvaluation = aggregateEvaluation
+            + F.wrap(builder.constraintMultipliers[1]) * rowMultipliersEval * identityConstraint1Eval;
     }
 
-    // function testSetupEqualsExpr(
-    //     uint256 chiEval,
-    //     uint256 diffStarEval,
-    //     uint256 eval,
-    //     uint256 lhsEval,
-    //     uint256 rhsEval,
-    //     bytes memory trailingExpr
-    // ) public {
-    //     vm.assume(chiEval != 0);
+    function computeEqualsExprResultEvaluation(VerificationBuilder.Builder memory builder)
+        public
+        pure
+        returns (F resultEvaluation)
+    {
+        resultEvaluation = F.wrap(builder.finalRoundMLEs[1]);
+    }
 
-    //     VerificationBuilder.Builder memory builder;
+    function testFuzzEqualsExpr(
+        VerificationBuilder.Builder memory builder,
+        uint256 chiEvaluation,
+        int64 lhsValue,
+        int64 rhsValue,
+        bytes memory trailingExpr
+    ) public pure {
+        vm.assume(builder.finalRoundMLEs.length > 1);
+        vm.assume(builder.constraintMultipliers.length > 1);
+        vm.assume(builder.maxDegree > 2);
 
-    //     // Setup final round MLEs
-    //     uint256[] memory finalRoundMLEs = new uint256[](2);
-    //     finalRoundMLEs[0] = diffStarEval;
-    //     finalRoundMLEs[1] = eval;
-    //     builder.finalRoundMLEs = finalRoundMLEs;
+        F expectedAggregateEvaluation = computeEqualsExprAggregateEvaluation(
+            builder,
+            F.wrap(chiEvaluation),
+            FieldUtil.from(lhsValue) * F.wrap(chiEvaluation),
+            FieldUtil.from(rhsValue) * F.wrap(chiEvaluation)
+        );
+        F expectedEval = computeEqualsExprResultEvaluation(builder);
 
-    //     // Setup constraint multipliers
-    //     uint256[] memory constraintMultipliers = new uint256[](2);
-    //     constraintMultipliers[0] = 1;
-    //     constraintMultipliers[1] = 1;
-    //     builder.constraintMultipliers = constraintMultipliers;
-    //     builder.rowMultipliersEvaluation = 1;
-    //     builder.maxDegree = 3;
+        bytes memory expr = abi.encodePacked(
+            abi.encodePacked(LITERAL_EXPR_VARIANT, LITERAL_BIGINT_VARIANT, lhsValue),
+            abi.encodePacked(LITERAL_EXPR_VARIANT, LITERAL_BIGINT_VARIANT, rhsValue),
+            trailingExpr
+        );
 
-    //     // Setup column evaluations
-    //     uint256[] memory columnValues = new uint256[](2);
-    //     columnValues[0] = lhsEval;
-    //     columnValues[1] = rhsEval;
-    //     builder.columnEvaluations = columnValues;
+        uint256 eval;
+        (expr, builder, eval) = EqualsExpr.__equalsExprEvaluate(expr, builder, chiEvaluation);
 
-    //     bytes memory exprIn = abi.encodePacked(uint64(0), uint64(1), trailingExpr);
+        assert(eval == expectedEval.into());
+        assert(builder.aggregateEvaluation == expectedAggregateEvaluation.into());
 
-    //     (bytes memory exprOut, uint256 resultEval) = EqualsExpr.__equalsExprEvaluate(exprIn, builder, chiEval);
-
-    //     assert(resultEval == eval);
-    //     assert(exprOut.length == trailingExpr.length);
-    // }
+        uint256 exprLength = expr.length;
+        assert(exprLength == trailingExpr.length);
+        for (uint256 i = 0; i < exprLength; ++i) {
+            assert(expr[i] == trailingExpr[i]);
+        }
+    }
 }

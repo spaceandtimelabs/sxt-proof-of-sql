@@ -26,12 +26,13 @@ library ColumnExpr {
     /// @param __expr The input column expression
     /// @param __builder The verification builder containing column evaluations
     /// @return __exprOut The remaining expression after consuming the column index
+    /// @return __builderOut The verification builder result
     /// @return __eval The evaluation result for the column
     function __columnExprEvaluate( // solhint-disable-line gas-calldata-parameters
     bytes calldata __expr, VerificationBuilder.Builder memory __builder)
         external
         pure
-        returns (bytes calldata __exprOut, uint256 __eval)
+        returns (bytes calldata __exprOut, VerificationBuilder.Builder memory __builderOut, uint256 __eval)
     {
         assembly {
             // IMPORT-YUL ../base/Errors.sol
@@ -57,5 +58,6 @@ library ColumnExpr {
             // slither-disable-next-line write-after-write
             __exprOut.length := sub(__expr.length, sub(__exprOutOffset, __expr.offset))
         }
+        __builderOut = __builder;
     }
 }

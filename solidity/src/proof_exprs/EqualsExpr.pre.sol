@@ -28,12 +28,14 @@ library EqualsExpr {
     /// @param __builder The verification builder
     /// @param __chiEval The chi value for evaluation
     /// @return __exprOut The remaining expression after processing
+    /// @return __builderOut The verification builder result
     /// @return __eval The evaluated result
-    function __equalsExprEvaluate(
-        bytes calldata __expr,
-        VerificationBuilder.Builder memory __builder,
-        uint256 __chiEval
-    ) external pure returns (bytes calldata __exprOut, uint256 __eval) {
+    function __equalsExprEvaluate( // solhint-disable-line gas-calldata-parameters
+    bytes calldata __expr, VerificationBuilder.Builder memory __builder, uint256 __chiEval)
+        external
+        pure
+        returns (bytes calldata __exprOut, VerificationBuilder.Builder memory __builderOut, uint256 __eval)
+    {
         assembly {
             // IMPORT-YUL ../base/Errors.sol
             function err(code) {
@@ -81,7 +83,7 @@ library EqualsExpr {
 
                 let diff_eval := addmod(lhs_eval, mulmod(MODULUS_MINUS_ONE, rhs_eval, MODULUS), MODULUS)
                 let diff_star_eval := builder_consume_final_round_mle(builder_ptr)
-                eval := builder_consume_final_round_mle(builder_ptr)
+                eval := mod(builder_consume_final_round_mle(builder_ptr), MODULUS)
 
                 builder_produce_identity_constraint(builder_ptr, mulmod(eval, diff_eval, MODULUS), 2)
                 builder_produce_identity_constraint(
@@ -104,7 +106,9 @@ library EqualsExpr {
             let __exprOutOffset
             __exprOutOffset, __eval := equals_expr_evaluate(__expr.offset, __builder, __chiEval)
             __exprOut.offset := __exprOutOffset
+            // slither-disable-next-line write-after-write
             __exprOut.length := sub(__expr.length, sub(__exprOutOffset, __expr.offset))
         }
+        __builderOut = __builder;
     }
 }
