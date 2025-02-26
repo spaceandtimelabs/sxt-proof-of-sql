@@ -20,6 +20,8 @@ uint32 constant ERR_CONSTRAINT_DEGREE_TOO_HIGH = 0x8568ae69;
 uint32 constant ERR_INCORRECT_CASE_CONST = 0x9324fb03;
 /// @dev Error code for when a literal variant is unsupported.
 uint32 constant ERR_UNSUPPORTED_LITERAL_VARIANT = 0xed9d5b00;
+/// @dev Error code for when a column index is invalid.
+uint32 constant ERR_INVALID_COLUMN_INDEX = 0xb9c4d54d;
 
 library Errors {
     /// @notice Error thrown when the inputs to the ECADD precompile are invalid.
@@ -40,6 +42,8 @@ library Errors {
     error IncorrectCaseConst();
     /// @notice Error thrown when a literal variant is unsupported.
     error UnsupportedLiteralVariant();
+    /// @notice Error thrown when a column index is invalid.
+    error InvalidColumnIndex();
 
     function __err(uint32 __code) internal pure {
         assembly {

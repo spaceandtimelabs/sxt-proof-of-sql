@@ -28,6 +28,11 @@ uint256 constant UINT32_SIZE = 0x04;
 /// @dev Number of bits needed to pad uint32 to 256 bits
 /// @dev This is useful for shifting a uint256 to the right to extract a uint32
 uint256 constant UINT32_PADDING_BITS = 0xE0;
+/// @dev Size of uint64 in bytes
+uint256 constant UINT64_SIZE = 0x08;
+/// @dev Number of bits needed to pad uint64 to 256 bits
+/// @dev This is useful for shifting a uint256 to the right to extract a uint64
+uint256 constant UINT64_PADDING_BITS = 0xC0;
 /// @dev Size of int64 in bytes
 uint256 constant INT64_SIZE = 0x08;
 /// @dev Number of bits needed to pad int64 to 256 bits
@@ -84,7 +89,7 @@ uint256 constant G2_NEG_GEN_Y_REAL = 0x1d9befcd05a5323e6da4d435f3b617cdb3af83285
 uint256 constant G2_NEG_GEN_Y_IMAG = 0x275dc4a288d1afb3cbb1ac09187524c7db36395df7be3b99e673b13a075a65ec;
 
 /// @dev Size of the verification builder in bytes.
-uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 9;
+uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 10;
 /// @dev Offset of the pointer to the challenge queue in the verification builder.
 uint256 constant BUILDER_CHALLENGES_OFFSET = 0x20 * 0;
 /// @dev Offset of the pointer to the first round MLEs in the verification builder.
@@ -103,3 +108,5 @@ uint256 constant BUILDER_MAX_DEGREE_OFFSET = 0x20 * 6;
 uint256 constant BUILDER_AGGREGATE_EVALUATION_OFFSET = 0x20 * 7;
 /// @dev Offset of the row multipliers evaluation in the verification builder.
 uint256 constant BUILDER_ROW_MULTIPLIERS_EVALUATION_OFFSET = 0x20 * 8;
+/// @dev Offset of the pointer to the column evaluations in the verification builder.
+uint256 constant BUILDER_COLUMN_EVALUATIONS_OFFSET = 0x20 * 9;
