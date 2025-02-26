@@ -1,0 +1,12 @@
+[package]
+name = "proof_of_sql_planner"
+edition.workspace = true
+exclude.workspace = true
+repository.workspace = true
+version.workspace = true
+license-file.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true
