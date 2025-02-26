@@ -7,6 +7,9 @@ version.workspace = true
 license-file.workspace = true
 
 [dependencies]
+datafusion = '38.0.0'
+proof-of-sql = { path = "../proof-of-sql", features = ["arrow"] }
+snafu = { workspace = true }
 
 [lints]
 workspace = true
