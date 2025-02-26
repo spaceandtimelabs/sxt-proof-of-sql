@@ -1,5 +1,5 @@
 //! This file defines the resource identifier type.
-use crate::{impl_serde_from_str, sql::ResourceIdParser, Identifier, ParseError, ParseResult};
+use crate::{impl_serde_from_str, sql::ResourceIdParser, ParseError, ParseResult};
 use alloc::{
     format,
     string::{String, ToString},
@@ -12,16 +12,16 @@ use core::{
 use sqlparser::ast::Ident;
 
 /// Unique resource identifier, like `schema.object_name`.
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ResourceId {
-    schema: Identifier,
-    object_name: Identifier,
+    schema: Ident,
+    object_name: Ident,
 }
 
 impl ResourceId {
     /// Constructor for [`ResourceId`]s.
     #[must_use]
-    pub fn new(schema: Identifier, object_name: Identifier) -> Self {
+    pub fn new(schema: Ident, object_name: Ident) -> Self {
         Self {
             schema,
             object_name,
@@ -36,8 +36,8 @@ impl ResourceId {
     /// These identifiers are defined here:
     /// <https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS>.
     pub fn try_new(schema: &str, object_name: &str) -> ParseResult<Self> {
-        let schema = Identifier::try_new(schema)?;
-        let object_name = Identifier::try_new(object_name)?;
+        let schema = Ident::new(schema.to_string());
+        let object_name = Ident::new(object_name.to_string());
 
         Ok(ResourceId {
             schema,
@@ -47,14 +47,14 @@ impl ResourceId {
 
     /// The schema identifier of this [`ResourceId`].
     #[must_use]
-    pub fn schema(&self) -> Identifier {
-        self.schema
+    pub fn schema(&self) -> Ident {
+        self.schema.clone()
     }
 
     /// The `object_name` identifier of this [`ResourceId`].
     #[must_use]
-    pub fn object_name(&self) -> Identifier {
-        self.object_name
+    pub fn object_name(&self) -> Ident {
+        self.object_name.clone()
     }
 
     /// Conversion to string in the format used in `KeyDB`.
@@ -75,8 +75,8 @@ impl ResourceId {
             object_name,
         } = self;
 
-        let schema = schema.name().to_string().to_uppercase();
-        let object_name = object_name.name().to_string().to_uppercase();
+        let schema = schema.value.to_string().to_uppercase();
+        let object_name = object_name.value.to_string().to_uppercase();
 
         format!("{schema}:{object_name}")
     }
@@ -103,10 +103,10 @@ impl FromStr for ResourceId {
             }
         })?;
 
-        // use unsafe `Identifier::new` to prevent double parsing the ids
+        // use unsafe `Ident::new` to prevent double parsing the ids
         Ok(ResourceId {
-            schema: Identifier::new(schema),
-            object_name: Identifier::new(object_name),
+            schema: Ident::new(schema.to_string()),
+            object_name: Ident::new(object_name.to_string()),
         })
     }
 }
@@ -122,8 +122,8 @@ impl TryFrom<Vec<Ident>> for ResourceId {
             });
         }
 
-        let schema = Identifier::try_from(identifiers[0].clone())?;
-        let object_name = Identifier::try_from(identifiers[1].clone())?;
+        let schema = Ident::new(identifiers[0].to_string());
+        let object_name = Ident::new(identifiers[1].to_string());
         Ok(ResourceId::new(schema, object_name))
     }
 }
@@ -136,9 +136,9 @@ mod tests {
     fn try_new_resource_id() {
         let resource_id =
             ResourceId::try_new("G00d_identifier", "_can_start_with_underscore").unwrap();
-        assert_eq!(resource_id.schema().name(), "g00d_identifier");
+        assert_eq!(resource_id.schema().value, "G00d_identifier");
         assert_eq!(
-            resource_id.object_name().name(),
+            resource_id.object_name().value,
             "_can_start_with_underscore"
         );
     }
@@ -147,54 +147,54 @@ mod tests {
     fn resource_id_from_str() {
         let resource_id =
             ResourceId::from_str("G00d_identifier._can_start_with_underscore").unwrap();
-        assert_eq!(resource_id.schema().name(), "g00d_identifier");
+        assert_eq!(resource_id.schema().value, "g00d_identifier");
         assert_eq!(
-            resource_id.object_name().name(),
+            resource_id.object_name().value,
             "_can_start_with_underscore"
         );
     }
 
     #[test]
-    fn try_new_resource_id_with_additional_characters_fails() {
-        assert!(ResourceId::try_new("GOOD_IDENTIFIER", "GOOD_IDENTIFIER.").is_err());
-        assert!(ResourceId::try_new("GOOD_IDENTIFIER.", "GOOD_IDENTIFIER").is_err());
-        assert!(ResourceId::try_new("BAD$IDENTIFIER", "GOOD_IDENTIFIER").is_err());
-        assert!(ResourceId::try_new("GOOD_IDENTIFIER", "BAD IDENTIFIER").is_err());
+    fn try_new_resource_id_with_additional_characters_succeeds() {
+        assert!(ResourceId::try_new("GOOD_IDENTIFIER", "GOOD_IDENTIFIER.").is_ok());
+        assert!(ResourceId::try_new("GOOD_IDENTIFIER.", "GOOD_IDENTIFIER").is_ok());
+        assert!(ResourceId::try_new("BAD$IDENTIFIER", "GOOD_IDENTIFIER").is_ok());
+        assert!(ResourceId::try_new("GOOD_IDENTIFIER", "BAD IDENTIFIER").is_ok());
     }
 
     #[test]
     fn we_can_parse_valid_resource_ids_with_white_spaces_at_beginning_or_end() {
         let resource_id =
-            ResourceId::from_str("      GOOD_IDENTIFIER._can_start_with_underscore   ").unwrap();
-        assert_eq!(resource_id.schema().name(), "good_identifier");
+            ResourceId::from_str("      good_identifier._can_start_with_underscore   ").unwrap();
+        assert_eq!(resource_id.schema().value, "good_identifier");
         assert_eq!(
-            resource_id.object_name().name(),
+            resource_id.object_name().value,
             "_can_start_with_underscore"
         );
 
         let resource_id = ResourceId::try_new(
-            "      GOOD_IDENTIFIER     ",
+            "      good_identifier     ",
             "      _can_start_with_underscore   ",
         )
         .unwrap();
-        assert_eq!(resource_id.schema().name(), "good_identifier");
+        assert_eq!(resource_id.schema().value, "      good_identifier     ");
         assert_eq!(
-            resource_id.object_name().name(),
-            "_can_start_with_underscore"
+            resource_id.object_name().value,
+            "      _can_start_with_underscore   "
         );
     }
 
     #[test]
     fn display_resource_id() {
         assert_eq!(
-            ResourceId::try_new("GOOD_IDENTIFIER", "good_identifier")
+            ResourceId::try_new("good_identifier", "good_identifier")
                 .unwrap()
                 .to_string(),
             "good_identifier.good_identifier"
         );
 
         assert_eq!(
-            ResourceId::try_new("g00d_identifier", "_can_Start_with_underscore")
+            ResourceId::try_new("g00d_identifier", "_can_start_with_underscore")
                 .unwrap()
                 .to_string(),
             "g00d_identifier._can_start_with_underscore"
@@ -235,14 +235,14 @@ mod tests {
 
     #[test]
     fn resource_id_serializes_to_string() {
-        let resource_id = ResourceId::try_new("GOOD_IDENTIFIER", "good_identifier").unwrap();
+        let resource_id = ResourceId::try_new("good_identifier", "good_identifier").unwrap();
         let serialized = serde_json::to_string(&resource_id).unwrap();
         assert_eq!(serialized, r#""good_identifier.good_identifier""#);
     }
 
     #[test]
     fn resource_id_deserializes_from_string() {
-        let resource_id = ResourceId::try_new("GOOD_IDENTIFIER", "good_identifier").unwrap();
+        let resource_id = ResourceId::try_new("good_identifier", "good_identifier").unwrap();
         let deserialized: ResourceId =
             serde_json::from_str(r#""good_identifier.good_identifier""#).unwrap();
         assert_eq!(resource_id, deserialized);
@@ -259,8 +259,8 @@ mod tests {
     fn test_try_from_vec_ident() {
         let identifiers = alloc::vec![Ident::new("schema_name"), Ident::new("object_name")];
         let resource_id = ResourceId::try_from(identifiers).unwrap();
-        assert_eq!(resource_id.schema().name(), "schema_name");
-        assert_eq!(resource_id.object_name().name(), "object_name");
+        assert_eq!(resource_id.schema().value, "schema_name");
+        assert_eq!(resource_id.object_name().value, "object_name");
 
         let invalid_identifiers = alloc::vec![Ident::new("only_one_ident")];
         assert!(ResourceId::try_from(invalid_identifiers).is_err());

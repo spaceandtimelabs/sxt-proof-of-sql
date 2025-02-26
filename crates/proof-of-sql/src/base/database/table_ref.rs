@@ -106,8 +106,8 @@ impl TryFrom<&str> for TableRef {
 impl From<ResourceId> for TableRef {
     fn from(id: ResourceId) -> Self {
         TableRef {
-            schema_name: Some(Ident::from(id.schema())),
-            table_name: Ident::from(id.object_name()),
+            schema_name: Some(id.schema()),
+            table_name: id.object_name(),
         }
     }
 }
@@ -137,3 +137,26 @@ impl Display for TableRef {
 }
 
 impl_serde_from_str!(TableRef);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proof_of_sql_parser::ResourceId;
+    use sqlparser::ast::Ident;
+
+    #[test]
+    fn test_resource_id_conversion_with_schema() {
+        let resource_id = ResourceId::new(Ident::new("my_schema"), Ident::new("my_table"));
+        let table_ref: TableRef = resource_id.into();
+        assert_eq!(table_ref.schema_id().unwrap().value, "my_schema");
+        assert_eq!(table_ref.table_id().value, "my_table");
+    }
+
+    #[test]
+    fn test_resource_id_conversion_empty_schema() {
+        let resource_id = ResourceId::new(Ident::new(""), Ident::new("my_table"));
+        let table_ref: TableRef = resource_id.into();
+        assert_eq!(table_ref.schema_id().unwrap().value, "");
+        assert_eq!(table_ref.table_id().value, "my_table");
+    }
+}

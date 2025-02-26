@@ -36,7 +36,7 @@ impl From<Identifier> for Ident {
 
 impl From<ResourceId> for ObjectName {
     fn from(id: ResourceId) -> Self {
-        ObjectName(vec![id.schema().into(), id.object_name().into()])
+        ObjectName(vec![id.schema(), id.object_name()])
     }
 }
 
