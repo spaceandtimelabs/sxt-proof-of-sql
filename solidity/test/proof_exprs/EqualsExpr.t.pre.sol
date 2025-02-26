@@ -34,7 +34,9 @@ contract EqualsExprTest is Test {
 
         // Build expression: equals(column(1), literal(2))
         bytes memory exprIn = abi.encodePacked(
-            COLUMN_EXPR_VARIANT, uint64(1), LITERAL_EXPR_VARIANT, LITERAL_BIGINT_VARIANT, int64(2), hex"abcdef"
+            abi.encodePacked(COLUMN_EXPR_VARIANT, uint64(1)),
+            abi.encodePacked(LITERAL_EXPR_VARIANT, LITERAL_BIGINT_VARIANT, int64(2)),
+            hex"abcdef"
         );
 
         bytes memory expectedExprOut = hex"abcdef";
