@@ -11,7 +11,8 @@ import {VerificationBuilder} from "../proof/VerificationBuilder.pre.sol";
 library ProofExpr {
     enum ExprVariant {
         Column,
-        Literal
+        Literal,
+        Equals
     }
 
     /// @notice Evaluates a proof expression
@@ -45,6 +46,10 @@ library ProofExpr {
             function err(code) {
                 revert(0, 0)
             }
+            // IMPORT-YUL ../base/Queue.pre.sol
+            function dequeue(queue_ptr) -> value {
+                revert(0, 0)
+            }
             // IMPORT-YUL ../base/SwitchUtil.pre.sol
             function case_const(lhs, rhs) {
                 revert(0, 0)
@@ -61,6 +66,18 @@ library ProofExpr {
             function literal_expr_evaluate(expr_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
+            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            function builder_consume_final_round_mle(builder_ptr) -> value {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            function builder_produce_identity_constraint(builder_ptr, evaluation, degree) {
+                revert(0, 0)
+            }
+            // IMPORT-YUL EqualsExpr.pre.sol
+            function equals_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+                revert(0, 0)
+            }
 
             function proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 let proof_expr_variant := shr(UINT32_PADDING_BITS, calldataload(expr_ptr))
@@ -74,6 +91,10 @@ library ProofExpr {
                 case 1 {
                     case_const(1, LITERAL_EXPR_VARIANT)
                     expr_ptr_out, eval := literal_expr_evaluate(expr_ptr, chi_eval)
+                }
+                case 2 {
+                    case_const(2, EQUALS_EXPR_VARIANT)
+                    expr_ptr_out, eval := equals_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
                 }
                 default { err(ERR_UNSUPPORTED_PROOF_EXPR_VARIANT) }
             }
