@@ -23,7 +23,22 @@ library EqualsExpr {
     /// ##### Return Values
     /// * `expr_ptr_out` - pointer to the remaining expression after consuming both sub-expressions
     /// * `eval` - the evaluation result from the builder's final round MLE
-    /// @dev Evaluates two sub-expressions and produces identity constraints checking their equality
+    /// @notice Evaluates two sub-expressions and produces identity constraints checking their equality
+    /// ##### Constraints
+    /// We will denote the input columns with \\(L\\) and \\(R\\). The length of the columns are all \\(n\\).
+    /// The result of the evaluation is \\(E\\).
+    /// We use one hint column, \\(D^\ast\\).
+    ///
+    /// For ease of notation, we say that \\(D[i] = L[i] - R[i]\\) for all \\(i\\).
+    ///
+    /// The correct result is
+    /// \\[E[i] := \begin{cases}1 & L[i]=R[i] \text{ and }i \in [0,n)\\\\ 0 & \text{else}\end{cases}\\]
+    /// One can show that \\(E' \equiv E\\) if and only if there exists some \\(D^\ast\\) such that
+    /// \\[\begin{aligned}
+    /// E'[i] \cdot D[i] &= 0\\\\
+    /// \chi_{[0,n)}[i] - (D[i]\cdot D^\ast[i] + E'[i]) &= 0
+    /// \end{aligned}\\]
+    /// for all \\(i\\).
     /// @param __expr The equals expression data
     /// @param __builder The verification builder
     /// @param __chiEval The chi value for evaluation
