@@ -33,7 +33,7 @@ bytemuck = {version = "1.16.3", features = ["derive"]}
 byte-slice-cast = { version = "1.2.1", default-features = false }
 clap = { version = "4.5.4" }
 criterion = { version = "0.5.1" }
-chrono = { version = "0.4.38", default-features = false }
+chrono = { version = "=0.4.39", default-features = false }
 curve25519-dalek = { version = "4", features = ["rand_core"] }
 derive_more = { version = "0.99" }
 enum_dispatch = { version = "0.3.13" }
