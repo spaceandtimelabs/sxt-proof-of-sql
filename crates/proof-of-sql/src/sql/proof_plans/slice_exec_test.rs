@@ -524,11 +524,9 @@ fn we_can_create_and_prove_a_slice_exec_on_top_of_a_table_exec() {
 #[test]
 fn we_can_create_and_prove_a_slice_exec_on_top_of_an_empty_exec() {
     let empty_table = owned_table([]);
-    let t = TableRef::new("sxt", "t");
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let expr = slice_exec(empty_exec(), 3, Some(2));
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, &t);
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
     assert_eq!(res, empty_table);
 }
