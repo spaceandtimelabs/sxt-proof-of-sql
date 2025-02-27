@@ -103,7 +103,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         log::log_memory_usage("Start");
 
         let (min_row_num, max_row_num) = get_index_range(accessor, &expr.get_table_references());
-        let initial_range_length = max_row_num - min_row_num;
+        let initial_range_length = (max_row_num - min_row_num).max(1);
         let alloc = Bump::new();
 
         let total_col_refs = expr.get_column_references();
@@ -129,7 +129,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let rho_evaluation_lengths = first_round_builder.rho_evaluation_lengths();
 
         let range_length = first_round_builder.range_length();
-
         let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
         assert!(num_sumcheck_variables > 0);
         let post_result_challenge_count = first_round_builder.num_post_result_challenges();
