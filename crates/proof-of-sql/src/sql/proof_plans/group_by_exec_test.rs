@@ -3,8 +3,8 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{owned_table_utility::*, OwnedTableTestAccessor, TableRef, TestAccessor},
-        scalar::Curve25519Scalar,
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
         proof_exprs::test_utility::*,

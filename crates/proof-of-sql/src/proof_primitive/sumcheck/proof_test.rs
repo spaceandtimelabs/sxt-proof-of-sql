@@ -8,9 +8,12 @@ use crate::{
     base::{
         polynomial::CompositePolynomial,
         proof::Transcript as _,
-        scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar, Scalar},
+        scalar::{test_scalar::TestScalar, MontScalar, Scalar},
     },
-    proof_primitive::sumcheck::{ProverState, SumcheckProof},
+    proof_primitive::{
+        inner_product::curve_25519_scalar::Curve25519Scalar,
+        sumcheck::{ProverState, SumcheckProof},
+    },
 };
 use alloc::rc::Rc;
 use ark_std::UniformRand;

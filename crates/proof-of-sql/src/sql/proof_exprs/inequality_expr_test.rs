@@ -5,8 +5,9 @@ use crate::{
             owned_table_utility::*, table_utility::*, Column, LiteralValue, OwnedTable,
             OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
         },
-        scalar::{Curve25519Scalar, Scalar, ScalarExt},
+        scalar::{Scalar, ScalarExt},
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         parse::ConversionError,
         proof::{exercise_verification, VerifiableQueryResult},

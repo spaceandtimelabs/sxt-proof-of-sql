@@ -8,8 +8,8 @@ use crate::{
         map::{indexmap, IndexMap},
         math::decimal::Precision,
         proof::ProofError,
-        scalar::Curve25519Scalar,
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         proof::{
             exercise_verification, FirstRoundBuilder, ProvableQueryResult, ProverEvaluate,

@@ -1,7 +1,7 @@
 use super::FirstRoundBuilder;
-use crate::base::{
-    commitment::{Commitment, CommittableColumn},
-    scalar::Curve25519Scalar,
+use crate::{
+    base::commitment::{Commitment, CommittableColumn},
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
 };
 use curve25519_dalek::RistrettoPoint;
 
