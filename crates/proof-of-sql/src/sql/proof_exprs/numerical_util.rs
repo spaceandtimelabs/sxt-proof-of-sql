@@ -135,8 +135,8 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
 }
 
 /// Convert column to scalar slice.
+#[cfg_attr(not(test), expect(dead_code))]
 #[allow(clippy::missing_panics_doc)]
-#[expect(dead_code)]
 pub(crate) fn columns_to_scalar_slice<'a, S: Scalar>(
     column: &Column<'a, S>,
     alloc: &'a Bump,
@@ -279,7 +279,7 @@ fn modulo_integer_columns<
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length or column type division is unsupported.
 #[allow(clippy::too_many_lines)]
-#[expect(dead_code)]
+#[cfg_attr(not(test), expect(dead_code))]
 pub(crate) fn divide_columns<'a, S: Scalar>(
     lhs: &Column<'a, S>,
     rhs: &Column<'a, S>,
@@ -400,7 +400,7 @@ pub(crate) fn divide_columns<'a, S: Scalar>(
     }
 }
 
-#[expect(dead_code)]
+#[cfg_attr(not(test), expect(dead_code))]
 /// Take the modulo of one column against another.
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length.
@@ -502,13 +502,18 @@ pub(crate) fn modulo_columns<'a, S: Scalar>(
 
 #[cfg(test)]
 mod tests {
-    use super::divide_integer_columns;
+    use super::{divide_columns, divide_integer_columns};
     use crate::{
-        base::scalar::test_scalar::TestScalar,
-        sql::proof_exprs::numerical_util::modulo_integer_columns,
+        base::{
+            database::Column,
+            scalar::{test_scalar::TestScalar, Scalar},
+        },
+        sql::proof_exprs::numerical_util::{
+            columns_to_scalar_slice, modulo_columns, modulo_integer_columns,
+        },
     };
     use bumpalo::Bump;
-    use itertools::Itertools;
+    use itertools::{iproduct, Itertools};
 
     fn verify_tinyint_division(
         lhs: &[i8],
@@ -614,5 +619,64 @@ mod tests {
             ],
             &[0, 0, 0, 0, i8::MAX, i8::MIN],
         );
+    }
+
+    #[test]
+    fn we_can_convert_columns_to_scalar_slice() {
+        let alloc = Bump::new();
+        let column = Column::<'_, TestScalar>::Int128(&[3, -6]);
+        let expected_scalars = [TestScalar::from(3), TestScalar::from(-6)];
+        assert_eq!(columns_to_scalar_slice(&column, &alloc), expected_scalars);
+    }
+
+    #[test]
+    fn we_can_divide_columns_for_each_type() {
+        let alloc = Bump::new();
+        let tiny_int_column: Column<
+            '_,
+            crate::base::scalar::MontScalar<crate::base::scalar::test_scalar::TestMontConfig>,
+        > = Column::<'_, TestScalar>::TinyInt(&[1]);
+        let small_int_column = Column::<'_, TestScalar>::SmallInt(&[1]);
+        let int_column = Column::<'_, TestScalar>::Int(&[1]);
+        let big_int_column = Column::<'_, TestScalar>::BigInt(&[1]);
+        let int128_column = Column::<'_, TestScalar>::Int128(&[1]);
+        let columns = [
+            tiny_int_column,
+            small_int_column,
+            int_column,
+            big_int_column,
+            int128_column,
+        ];
+        let scalar_column = [TestScalar::ONE].as_slice();
+        for (numerator, denominator) in iproduct!(columns, columns) {
+            let quotient = divide_columns(&numerator, &denominator, &alloc);
+            assert_eq!(quotient, (numerator, scalar_column));
+        }
+    }
+
+    #[test]
+    fn we_can_modulo_columns_for_each_type() {
+        let alloc = Bump::new();
+        let tiny_int_column: Column<
+            '_,
+            crate::base::scalar::MontScalar<crate::base::scalar::test_scalar::TestMontConfig>,
+        > = Column::<'_, TestScalar>::TinyInt(&[0]);
+        let small_int_column = Column::<'_, TestScalar>::SmallInt(&[0]);
+        let int_column = Column::<'_, TestScalar>::Int(&[0]);
+        let big_int_column = Column::<'_, TestScalar>::BigInt(&[0]);
+        let int128_column = Column::<'_, TestScalar>::Int128(&[0]);
+        let columns = [
+            tiny_int_column,
+            small_int_column,
+            int_column,
+            big_int_column,
+            int128_column,
+        ];
+        let columns = columns.iter().enumerate();
+        for ((ni, numerator), (di, denominator)) in iproduct!(columns.clone(), columns) {
+            let remainder = modulo_columns(numerator, denominator, &alloc);
+            let expected_remainder = if di > ni { denominator } else { numerator };
+            assert_eq!(remainder, *expected_remainder);
+        }
     }
 }
