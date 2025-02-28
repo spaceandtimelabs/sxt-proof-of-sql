@@ -8,7 +8,7 @@ pub use table_exec::TableExec;
 mod table_exec_test;
 
 mod projection_exec;
-pub(crate) use projection_exec::ProjectionExec;
+pub use projection_exec::ProjectionExec;
 #[cfg(all(test, feature = "blitzar"))]
 mod projection_exec_test;
 
@@ -16,7 +16,7 @@ mod projection_exec_test;
 pub(crate) mod test_utility;
 
 mod filter_exec;
-pub(crate) use filter_exec::FilterExec;
+pub use filter_exec::FilterExec;
 #[cfg(test)]
 pub(crate) use filter_exec::OstensibleFilterExec;
 #[cfg(all(test, feature = "blitzar"))]
@@ -30,23 +30,23 @@ pub(crate) use fold_util::{fold_columns, fold_vals};
 mod fold_util_test;
 
 mod group_by_exec;
-pub(crate) use group_by_exec::GroupByExec;
+pub use group_by_exec::GroupByExec;
 
 #[cfg(all(test, feature = "blitzar"))]
 mod group_by_exec_test;
 
 mod slice_exec;
-pub(crate) use slice_exec::SliceExec;
+pub use slice_exec::SliceExec;
 #[cfg(all(test, feature = "blitzar"))]
 mod slice_exec_test;
 
 mod union_exec;
-pub(crate) use union_exec::UnionExec;
+pub use union_exec::UnionExec;
 #[cfg(all(test, feature = "blitzar"))]
 mod union_exec_test;
 
 mod sort_merge_join_exec;
-pub(crate) use sort_merge_join_exec::SortMergeJoinExec;
+pub use sort_merge_join_exec::SortMergeJoinExec;
 #[cfg(all(test, feature = "blitzar"))]
 mod sort_merge_join_exec_test;
 
