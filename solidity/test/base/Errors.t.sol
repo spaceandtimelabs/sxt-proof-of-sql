@@ -7,7 +7,7 @@ import "../../src/base/Errors.sol";
 
 contract ErrorsTest is Test {
     function testErrorConstantsMatchSelectors() public pure {
-        bytes4[9] memory selectors = [
+        bytes4[10] memory selectors = [
             Errors.InvalidECAddInputs.selector,
             Errors.InvalidECMulInputs.selector,
             Errors.InvalidECPairingInputs.selector,
@@ -16,9 +16,10 @@ contract ErrorsTest is Test {
             Errors.HyperKZGInconsistentV.selector,
             Errors.ConstraintDegreeTooHigh.selector,
             Errors.IncorrectCaseConst.selector,
-            Errors.UnsupportedLiteralVariant.selector
+            Errors.UnsupportedLiteralVariant.selector,
+            Errors.InvalidColumnIndex.selector
         ];
-        uint32[9] memory selectorConstants = [
+        uint32[10] memory selectorConstants = [
             ERR_INVALID_EC_ADD_INPUTS,
             ERR_INVALID_EC_MUL_INPUTS,
             ERR_INVALID_EC_PAIRING_INPUTS,
@@ -27,7 +28,8 @@ contract ErrorsTest is Test {
             ERR_HYPER_KZG_INCONSISTENT_V,
             ERR_CONSTRAINT_DEGREE_TOO_HIGH,
             ERR_INCORRECT_CASE_CONST,
-            ERR_UNSUPPORTED_LITERAL_VARIANT
+            ERR_UNSUPPORTED_LITERAL_VARIANT,
+            ERR_INVALID_COLUMN_INDEX
         ];
         assert(selectors.length == selectorConstants.length);
         uint256 length = selectors.length;
@@ -88,5 +90,11 @@ contract ErrorsTest is Test {
     function testErrorFailedUnsupportedLiteralVariant() public {
         vm.expectRevert(Errors.UnsupportedLiteralVariant.selector);
         Errors.__err(ERR_UNSUPPORTED_LITERAL_VARIANT);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorFailedInvalidColumnIndex() public {
+        vm.expectRevert(Errors.InvalidColumnIndex.selector);
+        Errors.__err(ERR_INVALID_COLUMN_INDEX);
     }
 }
