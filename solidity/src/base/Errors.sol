@@ -16,6 +16,10 @@ uint32 constant ERR_EMPTY_QUEUE = 0x31dcf2b5;
 uint32 constant ERR_HYPER_KZG_INCONSISTENT_V = 0x6a5ae827;
 /// @dev Error code for when the produces constraint degree is higher than the provided proof.
 uint32 constant ERR_CONSTRAINT_DEGREE_TOO_HIGH = 0x8568ae69;
+/// @dev Error code for when the case literal in a switch statement is incorrect.
+uint32 constant ERR_INCORRECT_CASE_CONST = 0x9324fb03;
+/// @dev Error code for when a literal variant is unsupported.
+uint32 constant ERR_UNSUPPORTED_LITERAL_VARIANT = 0xed9d5b00;
 
 library Errors {
     /// @notice Error thrown when the inputs to the ECADD precompile are invalid.
@@ -32,6 +36,10 @@ library Errors {
     error HyperKZGInconsistentV();
     /// @notice Error thrown when the produces constraint degree is higher than the provided proof.
     error ConstraintDegreeTooHigh();
+    /// @notice Error thrown when the case literal in a switch statement is incorrect.
+    error IncorrectCaseConst();
+    /// @notice Error thrown when a literal variant is unsupported.
+    error UnsupportedLiteralVariant();
 
     function __err(uint32 __code) internal pure {
         assembly {
