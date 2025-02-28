@@ -556,6 +556,19 @@ impl ColumnType {
             | Self::Uint8 => false,
         }
     }
+
+    /// Returns if the column type supports signed values.
+    #[must_use]
+    pub fn min_scalar<S: Scalar>(&self) -> Option<S> {
+        match self {
+            ColumnType::TinyInt => Some(S::from(i8::MIN)),
+            ColumnType::SmallInt => Some(S::from(i16::MIN)),
+            ColumnType::Int => Some(S::from(i32::MIN)),
+            ColumnType::BigInt => Some(S::from(i64::MIN)),
+            ColumnType::Int128 => Some(S::from(i128::MIN)),
+            _ => None,
+        }
+    }
 }
 
 /// Display the column type as a str name (in all caps)
@@ -1200,5 +1213,47 @@ mod tests {
 
         let round_trip_owned: OwnedColumn<TestScalar> = (&column).into();
         assert_eq!(owned_varbinary, round_trip_owned);
+    }
+
+    #[test]
+    fn we_can_get_min_scalar() {
+        assert_eq!(
+            TryInto::<i8>::try_into(ColumnType::TinyInt.min_scalar::<TestScalar>().unwrap())
+                .unwrap(),
+            i8::MIN
+        );
+        assert_eq!(
+            TryInto::<i16>::try_into(ColumnType::SmallInt.min_scalar::<TestScalar>().unwrap())
+                .unwrap(),
+            i16::MIN
+        );
+        assert_eq!(
+            TryInto::<i32>::try_into(ColumnType::Int.min_scalar::<TestScalar>().unwrap()).unwrap(),
+            i32::MIN
+        );
+        assert_eq!(
+            TryInto::<i64>::try_into(ColumnType::BigInt.min_scalar::<TestScalar>().unwrap())
+                .unwrap(),
+            i64::MIN
+        );
+        assert_eq!(
+            TryInto::<i128>::try_into(ColumnType::Int128.min_scalar::<TestScalar>().unwrap())
+                .unwrap(),
+            i128::MIN
+        );
+        assert_eq!(ColumnType::Uint8.min_scalar::<TestScalar>(), None);
+        assert_eq!(ColumnType::Scalar.min_scalar::<TestScalar>(), None);
+        assert_eq!(ColumnType::Boolean.min_scalar::<TestScalar>(), None);
+        assert_eq!(ColumnType::VarBinary.min_scalar::<TestScalar>(), None);
+        assert_eq!(
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::new(0))
+                .min_scalar::<TestScalar>(),
+            None
+        );
+        assert_eq!(
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 1).min_scalar::<TestScalar>(),
+            None
+        );
+        assert_eq!(ColumnType::VarChar.min_scalar::<TestScalar>(), None);
     }
 }
