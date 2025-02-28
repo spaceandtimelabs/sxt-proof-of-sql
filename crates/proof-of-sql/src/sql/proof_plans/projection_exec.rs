@@ -65,7 +65,7 @@ impl ProofPlan for ProjectionExec {
             });
         }
         // Covers the case of tablelessness
-        let input_table_ref = if let Some(table_ref) = input_table_refs.iter().next() {
+        let input_table_ref = if let Some(table_ref) = input_table_refs.first() {
             table_ref.clone()
         } else {
             TableRef::from_names(None, "empty")
