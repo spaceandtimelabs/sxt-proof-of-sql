@@ -631,7 +631,7 @@ contract VerificationBuilderTest is Test {
         VerificationBuilder.Builder memory builder;
         uint256[] memory values = new uint256[](2);
         builder.columnEvaluations = values;
-        vm.expectRevert(Errors.InvalidColumnIndex.selector);
+        vm.expectRevert(Errors.InvalidIndex.selector);
         VerificationBuilder.__getColumnEvaluation(builder, 2);
     }
 

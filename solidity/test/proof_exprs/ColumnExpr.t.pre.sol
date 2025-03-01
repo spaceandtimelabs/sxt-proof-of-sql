@@ -56,7 +56,7 @@ contract ColumnExprTest is Test {
         builder.columnEvaluations = values;
 
         bytes memory exprIn = abi.encodePacked(uint64(2), hex"abcdef");
-        vm.expectRevert(Errors.InvalidColumnIndex.selector);
+        vm.expectRevert(Errors.InvalidIndex.selector);
         ColumnExpr.__columnExprEvaluate(exprIn, builder);
     }
 }

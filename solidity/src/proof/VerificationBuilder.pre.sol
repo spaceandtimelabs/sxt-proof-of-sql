@@ -512,10 +512,12 @@ library VerificationBuilder {
             function err(code) {
                 revert(0, 0)
             }
+            // IMPORT-YUL ../base/Array.pre.sol
+            function get_array_element(arr_ptr, index) -> value {
+                revert(0, 0)
+            }
             function builder_get_column_evaluation(builder_ptr, column_num) -> value {
-                let arr_ptr := mload(add(builder_ptr, BUILDER_COLUMN_EVALUATIONS_OFFSET))
-                if iszero(lt(column_num, mload(arr_ptr))) { err(ERR_INVALID_COLUMN_INDEX) }
-                value := mload(add(add(arr_ptr, WORD_SIZE), mul(column_num, WORD_SIZE)))
+                value := get_array_element(add(builder_ptr, BUILDER_COLUMN_EVALUATIONS_OFFSET), column_num)
             }
             __value := builder_get_column_evaluation(__builder, __columnNum)
         }
