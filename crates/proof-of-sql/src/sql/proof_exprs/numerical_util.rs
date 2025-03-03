@@ -194,7 +194,10 @@ pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
 /// The first slice in the tuple represents this wrapped value, whereas the second is the
 /// proper value of the quotient. Note that it is a scalar because it can represent
 ///  a value (`-i128::MIN`, for example) that is out of range of the integer type.
-#[allow(clippy::missing_panics_doc)]
+///
+/// # Panics
+///
+/// Panics when there is a casting issue. These errors should only happen if `is_right_bigger_int_type` is the wrong value.
 fn divide_integer_columns<
     'a,
     L: NumCast + Copy + PrimInt + Neg<Output = L>,
@@ -233,7 +236,10 @@ fn divide_integer_columns<
 /// ordinarily returns a value that is not containe dby i128. Division wraps this operation,
 /// but modulo still returns 0 here.
 /// Division by 0 returns the numerator for modulo.
-#[allow(clippy::missing_panics_doc)]
+///
+/// # Panics
+///
+/// Panics when there is a casting issue. These errors should only happen if `is_right_bigger_int_type` is the wrong value.
 fn modulo_integer_columns<
     'a,
     L: NumCast + Copy + PrimInt + Neg<Output = L>,
@@ -631,6 +637,8 @@ mod tests {
         }
     }
 
+    /// The primary purpose of this test is to verify that the remainder column has the correct variant of `Column`.
+    /// We use 0 % 0 for convenience, because that happens to be defined as 0 for `modulo_columns`, so all the columns are the same.
     #[test]
     fn we_can_modulo_columns_for_each_type() {
         let alloc = Bump::new();
