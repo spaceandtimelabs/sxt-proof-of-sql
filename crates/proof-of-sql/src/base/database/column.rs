@@ -1221,28 +1221,24 @@ mod tests {
     #[test]
     fn we_can_get_min_scalar() {
         assert_eq!(
-            TryInto::<i8>::try_into(ColumnType::TinyInt.min_scalar::<TestScalar>().unwrap())
-                .unwrap(),
-            i8::MIN
+            ColumnType::TinyInt.min_scalar(),
+            Some(TestScalar::from(i8::MIN))
         );
         assert_eq!(
-            TryInto::<i16>::try_into(ColumnType::SmallInt.min_scalar::<TestScalar>().unwrap())
-                .unwrap(),
-            i16::MIN
+            ColumnType::SmallInt.min_scalar(),
+            Some(TestScalar::from(i16::MIN))
         );
         assert_eq!(
-            TryInto::<i32>::try_into(ColumnType::Int.min_scalar::<TestScalar>().unwrap()).unwrap(),
-            i32::MIN
+            ColumnType::Int.min_scalar(),
+            Some(TestScalar::from(i32::MIN))
         );
         assert_eq!(
-            TryInto::<i64>::try_into(ColumnType::BigInt.min_scalar::<TestScalar>().unwrap())
-                .unwrap(),
-            i64::MIN
+            ColumnType::BigInt.min_scalar(),
+            Some(TestScalar::from(i64::MIN))
         );
         assert_eq!(
-            TryInto::<i128>::try_into(ColumnType::Int128.min_scalar::<TestScalar>().unwrap())
-                .unwrap(),
-            i128::MIN
+            ColumnType::Int128.min_scalar(),
+            Some(TestScalar::from(i128::MIN))
         );
         assert_eq!(ColumnType::Uint8.min_scalar::<TestScalar>(), None);
         assert_eq!(ColumnType::Scalar.min_scalar::<TestScalar>(), None);

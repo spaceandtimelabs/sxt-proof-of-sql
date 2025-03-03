@@ -612,10 +612,7 @@ mod tests {
     #[test]
     fn we_can_divide_columns_for_each_type() {
         let alloc = Bump::new();
-        let tiny_int_column: Column<
-            '_,
-            crate::base::scalar::MontScalar<crate::base::scalar::test_scalar::TestMontConfig>,
-        > = Column::<'_, TestScalar>::TinyInt(&[1]);
+        let tiny_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::TinyInt(&[1]);
         let small_int_column = Column::<'_, TestScalar>::SmallInt(&[1]);
         let int_column = Column::<'_, TestScalar>::Int(&[1]);
         let big_int_column = Column::<'_, TestScalar>::BigInt(&[1]);
@@ -637,10 +634,7 @@ mod tests {
     #[test]
     fn we_can_modulo_columns_for_each_type() {
         let alloc = Bump::new();
-        let tiny_int_column: Column<
-            '_,
-            crate::base::scalar::MontScalar<crate::base::scalar::test_scalar::TestMontConfig>,
-        > = Column::<'_, TestScalar>::TinyInt(&[0]);
+        let tiny_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::TinyInt(&[0]);
         let small_int_column = Column::<'_, TestScalar>::SmallInt(&[0]);
         let int_column = Column::<'_, TestScalar>::Int(&[0]);
         let big_int_column = Column::<'_, TestScalar>::BigInt(&[0]);
