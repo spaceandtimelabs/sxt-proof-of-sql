@@ -21,6 +21,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Clone, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 /// Supported types for [`OwnedColumn`]
 pub enum OwnedColumn<S: Scalar> {
     /// Boolean columns
@@ -42,10 +43,13 @@ pub enum OwnedColumn<S: Scalar> {
     /// i128 columns
     Int128(Vec<i128>),
     /// Decimal columns
+    #[cfg_attr(test, proptest(skip))]
     Decimal75(Precision, i8, Vec<S>),
     /// Scalar columns
+    #[cfg_attr(test, proptest(skip))]
     Scalar(Vec<S>),
     /// Timestamp columns
+    #[cfg_attr(test, proptest(skip))]
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
 }
 

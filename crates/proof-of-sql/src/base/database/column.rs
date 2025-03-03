@@ -338,6 +338,7 @@ impl<'a, S: Scalar> Column<'a, S> {
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum ColumnType {
     /// Mapped to bool
     #[serde(alias = "BOOLEAN", alias = "boolean")]
@@ -368,9 +369,11 @@ pub enum ColumnType {
     Decimal75(Precision, i8),
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
+    #[cfg_attr(test, proptest(skip))]
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
     /// Mapped to `S`
     #[serde(alias = "SCALAR", alias = "scalar")]
+    #[cfg_attr(test, proptest(skip))]
     Scalar,
     /// Mapped to [u8]
     #[serde(alias = "BINARY", alias = "BINARY")]
