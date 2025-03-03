@@ -81,3 +81,19 @@ impl From<&ColumnField> for Field {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn we_can_roundtrip_arbitrary_column_type(column_type: ColumnType) {
+            let arrow = DataType::from(&column_type);
+            let actual = ColumnType::try_from(arrow).unwrap();
+
+            prop_assert_eq!(actual, column_type);
+        }
+    }
+}

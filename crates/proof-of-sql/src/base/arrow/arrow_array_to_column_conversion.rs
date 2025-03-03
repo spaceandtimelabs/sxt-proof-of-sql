@@ -322,10 +322,14 @@ impl ArrayRefExt for ArrayRef {
 mod tests {
 
     use super::*;
-    use crate::{base::scalar::test_scalar::TestScalar, proof_primitive::dory::DoryScalar};
+    use crate::{
+        base::{database::OwnedColumn, scalar::test_scalar::TestScalar},
+        proof_primitive::dory::DoryScalar,
+    };
     use alloc::sync::Arc;
     use arrow::array::Decimal256Builder;
     use core::str::FromStr;
+    use proptest::prelude::*;
 
     #[test]
     fn we_can_convert_timestamp_array_normal_range() {
@@ -1152,7 +1156,7 @@ mod tests {
     fn we_can_convert_valid_binary_array_refs_into_valid_columns_using_ranges_smaller_than_arrays()
     {
         let alloc = Bump::new();
-        let data = [b"ab".as_slice(), "-f34".as_slice(), "ehfh43".as_slice()];
+        let data = [b"ab".as_slice(), b"-f34".as_slice(), b"ehfh43".as_slice()];
         let scals: Vec<_> = data
             .iter()
             .copied()
@@ -1185,7 +1189,7 @@ mod tests {
     #[test]
     fn we_can_convert_valid_binary_array_refs_into_valid_columns_using_precomputed_scalars() {
         let alloc = Bump::new();
-        let data = vec![b"ab".as_slice(), "-f34".as_slice()];
+        let data = vec![b"ab".as_slice(), b"-f34".as_slice()];
         let scals: Vec<_> = data
             .iter()
             .copied()
@@ -1237,5 +1241,17 @@ mod tests {
             result,
             Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &[])
         );
+    }
+
+    proptest! {
+        #[test]
+        fn we_can_roundtrip_arbitrary_column(owned_column: OwnedColumn<TestScalar>) {
+            let arrow = ArrayRef::from(owned_column.clone());
+            let alloc = Bump::new();
+            let column = arrow.to_column::<TestScalar>(&alloc, &(0..arrow.len()), None).unwrap();
+            let actual = OwnedColumn::from(&column);
+
+            prop_assert_eq!(actual, owned_column);
+        }
     }
 }
