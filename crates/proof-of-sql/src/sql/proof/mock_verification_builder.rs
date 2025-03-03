@@ -1,7 +1,13 @@
-use super::{SumcheckSubpolynomialType, VerificationBuilder};
-use crate::base::{bit::BitDistribution, proof::ProofSizeMismatch, scalar::Scalar};
+use super::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder};
+use crate::base::{
+    bit::BitDistribution,
+    polynomial::MultilinearExtension,
+    proof::ProofSizeMismatch,
+    scalar::{test_scalar::TestScalar, Scalar},
+};
 use alloc::vec::Vec;
 use core::iter;
+use itertools::Itertools;
 
 /// Track components used to verify a query's proof
 pub struct MockVerificationBuilder<S: Scalar> {
@@ -18,7 +24,7 @@ pub struct MockVerificationBuilder<S: Scalar> {
 
 impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
     fn try_consume_chi_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
-        unimplemented!("No tests currently use this function")
+        Ok(S::ONE)
     }
 
     fn try_produce_sumcheck_subpolynomial_evaluation(
@@ -140,4 +146,86 @@ impl<S: Scalar> MockVerificationBuilder<S> {
         self.consumed_final_round_pcs_proof_mles = 0;
         self.evaluation_row_index += 1;
     }
+
+    pub fn get_identity_results(&self) -> Vec<Vec<bool>> {
+        assert!(self
+            .identity_subpolynomial_evaluations
+            .iter()
+            .map(Vec::len)
+            .all_equal());
+        self.identity_subpolynomial_evaluations
+            .iter()
+            .cloned()
+            .map(|v| v.iter().map(S::is_zero).collect())
+            .collect()
+    }
+
+    pub fn get_zero_sum_results(&self) -> Vec<bool> {
+        assert!(self
+            .zerosum_subpolynomial_evaluations
+            .iter()
+            .map(Vec::len)
+            .all_equal());
+        self.zerosum_subpolynomial_evaluations
+            .iter()
+            .cloned()
+            .fold(
+                vec![S::ZERO; self.zerosum_subpolynomial_evaluations.len()],
+                |acc, row| {
+                    acc.into_iter()
+                        .zip(row)
+                        .map(|(sum, val)| sum + val)
+                        .collect()
+                },
+            )
+            .iter()
+            .map(S::is_zero)
+            .collect()
+    }
+}
+
+/// Allows testing `verify_evaluate` and other verify gadgets row by row.
+/// The return matrix will tell which identity constraints failed.
+/// Each vector represents the rseults of the constraints for each row.
+/// The length of the vector should be the length of the data.
+///
+/// The return vector indicates the results of each constraint for the entire column
+pub fn run_verify_for_each_row<
+    F: FnMut(&mut MockVerificationBuilder<TestScalar>, TestScalar, &[TestScalar]),
+>(
+    table_length: usize,
+    final_round_builder: &FinalRoundBuilder<'_, TestScalar>,
+    subpolynomial_max_multiplicands: usize,
+    mut row_verification: F,
+) -> MockVerificationBuilder<TestScalar> {
+    let evaluation_points: Vec<Vec<_>> = (0..table_length)
+        .map(|i| {
+            (0..table_length)
+                .map(|j| {
+                    if i == j {
+                        TestScalar::ONE
+                    } else {
+                        TestScalar::ZERO
+                    }
+                })
+                .collect()
+        })
+        .collect();
+    let final_round_mles: Vec<_> = evaluation_points
+        .iter()
+        .map(|evaluation_point| final_round_builder.evaluate_pcs_proof_mles(evaluation_point))
+        .collect();
+    let mut verification_builder = MockVerificationBuilder::new(
+        final_round_builder.bit_distributions().to_vec(),
+        subpolynomial_max_multiplicands,
+        final_round_mles,
+    );
+
+    for evaluation_point in evaluation_points {
+        let one_eval =
+            (&iter::repeat_n(1, table_length).collect::<Vec<_>>()).inner_product(&evaluation_point);
+        row_verification(&mut verification_builder, one_eval, &evaluation_point);
+        verification_builder.increment_row_index();
+    }
+    verification_builder
 }

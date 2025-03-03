@@ -11,7 +11,8 @@ use crate::{
     },
     sql::{
         proof::{
-            exercise_verification, mock_verification_builder::MockVerificationBuilder,
+            exercise_verification,
+            mock_verification_builder::{run_verify_for_each_row, MockVerificationBuilder},
             FinalRoundBuilder, VerifiableQueryResult,
         },
         proof_exprs::{test_utility::*, AndExpr, ColumnExpr, DynProofExpr, ProofExpr},
@@ -207,7 +208,7 @@ fn we_can_verify_a_simple_proof() {
 
     and_expr.prover_evaluate(&mut final_round_builder, &alloc, &table);
 
-    let matrix = verify_row_by_row(
+    let verification_builder = run_verify_for_each_row(
         4,
         &final_round_builder,
         3,
@@ -221,7 +222,10 @@ fn we_can_verify_a_simple_proof() {
                 .unwrap();
         },
     );
-    assert_eq!(matrix, vec![vec![true]; 4]);
+    assert_eq!(
+        verification_builder.get_identity_results(),
+        vec![vec![true]; 4]
+    );
 }
 
 #[test]

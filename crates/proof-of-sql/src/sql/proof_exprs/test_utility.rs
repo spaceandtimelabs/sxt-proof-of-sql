@@ -1,12 +1,8 @@
 use super::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr};
-use crate::{
-    base::{
-        database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
-        math::{decimal::Precision, i256::I256},
-        polynomial::MultilinearExtension,
-        scalar::{test_scalar::TestScalar, Scalar},
-    },
-    sql::proof::{mock_verification_builder::MockVerificationBuilder, FinalRoundBuilder},
+use crate::base::{
+    database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
+    math::{decimal::Precision, i256::I256},
+    scalar::Scalar,
 };
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use sqlparser::ast::Ident;
@@ -221,50 +217,4 @@ pub fn sum_expr(expr: DynProofExpr, alias: &str) -> AliasedDynProofExpr {
         expr: DynProofExpr::new_aggregate(AggregationOperator::Sum, expr),
         alias: alias.into(),
     }
-}
-
-/// Allows testing `verify_evaluate` and other verify gadgets row by row.
-/// The return matrix will tell which constraints failed.
-/// The length of the vector should be the length of the data.
-pub fn verify_row_by_row<
-    F: FnMut(&mut MockVerificationBuilder<TestScalar>, TestScalar, &[TestScalar]),
->(
-    table_length: usize,
-    final_round_builder: &FinalRoundBuilder<'_, TestScalar>,
-    subpolynomial_max_multiplicands: usize,
-    mut row_verification: F,
-) -> Vec<Vec<bool>> {
-    let evaluation_points: Vec<Vec<_>> = (0..table_length)
-        .map(|i| {
-            (0..table_length)
-                .map(|j| {
-                    if i == j {
-                        TestScalar::ONE
-                    } else {
-                        TestScalar::ZERO
-                    }
-                })
-                .collect()
-        })
-        .collect();
-    let final_round_mles: Vec<_> = evaluation_points
-        .iter()
-        .map(|evaluation_point| final_round_builder.evaluate_pcs_proof_mles(evaluation_point))
-        .collect();
-    let mut verification_builder = MockVerificationBuilder::new(
-        final_round_builder.bit_distributions().to_vec(),
-        subpolynomial_max_multiplicands,
-        final_round_mles,
-    );
-
-    for evaluation_point in evaluation_points {
-        let one_eval = (&[1, 1, 1, 1]).inner_product(&evaluation_point);
-        row_verification(&mut verification_builder, one_eval, &evaluation_point);
-        verification_builder.increment_row_index();
-    }
-    verification_builder
-        .identity_subpolynomial_evaluations
-        .iter()
-        .map(|v| v.iter().map(|s| *s == TestScalar::ZERO).collect())
-        .collect()
 }
