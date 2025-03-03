@@ -293,7 +293,6 @@ impl ArrayRefExt for ArrayRef {
 }
 
 #[cfg(test)]
-#[cfg(feature = "blitzar")]
 mod tests {
 
     use super::*;
