@@ -679,4 +679,22 @@ mod tests {
         let small_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::SmallInt(&[2]);
         modulo_columns(&tiny_int_column, &small_int_column, &alloc);
     }
+
+    #[should_panic(expected = "Modulo not supported between UINT8 and SMALLINT")]
+    #[test]
+    fn we_can_error_modulo_columns_if_columns_are_unsupported_types() {
+        let alloc = Bump::new();
+        let unsigned_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::Uint8(&[1, 1]);
+        let small_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::SmallInt(&[2, 2]);
+        modulo_columns(&unsigned_int_column, &small_int_column, &alloc);
+    }
+
+    #[should_panic(expected = "Division not supported between UINT8 and SMALLINT")]
+    #[test]
+    fn we_can_error_divide_columns_if_columns_are_unsupported_types() {
+        let alloc = Bump::new();
+        let unsigned_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::Uint8(&[1, 1]);
+        let small_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::SmallInt(&[2, 2]);
+        divide_columns(&unsigned_int_column, &small_int_column, &alloc);
+    }
 }
