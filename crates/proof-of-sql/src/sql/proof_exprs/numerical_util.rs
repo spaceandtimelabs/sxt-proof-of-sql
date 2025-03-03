@@ -134,16 +134,6 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
     })
 }
 
-/// Convert column to scalar slice.
-#[cfg_attr(not(test), expect(dead_code))]
-#[allow(clippy::missing_panics_doc)]
-pub(crate) fn columns_to_scalar_slice<'a, S: Scalar>(
-    column: &Column<'a, S>,
-    alloc: &'a Bump,
-) -> &'a [S] {
-    alloc.alloc_slice_fill_with(column.len(), |i| column.scalar_at(i).unwrap())
-}
-
 #[allow(dead_code)]
 /// Multiply two [`ColumnarValues`] together.
 /// # Panics
@@ -508,9 +498,7 @@ mod tests {
             database::Column,
             scalar::{test_scalar::TestScalar, Scalar},
         },
-        sql::proof_exprs::numerical_util::{
-            columns_to_scalar_slice, modulo_columns, modulo_integer_columns,
-        },
+        sql::proof_exprs::numerical_util::{modulo_columns, modulo_integer_columns},
     };
     use bumpalo::Bump;
     use itertools::{iproduct, Itertools};
@@ -619,14 +607,6 @@ mod tests {
             ],
             &[0, 0, 0, 0, i8::MAX, i8::MIN],
         );
-    }
-
-    #[test]
-    fn we_can_convert_columns_to_scalar_slice() {
-        let alloc = Bump::new();
-        let column = Column::<'_, TestScalar>::Int128(&[3, -6]);
-        let expected_scalars = [TestScalar::from(3), TestScalar::from(-6)];
-        assert_eq!(columns_to_scalar_slice(&column, &alloc), expected_scalars);
     }
 
     #[test]
