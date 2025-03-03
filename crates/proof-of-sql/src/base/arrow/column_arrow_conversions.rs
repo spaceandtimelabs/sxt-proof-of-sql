@@ -66,6 +66,7 @@ impl TryFrom<DataType> for ColumnType {
                 ))
             }
             DataType::Utf8 => Ok(ColumnType::VarChar),
+            DataType::Binary => Ok(ColumnType::VarBinary),
             _ => Err(format!("Unsupported arrow data type {data_type:?}")),
         }
     }

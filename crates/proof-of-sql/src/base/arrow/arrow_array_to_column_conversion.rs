@@ -1,10 +1,14 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
-use crate::base::{database::Column, math::decimal::Precision, scalar::Scalar};
+use crate::base::{
+    database::Column,
+    math::decimal::Precision,
+    scalar::{Scalar, ScalarExt},
+};
 use arrow::{
     array::{
-        Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
-        Int64Array, Int8Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
-        TimestampNanosecondArray, TimestampSecondArray, UInt8Array,
+        Array, ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array, Int16Array,
+        Int32Array, Int64Array, Int8Array, StringArray, TimestampMicrosecondArray,
+        TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray, UInt8Array,
     },
     datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
 };
@@ -279,6 +283,28 @@ impl ArrayRefExt for ArrayRef {
                     };
 
                     Ok(Column::VarChar((vals, scals)))
+                } else {
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
+                }
+            }
+            DataType::Binary => {
+                if let Some(array) = self.as_any().downcast_ref::<BinaryArray>() {
+                    let vals = alloc
+                        .alloc_slice_fill_with(range.end - range.start, |i| -> &'a [u8] {
+                            array.value(range.start + i)
+                        });
+
+                    let scals = if let Some(scals) = precomputed_scals {
+                        &scals[range.start..range.end]
+                    } else {
+                        alloc.alloc_slice_fill_with(vals.len(), |i| {
+                            S::from_byte_slice_via_hash(vals[i])
+                        })
+                    };
+
+                    Ok(Column::VarBinary((vals, scals)))
                 } else {
                     Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
@@ -988,6 +1014,24 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_valid_binary_array_refs_into_valid_columns() {
+        let alloc = Bump::new();
+        let data = vec![b"cd".as_slice(), b"-f50".as_slice()];
+        let scals: Vec<_> = data
+            .iter()
+            .copied()
+            .map(DoryScalar::from_byte_slice_via_hash)
+            .collect();
+        let array: ArrayRef = Arc::new(arrow::array::BinaryArray::from(data.clone()));
+        assert_eq!(
+            array
+                .to_column::<DoryScalar>(&alloc, &(0..2), None)
+                .unwrap(),
+            Column::VarBinary((&data[..], &scals[..]))
+        );
+    }
+
+    #[test]
     fn we_can_convert_valid_boolean_array_refs_into_valid_columns() {
         let alloc = Bump::new();
         let data = vec![true, false];
@@ -1105,6 +1149,26 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_valid_binary_array_refs_into_valid_columns_using_ranges_smaller_than_arrays()
+    {
+        let alloc = Bump::new();
+        let data = [b"ab".as_slice(), "-f34".as_slice(), "ehfh43".as_slice()];
+        let scals: Vec<_> = data
+            .iter()
+            .copied()
+            .map(DoryScalar::from_byte_slice_via_hash)
+            .collect();
+
+        let array: ArrayRef = Arc::new(arrow::array::BinaryArray::from(data.to_vec()));
+        assert_eq!(
+            array
+                .to_column::<DoryScalar>(&alloc, &(1..3), None)
+                .unwrap(),
+            Column::VarBinary((&data[1..3], &scals[1..3]))
+        );
+    }
+
+    #[test]
     fn we_can_convert_valid_string_array_refs_into_valid_columns_using_precomputed_scalars() {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
@@ -1119,6 +1183,24 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_valid_binary_array_refs_into_valid_columns_using_precomputed_scalars() {
+        let alloc = Bump::new();
+        let data = vec![b"ab".as_slice(), "-f34".as_slice()];
+        let scals: Vec<_> = data
+            .iter()
+            .copied()
+            .map(TestScalar::from_byte_slice_via_hash)
+            .collect();
+        let array: ArrayRef = Arc::new(arrow::array::BinaryArray::from(data.clone()));
+        assert_eq!(
+            array
+                .to_column::<TestScalar>(&alloc, &(0..2), Some(&scals))
+                .unwrap(),
+            Column::VarBinary((&data[..], &scals[..]))
+        );
+    }
+
+    #[test]
     fn we_can_convert_valid_string_array_refs_into_valid_columns_using_ranges_with_zero_size() {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
@@ -1127,6 +1209,17 @@ mod tests {
             .to_column::<DoryScalar>(&alloc, &(0..0), None)
             .unwrap();
         assert_eq!(result, Column::VarChar((&[], &[])));
+    }
+
+    #[test]
+    fn we_can_convert_valid_binary_array_refs_into_valid_columns_using_ranges_with_zero_size() {
+        let alloc = Bump::new();
+        let data = vec![b"ab".as_slice(), b"-f34".as_slice()];
+        let array: ArrayRef = Arc::new(arrow::array::BinaryArray::from(data.clone()));
+        let result = array
+            .to_column::<DoryScalar>(&alloc, &(0..0), None)
+            .unwrap();
+        assert_eq!(result, Column::VarBinary((&[], &[])));
     }
 
     #[test]
