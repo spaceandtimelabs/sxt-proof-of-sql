@@ -24,7 +24,7 @@ pub struct MockVerificationBuilder<S: Scalar> {
 
 impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
     fn try_consume_chi_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
-        Ok(S::ONE)
+        unimplemented!("No tests currently use this function")
     }
 
     fn try_produce_sumcheck_subpolynomial_evaluation(
@@ -228,4 +228,151 @@ pub fn run_verify_for_each_row<
         verification_builder.increment_row_index();
     }
     verification_builder
+}
+
+#[cfg(test)]
+mod tests {
+    use super::MockVerificationBuilder;
+    use crate::{
+        base::{
+            bit::BitDistribution,
+            proof::ProofSizeMismatch,
+            scalar::{test_scalar::TestScalar, Scalar},
+        },
+        sql::proof::{SumcheckSubpolynomialType, VerificationBuilder},
+    };
+
+    #[should_panic(expected = "No tests currently use this function")]
+    #[test]
+    fn we_can_get_unimplemented_error_for_try_consume_rho_evaluation() {
+        let mut verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
+        verification_builder.try_consume_rho_evaluation().unwrap();
+    }
+
+    #[should_panic(expected = "No tests currently use this function")]
+    #[test]
+    fn we_can_get_unimplemented_error_for_try_consume_first_round_mle_evaluation() {
+        let mut verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
+        verification_builder
+            .try_consume_first_round_mle_evaluation()
+            .unwrap();
+    }
+
+    #[should_panic(expected = "No tests currently use this function")]
+    #[test]
+    fn we_can_get_unimplemented_error_for_singleton_chi_evaluation() {
+        let verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
+        verification_builder.singleton_chi_evaluation();
+    }
+
+    #[should_panic(expected = "No tests currently use this function")]
+    #[test]
+    fn we_can_get_unimplemented_error_for_try_consume_chi_evaluation() {
+        let mut verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
+        verification_builder.try_consume_chi_evaluation().unwrap();
+    }
+
+    #[should_panic(expected = "No tests currently use this function")]
+    #[test]
+    fn we_can_get_unimplemented_error_for_rho_256_evaluation() {
+        let verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
+        verification_builder.rho_256_evaluation().unwrap();
+    }
+
+    #[should_panic(expected = "No tests currently use this function")]
+    #[test]
+    fn we_can_get_unimplemented_error_for_try_consume_post_result_challenge() {
+        let mut verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
+        verification_builder
+            .try_consume_post_result_challenge()
+            .unwrap();
+    }
+
+    #[test]
+    fn we_can_get_sumcheck_proof_too_small_for_identity() {
+        let mut verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
+        let error = verification_builder
+            .try_produce_sumcheck_subpolynomial_evaluation(
+                SumcheckSubpolynomialType::Identity,
+                TestScalar::ONE,
+                2,
+            )
+            .unwrap_err();
+        assert!(matches!(error, ProofSizeMismatch::SumcheckProofTooSmall));
+    }
+
+    #[test]
+    fn we_can_get_sumcheck_proof_too_small_for_zero_sum() {
+        let mut verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
+        let error = verification_builder
+            .try_produce_sumcheck_subpolynomial_evaluation(
+                SumcheckSubpolynomialType::ZeroSum,
+                TestScalar::ONE,
+                3,
+            )
+            .unwrap_err();
+        assert!(matches!(error, ProofSizeMismatch::SumcheckProofTooSmall));
+    }
+
+    #[test]
+    fn we_can_get_final_round_mle_evaluations() {
+        let mut verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(
+                Vec::new(),
+                2,
+                vec![
+                    vec![TestScalar::ONE, TestScalar::TWO],
+                    vec![-TestScalar::ONE, -TestScalar::TWO],
+                ],
+            );
+        let result = verification_builder
+            .try_consume_final_round_mle_evaluations(2)
+            .unwrap();
+        assert_eq!(result, vec![TestScalar::ONE, TestScalar::TWO]);
+    }
+
+    #[test]
+    fn we_can_get_error_when_not_enough_evaluations() {
+        let mut verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
+        let error = verification_builder
+            .try_consume_final_round_mle_evaluations(2)
+            .unwrap_err();
+        assert!(matches!(error, ProofSizeMismatch::TooFewMLEEvaluations));
+    }
+
+    #[test]
+    fn we_can_try_consume_bit_distribution() {
+        let mut verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(
+                vec![BitDistribution::new::<TestScalar, TestScalar>(&[
+                    TestScalar::ONE,
+                ])],
+                2,
+                Vec::new(),
+            );
+        let result = verification_builder.try_consume_bit_distribution().unwrap();
+        assert_eq!(
+            result,
+            BitDistribution::new::<TestScalar, TestScalar>(&[TestScalar::ONE])
+        );
+    }
+
+    #[test]
+    fn we_can_get_error_when_not_enough_bit_distributions() {
+        let mut verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
+        let error = verification_builder
+            .try_consume_bit_distribution()
+            .unwrap_err();
+        assert!(matches!(error, ProofSizeMismatch::TooFewBitDistributions));
+    }
 }
