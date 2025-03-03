@@ -661,4 +661,22 @@ mod tests {
             assert_eq!(remainder, *expected_remainder);
         }
     }
+
+    #[should_panic(expected = "lhs and rhs should have the same length")]
+    #[test]
+    fn we_can_error_divide_columns_if_columns_are_different_length() {
+        let alloc = Bump::new();
+        let tiny_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::TinyInt(&[1, 1]);
+        let small_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::SmallInt(&[2]);
+        divide_columns(&tiny_int_column, &small_int_column, &alloc);
+    }
+
+    #[should_panic(expected = "lhs and rhs should have the same length")]
+    #[test]
+    fn we_can_error_modulo_columns_if_columns_are_different_length() {
+        let alloc = Bump::new();
+        let tiny_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::TinyInt(&[1, 1]);
+        let small_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::SmallInt(&[2]);
+        modulo_columns(&tiny_int_column, &small_int_column, &alloc);
+    }
 }
