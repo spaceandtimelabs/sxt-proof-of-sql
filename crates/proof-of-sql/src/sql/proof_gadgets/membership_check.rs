@@ -53,8 +53,8 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
     alloc: &'a Bump,
     alpha: S,
     beta: S,
-    input_ones: &'a [bool],
-    candidate_ones: &'a [bool],
+    chi_n: &'a [bool],
+    chi_m: &'a [bool],
     columns: &[Column<'a, S>],
     candidate_subset: &[Column<'a, S>],
 ) -> &'a [i128] {
@@ -70,9 +70,9 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
     let multiplicities = get_multiplicities::<S>(candidate_subset, columns, alloc);
 
     // Fold the columns
-    let c_fold = alloc.alloc_slice_fill_copy(input_ones.len(), Zero::zero());
+    let c_fold = alloc.alloc_slice_fill_copy(chi_n.len(), Zero::zero());
     fold_columns(c_fold, alpha, beta, columns);
-    let d_fold = alloc.alloc_slice_fill_copy(candidate_ones.len(), Zero::zero());
+    let d_fold = alloc.alloc_slice_fill_copy(chi_m.len(), Zero::zero());
     fold_columns(d_fold, alpha, beta, candidate_subset);
 
     let c_star = alloc.alloc_slice_copy(c_fold);
@@ -98,7 +98,7 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
         ],
     );
 
-    // c_star + c_fold * c_star - input_ones = 0
+    // c_star + c_fold * c_star - chi_n = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -107,11 +107,11 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
                 S::one(),
                 vec![Box::new(c_star as &[_]), Box::new(c_fold as &[_])],
             ),
-            (-S::one(), vec![Box::new(input_ones as &[_])]),
+            (-S::one(), vec![Box::new(chi_n as &[_])]),
         ],
     );
 
-    // d_star + d_fold * d_star - candidate_ones = 0
+    // d_star + d_fold * d_star - chi_m = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -120,19 +120,19 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
                 S::one(),
                 vec![Box::new(d_star as &[_]), Box::new(d_fold as &[_])],
             ),
-            (-S::one(), vec![Box::new(candidate_ones as &[_])]),
+            (-S::one(), vec![Box::new(chi_m as &[_])]),
         ],
     );
     multiplicities
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::similar_names)]
 pub(crate) fn verify_membership_check<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+    builder: &mut impl VerificationBuilder<S>,
     alpha: S,
     beta: S,
-    input_one_eval: S,
-    candidate_one_eval: S,
+    chi_n_eval: S,
+    chi_m_eval: S,
     column_evals: &[S],
     candidate_evals: &[S],
 ) -> Result<S, ProofError> {
@@ -155,17 +155,17 @@ pub(crate) fn verify_membership_check<S: Scalar>(
         2,
     )?;
 
-    // c_star + c_fold * c_star - input_ones = 0
+    // c_star + c_fold * c_star - chi_n = 0
     builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        (S::ONE + alpha * c_fold_eval) * c_star_eval - input_one_eval,
+        (S::ONE + alpha * c_fold_eval) * c_star_eval - chi_n_eval,
         2,
     )?;
 
-    // d_star + d_fold * d_star - candidate_ones = 0
+    // d_star + d_fold * d_star - chi_m = 0
     builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        (S::ONE + alpha * d_fold_eval) * d_star_eval - candidate_one_eval,
+        (S::ONE + alpha * d_fold_eval) * d_star_eval - chi_m_eval,
         2,
     )?;
 

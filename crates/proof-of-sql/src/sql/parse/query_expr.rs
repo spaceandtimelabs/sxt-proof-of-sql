@@ -62,7 +62,7 @@ impl QueryExpr {
                 .visit_group_by_exprs(group_by.into_iter().map(Ident::from).collect())?
                 .visit_result_exprs(result_exprs)?
                 .visit_where_expr(where_expr)?
-                .visit_order_by_exprs(ast.order_by)
+                .visit_order_by_exprs(ast.order_by.into_iter().map(Into::into).collect())?
                 .visit_slice_expr(ast.slice)
                 .build()?,
         };
@@ -70,10 +70,10 @@ impl QueryExpr {
         let group_by = context.get_group_by_exprs();
         // Figure out the basic postprocessing steps.
         let mut postprocessing = vec![];
-        let order_bys = context.get_order_by_exprs()?;
+        let order_bys = context.get_order_by_exprs();
         if !order_bys.is_empty() {
             postprocessing.push(OwnedTablePostprocessing::new_order_by(
-                OrderByPostprocessing::new(order_bys.clone()),
+                OrderByPostprocessing::new(order_bys.to_vec()),
             ));
         }
         if let Some(slice) = context.get_slice_expr() {

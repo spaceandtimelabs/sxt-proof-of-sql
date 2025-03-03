@@ -32,7 +32,7 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         let zeros = vec![0_i64; self.length];
-        builder.produce_one_evaluation_length(self.length);
+        builder.produce_chi_evaluation_length(self.length);
         table_with_row_count(
             (1..=self.columns)
                 .map(|i| borrowed_bigint(format!("a{i}").as_str(), zeros.clone(), alloc)),
@@ -61,10 +61,10 @@ impl ProverEvaluate for EmptyTestQueryExpr {
 impl ProofPlan for EmptyTestQueryExpr {
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         assert_eq!(
             builder.try_consume_final_round_mle_evaluations(self.columns)?,
@@ -72,7 +72,7 @@ impl ProofPlan for EmptyTestQueryExpr {
         );
         Ok(TableEvaluation::new(
             vec![S::ZERO; self.columns],
-            builder.try_consume_one_evaluation()?,
+            builder.try_consume_chi_evaluation()?,
         ))
     }
 

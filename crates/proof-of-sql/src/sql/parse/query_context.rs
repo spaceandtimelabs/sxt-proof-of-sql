@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{ColumnRef, LiteralValue, TableRef},
+        database::{order_by_util::OrderIndexDirectionPairs, ColumnRef, LiteralValue, TableRef},
         map::{IndexMap, IndexSet},
     },
     sql::{
@@ -11,7 +11,7 @@ use crate::{
 };
 use alloc::{borrow::ToOwned, boxed::Box, string::ToString, vec::Vec};
 use proof_of_sql_parser::intermediate_ast::{
-    AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice,
+    AggregationOperator, AliasedResultExpr, Expression, Slice,
 };
 use sqlparser::ast::Ident;
 
@@ -24,7 +24,7 @@ pub struct QueryContext {
     table: Option<TableRef>,
     in_result_scope: bool,
     has_visited_group_by: bool,
-    order_by_exprs: Vec<OrderBy>,
+    order_by_exprs: OrderIndexDirectionPairs,
     group_by_exprs: Vec<Ident>,
     where_expr: Option<Box<Expression>>,
     result_column_set: IndexSet<Ident>,
@@ -137,7 +137,7 @@ impl QueryContext {
         self.has_visited_group_by = true;
     }
 
-    pub fn set_order_by_exprs(&mut self, order_by_exprs: Vec<OrderBy>) {
+    pub fn set_order_by_exprs(&mut self, order_by_exprs: OrderIndexDirectionPairs) {
         self.order_by_exprs = order_by_exprs;
     }
 
@@ -196,18 +196,8 @@ impl QueryContext {
         Ok(&self.res_aliased_exprs)
     }
 
-    pub fn get_order_by_exprs(&self) -> ConversionResult<Vec<OrderBy>> {
-        // Order by must reference only aliases in the result schema
-        for by_expr in &self.order_by_exprs {
-            self.res_aliased_exprs
-                .iter()
-                .find(|col| col.alias == by_expr.expr)
-                .ok_or(ConversionError::InvalidOrderBy {
-                    alias: by_expr.expr.as_str().to_string(),
-                })?;
-        }
-
-        Ok(self.order_by_exprs.clone())
+    pub fn get_order_by_exprs(&self) -> &[(usize, bool)] {
+        &self.order_by_exprs
     }
 
     #[allow(clippy::ref_option)]
@@ -228,7 +218,7 @@ impl QueryContext {
     }
 }
 
-/// Converts a `QueryContext` into a `Option<GroupByExec>`.
+/// Converts a `QueryContext` into an `Option<GroupByExec>`.
 ///
 /// We use Some if the query is provable and None if it is not
 /// We error out if the query is wrong

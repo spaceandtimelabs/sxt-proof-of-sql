@@ -58,22 +58,22 @@ where
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        one_eval_map: &IndexMap<TableRef, S>,
+        chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         // 1. columns
         let input_table_eval =
             self.input
-                .verifier_evaluate(builder, accessor, None, one_eval_map)?;
-        let output_one_eval = builder.try_consume_one_evaluation()?;
+                .verifier_evaluate(builder, accessor, None, chi_eval_map)?;
+        let output_chi_eval = builder.try_consume_chi_evaluation()?;
         let columns_evals = input_table_eval.column_evals();
         // 2. selection
         // The selected range is (offset_index, max_index]
-        let offset_one_eval = builder.try_consume_one_evaluation()?;
-        let max_one_eval = builder.try_consume_one_evaluation()?;
-        let selection_eval = max_one_eval - offset_one_eval;
+        let offset_chi_eval = builder.try_consume_chi_evaluation()?;
+        let max_chi_eval = builder.try_consume_chi_evaluation()?;
+        let selection_eval = max_chi_eval - offset_chi_eval;
         // 3. filtered_columns
         let filtered_columns_evals =
             builder.try_consume_final_round_mle_evaluations(columns_evals.len())?;
@@ -84,15 +84,15 @@ where
             builder,
             alpha,
             beta,
-            input_table_eval.one_eval(),
-            output_one_eval,
+            input_table_eval.chi_eval(),
+            output_chi_eval,
             columns_evals,
             selection_eval,
             &filtered_columns_evals,
         )?;
         Ok(TableEvaluation::new(
             filtered_columns_evals,
-            output_one_eval,
+            output_chi_eval,
         ))
     }
 
@@ -144,9 +144,9 @@ impl ProverEvaluate for SliceExec {
         )
         .expect("Failed to create table from iterator");
         builder.request_post_result_challenges(2);
-        builder.produce_one_evaluation_length(output_length);
-        builder.produce_one_evaluation_length(offset_index);
-        builder.produce_one_evaluation_length(max_index);
+        builder.produce_chi_evaluation_length(output_length);
+        builder.produce_chi_evaluation_length(offset_index);
+        builder.produce_chi_evaluation_length(max_index);
 
         log::log_memory_usage("End");
 

@@ -63,18 +63,18 @@ where
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        one_eval_map: &IndexMap<TableRef, S>,
+        chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        let input_one_eval = *one_eval_map
+        let input_chi_eval = *chi_eval_map
             .get(&self.table.table_ref)
-            .expect("One eval not found");
+            .expect("Chi eval not found");
         // 1. selection
         let selection_eval =
             self.where_clause
-                .verifier_evaluate(builder, accessor, input_one_eval)?;
+                .verifier_evaluate(builder, accessor, input_chi_eval)?;
         // 2. columns
         let columns_evals = Vec::from_iter(
             self.aliased_results
@@ -82,7 +82,7 @@ where
                 .map(|aliased_expr| {
                     aliased_expr
                         .expr
-                        .verifier_evaluate(builder, accessor, input_one_eval)
+                        .verifier_evaluate(builder, accessor, input_chi_eval)
                 })
                 .collect::<Result<Vec<_>, _>>()?,
         );
@@ -94,21 +94,21 @@ where
         let alpha = builder.try_consume_post_result_challenge()?;
         let beta = builder.try_consume_post_result_challenge()?;
 
-        let output_one_eval = builder.try_consume_one_evaluation()?;
+        let output_chi_eval = builder.try_consume_chi_evaluation()?;
 
         verify_filter(
             builder,
             alpha,
             beta,
-            input_one_eval,
-            output_one_eval,
+            input_chi_eval,
+            output_chi_eval,
             &columns_evals,
             selection_eval,
             &filtered_columns_evals,
         )?;
         Ok(TableEvaluation::new(
             filtered_columns_evals,
-            output_one_eval,
+            output_chi_eval,
         ))
     }
 
@@ -179,7 +179,7 @@ impl ProverEvaluate for FilterExec {
         )
         .expect("Failed to create table from iterator");
         builder.request_post_result_challenges(2);
-        builder.produce_one_evaluation_length(output_length);
+        builder.produce_chi_evaluation_length(output_length);
 
         log::log_memory_usage("End");
 
@@ -249,13 +249,17 @@ impl ProverEvaluate for FilterExec {
     }
 }
 
-#[allow(clippy::unnecessary_wraps, clippy::too_many_arguments)]
+#[allow(
+    clippy::unnecessary_wraps,
+    clippy::too_many_arguments,
+    clippy::similar_names
+)]
 pub(super) fn verify_filter<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+    builder: &mut impl VerificationBuilder<S>,
     alpha: S,
     beta: S,
-    one_eval: S,
-    chi_eval: S,
+    chi_n_eval: S,
+    chi_m_eval: S,
     c_evals: &[S],
     s_eval: S,
     d_evals: &[S],
@@ -272,17 +276,17 @@ pub(super) fn verify_filter<S: Scalar>(
         2,
     )?;
 
-    // c_star + c_fold * c_star - input_ones = 0
+    // c_star + c_fold * c_star - chi_n = 0
     builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        c_star_eval + c_fold_eval * c_star_eval - one_eval,
+        c_star_eval + c_fold_eval * c_star_eval - chi_n_eval,
         2,
     )?;
 
-    // d_star + d_fold * d_star - chi = 0
+    // d_star + d_fold * d_star - chi_m = 0
     builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        d_star_eval + d_fold_eval * d_star_eval - chi_eval,
+        d_star_eval + d_fold_eval * d_star_eval - chi_m_eval,
         2,
     )?;
 
@@ -301,8 +305,8 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
     n: usize,
     m: usize,
 ) {
-    let input_ones = alloc.alloc_slice_fill_copy(n, true);
-    let chi = alloc.alloc_slice_fill_copy(m, true);
+    let chi_n = alloc.alloc_slice_fill_copy(n, true);
+    let chi_m = alloc.alloc_slice_fill_copy(m, true);
 
     let c_fold = alloc.alloc_slice_fill_copy(n, Zero::zero());
     fold_columns(c_fold, alpha, beta, c);
@@ -329,7 +333,7 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
         ],
     );
 
-    // c_star + c_fold * c_star - input_ones = 0
+    // c_star + c_fold * c_star - chi_n = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -338,11 +342,11 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
                 S::one(),
                 vec![Box::new(c_star as &[_]), Box::new(c_fold as &[_])],
             ),
-            (-S::one(), vec![Box::new(input_ones as &[_])]),
+            (-S::one(), vec![Box::new(chi_n as &[_])]),
         ],
     );
 
-    // d_star + d_fold * d_star - chi = 0
+    // d_star + d_fold * d_star - chi_m = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -351,7 +355,7 @@ pub(super) fn prove_filter<'a, S: Scalar + 'a>(
                 S::one(),
                 vec![Box::new(d_star as &[_]), Box::new(d_fold as &[_])],
             ),
-            (-S::one(), vec![Box::new(chi as &[_])]),
+            (-S::one(), vec![Box::new(chi_m as &[_])]),
         ],
     );
 }

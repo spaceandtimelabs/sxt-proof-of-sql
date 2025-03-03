@@ -99,9 +99,10 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
     fn inner_product(&self, evaluation_vec: &[S]) -> S {
         match self {
             Column::Boolean(c) => c.inner_product(evaluation_vec),
-            Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
-                c.inner_product(evaluation_vec)
-            }
+            Column::Scalar(c)
+            | Column::VarChar((_, c))
+            | Column::VarBinary((_, c))
+            | Column::Decimal75(_, _, c) => c.inner_product(evaluation_vec),
             Column::Uint8(c) | Column::FixedSizeBinary(_, c) => c.inner_product(evaluation_vec),
             Column::TinyInt(c) => c.inner_product(evaluation_vec),
             Column::SmallInt(c) => c.inner_product(evaluation_vec),
@@ -114,7 +115,10 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
     fn mul_add(&self, res: &mut [S], multiplier: &S) {
         match self {
             Column::Boolean(c) => c.mul_add(res, multiplier),
-            Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
+            Column::Scalar(c)
+            | Column::VarChar((_, c))
+            | Column::VarBinary((_, c))
+            | Column::Decimal75(_, _, c) => {
                 c.mul_add(res, multiplier);
             }
             Column::Uint8(c) | Column::FixedSizeBinary(_, c) => c.mul_add(res, multiplier),
@@ -129,9 +133,10 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
     fn to_sumcheck_term(&self, num_vars: usize) -> Vec<S> {
         match self {
             Column::Boolean(c) => c.to_sumcheck_term(num_vars),
-            Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
-                c.to_sumcheck_term(num_vars)
-            }
+            Column::Scalar(c)
+            | Column::VarChar((_, c))
+            | Column::VarBinary((_, c))
+            | Column::Decimal75(_, _, c) => c.to_sumcheck_term(num_vars),
             Column::Uint8(c) | Column::FixedSizeBinary(_, c) => c.to_sumcheck_term(num_vars),
             Column::TinyInt(c) => c.to_sumcheck_term(num_vars),
             Column::SmallInt(c) => c.to_sumcheck_term(num_vars),
@@ -144,9 +149,10 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
     fn id(&self) -> (*const c_void, usize) {
         match self {
             Column::Boolean(c) => MultilinearExtension::<S>::id(c),
-            Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
-                MultilinearExtension::<S>::id(c)
-            }
+            Column::Scalar(c)
+            | Column::VarChar((_, c))
+            | Column::VarBinary((_, c))
+            | Column::Decimal75(_, _, c) => MultilinearExtension::<S>::id(c),
             Column::Uint8(c) | Column::FixedSizeBinary(_, c) => MultilinearExtension::<S>::id(c),
             Column::TinyInt(c) => MultilinearExtension::<S>::id(c),
             Column::SmallInt(c) => MultilinearExtension::<S>::id(c),

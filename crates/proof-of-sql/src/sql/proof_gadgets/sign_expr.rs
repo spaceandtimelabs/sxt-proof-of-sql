@@ -79,9 +79,10 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
 ///
 /// See [`prover_evaluate_sign`].
 pub fn verifier_evaluate_sign<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+    builder: &mut impl VerificationBuilder<S>,
     eval: S,
-    one_eval: S,
+    chi_eval: S,
+    num_bits_allowed: Option<u8>,
 ) -> Result<S, ProofError> {
     // bit_distribution
     let dist = builder.try_consume_bit_distribution()?;
@@ -98,8 +99,8 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     // establish that the bits are binary
     verify_bits_are_binary(builder, &bit_evals)?;
 
-    verify_bit_decomposition(eval, one_eval, &bit_evals, &dist)
-        .map(|sign_eval| one_eval - sign_eval)
+    verify_bit_decomposition(eval, chi_eval, &bit_evals, &dist, num_bits_allowed)
+        .map(|sign_eval| chi_eval - sign_eval)
         .map_err(|err| match err {
             BitDistrubutionError::NoLeadBit => {
                 panic!("No lead bit available despite variable lead bit.")
@@ -127,7 +128,7 @@ fn prove_bits_are_binary<'a, S: Scalar>(
 }
 
 fn verify_bits_are_binary<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+    builder: &mut impl VerificationBuilder<S>,
     bit_evals: &[S],
 ) -> Result<(), ProofError> {
     for bit_eval in bit_evals {
@@ -141,16 +142,18 @@ fn verify_bits_are_binary<S: Scalar>(
 }
 
 /// This function checks the consistency of the bit evaluations with the expression evaluation.
+/// The column of data is restricted to an unsigned integer type of `num_bits_allowed` bits.
 fn verify_bit_decomposition<S: ScalarExt>(
     expr_eval: S,
-    one_eval: S,
+    chi_eval: S,
     bit_evals: &[S],
     dist: &BitDistribution,
+    num_bits_allowed: Option<u8>,
 ) -> Result<S, BitDistrubutionError> {
-    let sign_eval = dist.leading_bit_eval(bit_evals, one_eval)?;
+    let sign_eval = dist.leading_bit_eval(bit_evals, chi_eval)?;
     let mut rhs = sign_eval * S::from_wrapping(dist.leading_bit_mask())
-        + (one_eval - sign_eval) * S::from_wrapping(dist.leading_bit_inverse_mask())
-        - one_eval * S::from_wrapping(U256::ONE.shl(255));
+        + (chi_eval - sign_eval) * S::from_wrapping(dist.leading_bit_inverse_mask())
+        - chi_eval * S::from_wrapping(U256::ONE.shl(255));
 
     for (vary_index, bit_index) in dist.vary_mask_iter().enumerate() {
         if bit_index != 255 {
@@ -159,7 +162,16 @@ fn verify_bit_decomposition<S: ScalarExt>(
             rhs += S::from_wrapping(mult) * bit_eval;
         }
     }
-    (rhs == expr_eval)
+    let num_bits_allowed = num_bits_allowed.unwrap_or(S::MAX_BITS);
+    if num_bits_allowed > S::MAX_BITS {
+        return Err(BitDistrubutionError::Verification);
+    }
+    let bits_that_must_match_inverse_lead_bit =
+        U256::MAX.shl(num_bits_allowed - 1) ^ U256::ONE.shl(255);
+    let is_eval_correct_number_of_bits = bits_that_must_match_inverse_lead_bit
+        & dist.leading_bit_inverse_mask()
+        == bits_that_must_match_inverse_lead_bit;
+    (rhs == expr_eval && is_eval_correct_number_of_bits)
         .then_some(sign_eval)
         .ok_or(BitDistrubutionError::Verification)
 }
@@ -168,11 +180,37 @@ fn verify_bit_decomposition<S: ScalarExt>(
 mod tests {
     use crate::{
         base::{
-            bit::BitDistribution,
-            scalar::{test_scalar::TestScalar, Scalar},
+            bit::{BitDistribution, BitDistrubutionError},
+            scalar::{test_scalar::TestScalar, Scalar, ScalarExt},
         },
         sql::proof_gadgets::sign_expr::verify_bit_decomposition,
     };
+    use bnum::{
+        cast::As,
+        types::{I256, U256},
+    };
+    use core::ops::Shl;
+
+    fn evaluate_matrix(matrix: &[&[I256]], terms: &[TestScalar]) -> Vec<TestScalar> {
+        matrix
+            .iter()
+            .map(|row| evaluate_terms(row, terms))
+            .collect()
+    }
+
+    fn evaluate_terms(coeffs: &[I256], terms: &[TestScalar]) -> TestScalar {
+        coeffs
+            .iter()
+            .zip(terms)
+            .map(|(&coef, &term)| {
+                if coef < I256::ZERO {
+                    -TestScalar::from_wrapping((-coef).as_::<U256>()) * term
+                } else {
+                    TestScalar::from_wrapping(coef.as_::<U256>()) * term
+                }
+            })
+            .sum()
+    }
 
     #[test]
     fn we_can_verify_bit_decomposition() {
@@ -180,25 +218,26 @@ mod tests {
             vary_mask: [629, 0, 0, 0],
             leading_bit_mask: [2, 0, 0, 9_223_372_036_854_775_808],
         };
-        let one_eval = TestScalar::ONE;
+        let chi_eval = TestScalar::ONE;
         let bit_evals = [0, 0, 1, 1, 0, 1].map(TestScalar::from);
         let expr_eval = TestScalar::from(562);
-        let sign_eval = verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist).unwrap();
+        let sign_eval =
+            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, None).unwrap();
         assert_eq!(sign_eval, TestScalar::ONE);
     }
 
     #[test]
-    fn we_can_verify_bit_decomposition_constant_sign() {
+    fn we_can_verify_bit_decomposition_positive_sign() {
         let dist = BitDistribution {
             vary_mask: [629, 0, 0, 0],
             leading_bit_mask: [2, 0, 0, 9_223_372_036_854_775_808],
         };
-        let a = TestScalar::ONE;
-        let b = TestScalar::ONE;
+        let a = TestScalar::TEN;
+        let b = TestScalar::TWO;
         let expr_eval = TestScalar::from(118) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
             + TestScalar::from(562) * a * (TestScalar::ONE - b)
             + TestScalar::from(3) * (TestScalar::ONE - a) * b;
-        let one_eval = TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
+        let chi_eval = TestScalar::from(1) * (TestScalar::ONE - a) * (TestScalar::ONE - b)
             + TestScalar::from(1) * a * (TestScalar::ONE - b)
             + TestScalar::from(1) * (TestScalar::ONE - a) * b;
         let bit_evals = [
@@ -221,7 +260,91 @@ mod tests {
                 + TestScalar::from(1) * a * (TestScalar::ONE - b)
                 + TestScalar::from(0) * (TestScalar::ONE - a) * b,
         ];
-        let sign_eval = verify_bit_decomposition(expr_eval, one_eval, &bit_evals, &dist).unwrap();
-        assert_eq!(sign_eval, TestScalar::ZERO);
+        let sign_eval =
+            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, None).unwrap();
+        assert_eq!(sign_eval, chi_eval);
+    }
+
+    #[test]
+    fn we_can_verify_bit_decomposition_i8_sign() {
+        let dist = BitDistribution {
+            vary_mask: [125, 0, 0, 9_223_372_036_854_775_808],
+            leading_bit_mask: [2, 0, 0, 9_223_372_036_854_775_808],
+        };
+        let a = TestScalar::TEN;
+        let b = TestScalar::TWO;
+        let one_minus_a = TestScalar::ONE - a;
+        let one_minus_b = TestScalar::ONE - b;
+
+        let s = [
+            one_minus_a * one_minus_b,
+            a * one_minus_b,
+            one_minus_a * b,
+            a * b,
+        ];
+
+        let expr_eval = evaluate_terms(&[106, 23, -60, -76].map(I256::from), &s);
+        let chi_eval = evaluate_terms(&[1, 1, 1, 1].map(I256::from), &s);
+
+        let bit_matrix: &[&[I256]] = &[
+            &[0, 1, 0, 0].map(I256::from),
+            &[0, 1, 1, 1].map(I256::from),
+            &[1, 0, 0, 0].map(I256::from),
+            &[0, 1, 0, 1].map(I256::from),
+            &[1, 0, 0, 1].map(I256::from),
+            &[1, 0, 1, 0].map(I256::from),
+            &[1, 1, 0, 0].map(I256::from),
+        ];
+
+        let bit_evals = evaluate_matrix(bit_matrix, &s);
+
+        let expected_eval = evaluate_terms(&[I256::ONE, I256::ONE, I256::ZERO, I256::ZERO], &s);
+
+        let sign_eval =
+            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(8)).unwrap();
+        assert_eq!(sign_eval, expected_eval);
+        let err =
+            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(7)).unwrap_err();
+        assert!(matches!(err, BitDistrubutionError::Verification));
+    }
+
+    #[test]
+    fn we_can_verify_bit_decomposition_with_max_data_type() {
+        // Note that this is not i251 because i251::MIN would theoretically be -2^250
+        let i252_val = -TestScalar::from_wrapping(U256::ONE.shl(250)) - TestScalar::ONE;
+        let data = [TestScalar::ZERO, i252_val];
+        let dist = BitDistribution::new::<TestScalar, TestScalar>(&data);
+        let a = TestScalar::TEN;
+        let b = TestScalar::TWO;
+        let one_minus_a = TestScalar::ONE - a;
+        let one_minus_b = TestScalar::ONE - b;
+
+        let s = [
+            one_minus_a * one_minus_b,
+            a * one_minus_b,
+            one_minus_a * b,
+            a * b,
+        ];
+
+        let expr_eval = evaluate_terms(&[I256::ZERO, -I256::ONE.shl(250u8) - I256::ONE], &s);
+        let chi_eval = evaluate_terms(&[1, 1].map(I256::from), &s);
+
+        let bit_matrix: &[&[I256]] = &[&[0, 0].map(I256::from), &[1, 0].map(I256::from)];
+
+        let bit_evals = evaluate_matrix(bit_matrix, &s);
+
+        let expected_eval = evaluate_terms(&[I256::ONE, I256::ZERO], &s);
+
+        let sign_eval =
+            verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(252)).unwrap();
+        assert_eq!(sign_eval, expected_eval);
+        // Should fail because the TestScalar can only securely hold i252 values
+        let err = verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(253))
+            .unwrap_err();
+        assert!(matches!(err, BitDistrubutionError::Verification));
+        // Should fail because the highest value is too big to be held by an i251
+        let err = verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(251))
+            .unwrap_err();
+        assert!(matches!(err, BitDistrubutionError::Verification));
     }
 }

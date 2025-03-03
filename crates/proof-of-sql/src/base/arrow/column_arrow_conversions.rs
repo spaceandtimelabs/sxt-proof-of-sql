@@ -21,6 +21,7 @@ impl From<&ColumnType> for DataType {
                 DataType::Decimal256(precision.value(), *scale)
             }
             ColumnType::VarChar => DataType::Utf8,
+            ColumnType::VarBinary => DataType::Binary,
             ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
             ColumnType::TimestampTZ(timeunit, timezone) => {
                 let arrow_timezone = Some(Arc::from(timezone.to_string()));
@@ -66,6 +67,7 @@ impl TryFrom<DataType> for ColumnType {
                 ))
             }
             DataType::Utf8 => Ok(ColumnType::VarChar),
+            DataType::Binary => Ok(ColumnType::VarBinary),
             _ => Err(format!("Unsupported arrow data type {data_type:?}")),
         }
     }
@@ -78,5 +80,21 @@ impl From<&ColumnField> for Field {
             (&column_field.data_type()).into(),
             false,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn we_can_roundtrip_arbitrary_column_type(column_type: ColumnType) {
+            let arrow = DataType::from(&column_type);
+            let actual = ColumnType::try_from(arrow).unwrap();
+
+            prop_assert_eq!(actual, column_type);
+        }
     }
 }

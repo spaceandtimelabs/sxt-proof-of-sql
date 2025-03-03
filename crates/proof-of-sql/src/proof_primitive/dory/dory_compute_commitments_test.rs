@@ -72,6 +72,26 @@ fn we_can_compute_a_dory_commitment_with_fixed_size_binary_values() {
 }
 
 #[test]
+fn we_can_compute_a_dory_commitment_with_varbinary_values() {
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let setup = DoryProverPublicSetup::new(&prover_setup, 2);
+
+    let data = [[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]];
+    let col = CommittableColumn::VarBinary(data.to_vec());
+
+    let res = compute_dory_commitments(&[col], 0, &setup);
+
+    let Gamma_1 = public_parameters.Gamma_1;
+    let Gamma_2 = public_parameters.Gamma_2;
+    let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(1u64)
+        + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(2u64)
+        + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(3u64);
+
+    assert_eq!(res[0].0, expected);
+}
+
+#[test]
 fn we_can_compute_a_dory_commitment_with_int128_values() {
     let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);

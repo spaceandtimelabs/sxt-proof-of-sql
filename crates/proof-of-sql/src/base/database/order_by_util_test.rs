@@ -7,7 +7,6 @@ use crate::{
     proof_primitive::dory::DoryScalar,
 };
 use core::cmp::Ordering;
-use proof_of_sql_parser::intermediate_ast::OrderByDirection;
 
 #[test]
 fn we_can_compare_indexes_by_columns_for_fixedsizebinary_hex_i32_full_suite() {
@@ -347,11 +346,7 @@ fn we_can_compare_columns_with_direction() {
             .map(|&i| TestScalar::from(i))
             .collect(),
     );
-    let order_by_pairs = vec![
-        (col1, OrderByDirection::Asc),
-        (col2, OrderByDirection::Desc),
-        (col3, OrderByDirection::Asc),
-    ];
+    let order_by_pairs = vec![(col1, true), (col2, false), (col3, true)];
     // Equal on col1 and col2, less on col3
     assert_eq!(
         compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 0, 1),
@@ -447,4 +442,26 @@ fn we_can_compare_owned_columns_with_direction_fixedsizebinary_and_others() {
         compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 4, 0),
         Ordering::Greater
     );
+  
+#[test]
+fn we_can_compare_indexes_by_columns_for_varbinary_columns() {
+    let raw_bytes = [
+        b"foo".as_ref(),
+        b"bar".as_ref(),
+        b"baz".as_ref(),
+        b"baz".as_ref(),
+        b"bar".as_ref(),
+    ];
+    let scalars: Vec<TestScalar> = raw_bytes
+        .iter()
+        .map(|b| TestScalar::from_le_bytes_mod_order(b))
+        .collect();
+    let col_varbinary = Column::VarBinary((raw_bytes.as_slice(), scalars.as_slice()));
+    let columns = &[col_varbinary];
+
+    assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater); // "foo" vs "bar"
+    assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less); // "bar" vs "baz"
+    assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Equal); // "baz" vs "baz"
+    assert_eq!(compare_indexes_by_columns(columns, 3, 4), Ordering::Greater); // "baz" vs "bar"
+    assert_eq!(compare_indexes_by_columns(columns, 1, 4), Ordering::Equal); // "bar" vs "bar"
 }

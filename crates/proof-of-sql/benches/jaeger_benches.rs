@@ -5,7 +5,7 @@
 //! cargo bench -p proof-of-sql --bench jaeger_benches InnerProductProof
 //! cargo bench -p proof-of-sql --bench jaeger_benches Dory
 //! cargo bench -p proof-of-sql --bench jaeger_benches DynamicDory
-//! cargo bench -p proof-of-sql --bench jaeger_benches HyperKZG
+//! cargo bench -p proof-of-sql --bench jaeger_benches HyperKZG --features="hyperkzg"
 //! ```
 //! Then, navigate to <http://localhost:16686> to view the traces.
 
@@ -23,7 +23,7 @@ use proof_of_sql::proof_primitive::{
     hyperkzg::{HyperKZGCommitmentEvaluationProof, HyperKZGEngine},
 };
 mod scaffold;
-use crate::scaffold::querys::QUERIES;
+use crate::scaffold::queries::QUERIES;
 use scaffold::jaeger_scaffold;
 use std::env;
 

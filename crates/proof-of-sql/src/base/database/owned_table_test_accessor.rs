@@ -5,6 +5,7 @@ use super::{
 use crate::base::{
     commitment::{CommitmentEvaluationProof, VecCommitmentExt},
     map::IndexMap,
+    scalar::ScalarExt,
 };
 use alloc::{string::String, vec::Vec};
 use bumpalo::Bump;
@@ -109,6 +110,21 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
                     .alloc
                     .alloc_slice_fill_iter(col.iter().map(|s| (*s).into()));
                 Column::VarChar((col, scals))
+            }
+            OwnedColumn::VarBinary(col) => {
+                // Convert each `Vec<u8>` to `&[u8]` for the `Column::VarBinary` "string-like" part.
+                let col_as_slices: &mut [&[u8]] = self
+                    .alloc
+                    .alloc_slice_fill_iter(col.iter().map(Vec::as_slice));
+
+                // Convert each `Vec<u8>` to a scalar by calling `from_le_bytes_mod_order`.
+                // That is the crucial step, because there's no direct `From<&[u8]>`.
+                let scals: &mut [CP::Scalar] = self.alloc.alloc_slice_fill_iter(
+                    col.iter()
+                        .map(|b| CP::Scalar::from_byte_slice_via_hash(b.as_slice())),
+                );
+
+                Column::VarBinary((col_as_slices, scals))
             }
             OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col),
             OwnedColumn::FixedSizeBinary(bw, col) => {

@@ -42,7 +42,7 @@ pub enum ProofSizeMismatch {
     TooFewBitDistributions,
     /// This error occurs when the proof has too few one lengths.
     #[snafu(display("Proof has too few one lengths"))]
-    TooFewOneLengths,
+    TooFewChiLengths,
     /// This error occurs when the proof has too few rho lengths.
     #[snafu(display("Proof has too few rho lengths"))]
     TooFewRhoLengths,
@@ -51,7 +51,7 @@ pub enum ProofSizeMismatch {
     TooFewSumcheckVariables,
     /// This error occurs when a requested one length is not found.
     #[snafu(display("Proof doesn't have requested one length"))]
-    OneLengthNotFound,
+    ChiLengthNotFound,
     /// This error occurs when a requested rho length is not found.
     #[snafu(display("Proof doesn't have requested rho length"))]
     RhoLengthNotFound,

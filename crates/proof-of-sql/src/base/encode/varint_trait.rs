@@ -4,7 +4,7 @@
  * See third_party/license/integer-encoding.LICENSE
  */
 // ---------------------------------------------------------------------------------------------------------------
-// The following chunck of code is copied from the `integer-encoding`. This is for two reasons:
+// The following chunk of code is copied from the `integer-encoding`. This is for two reasons:
 // 1) it makes the `VarInt` no longer a foreign trait
 // 2) there is a bug in `integer-encoding` that made it so that large decodings didn't fail when they should have
 // There were significant code changes to simplify the code

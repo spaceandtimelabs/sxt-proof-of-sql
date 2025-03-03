@@ -1,7 +1,7 @@
 use super::{
     make_sumcheck_state::make_sumcheck_prover_state, FinalRoundBuilder, FirstRoundBuilder,
     ProofPlan, QueryData, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars,
-    VerificationBuilder,
+    VerificationBuilderImpl,
 };
 use crate::{
     base::{
@@ -50,8 +50,8 @@ pub struct FirstRoundMessage<C> {
     /// Length of the range of generators we use
     pub range_length: usize,
     pub post_result_challenge_count: usize,
-    /// One evaluation lengths
-    pub one_evaluation_lengths: Vec<usize>,
+    /// Chi evaluation lengths
+    pub chi_evaluation_lengths: Vec<usize>,
     /// Rho evaluation lengths
     pub rho_evaluation_lengths: Vec<usize>,
     /// First Round Commitments
@@ -125,7 +125,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let query_result = expr.first_round_evaluate(&mut first_round_builder, &alloc, &table_map);
         let owned_table_result = OwnedTable::from(&query_result);
         let provable_result = query_result.into();
-        let one_evaluation_lengths = first_round_builder.one_evaluation_lengths();
+        let chi_evaluation_lengths = first_round_builder.chi_evaluation_lengths();
         let rho_evaluation_lengths = first_round_builder.rho_evaluation_lengths();
 
         let range_length = first_round_builder.range_length();
@@ -147,7 +147,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let first_round_message = FirstRoundMessage {
             range_length,
-            one_evaluation_lengths: one_evaluation_lengths.to_vec(),
+            chi_evaluation_lengths: chi_evaluation_lengths.to_vec(),
             rho_evaluation_lengths: rho_evaluation_lengths.to_vec(),
             post_result_challenge_count,
             round_commitments: first_round_commitments,
@@ -181,7 +181,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             bit_distributions: final_round_builder.bit_distributions().to_vec(),
         };
 
-        // add the commitments, bit distributions and one evaluation lengths to the proof
+        // add the commitments, bit distributions and chi evaluation lengths to the proof
         transcript.challenge_as_le();
         transcript.extend_serialize_as_le(&final_round_message);
 
@@ -364,7 +364,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 )
                 .collect();
 
-        // Always prepend input lengths to the one evaluation lengths
+        // Always prepend input lengths to the chi evaluation lengths
         let table_length_map = table_refs
             .into_iter()
             .map(|table_ref| {
@@ -373,32 +373,31 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             })
             .collect::<IndexMap<TableRef, usize>>();
 
-        let one_evaluation_lengths = table_length_map
+        let chi_evaluation_lengths = table_length_map
             .values()
-            .chain(self.first_round_message.one_evaluation_lengths.iter())
+            .chain(self.first_round_message.chi_evaluation_lengths.iter())
             .copied();
 
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
             self.first_round_message.range_length,
-            one_evaluation_lengths,
+            chi_evaluation_lengths,
             self.first_round_message.rho_evaluation_lengths.clone(),
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations.first_round,
             &self.pcs_proof_evaluations.final_round,
         );
-        let one_eval_map: IndexMap<TableRef, CP::Scalar> = table_length_map
+        let chi_eval_map: IndexMap<TableRef, CP::Scalar> = table_length_map
             .into_iter()
-            .map(|(table_ref, length)| (table_ref, sumcheck_evaluations.one_evaluations[&length]))
+            .map(|(table_ref, length)| (table_ref, sumcheck_evaluations.chi_evaluations[&length]))
             .collect();
-        let mut builder = VerificationBuilder::new(
-            min_row_num,
+        let mut builder = VerificationBuilderImpl::new(
             sumcheck_evaluations,
             &self.final_round_message.bit_distributions,
             sumcheck_random_scalars.subpolynomial_multipliers,
             post_result_challenges,
-            self.first_round_message.one_evaluation_lengths.clone(),
+            self.first_round_message.chi_evaluation_lengths.clone(),
             self.first_round_message.rho_evaluation_lengths.clone(),
             subclaim.max_multiplicands,
         );
@@ -424,7 +423,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &mut builder,
             &evaluation_accessor,
             Some(&result),
-            &one_eval_map,
+            &chi_eval_map,
         )?;
         // compute the evaluation of the result MLEs
         let result_evaluations = result.mle_evaluations(&subclaim.evaluation_point);

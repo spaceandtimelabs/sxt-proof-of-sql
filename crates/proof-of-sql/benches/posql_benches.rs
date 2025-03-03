@@ -8,7 +8,7 @@ use blitzar::proof::InnerProductProof;
 use criterion::{criterion_group, criterion_main, Criterion};
 
 mod scaffold;
-use scaffold::{criterion_scaffold, querys::QUERIES};
+use scaffold::{criterion_scaffold, queries::QUERIES};
 
 const SIZES: &[usize] = &[
     1,

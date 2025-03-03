@@ -38,7 +38,7 @@ impl<const STRICT: bool, const ASC: bool> ProverEvaluate for MonotonicTestPlan<S
             .expect("Table not found");
         let num_rows = table.num_rows();
         builder.request_post_result_challenges(2);
-        builder.produce_one_evaluation_length(num_rows);
+        builder.produce_chi_evaluation_length(num_rows);
         // Evaluate the first round
         first_round_evaluate_monotonic(builder, num_rows);
         // This is just a dummy table, the actual data is not used
@@ -89,19 +89,19 @@ impl<const STRICT: bool, const ASC: bool> ProofPlan for MonotonicTestPlan<STRICT
     #[doc = "Form components needed to verify and proof store into `VerificationBuilder`"]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         // Get the challenges from the builder
         let alpha = builder.try_consume_post_result_challenge()?;
         let beta = builder.try_consume_post_result_challenge()?;
         // Get evaluations
         let column_eval = builder.try_consume_final_round_mle_evaluation()?;
-        let one_eval = builder.try_consume_one_evaluation()?;
+        let chi_eval = builder.try_consume_chi_evaluation()?;
         // Evaluate the verifier
-        verify_monotonic::<S, STRICT, ASC>(builder, alpha, beta, column_eval, one_eval)?;
+        verify_monotonic::<S, STRICT, ASC>(builder, alpha, beta, column_eval, chi_eval)?;
         Ok(TableEvaluation::new(vec![], S::zero()))
     }
 }

@@ -2,7 +2,7 @@ use super::{decode_and_convert, decode_multiple_elements, ProvableResultColumn, 
 use crate::base::{
     database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable, Table},
     polynomial::compute_evaluation_vector,
-    scalar::Scalar,
+    scalar::{Scalar, ScalarExt},
 };
 use alloc::{vec, vec::Vec};
 use num_traits::Zero;
@@ -122,6 +122,12 @@ impl ProvableQueryResult {
                     }
 
                     ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
+                    ColumnType::VarBinary => {
+                        let (raw_bytes, used) =
+                            decode_and_convert::<&[u8], &[u8]>(&self.data[offset..])?;
+                        let x = S::from_byte_slice_via_hash(raw_bytes);
+                        Ok((x, used))
+                    }
                     ColumnType::TimestampTZ(_, _) => {
                         decode_and_convert::<i64, S>(&self.data[offset..])
                     }
@@ -202,6 +208,17 @@ impl ProvableQueryResult {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::VarChar(col)))
+                    }
+                    ColumnType::VarBinary => {
+                        // Manually specify the item type: `&[u8]`
+                        let (decoded_slices, num_read) =
+                            decode_multiple_elements::<&[u8]>(&self.data[offset..], n)?;
+                        offset += num_read;
+
+                        // Convert those slices to owned `Vec<u8>`
+                        let col_vec = decoded_slices.into_iter().map(<[u8]>::to_vec).collect();
+
+                        Ok((field.name(), OwnedColumn::VarBinary(col_vec)))
                     }
                     ColumnType::Scalar => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;

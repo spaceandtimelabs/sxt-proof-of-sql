@@ -100,24 +100,24 @@ where
     #[allow(clippy::too_many_lines, clippy::similar_names)]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        one_eval_map: &IndexMap<TableRef, S>,
+        chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         // 1. columns
         // TODO: Make sure `GroupByExec` as self.input is supported
         let left_eval = self
             .left
-            .verifier_evaluate(builder, accessor, None, one_eval_map)?;
+            .verifier_evaluate(builder, accessor, None, chi_eval_map)?;
         let right_eval = self
             .right
-            .verifier_evaluate(builder, accessor, None, one_eval_map)?;
-        // 2. One evals and rho evals
-        let left_chi_eval = left_eval.one_eval();
-        let right_chi_eval = right_eval.one_eval();
-        let res_chi_eval = builder.try_consume_one_evaluation()?;
-        let u_chi_eval = builder.try_consume_one_evaluation()?;
+            .verifier_evaluate(builder, accessor, None, chi_eval_map)?;
+        // 2. Chi evals and rho evals
+        let left_chi_eval = left_eval.chi_eval();
+        let right_chi_eval = right_eval.chi_eval();
+        let res_chi_eval = builder.try_consume_chi_evaluation()?;
+        let u_chi_eval = builder.try_consume_chi_evaluation()?;
         let left_rho_eval = builder.try_consume_rho_evaluation()?;
         let right_rho_eval = builder.try_consume_rho_evaluation()?;
         // 3. alpha, beta
@@ -358,9 +358,9 @@ impl ProverEvaluate for SortMergeJoinExec {
         let num_rows_u = u[0].len();
         let alloc_u_0 = alloc.alloc_slice_copy(u_0.as_slice());
         builder.produce_intermediate_mle(alloc_u_0 as &[_]);
-        // 3. One eval and rho eval
-        builder.produce_one_evaluation_length(num_rows_res);
-        builder.produce_one_evaluation_length(num_rows_u);
+        // 3. Chi eval and rho eval
+        builder.produce_chi_evaluation_length(num_rows_res);
+        builder.produce_chi_evaluation_length(num_rows_u);
         builder.produce_rho_evaluation_length(num_rows_left);
         builder.produce_rho_evaluation_length(num_rows_right);
         // 4. Membership checks
@@ -470,7 +470,7 @@ impl ProverEvaluate for SortMergeJoinExec {
         let res_hat = alloc.alloc_slice_copy(raw_res_hat.as_slice());
 
         let num_rows_res = left_row_indexes.len();
-        let res_ones = alloc.alloc_slice_fill_copy(num_rows_res, true);
+        let chi_res = alloc.alloc_slice_fill_copy(num_rows_res, true);
 
         // 2. Get the strictly increasing columns, `i` and `u`
         // i = left_row_index * 2^64 + right_row_index
@@ -492,7 +492,7 @@ impl ProverEvaluate for SortMergeJoinExec {
         let u_0 = u[0].to_scalar_with_scaling(0);
         let num_rows_u = u[0].len();
         let alloc_u_0 = alloc.alloc_slice_copy(u_0.as_slice());
-        let u_ones = alloc.alloc_slice_fill_copy(num_rows_u, true);
+        let chi_u = alloc.alloc_slice_fill_copy(num_rows_u, true);
         let alloc_u_0 = alloc.alloc_slice_copy(u_0.as_slice());
 
         // 3. Get post-result challenges
@@ -538,7 +538,7 @@ impl ProverEvaluate for SortMergeJoinExec {
             alpha,
             beta,
             chi_m_l,
-            res_ones,
+            chi_res,
             &hat_left_columns,
             &res_left_columns,
         );
@@ -548,15 +548,15 @@ impl ProverEvaluate for SortMergeJoinExec {
             alpha,
             beta,
             chi_m_r,
-            res_ones,
+            chi_res,
             &hat_right_columns,
             &res_right_columns,
         );
         let w_l = final_round_evaluate_membership_check(
-            builder, alloc, alpha, beta, u_ones, chi_m_l, &u, &c_l,
+            builder, alloc, alpha, beta, chi_u, chi_m_l, &u, &c_l,
         );
         let w_r = final_round_evaluate_membership_check(
-            builder, alloc, alpha, beta, u_ones, chi_m_r, &u, &c_r,
+            builder, alloc, alpha, beta, chi_u, chi_m_r, &u, &c_r,
         );
 
         // 6. Monotonicity checks
@@ -569,7 +569,7 @@ impl ProverEvaluate for SortMergeJoinExec {
             SumcheckSubpolynomialType::ZeroSum,
             vec![
                 (S::one(), vec![Box::new(w_l as &[_]), Box::new(w_r as &[_])]),
-                (-S::one(), vec![Box::new(res_ones as &[_])]),
+                (-S::one(), vec![Box::new(chi_res as &[_])]),
             ],
         );
 

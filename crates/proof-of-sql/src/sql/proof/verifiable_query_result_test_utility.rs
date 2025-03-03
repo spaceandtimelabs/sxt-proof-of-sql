@@ -124,6 +124,7 @@ fn append_single_row_to_column<S: Scalar>(column: &OwnedColumn<S>) -> OwnedColum
         OwnedColumn::Int(col) => col.push(0),
         OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col.push(0),
         OwnedColumn::VarChar(col) => col.push(String::new()),
+        OwnedColumn::VarBinary(col) => col.push(vec![0u8]),
         OwnedColumn::Int128(col) => col.push(0),
         OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col.push(S::ZERO),
         OwnedColumn::FixedSizeBinary(_, items) => items.push(0),
@@ -161,6 +162,7 @@ pub fn tamper_first_row_of_column<S: Scalar>(column: &OwnedColumn<S>) -> OwnedCo
             col[0] = col[0].wrapping_add(1);
         }
         OwnedColumn::VarChar(col) => col[0].push('1'),
+        OwnedColumn::VarBinary(col) => col[0].push(1u8),
         OwnedColumn::Int128(col) => col[0] = col[0].wrapping_add(1),
         OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col[0] += S::ONE,
         OwnedColumn::FixedSizeBinary(_, items) => items[0] = items[0].wrapping_add(1),

@@ -2,9 +2,8 @@
 // This is licensed under the Cryptographic Open Software License 1.0
 pragma solidity ^0.8.28;
 
-// assembly only constants
-// solhint-disable-next-line no-unused-import
-import {ROUND_EVALUATION_MISMATCH, FREE_PTR, WORD_SIZE, MODULUS, MODULUS_MASK} from "../base/Constants.sol";
+import "../base/Constants.sol";
+import "../base/Errors.sol";
 
 /// @title Sumcheck Protocol Verification Library
 /// @notice This library provides functions to verify sumcheck proofs in zero-knowledge protocols.
@@ -26,6 +25,10 @@ library Sumcheck {
         returns (uint256 evaluationPointPtr0, uint256 expectedEvaluation0)
     {
         assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
             // IMPORT-YUL ../base/Transcript.sol
             function append_calldata(transcript_ptr, offset, size) {
                 revert(0, 0)
@@ -59,10 +62,7 @@ library Sumcheck {
                         actual_sum := addmod(actual_sum, coefficient, MODULUS)
                     }
                     actual_sum := addmod(actual_sum, coefficient, MODULUS)
-                    if sub(expected_evaluation, actual_sum) {
-                        mstore(0, ROUND_EVALUATION_MISMATCH)
-                        revert(0, 4)
-                    }
+                    if sub(expected_evaluation, actual_sum) { err(ERR_ROUND_EVALUATION_MISMATCH) }
                     expected_evaluation := round_evaluation
                 }
             }

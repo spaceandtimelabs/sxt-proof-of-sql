@@ -22,7 +22,7 @@ use crate::base::{
 use alloc::sync::Arc;
 use arrow::{
     array::{
-        ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, FixedSizeBinaryArray, Int16Array,
+        ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array, FixedSizeBinaryArray, Int16Array,
         Int32Array, Int64Array, Int8Array, StringArray, TimestampMicrosecondArray,
         TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray, UInt8Array,
     },
@@ -105,6 +105,9 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
             }
             OwnedColumn::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
             OwnedColumn::VarChar(col) => Arc::new(StringArray::from(col)),
+            OwnedColumn::VarBinary(col) => {
+                Arc::new(BinaryArray::from_iter_values(col.iter().map(Vec::as_slice)))
+            }
             OwnedColumn::TimestampTZ(time_unit, _, col) => match time_unit {
                 PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(col)),
                 PoSQLTimeUnit::Millisecond => Arc::new(TimestampMillisecondArray::from(col)),
@@ -237,6 +240,15 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .unwrap()
                     .iter()
                     .map(|s| s.unwrap().to_string())
+                    .collect(),
+            )),
+            DataType::Binary => Ok(Self::VarBinary(
+                value
+                    .as_any()
+                    .downcast_ref::<BinaryArray>()
+                    .unwrap()
+                    .iter()
+                    .map(|s| s.map(<[u8]>::to_vec).unwrap())
                     .collect(),
             )),
             DataType::Timestamp(time_unit, timezone) => match time_unit {

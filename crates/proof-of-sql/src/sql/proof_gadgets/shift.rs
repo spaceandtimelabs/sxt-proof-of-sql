@@ -16,7 +16,7 @@ pub(crate) fn first_round_evaluate_shift<S: Scalar>(
     builder: &mut FirstRoundBuilder<'_, S>,
     num_rows: usize,
 ) {
-    // Note that we don't produce one eval lengths here
+    // Note that we don't produce chi eval lengths here
     // since it needs to be done in uniqueness check which uses shifts.
     builder.produce_rho_evaluation_length(num_rows);
     builder.produce_rho_evaluation_length(num_rows + 1);
@@ -100,7 +100,7 @@ pub(crate) fn final_round_evaluate_shift<'a, S: Scalar>(
 }
 
 pub(crate) fn verify_shift<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+    builder: &mut impl VerificationBuilder<S>,
     alpha: S,
     beta: S,
     column_eval: S,

@@ -6,7 +6,7 @@ use crate::{
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::proof::{
-        FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
+        FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilderImpl,
     },
 };
 use alloc::collections::VecDeque;
@@ -53,11 +53,10 @@ fn we_can_verify_a_constant_decomposition() {
         &[],
         &[],
     );
-    let one_evals = sumcheck_evaluations.one_evaluations.clone();
-    let one_eval = one_evals.values().next().unwrap();
+    let chi_evals = sumcheck_evaluations.chi_evaluations.clone();
+    let chi_eval = chi_evals.values().next().unwrap();
 
-    let mut builder = VerificationBuilder::new(
-        0,
+    let mut builder = VerificationBuilderImpl::new(
         sumcheck_evaluations,
         &dists,
         &[],
@@ -67,7 +66,7 @@ fn we_can_verify_a_constant_decomposition() {
         3,
     );
     let data_eval = (&data).evaluate_at_point(&evaluation_point);
-    let eval = verifier_evaluate_sign(&mut builder, data_eval, *one_eval).unwrap();
+    let eval = verifier_evaluate_sign(&mut builder, data_eval, *chi_eval, Some(8)).unwrap();
     assert_eq!(eval, Curve25519Scalar::ZERO);
 }
 
@@ -88,11 +87,10 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         &[],
         &[],
     );
-    let one_evals = sumcheck_evaluations.one_evaluations.clone();
-    let one_eval = one_evals.values().next().unwrap();
+    let chi_evals = sumcheck_evaluations.chi_evaluations.clone();
+    let chi_eval = chi_evals.values().next().unwrap();
 
-    let mut builder = VerificationBuilder::new(
-        0,
+    let mut builder = VerificationBuilderImpl::new(
         sumcheck_evaluations,
         &dists,
         &[],
@@ -102,7 +100,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         3,
     );
     let data_eval = Curve25519Scalar::from(2) * (&data).evaluate_at_point(&evaluation_point);
-    assert!(verifier_evaluate_sign(&mut builder, data_eval, *one_eval).is_err());
+    assert!(verifier_evaluate_sign(&mut builder, data_eval, *chi_eval, None).is_err());
 }
 
 #[test]

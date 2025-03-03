@@ -82,4 +82,6 @@ pub trait Scalar:
     /// The value to mask the challenge with to ensure it is in the field.
     /// This one less than the largest power of 2 that is less than the field modulus.
     const CHALLENGE_MASK: U256;
+    /// The largest n such that 2^n <=p
+    const MAX_BITS: u8;
 }

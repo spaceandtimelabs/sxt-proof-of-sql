@@ -1,6 +1,5 @@
 use crate::base::scalar::Scalar;
 use alloc::vec::Vec;
-use bincode::Options;
 use zerocopy::{AsBytes, FromBytes};
 
 /// A public-coin transcript.
@@ -43,12 +42,14 @@ pub trait Transcript {
     /// # Panics
     /// - Panics if `postcard::to_allocvec(message)` fails to serialize the message.
     fn extend_serialize_as_le(&mut self, message: &(impl serde::Serialize + ?Sized)) {
-        self.extend_as_le_from_refs([bincode::DefaultOptions::new()
-            .with_fixint_encoding()
-            .with_big_endian()
-            .serialize(message)
-            .unwrap()
-            .as_slice()]);
+        self.extend_as_le_from_refs([bincode::serde::encode_to_vec(
+            message,
+            bincode::config::legacy()
+                .with_fixed_int_encoding()
+                .with_big_endian(),
+        )
+        .unwrap()
+        .as_slice()]);
     }
     /// Appends a type that implements [`ark_serialize::CanonicalSerialize`] by appending the raw bytes (i.e. assuming the message is littleendian)
     ///

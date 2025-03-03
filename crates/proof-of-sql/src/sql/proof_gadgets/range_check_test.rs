@@ -112,7 +112,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
 
         handle_column_with_match!(col, first_round_evaluate_range_check, builder, alloc);
 
-        builder.produce_one_evaluation_length(256);
+        builder.produce_chi_evaluation_length(256);
 
         // Return a clone of the same table
         table.clone()
@@ -159,19 +159,19 @@ impl ProofPlan for RangeCheckTestPlan {
     #[doc = " Form components needed to verify and proof store into `VerificationBuilder`"]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        one_eval_map: &IndexMap<TableRef, S>,
+        chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         let input_column_eval = accessor[&self.column];
-        let input_ones_eval = one_eval_map[&self.column.table_ref()];
+        let chi_n_eval = chi_eval_map[&self.column.table_ref()];
 
-        verifier_evaluate_range_check(builder, input_column_eval, input_ones_eval)?;
+        verifier_evaluate_range_check(builder, input_column_eval, chi_n_eval)?;
 
         Ok(TableEvaluation::new(
             vec![accessor[&self.column]],
-            one_eval_map[&self.column.table_ref()],
+            chi_eval_map[&self.column.table_ref()],
         ))
     }
 }

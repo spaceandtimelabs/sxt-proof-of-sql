@@ -89,12 +89,12 @@ impl ProofExpr for AndExpr {
 
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
-        one_eval: S,
+        chi_eval: S,
     ) -> Result<S, ProofError> {
-        let lhs = self.lhs.verifier_evaluate(builder, accessor, one_eval)?;
-        let rhs = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
+        let lhs = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
+        let rhs = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
 
         // lhs_and_rhs
         let lhs_and_rhs = builder.try_consume_final_round_mle_evaluation()?;

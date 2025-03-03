@@ -2,7 +2,7 @@ use crate::base::{
     database::{Column, ColumnType, OwnedColumn},
     math::{decimal::Precision, non_negative_i32::NonNegativeI32},
     ref_into::RefInto,
-    scalar::Scalar,
+    scalar::{Scalar, ScalarExt},
 };
 use alloc::vec::Vec;
 #[cfg(feature = "blitzar")]
@@ -43,6 +43,8 @@ pub enum CommittableColumn<'a> {
     Scalar(Vec<[u64; 4]>),
     /// Column of limbs for committing to scalars, hashed from a `VarChar` column.
     VarChar(Vec<[u64; 4]>),
+    /// Column of limbs for committing to scalars, hashed from a `Binary` column.
+    VarBinary(Vec<[u64; 4]>),
     /// Borrowed Timestamp column with Timezone, mapped to `i64`.
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
     /// Borrowed `FixedSizeBinary` column, mapped to a slice of bytes.
@@ -63,7 +65,8 @@ impl CommittableColumn<'_> {
             CommittableColumn::Int128(col) => col.len(),
             CommittableColumn::Decimal75(_, _, col)
             | CommittableColumn::Scalar(col)
-            | CommittableColumn::VarChar(col) => col.len(),
+            | CommittableColumn::VarChar(col)
+            | CommittableColumn::VarBinary(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
             CommittableColumn::FixedSizeBinary(_, items) => items.len(),
         }
@@ -96,6 +99,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             }
             CommittableColumn::Scalar(_) => ColumnType::Scalar,
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
+            CommittableColumn::VarBinary(_) => ColumnType::VarBinary,
             CommittableColumn::Boolean(_) => ColumnType::Boolean,
             CommittableColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
             CommittableColumn::FixedSizeBinary(size, _) => ColumnType::FixedSizeBinary(*size),
@@ -121,6 +125,10 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
             Column::VarChar((_, scalars)) => {
                 let as_limbs: Vec<_> = scalars.iter().map(RefInto::<[u64; 4]>::ref_into).collect();
                 CommittableColumn::VarChar(as_limbs)
+            }
+            Column::VarBinary((_, scalars)) => {
+                let as_limbs: Vec<_> = scalars.iter().map(RefInto::<[u64; 4]>::ref_into).collect();
+                CommittableColumn::VarBinary(as_limbs)
             }
             Column::TimestampTZ(tu, tz, times) => CommittableColumn::TimestampTZ(*tu, *tz, times),
             Column::FixedSizeBinary(bw, bytes) => CommittableColumn::FixedSizeBinary(*bw, bytes),
@@ -158,6 +166,13 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
                 strings
                     .iter()
                     .map(Into::<S>::into)
+                    .map(Into::<[u64; 4]>::into)
+                    .collect(),
+            ),
+            OwnedColumn::VarBinary(bytes) => CommittableColumn::VarBinary(
+                bytes
+                    .iter()
+                    .map(|b| S::from_byte_slice_via_hash(b))
                     .map(Into::<[u64; 4]>::into)
                     .collect(),
             ),
@@ -226,7 +241,8 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             CommittableColumn::Int128(ints) => Sequence::from(*ints),
             CommittableColumn::Decimal75(_, _, limbs)
             | CommittableColumn::Scalar(limbs)
-            | CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
+            | CommittableColumn::VarChar(limbs)
+            | CommittableColumn::VarBinary(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
             CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
             CommittableColumn::FixedSizeBinary(_, items) => Sequence::from(*items),
@@ -240,6 +256,68 @@ mod tests {
     use crate::{base::scalar::test_scalar::TestScalar, proof_primitive::dory::DoryScalar};
     use blitzar::compute::compute_curve25519_commitments;
     use curve25519_dalek::ristretto::CompressedRistretto;
+
+    #[test]
+    fn we_can_get_type_and_length_of_varbinary_column() {
+        // empty case
+        let varbinary_committable_column = CommittableColumn::VarBinary(Vec::new());
+        assert_eq!(varbinary_committable_column.len(), 0);
+        assert!(varbinary_committable_column.is_empty());
+        assert_eq!(
+            varbinary_committable_column.column_type(),
+            ColumnType::VarBinary
+        );
+
+        let limbs = vec![[1, 2, 3, 4], [5, 6, 7, 8]];
+        let varbinary_committable_column = CommittableColumn::VarBinary(limbs.clone());
+        assert_eq!(varbinary_committable_column.len(), 2);
+        assert!(!varbinary_committable_column.is_empty());
+        assert_eq!(
+            varbinary_committable_column.column_type(),
+            ColumnType::VarBinary
+        );
+    }
+
+    #[test]
+    fn we_can_convert_from_owned_varbinary_column() {
+        // empty case
+        let owned_column = OwnedColumn::<TestScalar>::VarBinary(Vec::new());
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(from_owned_column, CommittableColumn::VarBinary(vec![]));
+
+        let byte_data = vec![b"foo".to_vec(), b"bar".to_vec()];
+        let owned_column = OwnedColumn::<TestScalar>::VarBinary(byte_data.clone());
+        let from_owned_column = CommittableColumn::from(&owned_column);
+
+        match from_owned_column {
+            CommittableColumn::VarBinary(limbs) => {
+                assert_eq!(limbs.len(), byte_data.len());
+            }
+            _ => panic!("Expected VarBinary"),
+        }
+    }
+
+    #[test]
+    fn we_can_commit_to_varbinary_column_through_committable_column() {
+        let committable_column = CommittableColumn::VarBinary(vec![]);
+        let sequence = Sequence::from(&committable_column);
+        let mut commitment_buffer = [CompressedRistretto::default()];
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
+        assert_eq!(commitment_buffer[0], CompressedRistretto::default());
+
+        let hashed_limbs = vec![[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]];
+        let committable_column = CommittableColumn::VarBinary(hashed_limbs.clone());
+
+        let sequence_actual = Sequence::from(&committable_column);
+        let sequence_expected = Sequence::from(hashed_limbs.as_slice());
+        let mut commitment_buffer = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(
+            &mut commitment_buffer,
+            &[sequence_actual, sequence_expected],
+            0,
+        );
+        assert_eq!(commitment_buffer[0], commitment_buffer[1]);
+    }
 
     #[test]
     fn we_can_convert_from_owned_decimal75_column_to_committable_column() {

@@ -15,7 +15,7 @@ pub(crate) fn first_round_evaluate_monotonic<S: Scalar>(
     builder: &mut FirstRoundBuilder<'_, S>,
     num_rows: usize,
 ) {
-    builder.produce_one_evaluation_length(num_rows + 1);
+    builder.produce_chi_evaluation_length(num_rows + 1);
     first_round_evaluate_shift(builder, num_rows);
 }
 
@@ -79,31 +79,31 @@ pub(crate) fn final_round_evaluate_monotonic<'a, S: Scalar, const STRICT: bool, 
 }
 
 pub(crate) fn verify_monotonic<S: Scalar, const STRICT: bool, const ASC: bool>(
-    builder: &mut VerificationBuilder<S>,
+    builder: &mut impl VerificationBuilder<S>,
     alpha: S,
     beta: S,
     column_eval: S,
-    one_eval: S,
+    chi_eval: S,
 ) -> Result<(), ProofError> {
     // 1. Verify that `shifted_column` is a shift of `column`
     let shifted_column_eval = builder.try_consume_final_round_mle_evaluation()?;
-    let shifted_one_eval = builder.try_consume_one_evaluation()?;
+    let shifted_chi_eval = builder.try_consume_chi_evaluation()?;
     verify_shift(
         builder,
         alpha,
         beta,
         column_eval,
         shifted_column_eval,
-        one_eval,
-        shifted_one_eval,
+        chi_eval,
+        shifted_chi_eval,
     )?;
     // 2. Verify that `ind_eval` is correct. See above for the explanation.
     let ind_eval = match (STRICT, ASC) {
         (true, true) | (false, false) => shifted_column_eval - column_eval,
         _ => column_eval - shifted_column_eval,
     };
-    let sign_eval = verifier_evaluate_sign(builder, ind_eval, shifted_one_eval)?;
-    let singleton_one_eval = builder.mle_evaluations.singleton_one_evaluation;
+    let sign_eval = verifier_evaluate_sign(builder, ind_eval, shifted_chi_eval, None)?;
+    let singleton_chi_eval = builder.singleton_chi_evaluation();
     let allowed_evals = if STRICT {
         // sign(ind) == 1 for all but the first element and the last element
         // The first and last elements can only fit into three patterns
@@ -111,13 +111,13 @@ pub(crate) fn verify_monotonic<S: Scalar, const STRICT: bool, const ASC: bool>(
         // 2. non-negative and negative
         // 3. non-negative and non-negative
         // Hence the evaluation of sign has to be in one of three cases
-        // 1. one_eval
-        // 2. shifted_one_eval - singleton_one_eval
-        // 3. one_eval - singleton_one_eval
+        // 1. chi_eval
+        // 2. shifted_chi_eval - singleton_chi_eval
+        // 3. chi_eval - singleton_chi_eval
         vec![
-            one_eval,
-            shifted_one_eval - singleton_one_eval,
-            one_eval - singleton_one_eval,
+            chi_eval,
+            shifted_chi_eval - singleton_chi_eval,
+            chi_eval - singleton_chi_eval,
         ]
     } else {
         // sign(ind) == 0 for all but the first element and the last element
@@ -127,14 +127,14 @@ pub(crate) fn verify_monotonic<S: Scalar, const STRICT: bool, const ASC: bool>(
         // 3. negative and negative
         // 4. non-negative and non-negative (only the all zero case)
         // Hence the evaluation of sign has to be in one of four cases
-        // 1. singleton_one_eval
-        // 2. shifted_one_eval - one_eval
-        // 3. singleton_one_eval + shifted_one_eval - one_eval
+        // 1. singleton_chi_eval
+        // 2. shifted_chi_eval - chi_eval
+        // 3. singleton_chi_eval + shifted_chi_eval - chi_eval
         // 4. 0
         vec![
-            singleton_one_eval,
-            shifted_one_eval - one_eval,
-            singleton_one_eval + shifted_one_eval - one_eval,
+            singleton_chi_eval,
+            shifted_chi_eval - chi_eval,
+            singleton_chi_eval + shifted_chi_eval - chi_eval,
             S::ZERO,
         ]
     };

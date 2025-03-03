@@ -377,15 +377,18 @@ fn num_rows_of_columns<'a>(
 #[cfg(all(test, feature = "arrow", feature = "blitzar"))]
 mod tests {
     use super::*;
-    use crate::{
-        base::{
-            commitment::naive_commitment::NaiveCommitment,
-            database::{owned_table_utility::*, Column, OwnedColumn},
-            map::IndexMap,
-            scalar::test_scalar::TestScalar,
-        },
-        record_batch,
+    use crate::base::{
+        commitment::naive_commitment::NaiveCommitment,
+        database::{owned_table_utility::*, Column, OwnedColumn},
+        map::IndexMap,
+        scalar::test_scalar::TestScalar,
     };
+    use arrow::{
+        array::{Int64Array, StringArray},
+        datatypes::{DataType, Field, Schema},
+        record_batch::RecordBatch,
+    };
+    use std::sync::Arc;
 
     #[test]
     #[allow(clippy::reversed_empty_ranges)]
@@ -1150,10 +1153,19 @@ mod tests {
 
     #[test]
     fn we_can_create_and_append_table_commitments_with_record_batches() {
-        let batch = record_batch!(
-            "a" => [1i64, 2, 3],
-            "b" => ["1", "2", "3"],
-        );
+        let schema = Arc::new(Schema::new(vec![
+            Field::new("a", DataType::Int64, false),
+            Field::new("b", DataType::Utf8, false),
+        ]));
+
+        let batch = RecordBatch::try_new(
+            schema,
+            vec![
+                Arc::new(Int64Array::from(vec![1, 2, 3])),
+                Arc::new(StringArray::from(vec!["1", "2", "3"])),
+            ],
+        )
+        .unwrap();
 
         let b_scals = ["1".into(), "2".into(), "3".into()];
 
@@ -1173,11 +1185,19 @@ mod tests {
             TableCommitment::<NaiveCommitment>::try_from_record_batch(&batch, &()).unwrap();
 
         assert_eq!(commitment, expected_commitment);
+        let schema2 = Arc::new(Schema::new(vec![
+            Field::new("a", DataType::Int64, false),
+            Field::new("b", DataType::Utf8, false),
+        ]));
 
-        let batch2 = record_batch!(
-            "a" => [4i64, 5, 6],
-            "b" => ["4", "5", "6"],
-        );
+        let batch2 = RecordBatch::try_new(
+            schema2,
+            vec![
+                Arc::new(Int64Array::from(vec![4, 5, 6])),
+                Arc::new(StringArray::from(vec!["4", "5", "6"])),
+            ],
+        )
+        .unwrap();
 
         let b_scals2 = ["4".into(), "5".into(), "6".into()];
 

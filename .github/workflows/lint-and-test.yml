@@ -33,7 +33,7 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.toml') }}
       - name: Install stable toolchain
-        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
+        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup toolchain install
       - name: Install Dependencies
         run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld     
       - name: Run cargo check (no features, exclude examples)
@@ -75,7 +75,7 @@ jobs:
       - name: Run cargo check (proof-of-sql-parser) with no_std target.
         run: |
           rustup target add thumbv7em-none-eabi
-          cargo check -p proof-of-sql-parser --target thumbv7em-none-eabi
+          cargo check --target thumbv7em-none-eabi --no-default-features
 
   test:
     name: Test Suite
@@ -94,7 +94,7 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
       - name: Install stable toolchain
-        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
+        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup toolchain install
       - name: Install Dependencies
         run: |
           export DEBIAN_FRONTEND=non-interactive
@@ -128,7 +128,7 @@ jobs:
         - name: Checkout sources
           uses: actions/checkout@v3
         - name: Install stable toolchain
-          run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
+          run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup toolchain install
         - name: Run hello_world example (With Blitzar)
           run: cargo run --example hello_world --features="test"
         - name: Run hello_world example (Without Blitzar and With Rayon)
@@ -164,7 +164,7 @@ jobs:
           key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.toml') }}
       - name: Install stable toolchain
         run: |
-          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
+          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup toolchain install
           rustup component add clippy
       - name: Install Dependencies
         run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld
@@ -191,20 +191,16 @@ jobs:
       #- name: Run Tests to Generate Coverage Data (std only)
       #  run: cargo llvm-cov --no-report --no-default-features --features="std"
       - name: Generate Final LCOV Report (Merged Coverage)
-        run: cargo llvm-cov report --summary-only --fail-under-lines 90
-      # Future CodeCov Integration
-      # To integrate with CodeCov in the future,, follow these steps: 
-      # 1. Add the CodeCov token to the repository secrets.
-      # 2. Use the CodeCov Action to upload the coverage report. For more detailed info refer to [CodeCov Documentation](https://docs.codecov.com/docs).
-      #
-      # - name: Generate Final LCOV Report (Merged Coverage)
-      #   run: cargo llvm-cov report --lcov --output-path lcov.info --fail-under-lines 95
-      # - name: Upload Coverage to Codecov
-      # uses: codecov/codecov-action@v2
-      # with:
-      #   token: ${{ secrets.CODECOV_TOKEN }}
-      #   files: lcov.info
-      #   fail_ci_if_error: true
+        run: cargo llvm-cov report --lcov --output-path lcov.info
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          files: lcov.info
+          fail_ci_if_error: true
+      - name: Enforce Coverage Threshold
+        run: cargo llvm-cov report --summary-only --fail-under-lines 94
         
   # Run cargo f --check
   format:
@@ -215,7 +211,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Install stable toolchain
         run: |
-          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
+          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup toolchain install
           rustup component add rustfmt
       - name: Run cargo fmt
         run: cargo f --check
@@ -228,8 +224,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Install nightly toolchain
         run: |
-          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup default nightly
-          cargo install cargo-udeps --locked
+          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup toolchain install nightly
+          cargo +nightly install cargo-udeps --locked
       - name: Run cargo udeps
         run: cargo +nightly udeps --all-targets
 
@@ -242,30 +238,29 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: stable
+          version: v1.0.0
       - name: Install dependencies
         run: solidity/scripts/install_deps.sh
       - name: Run tests
-        run: solidity/scripts/pre_forge.sh test -vvv
+        run: |
+          solidity/scripts/pre_forge.sh test
+          solidity/scripts/pre_forge.sh test --via-ir
+          solidity/scripts/pre_forge.sh test --optimize
+          solidity/scripts/pre_forge.sh test --via-ir --optimize
       - name: Install lcov
         run: sudo apt-get update && sudo apt-get install -y lcov
       - name: Check code coverage
         run: solidity/scripts/check_coverage.sh
+      - name: Check fmt
+        run: solidity/scripts/pre_forge.sh fmt --check
+      - name: Run solhint
+        run: |
+          npm install -g solhint
+          cd solidity
+          solhint '**/*.sol' -w 0
+          cd ..
       - name: Run slither
         uses: crytic/slither-action@v0.4.0
         with:
           target: solidity
           slither-config: solidity/slither.config.json
-
-  solhint:
-    name: solhint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Install solhint
-        run: npm install -g solhint
-      - name: Run lints
-        run: |
-          cd solidity/src
-          solhint '**/*.sol' -w 0

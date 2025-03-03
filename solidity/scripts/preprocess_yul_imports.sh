@@ -83,7 +83,7 @@ while IFS= read -r -d '' file; do
     # Handle Solidity imports
     /^import/ {
         import_line = $0
-        while (import_line !~ /;[[:space:]]*$/) {
+        while (import_line !~ /;/) {
             getline
             import_line = import_line "\n" $0
         }

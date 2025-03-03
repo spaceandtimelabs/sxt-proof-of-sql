@@ -4,7 +4,7 @@ use snafu::Snafu;
 #[derive(Snafu, Debug, PartialEq)]
 pub(super) enum Error {
     /// Error indicating that the plan is not supported.
-    #[snafu(display("plan yet not supported"))]
+    #[snafu(display("plan not yet supported"))]
     NotSupported,
     /// Error indicating that the column was not found.
     #[snafu(display("column not found"))]

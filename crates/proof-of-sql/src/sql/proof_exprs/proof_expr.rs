@@ -39,9 +39,9 @@ pub trait ProofExpr: Debug + Send + Sync {
     /// [`VerificationBuilder<S>`]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
-        one_eval: S,
+        chi_eval: S,
     ) -> Result<S, ProofError>;
 
     /// Insert in the [`IndexSet`] `columns` all the column

@@ -5,22 +5,26 @@ use crate::base::{
     slice_ops,
 };
 use alloc::vec::Vec;
+#[cfg(feature = "blitzar")]
+use ark_bn254::G1Affine;
+#[cfg(feature = "blitzar")]
+use blitzar;
 use core::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
 use ff::Field;
+#[cfg(not(feature = "blitzar"))]
 use itertools::Itertools;
 use nova_snark::{
     errors::NovaError,
     provider::{
         bn256_grumpkin::bn256::Scalar as NovaScalar,
-        hyperkzg::{
-            CommitmentEngine, CommitmentKey, EvaluationArgument, EvaluationEngine, VerifierKey,
-        },
+        hyperkzg::{CommitmentKey, EvaluationArgument, EvaluationEngine, VerifierKey},
     },
     traits::{
-        commitment::CommitmentEngineTrait, evaluation::EvaluationEngineTrait, Engine,
-        TranscriptEngineTrait, TranscriptReprTrait,
+        evaluation::EvaluationEngineTrait, Engine, TranscriptEngineTrait, TranscriptReprTrait,
     },
 };
+#[cfg(not(feature = "blitzar"))]
+use nova_snark::{provider::hyperkzg::CommitmentEngine, traits::commitment::CommitmentEngineTrait};
 use serde::{Deserialize, Serialize};
 use tracing::{span, Level};
 
@@ -28,7 +32,7 @@ use tracing::{span, Level};
 pub type BNScalar = MontScalar<ark_bn254::FrConfig>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-/// The `HyperKZG` engine that implememts nova's `Engine` trait.
+/// The `HyperKZG` engine that implements nova's `Engine` trait.
 pub struct HyperKZGEngine;
 
 type NovaCommitment = nova_snark::provider::hyperkzg::Commitment<HyperKZGEngine>;
@@ -46,6 +50,16 @@ pub type HyperKZGCommitmentEvaluationProof = EvaluationArgument<HyperKZGEngine>;
 impl AddAssign for HyperKZGCommitment {
     fn add_assign(&mut self, rhs: Self) {
         self.commitment = self.commitment + rhs.commitment;
+    }
+}
+#[cfg(feature = "blitzar")]
+impl From<&G1Affine> for HyperKZGCommitment {
+    fn from(value: &G1Affine) -> Self {
+        Self {
+            commitment: NovaCommitment::new(
+                blitzar::compute::convert_to_halo2_bn256_g1_affine(value).into(),
+            ),
+        }
     }
 }
 impl From<&BNScalar> for NovaScalar {
@@ -93,6 +107,7 @@ impl Sub for HyperKZGCommitment {
     }
 }
 
+#[cfg(not(feature = "blitzar"))]
 #[tracing::instrument(name = "compute_commitments_impl (cpu)", level = "debug", skip_all)]
 fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
     setup: &CommitmentKey<HyperKZGEngine>,
@@ -113,6 +128,7 @@ impl Commitment for HyperKZGCommitment {
     type Scalar = BNScalar;
     type PublicSetup<'a> = &'a CommitmentKey<HyperKZGEngine>;
 
+    #[cfg(not(feature = "blitzar"))]
     #[tracing::instrument(name = "compute_commitments (cpu)", level = "debug", skip_all)]
     fn compute_commitments(
         committable_columns: &[crate::base::commitment::CommittableColumn],
@@ -133,13 +149,47 @@ impl Commitment for HyperKZGCommitment {
                 CommittableColumn::Int128(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::Decimal75(_, _, vals)
                 | CommittableColumn::Scalar(vals)
-                | CommittableColumn::VarChar(vals) => compute_commitments_impl(setup, offset, vals),
+                | CommittableColumn::VarChar(vals) 
+                | CommittableColumn::VarBinary(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::FixedSizeBinary(_, items) => {
                     compute_commitments_impl(setup, offset, items)
                 }
             })
             .collect()
     }
+
+    #[cfg(feature = "blitzar")]
+    #[tracing::instrument(name = "compute_commitments (gpu)", level = "debug", skip_all)]
+    fn compute_commitments(
+        committable_columns: &[crate::base::commitment::CommittableColumn],
+        offset: usize,
+        setup: &Self::PublicSetup<'_>,
+    ) -> Vec<Self> {
+        if committable_columns.is_empty() {
+            return Vec::new();
+        }
+
+        // Find the maximum length of the columns to get number of generators to use
+        let max_column_len = committable_columns
+            .iter()
+            .map(CommittableColumn::len)
+            .max()
+            .expect("You must have at least one column");
+
+        let mut blitzar_commitments = vec![G1Affine::default(); committable_columns.len()];
+
+        blitzar::compute::compute_bn254_g1_uncompressed_commitments_with_generators(
+            &mut blitzar_commitments,
+            &slice_ops::slice_cast(committable_columns),
+            &slice_ops::slice_cast_with(
+                &setup.ck()[offset..offset + max_column_len],
+                blitzar::compute::convert_to_ark_bn254_g1_affine,
+            ),
+        );
+
+        slice_ops::slice_cast(&blitzar_commitments)
+    }
+
     fn to_transcript_bytes(&self) -> Vec<u8> {
         self.commitment.to_transcript_bytes()
     }
@@ -268,6 +318,8 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "blitzar")]
+    use crate::base::math::decimal::Precision;
     use crate::base::{
         commitment::commitment_evaluation_proof_test::{
             test_commitment_evaluation_proof_with_length_1,
@@ -275,8 +327,16 @@ mod tests {
         },
         scalar::test_scalar_constants,
     };
+    #[cfg(feature = "blitzar")]
+    use ark_ec::AffineRepr;
     use ark_std::UniformRand;
-    use nova_snark::provider::hyperkzg::CommitmentEngine;
+    #[cfg(feature = "blitzar")]
+    use itertools::Itertools;
+    use nova_snark::{
+        provider::hyperkzg::CommitmentEngine, traits::commitment::CommitmentEngineTrait,
+    };
+    #[cfg(feature = "blitzar")]
+    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_have_correct_constants_for_bn_scalar() {
@@ -376,5 +436,210 @@ mod tests {
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
             128, 0, &&ck, &&vk,
         );
+    }
+
+    #[cfg(feature = "blitzar")]
+    fn compute_commitment_with_hyperkzg_repo<T: Into<BNScalar> + Clone>(
+        setup: &CommitmentKey<HyperKZGEngine>,
+        offset: usize,
+        scalars: &[T],
+    ) -> HyperKZGCommitment {
+        let commitment = CommitmentEngine::commit(
+            setup,
+            &itertools::repeat_n(BNScalar::ZERO, offset)
+                .chain(scalars.iter().map(Into::into))
+                .map(Into::into)
+                .collect_vec(),
+            &NovaScalar::ZERO,
+        );
+        HyperKZGCommitment { commitment }
+    }
+
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_compute_commitment_with_hyperkzg_repo_for_testing() {
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 6);
+
+        let result = compute_commitment_with_hyperkzg_repo(&ck, 0, &[0]);
+
+        assert_eq!(result, (&G1Affine::default()).into());
+    }
+
+    #[cfg(feature = "blitzar")]
+    fn compute_expected_commitments(
+        committable_columns: &[CommittableColumn],
+        offset: usize,
+        ck: &CommitmentKey<HyperKZGEngine>,
+    ) -> Vec<HyperKZGCommitment> {
+        let mut expected: Vec<HyperKZGCommitment> = Vec::with_capacity(committable_columns.len());
+        for column in committable_columns {
+            match column {
+                CommittableColumn::Boolean(vals) => {
+                    expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, vals));
+                }
+                CommittableColumn::Uint8(vals) => {
+                    expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, vals));
+                }
+                CommittableColumn::TinyInt(vals) => {
+                    expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, vals));
+                }
+                CommittableColumn::SmallInt(vals) => {
+                    expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, vals));
+                }
+                CommittableColumn::Int(vals) => {
+                    expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, vals));
+                }
+                CommittableColumn::BigInt(vals) | CommittableColumn::TimestampTZ(_, _, vals) => {
+                    expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, vals));
+                }
+                CommittableColumn::Int128(vals) => {
+                    expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, vals));
+                }
+                CommittableColumn::Decimal75(_, _, vals)
+                | CommittableColumn::Scalar(vals)
+                | CommittableColumn::VarChar(vals)
+                | CommittableColumn::VarBinary(vals) => {
+                    expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, vals));
+                }
+            }
+        }
+        expected
+    }
+
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_compute_expected_commitments_for_testing() {
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 6);
+
+        let committable_columns = vec![CommittableColumn::BigInt(&[0; 0])];
+
+        let offset = 0;
+
+        let result = compute_expected_commitments(&committable_columns, offset, &ck);
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].commitment, NovaCommitment::default());
+    }
+
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_compute_a_commitment_with_only_one_column() {
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 6);
+
+        let committable_columns = vec![CommittableColumn::BigInt(&[0, 1, 2, 3, 4, 5, 6, 7])];
+
+        let offset = 0;
+
+        let res = HyperKZGCommitment::compute_commitments(&committable_columns, offset, &&ck);
+        let expected = compute_expected_commitments(&committable_columns, offset, &ck);
+
+        assert_eq!(res, expected);
+    }
+
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_compute_commitments_with_a_single_empty_column() {
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 32);
+
+        let committable_columns = vec![CommittableColumn::BigInt(&[0; 0])];
+
+        for offset in 0..32 {
+            let res = HyperKZGCommitment::compute_commitments(&committable_columns, offset, &&ck);
+            let expected = compute_expected_commitments(&committable_columns, offset, &ck);
+
+            assert_eq!(res, expected, "Offset: {offset}");
+        }
+    }
+
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_compute_commitments_with_a_multiple_mixed_empty_columns() {
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 32);
+
+        let committable_columns = vec![
+            CommittableColumn::TinyInt(&[0; 0]),
+            CommittableColumn::SmallInt(&[0; 0]),
+            CommittableColumn::Uint8(&[0; 0]),
+            CommittableColumn::Int(&[0; 0]),
+            CommittableColumn::BigInt(&[0; 0]),
+            CommittableColumn::Int128(&[0; 0]),
+        ];
+
+        for offset in 0..32 {
+            let res = HyperKZGCommitment::compute_commitments(&committable_columns, offset, &&ck);
+            let expected = compute_expected_commitments(&committable_columns, offset, &ck);
+
+            assert_eq!(res, expected, "Offset: {offset}");
+        }
+    }
+
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_compute_a_commitment_with_mixed_columns_of_different_sizes_and_offsets() {
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 128);
+
+        let committable_columns = vec![
+            CommittableColumn::BigInt(&[0, 1]),
+            CommittableColumn::Uint8(&[2, 3]),
+            CommittableColumn::Int(&[4, 5, 10]),
+            CommittableColumn::SmallInt(&[6, 7]),
+            CommittableColumn::Int128(&[8, 9]),
+            CommittableColumn::Boolean(&[true, true]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![[10, 0, 0, 0], [11, 0, 0, 0], [12, 0, 0, 0], [13, 0, 0, 0]],
+            ),
+            CommittableColumn::Scalar(vec![[14, 0, 0, 0], [15, 0, 0, 0]]),
+            CommittableColumn::VarChar(vec![[16, 0, 0, 0]]),
+            CommittableColumn::TimestampTZ(
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::utc(),
+                &[17, 18, 19, 20],
+            ),
+            CommittableColumn::VarBinary(vec![[21, 0, 0, 0]]),
+        ];
+
+        for offset in 0..64 {
+            let res = HyperKZGCommitment::compute_commitments(&committable_columns, offset, &&ck);
+            let expected = compute_expected_commitments(&committable_columns, offset, &ck);
+
+            assert_eq!(res, expected, "Offset: {offset}");
+        }
+    }
+
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_compute_a_commitment_with_mixed_signed_columns_of_different_sizes_and_offsets() {
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 128);
+
+        let committable_columns = vec![
+            CommittableColumn::BigInt(&[-1, -2, -3]),
+            CommittableColumn::Int(&[-4, -5, -10]),
+            CommittableColumn::SmallInt(&[-6, -7]),
+            CommittableColumn::Int128(&[-8, -9]),
+        ];
+
+        for offset in 0..60 {
+            let res = HyperKZGCommitment::compute_commitments(&committable_columns, offset, &&ck);
+            let expected = compute_expected_commitments(&committable_columns, offset, &ck);
+
+            assert_eq!(res, expected, "Offset: {offset}");
+        }
+    }
+
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_convert_default_point_to_a_hyperkzg_commitment_from_ark_bn254_g1_affine() {
+        let commitment: HyperKZGCommitment = HyperKZGCommitment::from(&G1Affine::default());
+        assert_eq!(commitment.commitment, NovaCommitment::default());
+    }
+
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_convert_generator_to_a_hyperkzg_commitment_from_ark_bn254_g1_affine() {
+        let commitment: HyperKZGCommitment = (&G1Affine::generator()).into();
+        let expected: HyperKZGCommitment = HyperKZGCommitment::from(&G1Affine::generator());
+        assert_eq!(commitment.commitment, expected.commitment);
     }
 }

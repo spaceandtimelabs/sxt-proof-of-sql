@@ -96,12 +96,12 @@ impl ProofExpr for InequalityExpr {
 
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
-        one_eval: S,
+        chi_eval: S,
     ) -> Result<S, ProofError> {
-        let lhs_eval = self.lhs.verifier_evaluate(builder, accessor, one_eval)?;
-        let rhs_eval = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
+        let lhs_eval = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
+        let rhs_eval = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let diff_eval = if self.is_lt {
@@ -111,7 +111,7 @@ impl ProofExpr for InequalityExpr {
         };
 
         // sign(diff) == -1
-        verifier_evaluate_sign(builder, diff_eval, one_eval)
+        verifier_evaluate_sign(builder, diff_eval, chi_eval, None)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

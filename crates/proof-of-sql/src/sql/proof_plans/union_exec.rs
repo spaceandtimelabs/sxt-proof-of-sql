@@ -50,15 +50,15 @@ where
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        one_eval_map: &IndexMap<TableRef, S>,
+        chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         let input_table_evals = self
             .inputs
             .iter()
-            .map(|input| input.verifier_evaluate(builder, accessor, None, one_eval_map))
+            .map(|input| input.verifier_evaluate(builder, accessor, None, chi_eval_map))
             .collect::<Result<Vec<_>, _>>()?;
         let num_parts = self.inputs.len();
         let input_column_evals = input_table_evals
@@ -67,11 +67,11 @@ where
             .collect::<Vec<_>>();
         let output_column_evals =
             builder.try_consume_final_round_mle_evaluations(self.schema.len())?;
-        let input_one_evals = input_table_evals
+        let chi_n_evals = input_table_evals
             .iter()
-            .map(TableEvaluation::one_eval)
+            .map(TableEvaluation::chi_eval)
             .collect::<Vec<_>>();
-        let output_one_eval = builder.try_consume_one_evaluation()?;
+        let chi_m_eval = builder.try_consume_chi_evaluation()?;
         let gamma = builder.try_consume_post_result_challenge()?;
         let beta = builder.try_consume_post_result_challenge()?;
         verify_union(
@@ -80,10 +80,10 @@ where
             beta,
             &input_column_evals,
             &output_column_evals,
-            &input_one_evals,
-            output_one_eval,
+            &chi_n_evals,
+            chi_m_eval,
         )?;
-        Ok(TableEvaluation::new(output_column_evals, output_one_eval))
+        Ok(TableEvaluation::new(output_column_evals, chi_m_eval))
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -120,7 +120,7 @@ impl ProverEvaluate for UnionExec {
             .collect::<Vec<_>>();
         let res = table_union(&inputs, alloc, self.schema.clone()).expect("Failed to union tables");
         builder.request_post_result_challenges(2);
-        builder.produce_one_evaluation_length(res.num_rows());
+        builder.produce_chi_evaluation_length(res.num_rows());
         res
     }
 
@@ -171,25 +171,25 @@ impl ProverEvaluate for UnionExec {
 /// Should never panic if the code is correct.
 #[allow(clippy::too_many_arguments)]
 fn verify_union<S: Scalar>(
-    builder: &mut VerificationBuilder<S>,
+    builder: &mut impl VerificationBuilder<S>,
     gamma: S,
     beta: S,
     input_evals: &[&[S]],
     output_eval: &[S],
-    input_one_evals: &[S],
-    output_one_eval: S,
+    chi_n_evals: &[S],
+    chi_m_eval: S,
 ) -> Result<(), ProofError> {
-    assert_eq!(input_evals.len(), input_one_evals.len());
+    assert_eq!(input_evals.len(), chi_n_evals.len());
     let c_star_evals = input_evals
         .iter()
-        .zip(input_one_evals)
-        .map(|(&input_eval, &input_one_eval)| -> Result<_, ProofError> {
+        .zip(chi_n_evals)
+        .map(|(&input_eval, &input_chi_eval)| -> Result<_, ProofError> {
             let c_fold_eval = gamma * fold_vals(beta, input_eval);
             let c_star_eval = builder.try_consume_final_round_mle_evaluation()?;
-            // c_star + c_fold * c_star - input_ones = 0
+            // c_star + c_fold * c_star - chi_n_i = 0
             builder.try_produce_sumcheck_subpolynomial_evaluation(
                 SumcheckSubpolynomialType::Identity,
-                c_star_eval + c_fold_eval * c_star_eval - input_one_eval,
+                c_star_eval + c_fold_eval * c_star_eval - input_chi_eval,
                 2,
             )?;
             Ok(c_star_eval)
@@ -199,10 +199,10 @@ fn verify_union<S: Scalar>(
     let d_bar_fold_eval = gamma * fold_vals(beta, output_eval);
     let d_star_eval = builder.try_consume_final_round_mle_evaluation()?;
 
-    // d_star + d_bar_fold * d_star - output_ones = 0
+    // d_star + d_bar_fold * d_star - chi_m = 0
     builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        d_star_eval + d_bar_fold_eval * d_star_eval - output_one_eval,
+        d_star_eval + d_bar_fold_eval * d_star_eval - chi_m_eval,
         2,
     )?;
 
@@ -241,7 +241,7 @@ fn prove_union<'a, S: Scalar + 'a>(
         .zip(input_tables.iter())
         .map(|(&input_length, input_table)| {
             // Indicator vector for the input table
-            let input_ones = alloc.alloc_slice_fill_copy(input_length, true);
+            let chi_n_i = alloc.alloc_slice_fill_copy(input_length, true);
 
             let c_fold = alloc.alloc_slice_fill_copy(input_length, Zero::zero());
             fold_columns(c_fold, gamma, beta, input_table);
@@ -252,7 +252,7 @@ fn prove_union<'a, S: Scalar + 'a>(
             let c_star_copy = alloc.alloc_slice_copy(c_star);
             builder.produce_intermediate_mle(c_star as &[_]);
 
-            // c_star + c_fold * c_star - input_ones = 0
+            // c_star + c_fold * c_star - chi_n_i = 0
             builder.produce_sumcheck_subpolynomial(
                 SumcheckSubpolynomialType::Identity,
                 vec![
@@ -261,7 +261,7 @@ fn prove_union<'a, S: Scalar + 'a>(
                         S::one(),
                         vec![Box::new(c_star as &[_]), Box::new(c_fold as &[_])],
                     ),
-                    (-S::one(), vec![Box::new(input_ones as &[_])]),
+                    (-S::one(), vec![Box::new(chi_n_i as &[_])]),
                 ],
             );
             c_star_copy
@@ -276,8 +276,8 @@ fn prove_union<'a, S: Scalar + 'a>(
     slice_ops::add_const::<S, S>(d_star, One::one());
     slice_ops::batch_inversion(d_star);
     builder.produce_intermediate_mle(d_star as &[_]);
-    // d_star + d_fold * d_star - output_ones = 0
-    let output_ones = alloc.alloc_slice_fill_copy(output_length, true);
+    // d_star + d_fold * d_star - chi_m = 0
+    let chi_m = alloc.alloc_slice_fill_copy(output_length, true);
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
@@ -286,7 +286,7 @@ fn prove_union<'a, S: Scalar + 'a>(
                 S::one(),
                 vec![Box::new(d_star as &[_]), Box::new(d_fold as &[_])],
             ),
-            (-S::one(), vec![Box::new(output_ones as &[_])]),
+            (-S::one(), vec![Box::new(chi_m as &[_])]),
         ],
     );
 

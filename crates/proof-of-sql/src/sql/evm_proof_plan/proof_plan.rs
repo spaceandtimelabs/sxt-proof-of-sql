@@ -86,13 +86,13 @@ impl Serialize for EVMProofPlan {
 impl ProofPlan for EVMProofPlan {
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
-        one_eval_map: &IndexMap<TableRef, S>,
+        chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         self.inner()
-            .verifier_evaluate(builder, accessor, result, one_eval_map)
+            .verifier_evaluate(builder, accessor, result, chi_eval_map)
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         self.inner().get_column_result_fields()

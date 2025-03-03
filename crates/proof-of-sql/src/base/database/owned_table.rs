@@ -130,6 +130,11 @@ impl<S: Scalar> OwnedTable<S> {
     pub fn column_names(&self) -> impl Iterator<Item = &Ident> {
         self.table.keys()
     }
+    /// Returns the column with the given position.
+    #[must_use]
+    pub fn column_by_index(&self, index: usize) -> Option<&OwnedColumn<S>> {
+        self.table.get_index(index).map(|(_, v)| v)
+    }
 
     pub(crate) fn mle_evaluations(&self, evaluation_point: &[S]) -> Vec<S> {
         let mut evaluation_vector = vec![S::ZERO; self.num_rows()];

@@ -39,14 +39,14 @@ impl ProofPlan for EmptyExec {
     #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         Ok(TableEvaluation::new(
             Vec::<S>::new(),
-            builder.mle_evaluations.singleton_one_evaluation,
+            builder.singleton_chi_evaluation(),
         ))
     }
 

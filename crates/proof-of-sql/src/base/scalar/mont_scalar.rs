@@ -444,6 +444,14 @@ where
             u64::MAX >> (T::MODULUS.0[3].leading_zeros() + 1),
         ])
     };
+    #[allow(clippy::cast_possible_truncation)]
+    const MAX_BITS: u8 = {
+        assert!(
+            T::MODULUS.0[3].leading_zeros() < 64,
+            "modulus expected to be larger than 1 << (64*3)"
+        );
+        255 - T::MODULUS.0[3].leading_zeros() as u8
+    };
 }
 
 impl<T> TryFrom<MontScalar<T>> for bool

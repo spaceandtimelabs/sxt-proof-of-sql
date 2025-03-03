@@ -1,0 +1,52 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{todonotes}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\title{Permutation}
+\author{Space and Time Inc}
+\date{February 2025}
+
+\begin{document}
+\maketitle
+
+\noindent Let $A=(a_{ij})$ be a table. We need to prove that $R=(r_{ij})$ is a permuted version of $A$. \\
+
+\section{Summary}
+\begin{itemize}
+    \item Plan values: $i$ and number of columns in $A$
+    \item Inputs: $A$
+    \item Outputs: $R$
+    \item Hints: $c$, $d$, $c^\ast$, $d^\ast$.
+\end{itemize}
+
+\section{Details}
+We set 
+
+\begin{align*}
+    \hat{c} &\equiv \sum_j a_j \beta^j &\hat{d} &\equiv \sum_j r_ j \beta^j
+\end{align*}
+
+The $3$ constraints are:
+
+\begin{align*}
+    c^\ast \cdot (\alpha + \hat{c}) &\equiv \chi_{[0,n)}\\
+    d^\ast \cdot (\alpha + \hat{d}) &\equiv \chi_{[0,n)}\\
+    c^\ast &\overset{\sum}{=} d^\ast
+\end{align*}
+\end{document}

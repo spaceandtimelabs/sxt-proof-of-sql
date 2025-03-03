@@ -238,8 +238,10 @@ impl ColumnBounds {
             CommittableColumn::Boolean(_)
             | CommittableColumn::Decimal75(_, _, _)
             | CommittableColumn::Scalar(_)
-            | CommittableColumn::VarChar(_)
-            | CommittableColumn::FixedSizeBinary(_, _) => ColumnBounds::NoOrder,
+            | CommittableColumn::VarBinary(_)
+            | CommittableColumn::FixedSizeBinary(_, _)
+            | CommittableColumn::VarChar(_) => ColumnBounds::NoOrder,
+
         }
     }
 

@@ -34,8 +34,8 @@ impl ProverEvaluate for ShiftTestPlan {
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
     ) -> Table<'a, S> {
         builder.request_post_result_challenges(2);
-        builder.produce_one_evaluation_length(self.column_length);
-        builder.produce_one_evaluation_length(self.column_length + 1);
+        builder.produce_chi_evaluation_length(self.column_length);
+        builder.produce_chi_evaluation_length(self.column_length + 1);
         // Evaluate the first round
         first_round_evaluate_shift(builder, self.column_length);
         // This is just a dummy table, the actual data is not used
@@ -104,10 +104,10 @@ impl ProofPlan for ShiftTestPlan {
     #[doc = "Form components needed to verify and proof store into `VerificationBuilder`"]
     fn verifier_evaluate<S: Scalar>(
         &self,
-        builder: &mut VerificationBuilder<S>,
+        builder: &mut impl VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
-        _one_eval_map: &IndexMap<TableRef, S>,
+        _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
         // Get the challenges from the builder
         let alpha = builder.try_consume_post_result_challenge()?;
@@ -115,8 +115,8 @@ impl ProofPlan for ShiftTestPlan {
         // Get the columns
         let column_eval = builder.try_consume_final_round_mle_evaluation()?;
         let candidate_shift_eval = builder.try_consume_final_round_mle_evaluation()?;
-        let chi_n_eval = builder.try_consume_one_evaluation()?;
-        let chi_n_plus_1_eval = builder.try_consume_one_evaluation()?;
+        let chi_n_eval = builder.try_consume_chi_evaluation()?;
+        let chi_n_plus_1_eval = builder.try_consume_chi_evaluation()?;
         // Evaluate the verifier
         verify_shift(
             builder,
