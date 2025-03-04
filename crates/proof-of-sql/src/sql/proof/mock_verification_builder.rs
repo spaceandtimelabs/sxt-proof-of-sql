@@ -35,28 +35,16 @@ impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
     ) -> Result<(), ProofSizeMismatch> {
         match subpolynomial_type {
             SumcheckSubpolynomialType::Identity => {
-                if self.identity_subpolynomial_evaluations.len() <= self.evaluation_row_index {
-                    self.identity_subpolynomial_evaluations
-                        .extend(iter::repeat(Vec::new()).take(
-                            self.evaluation_row_index
-                                - self.identity_subpolynomial_evaluations.len()
-                                + 1,
-                        ));
-                }
+                self.identity_subpolynomial_evaluations
+                    .resize_with(self.evaluation_row_index + 1, Vec::new);
                 if degree + 1 > self.subpolynomial_max_multiplicands {
                     Err(ProofSizeMismatch::SumcheckProofTooSmall)?;
                 }
                 self.identity_subpolynomial_evaluations[self.evaluation_row_index].push(eval);
             }
             SumcheckSubpolynomialType::ZeroSum => {
-                if self.zerosum_subpolynomial_evaluations.len() <= self.evaluation_row_index {
-                    self.zerosum_subpolynomial_evaluations
-                        .extend(iter::repeat(Vec::new()).take(
-                            self.evaluation_row_index
-                                - self.zerosum_subpolynomial_evaluations.len()
-                                + 1,
-                        ));
-                }
+                self.zerosum_subpolynomial_evaluations
+                    .resize_with(self.evaluation_row_index + 1, Vec::new);
                 if degree > self.subpolynomial_max_multiplicands {
                     Err(ProofSizeMismatch::SumcheckProofTooSmall)?;
                 }
@@ -119,11 +107,6 @@ impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
 }
 
 impl<S: Scalar> MockVerificationBuilder<S> {
-    #[allow(
-        clippy::missing_panics_doc,
-        reason = "The only possible panic is from the assertion comparing lengths, which is clear from context."
-    )]
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         bit_distributions: Vec<BitDistribution>,
         subpolynomial_max_multiplicands: usize,
