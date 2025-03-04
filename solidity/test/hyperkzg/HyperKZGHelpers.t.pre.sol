@@ -7,6 +7,7 @@ import "../../src/base/Constants.sol";
 import "../../src/base/Errors.sol";
 import {HyperKZGHelpers} from "../../src/hyperkzg/HyperKZGHelpers.pre.sol";
 import {ECPrecompilesTestHelper} from "../base/ECPrecompiles.t.pre.sol";
+import {F, FF} from "../base/FieldUtil.sol";
 
 contract HyperKZGHelpersTest is Test {
     function testFuzzRunTranscriptWhenEllIs1(uint256[3] memory v, uint256[6] memory w, uint256[1] memory transcript)
@@ -105,21 +106,21 @@ contract HyperKZGHelpersTest is Test {
     }
 
     function testFuzzBivariateEvaluation(uint256[3][] calldata v, uint256 q, uint256 d) public pure {
-        uint256 expectedSum = 0;
+        FF expectedSum = F.ZERO;
         uint256 ell = v.length;
         for (uint256 i = 0; i < ell; ++i) {
             for (uint256 j = 0; j < 3; ++j) {
-                uint256 qdPow = 1;
+                FF qdPow = F.ONE;
                 for (uint256 k = 0; k < i; ++k) {
-                    qdPow = mulmod(qdPow, q, MODULUS);
+                    qdPow = qdPow * F.from(q);
                 }
                 for (uint256 k = 0; k < j; ++k) {
-                    qdPow = mulmod(qdPow, d, MODULUS);
+                    qdPow = qdPow * F.from(d);
                 }
-                expectedSum = addmod(expectedSum, mulmod(v[i][j], qdPow, MODULUS), MODULUS);
+                expectedSum = expectedSum + F.from(v[i][j]) * qdPow;
             }
         }
-        assert(HyperKZGHelpers.__bivariateEvaluation(v, q, d) == expectedSum);
+        assert(HyperKZGHelpers.__bivariateEvaluation(v, q, d) == expectedSum.into());
     }
 
     function testEmptyCheckVConsistency() public pure {
@@ -154,22 +155,12 @@ contract HyperKZGHelpersTest is Test {
         uint256[3][] memory v = new uint256[3][](ell);
         v[0][2] = vRand[ell][0];
         for (uint256 i = 0; i < ell; ++i) {
-            // v_0 = 2r * vRand_0
-            // v_1 = 2r * vRand_1
-            v[i][0] = mulmod(mulmod(2, r, MODULUS), vRand[i][0], MODULUS);
-            v[i][1] = mulmod(mulmod(2, r, MODULUS), vRand[i][1], MODULUS);
-            // y =  r * (1 - x) * (vRand_0 + vRand_1) + x * (vRand_0 - vRand_1)
-            y = addmod(
-                mulmod(
-                    r,
-                    mulmod(
-                        1 + mulmod(MODULUS_MINUS_ONE, x[i], MODULUS), addmod(vRand[i][0], vRand[i][1], MODULUS), MODULUS
-                    ),
-                    MODULUS
-                ),
-                mulmod(x[i], addmod(vRand[i][0], mulmod(MODULUS_MINUS_ONE, vRand[i][1], MODULUS), MODULUS), MODULUS),
-                MODULUS
-            );
+            FF vRand0 = F.from(vRand[i][0]);
+            FF vRand1 = F.from(vRand[i][1]);
+            FF xi = F.from(x[i]);
+            v[i][0] = (F.TWO * F.from(r) * vRand0).into();
+            v[i][1] = (F.TWO * F.from(r) * vRand1).into();
+            y = (F.from(r) * (F.ONE - xi) * (vRand0 + vRand1) + xi * (vRand0 - vRand1)).into();
             if (i < x.length - 1) {
                 v[i + 1][2] = y;
             }
@@ -231,19 +222,19 @@ contract HyperKZGHelpersTest is Test {
     function testFuzzUnivariateGroupEvaluation(uint256[] memory p, uint256 e) public view {
         uint256[4] memory scratch = [uint256(0xDEAD), 0xDEAD, 0xDEAD, 0xDEAD];
         uint256[2][] memory g = new uint256[2][](p.length);
-        uint256 pOfE = 0;
+        FF pOfE = F.ZERO;
         uint256 n = p.length;
-        uint256 eToTheI = 1;
+        FF eToTheI = F.ONE;
         uint256 gx;
         uint256 gy;
         for (uint256 i = 0; i < n; ++i) {
-            pOfE = addmod(pOfE, mulmod(p[i], eToTheI, MODULUS), MODULUS);
+            pOfE = pOfE + F.from(p[i]) * eToTheI;
             (gx, gy) = ECPrecompilesTestHelper.ecBasePower(p[i]);
             g[i] = [gx, gy];
-            eToTheI = mulmod(eToTheI, e, MODULUS);
+            eToTheI = eToTheI * F.from(e);
         }
         scratch = HyperKZGHelpers.__univariateGroupEvaluation(g, e, scratch);
-        (gx, gy) = ECPrecompilesTestHelper.ecBasePower(pOfE);
+        (gx, gy) = ECPrecompilesTestHelper.ecBasePower(pOfE.into());
         assert(scratch[0] == gx);
         assert(scratch[1] == gy);
         if (n > 1) {
@@ -321,40 +312,35 @@ contract HyperKZGHelpersTest is Test {
         uint256[4] memory rqdb,
         uint256[5] memory scratch
     ) public view {
-        uint256 expectedPower = MODULUS - (rqdb[3] % MODULUS);
-        expectedPower = addmod(expectedPower, mulmod(rqdb[0], wPower[0], MODULUS), MODULUS);
-        expectedPower =
-            addmod(expectedPower, mulmod(MODULUS - mulmod(rqdb[0], rqdb[2], MODULUS), wPower[1], MODULUS), MODULUS);
-        expectedPower = addmod(
-            expectedPower,
-            mulmod(
-                mulmod(mulmod(rqdb[0], rqdb[2], MODULUS), mulmod(rqdb[0], rqdb[2], MODULUS), MODULUS),
-                wPower[2],
-                MODULUS
-            ),
-            MODULUS
-        );
+        FF expectedPower;
+        {
+            FF r = F.from(rqdb[0]);
+            FF d = F.from(rqdb[2]);
+            FF b = F.from(rqdb[3]);
+            expectedPower = -b;
+            expectedPower = expectedPower + r * F.from(wPower[0]);
+            expectedPower = expectedPower - r * d * F.from(wPower[1]);
+            expectedPower = expectedPower + r * d * r * d * F.from(wPower[2]);
+        }
 
-        uint256 qToTheIPlusOne = 1;
-        uint256 comSum = 0;
+        FF qToTheIPlusOne = F.ONE;
+        FF comSum = F.ZERO;
 
         uint256[2][] memory com = new uint256[2][](comPower.length);
         uint256 comLength = comPower.length;
         for (uint256 i = 0; i < comLength; ++i) {
-            (uint256 comx, uint256 comy) = ECPrecompilesTestHelper.ecBasePower(comPower[i]);
-            com[i] = [comx, comy];
-            qToTheIPlusOne = mulmod(qToTheIPlusOne, rqdb[1], MODULUS);
-            comSum = addmod(comSum, mulmod(comPower[i], qToTheIPlusOne, MODULUS), MODULUS);
+            {
+                (uint256 comx, uint256 comy) = ECPrecompilesTestHelper.ecBasePower(comPower[i]);
+                com[i] = [comx, comy];
+            }
+            FF q = F.from(rqdb[1]);
+            qToTheIPlusOne = qToTheIPlusOne * q;
+            comSum = comSum + F.from(comPower[i]) * qToTheIPlusOne;
         }
-        expectedPower = addmod(
-            expectedPower,
-            mulmod(
-                addmod(mulmod(rqdb[2], rqdb[2], MODULUS), addmod(rqdb[2], 1, MODULUS), MODULUS),
-                addmod(commitmentPower, comSum, MODULUS),
-                MODULUS
-            ),
-            MODULUS
-        );
+        {
+            FF d = F.from(rqdb[2]);
+            expectedPower = expectedPower + (d * d + d + F.ONE) * (F.from(commitmentPower) + comSum);
+        }
 
         uint256[2][3] memory w;
         for (uint256 i = 0; i < 3; ++i) {
@@ -372,7 +358,7 @@ contract HyperKZGHelpersTest is Test {
             __scratch: scratch
         });
 
-        (uint256 expectedx, uint256 expectedy) = ECPrecompilesTestHelper.ecBasePower(expectedPower);
+        (uint256 expectedx, uint256 expectedy) = ECPrecompilesTestHelper.ecBasePower(expectedPower.into());
         assert(scratch[0] == expectedx);
         assert(scratch[1] == expectedy);
     }
