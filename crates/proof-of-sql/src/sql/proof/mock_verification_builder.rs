@@ -190,13 +190,11 @@ impl<S: Scalar> MockVerificationBuilder<S> {
 /// The length of the vector should be the length of the data.
 ///
 /// The return vector indicates the results of each constraint for the entire column
-pub fn run_verify_for_each_row<
-    F: FnMut(&mut MockVerificationBuilder<TestScalar>, TestScalar, &[TestScalar]),
->(
+pub fn run_verify_for_each_row(
     table_length: usize,
     final_round_builder: &FinalRoundBuilder<'_, TestScalar>,
     subpolynomial_max_multiplicands: usize,
-    mut row_verification: F,
+    row_verification: impl Fn(&mut MockVerificationBuilder<TestScalar>, TestScalar, &[TestScalar]),
 ) -> MockVerificationBuilder<TestScalar> {
     let evaluation_points: Vec<Vec<_>> = (0..table_length)
         .map(|i| {
