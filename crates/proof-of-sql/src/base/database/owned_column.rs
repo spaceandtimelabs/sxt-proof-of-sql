@@ -3,6 +3,8 @@
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow Array.
 use super::{Column, ColumnCoercionError, ColumnType, OwnedColumnError, OwnedColumnResult};
+#[cfg(test)]
+use crate::base::math::non_negative_i32::fixed_binary_column_details;
 use crate::base::{
     math::{
         decimal::Precision,
@@ -18,6 +20,8 @@ use alloc::{
 };
 use itertools::Itertools;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+#[cfg(test)]
+use proptest::strategy::Strategy;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Clone, Eq, Serialize, Deserialize)]
@@ -53,7 +57,13 @@ pub enum OwnedColumn<S: Scalar> {
     #[cfg_attr(test, proptest(skip))]
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
     /// Fixed size binary columns
-    /// - the i32 specifies the number of bytes per value
+    /// - the i32 specifies the number of bytes per element
+    #[cfg_attr(
+        test,
+        proptest(
+            strategy = "fixed_binary_column_details().prop_map(|(w, d)| OwnedColumn::<S>::FixedSizeBinary(w, d))"
+        )
+    )]
     FixedSizeBinary(NonNegativeI32, Vec<u8>),
 }
 
@@ -277,13 +287,13 @@ impl<S: Scalar> OwnedColumn<S> {
                     })?;
                 Ok(OwnedColumn::TimestampTZ(tu, tz, raw_values))
             }
-            // Can not convert scalars to VarChar
-            ColumnType::VarChar | ColumnType::VarBinary => Err(OwnedColumnError::TypeCastError {
-                from_type: ColumnType::Scalar,
-                to_type: ColumnType::VarChar,
-            }),
-            // Can not convert scalars to FixedSizeBinary
-            ColumnType::FixedSizeBinary(_bw) => todo!(),
+            // Can not convert scalars to VarChar, VarBinary, or FixedSizeBinary
+            ColumnType::VarChar | ColumnType::VarBinary | ColumnType::FixedSizeBinary(_) => {
+                Err(OwnedColumnError::TypeCastError {
+                    from_type: ColumnType::Scalar,
+                    to_type: ColumnType::VarChar,
+                })
+            }
         }
     }
 
@@ -491,7 +501,7 @@ mod test {
     use super::*;
     use crate::base::{
         math::decimal::Precision,
-        scalar::{test_scalar::TestScalar, Curve25519Scalar,  ScalarExt},
+        scalar::{test_scalar::TestScalar, Curve25519Scalar, ScalarExt},
     };
     use alloc::vec;
     use bumpalo::Bump;

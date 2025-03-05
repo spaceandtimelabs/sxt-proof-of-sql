@@ -149,8 +149,10 @@ impl Commitment for HyperKZGCommitment {
                 CommittableColumn::Int128(vals) => compute_commitments_impl(setup, offset, vals),
                 CommittableColumn::Decimal75(_, _, vals)
                 | CommittableColumn::Scalar(vals)
-                | CommittableColumn::VarChar(vals) 
-                | CommittableColumn::VarBinary(vals) => compute_commitments_impl(setup, offset, vals),
+                | CommittableColumn::VarChar(vals)
+                | CommittableColumn::VarBinary(vals) => {
+                    compute_commitments_impl(setup, offset, vals)
+                }
                 CommittableColumn::FixedSizeBinary(_, items) => {
                     compute_commitments_impl(setup, offset, items)
                 }
@@ -500,6 +502,9 @@ mod tests {
                 | CommittableColumn::VarChar(vals)
                 | CommittableColumn::VarBinary(vals) => {
                     expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, vals));
+                }
+                CommittableColumn::FixedSizeBinary(_, items) => {
+                    expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, items))
                 }
             }
         }

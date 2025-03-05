@@ -325,7 +325,7 @@ mod tests {
 
         let expected = Column::FixedSizeBinary(width, &expected_bytes);
         assert_eq!(repeated, expected);
-
+    }
     #[test]
     fn test_column_repetition_op_varbinary() {
         let bump = Bump::new();

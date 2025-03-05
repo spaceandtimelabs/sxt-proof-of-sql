@@ -16,15 +16,16 @@ use super::scalar_and_i256_conversions::{convert_i256_to_scalar, convert_scalar_
 use crate::base::{
     database::{OwnedColumn, OwnedTable, OwnedTableError},
     map::IndexMap,
-    math::decimal::Precision,
+    math::{decimal::Precision, non_negative_i32::NonNegativeI32},
     scalar::Scalar,
 };
 use alloc::sync::Arc;
 use arrow::{
     array::{
-        ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array, FixedSizeBinaryArray, Int16Array,
-        Int32Array, Int64Array, Int8Array, StringArray, TimestampMicrosecondArray,
-        TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray, UInt8Array,
+        ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array,
+        FixedSizeBinaryArray, Int16Array, Int32Array, Int64Array, Int8Array, StringArray,
+        TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
+        TimestampSecondArray, UInt8Array,
     },
     datatypes::{i256, DataType, Schema, SchemaRef, TimeUnit as ArrowTimeUnit},
     error::ArrowError,
@@ -250,6 +251,17 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .iter()
                     .map(|s| s.map(<[u8]>::to_vec).unwrap())
                     .collect(),
+            )),
+            DataType::FixedSizeBinary(bw) if *bw > 0 => Ok(Self::FixedSizeBinary(
+                NonNegativeI32::new(*bw)
+                    .expect("FixedSizeBinary width is guaranteed to be non-negative"),
+                value
+                    .as_any()
+                    .downcast_ref::<FixedSizeBinaryArray>()
+                    .unwrap()
+                    .iter()
+                    .flat_map(|s| s.unwrap().iter().copied())
+                    .collect::<Vec<u8>>(),
             )),
             DataType::Timestamp(time_unit, timezone) => match time_unit {
                 ArrowTimeUnit::Second => {

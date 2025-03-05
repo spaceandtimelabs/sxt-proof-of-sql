@@ -322,7 +322,6 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::BigInt(col) | Self::TimestampTZ(_, _, col) => S::from(col[index]),
             Self::Int128(col) => S::from(col[index]),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
-            Self::VarChar((_, scals)) => scals[index],
             Self::FixedSizeBinary(_bw, col) => S::from(col[index]),
             Self::VarChar((_, scals)) | Self::VarBinary((_, scals)) => scals[index],
         })
@@ -559,9 +558,9 @@ impl ColumnType {
             Self::BigInt | Self::TimestampTZ(_, _) => size_of::<i64>(),
             Self::Int128 => size_of::<i128>(),
             Self::Scalar | Self::Decimal75(_, _) | Self::VarBinary | Self::VarChar => {
-                size_of::<[u64; 4]>(),
-            Self::FixedSizeBinary(bw) => bw.width_as_usize(),
+                size_of::<[u64; 4]>()
             }
+            Self::FixedSizeBinary(bw) => bw.width_as_usize(),
         }
     }
 

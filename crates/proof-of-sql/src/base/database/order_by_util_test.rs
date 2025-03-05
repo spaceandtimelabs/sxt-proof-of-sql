@@ -397,10 +397,10 @@ fn we_can_compare_owned_columns_with_direction_fixedsizebinary_and_others() {
     let col_fsbin = OwnedColumn::FixedSizeBinary(width, fsbin_slice);
 
     let order_by_pairs = vec![
-        (col_small, OrderByDirection::Asc),
-        (col_varchar, OrderByDirection::Desc),
-        (col_decimal, OrderByDirection::Asc),
-        (col_fsbin, OrderByDirection::Desc),
+        (col_small, true),
+        (col_varchar, false),
+        (col_decimal, true),
+        (col_fsbin, false),
     ];
 
     assert_eq!(
@@ -442,7 +442,7 @@ fn we_can_compare_owned_columns_with_direction_fixedsizebinary_and_others() {
         compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 4, 0),
         Ordering::Greater
     );
-  
+}
 #[test]
 fn we_can_compare_indexes_by_columns_for_varbinary_columns() {
     let raw_bytes = [
