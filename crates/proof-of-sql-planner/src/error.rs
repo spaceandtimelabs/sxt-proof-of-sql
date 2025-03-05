@@ -34,6 +34,9 @@ pub enum PlannerError {
     /// Returned when the `LogicalPlan` is not resolved
     #[snafu(display("LogicalPlan is not resolved"))]
     UnresolvedLogicalPlan,
+    /// Returned when catalog is provided since it is not supported
+    #[snafu(display("Catalog is not supported"))]
+    CatalogNotSupported,
 }
 
 /// Proof of SQL Planner result

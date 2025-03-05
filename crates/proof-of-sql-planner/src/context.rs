@@ -66,7 +66,8 @@ impl<S: Scalar> ContextProvider for PoSqlContextProvider<'_, S> {
         &self,
         name: TableReference,
     ) -> Result<Arc<dyn TableSource>, DataFusionError> {
-        let table_ref = table_reference_to_table_ref(&name);
+        let table_ref = table_reference_to_table_ref(&name)
+            .map_err(|err| DataFusionError::External(Box::new(err)))?;
         self.tables
             .get(&table_ref)
             .ok_or_else(|| {
@@ -142,7 +143,6 @@ impl TableSource for PoSqlTableSource {
     }
 }
 
-#[allow(clippy::missing_panics_doc)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,8 +189,7 @@ mod tests {
     #[test]
     fn we_can_create_a_posql_context_provider() {
         // Empty
-        let tables = IndexMap::default();
-        let context_provider = PoSqlContextProvider::<Curve25519Scalar>::new(tables);
+        let context_provider = PoSqlContextProvider::<Curve25519Scalar>::default();
         assert_eq!(context_provider.tables, IndexMap::new());
         assert_eq!(
             context_provider.try_get_df_schemas().unwrap(),
@@ -259,6 +258,15 @@ mod tests {
         assert!(matches!(
             context_provider.get_table_source(TableReference::from("namespace.table")),
             Err(DataFusionError::Plan(_))
+        ));
+    }
+
+    #[test]
+    fn we_cannot_create_a_posql_context_provider_if_catalog_provided() {
+        let context_provider = PoSqlContextProvider::<Curve25519Scalar>::new(IndexMap::new());
+        assert!(matches!(
+            context_provider.get_table_source(TableReference::from("catalog.namespace.table")),
+            Err(DataFusionError::External(_))
         ));
     }
 }
