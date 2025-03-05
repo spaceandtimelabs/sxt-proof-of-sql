@@ -3,6 +3,7 @@ use super::{
     Column, ColumnType,
 };
 use crate::base::scalar::Scalar;
+use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::iter::Iterator;
 
