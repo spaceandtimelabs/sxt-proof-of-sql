@@ -1,6 +1,7 @@
 use super::Commitment;
 use crate::base::{
     commitment::CommittableColumn,
+    math::non_negative_i32::NonNegativeI32,
     scalar::{test_scalar::TestScalar, Scalar},
 };
 use alloc::{vec, vec::Vec};
@@ -204,6 +205,29 @@ fn we_can_compute_commitments_from_commitable_columns_with_offset() {
     let committable_columns: &[CommittableColumn] = &[commitable_column_a];
     let commitments = NaiveCommitment::compute_commitments(committable_columns, 1, &());
     assert_eq!(commitments[0].0, column_a_scalars);
+}
+
+#[test]
+fn we_can_compute_commitments_from_commitable_fixedsizebinary_column() {
+    let raw_bytes = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    let commitable_column_fixedsize =
+        CommittableColumn::FixedSizeBinary(NonNegativeI32::try_from(4).unwrap(), &raw_bytes);
+    let commitments = NaiveCommitment::compute_commitments(&[commitable_column_fixedsize], 0, &());
+    let expected_scalars: Vec<TestScalar> = raw_bytes.chunks(4).map(TestScalar::from).collect();
+    assert_eq!(commitments[0].0, expected_scalars);
+}
+
+#[test]
+fn we_can_compute_commitments_from_commitable_fixedsizebinary_column_with_offset() {
+    let raw_bytes = vec![100, 101, 102, 103, 1, 2, 3, 4, 5, 6, 7, 8];
+    let trimmed = &raw_bytes[4..12];
+    let commitable_column_fixedsize =
+        CommittableColumn::FixedSizeBinary(NonNegativeI32::try_from(4).unwrap(), trimmed);
+    let commitments = NaiveCommitment::compute_commitments(&[commitable_column_fixedsize], 1, &());
+    let expected: Vec<TestScalar> = core::iter::once(TestScalar::ZERO)
+        .chain(trimmed.chunks(4).map(TestScalar::from))
+        .collect();
+    assert_eq!(commitments[0].0, expected);
 }
 
 #[test]
