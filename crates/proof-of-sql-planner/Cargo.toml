@@ -1,0 +1,19 @@
+[package]
+name = "proof-of-sql-planner"
+edition.workspace = true
+exclude.workspace = true
+repository.workspace = true
+version.workspace = true
+license-file.workspace = true
+
+[dependencies]
+arrow = { workspace = true }
+bumpalo = { workspace = true }
+datafusion = '38.0.0'
+indexmap = { workspace = true }
+proof-of-sql = { path = "../proof-of-sql", features = ["arrow"] }
+snafu = { workspace = true }
+sqlparser = { workspace = true }
+
+[lints]
+workspace = true
