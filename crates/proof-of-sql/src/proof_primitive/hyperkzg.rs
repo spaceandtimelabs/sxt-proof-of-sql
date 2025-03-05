@@ -504,7 +504,7 @@ mod tests {
                     expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, vals));
                 }
                 CommittableColumn::FixedSizeBinary(_, items) => {
-                    expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, items))
+                    expected.push(compute_commitment_with_hyperkzg_repo(ck, offset, items));
                 }
             }
         }
