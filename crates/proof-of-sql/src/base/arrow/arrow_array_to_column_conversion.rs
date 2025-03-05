@@ -625,7 +625,7 @@ mod tests {
     }
 
     #[test]
-    fn we_can_we_can_convert_boolean_array_normal_range() {
+    fn we_can_convert_boolean_array_normal_range() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(BooleanArray::from(vec![
             Some(true),

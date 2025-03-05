@@ -20,6 +20,7 @@ library VerificationBuilder {
         uint256 aggregateEvaluation;
         uint256 rowMultipliersEvaluation;
         uint256[] columnEvaluations;
+        uint256[] tableChiEvaluations;
     }
 
     /// @notice Allocates and reserves a block of memory for a verification builder
@@ -512,12 +513,71 @@ library VerificationBuilder {
             function err(code) {
                 revert(0, 0)
             }
+            // IMPORT-YUL ../base/Array.pre.sol
+            function get_array_element(arr_ptr, index) -> value {
+                revert(0, 0)
+            }
             function builder_get_column_evaluation(builder_ptr, column_num) -> value {
-                let arr_ptr := mload(add(builder_ptr, BUILDER_COLUMN_EVALUATIONS_OFFSET))
-                if iszero(lt(column_num, mload(arr_ptr))) { err(ERR_INVALID_COLUMN_INDEX) }
-                value := mload(add(add(arr_ptr, WORD_SIZE), mul(column_num, WORD_SIZE)))
+                value := get_array_element(add(builder_ptr, BUILDER_COLUMN_EVALUATIONS_OFFSET), column_num)
             }
             __value := builder_get_column_evaluation(__builder, __columnNum)
+        }
+    }
+
+    /// @notice Sets the table chi evaluations in the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_set_table_chi_evaluations(builder_ptr, values_ptr)
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// * `values_ptr` - pointer to the array in memory
+    /// @param __builder The builder struct
+    /// @param __values The table chi evaluation values array
+    function __setTableChiEvaluations(Builder memory __builder, uint256[] memory __values) internal pure {
+        assembly {
+            function builder_set_table_chi_evaluations(builder_ptr, values_ptr) {
+                mstore(add(builder_ptr, BUILDER_TABLE_CHI_EVALUATIONS_OFFSET), values_ptr)
+            }
+            builder_set_table_chi_evaluations(__builder, __values)
+        }
+    }
+
+    /// @notice Gets a table chi evaluation by table number
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_table_chi_evaluation(builder_ptr, table_num) -> value
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// * `table_num` - the table number to get evaluation for
+    /// ##### Return Values
+    /// * `value` - the table chi evaluation
+    /// @param __builder The builder struct
+    /// @param __tableNum The table number
+    /// @return __value The table chi evaluation value
+    function __getTableChiEvaluation(Builder memory __builder, uint256 __tableNum)
+        internal
+        pure
+        returns (uint256 __value)
+    {
+        assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/Array.pre.sol
+            function get_array_element(arr_ptr, index) -> value {
+                revert(0, 0)
+            }
+            function builder_get_table_chi_evaluation(builder_ptr, table_num) -> value {
+                value := get_array_element(add(builder_ptr, BUILDER_TABLE_CHI_EVALUATIONS_OFFSET), table_num)
+            }
+            __value := builder_get_table_chi_evaluation(__builder, __tableNum)
         }
     }
 }

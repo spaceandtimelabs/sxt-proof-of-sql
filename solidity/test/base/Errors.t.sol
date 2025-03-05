@@ -17,7 +17,7 @@ contract ErrorsTest is Test {
             Errors.ConstraintDegreeTooHigh.selector,
             Errors.IncorrectCaseConst.selector,
             Errors.UnsupportedLiteralVariant.selector,
-            Errors.InvalidColumnIndex.selector
+            Errors.InvalidIndex.selector
         ];
         uint32[10] memory selectorConstants = [
             ERR_INVALID_EC_ADD_INPUTS,
@@ -29,7 +29,7 @@ contract ErrorsTest is Test {
             ERR_CONSTRAINT_DEGREE_TOO_HIGH,
             ERR_INCORRECT_CASE_CONST,
             ERR_UNSUPPORTED_LITERAL_VARIANT,
-            ERR_INVALID_COLUMN_INDEX
+            ERR_INVALID_INDEX
         ];
         assert(selectors.length == selectorConstants.length);
         uint256 length = selectors.length;
@@ -93,8 +93,8 @@ contract ErrorsTest is Test {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedInvalidColumnIndex() public {
-        vm.expectRevert(Errors.InvalidColumnIndex.selector);
-        Errors.__err(ERR_INVALID_COLUMN_INDEX);
+    function testErrorFailedInvalidIndex() public {
+        vm.expectRevert(Errors.InvalidIndex.selector);
+        Errors.__err(ERR_INVALID_INDEX);
     }
 }

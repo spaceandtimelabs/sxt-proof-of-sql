@@ -38,6 +38,10 @@ library ColumnExpr {
             function err(code) {
                 revert(0, 0)
             }
+            // IMPORT-YUL ../base/Array.pre.sol
+            function get_array_element(arr_ptr, index) -> value {
+                revert(0, 0)
+            }
             // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
             function builder_get_column_evaluation(builder_ptr, column_num) -> eval {
                 revert(0, 0)
