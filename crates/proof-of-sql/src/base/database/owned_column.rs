@@ -5,6 +5,7 @@
 use super::{Column, ColumnCoercionError, ColumnType, OwnedColumnError, OwnedColumnResult};
 #[cfg(test)]
 use crate::base::math::non_negative_i32::fixed_binary_column_details;
+use crate::base::scalar::ScalarExt;
 use crate::base::{
     math::{
         decimal::Precision,
@@ -73,14 +74,13 @@ impl<S: Scalar> OwnedColumn<S> {
         match self {
             OwnedColumn::Boolean(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::Uint8(col) => inner_product_ref_cast(col, vec),
-            OwnedColumn::FixedSizeBinary(width, col_bytes) => {
-                let bw = width.width_as_usize();
-                let chunked_vals: Vec<S> = col_bytes
-                    .chunks_exact(bw)
-                    .map(|chunk| S::from(chunk))
-                    .collect();
-                inner_product_ref_cast(&chunked_vals, vec)
-            }
+            OwnedColumn::FixedSizeBinary(width, col_bytes) => inner_product_ref_cast(
+                &col_bytes
+                    .chunks_exact(width.width_as_usize())
+                    .map(|chunk| S::from_byte_slice_via_hash(chunk))
+                    .collect::<Vec<S>>(),
+                vec,
+            ),
             OwnedColumn::TinyInt(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::SmallInt(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::Int(col) => inner_product_ref_cast(col, vec),
@@ -508,21 +508,21 @@ mod test {
 
     #[test]
     fn we_can_compute_inner_product_for_fixed_size_binary_curve25519scalars() {
-        let row0 = [0u8; 32]; // 32 zero bytes
-        let row1 = [1u8; 32]; // 32 ones
+        let row0 = [0u8; 31]; // 31 zero bytes
+        let row1 = [1u8; 31]; // 31 ones
         let row2 = [
             0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00,
             0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
-            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00,
         ];
 
-        // Concatenate them into one big buffer (96 bytes).
+        // Concatenate them into one big buffer (93 bytes).
         let mut all_bytes = Vec::new();
         all_bytes.extend_from_slice(&row0);
         all_bytes.extend_from_slice(&row1);
         all_bytes.extend_from_slice(&row2);
 
-        let width = NonNegativeI32::new(32).unwrap();
+        let width = 31.try_into().unwrap();
         let col = OwnedColumn::FixedSizeBinary(width, all_bytes);
 
         let weights = vec![
@@ -536,8 +536,8 @@ mod test {
         };
 
         let mut expected = Curve25519Scalar::ZERO;
-        for (chunk, &w) in col_bytes.chunks(width.width_as_usize()).zip(weights.iter()) {
-            let val_s = Curve25519Scalar::from(chunk);
+        for (chunk, &w) in col_bytes.chunks(31).zip(weights.iter()) {
+            let val_s = Curve25519Scalar::from_byte_slice_via_hash(chunk);
             expected += val_s * w;
         }
 

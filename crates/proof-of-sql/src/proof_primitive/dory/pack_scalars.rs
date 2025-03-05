@@ -179,17 +179,10 @@ fn pack_fixed_size_binary(
 
     for i in 0..nrows {
         let index = i + offset;
-
-        // row_offset: which row in the MSM block
         let row_offset = (index % num_columns) * bit_table_sum_in_bytes;
-
-        // col_offset: how far in that row we move for this "item"
         let col_offset = width * (index / num_columns);
-
         let offset_index = row_offset + col_offset + byte_offset;
         let row_bytes = &bytes[i * width..(i + 1) * width];
-
-        // Copy exactly width bytes into packed_scalars
         packed_scalars[offset_index..offset_index + width].copy_from_slice(row_bytes);
     }
 }

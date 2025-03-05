@@ -3,7 +3,6 @@ use super::{
     Column, ColumnType,
 };
 use crate::base::scalar::Scalar;
-use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::iter::Iterator;
 
@@ -11,9 +10,6 @@ use core::iter::Iterator;
 #[allow(clippy::too_many_lines)]
 pub trait RepetitionOp {
     fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T>;
-
-    // Special case for fixed-size binary columns.
-    fn op_fixed_size_binary(col_bytes: &[u8], width: usize, n: usize) -> Vec<u8>;
 
     /// Run a column repetition operation on a `Column`.
     #[allow(clippy::too_many_lines)]
@@ -139,15 +135,17 @@ pub trait RepetitionOp {
                 )
             }
             ColumnType::FixedSizeBinary(width) => {
-                // get the existing bytes
                 let col_bytes = column.as_fixed_size_binary().expect("Column types match").1;
                 let bw = width.width_as_usize();
-
-                // call the new trait method, which is specialized
-                let repeated_bytes = Self::op_fixed_size_binary(col_bytes, bw, n);
-
-                // copy the repeated result into Bump
-                let allocated = alloc.alloc_slice_copy(&repeated_bytes);
+                let num_rows = col_bytes.len() / bw;
+                let row_indices: Vec<usize> =
+                    Self::op(&(0..num_rows).collect::<Vec<_>>(), n).collect();
+                let allocated = alloc.alloc_slice_fill_with(row_indices.len() * bw, |idx| {
+                    let repeated_row_idx = idx / bw;
+                    let offset_in_row = idx % bw;
+                    let original_row_idx = row_indices[repeated_row_idx];
+                    col_bytes[original_row_idx * bw + offset_in_row]
+                });
                 Column::FixedSizeBinary(width, allocated)
             }
         }
@@ -159,20 +157,6 @@ impl RepetitionOp for ColumnRepeatOp {
     fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T> {
         repeat_slice(column, n)
     }
-
-    fn op_fixed_size_binary(col_bytes: &[u8], width: usize, n: usize) -> Vec<u8> {
-        let num_rows = col_bytes.len() / width;
-        let mut out = Vec::with_capacity(col_bytes.len() * n);
-
-        for _ in 0..n {
-            for row_idx in 0..num_rows {
-                let start = row_idx * width;
-                let end = start + width;
-                out.extend_from_slice(&col_bytes[start..end]);
-            }
-        }
-        out
-    }
 }
 
 pub struct ElementwiseRepeatOp {}
@@ -180,27 +164,12 @@ impl RepetitionOp for ElementwiseRepeatOp {
     fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T> {
         repeat_elementwise(column, n)
     }
-
-    fn op_fixed_size_binary(col_bytes: &[u8], width: usize, n: usize) -> Vec<u8> {
-        let num_rows = col_bytes.len() / width;
-        let mut out = Vec::with_capacity(col_bytes.len() * n);
-
-        for row_idx in 0..num_rows {
-            let start = row_idx * width;
-            let end = start + width;
-            let chunk = &col_bytes[start..end];
-            for _ in 0..n {
-                out.extend_from_slice(chunk);
-            }
-        }
-        out
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{math::non_negative_i32::NonNegativeI32, scalar::test_scalar::TestScalar};
+    use crate::base::scalar::test_scalar::TestScalar;
 
     #[test]
     fn test_column_repetition_op() {
@@ -267,7 +236,7 @@ mod tests {
         bytes.extend_from_slice(&row2);
 
         // construct the column
-        let width = NonNegativeI32::new(4).unwrap();
+        let width = 4.try_into().unwrap();
         let column: Column<TestScalar> = Column::FixedSizeBinary(width, &bytes);
 
         // apply ColumnRepeatOp with n=2 => we repeat the entire column in sequence:
@@ -307,7 +276,7 @@ mod tests {
         bytes.extend_from_slice(&row1);
         bytes.extend_from_slice(&row2);
 
-        let width = NonNegativeI32::new(4).unwrap();
+        let width = 4.try_into().unwrap();
         let column: Column<TestScalar> = Column::FixedSizeBinary(width, &bytes);
 
         // call "ElementwiseRepeatOp" with n=2 => each row duplicated in place
@@ -326,6 +295,7 @@ mod tests {
         let expected = Column::FixedSizeBinary(width, &expected_bytes);
         assert_eq!(repeated, expected);
     }
+
     #[test]
     fn test_column_repetition_op_varbinary() {
         let bump = Bump::new();

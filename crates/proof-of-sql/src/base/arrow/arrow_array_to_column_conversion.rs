@@ -314,14 +314,15 @@ impl ArrayRefExt for ArrayRef {
             }
             DataType::FixedSizeBinary(bw) => {
                 if let Some(array) = self.as_any().downcast_ref::<FixedSizeBinaryArray>() {
-                    let byte_width = NonNegativeI32::new(*bw).map_err(|_| {
+                    let byte_width: NonNegativeI32 = (*bw).try_into().map_err(|_| {
                         ArrowArrayToColumnConversionError::UnsupportedType {
                             datatype: self.data_type().clone(),
                         }
                     })?;
 
-                    let start_byte = range.start * byte_width.width_as_usize();
-                    let end_byte = range.end * byte_width.width_as_usize();
+                    let w: usize = byte_width.width_as_usize();
+                    let start_byte = range.start * w;
+                    let end_byte = range.end * w;
 
                     Ok(Column::FixedSizeBinary(
                         byte_width,
@@ -366,10 +367,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Column::FixedSizeBinary(
-                NonNegativeI32::new(3).unwrap(),
-                &[1, 2, 3, 4, 5, 6, 7, 8, 9]
-            )
+            Column::FixedSizeBinary(3.try_into().unwrap(), &[1, 2, 3, 4, 5, 6, 7, 8, 9])
         );
     }
 
@@ -386,7 +384,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Column::FixedSizeBinary(NonNegativeI32::new(2).unwrap(), &[30, 40, 50, 60])
+            Column::FixedSizeBinary(2.try_into().unwrap(), &[30, 40, 50, 60])
         );
     }
 
@@ -417,10 +415,7 @@ mod tests {
             .to_column::<TestScalar>(&alloc, &(1..1), None)
             .unwrap();
 
-        assert_eq!(
-            result,
-            Column::FixedSizeBinary(NonNegativeI32::new(2).unwrap(), &[])
-        );
+        assert_eq!(result, Column::FixedSizeBinary(2.try_into().unwrap(), &[]));
     }
 
     #[test]

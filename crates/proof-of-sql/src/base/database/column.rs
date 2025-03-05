@@ -322,8 +322,8 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::BigInt(col) | Self::TimestampTZ(_, _, col) => S::from(col[index]),
             Self::Int128(col) => S::from(col[index]),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
-            Self::FixedSizeBinary(_bw, col) => S::from(col[index]),
             Self::VarChar((_, scals)) | Self::VarBinary((_, scals)) => scals[index],
+            Self::FixedSizeBinary(_bw, _col) => unimplemented!("Unimplemented until needed"),
         })
     }
 
@@ -344,16 +344,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::FixedSizeBinary(bw, col) => {
-                let num_elements = col.len() / bw.width_as_usize();
-                (0..num_elements)
-                    .map(|i| {
-                        let start = i * bw.width_as_usize();
-                        let end = start + bw.width_as_usize();
-                        S::from(&col[start..end]) * scale_factor
-                    })
-                    .collect()
-            }
+            Self::FixedSizeBinary(_bw, _col) => unimplemented!("Unimplemented until needed"),
         }
     }
 }

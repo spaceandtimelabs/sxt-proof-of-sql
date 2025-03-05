@@ -150,7 +150,7 @@ where
 mod tests {
     use super::*;
     use crate::base::{
-        database::ColumnOperationError, math::non_negative_i32::NonNegativeI32,
+        database::ColumnOperationError,
         scalar::test_scalar::TestScalar,
     };
 
@@ -210,7 +210,7 @@ mod tests {
         bytes.extend_from_slice(&row1);
         bytes.extend_from_slice(&row2);
 
-        let width = NonNegativeI32::new(4).unwrap();
+        let width = 4.try_into().unwrap();
         let column: Column<TestScalar> = Column::FixedSizeBinary(width, &bytes);
 
         let indexes = [0, 2, 1];
@@ -236,7 +236,7 @@ mod tests {
         bytes.extend_from_slice(&row0);
         bytes.extend_from_slice(&row1);
 
-        let width = NonNegativeI32::new(4).unwrap();
+        let width = 4.try_into().unwrap();
         let column: Column<TestScalar> = Column::FixedSizeBinary(width, &bytes);
 
         let indexes = [0, 2];
@@ -260,7 +260,7 @@ mod tests {
             5, 0, 0, 0, // row4 => i32 = 5
         ];
 
-        let width = NonNegativeI32::new(4).unwrap();
+        let width = 4.try_into().unwrap();
         let column: Column<TestScalar> = Column::FixedSizeBinary(width, bytes);
 
         // We want to select row1, row3, row0 => indexes = [1, 3, 0]
@@ -288,7 +288,7 @@ mod tests {
             1, 0, 0, 0, // row0 => i32=1
             2, 0, 0, 0, // row1 => i32=2
         ];
-        let width = NonNegativeI32::new(4).unwrap();
+        let width = 4.try_into().unwrap();
         let column: Column<TestScalar> = Column::FixedSizeBinary(width, bytes);
 
         // We only have 2 rows -> valid indexes are {0,1} -> index=2 is out-of-bounds

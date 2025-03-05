@@ -198,26 +198,20 @@ pub fn column_union<'a, S: Scalar>(
             )
         }
         ColumnType::FixedSizeBinary(width) => {
-            let bw = width.width_as_usize();
-            let total_bytes = len * bw;
-
-            // Allocate a new contiguous slice of the correct total size in the bump arena
-            let new_slice = alloc.alloc_slice_fill_with(total_bytes, |_| 0u8);
-
-            // Copy the data from each column into the newly allocated slice
-            let mut position = 0;
-            for col in columns {
+            let mut iter = columns.iter().flat_map(|col| {
                 let (col_width, col_data) = col
                     .as_fixed_size_binary()
-                    .expect("column_type check above should guarantee same type");
-
+                    .expect("Column should have the same type");
                 assert_eq!(col_width, width, "Inconsistent FixedSizeBinary width");
+                col_data.iter().copied()
+            });
 
-                new_slice[position..position + col_data.len()].copy_from_slice(col_data);
-                position += col_data.len();
-            }
-
-            Column::FixedSizeBinary(width, new_slice)
+            Column::FixedSizeBinary(
+                width,
+                alloc.alloc_slice_fill_with(len * width.width_as_usize(), |_| {
+                    iter.next().expect("Iterator should have enough elements")
+                }),
+            )
         }
     })
 }

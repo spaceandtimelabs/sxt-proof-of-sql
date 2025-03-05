@@ -16,7 +16,7 @@ use super::scalar_and_i256_conversions::{convert_i256_to_scalar, convert_scalar_
 use crate::base::{
     database::{OwnedColumn, OwnedTable, OwnedTableError},
     map::IndexMap,
-    math::{decimal::Precision, non_negative_i32::NonNegativeI32},
+    math::decimal::Precision,
     scalar::Scalar,
 };
 use alloc::sync::Arc;
@@ -253,8 +253,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .collect(),
             )),
             DataType::FixedSizeBinary(bw) if *bw > 0 => Ok(Self::FixedSizeBinary(
-                NonNegativeI32::new(*bw)
-                    .expect("FixedSizeBinary width is guaranteed to be non-negative"),
+                (*bw)
+                    .try_into()
+                    .expect("FixedSizeBinary width must be non-negative"),
                 value
                     .as_any()
                     .downcast_ref::<FixedSizeBinaryArray>()

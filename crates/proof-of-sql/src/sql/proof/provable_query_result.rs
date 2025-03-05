@@ -131,9 +131,12 @@ impl ProvableQueryResult {
                     ColumnType::TimestampTZ(_, _) => {
                         decode_and_convert::<i64, S>(&self.data[offset..])
                     }
-                    ColumnType::FixedSizeBinary(bw) => decode_and_convert::<&[u8], S>(
-                        &self.data[offset..offset + bw.width_as_usize()],
-                    ),
+                    ColumnType::FixedSizeBinary(_) => {
+                        let (raw_bytes, used) =
+                            decode_and_convert::<&[u8], &[u8]>(&self.data[offset..])?;
+                        let x = S::from_byte_slice_via_hash(raw_bytes);
+                        Ok((x, used))
+                    }
                 }?;
                 val += *entry * x;
                 offset += sz;

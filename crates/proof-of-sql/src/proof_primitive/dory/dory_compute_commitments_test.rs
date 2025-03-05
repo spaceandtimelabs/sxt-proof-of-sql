@@ -1,7 +1,7 @@
 use crate::{
     base::{
         commitment::CommittableColumn,
-        math::{decimal::Precision, non_negative_i32::NonNegativeI32},
+        math::decimal::Precision,
     },
     proof_primitive::dory::{
         compute_dory_commitments, DoryProverPublicSetup, ProverSetup, PublicParameters, F, GT,
@@ -29,7 +29,7 @@ fn we_can_compute_a_dory_commitment_with_fixed_size_binary_values() {
     }
 
     // Each "element" is 4 bytes in little-endian format.
-    let bw = NonNegativeI32::new(4).unwrap();
+    let bw = 4.try_into().unwrap();
     let column = vec![
         // Element #1 = 0x0403_0201 in little-endian
         0x01, 0x02, 0x03, 0x04, // Element #2 = 0x0807_0605 in little-endian

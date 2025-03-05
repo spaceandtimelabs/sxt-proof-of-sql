@@ -10,14 +10,11 @@ use serde::{Deserialize, Serialize};
 /// for the fixed-size binary type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-pub struct NonNegativeI32(#[cfg_attr(test, proptest(strategy = "1..2048_i32"))] i32);
+pub struct NonNegativeI32(#[cfg_attr(test, proptest(strategy = "1..31i32"))] i32);
 
-/// Error type for `NonNegativeI32::new`.
+/// Sepcified byte width is outside of supported range.
 #[derive(Debug)]
-pub enum WidthError {
-    /// The width was less than 1.
-    NegativeWidth(i32),
-}
+pub struct WidthError(i32);
 
 #[cfg(test)]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
@@ -34,21 +31,12 @@ pub(crate) fn fixed_binary_column_details() -> impl Strategy<Value = (NonNegativ
 impl core::fmt::Display for WidthError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            WidthError::NegativeWidth(n) => write!(f, "negative width: {n}"),
+            WidthError(n) => write!(f, "negative width: {n}"),
         }
     }
 }
 
 impl NonNegativeI32 {
-    /// Returns an error if `x` is negative. Otherwise returns the wrapped value.
-    pub fn new(x: i32) -> Result<Self, WidthError> {
-        if x < 1 {
-            Err(WidthError::NegativeWidth(x))
-        } else {
-            Ok(Self(x))
-        }
-    }
-
     /// Returns the wrapped value.
     #[must_use]
     pub fn width(&self) -> i32 {
@@ -76,10 +64,10 @@ impl TryFrom<i32> for NonNegativeI32 {
     type Error = WidthError;
 
     fn try_from(value: i32) -> Result<Self, Self::Error> {
-        if value < 0 {
-            Err(WidthError::NegativeWidth(value))
+        if value < 0 || value > 31 {
+            Err(WidthError(value))
         } else {
-            Ok(Self::new(value).expect("Value should be non-negative"))
+            Ok(Self(value))
         }
     }
 }

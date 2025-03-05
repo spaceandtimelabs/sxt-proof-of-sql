@@ -1,7 +1,7 @@
 use crate::{
     base::{
         database::{order_by_util::*, Column, ColumnType, OwnedColumn, TableOperationError},
-        math::{decimal::Precision, non_negative_i32::NonNegativeI32},
+        math::decimal::Precision,
         scalar::test_scalar::TestScalar,
     },
     proof_primitive::dory::DoryScalar,
@@ -22,7 +22,7 @@ fn we_can_compare_indexes_by_columns_for_fixedsizebinary_hex_i32_full_suite() {
         0x7F, 0xFF, 0xFF, 0xFF, // row3
     ];
 
-    let width = NonNegativeI32::new(4).expect("must not be negative");
+    let width = 4.try_into().expect("must not be negative");
     let col = Column::FixedSizeBinary(width, slice);
 
     let columns: &[Column<TestScalar>] = &[col];
@@ -393,7 +393,7 @@ fn we_can_compare_owned_columns_with_direction_fixedsizebinary_and_others() {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x7F, 0xFF, 0xFF,
         0xFF, 0x00, 0x00, 0x00, 0x00,
     ];
-    let width = NonNegativeI32::new(4).expect("width must be >= 0");
+    let width = 4.try_into().expect("width must be >= 0");
     let col_fsbin = OwnedColumn::FixedSizeBinary(width, fsbin_slice);
 
     let order_by_pairs = vec![
