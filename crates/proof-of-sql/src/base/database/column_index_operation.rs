@@ -299,7 +299,7 @@ mod tests {
             Err(ColumnOperationError::IndexOutOfBounds { .. })
         ));
     }
-  
+
     #[test]
     fn test_apply_index_op_varbinary() {
         let bump = Bump::new();

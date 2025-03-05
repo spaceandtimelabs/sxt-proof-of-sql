@@ -356,7 +356,7 @@ mod tests {
     #[test]
     fn we_can_convert_fixed_size_binary_array_normal_range() {
         let alloc = Bump::new();
-        let data = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
+        let data = [vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
         let array = FixedSizeBinaryArray::try_from_iter(data.iter()).unwrap();
         let array_ref: ArrayRef = Arc::new(array);
 
@@ -376,7 +376,7 @@ mod tests {
     #[test]
     fn we_can_convert_fixed_size_binary_array_partial_range() {
         let alloc = Bump::new();
-        let data = vec![vec![10, 20], vec![30, 40], vec![50, 60]];
+        let data = [vec![10, 20], vec![30, 40], vec![50, 60]];
         let array = FixedSizeBinaryArray::try_from_iter(data.iter()).unwrap();
         let array_ref: ArrayRef = Arc::new(array);
 
@@ -409,7 +409,7 @@ mod tests {
     #[test]
     fn we_can_convert_fixed_size_binary_array_empty_range() {
         let alloc = Bump::new();
-        let data = vec![vec![1, 2], vec![3, 4]];
+        let data = [vec![1, 2], vec![3, 4]];
         let array = FixedSizeBinaryArray::try_from_iter(data.iter()).unwrap();
         let array_ref: ArrayRef = Arc::new(array);
 
@@ -426,7 +426,7 @@ mod tests {
     #[test]
     fn we_cannot_convert_fixed_size_binary_array_oob_range() {
         let alloc = Bump::new();
-        let data = vec![vec![1, 2, 3], vec![4, 5, 6]];
+        let data = [vec![1, 2, 3], vec![4, 5, 6]];
         let array = FixedSizeBinaryArray::try_from_iter(data.iter()).unwrap();
         let array_ref: ArrayRef = Arc::new(array);
 

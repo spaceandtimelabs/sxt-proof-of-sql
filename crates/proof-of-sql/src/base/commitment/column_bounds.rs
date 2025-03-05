@@ -241,7 +241,6 @@ impl ColumnBounds {
             | CommittableColumn::VarBinary(_)
             | CommittableColumn::FixedSizeBinary(_, _)
             | CommittableColumn::VarChar(_) => ColumnBounds::NoOrder,
-
         }
     }
 

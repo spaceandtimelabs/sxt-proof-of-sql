@@ -1,6 +1,5 @@
 use crate::alloc::string::ToString;
-use alloc::fmt::Display;
-use alloc::string::String;
+use alloc::{fmt::Display, string::String};
 #[cfg(test)]
 use proptest::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -21,6 +20,7 @@ pub enum WidthError {
 }
 
 #[cfg(test)]
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub(crate) fn fixed_binary_column_details() -> impl Strategy<Value = (NonNegativeI32, Vec<u8>)> {
     (any::<NonNegativeI32>(), 0..100usize).prop_flat_map(|(width, num_rows)| {
         let len = width.width() as usize;
@@ -34,7 +34,7 @@ pub(crate) fn fixed_binary_column_details() -> impl Strategy<Value = (NonNegativ
 impl core::fmt::Display for WidthError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            WidthError::NegativeWidth(n) => write!(f, "negative width: {}", n),
+            WidthError::NegativeWidth(n) => write!(f, "negative width: {n}"),
         }
     }
 }
