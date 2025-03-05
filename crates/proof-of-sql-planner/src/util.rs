@@ -5,6 +5,7 @@ use datafusion::{
     common::{Column, DFSchema, ScalarValue},
 };
 use proof_of_sql::base::database::{ColumnField, ColumnRef, ColumnType, LiteralValue, TableRef};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 /// Convert a [`TableReference`] to a [`TableRef`]
 ///
@@ -29,6 +30,26 @@ pub(crate) fn scalar_value_to_literal_value(value: ScalarValue) -> PlannerResult
         ScalarValue::Int64(Some(v)) => Ok(LiteralValue::BigInt(v)),
         ScalarValue::UInt8(Some(v)) => Ok(LiteralValue::Uint8(v)),
         ScalarValue::Utf8(Some(v)) => Ok(LiteralValue::VarChar(v)),
+        ScalarValue::TimestampSecond(Some(v), None) => Ok(LiteralValue::TimeStampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::utc(),
+            v,
+        )),
+        ScalarValue::TimestampMillisecond(Some(v), None) => Ok(LiteralValue::TimeStampTZ(
+            PoSQLTimeUnit::Millisecond,
+            PoSQLTimeZone::utc(),
+            v,
+        )),
+        ScalarValue::TimestampMicrosecond(Some(v), None) => Ok(LiteralValue::TimeStampTZ(
+            PoSQLTimeUnit::Microsecond,
+            PoSQLTimeZone::utc(),
+            v,
+        )),
+        ScalarValue::TimestampNanosecond(Some(v), None) => Ok(LiteralValue::TimeStampTZ(
+            PoSQLTimeUnit::Nanosecond,
+            PoSQLTimeZone::utc(),
+            v,
+        )),
         _ => Err(PlannerError::UnsupportedDataType {
             data_type: value.data_type().clone(),
         }),
@@ -154,6 +175,51 @@ mod tests {
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
             LiteralValue::VarChar("value".to_string())
+        );
+
+        // TimestampSecond
+        // Thu Mar 06 2025 04:43:12 GMT+0000
+        let value = ScalarValue::TimestampSecond(Some(1_741_236_192_i64), None);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::TimeStampTZ(
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::utc(),
+                1_741_236_192_i64
+            )
+        );
+
+        // TimestampMillisecond
+        let value = ScalarValue::TimestampMillisecond(Some(1_741_236_192_004_i64), None);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::TimeStampTZ(
+                PoSQLTimeUnit::Millisecond,
+                PoSQLTimeZone::utc(),
+                1_741_236_192_004_i64
+            )
+        );
+
+        // TimestampMicrosecond
+        let value = ScalarValue::TimestampMicrosecond(Some(1_741_236_192_004_000_i64), None);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::TimeStampTZ(
+                PoSQLTimeUnit::Microsecond,
+                PoSQLTimeZone::utc(),
+                1_741_236_192_004_000_i64
+            )
+        );
+
+        // TimestampNanosecond
+        let value = ScalarValue::TimestampNanosecond(Some(1_741_236_192_123_456_789_i64), None);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::TimeStampTZ(
+                PoSQLTimeUnit::Nanosecond,
+                PoSQLTimeZone::utc(),
+                1_741_236_192_123_456_789_i64
+            )
         );
 
         // Unsupported

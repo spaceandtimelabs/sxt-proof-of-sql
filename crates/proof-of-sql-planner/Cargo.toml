@@ -11,6 +11,7 @@ arrow = { workspace = true }
 datafusion = '38.0.0'
 indexmap = { workspace = true }
 proof-of-sql = { path = "../proof-of-sql", features = ["arrow"] }
+proof-of-sql-parser = { path = "../proof-of-sql-parser" }
 snafu = { workspace = true }
 sqlparser = { workspace = true }
 
