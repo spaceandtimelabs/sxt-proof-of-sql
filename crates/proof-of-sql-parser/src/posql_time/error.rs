@@ -47,7 +47,7 @@ pub enum PoSQLTimestampError {
 
     /// Represents a failure to parse a provided time unit precision value, `PoSQL` supports
     /// Seconds, Milliseconds, Microseconds, and Nanoseconds
-    #[snafu(display("Unsupported precision for timestamp:: {error}"))]
+    #[snafu(display("Unsupported precision for timestamp: {error}"))]
     UnsupportedPrecision {
         /// The underlying error
         error: String,

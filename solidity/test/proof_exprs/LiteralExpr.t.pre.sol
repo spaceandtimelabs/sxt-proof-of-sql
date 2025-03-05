@@ -6,6 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
 import "../../src/base/Errors.sol";
 import {LiteralExpr} from "../../src/proof_exprs/LiteralExpr.pre.sol";
+import {F} from "../base/FieldUtil.sol";
 
 contract LiteralExprTest is Test {
     function testLiteralExpr() public pure {
@@ -23,13 +24,7 @@ contract LiteralExprTest is Test {
     function testFuzzBigIntLiteralExpr(int64 literalValue, uint256 chiInEval, bytes memory trailingExpr) public pure {
         bytes memory exprIn = abi.encodePacked(LITERAL_BIGINT_VARIANT, literalValue, trailingExpr);
         (bytes memory exprOut, uint256 eval) = LiteralExpr.__literalExprEvaluate(exprIn, chiInEval);
-        uint256 literalValueAsScalar;
-        if (literalValue < 0) {
-            literalValueAsScalar = MODULUS - uint256(-int256(literalValue));
-        } else {
-            literalValueAsScalar = uint256(int256(literalValue));
-        }
-        assert(eval == mulmod(literalValueAsScalar, chiInEval, MODULUS));
+        assert(eval == (F.from(literalValue) * F.from(chiInEval)).into());
         assert(exprOut.length == trailingExpr.length);
         uint256 exprOutLength = exprOut.length;
         for (uint256 i = 0; i < exprOutLength; ++i) {

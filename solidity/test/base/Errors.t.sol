@@ -7,7 +7,7 @@ import "../../src/base/Errors.sol";
 
 contract ErrorsTest is Test {
     function testErrorConstantsMatchSelectors() public pure {
-        bytes4[10] memory selectors = [
+        bytes4[11] memory selectors = [
             Errors.InvalidECAddInputs.selector,
             Errors.InvalidECMulInputs.selector,
             Errors.InvalidECPairingInputs.selector,
@@ -19,7 +19,7 @@ contract ErrorsTest is Test {
             Errors.UnsupportedLiteralVariant.selector,
             Errors.InvalidIndex.selector
         ];
-        uint32[10] memory selectorConstants = [
+        uint32[11] memory selectorConstants = [
             ERR_INVALID_EC_ADD_INPUTS,
             ERR_INVALID_EC_MUL_INPUTS,
             ERR_INVALID_EC_PAIRING_INPUTS,

@@ -6,6 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
 import {Errors} from "../../src/base/Errors.sol";
 import {VerificationBuilder} from "../../src/proof/VerificationBuilder.pre.sol";
+import {F, FF} from "../base/FieldUtil.sol";
 
 contract VerificationBuilderTest is Test {
     function testBuilderNewAllocatesValidMemory(bytes memory) public pure {
@@ -485,14 +486,14 @@ contract VerificationBuilderTest is Test {
 
         uint256 length = multipliers.length;
 
-        uint256 aggregate = 0;
+        FF aggregate = F.ZERO;
         for (uint256 i = 0; i < length; ++i) {
-            aggregate = addmod(aggregate, mulmod(multipliers[i], values[i], MODULUS), MODULUS);
+            aggregate = aggregate + F.from(multipliers[i]) * F.from(values[i]);
         }
         for (uint256 i = 0; i < length; ++i) {
             VerificationBuilder.__produceZerosumConstraint(builder, values[i], 3);
         }
-        assert(builder.aggregateEvaluation == aggregate);
+        assert(builder.aggregateEvaluation == aggregate.into());
 
         vm.expectRevert(Errors.EmptyQueue.selector);
         VerificationBuilder.__produceZerosumConstraint(builder, values[length], 3);
@@ -543,15 +544,15 @@ contract VerificationBuilderTest is Test {
 
         uint256 length = multipliers.length;
 
-        uint256 aggregate = 0;
+        FF aggregate = F.ZERO;
         for (uint256 i = 0; i < length; ++i) {
-            aggregate = addmod(aggregate, mulmod(multipliers[i], values[i], MODULUS), MODULUS);
+            aggregate = aggregate + F.from(multipliers[i]) * F.from(values[i]);
         }
-        aggregate = mulmod(aggregate, rowMultipliersEvaluation, MODULUS);
+        aggregate = aggregate * F.from(rowMultipliersEvaluation);
         for (uint256 i = 0; i < length; ++i) {
             VerificationBuilder.__produceIdentityConstraint(builder, values[i], 2);
         }
-        assert(builder.aggregateEvaluation == aggregate);
+        assert(builder.aggregateEvaluation == aggregate.into());
 
         vm.expectRevert(Errors.EmptyQueue.selector);
         VerificationBuilder.__produceIdentityConstraint(builder, values[length], 2);
@@ -574,16 +575,12 @@ contract VerificationBuilderTest is Test {
 
         uint256 length = multipliers.length;
 
-        uint256 aggregate = 0;
+        FF aggregate = F.ZERO;
         for (uint256 i = 0; i < length; ++i) {
             if (isZerosum[i]) {
-                aggregate = addmod(aggregate, mulmod(multipliers[i], values[i], MODULUS), MODULUS);
+                aggregate = aggregate + F.from(multipliers[i]) * F.from(values[i]);
             } else {
-                aggregate = addmod(
-                    aggregate,
-                    mulmod(mulmod(multipliers[i], values[i], MODULUS), rowMultipliersEvaluation, MODULUS),
-                    MODULUS
-                );
+                aggregate = aggregate + F.from(multipliers[i]) * F.from(values[i]) * F.from(rowMultipliersEvaluation);
             }
         }
         for (uint256 i = 0; i < length; ++i) {
@@ -593,7 +590,7 @@ contract VerificationBuilderTest is Test {
                 VerificationBuilder.__produceIdentityConstraint(builder, values[i], 2);
             }
         }
-        assert(builder.aggregateEvaluation == aggregate);
+        assert(builder.aggregateEvaluation == aggregate.into());
 
         vm.expectRevert(Errors.EmptyQueue.selector);
         if (isZerosum[length]) {
