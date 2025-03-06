@@ -1,5 +1,8 @@
 use arrow::datatypes::DataType;
-use datafusion::common::DataFusionError;
+use datafusion::{
+    common::DataFusionError,
+    logical_expr::{Expr, Operator},
+};
 use proof_of_sql::sql::parse::ConversionError;
 use snafu::Snafu;
 use sqlparser::parser::ParserError;
@@ -30,6 +33,18 @@ pub enum PlannerError {
     UnsupportedDataType {
         /// Unsupported datatype
         data_type: DataType,
+    },
+    /// Returned when a binary operator is not supported
+    #[snafu(display("Binary operator {} is not supported", op))]
+    UnsupportedBinaryOperator {
+        /// Unsupported binary operation
+        op: Operator,
+    },
+    /// Returned when a logical expression is not resolved
+    #[snafu(display("Logical expression {:?} is not supported", expr))]
+    UnsupportedLogicalExpression {
+        /// Unsupported logical expression
+        expr: Expr,
     },
     /// Returned when the `LogicalPlan` is not resolved
     #[snafu(display("LogicalPlan is not resolved"))]
