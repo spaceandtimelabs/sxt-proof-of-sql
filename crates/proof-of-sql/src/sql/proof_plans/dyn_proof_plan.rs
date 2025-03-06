@@ -9,13 +9,17 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{
-        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+    sql::{
+        proof::{
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+        },
+        proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
     },
 };
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 /// The query plan for proving a query
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -66,4 +70,82 @@ pub enum DynProofPlan {
     ///     ON col1 = col2
     /// ```
     SortMergeJoin(SortMergeJoinExec),
+}
+
+impl DynProofPlan {
+    /// Creates a new empty plan.
+    #[must_use]
+    pub fn new_empty() -> Self {
+        Self::Empty(EmptyExec::new())
+    }
+
+    /// Creates a new table plan.
+    #[must_use]
+    pub fn new_table(table_ref: TableRef, schema: Vec<ColumnField>) -> Self {
+        Self::Table(TableExec::new(table_ref, schema))
+    }
+
+    /// Creates a new projection plan.
+    #[must_use]
+    pub fn new_projection(aliased_results: Vec<AliasedDynProofExpr>, input: DynProofPlan) -> Self {
+        Self::Projection(ProjectionExec::new(aliased_results, Box::new(input)))
+    }
+
+    /// Creates a new filter plan.
+    #[must_use]
+    pub fn new_filter(
+        aliased_results: Vec<AliasedDynProofExpr>,
+        input: TableExpr,
+        filter_expr: DynProofExpr,
+    ) -> Self {
+        Self::Filter(FilterExec::new(aliased_results, input, filter_expr))
+    }
+
+    /// Creates a new group by plan.
+    #[must_use]
+    pub fn new_group_by(
+        group_by_exprs: Vec<ColumnExpr>,
+        sum_expr: Vec<AliasedDynProofExpr>,
+        count_alias: Ident,
+        table: TableExpr,
+        where_clause: DynProofExpr,
+    ) -> Self {
+        Self::GroupBy(GroupByExec::new(
+            group_by_exprs,
+            sum_expr,
+            count_alias,
+            table,
+            where_clause,
+        ))
+    }
+
+    /// Creates a new slice plan.
+    #[must_use]
+    pub fn new_slice(input: DynProofPlan, skip: usize, fetch: Option<usize>) -> Self {
+        Self::Slice(SliceExec::new(Box::new(input), skip, fetch))
+    }
+
+    /// Creates a new union plan.
+    #[must_use]
+    pub fn new_union(inputs: Vec<DynProofPlan>, schema: Vec<ColumnField>) -> Self {
+        Self::Union(UnionExec::new(inputs, schema))
+    }
+
+    /// Creates a new sort merge join plan.
+    #[must_use]
+    pub fn new_sort_merge_join(
+        left: DynProofPlan,
+        right: DynProofPlan,
+        left_join_column_indexes: Vec<usize>,
+        right_join_column_indexes: Vec<usize>,
+        result_idents: Vec<Ident>,
+    ) -> Self {
+        Self::SortMergeJoin(SortMergeJoinExec::new(
+            Box::new(left),
+            Box::new(right),
+            left_join_column_indexes,
+            right_join_column_indexes,
+            result_idents,
+        ))
+    }
 }
