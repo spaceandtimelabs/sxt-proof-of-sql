@@ -171,7 +171,13 @@ contract HyperKZGHelpersTest is Test {
     /// forge-config: default.fuzz.max-test-rejects = 100000
     function testFuzzRevertsVConsistency(uint256[3][] calldata v, uint256 r, uint256[] memory x, uint256 y) public {
         vm.assume(x.length > 0);
-        vm.assume(v.length == x.length);
+        uint256 xLength = x.length;
+        vm.assume(v.length == xLength);
+        bool xrAllZero = r == 0;
+        for (uint256 i = 0; i < xLength; ++i) {
+            xrAllZero = xrAllZero && (x[i] == 0);
+        }
+        vm.assume(!xrAllZero);
         vm.expectRevert(Errors.HyperKZGInconsistentV.selector);
         HyperKZGHelpers.__checkVConsistency(v, r, x, y);
     }
