@@ -114,15 +114,15 @@ fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
     offset: usize,
     scalars: &[T],
 ) -> HyperKZGCommitment {
-    let commitment = CommitmentEngine::commit(
-        setup,
-        &itertools::repeat_n(BNScalar::ZERO, offset)
-            .chain(scalars.iter().map(Into::into))
-            .map(Into::into)
-            .collect_vec(),
-        &NovaScalar::ZERO,
-    );
-    HyperKZGCommitment { commitment }
+    assert!(offset + scalars.len() <= setup.ck().len());
+    let product = scalars
+        .iter()
+        .zip(&setup.ck()[offset..offset + scalars.len()])
+        .map(|(t, s)| *s * Into::<NovaScalar>::into(Into::<BNScalar>::into(t)))
+        .sum();
+    HyperKZGCommitment {
+        commitment: NovaCommitment::new(product),
+    }
 }
 impl Commitment for HyperKZGCommitment {
     type Scalar = BNScalar;
