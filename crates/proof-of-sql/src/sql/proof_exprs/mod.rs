@@ -1,11 +1,11 @@
 //! This module proves provable expressions.
 mod proof_expr;
-pub(crate) use proof_expr::ProofExpr;
+pub use proof_expr::ProofExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod proof_expr_test;
 
 mod aliased_dyn_proof_expr;
-pub(crate) use aliased_dyn_proof_expr::AliasedDynProofExpr;
+pub use aliased_dyn_proof_expr::AliasedDynProofExpr;
 
 mod add_subtract_expr;
 pub(crate) use add_subtract_expr::AddSubtractExpr;
@@ -62,7 +62,7 @@ pub(crate) use equals_expr::EqualsExpr;
 mod equals_expr_test;
 
 mod table_expr;
-pub(crate) use table_expr::TableExpr;
+pub use table_expr::TableExpr;
 
 #[cfg(test)]
 pub(crate) mod test_utility;

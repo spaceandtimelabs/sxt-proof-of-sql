@@ -103,13 +103,13 @@ impl<S: Scalar> ContextProvider for PoSqlContextProvider<'_, S> {
 }
 
 /// A [`TableSource`] implementation for Proof of SQL
-struct PoSqlTableSource {
+pub(crate) struct PoSqlTableSource {
     schema: SchemaRef,
 }
 
 impl PoSqlTableSource {
     /// Create a new `PoSqlTableSource`
-    fn new(column_fields: Vec<ColumnField>) -> Self {
+    pub(crate) fn new(column_fields: Vec<ColumnField>) -> Self {
         let arrow_schema = Schema::new(
             column_fields
                 .into_iter()
