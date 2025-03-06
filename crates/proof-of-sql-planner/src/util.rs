@@ -6,6 +6,7 @@ use datafusion::{
 };
 use proof_of_sql::base::database::{ColumnField, ColumnRef, ColumnType, LiteralValue, TableRef};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use sqlparser::ast::Ident;
 
 /// Convert a [`TableReference`] to a [`TableRef`]
 ///
@@ -92,6 +93,24 @@ pub(crate) fn column_fields_to_schema(column_fields: Vec<ColumnField>) -> Schema
             })
             .collect::<Vec<_>>(),
     )
+}
+
+/// Convert a [`DFSchema`] to a Vec<ColumnField>
+///
+/// Note that this returns an error if any column has an unsupported `DataType`
+pub(crate) fn df_schema_to_column_fields(schema: &DFSchema) -> PlannerResult<Vec<ColumnField>> {
+    schema
+        .fields()
+        .iter()
+        .map(|field| -> PlannerResult<ColumnField> {
+            let column_type = ColumnType::try_from(field.data_type().clone()).map_err(|_e| {
+                PlannerError::UnsupportedDataType {
+                    data_type: field.data_type().clone(),
+                }
+            })?;
+            Ok(ColumnField::new(Ident::new(field.name()), column_type))
+        })
+        .collect::<PlannerResult<Vec<ColumnField>>>()
 }
 
 #[cfg(test)]
@@ -311,5 +330,40 @@ mod tests {
                 &Field::new("b", DataType::Utf8, false),
             ]
         );
+    }
+
+    // DFSchema to Vec<ColumnField>
+    #[test]
+    fn we_can_convert_df_schema_to_column_fields() {
+        // Empty
+        let arrow_schema = Schema::new(Vec::<Field>::new());
+        let df_schema = DFSchema::try_from(arrow_schema).unwrap();
+        let column_fields = df_schema_to_column_fields(&df_schema).unwrap();
+        assert_eq!(column_fields, Vec::<ColumnField>::new());
+
+        // Non-empty
+        let arrow_schema = Schema::new(vec![
+            Field::new("a", DataType::Int16, false),
+            Field::new("b", DataType::Utf8, false),
+        ]);
+        let df_schema = DFSchema::try_from(arrow_schema).unwrap();
+        let column_fields = df_schema_to_column_fields(&df_schema).unwrap();
+        assert_eq!(
+            column_fields,
+            vec![
+                ColumnField::new("a".into(), ColumnType::SmallInt),
+                ColumnField::new("b".into(), ColumnType::VarChar),
+            ]
+        );
+    }
+
+    #[test]
+    fn we_cannot_convert_df_schema_to_column_fields_with_unsupported_data_type() {
+        let arrow_schema = Schema::new(vec![Field::new("a", DataType::Float32, false)]);
+        let df_schema = DFSchema::try_from(arrow_schema).unwrap();
+        assert!(matches!(
+            df_schema_to_column_fields(&df_schema),
+            Err(PlannerError::UnsupportedDataType { .. })
+        ));
     }
 }
