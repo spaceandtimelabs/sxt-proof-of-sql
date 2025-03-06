@@ -2,7 +2,7 @@ use crate::{
     base::{
         bit::{
             bit_mask_utils::{is_bit_mask_negative_representation, make_bit_mask},
-            compute_varying_bit_matrix, BitDistribution, BitDistrubutionError,
+            compute_varying_bit_matrix, BitDistribution, BitDistributionError,
         },
         proof::ProofError,
         scalar::{Scalar, ScalarExt},
@@ -102,10 +102,10 @@ pub fn verifier_evaluate_sign<S: Scalar>(
     verify_bit_decomposition(eval, chi_eval, &bit_evals, &dist, num_bits_allowed)
         .map(|sign_eval| chi_eval - sign_eval)
         .map_err(|err| match err {
-            BitDistrubutionError::NoLeadBit => {
+            BitDistributionError::NoLeadBit => {
                 panic!("No lead bit available despite variable lead bit.")
             }
-            BitDistrubutionError::Verification => ProofError::VerificationError {
+            BitDistributionError::Verification => ProofError::VerificationError {
                 error: "invalid bit_decomposition",
             },
         })
@@ -149,7 +149,7 @@ fn verify_bit_decomposition<S: ScalarExt>(
     bit_evals: &[S],
     dist: &BitDistribution,
     num_bits_allowed: Option<u8>,
-) -> Result<S, BitDistrubutionError> {
+) -> Result<S, BitDistributionError> {
     let sign_eval = dist.leading_bit_eval(bit_evals, chi_eval)?;
     let mut rhs = sign_eval * S::from_wrapping(dist.leading_bit_mask())
         + (chi_eval - sign_eval) * S::from_wrapping(dist.leading_bit_inverse_mask())
@@ -164,7 +164,7 @@ fn verify_bit_decomposition<S: ScalarExt>(
     }
     let num_bits_allowed = num_bits_allowed.unwrap_or(S::MAX_BITS);
     if num_bits_allowed > S::MAX_BITS {
-        return Err(BitDistrubutionError::Verification);
+        return Err(BitDistributionError::Verification);
     }
     let bits_that_must_match_inverse_lead_bit =
         U256::MAX.shl(num_bits_allowed - 1) ^ U256::ONE.shl(255);
@@ -173,14 +173,14 @@ fn verify_bit_decomposition<S: ScalarExt>(
         == bits_that_must_match_inverse_lead_bit;
     (rhs == expr_eval && is_eval_correct_number_of_bits)
         .then_some(sign_eval)
-        .ok_or(BitDistrubutionError::Verification)
+        .ok_or(BitDistributionError::Verification)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         base::{
-            bit::{BitDistribution, BitDistrubutionError},
+            bit::{BitDistribution, BitDistributionError},
             scalar::{test_scalar::TestScalar, Scalar, ScalarExt},
         },
         sql::proof_gadgets::sign_expr::verify_bit_decomposition,
@@ -305,7 +305,7 @@ mod tests {
         assert_eq!(sign_eval, expected_eval);
         let err =
             verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(7)).unwrap_err();
-        assert!(matches!(err, BitDistrubutionError::Verification));
+        assert!(matches!(err, BitDistributionError::Verification));
     }
 
     #[test]
@@ -341,10 +341,10 @@ mod tests {
         // Should fail because the TestScalar can only securely hold i252 values
         let err = verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(253))
             .unwrap_err();
-        assert!(matches!(err, BitDistrubutionError::Verification));
+        assert!(matches!(err, BitDistributionError::Verification));
         // Should fail because the highest value is too big to be held by an i251
         let err = verify_bit_decomposition(expr_eval, chi_eval, &bit_evals, &dist, Some(251))
             .unwrap_err();
-        assert!(matches!(err, BitDistrubutionError::Verification));
+        assert!(matches!(err, BitDistributionError::Verification));
     }
 }
