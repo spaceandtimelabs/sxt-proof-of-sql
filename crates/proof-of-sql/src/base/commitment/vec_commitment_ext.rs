@@ -26,7 +26,7 @@ pub trait VecCommitmentExt {
         C: Into<CommittableColumn<'a>>;
 
     /// Returns a collection of commitments to the provided slice of `CommittableColumn`s using the given generator offset.
-    fn from_commitable_columns_with_offset(
+    fn from_committable_columns_with_offset(
         committable_columns: &[CommittableColumn],
         offset: usize,
         setup: &Self::CommitmentPublicSetup<'_>,
@@ -94,10 +94,10 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
         let committable_columns: Vec<CommittableColumn<'a>> =
             columns.into_iter().map(Into::into).collect::<Vec<_>>();
 
-        Self::from_commitable_columns_with_offset(&committable_columns, offset, setup)
+        Self::from_committable_columns_with_offset(&committable_columns, offset, setup)
     }
 
-    fn from_commitable_columns_with_offset(
+    fn from_committable_columns_with_offset(
         committable_columns: &[CommittableColumn],
         offset: usize,
         setup: &Self::CommitmentPublicSetup<'_>,

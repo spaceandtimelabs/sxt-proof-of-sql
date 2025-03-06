@@ -100,7 +100,7 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
     ) -> Vec<C> {
         log::log_memory_usage("Start");
 
-        let res = Vec::from_commitable_columns_with_offset(
+        let res = Vec::from_committable_columns_with_offset(
             &self.commitment_descriptor,
             offset_generators,
             setup,
