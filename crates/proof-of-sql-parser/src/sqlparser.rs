@@ -7,7 +7,7 @@ use crate::{
     },
     Identifier, ResourceId, SelectStatement,
 };
-use alloc::{boxed::Box, string::ToString, vec};
+use alloc::{boxed::Box, format, string::{String, ToString}, vec};
 use core::fmt::Display;
 use sqlparser::ast::{
     BinaryOperator, DataType, Expr, Function, FunctionArg, FunctionArgExpr, GroupByExpr, Ident,
