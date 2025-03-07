@@ -23,14 +23,11 @@ use proof_of_sql::{
 /// However that shouldn't be taken for granted.
 fn get_aliased_dyn_proof_exprs(
     table_ref: &TableRef,
-    projection: Option<Vec<usize>>,
+    projection: &[usize],
     input_schema: &DFSchema,
     output_schema: &DFSchema,
 ) -> PlannerResult<Vec<AliasedDynProofExpr>> {
-    let num_input_columns = input_schema.columns().len();
-    let projection_indexes =
-        projection.unwrap_or_else(|| (0..num_input_columns).collect::<Vec<_>>());
-    projection_indexes
+    projection
         .iter()
         .enumerate()
         .map(
@@ -59,7 +56,7 @@ fn get_aliased_dyn_proof_exprs(
 fn table_scan_to_projection(
     table_name: &TableReference,
     schemas: &IndexMap<TableReference, DFSchema>,
-    projection: Option<Vec<usize>>,
+    projection: &[usize],
     projected_schema: &DFSchema,
 ) -> PlannerResult<DynProofPlan> {
     // Check if the table exists
@@ -86,18 +83,18 @@ fn table_scan_to_projection(
 }
 
 /// Convert a `TableScan` with filters but without fetch limit to a `DynProofPlan`
+///
+/// # Panics
+/// Panics if there are no filters which should not happen if called from `logical_plan_to_proof_plan`
 fn table_scan_to_filter(
     table_name: &TableReference,
     schemas: &IndexMap<TableReference, DFSchema>,
-    projection: Option<Vec<usize>>,
+    projection: &[usize],
     projected_schema: &DFSchema,
     filters: &[Expr],
 ) -> PlannerResult<DynProofPlan> {
     // Check if the table exists
     let table_ref = table_reference_to_table_ref(table_name)?;
-    let table_expr = TableExpr {
-        table_ref: table_ref.clone(),
-    };
     let input_schema = schemas
         .get(table_name)
         .ok_or_else(|| PlannerError::TableNotFound {
@@ -106,16 +103,13 @@ fn table_scan_to_filter(
     // Get aliased expressions
     let aliased_dyn_proof_exprs =
         get_aliased_dyn_proof_exprs(&table_ref, projection, input_schema, projected_schema)?;
-    // Process filter
-    let filter_proof_exprs = filters
+    let table_expr = TableExpr { table_ref };
+    // Filter
+    let consolidated_filter_proof_expr = filters
         .iter()
         .map(|f| expr_to_proof_expr(f, input_schema))
-        .collect::<PlannerResult<Vec<_>>>()?;
-    // Filter
-    let consolidated_filter_proof_expr = filter_proof_exprs[1..]
-        .iter()
-        .cloned()
-        .try_fold(filter_proof_exprs[0].clone(), DynProofExpr::try_new_and)?;
+        .reduce(|a, b| Ok(DynProofExpr::try_new_and(a?, b?)?))
+        .expect("At least one filter expression is required")?;
     Ok(DynProofPlan::new_filter(
         aliased_dyn_proof_exprs,
         table_expr,
@@ -130,32 +124,21 @@ pub fn logical_plan_to_proof_plan(
 ) -> PlannerResult<DynProofPlan> {
     match plan {
         LogicalPlan::EmptyRelation { .. } => Ok(DynProofPlan::new_empty()),
-        // No filter or fetch limit
+        // `projection` shouldn't be None in analyzed and optimized plans
         LogicalPlan::TableScan(TableScan {
             table_name,
-            projection,
+            projection: Some(projection),
             projected_schema,
             filters,
             fetch: None,
             ..
-        }) if filters.is_empty() => {
-            table_scan_to_projection(table_name, schemas, projection.clone(), projected_schema)
+        }) => {
+            if filters.is_empty() {
+                table_scan_to_projection(table_name, schemas, projection, projected_schema)
+            } else {
+                table_scan_to_filter(table_name, schemas, projection, projected_schema, filters)
+            }
         }
-        // Filter but no fetch limit
-        LogicalPlan::TableScan(TableScan {
-            table_name,
-            projection,
-            projected_schema,
-            filters,
-            fetch: None,
-            ..
-        }) if !filters.is_empty() => table_scan_to_filter(
-            table_name,
-            schemas,
-            projection.clone(),
-            projected_schema,
-            filters,
-        ),
         _ => Err(PlannerError::UnsupportedLogicalPlan { plan: plan.clone() }),
     }
 }
@@ -267,13 +250,9 @@ mod tests {
             ],
         );
         let output_schema = df_schema("table", vec![("b", DataType::Int32), ("c", DataType::Utf8)]);
-        let result = get_aliased_dyn_proof_exprs(
-            &table_ref,
-            Some(vec![1, 2]),
-            &input_schema,
-            &output_schema,
-        )
-        .unwrap();
+        let result =
+            get_aliased_dyn_proof_exprs(&table_ref, &[1, 2], &input_schema, &output_schema)
+                .unwrap();
         let expected = vec![ALIASED_B(), ALIASED_C()];
         assert_eq!(result, expected);
     }
@@ -300,7 +279,8 @@ mod tests {
             ],
         );
         let result =
-            get_aliased_dyn_proof_exprs(&table_ref, None, &input_schema, &output_schema).unwrap();
+            get_aliased_dyn_proof_exprs(&table_ref, &[0, 1, 2, 3], &input_schema, &output_schema)
+                .unwrap();
         let expected = vec![ALIASED_A(), ALIASED_B(), ALIASED_C(), ALIASED_D()];
         assert_eq!(result, expected);
     }
@@ -326,12 +306,7 @@ mod tests {
             ],
         );
         assert!(matches!(
-            get_aliased_dyn_proof_exprs(
-                &table_ref,
-                Some(vec![1, 2, 3]),
-                &input_schema,
-                &output_schema,
-            ),
+            get_aliased_dyn_proof_exprs(&table_ref, &[1, 2, 3], &input_schema, &output_schema,),
             Err(PlannerError::UnsupportedDataType { .. })
         ));
     }
@@ -352,7 +327,14 @@ mod tests {
     #[test]
     fn we_can_convert_table_scan_plan_to_proof_plan_without_filter_or_fetch_limit() {
         let plan = LogicalPlan::TableScan(
-            TableScan::try_new("table", TABLE_SOURCE(), None, vec![], None).unwrap(),
+            TableScan::try_new(
+                "table",
+                TABLE_SOURCE(),
+                Some(vec![0, 1, 2, 3]),
+                vec![],
+                None,
+            )
+            .unwrap(),
         );
         let schemas = SCHEMAS();
         let result = logical_plan_to_proof_plan(&plan, &schemas).unwrap();
@@ -375,7 +357,14 @@ mod tests {
     fn we_cannot_convert_table_scan_plan_to_proof_plan_without_filter_or_fetch_limit_if_bad_schemas(
     ) {
         let plan = LogicalPlan::TableScan(
-            TableScan::try_new("table", TABLE_SOURCE(), None, vec![], None).unwrap(),
+            TableScan::try_new(
+                "table",
+                TABLE_SOURCE(),
+                Some(vec![0, 1, 2, 3]),
+                vec![],
+                None,
+            )
+            .unwrap(),
         );
         let schemas = EMPTY_SCHEMAS();
         let result = logical_plan_to_proof_plan(&plan, &schemas);
