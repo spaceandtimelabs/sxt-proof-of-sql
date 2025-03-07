@@ -1,7 +1,7 @@
 use crate::base::{
     database::ColumnType,
     math::{decimal::Precision, i256::I256},
-    scalar::{Scalar, scalar_ext::ScalarExt},
+    scalar::{Scalar, ScalarExt},
 };
 use alloc::{string::String, vec::Vec};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
