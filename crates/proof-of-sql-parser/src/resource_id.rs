@@ -89,7 +89,7 @@ impl Display for ResourceId {
             object_name,
         } = self;
 
-        formatter.write_str(format!("{schema}.{object_name}").as_str())
+        formatter.write_fmt(format_args!("{schema}.{object_name}"))
     }
 }
 
