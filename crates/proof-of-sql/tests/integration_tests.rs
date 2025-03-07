@@ -806,7 +806,9 @@ fn we_can_prove_a_varbinary_equality_query_with_hex_literal() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT a, b FROM table WHERE b = 0x04050607".parse().unwrap(),
+        "SELECT a, b FROM table WHERE b = 0x04050607"
+            .parse()
+            .unwrap(),
         "sxt".into(),
         &accessor,
     )
