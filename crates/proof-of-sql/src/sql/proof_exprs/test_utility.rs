@@ -1,220 +1,146 @@
-use super::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr};
-use crate::base::{
-    database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
-    math::{decimal::Precision, i256::I256},
-    scalar::Scalar,
+use crate::{
+    base::{
+        database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
+        scalar::Scalar,
+    },
+    sql::proof_exprs::{
+        add_subtract_expr::AddSubtractExpr, and_expr::AndExpr, column_expr::ColumnExpr,
+        equals_expr::EqualsExpr, inequality_expr::InequalityExpr, literal_expr::LiteralExpr,
+        multiply_expr::MultiplyExpr, not_expr::NotExpr, or_expr::OrExpr, DynProofExpr,
+    },
 };
-use proof_of_sql_parser::intermediate_ast::AggregationOperator;
-use sqlparser::ast::Ident;
+use alloc::vec::Vec;
+use core::marker::PhantomData;
 
-pub fn col_ref(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
-    let name: Ident = name.into();
-    let type_col = accessor.lookup_column(tab.clone(), name.clone()).unwrap();
-    ColumnRef::new(tab.clone(), name, type_col)
+/// Creates a new `DynProofExpr::Column` expression.
+pub fn column<S: Scalar, A: SchemaAccessor>(
+    table_ref: &TableRef,
+    column_id: &str,
+    accessor: &A,
+) -> DynProofExpr {
+    let column_id = column_id.parse().unwrap();
+    let column_type = accessor
+        .lookup_column(table_ref.clone(), column_id.clone())
+        .unwrap();
+    let column_ref = ColumnRef::new(table_ref.clone(), column_id, column_type);
+    DynProofExpr::Column(ColumnExpr::new(column_ref))
 }
 
-/// # Panics
-/// Panics if:
-/// - `accessor.lookup_column()` returns `None`, indicating the column is not found.
-pub fn column(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> DynProofExpr {
-    let name: Ident = name.into();
-    let type_col = accessor.lookup_column(tab.clone(), name.clone()).unwrap();
-    DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(tab.clone(), name, type_col)))
+/// Creates a new `DynProofExpr::Equal` expression.
+pub fn equal<T: Into<DynProofExpr>>(lhs: T, rhs: T) -> DynProofExpr {
+    let lhs = lhs.into();
+    let rhs = rhs.into();
+    DynProofExpr::Equal(EqualsExpr::new(lhs, rhs))
 }
 
-/// # Panics
-/// Panics if:
-/// - `DynProofExpr::try_new_equals()` returns an error.
-pub fn equal(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
-    DynProofExpr::try_new_equals(left, right).unwrap()
+/// Creates a new `DynProofExpr::And` expression.
+pub fn and<T: Into<DynProofExpr>>(lhs: T, rhs: T) -> DynProofExpr {
+    let lhs = lhs.into();
+    let rhs = rhs.into();
+    DynProofExpr::And(AndExpr::new(lhs, rhs))
 }
 
-/// # Panics
-/// Panics if:
-/// - `DynProofExpr::try_new_inequality()` returns an error.
-pub fn lte(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
-    not(DynProofExpr::try_new_inequality(left, right, false).unwrap())
+/// Creates a new `DynProofExpr::Or` expression.
+pub fn or<T: Into<DynProofExpr>>(lhs: T, rhs: T) -> DynProofExpr {
+    let lhs = lhs.into();
+    let rhs = rhs.into();
+    DynProofExpr::Or(OrExpr::new(lhs, rhs))
 }
 
-/// # Panics
-/// Panics if:
-/// - `DynProofExpr::try_new_inequality()` returns an error.
-pub fn gte(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
-    not(DynProofExpr::try_new_inequality(left, right, true).unwrap())
+/// Creates a new `DynProofExpr::Not` expression.
+pub fn not<T: Into<DynProofExpr>>(expr: T) -> DynProofExpr {
+    let expr = expr.into();
+    DynProofExpr::Not(NotExpr::new(expr))
 }
 
-/// # Panics
-/// Panics if:
-/// - `DynProofExpr::try_new_not()` returns an error.
-pub fn not(expr: DynProofExpr) -> DynProofExpr {
-    DynProofExpr::try_new_not(expr).unwrap()
+/// Creates a new `DynProofExpr::LessThan` expression.
+pub fn lt<T: Into<DynProofExpr>>(lhs: T, rhs: T) -> DynProofExpr {
+    let lhs = lhs.into();
+    let rhs = rhs.into();
+    DynProofExpr::LessThan(InequalityExpr::new(lhs, rhs))
 }
 
-/// # Panics
-/// Panics if:
-/// - `DynProofExpr::try_new_and()` returns an error.
-pub fn and(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
-    DynProofExpr::try_new_and(left, right).unwrap()
+/// Creates a new `DynProofExpr::GreaterThan` expression.
+pub fn gt<T: Into<DynProofExpr>>(lhs: T, rhs: T) -> DynProofExpr {
+    let lhs = lhs.into();
+    let rhs = rhs.into();
+    DynProofExpr::GreaterThan(InequalityExpr::new(lhs, rhs))
 }
 
-/// # Panics
-/// Panics if:
-/// - `DynProofExpr::try_new_or()` returns an error.
-pub fn or(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
-    DynProofExpr::try_new_or(left, right).unwrap()
+/// Creates a new `DynProofExpr::LessThanOrEqual` expression.
+pub fn le<T: Into<DynProofExpr>>(lhs: T, rhs: T) -> DynProofExpr {
+    not(gt(lhs, rhs))
 }
 
-/// # Panics
-/// Panics if:
-/// - `DynProofExpr::try_new_add()` returns an error.
-pub fn add(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
-    DynProofExpr::try_new_add(left, right).unwrap()
+/// Creates a new `DynProofExpr::GreaterThanOrEqual` expression.
+pub fn ge<T: Into<DynProofExpr>>(lhs: T, rhs: T) -> DynProofExpr {
+    not(lt(lhs, rhs))
 }
 
-/// # Panics
-/// Panics if:
-/// - `DynProofExpr::try_new_subtract()` returns an error.
-pub fn subtract(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
-    DynProofExpr::try_new_subtract(left, right).unwrap()
+/// Creates a new `DynProofExpr::Add` expression.
+pub fn add<T: Into<DynProofExpr>>(lhs: T, rhs: T) -> DynProofExpr {
+    let lhs = lhs.into();
+    let rhs = rhs.into();
+    DynProofExpr::Add(AddSubtractExpr::new(lhs, rhs))
 }
 
-/// # Panics
-/// Panics if:
-/// - `DynProofExpr::try_new_multiply()` returns an error.
-pub fn multiply(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
-    DynProofExpr::try_new_multiply(left, right).unwrap()
+/// Creates a new `DynProofExpr::Subtract` expression.
+pub fn subtract<T: Into<DynProofExpr>>(lhs: T, rhs: T) -> DynProofExpr {
+    let lhs = lhs.into();
+    let rhs = rhs.into();
+    DynProofExpr::Subtract(AddSubtractExpr::new(lhs, rhs))
 }
 
+/// Creates a new `DynProofExpr::Multiply` expression.
+pub fn multiply<T: Into<DynProofExpr>>(lhs: T, rhs: T) -> DynProofExpr {
+    let lhs = lhs.into();
+    let rhs = rhs.into();
+    DynProofExpr::Multiply(MultiplyExpr::new(lhs, rhs))
+}
+
+/// Creates a new `DynProofExpr::Literal` expression for a boolean value.
 pub fn const_bool(val: bool) -> DynProofExpr {
     DynProofExpr::new_literal(LiteralValue::Boolean(val))
 }
 
+/// Creates a new `DynProofExpr::Literal` expression for a smallint value.
 pub fn const_smallint(val: i16) -> DynProofExpr {
     DynProofExpr::new_literal(LiteralValue::SmallInt(val))
 }
 
+/// Creates a new `DynProofExpr::Literal` expression for an int value.
 pub fn const_int(val: i32) -> DynProofExpr {
     DynProofExpr::new_literal(LiteralValue::Int(val))
 }
 
+/// Creates a new `DynProofExpr::Literal` expression for a bigint value.
 pub fn const_bigint(val: i64) -> DynProofExpr {
     DynProofExpr::new_literal(LiteralValue::BigInt(val))
 }
 
+/// Creates a new `DynProofExpr::Literal` expression for an int128 value.
 pub fn const_int128(val: i128) -> DynProofExpr {
     DynProofExpr::new_literal(LiteralValue::Int128(val))
 }
 
+/// Creates a new `DynProofExpr::Literal` expression for a varchar value.
 pub fn const_varchar(val: &str) -> DynProofExpr {
     DynProofExpr::new_literal(LiteralValue::VarChar(val.to_string()))
 }
 
-/// Create a constant scalar value. Used if we don't want to specify column types.
+/// Creates a new `DynProofExpr::Literal` expression for a varbinary value.
+pub fn const_varbinary(val: &[u8]) -> DynProofExpr {
+    DynProofExpr::new_literal(LiteralValue::VarBinary(val.to_vec()))
+}
+
+/// Creates a new `DynProofExpr::Literal` expression for a scalar value.
 pub fn const_scalar<S: Scalar, T: Into<S>>(val: T) -> DynProofExpr {
     DynProofExpr::new_literal(LiteralValue::Scalar(val.into().into()))
 }
 
-/// # Panics
-/// Panics if:
-/// - `Precision::new(precision)` fails, meaning the provided precision is invalid.
-pub fn const_decimal75<T: Into<I256>>(precision: u8, scale: i8, val: T) -> DynProofExpr {
-    DynProofExpr::new_literal(LiteralValue::Decimal75(
-        Precision::new(precision).unwrap(),
-        scale,
-        val.into(),
-    ))
-}
-
-pub fn tab(tab: &TableRef) -> TableExpr {
-    TableExpr {
-        table_ref: tab.clone(),
-    }
-}
-
-/// # Panics
-/// Panics if:
-/// - `alias.parse()` fails to parse the provided alias string.
-pub fn aliased_plan(expr: DynProofExpr, alias: &str) -> AliasedDynProofExpr {
-    AliasedDynProofExpr {
-        expr,
-        alias: alias.into(),
-    }
-}
-
-/// # Panics
-/// Panics if:
-/// - `old_name.parse()` or `new_name.parse()` fails to parse the provided column names.
-/// - `col_ref()` fails to find the referenced column, leading to a panic in the column accessor.
-pub fn aliased_col_expr_plan(
-    tab: &TableRef,
-    old_name: &str,
-    new_name: &str,
-    accessor: &impl SchemaAccessor,
-) -> AliasedDynProofExpr {
-    AliasedDynProofExpr {
-        expr: DynProofExpr::Column(ColumnExpr::new(col_ref(tab, old_name, accessor))),
-        alias: new_name.into(),
-    }
-}
-
-/// # Panics
-/// Panics if:
-/// - `name.parse()` fails to parse the provided column name.
-/// - `col_ref()` fails to find the referenced column, leading to a panic in the column accessor.
-pub fn col_expr_plan(
-    tab: &TableRef,
-    name: &str,
-    accessor: &impl SchemaAccessor,
-) -> AliasedDynProofExpr {
-    AliasedDynProofExpr {
-        expr: DynProofExpr::Column(ColumnExpr::new(col_ref(tab, name, accessor))),
-        alias: name.into(),
-    }
-}
-
-pub fn aliased_cols_expr_plan(
-    tab: &TableRef,
-    names: &[(&str, &str)],
-    accessor: &impl SchemaAccessor,
-) -> Vec<AliasedDynProofExpr> {
-    names
-        .iter()
-        .map(|(old_name, new_name)| aliased_col_expr_plan(tab, old_name, new_name, accessor))
-        .collect()
-}
-
-pub fn cols_expr_plan(
-    tab: &TableRef,
-    names: &[&str],
-    accessor: &impl SchemaAccessor,
-) -> Vec<AliasedDynProofExpr> {
-    names
-        .iter()
-        .map(|name| col_expr_plan(tab, name, accessor))
-        .collect()
-}
-
-pub fn col_expr(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnExpr {
-    ColumnExpr::new(col_ref(tab, name, accessor))
-}
-
-pub fn cols_expr(
-    tab: &TableRef,
-    names: &[&str],
-    accessor: &impl SchemaAccessor,
-) -> Vec<ColumnExpr> {
-    names
-        .iter()
-        .map(|name| col_expr(tab, name, accessor))
-        .collect()
-}
-
-/// # Panics
-/// Panics if:
-/// - `alias.parse()` fails to parse the provided alias string.
-pub fn sum_expr(expr: DynProofExpr, alias: &str) -> AliasedDynProofExpr {
-    AliasedDynProofExpr {
-        expr: DynProofExpr::new_aggregate(AggregationOperator::Sum, expr),
-        alias: alias.into(),
-    }
+/// Creates a new `DynProofExpr::Literal` expression for a decimal value.
+pub fn const_decimal<S: Scalar, T: Into<S>>(precision: u8, scale: i8, val: T) -> DynProofExpr {
+    let precision = crate::base::math::decimal::Precision::new(precision).unwrap();
+    let value = crate::base::math::i256::I256::from_scalar(val.into());
+    DynProofExpr::new_literal(LiteralValue::Decimal75(precision, scale, value))
 }
