@@ -40,13 +40,13 @@ pub fn dory_reduce_verify(
     if messages.GT_messages.len() < 6 {
         return false;
     }
-    let D_1L = messages.prover_recieve_GT_message(transcript);
-    let D_1R = messages.prover_recieve_GT_message(transcript);
-    let D_2L = messages.prover_recieve_GT_message(transcript);
-    let D_2R = messages.prover_recieve_GT_message(transcript);
+    let D_1L = messages.prover_receive_GT_message(transcript);
+    let D_1R = messages.prover_receive_GT_message(transcript);
+    let D_2L = messages.prover_receive_GT_message(transcript);
+    let D_2R = messages.prover_receive_GT_message(transcript);
     let betas = messages.verifier_F_message(transcript);
-    let C_plus = messages.prover_recieve_GT_message(transcript);
-    let C_minus = messages.prover_recieve_GT_message(transcript);
+    let C_plus = messages.prover_receive_GT_message(transcript);
+    let C_minus = messages.prover_receive_GT_message(transcript);
     let alphas = messages.verifier_F_message(transcript);
     dory_reduce_verify_update_C(state, setup, (C_plus, C_minus), alphas, betas);
     dory_reduce_verify_update_Ds(state, setup, (D_1L, D_1R, D_2L, D_2R), alphas, betas);

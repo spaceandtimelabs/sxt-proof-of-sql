@@ -34,42 +34,42 @@ fn we_can_send_and_receive_the_correct_messages_in_the_same_order() {
     // Verifier side
     let mut transcript = Transcript::new(b"test");
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage1
     );
     assert_eq!(messages.verifier_F_message(&mut transcript), Vmessage1);
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage2
     );
     assert_eq!(
-        messages.prover_recieve_G2_message(&mut transcript),
+        messages.prover_receive_G2_message(&mut transcript),
         Pmessage3
     );
     assert_eq!(
-        messages.prover_recieve_GT_message(&mut transcript),
+        messages.prover_receive_GT_message(&mut transcript),
         Pmessage4
     );
     assert_eq!(messages.verifier_F_message(&mut transcript), Vmessage2);
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage5
     );
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage6
     );
     assert_eq!(
-        messages.prover_recieve_G2_message(&mut transcript),
+        messages.prover_receive_G2_message(&mut transcript),
         Pmessage7
     );
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage8
     );
     assert_eq!(messages.verifier_F_message(&mut transcript), Vmessage3);
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage9
     );
 }
@@ -106,42 +106,42 @@ fn verifier_messages_fail_when_the_transcript_is_wrong() {
     // Verifier side
     let mut transcript = Transcript::new(b"test_wrong");
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage1
     );
     assert_ne!(messages.verifier_F_message(&mut transcript), Vmessage1);
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage2
     );
     assert_eq!(
-        messages.prover_recieve_G2_message(&mut transcript),
+        messages.prover_receive_G2_message(&mut transcript),
         Pmessage3
     );
     assert_eq!(
-        messages.prover_recieve_GT_message(&mut transcript),
+        messages.prover_receive_GT_message(&mut transcript),
         Pmessage4
     );
     assert_ne!(messages.verifier_F_message(&mut transcript), Vmessage2);
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage5
     );
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage6
     );
     assert_eq!(
-        messages.prover_recieve_G2_message(&mut transcript),
+        messages.prover_receive_G2_message(&mut transcript),
         Pmessage7
     );
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage8
     );
     assert_ne!(messages.verifier_F_message(&mut transcript), Vmessage3);
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage9
     );
 }
@@ -178,42 +178,42 @@ fn verifier_messages_fail_when_a_verifier_message_is_in_the_wrong_order() {
     // Verifier side
     let mut transcript = Transcript::new(b"test");
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage1
     );
     assert_eq!(messages.verifier_F_message(&mut transcript), Vmessage1);
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage2
     );
     assert_eq!(
-        messages.prover_recieve_G2_message(&mut transcript),
+        messages.prover_receive_G2_message(&mut transcript),
         Pmessage3
     );
     assert_eq!(
-        messages.prover_recieve_GT_message(&mut transcript),
+        messages.prover_receive_GT_message(&mut transcript),
         Pmessage4
     );
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage5
     );
     assert_ne!(messages.verifier_F_message(&mut transcript), Vmessage2);
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage6
     );
     assert_eq!(
-        messages.prover_recieve_G2_message(&mut transcript),
+        messages.prover_receive_G2_message(&mut transcript),
         Pmessage7
     );
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage8
     );
     assert_ne!(messages.verifier_F_message(&mut transcript), Vmessage3);
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage9
     );
 }
@@ -250,42 +250,42 @@ fn verifier_messages_fail_when_prover_messages_are_out_of_order() {
     // Verifier side
     let mut transcript = Transcript::new(b"test");
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage1
     );
     assert_eq!(messages.verifier_F_message(&mut transcript), Vmessage1);
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage2
     );
     assert_eq!(
-        messages.prover_recieve_GT_message(&mut transcript),
+        messages.prover_receive_GT_message(&mut transcript),
         Pmessage4
     );
     assert_eq!(
-        messages.prover_recieve_G2_message(&mut transcript),
+        messages.prover_receive_G2_message(&mut transcript),
         Pmessage3
     );
     assert_ne!(messages.verifier_F_message(&mut transcript), Vmessage2);
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage5
     );
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage6
     );
     assert_eq!(
-        messages.prover_recieve_G2_message(&mut transcript),
+        messages.prover_receive_G2_message(&mut transcript),
         Pmessage7
     );
     assert_eq!(
-        messages.prover_recieve_G1_message(&mut transcript),
+        messages.prover_receive_G1_message(&mut transcript),
         Pmessage8
     );
     assert_ne!(messages.verifier_F_message(&mut transcript), Vmessage3);
     assert_eq!(
-        messages.prover_recieve_F_message(&mut transcript),
+        messages.prover_receive_F_message(&mut transcript),
         Pmessage9
     );
 }
