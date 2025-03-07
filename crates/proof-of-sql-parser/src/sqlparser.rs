@@ -66,6 +66,13 @@ impl From<Literal> for Expr {
     fn from(literal: Literal) -> Self {
         match literal {
             Literal::VarChar(s) => Expr::Value(Value::SingleQuotedString(s)),
+            Literal::VarBinary(bytes) => {
+                // Convert binary data to hex string for SQL representation
+                let hex_string = bytes.iter()
+                    .map(|b| format!("{:02x}", b))
+                    .collect::<String>();
+                Expr::Value(Value::HexStringLiteral(hex_string))
+            },
             Literal::BigInt(n) => Expr::Value(Value::Number(n.to_string(), false)),
             Literal::Int128(n) => Expr::Value(Value::Number(n.to_string(), false)),
             Literal::Decimal(n) => Expr::Value(Value::Number(n.to_string(), false)),
