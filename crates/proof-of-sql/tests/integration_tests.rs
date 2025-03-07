@@ -919,6 +919,7 @@ fn we_can_perform_equality_checks_on_var_binary() {
 
 #[test]
 #[cfg(feature = "blitzar")]
+#[allow(clippy::too_many_lines)]
 fn we_can_perform_rich_equality_checks_on_var_binary() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
@@ -1036,6 +1037,7 @@ fn we_can_perform_rich_equality_checks_on_var_binary() {
 
 #[test]
 #[cfg(feature = "blitzar")]
+#[allow(clippy::too_many_lines)]
 fn we_can_perform_equality_checks_on_rich_var_binary_data() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     // We'll create multiple columns to have richer data,
