@@ -1280,4 +1280,37 @@ mod tests {
         );
         assert_eq!(ColumnType::VarChar.min_scalar::<TestScalar>(), None);
     }
+
+    #[test]
+    fn we_can_get_sqrt_negative_min() {
+        for column_type in [
+            ColumnType::TinyInt,
+            ColumnType::SmallInt,
+            ColumnType::Int,
+            ColumnType::BigInt,
+            ColumnType::Int128,
+        ] {
+            let floor = TestScalar::from(column_type.sqrt_negative_min().unwrap());
+            let ceiling = floor + TestScalar::ONE;
+            let floor_squared = floor * floor;
+            let ceiling_squared = ceiling * ceiling;
+            let negative_min_scalar = -column_type.min_scalar::<TestScalar>().unwrap();
+            dbg!(&floor_squared);
+            dbg!(&ceiling_squared);
+            dbg!(&negative_min_scalar);
+            assert!(floor_squared <= negative_min_scalar);
+            assert!(negative_min_scalar < ceiling_squared);
+        }
+        for column_type in [
+            ColumnType::Uint8,
+            ColumnType::Scalar,
+            ColumnType::Boolean,
+            ColumnType::VarBinary,
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::new(1)),
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 1),
+            ColumnType::VarChar,
+        ] {
+            assert_eq!(column_type.sqrt_negative_min(), None);
+        }
+    }
 }
