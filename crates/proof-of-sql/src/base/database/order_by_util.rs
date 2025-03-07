@@ -33,7 +33,7 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
             Column::Uint8(col) => col[i].cmp(&col[j]),
             Column::VarBinary((col, _)) => col[i].cmp(col[j]),
             Column::FixedSizeBinary(width, col) => {
-                let bw = width.width_as_usize();
+                let bw: usize = width.into();
                 let start_i = i * bw;
                 let end_i = start_i + bw;
                 let start_j = j * bw;
@@ -149,7 +149,7 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
                 OwnedColumn::Uint8(col) => col[i].cmp(&col[j]),
                 OwnedColumn::FixedSizeBinary(width, col) => {
                     // Compare the chunk of `width` bytes for row `i` vs row `j`
-                    let bw = width.width_as_usize();
+                    let bw: usize = width.into();
                     let start_i = i * bw;
                     let end_i = start_i + bw;
                     let start_j = j * bw;

@@ -83,7 +83,7 @@ pub fn filter_column_by_index<'a, S: Scalar>(
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
         ),
         Column::FixedSizeBinary(byte_width, col) => {
-            let bw = byte_width.width_as_usize();
+            let bw: usize = byte_width.into();
             let allocated_bytes = alloc.alloc_slice_fill_with(indexes.len() * bw, |i| {
                 let row_idx = indexes[i / bw];
                 col[row_idx * bw + (i % bw)]

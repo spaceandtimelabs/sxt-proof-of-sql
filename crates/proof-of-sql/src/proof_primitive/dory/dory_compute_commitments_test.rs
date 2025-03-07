@@ -1,8 +1,5 @@
 use crate::{
-    base::{
-        commitment::CommittableColumn,
-        math::decimal::Precision,
-    },
+    base::{commitment::CommittableColumn, math::decimal::Precision},
     proof_primitive::dory::{
         compute_dory_commitments, DoryProverPublicSetup, ProverSetup, PublicParameters, F, GT,
     },
@@ -51,7 +48,7 @@ fn we_can_compute_a_dory_commitment_with_fixed_size_binary_values() {
 
     // Interpret each 4-byte chunk in the column as a u32 (little-endian) -> field element
     let field_elems: Vec<Fr> = column
-        .chunks_exact(bw.width_as_usize())
+        .chunks_exact(bw.into())
         .map(bytes_to_field_le)
         .collect();
 

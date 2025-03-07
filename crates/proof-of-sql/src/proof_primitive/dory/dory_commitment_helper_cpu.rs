@@ -70,7 +70,7 @@ fn compute_dory_commitment_impl_fixed_size_binary_simple(
     width: NonNegativeI32,
     setup: &DoryProverPublicSetup,
 ) -> DoryCommitment {
-    let bw = width.width_as_usize();
+    let bw: usize = width.into();
     let num_elems = col_bytes.len() / bw;
 
     let mut sum_g1 = G1Projective::default();

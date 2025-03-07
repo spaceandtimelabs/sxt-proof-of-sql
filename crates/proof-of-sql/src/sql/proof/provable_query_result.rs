@@ -1,8 +1,11 @@
 use super::{decode_and_convert, decode_multiple_elements, ProvableResultColumn, QueryError};
-use crate::base::{
-    database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable, Table},
-    polynomial::compute_evaluation_vector,
-    scalar::{Scalar, ScalarExt},
+use crate::{
+    base::{
+        database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable, Table},
+        polynomial::compute_evaluation_vector,
+        scalar::{Scalar, ScalarExt},
+    },
+    sql::proof::result_element_serialization::decode_fixedsizebinary_elements,
 };
 use alloc::{vec, vec::Vec};
 use num_traits::Zero;
@@ -239,10 +242,14 @@ impl ProvableQueryResult {
                         Ok((field.name(), OwnedColumn::TimestampTZ(tu, tz, col)))
                     }
                     ColumnType::FixedSizeBinary(byte_width) => {
-                        let bw = byte_width.width_as_usize();
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
-                        offset += num_read * bw;
-                        Ok((field.name(), OwnedColumn::FixedSizeBinary(byte_width, col)))
+                        let bw: usize = byte_width.into();
+                        let (col_data, used_bytes) =
+                            decode_fixedsizebinary_elements(&self.data[offset..], n, bw)?;
+                        offset += used_bytes;
+                        Ok((
+                            field.name(),
+                            OwnedColumn::FixedSizeBinary(byte_width, col_data),
+                        ))
                     }
                 })
                 .collect::<Result<_, QueryError>>()?,
@@ -264,5 +271,27 @@ impl<S: Scalar> From<Table<'_, S>> for ProvableQueryResult {
             .map(|(_, col)| col)
             .collect::<Vec<_>>();
         Self::new(num_rows as u64, &columns)
+    }
+}
+
+// A tiny wrapper around `[u8]` plus a width
+struct FixedSizeBinarySlice<'a> {
+    data: &'a [u8],
+    row_width: usize,
+}
+
+// Then implement ProvableResultColumn for that wrapper
+impl<'a> ProvableResultColumn for FixedSizeBinarySlice<'a> {
+    fn num_bytes(&self, length: u64) -> usize {
+        // confirm #rows in `data` matches `length`
+        let expected_len = length as usize * self.row_width;
+        assert_eq!(self.data.len(), expected_len);
+        expected_len
+    }
+
+    fn write(&self, out: &mut [u8], length: u64) -> usize {
+        let expected_len = length as usize * self.row_width;
+        out[..expected_len].copy_from_slice(self.data);
+        expected_len
     }
 }

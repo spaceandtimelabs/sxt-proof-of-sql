@@ -81,6 +81,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::VarBinary(..) => ColumnType::VarBinary,
         }
     }
+
     /// Returns the length of the column.
     /// # Panics
     /// this function requires that `col` and `scals` have the same length.
@@ -103,9 +104,13 @@ impl<'a, S: Scalar> Column<'a, S> {
             }
             Self::Int128(col) => col.len(),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col.len(),
-            Self::FixedSizeBinary(bw, col) => col.len() / bw.width_as_usize(),
+            Self::FixedSizeBinary(bw, col) => {
+                let chunk_size: usize = bw.into();
+                col.len() / chunk_size
+            }
         }
     }
+
     /// Returns `true` if the column has no elements.
     #[must_use]
     pub fn is_empty(&self) -> bool {
@@ -551,7 +556,7 @@ impl ColumnType {
             Self::Scalar | Self::Decimal75(_, _) | Self::VarBinary | Self::VarChar => {
                 size_of::<[u64; 4]>()
             }
-            Self::FixedSizeBinary(bw) => bw.width_as_usize(),
+            Self::FixedSizeBinary(bw) => bw.into(),
         }
     }
 

@@ -125,7 +125,7 @@ where
                 .expect("Column types should match")
                 .1;
 
-            let bw = width.width_as_usize();
+            let bw: usize = width.into();
             let num_rows = col.len() / bw;
             let mut new_bytes = Vec::with_capacity(indexes.len() * bw);
 
@@ -149,10 +149,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{
-        database::ColumnOperationError,
-        scalar::test_scalar::TestScalar,
-    };
+    use crate::base::{database::ColumnOperationError, scalar::test_scalar::TestScalar};
 
     #[test]
     fn test_apply_index_op() {

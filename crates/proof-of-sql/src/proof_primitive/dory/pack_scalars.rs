@@ -482,7 +482,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
             }
             CommittableColumn::FixedSizeBinary(bw, raw_bytes) => {
                 pack_fixed_size_binary(
-                    bw.width_as_usize(),
+                    bw.into(),
                     raw_bytes,
                     &mut packed_scalars,
                     cumulative_bit_sum_table[i],

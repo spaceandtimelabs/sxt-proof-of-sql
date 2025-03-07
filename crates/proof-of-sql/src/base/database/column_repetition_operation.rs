@@ -137,7 +137,7 @@ pub trait RepetitionOp {
             }
             ColumnType::FixedSizeBinary(width) => {
                 let col_bytes = column.as_fixed_size_binary().expect("Column types match").1;
-                let bw = width.width_as_usize();
+                let bw: usize = width.into();
                 let num_rows = col_bytes.len() / bw;
                 let row_indices: Vec<usize> =
                     Self::op(&(0..num_rows).collect::<Vec<_>>(), n).collect();

@@ -76,7 +76,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Uint8(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::FixedSizeBinary(width, col_bytes) => inner_product_ref_cast(
                 &col_bytes
-                    .chunks_exact(width.width_as_usize())
+                    .chunks_exact(width.into())
                     .map(|chunk| S::from_byte_slice_via_hash(chunk))
                     .collect::<Vec<S>>(),
                 vec,
@@ -110,7 +110,10 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::VarBinary(col) => col.len(),
             OwnedColumn::Int128(col) => col.len(),
             OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col.len(),
-            OwnedColumn::FixedSizeBinary(bw, col) => col.len() / bw.width_as_usize(),
+            OwnedColumn::FixedSizeBinary(bw, col) => {
+                let width: usize = bw.into();
+                col.len() / width
+            }
         }
     }
 
@@ -133,10 +136,9 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::TimestampTZ(tu, tz, col) => {
                 OwnedColumn::TimestampTZ(*tu, *tz, permutation.try_apply(col)?)
             }
-            OwnedColumn::FixedSizeBinary(bw, col) => OwnedColumn::FixedSizeBinary(
-                *bw,
-                permutation.try_chunked_apply(col, bw.width_as_usize())?,
-            ),
+            OwnedColumn::FixedSizeBinary(bw, col) => {
+                OwnedColumn::FixedSizeBinary(*bw, permutation.try_chunked_apply(col, bw.into())?)
+            }
         })
     }
 
@@ -161,7 +163,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 OwnedColumn::TimestampTZ(*tu, *tz, col[start..end].to_vec())
             }
             OwnedColumn::FixedSizeBinary(byte_width, col) => {
-                let bw = byte_width.width_as_usize();
+                let bw: usize = byte_width.into();
                 let start_byte = start * bw;
                 let end_byte = end * bw;
                 OwnedColumn::FixedSizeBinary(*byte_width, col[start_byte..end_byte].to_vec())
@@ -906,6 +908,43 @@ mod test {
         // Attempt to coerce to Int128
         let res = col.try_coerce_scalar_to_numeric(ColumnType::Int128);
         assert!(matches!(res, Err(ColumnCoercionError::Overflow)));
+    }
+
+    #[test]
+    fn we_can_slice_and_permute_fixedsizebinary_columns() {
+        // define 4 rows, each 4 bytes, stored in a single buffer.
+        let row0 = b"foo!";
+        let row1 = b"bar!";
+        let row2 = b"baz!";
+        let row3 = b"qux!";
+
+        // concatenate the rows into one buffer:
+        let mut buffer = Vec::with_capacity(4 * 4);
+        buffer.extend_from_slice(row0);
+        buffer.extend_from_slice(row1);
+        buffer.extend_from_slice(row2);
+        buffer.extend_from_slice(row3);
+
+        let col = OwnedColumn::<TestScalar>::FixedSizeBinary(
+            NonNegativeI32::try_from(4).unwrap(),
+            buffer,
+        );
+        assert_eq!(col.slice(1, 3), {
+            let mut sliced = Vec::with_capacity(2 * 4);
+            sliced.extend_from_slice(row1);
+            sliced.extend_from_slice(row2);
+            OwnedColumn::FixedSizeBinary(NonNegativeI32::try_from(4).unwrap(), sliced)
+        });
+
+        let permutation = Permutation::try_new(vec![2, 0, 3, 1]).unwrap();
+        assert_eq!(col.try_permute(&permutation).unwrap(), {
+            let mut permuted = Vec::with_capacity(4 * 4);
+            permuted.extend_from_slice(row2); // index=2
+            permuted.extend_from_slice(row0); // index=0
+            permuted.extend_from_slice(row3); // index=3
+            permuted.extend_from_slice(row1); // index=1
+            OwnedColumn::FixedSizeBinary(NonNegativeI32::try_from(4).unwrap(), permuted)
+        });
     }
 
     #[test]

@@ -206,12 +206,12 @@ pub fn column_union<'a, S: Scalar>(
                 col_data.iter().copied()
             });
 
-            Column::FixedSizeBinary(
-                width,
-                alloc.alloc_slice_fill_with(len * width.width_as_usize(), |_| {
+            Column::FixedSizeBinary(width, {
+                let chunk_size: usize = width.into();
+                alloc.alloc_slice_fill_with(len * chunk_size, |_| {
                     iter.next().expect("Iterator should have enough elements")
-                }),
-            )
+                })
+            })
         }
     })
 }

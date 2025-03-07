@@ -155,10 +155,9 @@ impl Commitment for NaiveCommitment {
                     CommittableColumn::TimestampTZ(_, _, i64_vec) => {
                         i64_vec.iter().map(core::convert::Into::into).collect()
                     }
-                    CommittableColumn::FixedSizeBinary(bw, bytes) => bytes
-                        .chunks(bw.width_as_usize())
-                        .map(TestScalar::from)
-                        .collect(),
+                    CommittableColumn::FixedSizeBinary(bw, bytes) => {
+                        bytes.chunks(bw.into()).map(TestScalar::from).collect()
+                    }
                 };
                 vectors.append(&mut existing_scalars);
                 NaiveCommitment(vectors)

@@ -116,7 +116,7 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
                 PoSQLTimeUnit::Nanosecond => Arc::new(TimestampNanosecondArray::from(col)),
             },
             OwnedColumn::FixedSizeBinary(bw, col) => {
-                Arc::new(FixedSizeBinaryArray::new(bw.width(), col.into(), None))
+                Arc::new(FixedSizeBinaryArray::new(bw.into(), col.into(), None))
             }
         }
     }

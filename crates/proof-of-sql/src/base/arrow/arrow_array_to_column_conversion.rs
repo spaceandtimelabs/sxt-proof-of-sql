@@ -320,7 +320,7 @@ impl ArrayRefExt for ArrayRef {
                         }
                     })?;
 
-                    let w: usize = byte_width.width_as_usize();
+                    let w: usize = byte_width.into();
                     let start_byte = range.start * w;
                     let end_byte = range.end * w;
 

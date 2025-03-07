@@ -20,7 +20,7 @@ pub struct WidthError(i32);
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 pub(crate) fn fixed_binary_column_details() -> impl Strategy<Value = (NonNegativeI32, Vec<u8>)> {
     (any::<NonNegativeI32>(), 0..100usize).prop_flat_map(|(width, num_rows)| {
-        let len = width.width() as usize;
+        let len = width.0 as usize;
         (
             Just(width),
             proptest::collection::vec(any::<u8>(), len * num_rows),
@@ -36,21 +36,21 @@ impl core::fmt::Display for WidthError {
     }
 }
 
-impl NonNegativeI32 {
-    /// Returns the wrapped value.
-    #[must_use]
-    pub fn width(&self) -> i32 {
-        self.0
+impl<'a> From<&'a NonNegativeI32> for usize {
+    fn from(val: &'a NonNegativeI32) -> Self {
+        val.0 as usize
     }
+}
 
-    /// Returns the wrapped value.
-    #[allow(
-        clippy::cast_sign_loss,
-        reason = "i32 is guaranteed to be non-negative by constructor"
-    )]
-    #[must_use]
-    pub fn width_as_usize(&self) -> usize {
-        self.0 as usize
+impl From<NonNegativeI32> for i32 {
+    fn from(val: NonNegativeI32) -> Self {
+        val.0
+    }
+}
+
+impl From<NonNegativeI32> for usize {
+    fn from(val: NonNegativeI32) -> Self {
+        val.0 as usize
     }
 }
 

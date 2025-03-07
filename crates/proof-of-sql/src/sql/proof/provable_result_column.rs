@@ -32,7 +32,7 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
     fn num_bytes(&self, length: u64) -> usize {
         match self {
             Column::Boolean(col) => col.num_bytes(length),
-            Column::Uint8(col) | Column::FixedSizeBinary(_, col) => col.num_bytes(length),
+            Column::Uint8(col) => col.num_bytes(length),
             Column::TinyInt(col) => col.num_bytes(length),
             Column::SmallInt(col) => col.num_bytes(length),
             Column::Int(col) => col.num_bytes(length),
@@ -41,6 +41,7 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
             Column::Decimal75(_, _, col) | Column::Scalar(col) => col.num_bytes(length),
             Column::VarChar((col, _)) => col.num_bytes(length),
             Column::VarBinary((col, _)) => col.num_bytes(length),
+            Column::FixedSizeBinary(bw, col) => col.num_bytes(length),
         }
     }
 
