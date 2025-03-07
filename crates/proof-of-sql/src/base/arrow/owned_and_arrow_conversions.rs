@@ -1,4 +1,4 @@
-//! This module provide `From` and `TryFrom` implementations to go between arrow and owned types
+//! This module provides `From` and `TryFrom` implementations to go between arrow and owned types
 //! The mapping is as follows:
 //! `OwnedType` <-> `Array/ArrayRef`
 //! `OwnedTable` <-> `RecordBatch`
@@ -40,7 +40,7 @@ use sqlparser::ast::Ident;
 
 #[derive(Snafu, Debug)]
 #[non_exhaustive]
-/// Errors cause by conversions between Arrow and owned types.
+/// Errors caused by conversions between Arrow and owned types.
 pub enum OwnedArrowConversionError {
     /// This error occurs when trying to convert from an unsupported arrow type.
     #[snafu(display(

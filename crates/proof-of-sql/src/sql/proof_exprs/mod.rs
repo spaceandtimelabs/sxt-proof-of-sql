@@ -21,7 +21,7 @@ use multiply_expr::MultiplyExpr;
 mod multiply_expr_test;
 
 mod dyn_proof_expr;
-pub(crate) use dyn_proof_expr::DynProofExpr;
+pub use dyn_proof_expr::DynProofExpr;
 
 mod literal_expr;
 pub(crate) use literal_expr::LiteralExpr;

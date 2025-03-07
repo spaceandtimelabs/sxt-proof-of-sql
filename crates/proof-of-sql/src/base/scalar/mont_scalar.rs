@@ -627,7 +627,7 @@ where
                 error: format!("{value} is too large to fit in an i128"),
             });
         }
-        let val: u128 = u128::from(abs[1]) << 64 | u128::from(abs[0]);
+        let val: u128 = (u128::from(abs[1]) << 64) | (u128::from(abs[0]));
         match (sign, val) {
             (1, v) if v <= i128::MAX as u128 => Ok(v as i128),
             (-1, v) if v <= i128::MAX as u128 => Ok(-(v as i128)),

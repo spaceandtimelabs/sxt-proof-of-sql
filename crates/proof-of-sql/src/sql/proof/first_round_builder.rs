@@ -97,7 +97,7 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
         offset_generators: usize,
         setup: &C::PublicSetup<'_>,
     ) -> Vec<C> {
-        Vec::from_commitable_columns_with_offset(
+        Vec::from_committable_columns_with_offset(
             &self.commitment_descriptor,
             offset_generators,
             setup,

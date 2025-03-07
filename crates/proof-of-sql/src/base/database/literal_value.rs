@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub enum LiteralValue {
     /// Boolean literals
     Boolean(bool),
-    /// i8 literals
+    /// u8 literals
     Uint8(u8),
     /// i8 literals
     TinyInt(i8),

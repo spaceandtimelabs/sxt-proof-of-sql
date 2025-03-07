@@ -22,8 +22,8 @@ impl U256 {
 impl<T: MontConfig<4>> From<&MontScalar<T>> for U256 {
     fn from(val: &MontScalar<T>) -> Self {
         let buf: [u64; 4] = val.into();
-        let low: u128 = u128::from(buf[0]) | u128::from(buf[1]) << 64;
-        let high: u128 = u128::from(buf[2]) | u128::from(buf[3]) << 64;
+        let low: u128 = u128::from(buf[0]) | (u128::from(buf[1]) << 64);
+        let high: u128 = u128::from(buf[2]) | (u128::from(buf[3]) << 64);
         U256::from_words(low, high)
     }
 }

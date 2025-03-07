@@ -20,7 +20,9 @@ contract ColumnExprTest is Test {
         bytes memory exprIn = abi.encodePacked(uint64(1), hex"abcdef");
         bytes memory expectedExprOut = hex"abcdef";
 
-        (bytes memory exprOut, uint256 eval) = ColumnExpr.__columnExprEvaluate(exprIn, builder);
+        bytes memory exprOut;
+        uint256 eval;
+        (exprOut, builder, eval) = ColumnExpr.__columnExprEvaluate(exprIn, builder);
         assert(eval == 0x22222222);
         assert(exprOut.length == expectedExprOut.length);
         uint256 exprOutLength = exprOut.length;
@@ -39,7 +41,9 @@ contract ColumnExprTest is Test {
         builder.columnEvaluations = columnValues;
 
         bytes memory exprIn = abi.encodePacked(columnNum, trailingExpr);
-        (bytes memory exprOut, uint256 eval) = ColumnExpr.__columnExprEvaluate(exprIn, builder);
+        bytes memory exprOut;
+        uint256 eval;
+        (exprOut, builder, eval) = ColumnExpr.__columnExprEvaluate(exprIn, builder);
 
         assert(eval == columnValues[columnNum]);
         assert(exprOut.length == trailingExpr.length);
