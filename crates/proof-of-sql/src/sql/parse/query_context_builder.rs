@@ -348,6 +348,7 @@ pub(crate) fn type_check_binary_operation(
             matches!(
                 (left_dtype, right_dtype),
                 (ColumnType::VarChar, ColumnType::VarChar)
+                    | (ColumnType::VarBinary, ColumnType::VarBinary)
                     | (ColumnType::TimestampTZ(_, _), ColumnType::TimestampTZ(_, _))
                     | (ColumnType::Boolean, ColumnType::Boolean)
                     | (_, ColumnType::Scalar)

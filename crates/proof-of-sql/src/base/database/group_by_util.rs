@@ -201,8 +201,11 @@ pub(crate) fn max_aggregate_column_by_index_counts<'a, S: Scalar>(
             max_aggregate_slice_by_index_counts(alloc, col, counts, indexes)
         }
         Column::Scalar(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::VarBinary(_) => {
+            unreachable!("MAX can not be applied to varbinary")
+        }
         // The following should never be reached because the `MAX` function can't be applied to varchar.
-        Column::VarChar(_) | Column::VarBinary(_) => {
+        Column::VarChar(_) => {
             unreachable!("MAX can not be applied to varchar")
         }
     }
@@ -235,7 +238,7 @@ pub(crate) fn min_aggregate_column_by_index_counts<'a, S: Scalar>(
             min_aggregate_slice_by_index_counts(alloc, col, counts, indexes)
         }
         Column::Scalar(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::VarBinary(_) => unreachable!("MIN can not be applied to varchar"),
+        Column::VarBinary(_) => unreachable!("MIN can not be applied to varbinary"),
         // The following should never be reached because the `MIN` function can't be applied to varchar.
         Column::VarChar(_) => {
             unreachable!("MIN can not be applied to varchar")
