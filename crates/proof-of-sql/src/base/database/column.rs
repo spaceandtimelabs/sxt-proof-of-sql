@@ -109,7 +109,7 @@ impl<'a, S: Scalar> Column<'a, S> {
 
     /// Generate a constant column from a literal value with a given length
     pub fn from_literal_with_length(
-        literal: &'a LiteralValue,
+        literal: &LiteralValue,
         length: usize,
         alloc: &'a Bump,
     ) -> Self {
@@ -150,17 +150,15 @@ impl<'a, S: Scalar> Column<'a, S> {
             )),
             LiteralValue::VarBinary(bytes) => {
                 // Convert the bytes to a slice of bytes references
-                let bytes_refs: Vec<&[u8]> = vec![bytes.as_slice(); length];
-                let bytes_slice = alloc.alloc_slice_copy(&bytes_refs);
-                
+                let bytes_slice = alloc
+                    .alloc_slice_fill_with(length, |_| alloc.alloc_slice_copy(bytes) as &[_]);
+
                 // Convert the bytes to scalars using from_byte_slice_via_hash
-                let scalars = alloc.alloc_slice_fill_copy(
-                    length,
-                    S::from_byte_slice_via_hash(bytes),
-                );
-                
+                let scalars =
+                    alloc.alloc_slice_fill_copy(length, S::from_byte_slice_via_hash(bytes));
+
                 Column::VarBinary((bytes_slice, scalars))
-            },
+            }
         }
     }
 
