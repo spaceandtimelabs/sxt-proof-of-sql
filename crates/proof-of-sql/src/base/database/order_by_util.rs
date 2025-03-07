@@ -22,7 +22,6 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
         .iter()
         .map(|col| match col {
             Column::Boolean(col) => col[i].cmp(&col[j]),
-            Column::Uint8(col) => col[i].cmp(&col[j]),
             Column::TinyInt(col) => col[i].cmp(&col[j]),
             Column::SmallInt(col) => col[i].cmp(&col[j]),
             Column::Int(col) => col[i].cmp(&col[j]),
@@ -31,7 +30,17 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
             Column::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
             Column::Scalar(col) => col[i].cmp(&col[j]),
             Column::VarChar((col, _)) => col[i].cmp(col[j]),
+            Column::Uint8(col) => col[i].cmp(&col[j]),
             Column::VarBinary((col, _)) => col[i].cmp(col[j]),
+            Column::FixedSizeBinary(width, col) => {
+                let bw: usize = width.into();
+                let start_i = i * bw;
+                let end_i = start_i + bw;
+                let start_j = j * bw;
+                let end_j = start_j + bw;
+                // Compare the two slices lexicographically
+                col[start_i..end_i].cmp(&col[start_j..end_j])
+            }
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
@@ -138,6 +147,15 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
             let ordering = match col {
                 OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Uint8(col) => col[i].cmp(&col[j]),
+                OwnedColumn::FixedSizeBinary(width, col) => {
+                    // Compare the chunk of `width` bytes for row `i` vs row `j`
+                    let bw: usize = width.into();
+                    let start_i = i * bw;
+                    let end_i = start_i + bw;
+                    let start_j = j * bw;
+                    let end_j = start_j + bw;
+                    col[start_i..end_i].cmp(&col[start_j..end_j])
+                }
                 OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Int(col) => col[i].cmp(&col[j]),

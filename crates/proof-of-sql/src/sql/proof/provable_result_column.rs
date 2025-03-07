@@ -41,13 +41,14 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
             Column::Decimal75(_, _, col) | Column::Scalar(col) => col.num_bytes(length),
             Column::VarChar((col, _)) => col.num_bytes(length),
             Column::VarBinary((col, _)) => col.num_bytes(length),
+            Column::FixedSizeBinary(bw, col) => col.num_bytes(length),
         }
     }
 
     fn write(&self, out: &mut [u8], length: u64) -> usize {
         match self {
             Column::Boolean(col) => col.write(out, length),
-            Column::Uint8(col) => col.write(out, length),
+            Column::Uint8(col) | Column::FixedSizeBinary(_, col) => col.write(out, length),
             Column::TinyInt(col) => col.write(out, length),
             Column::SmallInt(col) => col.write(out, length),
             Column::Int(col) => col.write(out, length),

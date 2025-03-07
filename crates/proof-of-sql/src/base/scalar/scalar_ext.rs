@@ -32,7 +32,8 @@ pub trait ScalarExt: Scalar {
         U256::from(Into::<[u64; 4]>::into(self))
     }
 
-    /// Converts a byte slice to a Scalar using a hash function, preventing collisions.
+    /// Converts a byte slice to a Scalar using a hash function, preventing collisions
+    /// with high probability.
     /// WARNING: Only up to 31 bytes (2^248 bits) are supported by `PoSQL` cryptographic
     /// objects. This function masks off the last byte of the hash to ensure the result
     /// fits in this range.

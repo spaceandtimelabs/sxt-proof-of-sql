@@ -22,9 +22,10 @@ use crate::base::{
 use alloc::sync::Arc;
 use arrow::{
     array::{
-        ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array, Int16Array,
-        Int32Array, Int64Array, Int8Array, StringArray, TimestampMicrosecondArray,
-        TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray, UInt8Array,
+        ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array,
+        FixedSizeBinaryArray, Int16Array, Int32Array, Int64Array, Int8Array, StringArray,
+        TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
+        TimestampSecondArray, UInt8Array,
     },
     datatypes::{i256, DataType, Schema, SchemaRef, TimeUnit as ArrowTimeUnit},
     error::ArrowError,
@@ -114,6 +115,9 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
                 PoSQLTimeUnit::Microsecond => Arc::new(TimestampMicrosecondArray::from(col)),
                 PoSQLTimeUnit::Nanosecond => Arc::new(TimestampNanosecondArray::from(col)),
             },
+            OwnedColumn::FixedSizeBinary(bw, col) => {
+                Arc::new(FixedSizeBinaryArray::new(bw.into(), col.into(), None))
+            }
         }
     }
 }
@@ -247,6 +251,18 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .iter()
                     .map(|s| s.map(<[u8]>::to_vec).unwrap())
                     .collect(),
+            )),
+            DataType::FixedSizeBinary(bw) if *bw > 0 => Ok(Self::FixedSizeBinary(
+                (*bw)
+                    .try_into()
+                    .expect("FixedSizeBinary width must be non-negative"),
+                value
+                    .as_any()
+                    .downcast_ref::<FixedSizeBinaryArray>()
+                    .unwrap()
+                    .iter()
+                    .flat_map(|s| s.unwrap().iter().copied())
+                    .collect::<Vec<u8>>(),
             )),
             DataType::Timestamp(time_unit, timezone) => match time_unit {
                 ArrowTimeUnit::Second => {
