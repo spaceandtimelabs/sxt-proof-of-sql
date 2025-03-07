@@ -218,7 +218,7 @@ fn we_can_compute_commitments_from_committable_fixedsizebinary_column() {
 
 #[test]
 fn we_can_compute_commitments_from_committable_fixedsizebinary_column_with_offset() {
-    let raw_bytes = vec![100, 101, 102, 103, 1, 2, 3, 4, 5, 6, 7, 8];
+    let raw_bytes = [100, 101, 102, 103, 1, 2, 3, 4, 5, 6, 7, 8];
     let trimmed = &raw_bytes[4..12];
     let commitable_column_fixedsize =
         CommittableColumn::FixedSizeBinary(NonNegativeI32::try_from(4).unwrap(), trimmed);

@@ -37,6 +37,7 @@ impl core::fmt::Display for WidthError {
 }
 
 impl<'a> From<&'a NonNegativeI32> for usize {
+    #[allow(clippy::cast_sign_loss)]
     fn from(val: &'a NonNegativeI32) -> Self {
         val.0 as usize
     }
@@ -49,6 +50,7 @@ impl From<NonNegativeI32> for i32 {
 }
 
 impl From<NonNegativeI32> for usize {
+    #[allow(clippy::cast_sign_loss)]
     fn from(val: NonNegativeI32) -> Self {
         val.0 as usize
     }
@@ -64,10 +66,10 @@ impl TryFrom<i32> for NonNegativeI32 {
     type Error = WidthError;
 
     fn try_from(value: i32) -> Result<Self, Self::Error> {
-        if value < 0 || value > 31 {
-            Err(WidthError(value))
-        } else {
+        if (0..=31).contains(&value) {
             Ok(Self(value))
+        } else {
+            Err(WidthError(value))
         }
     }
 }

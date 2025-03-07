@@ -5,14 +5,13 @@
 use super::{Column, ColumnCoercionError, ColumnType, OwnedColumnError, OwnedColumnResult};
 #[cfg(test)]
 use crate::base::math::non_negative_i32::fixed_binary_column_details;
-use crate::base::scalar::ScalarExt;
 use crate::base::{
     math::{
         decimal::Precision,
         non_negative_i32::NonNegativeI32,
         permutation::{Permutation, PermutationError},
     },
-    scalar::Scalar,
+    scalar::{Scalar, ScalarExt},
     slice_ops::{inner_product_ref_cast, inner_product_with_bytes},
 };
 use alloc::{

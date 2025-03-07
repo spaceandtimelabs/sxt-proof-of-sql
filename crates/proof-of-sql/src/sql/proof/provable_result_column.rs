@@ -41,7 +41,10 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
             Column::Decimal75(_, _, col) | Column::Scalar(col) => col.num_bytes(length),
             Column::VarChar((col, _)) => col.num_bytes(length),
             Column::VarBinary((col, _)) => col.num_bytes(length),
-            Column::FixedSizeBinary(bw, col) => col.num_bytes(length),
+            Column::FixedSizeBinary(bw, col) => {
+                let width: usize = bw.into();
+                col.num_bytes(length * width as u64)
+            }
         }
     }
 

@@ -134,6 +134,7 @@ impl ProvableQueryResult {
                     ColumnType::TimestampTZ(_, _) => {
                         decode_and_convert::<i64, S>(&self.data[offset..])
                     }
+                    // need custom decode and convert with custom byte width
                     ColumnType::FixedSizeBinary(_) => {
                         let (raw_bytes, used) =
                             decode_and_convert::<&[u8], &[u8]>(&self.data[offset..])?;
@@ -244,6 +245,7 @@ impl ProvableQueryResult {
                     ColumnType::FixedSizeBinary(byte_width) => {
                         let bw: usize = byte_width.into();
                         let (col_data, used_bytes) =
+                            // try reusing decode multiple elements with n * bw
                             decode_fixedsizebinary_elements(&self.data[offset..], n, bw)?;
                         offset += used_bytes;
                         Ok((
@@ -271,27 +273,5 @@ impl<S: Scalar> From<Table<'_, S>> for ProvableQueryResult {
             .map(|(_, col)| col)
             .collect::<Vec<_>>();
         Self::new(num_rows as u64, &columns)
-    }
-}
-
-// A tiny wrapper around `[u8]` plus a width
-struct FixedSizeBinarySlice<'a> {
-    data: &'a [u8],
-    row_width: usize,
-}
-
-// Then implement ProvableResultColumn for that wrapper
-impl<'a> ProvableResultColumn for FixedSizeBinarySlice<'a> {
-    fn num_bytes(&self, length: u64) -> usize {
-        // confirm #rows in `data` matches `length`
-        let expected_len = length as usize * self.row_width;
-        assert_eq!(self.data.len(), expected_len);
-        expected_len
-    }
-
-    fn write(&self, out: &mut [u8], length: u64) -> usize {
-        let expected_len = length as usize * self.row_width;
-        out[..expected_len].copy_from_slice(self.data);
-        expected_len
     }
 }
