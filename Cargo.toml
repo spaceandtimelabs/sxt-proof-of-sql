@@ -84,6 +84,3 @@ pedantic = { level = "warn", priority = -1 }
 # patch for sqlparser no_std compatibility with the serde feature enabled.
 # required until sqlparser releases a similar update and proof-of-sql upgrades to it.
 sqlparser = { git = "https://github.com/tlovell-sxt/datafusion-sqlparser-rs.git", rev = "a828cbea22cf19bb6b4596f902bdd6f4d14a00b8" }
-
-[profile.test]
-opt-level = 3
