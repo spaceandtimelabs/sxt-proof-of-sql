@@ -879,3 +879,274 @@ fn we_can_perform_arithmetic_and_conditional_operations_on_tinyint() {
     let expected_result = owned_table([tinyint("result", [9_i8, 10])]);
     assert_eq!(owned_table_result, expected_result);
 }
+
+#[test]
+#[cfg(feature = "blitzar")]
+fn we_can_perform_equality_checks_on_var_binary() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([
+            varbinary("a", [vec![], vec![], vec![], vec![]]),
+            varbinary("b", [vec![], vec![], vec![], vec![]]),
+            varbinary("c", [vec![], vec![], vec![], vec![]]),
+            varbinary("d", [vec![], vec![], vec![], vec![]]),
+            varbinary("e", [vec![], vec![], vec![], vec![]]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE a=b".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result =
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &())
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        varbinary("a", [vec![], vec![], vec![], vec![]]),
+        varbinary("b", [vec![], vec![], vec![], vec![]]),
+        varbinary("c", [vec![], vec![], vec![], vec![]]),
+        varbinary("d", [vec![], vec![], vec![], vec![]]),
+        varbinary("e", [vec![], vec![], vec![], vec![]]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+#[cfg(feature = "blitzar")]
+fn we_can_perform_rich_equality_checks_on_var_binary() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([
+            varbinary(
+                "a",
+                [
+                    vec![],
+                    b"\x01\x02\x03\x04\x05".to_vec(),
+                    vec![0xFF; 31],
+                    vec![0xAA, 0xBB],
+                ],
+            ),
+            varbinary(
+                "b",
+                [
+                    vec![],
+                    b"\x01\x02\x03\x04\x05".to_vec(),
+                    vec![0xFF; 31],
+                    vec![0xAA, 0xBB],
+                ],
+            ),
+            varbinary(
+                "c",
+                [
+                    b"\xDE\xAD\xBE\xEF".to_vec(),
+                    vec![],
+                    vec![0xFF; 31],
+                    b"\x01\x02\x03".to_vec(),
+                ],
+            ),
+            varbinary(
+                "d",
+                [
+                    vec![],
+                    b"\xAB\xCD".to_vec(),
+                    vec![0xEE; 31],
+                    b"\xFE".to_vec(),
+                ],
+            ),
+            varbinary(
+                "e",
+                [
+                    b"\xAA".to_vec(),
+                    b"\xAA\xBB\xCC".to_vec(),
+                    vec![0xDD; 31],
+                    vec![],
+                ],
+            ),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE a=b".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result =
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &())
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        varbinary(
+            "a",
+            [
+                vec![],
+                b"\x01\x02\x03\x04\x05".to_vec(),
+                vec![0xFF; 31],
+                vec![0xAA, 0xBB],
+            ],
+        ),
+        varbinary(
+            "b",
+            [
+                vec![],
+                b"\x01\x02\x03\x04\x05".to_vec(),
+                vec![0xFF; 31],
+                vec![0xAA, 0xBB],
+            ],
+        ),
+        varbinary(
+            "c",
+            [
+                b"\xDE\xAD\xBE\xEF".to_vec(),
+                vec![],
+                vec![0xFF; 31],
+                b"\x01\x02\x03".to_vec(),
+            ],
+        ),
+        varbinary(
+            "d",
+            [
+                vec![],
+                b"\xAB\xCD".to_vec(),
+                vec![0xEE; 31],
+                b"\xFE".to_vec(),
+            ],
+        ),
+        varbinary(
+            "e",
+            [
+                b"\xAA".to_vec(),
+                b"\xAA\xBB\xCC".to_vec(),
+                vec![0xDD; 31],
+                vec![],
+            ],
+        ),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+#[cfg(feature = "blitzar")]
+fn we_can_perform_equality_checks_on_rich_var_binary_data() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    // We'll create multiple columns to have richer data,
+    // including some rows where a != b.
+    // Only rows where a = b will appear in the final result.
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([
+            varbinary(
+                "a",
+                [
+                    vec![],           // row1
+                    vec![0x10, 0x11], // row2
+                    vec![0xAB, 0xCD], // row3
+                    vec![0x12],       // row4
+                    vec![0x34],       // row5
+                    vec![1, 2, 3],    // row6
+                ],
+            ),
+            varbinary(
+                "b",
+                [
+                    vec![],           // row1
+                    vec![0x11],       // row2
+                    vec![0xAB, 0xCD], // row3
+                    vec![0x12],       // row4
+                    vec![0x34],       // row5
+                    vec![1, 2, 3],    // row6
+                ],
+            ),
+            varbinary(
+                "c",
+                [
+                    vec![0x00; 31],   // row1
+                    vec![0x22],       // row2
+                    vec![],           // row3
+                    vec![0x98, 0x99], // row4
+                    vec![0x56],       // row5
+                    vec![4, 5],       // row6
+                ],
+            ),
+            varbinary(
+                "d",
+                [
+                    vec![0x00; 31],   // row1
+                    vec![0x22],       // row2
+                    vec![0x00],       // row3
+                    vec![0x98, 0x99], // row4
+                    vec![0x56],       // row5
+                    vec![4, 5],       // row6
+                ],
+            ),
+            varbinary(
+                "e",
+                [
+                    vec![0xFF, 0x00], // row1
+                    vec![0x33],       // row2
+                    vec![0xDD; 31],   // row3
+                    vec![0xFF; 31],   // row4
+                    vec![0x78],       // row5
+                    vec![6, 7],       // row6
+                ],
+            ),
+            varbinary(
+                "f",
+                [
+                    vec![0xFF, 0x00], // row1
+                    vec![0x33],       // row2
+                    vec![0xDD; 31],   // row3
+                    vec![0xFF; 31],   // row4
+                    vec![0x78],       // row5
+                    vec![6, 7, 8],    // row6
+                ],
+            ),
+            varbinary(
+                "g",
+                [
+                    vec![0xA1], // row1
+                    vec![0xA2], // row2
+                    vec![0xA3], // row3
+                    vec![0xA4], // row4
+                    vec![0xA5], // row5
+                    vec![0xA6], // row6
+                ],
+            ),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE a=b AND c=d AND e=f"
+            .parse()
+            .unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result =
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &())
+        .unwrap()
+        .table;
+
+    let expected_result = owned_table([
+        varbinary("a", [vec![], vec![0x12], vec![0x34]]),
+        varbinary("b", [vec![], vec![0x12], vec![0x34]]),
+        varbinary("c", [vec![0x00; 31], vec![0x98, 0x99], vec![0x56]]),
+        varbinary("d", [vec![0x00; 31], vec![0x98, 0x99], vec![0x56]]),
+        varbinary("e", [vec![0xFF, 0x00], vec![0xFF; 31], vec![0x78]]),
+        varbinary("f", [vec![0xFF, 0x00], vec![0xFF; 31], vec![0x78]]),
+        varbinary("g", [vec![0xA1], vec![0xA4], vec![0xA5]]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
