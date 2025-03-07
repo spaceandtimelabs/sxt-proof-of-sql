@@ -196,10 +196,9 @@ pub fn try_divide_column_types(
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use itertools::iproduct;
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
-
-    use super::*;
 
     #[test]
     fn we_can_add_numeric_types() {
