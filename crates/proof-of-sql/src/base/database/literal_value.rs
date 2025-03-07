@@ -1,9 +1,9 @@
 use crate::base::{
     database::ColumnType,
     math::{decimal::Precision, i256::I256},
-    scalar::Scalar,
+    scalar::{Scalar, scalar_ext::ScalarExt},
 };
-use alloc::string::String;
+use alloc::{string::String, vec::Vec};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
 
