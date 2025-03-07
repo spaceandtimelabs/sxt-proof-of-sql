@@ -109,7 +109,7 @@ impl<'a, S: Scalar> Column<'a, S> {
 
     /// Generate a constant column from a literal value with a given length
     pub fn from_literal_with_length(
-        literal: &LiteralValue,
+        literal: &'a LiteralValue,
         length: usize,
         alloc: &'a Bump,
     ) -> Self {

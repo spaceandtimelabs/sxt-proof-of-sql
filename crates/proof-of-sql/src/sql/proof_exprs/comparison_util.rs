@@ -164,24 +164,18 @@ pub(crate) fn scale_and_subtract_columnar_value<'a, S: Scalar>(
             )?)))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(
-                alloc,
-                Column::from_literal_with_length(&lhs, rhs.len(), alloc),
-                rhs,
-                lhs_scale,
-                rhs_scale,
-                is_equal,
-            )?)))
+            // Store the literal in the bump allocator to extend its lifetime
+            let lhs_val = alloc.alloc(lhs.clone());
+            let lhs_col = Column::from_literal_with_length(lhs_val, rhs.len(), alloc);
+            let result = scale_and_subtract(alloc, lhs_col, rhs, lhs_scale, rhs_scale, is_equal)?;
+            Ok(ColumnarValue::Column(Column::Scalar(result)))
         }
         (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
-            Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(
-                alloc,
-                lhs,
-                Column::from_literal_with_length(&rhs, lhs.len(), alloc),
-                lhs_scale,
-                rhs_scale,
-                is_equal,
-            )?)))
+            // Store the literal in the bump allocator to extend its lifetime
+            let rhs_val = alloc.alloc(rhs.clone());
+            let rhs_col = Column::from_literal_with_length(rhs_val, lhs.len(), alloc);
+            let result = scale_and_subtract(alloc, lhs, rhs_col, lhs_scale, rhs_scale, is_equal)?;
+            Ok(ColumnarValue::Column(Column::Scalar(result)))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
             Ok(ColumnarValue::Literal(LiteralValue::Scalar(

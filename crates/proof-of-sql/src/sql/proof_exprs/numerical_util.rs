@@ -88,24 +88,32 @@ pub(crate) fn add_subtract_columnar_values<'a, S: Scalar>(
             )))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
-                Column::from_literal_with_length(&lhs, rhs.len(), alloc),
+            // Store the literal in the bump allocator to extend its lifetime
+            let lhs_val = alloc.alloc(lhs.clone());
+            let lhs_col = Column::from_literal_with_length(lhs_val, rhs.len(), alloc);
+            let result = add_subtract_columns(
+                lhs_col,
                 rhs,
                 lhs_scale,
                 rhs_scale,
                 alloc,
                 is_subtract,
-            )))
+            );
+            ColumnarValue::Column(Column::Scalar(result))
         }
         (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
+            // Store the literal in the bump allocator to extend its lifetime
+            let rhs_val = alloc.alloc(rhs.clone());
+            let rhs_col = Column::from_literal_with_length(rhs_val, lhs.len(), alloc);
+            let result = add_subtract_columns(
                 lhs,
-                Column::from_literal_with_length(&rhs, lhs.len(), alloc),
+                rhs_col,
                 lhs_scale,
                 rhs_scale,
                 alloc,
                 is_subtract,
-            )))
+            );
+            ColumnarValue::Column(Column::Scalar(result))
         }
         (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
             ColumnarValue::Literal(LiteralValue::Scalar(
