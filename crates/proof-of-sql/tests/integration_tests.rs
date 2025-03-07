@@ -793,6 +793,36 @@ fn we_can_prove_a_basic_group_by_query_with_dory() {
     assert_eq!(owned_table_result, expected_result);
 }
 
+#[test]
+#[cfg(feature = "blitzar")]
+fn we_can_prove_a_varbinary_equality_query_with_hex_literal() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([
+            bigint("a", [123, 4567]),
+            varbinary("b", [vec![1, 2, 3], vec![4, 5, 6, 7]]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT a, b FROM table WHERE b = 0x04050607"
+            .parse()
+            .unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result =
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &())
+        .unwrap()
+        .table;
+    let expected_result = owned_table([bigint("a", [4567]), varbinary("b", [vec![4, 5, 6, 7]])]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
 // Overflow checks
 #[test]
 #[cfg(feature = "blitzar")]

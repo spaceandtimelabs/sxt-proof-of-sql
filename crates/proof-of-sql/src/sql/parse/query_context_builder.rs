@@ -288,6 +288,7 @@ impl QueryContextBuilder<'_> {
             Literal::BigInt(_) => Ok(ColumnType::BigInt),
             Literal::Int128(_) => Ok(ColumnType::Int128),
             Literal::VarChar(_) => Ok(ColumnType::VarChar),
+            Literal::VarBinary(_) => Ok(ColumnType::VarBinary),
             Literal::Decimal(d) => {
                 let precision = Precision::try_from(d.precision())?;
                 let scale = d.scale();

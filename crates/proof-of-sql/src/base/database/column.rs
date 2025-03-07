@@ -148,6 +148,17 @@ impl<'a, S: Scalar> Column<'a, S> {
                 alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
                 alloc.alloc_slice_fill_copy(length, S::from(string)),
             )),
+            LiteralValue::VarBinary(bytes) => {
+                // Convert the bytes to a slice of bytes references
+                let bytes_slice = alloc
+                    .alloc_slice_fill_with(length, |_| alloc.alloc_slice_copy(bytes) as &[_]);
+
+                // Convert the bytes to scalars using from_byte_slice_via_hash
+                let scalars =
+                    alloc.alloc_slice_fill_copy(length, S::from_byte_slice_via_hash(bytes));
+
+                Column::VarBinary((bytes_slice, scalars))
+            }
         }
     }
 
