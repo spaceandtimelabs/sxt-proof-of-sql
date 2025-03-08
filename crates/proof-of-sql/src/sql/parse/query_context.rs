@@ -196,7 +196,7 @@ impl QueryContext {
         Ok(&self.res_aliased_exprs)
     }
 
-    pub fn get_order_by_exprs(&self) -> &[(usize, bool)] {
+    pub fn get_order_by_exprs(&self) -> &OrderIndexDirectionPairs {
         &self.order_by_exprs
     }
 
