@@ -81,7 +81,7 @@ pub trait ArrayRefExt {
         scals: Option<&'a [S]>,
     ) -> Result<Column<'a, S>, ArrowArrayToColumnConversionError>;
 
-    /// Convert an [`ArrayRef`] into a Proof of SQL `NullableColumn` type, handling null values
+    /// Convert an [`ArrayRef`] into a Proof of SQL NullableColumn type, handling null values
     ///
     /// Parameters:
     /// - `alloc`: used to allocate slices of data
@@ -341,7 +341,6 @@ impl ArrayRefExt for ArrayRef {
     ///
     /// # Panics
     /// - When any range is OOB, i.e. indexing 3..6 or 5..5 on array of size 2.
-    #[allow(clippy::too_many_lines)]
     fn to_nullable_column<'a, S: Scalar>(
         &'a self,
         alloc: &'a Bump,
@@ -469,21 +468,21 @@ impl ArrayRefExt for ArrayRef {
             }
             DataType::Decimal256(precision, scale) if *precision <= 75 => {
                 let array = self.as_any().downcast_ref::<Decimal256Array>().unwrap();
-                let mut scalar_values = Vec::with_capacity(range_len);
+                let mut scals = Vec::with_capacity(range_len);
                 for i in range.clone() {
                     // Use zero scalar as the default value for nulls
                     if array.is_null(i) {
-                        scalar_values.push(S::zero());
+                        scals.push(S::zero());
                     } else {
                         let val = convert_i256_to_scalar(&array.value(i)).ok_or(
                             ArrowArrayToColumnConversionError::DecimalConversionFailed {
                                 number: array.value(i),
                             },
                         )?;
-                        scalar_values.push(val);
+                        scals.push(val);
                     }
                 }
-                let scalars = alloc.alloc_slice_copy(&scalar_values);
+                let scalars = alloc.alloc_slice_copy(&scals);
                 Ok(NullableColumn::with_presence(
                     Column::Decimal75(Precision::new(*precision)?, *scale, scalars),
                     Some(presence_slice),
@@ -512,9 +511,9 @@ impl ArrayRefExt for ArrayRef {
                         Some(presence_slice),
                     ))
                 } else {
-                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                    return Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
-                    })
+                    });
                 }
             }
             DataType::Binary => {
@@ -541,9 +540,9 @@ impl ArrayRefExt for ArrayRef {
                         Some(presence_slice),
                     ))
                 } else {
-                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                    return Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
-                    })
+                    });
                 }
             }
             DataType::Timestamp(time_unit, tz) => {
@@ -1479,7 +1478,7 @@ mod tests {
     #[test]
     fn we_can_convert_valid_binary_array_refs_into_valid_columns_using_precomputed_scalars() {
         let alloc = Bump::new();
-        let data = [b"ab".as_slice(), b"-f34".as_slice()];
+        let data = vec![b"ab".as_slice(), b"-f34".as_slice()];
         let scals: Vec<_> = data
             .iter()
             .copied()
@@ -1508,9 +1507,8 @@ mod tests {
     #[test]
     fn we_can_convert_valid_binary_array_refs_into_valid_columns_using_ranges_with_zero_size() {
         let alloc = Bump::new();
-        let data = [b"ab".as_slice(), b"-f34".as_slice()];
-        #[allow(clippy::implicit_clone)]
-        let array: ArrayRef = Arc::new(arrow::array::BinaryArray::from(data.to_vec()));
+        let data = vec![b"ab".as_slice(), b"-f34".as_slice()];
+        let array: ArrayRef = Arc::new(arrow::array::BinaryArray::from(data.clone()));
         let result = array
             .to_column::<DoryScalar>(&alloc, &(0..0), None)
             .unwrap();
@@ -1582,9 +1580,9 @@ mod tests {
 
         match nullable_column.values {
             Column::Boolean(values) => {
-                assert!(values[0]);
-                assert!(!values[1]);
-                assert!(!values[2]);
+                assert_eq!(values[0], true);
+                assert_eq!(values[1], false);
+                assert_eq!(values[2], false);
             }
             _ => panic!("Expected Boolean column"),
         }

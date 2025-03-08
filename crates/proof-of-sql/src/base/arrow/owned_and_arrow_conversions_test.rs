@@ -223,9 +223,9 @@ mod tests {
         let boolean_array = array_ref.as_any().downcast_ref::<BooleanArray>().unwrap();
         assert_eq!(boolean_array.len(), 3);
         assert_eq!(boolean_array.null_count(), 0);
-        assert!(boolean_array.value(0));
-        assert!(!boolean_array.value(1));
-        assert!(boolean_array.value(2));
+        assert_eq!(boolean_array.value(0), true);
+        assert_eq!(boolean_array.value(1), false);
+        assert_eq!(boolean_array.value(2), true);
     }
 
     #[test]
