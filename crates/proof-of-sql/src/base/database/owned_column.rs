@@ -592,7 +592,9 @@ impl<S: Scalar> OwnedNullableColumn<S> {
             OwnedColumn::TinyInt(col) => Some(Some(col[index].into())),
             OwnedColumn::SmallInt(col) => Some(Some(col[index].into())),
             OwnedColumn::Int(col) => Some(Some(col[index].into())),
-            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => Some(Some(col[index].into())),
+            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => {
+                Some(Some(col[index].into()))
+            }
             OwnedColumn::VarChar(col) => Some(Some(col[index].clone().into())),
             OwnedColumn::VarBinary(_col) => None, // VarBinary cannot be converted to scalar directly
             // VarChar and VarBinary would need hash values
@@ -631,7 +633,9 @@ impl<S: Scalar> OwnedNullableColumn<S> {
             OwnedColumn::TinyInt(col) => Some(Some(col[index].into())),
             OwnedColumn::SmallInt(col) => Some(Some(col[index].into())),
             OwnedColumn::Int(col) => Some(Some(col[index].into())),
-            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => Some(Some(col[index].into())),
+            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => {
+                Some(Some(col[index].into()))
+            }
             OwnedColumn::VarChar(col) => Some(Some(col[index].clone().into())),
             OwnedColumn::VarBinary(_col) => None, // VarBinary cannot be converted to scalar directly
             // VarChar and VarBinary would need hash values

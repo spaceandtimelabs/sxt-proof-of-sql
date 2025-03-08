@@ -137,7 +137,9 @@ impl<S: Scalar> From<OwnedNullableColumn<S>> for ArrayRef {
         }
 
         let presence = value.presence.unwrap();
-        let null_buffer = (0..presence.len()).map(|i| presence[i]).collect::<NullBuffer>();
+        let null_buffer = (0..presence.len())
+            .map(|i| presence[i])
+            .collect::<NullBuffer>();
 
         match value.values {
             OwnedColumn::Boolean(col) => Arc::new(BooleanArray::new(col.into(), Some(null_buffer))),
@@ -248,11 +250,15 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
         let len = value.len();
         let mut presence = vec![true; len];
 
-        presence.iter_mut().enumerate().take(len).for_each(|(i, present)| {
-            if value.is_null(i) {
-                *present = false;
-            }
-        });
+        presence
+            .iter_mut()
+            .enumerate()
+            .take(len)
+            .for_each(|(i, present)| {
+                if value.is_null(i) {
+                    *present = false;
+                }
+            });
 
         let owned_column = match value.data_type() {
             DataType::Boolean => {
