@@ -18,13 +18,13 @@ impl<S: Scalar> OwnedTable<S> {
         let nullable_result = self.evaluate_nullable(expr)?;
 
         // If the result has no NULL values, return the values directly
-        if !nullable_result.is_nullable() {
-            Ok(nullable_result.values)
-        } else {
+        if nullable_result.is_nullable() {
             // If the result has NULL values, we need to handle them
             Err(ExpressionEvaluationError::Unsupported {
                 expression: format!("Expression {expr:?} resulted in NULL values, but NULL values are not supported in this context"),
             })
+        } else {
+            Ok(nullable_result.values)
         }
     }
 

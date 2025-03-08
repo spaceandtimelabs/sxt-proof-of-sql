@@ -64,7 +64,7 @@ pub enum Column<'a, S: Scalar> {
 /// and a `true` value indicates the presence of a value at the corresponding index,
 /// while a `false` value indicates NULL.
 ///
-/// This implementation follows the PostgreSQL approach to NULL values by using
+/// This implementation follows the `PostgreSQL` approach to NULL values by using
 /// a separate boolean array to track presence.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct NullableColumn<'a, S: Scalar> {
@@ -76,7 +76,7 @@ pub struct NullableColumn<'a, S: Scalar> {
 }
 
 impl<'a, S: Scalar> NullableColumn<'a, S> {
-    /// Creates a new NullableColumn without any NULL values
+    /// Creates a new `NullableColumn` without any NULL values
     /// (all values are present)
     #[must_use]
     pub fn new(values: Column<'a, S>) -> Self {
@@ -86,7 +86,7 @@ impl<'a, S: Scalar> NullableColumn<'a, S> {
         }
     }
 
-    /// Creates a new NullableColumn with the given values and presence slice
+    /// Creates a new `NullableColumn` with the given values and presence slice
     ///
     /// # Panics
     ///
@@ -134,9 +134,7 @@ impl<'a, S: Scalar> NullableColumn<'a, S> {
     /// Panics if the index is out of bounds
     #[must_use]
     pub fn is_null(&self, index: usize) -> bool {
-        if index >= self.len() {
-            panic!("Index out of bounds");
-        }
+        assert!((index < self.len()), "Index out of bounds");
         match self.presence {
             Some(presence) => !presence[index],
             None => false, // When presence is None, no values are NULL
@@ -150,9 +148,7 @@ impl<'a, S: Scalar> NullableColumn<'a, S> {
     /// Panics if the index is out of bounds
     #[must_use]
     pub fn scalar_at(&self, index: usize) -> Option<Option<S>> {
-        if index >= self.len() {
-            panic!("Index out of bounds");
-        }
+        assert!((index < self.len()), "Index out of bounds");
 
         // Check if the value is NULL
         if let Some(presence) = self.presence {
@@ -165,7 +161,7 @@ impl<'a, S: Scalar> NullableColumn<'a, S> {
         self.values.scalar_at(index).map(Some)
     }
 
-    /// Create a NullableColumn from an OwnedNullableColumn
+    /// Create a `NullableColumn` from an `OwnedNullableColumn`
     pub fn from_owned_nullable_column(
         owned_column: &'a OwnedNullableColumn<S>,
         alloc: &'a Bump,
@@ -200,8 +196,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::BigInt(_) => ColumnType::BigInt,
             Self::VarChar(_) => ColumnType::VarChar,
             Self::Int128(_col) => ColumnType::Int128,
-            Self::Scalar(_col) => ColumnType::Scalar,
-            Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(*precision, *scale),
+            Self::Scalar(_col) | Self::Decimal75(_, _, _col) => ColumnType::Scalar,
             Self::TimestampTZ(time_unit, timezone, _) => {
                 ColumnType::TimestampTZ(*time_unit, *timezone)
             }
