@@ -137,7 +137,7 @@ impl<S: Scalar> From<OwnedNullableColumn<S>> for ArrayRef {
         }
 
         let presence = value.presence.unwrap();
-        let null_buffer = NullBuffer::from_iter((0..presence.len()).map(|i| presence[i]));
+        let null_buffer = (0..presence.len()).map(|i| presence[i]).collect::<NullBuffer>();
 
         match value.values {
             OwnedColumn::Boolean(col) => Arc::new(BooleanArray::new(col.into(), Some(null_buffer))),
@@ -163,7 +163,7 @@ impl<S: Scalar> From<OwnedNullableColumn<S>> for ArrayRef {
             OwnedColumn::VarChar(col) => {
                 let mut builder = arrow::array::StringBuilder::with_capacity(
                     col.len(),
-                    col.iter().map(|s| s.len()).sum(),
+                    col.iter().map(std::string::String::len).sum(),
                 );
                 for (i, s) in col.iter().enumerate() {
                     if presence[i] {
@@ -177,7 +177,7 @@ impl<S: Scalar> From<OwnedNullableColumn<S>> for ArrayRef {
             OwnedColumn::VarBinary(col) => {
                 let mut builder = arrow::array::BinaryBuilder::with_capacity(
                     col.len(),
-                    col.iter().map(|s| s.len()).sum(),
+                    col.iter().map(std::vec::Vec::len).sum(),
                 );
                 for (i, s) in col.iter().enumerate() {
                     if presence[i] {
@@ -236,6 +236,7 @@ impl<S: Scalar> TryFrom<ArrayRef> for OwnedNullableColumn<S> {
 impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
     type Error = OwnedArrowConversionError;
 
+    #[allow(clippy::too_many_lines)]
     fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
         let has_nulls = value.null_count() > 0;
 
@@ -247,11 +248,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
         let len = value.len();
         let mut presence = vec![true; len];
 
-        for i in 0..len {
+        presence.iter_mut().enumerate().take(len).for_each(|(i, present)| {
             if value.is_null(i) {
-                presence[i] = false;
+                *present = false;
             }
-        }
+        });
 
         let owned_column = match value.data_type() {
             DataType::Boolean => {

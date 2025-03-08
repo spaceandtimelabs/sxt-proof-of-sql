@@ -81,7 +81,7 @@ pub trait ArrayRefExt {
         scals: Option<&'a [S]>,
     ) -> Result<Column<'a, S>, ArrowArrayToColumnConversionError>;
 
-    /// Convert an [`ArrayRef`] into a Proof of SQL NullableColumn type, handling null values
+    /// Convert an [`ArrayRef`] into a Proof of SQL `NullableColumn` type, handling null values
     ///
     /// Parameters:
     /// - `alloc`: used to allocate slices of data
@@ -341,6 +341,7 @@ impl ArrayRefExt for ArrayRef {
     ///
     /// # Panics
     /// - When any range is OOB, i.e. indexing 3..6 or 5..5 on array of size 2.
+    #[allow(clippy::too_many_lines)]
     fn to_nullable_column<'a, S: Scalar>(
         &'a self,
         alloc: &'a Bump,
@@ -468,21 +469,21 @@ impl ArrayRefExt for ArrayRef {
             }
             DataType::Decimal256(precision, scale) if *precision <= 75 => {
                 let array = self.as_any().downcast_ref::<Decimal256Array>().unwrap();
-                let mut scals = Vec::with_capacity(range_len);
+                let mut scalar_values = Vec::with_capacity(range_len);
                 for i in range.clone() {
                     // Use zero scalar as the default value for nulls
                     if array.is_null(i) {
-                        scals.push(S::zero());
+                        scalar_values.push(S::zero());
                     } else {
                         let val = convert_i256_to_scalar(&array.value(i)).ok_or(
                             ArrowArrayToColumnConversionError::DecimalConversionFailed {
                                 number: array.value(i),
                             },
                         )?;
-                        scals.push(val);
+                        scalar_values.push(val);
                     }
                 }
-                let scalars = alloc.alloc_slice_copy(&scals);
+                let scalars = alloc.alloc_slice_copy(&scalar_values);
                 Ok(NullableColumn::with_presence(
                     Column::Decimal75(Precision::new(*precision)?, *scale, scalars),
                     Some(presence_slice),
@@ -511,9 +512,9 @@ impl ArrayRefExt for ArrayRef {
                         Some(presence_slice),
                     ))
                 } else {
-                    return Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
-                    });
+                    })
                 }
             }
             DataType::Binary => {
@@ -540,9 +541,9 @@ impl ArrayRefExt for ArrayRef {
                         Some(presence_slice),
                     ))
                 } else {
-                    return Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
-                    });
+                    })
                 }
             }
             DataType::Timestamp(time_unit, tz) => {

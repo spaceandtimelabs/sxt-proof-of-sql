@@ -54,7 +54,7 @@ pub enum OwnedColumn<S: Scalar> {
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
 }
 
-/// A nullable column that contains a values OwnedColumn,
+/// A nullable column that contains a values `OwnedColumn`,
 /// and an optional boolean presence vector.
 ///
 /// When `presence` is `None`, the column is not nullable (all values are present).
@@ -62,7 +62,7 @@ pub enum OwnedColumn<S: Scalar> {
 /// and a `true` value indicates the presence of a value at the corresponding index,
 /// while a `false` value indicates NULL.
 ///
-/// This implementation follows the PostgreSQL approach to NULL values by using
+/// This implementation follows the `PostgreSQL` approach to NULL values by using
 /// a separate boolean array to track presence.
 #[derive(Debug, PartialEq, Clone, Eq, Serialize, Deserialize)]
 pub struct OwnedNullableColumn<S: Scalar> {
@@ -480,7 +480,7 @@ impl<S: Scalar> OwnedColumn<S> {
 }
 
 impl<S: Scalar> OwnedNullableColumn<S> {
-    /// Creates a new OwnedNullableColumn without any NULL values
+    /// Creates a new `OwnedNullableColumn` without any NULL values
     /// (all values are present)
     #[must_use]
     pub fn new(values: OwnedColumn<S>) -> Self {
@@ -490,7 +490,7 @@ impl<S: Scalar> OwnedNullableColumn<S> {
         }
     }
 
-    /// Creates a new OwnedNullableColumn with the given values and presence vector
+    /// Creates a new `OwnedNullableColumn` with the given values and presence vector
     ///
     /// # Panics
     ///
@@ -538,9 +538,7 @@ impl<S: Scalar> OwnedNullableColumn<S> {
     /// Panics if the index is out of bounds
     #[must_use]
     pub fn is_null(&self, index: usize) -> bool {
-        if index >= self.len() {
-            panic!("Index out of bounds");
-        }
+        assert!(index < self.len(), "Index out of bounds");
         match &self.presence {
             Some(presence) => !presence[index],
             None => false, // When presence is None, no values are NULL
@@ -578,9 +576,7 @@ impl<S: Scalar> OwnedNullableColumn<S> {
     /// Panics if the index is out of bounds
     #[must_use]
     pub fn scalar_at(&self, index: usize) -> Option<Option<S>> {
-        if index >= self.len() {
-            panic!("Index out of bounds");
-        }
+        assert!(index < self.len(), "Index out of bounds");
 
         // Check if the value is NULL
         if let Some(presence) = &self.presence {
@@ -596,13 +592,12 @@ impl<S: Scalar> OwnedNullableColumn<S> {
             OwnedColumn::TinyInt(col) => Some(Some(col[index].into())),
             OwnedColumn::SmallInt(col) => Some(Some(col[index].into())),
             OwnedColumn::Int(col) => Some(Some(col[index].into())),
-            OwnedColumn::BigInt(col) => Some(Some(col[index].into())),
-            OwnedColumn::Int128(col) => Some(Some(col[index].into())),
-            OwnedColumn::Scalar(col) => Some(Some(col[index])),
-            OwnedColumn::Decimal75(_, _, col) => Some(Some(col[index])),
-            OwnedColumn::TimestampTZ(_, _, col) => Some(Some(col[index].into())),
+            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => Some(Some(col[index].into())),
+            OwnedColumn::VarChar(col) => Some(Some(col[index].clone().into())),
+            OwnedColumn::VarBinary(_col) => None, // VarBinary cannot be converted to scalar directly
             // VarChar and VarBinary would need hash values
-            _ => None,
+            OwnedColumn::Int128(col) => Some(Some(col[index].into())),
+            OwnedColumn::Scalar(col) | OwnedColumn::Decimal75(_, _, col) => Some(Some(col[index])),
         }
     }
 
@@ -636,13 +631,12 @@ impl<S: Scalar> OwnedNullableColumn<S> {
             OwnedColumn::TinyInt(col) => Some(Some(col[index].into())),
             OwnedColumn::SmallInt(col) => Some(Some(col[index].into())),
             OwnedColumn::Int(col) => Some(Some(col[index].into())),
-            OwnedColumn::BigInt(col) => Some(Some(col[index].into())),
-            OwnedColumn::Int128(col) => Some(Some(col[index].into())),
-            OwnedColumn::Scalar(col) => Some(Some(col[index])),
-            OwnedColumn::Decimal75(_, _, col) => Some(Some(col[index])),
-            OwnedColumn::TimestampTZ(_, _, col) => Some(Some(col[index].into())),
+            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => Some(Some(col[index].into())),
+            OwnedColumn::VarChar(col) => Some(Some(col[index].clone().into())),
+            OwnedColumn::VarBinary(_col) => None, // VarBinary cannot be converted to scalar directly
             // VarChar and VarBinary would need hash values
-            _ => None,
+            OwnedColumn::Int128(col) => Some(Some(col[index].into())),
+            OwnedColumn::Scalar(col) | OwnedColumn::Decimal75(_, _, col) => Some(Some(col[index])),
         }
     }
 
@@ -670,18 +664,15 @@ impl<S: Scalar> OwnedNullableColumn<S> {
         let mut has_nulls = false;
 
         for opt_scalar in option_scalars {
-            match opt_scalar {
-                Some(val) => {
-                    values.push(*val);
-                    presence.push(true);
-                }
-                None => {
-                    // Push a default value for NULL entries
-                    // This value won't be used since the presence vector marks it as NULL
-                    values.push(S::default());
-                    presence.push(false);
-                    has_nulls = true;
-                }
+            if let Some(val) = opt_scalar {
+                values.push(*val);
+                presence.push(true);
+            } else {
+                // Push a default value for NULL entries
+                // This value won't be used since the presence vector marks it as NULL
+                values.push(S::default());
+                presence.push(false);
+                has_nulls = true;
             }
         }
 
@@ -698,7 +689,7 @@ impl<S: Scalar> OwnedNullableColumn<S> {
     ///
     /// This is similar to `try_from_option_scalars` but works with iterators.
     ///
-    /// ## ExactSizeIterator Requirement
+    /// ## `ExactSizeIterator` Requirement
     ///
     /// This method requires an `ExactSizeIterator` to enable efficient pre-allocation of
     /// the internal vectors. Knowing the exact size upfront allows us to allocate the right
@@ -735,17 +726,14 @@ impl<S: Scalar> OwnedNullableColumn<S> {
         let mut has_nulls = false;
 
         for opt_scalar in iter {
-            match opt_scalar {
-                Some(val) => {
-                    values.push(val);
-                    presence.push(true);
-                }
-                None => {
-                    // Push a default value for NULL entries
-                    values.push(S::default());
-                    presence.push(false);
-                    has_nulls = true;
-                }
+            if let Some(val) = opt_scalar {
+                values.push(val);
+                presence.push(true);
+            } else {
+                // Push a default value for NULL entries
+                values.push(S::default());
+                presence.push(false);
+                has_nulls = true;
             }
         }
 
@@ -762,7 +750,7 @@ impl<S: Scalar> OwnedNullableColumn<S> {
 impl<'a, S: Scalar> From<&NullableColumn<'a, S>> for OwnedNullableColumn<S> {
     fn from(nullable_column: &NullableColumn<'a, S>) -> Self {
         let values = OwnedColumn::from(&nullable_column.values);
-        let presence = nullable_column.presence.map(|p| p.to_vec());
+        let presence = nullable_column.presence.map(<[bool]>::to_vec);
         Self { values, presence }
     }
 }
