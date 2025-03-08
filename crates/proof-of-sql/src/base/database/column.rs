@@ -1,4 +1,4 @@
-use super::{LiteralValue, OwnedColumn, TableRef};
+use super::{owned_column::OwnedNullableColumn, LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
     math::decimal::Precision,
     scalar::{Scalar, ScalarExt},
@@ -56,6 +56,137 @@ pub enum Column<'a, S: Scalar> {
     VarBinary((&'a [&'a [u8]], &'a [S])),
 }
 
+/// Represents a nullable column that contains a values Column,
+/// and an optional boolean presence slice.
+///
+/// When `presence` is `None`, the column is not nullable (all values are present).
+/// When `presence` contains a boolean slice, its length must match the length of the values column,
+/// and a `true` value indicates the presence of a value at the corresponding index,
+/// while a `false` value indicates NULL.
+///
+/// This implementation follows the PostgreSQL approach to NULL values by using
+/// a separate boolean array to track presence.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct NullableColumn<'a, S: Scalar> {
+    /// The actual values in the column
+    pub values: Column<'a, S>,
+    /// Optional presence slice. `true` means value is present, `false` means NULL
+    /// If `None`, all values are present (non-NULL)
+    pub presence: Option<&'a [bool]>,
+}
+
+impl<'a, S: Scalar> NullableColumn<'a, S> {
+    /// Creates a new NullableColumn without any NULL values
+    /// (all values are present)
+    #[must_use]
+    pub fn new(values: Column<'a, S>) -> Self {
+        Self {
+            values,
+            presence: None,
+        }
+    }
+
+    /// Creates a new NullableColumn with the given values and presence slice
+    ///
+    /// # Panics
+    ///
+    /// Panics if the presence slice is `Some` and its length does not match the values length
+    #[must_use]
+    pub fn with_presence(values: Column<'a, S>, presence: Option<&'a [bool]>) -> Self {
+        if let Some(presence_slice) = presence {
+            assert_eq!(
+                values.len(),
+                presence_slice.len(),
+                "Presence slice length must match values length"
+            );
+        }
+        Self { values, presence }
+    }
+
+    /// Returns the length of the column
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
+
+    /// Returns `true` if the column has no elements
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
+    }
+
+    /// Returns `true` if the column is nullable
+    #[must_use]
+    pub fn is_nullable(&self) -> bool {
+        self.presence.is_some()
+    }
+
+    /// Returns the column type
+    #[must_use]
+    pub fn column_type(&self) -> ColumnType {
+        self.values.column_type()
+    }
+
+    /// Checks if the value at the given index is NULL
+    ///
+    /// # Panics
+    ///
+    /// Panics if the index is out of bounds
+    #[must_use]
+    pub fn is_null(&self, index: usize) -> bool {
+        if index >= self.len() {
+            panic!("Index out of bounds");
+        }
+        match self.presence {
+            Some(presence) => !presence[index],
+            None => false, // When presence is None, no values are NULL
+        }
+    }
+
+    /// Returns the scalar at the given index, or None if the value is NULL
+    ///
+    /// # Panics
+    ///
+    /// Panics if the index is out of bounds
+    #[must_use]
+    pub fn scalar_at(&self, index: usize) -> Option<Option<S>> {
+        if index >= self.len() {
+            panic!("Index out of bounds");
+        }
+
+        // Check if the value is NULL
+        if let Some(presence) = self.presence {
+            if !presence[index] {
+                return Some(None); // This position contains a NULL
+            }
+        }
+
+        // Get the non-NULL value
+        self.values.scalar_at(index).map(Some)
+    }
+
+    /// Create a NullableColumn from an OwnedNullableColumn
+    pub fn from_owned_nullable_column(
+        owned_column: &'a OwnedNullableColumn<S>,
+        alloc: &'a Bump,
+    ) -> Self {
+        let values = Column::from_owned_column(&owned_column.values, alloc);
+
+        // Create the presence slice with the correct lifetime and immutability
+        let presence = if let Some(p) = &owned_column.presence {
+            // First copy the data into the bump allocator
+            let bool_vec = p.as_slice();
+            // Then explicitly create it as an immutable slice with the correct lifetime
+            let slice_ref: &'a [bool] = alloc.alloc_slice_copy(bool_vec);
+            Some(slice_ref)
+        } else {
+            None
+        };
+
+        Self { values, presence }
+    }
+}
+
 impl<'a, S: Scalar> Column<'a, S> {
     /// Provides the column type associated with the column
     #[must_use]
@@ -68,8 +199,8 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int(_) => ColumnType::Int,
             Self::BigInt(_) => ColumnType::BigInt,
             Self::VarChar(_) => ColumnType::VarChar,
-            Self::Int128(_) => ColumnType::Int128,
-            Self::Scalar(_) => ColumnType::Scalar,
+            Self::Int128(col) => ColumnType::Int128,
+            Self::Scalar(_col) => ColumnType::Scalar,
             Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(*precision, *scale),
             Self::TimestampTZ(time_unit, timezone, _) => {
                 ColumnType::TimestampTZ(*time_unit, *timezone)
@@ -1031,7 +1162,7 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::Scalar(&scalar_values);
+        let column = Column::<TestScalar>::Scalar(&scalar_values);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
@@ -1170,7 +1301,7 @@ mod tests {
         assert_eq!(column.column_type().byte_size(), 32);
         assert_eq!(column.column_type().bit_size(), 256);
 
-        let column = Column::Scalar(&scalar_values);
+        let column = Column::<TestScalar>::Scalar(&scalar_values);
         assert_eq!(column.column_type().byte_size(), 32);
         assert_eq!(column.column_type().bit_size(), 256);
 
@@ -1265,5 +1396,140 @@ mod tests {
             None
         );
         assert_eq!(ColumnType::VarChar.min_scalar::<TestScalar>(), None);
+    }
+
+    #[test]
+    fn we_can_create_nullable_column() {
+        let bool_values = &[true, false, true];
+        let column: Column<'_, TestScalar> = Column::Boolean(bool_values);
+
+        let nullable_column = NullableColumn::new(column);
+        assert_eq!(nullable_column.len(), 3);
+        assert!(!nullable_column.is_empty());
+        assert!(!nullable_column.is_nullable());
+
+        for i in 0..3 {
+            assert!(!nullable_column.is_null(i));
+        }
+
+        let presence = &[true, true, true];
+        let nullable_column = NullableColumn::with_presence(column, Some(presence));
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+
+        for i in 0..3 {
+            assert!(!nullable_column.is_null(i));
+        }
+
+        let presence = &[true, false, true];
+        let nullable_column = NullableColumn::with_presence(column, Some(presence));
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+    }
+
+    #[test]
+    #[should_panic(expected = "Presence slice length must match values length")]
+    fn nullable_column_panics_if_presence_length_mismatch() {
+        let bool_values = &[true, false, true];
+        let column: Column<'_, TestScalar> = Column::Boolean(bool_values);
+
+        let presence = &[true, false];
+        let _ = NullableColumn::with_presence(column, Some(presence));
+    }
+
+    #[test]
+    fn nullable_column_scalar_at_works_correctly() {
+        let alloc = Bump::new();
+        let scalar_values = [
+            TestScalar::from(10),
+            TestScalar::from(20),
+            TestScalar::from(30),
+        ];
+        let column = Column::Scalar(&scalar_values);
+
+        let nullable_column = NullableColumn::new(column);
+
+        assert_eq!(
+            nullable_column.scalar_at(0),
+            Some(Some(TestScalar::from(10)))
+        );
+        assert_eq!(
+            nullable_column.scalar_at(1),
+            Some(Some(TestScalar::from(20)))
+        );
+        assert_eq!(
+            nullable_column.scalar_at(2),
+            Some(Some(TestScalar::from(30)))
+        );
+
+        let presence = alloc.alloc_slice_copy(&[true, false, true]);
+        let nullable_column = NullableColumn::with_presence(column, Some(presence));
+
+        assert_eq!(
+            nullable_column.scalar_at(0),
+            Some(Some(TestScalar::from(10)))
+        );
+        assert_eq!(nullable_column.scalar_at(1), Some(None));
+        assert_eq!(
+            nullable_column.scalar_at(2),
+            Some(Some(TestScalar::from(30)))
+        );
+    }
+
+    #[test]
+    fn we_can_convert_owned_nullable_columns_to_nullable_columns() {
+        let alloc = Bump::new();
+
+        let bool_values = vec![true, false, true];
+        let owned_column: OwnedColumn<TestScalar> = OwnedColumn::Boolean(bool_values);
+        let presence = Some(vec![true, false, true]);
+        let owned_nullable_column =
+            OwnedNullableColumn::with_presence(owned_column.clone(), presence);
+
+        let nullable_column =
+            NullableColumn::from_owned_nullable_column(&owned_nullable_column, &alloc);
+
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+    }
+
+    #[test]
+    fn we_can_create_owned_nullable_column() {
+        let bool_values = vec![true, false, true];
+        let owned_column: OwnedColumn<TestScalar> = OwnedColumn::Boolean(bool_values);
+
+        let nullable_column = OwnedNullableColumn::new(owned_column.clone());
+        assert_eq!(nullable_column.len(), 3);
+        assert!(!nullable_column.is_empty());
+        assert!(!nullable_column.is_nullable());
+
+        for i in 0..3 {
+            assert!(!nullable_column.is_null(i));
+        }
+
+        let presence = Some(vec![true, true, true]);
+        let nullable_column = OwnedNullableColumn::with_presence(owned_column.clone(), presence);
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+
+        for i in 0..3 {
+            assert!(!nullable_column.is_null(i));
+        }
+
+        let presence = Some(vec![true, false, true]);
+        let nullable_column = OwnedNullableColumn::with_presence(owned_column, presence);
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
     }
 }

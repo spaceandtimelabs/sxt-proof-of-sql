@@ -5,7 +5,7 @@ mod accessor;
 pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor};
 
 mod column;
-pub use column::{Column, ColumnField, ColumnRef, ColumnType};
+pub use column::{Column, ColumnField, ColumnRef, ColumnType, NullableColumn};
 
 #[allow(dead_code)]
 pub(crate) mod slice_operation;
@@ -56,7 +56,7 @@ pub use table_ref::TableRef;
 pub mod arrow_schema_utility;
 
 mod owned_column;
-pub use owned_column::OwnedColumn;
+pub use owned_column::{OwnedColumn, OwnedNullableColumn};
 
 mod owned_column_error;
 pub(crate) use owned_column_error::ColumnCoercionError;

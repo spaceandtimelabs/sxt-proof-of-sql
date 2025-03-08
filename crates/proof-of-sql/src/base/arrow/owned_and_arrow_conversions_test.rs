@@ -1,6 +1,6 @@
 use super::owned_and_arrow_conversions::OwnedArrowConversionError;
 use crate::base::{
-    database::{owned_table_utility::*, OwnedColumn, OwnedTable},
+    database::{owned_table_utility::*, OwnedColumn, OwnedNullableColumn, OwnedTable},
     map::IndexMap,
     scalar::test_scalar::TestScalar,
 };
@@ -206,5 +206,105 @@ proptest! {
         let actual = OwnedColumn::try_from(arrow).unwrap();
 
         prop_assert_eq!(actual, owned_column);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::base::scalar::test_scalar::TestScalar;
+    use arrow::array::{Array, ArrayRef, BooleanArray, Int32Array};
+
+    #[test]
+    fn we_can_convert_owned_nullable_column_to_array_ref_no_nulls() {
+        let owned_column = OwnedColumn::<TestScalar>::Boolean(vec![true, false, true]);
+        let nullable_column = OwnedNullableColumn::new(owned_column);
+        let array_ref: ArrayRef = nullable_column.into();
+        let boolean_array = array_ref.as_any().downcast_ref::<BooleanArray>().unwrap();
+        assert_eq!(boolean_array.len(), 3);
+        assert_eq!(boolean_array.null_count(), 0);
+        assert_eq!(boolean_array.value(0), true);
+        assert_eq!(boolean_array.value(1), false);
+        assert_eq!(boolean_array.value(2), true);
+    }
+
+    #[test]
+    fn we_can_convert_owned_nullable_column_to_array_ref_with_nulls() {
+        let owned_column = OwnedColumn::<TestScalar>::Int(vec![10, 20, 30]);
+        let presence = Some(vec![true, false, true]);
+        let nullable_column = OwnedNullableColumn::with_presence(owned_column, presence);
+        let array_ref: ArrayRef = nullable_column.into();
+        let int_array = array_ref.as_any().downcast_ref::<Int32Array>().unwrap();
+        assert_eq!(int_array.len(), 3);
+        assert_eq!(int_array.null_count(), 1);
+        assert_eq!(int_array.value(0), 10);
+        assert!(int_array.is_null(1));
+        assert_eq!(int_array.value(2), 30);
+    }
+
+    #[test]
+    fn we_can_convert_array_ref_to_owned_nullable_column_no_nulls() {
+        let array = Int32Array::from(vec![10, 20, 30]);
+        let array_ref = Arc::new(array) as ArrayRef;
+        let nullable_column = OwnedNullableColumn::<TestScalar>::try_from(&array_ref).unwrap();
+
+        assert_eq!(nullable_column.len(), 3);
+        assert!(!nullable_column.is_nullable());
+
+        match nullable_column.values {
+            OwnedColumn::Int(values) => {
+                assert_eq!(values, vec![10, 20, 30]);
+            }
+            _ => panic!("Expected Int column"),
+        }
+    }
+
+    #[test]
+    fn we_can_convert_array_ref_to_owned_nullable_column_with_nulls() {
+        let array = Int32Array::from(vec![Some(10), None, Some(30)]);
+        let array_ref = Arc::new(array) as ArrayRef;
+        let nullable_column = OwnedNullableColumn::<TestScalar>::try_from(&array_ref).unwrap();
+
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+
+        match &nullable_column.values {
+            OwnedColumn::Int(values) => {
+                assert_eq!(values[0], 10);
+                assert_eq!(values[1], 0);
+                assert_eq!(values[2], 30);
+            }
+            _ => panic!("Expected Int column"),
+        }
+    }
+
+    #[test]
+    fn we_can_round_trip_nullable_column_through_arrow() {
+        let owned_column = OwnedColumn::<TestScalar>::Boolean(vec![true, false, true, false]);
+        let presence = Some(vec![true, false, true, false]);
+        let original = OwnedNullableColumn::with_presence(owned_column, presence);
+        let array_ref: ArrayRef = original.clone().into();
+        let round_tripped = OwnedNullableColumn::<TestScalar>::try_from(&array_ref).unwrap();
+
+        assert_eq!(round_tripped.len(), original.len());
+        assert_eq!(round_tripped.is_nullable(), original.is_nullable());
+
+        for i in 0..original.len() {
+            assert_eq!(round_tripped.is_null(i), original.is_null(i));
+        }
+
+        match (&round_tripped.values, &original.values) {
+            (OwnedColumn::Boolean(rt_values), OwnedColumn::Boolean(orig_values)) => {
+                for i in 0..original.len() {
+                    if !original.is_null(i) {
+                        assert_eq!(rt_values[i], orig_values[i]);
+                    }
+                }
+            }
+            _ => panic!("Expected Boolean columns"),
+        }
     }
 }

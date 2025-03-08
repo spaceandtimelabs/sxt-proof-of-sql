@@ -14,7 +14,7 @@
 //! However, the actual arrow backing `i128` is the correct value.
 use super::scalar_and_i256_conversions::{convert_i256_to_scalar, convert_scalar_to_i256};
 use crate::base::{
-    database::{OwnedColumn, OwnedTable, OwnedTableError},
+    database::{OwnedColumn, OwnedNullableColumn, OwnedTable, OwnedTableError},
     map::IndexMap,
     math::decimal::Precision,
     scalar::Scalar,
@@ -22,10 +22,11 @@ use crate::base::{
 use alloc::sync::Arc;
 use arrow::{
     array::{
-        ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array, Int16Array,
+        Array, ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array, Int16Array,
         Int32Array, Int64Array, Int8Array, StringArray, TimestampMicrosecondArray,
         TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray, UInt8Array,
     },
+    buffer::NullBuffer,
     datatypes::{i256, DataType, Schema, SchemaRef, TimeUnit as ArrowTimeUnit},
     error::ArrowError,
     record_batch::RecordBatch,
@@ -73,6 +74,12 @@ pub enum OwnedArrowConversionError {
         /// The underlying source error
         source: PoSQLTimestampError,
     },
+    /// This error occurs when converting from an owned column to an array fails.
+    #[snafu(display("decimal conversion failed"))]
+    DecimalConversionFailed {
+        /// The number that failed to convert
+        number: i256,
+    },
 }
 
 /// # Panics
@@ -118,6 +125,89 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
     }
 }
 
+/// # Panics
+///
+/// Will panic if setting precision and scale fails when converting `OwnedColumn::Int128`.
+/// Will panic if setting precision and scale fails when converting `OwnedColumn::Decimal75`.
+/// Will panic if trying to convert `OwnedColumn::Scalar`, as this conversion is not implemented
+impl<S: Scalar> From<OwnedNullableColumn<S>> for ArrayRef {
+    fn from(value: OwnedNullableColumn<S>) -> Self {
+        if !value.is_nullable() {
+            return ArrayRef::from(value.values);
+        }
+
+        let presence = value.presence.unwrap();
+        let null_buffer = NullBuffer::from_iter((0..presence.len()).map(|i| presence[i]));
+
+        match value.values {
+            OwnedColumn::Boolean(col) => Arc::new(BooleanArray::new(col.into(), Some(null_buffer))),
+            OwnedColumn::Uint8(col) => Arc::new(UInt8Array::new(col.into(), Some(null_buffer))),
+            OwnedColumn::TinyInt(col) => Arc::new(Int8Array::new(col.into(), Some(null_buffer))),
+            OwnedColumn::SmallInt(col) => Arc::new(Int16Array::new(col.into(), Some(null_buffer))),
+            OwnedColumn::Int(col) => Arc::new(Int32Array::new(col.into(), Some(null_buffer))),
+            OwnedColumn::BigInt(col) => Arc::new(Int64Array::new(col.into(), Some(null_buffer))),
+            OwnedColumn::Int128(col) => Arc::new(
+                Decimal128Array::new(col.into(), Some(null_buffer))
+                    .with_precision_and_scale(38, 0)
+                    .unwrap(),
+            ),
+            OwnedColumn::Decimal75(precision, scale, col) => {
+                let converted_col: Vec<i256> = col.iter().map(convert_scalar_to_i256).collect();
+                Arc::new(
+                    Decimal256Array::new(converted_col.into(), Some(null_buffer))
+                        .with_precision_and_scale(precision.value(), scale)
+                        .unwrap(),
+                )
+            }
+            OwnedColumn::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
+            OwnedColumn::VarChar(col) => {
+                let mut builder = arrow::array::StringBuilder::with_capacity(
+                    col.len(),
+                    col.iter().map(|s| s.len()).sum(),
+                );
+                for (i, s) in col.iter().enumerate() {
+                    if presence[i] {
+                        builder.append_value(s);
+                    } else {
+                        builder.append_null();
+                    }
+                }
+                Arc::new(builder.finish())
+            }
+            OwnedColumn::VarBinary(col) => {
+                let mut builder = arrow::array::BinaryBuilder::with_capacity(
+                    col.len(),
+                    col.iter().map(|s| s.len()).sum(),
+                );
+                for (i, s) in col.iter().enumerate() {
+                    if presence[i] {
+                        builder.append_value(s);
+                    } else {
+                        builder.append_null();
+                    }
+                }
+                Arc::new(builder.finish())
+            }
+            OwnedColumn::TimestampTZ(time_unit, _, col) => match time_unit {
+                PoSQLTimeUnit::Second => {
+                    Arc::new(TimestampSecondArray::new(col.into(), Some(null_buffer)))
+                }
+                PoSQLTimeUnit::Millisecond => Arc::new(TimestampMillisecondArray::new(
+                    col.into(),
+                    Some(null_buffer),
+                )),
+                PoSQLTimeUnit::Microsecond => Arc::new(TimestampMicrosecondArray::new(
+                    col.into(),
+                    Some(null_buffer),
+                )),
+                PoSQLTimeUnit::Nanosecond => {
+                    Arc::new(TimestampNanosecondArray::new(col.into(), Some(null_buffer)))
+                }
+            },
+        }
+    }
+}
+
 impl<S: Scalar> TryFrom<OwnedTable<S>> for RecordBatch {
     type Error = ArrowError;
     fn try_from(value: OwnedTable<S>) -> Result<Self, Self::Error> {
@@ -136,12 +226,184 @@ impl<S: Scalar> TryFrom<OwnedTable<S>> for RecordBatch {
     }
 }
 
+impl<S: Scalar> TryFrom<ArrayRef> for OwnedNullableColumn<S> {
+    type Error = OwnedArrowConversionError;
+    fn try_from(value: ArrayRef) -> Result<Self, Self::Error> {
+        Self::try_from(&value)
+    }
+}
+
+impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
+    type Error = OwnedArrowConversionError;
+
+    fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
+        let has_nulls = value.null_count() > 0;
+
+        if !has_nulls {
+            let owned_column = OwnedColumn::try_from(value)?;
+            return Ok(OwnedNullableColumn::new(owned_column));
+        }
+
+        let len = value.len();
+        let mut presence = vec![true; len];
+
+        for i in 0..len {
+            if value.is_null(i) {
+                presence[i] = false;
+            }
+        }
+
+        let owned_column = match value.data_type() {
+            DataType::Boolean => {
+                let array = value.as_any().downcast_ref::<BooleanArray>().unwrap();
+                let mut values = Vec::with_capacity(len);
+                for i in 0..len {
+                    values.push(if array.is_null(i) {
+                        false
+                    } else {
+                        array.value(i)
+                    });
+                }
+                OwnedColumn::Boolean(values)
+            }
+            DataType::UInt8 => {
+                let array = value.as_any().downcast_ref::<UInt8Array>().unwrap();
+                let mut values = Vec::with_capacity(len);
+                for i in 0..len {
+                    values.push(if array.is_null(i) { 0 } else { array.value(i) });
+                }
+                OwnedColumn::Uint8(values)
+            }
+            DataType::Int8 => {
+                let array = value.as_any().downcast_ref::<Int8Array>().unwrap();
+                let mut values = Vec::with_capacity(len);
+                for i in 0..len {
+                    values.push(if array.is_null(i) { 0 } else { array.value(i) });
+                }
+                OwnedColumn::TinyInt(values)
+            }
+            DataType::Int16 => {
+                let array = value.as_any().downcast_ref::<Int16Array>().unwrap();
+                let mut values = Vec::with_capacity(len);
+                for i in 0..len {
+                    values.push(if array.is_null(i) { 0 } else { array.value(i) });
+                }
+                OwnedColumn::SmallInt(values)
+            }
+            DataType::Int32 => {
+                let array = value.as_any().downcast_ref::<Int32Array>().unwrap();
+                let mut values = Vec::with_capacity(len);
+                for i in 0..len {
+                    values.push(if array.is_null(i) { 0 } else { array.value(i) });
+                }
+                OwnedColumn::Int(values)
+            }
+            DataType::Int64 => {
+                let array = value.as_any().downcast_ref::<Int64Array>().unwrap();
+                let mut values = Vec::with_capacity(len);
+                for i in 0..len {
+                    values.push(if array.is_null(i) { 0 } else { array.value(i) });
+                }
+                OwnedColumn::BigInt(values)
+            }
+            DataType::Decimal128(38, 0) => {
+                let array = value.as_any().downcast_ref::<Decimal128Array>().unwrap();
+                let mut values = Vec::with_capacity(len);
+                for i in 0..len {
+                    values.push(if array.is_null(i) { 0 } else { array.value(i) });
+                }
+                OwnedColumn::Int128(values)
+            }
+            DataType::Decimal256(precision, scale) if *precision <= 75 => {
+                let array = value.as_any().downcast_ref::<Decimal256Array>().unwrap();
+                let mut values = Vec::with_capacity(len);
+                for i in 0..len {
+                    let val = if array.is_null(i) {
+                        S::zero()
+                    } else {
+                        convert_i256_to_scalar(&array.value(i)).ok_or(
+                            OwnedArrowConversionError::DecimalConversionFailed {
+                                number: array.value(i),
+                            },
+                        )?
+                    };
+                    values.push(val);
+                }
+                OwnedColumn::Decimal75(
+                    Precision::new(*precision).expect("precision is less than 76"),
+                    *scale,
+                    values,
+                )
+            }
+            DataType::Utf8 => {
+                let array = value.as_any().downcast_ref::<StringArray>().unwrap();
+                let mut values = Vec::with_capacity(len);
+                for i in 0..len {
+                    values.push(if array.is_null(i) {
+                        String::new()
+                    } else {
+                        array.value(i).to_string()
+                    });
+                }
+                OwnedColumn::VarChar(values)
+            }
+            DataType::Binary => {
+                let array = value.as_any().downcast_ref::<BinaryArray>().unwrap();
+                let mut values = Vec::with_capacity(len);
+                for i in 0..len {
+                    values.push(if array.is_null(i) {
+                        Vec::new()
+                    } else {
+                        array.value(i).to_vec()
+                    });
+                }
+                OwnedColumn::VarBinary(values)
+            }
+            _ => {
+                return Err(OwnedArrowConversionError::UnsupportedType {
+                    datatype: value.data_type().clone(),
+                })
+            }
+        };
+
+        Ok(OwnedNullableColumn::with_presence(
+            owned_column,
+            Some(presence),
+        ))
+    }
+}
+
+impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
+    type Error = OwnedArrowConversionError;
+    fn try_from(value: RecordBatch) -> Result<Self, Self::Error> {
+        let num_columns = value.schema().fields().len();
+        let table: Result<IndexMap<_, _>, Self::Error> = value
+            .schema()
+            .fields()
+            .iter()
+            .zip(value.columns())
+            .map(|(field, array_ref)| {
+                let owned_column = OwnedColumn::try_from(array_ref)?;
+                let identifier = Ident::new(field.name());
+                Ok((identifier, owned_column))
+            })
+            .collect();
+        let owned_table = Self::try_new(table?)?;
+        if num_columns == owned_table.num_columns() {
+            Ok(owned_table)
+        } else {
+            Err(OwnedArrowConversionError::DuplicateIdents)
+        }
+    }
+}
+
 impl<S: Scalar> TryFrom<ArrayRef> for OwnedColumn<S> {
     type Error = OwnedArrowConversionError;
     fn try_from(value: ArrayRef) -> Result<Self, Self::Error> {
         Self::try_from(&value)
     }
 }
+
 impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     type Error = OwnedArrowConversionError;
 
@@ -157,6 +419,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     /// - `Decimal256Array` when converting from `DataType::Decimal256` if precision is less than or equal to 75.
     /// - `StringArray` when converting from `DataType::Utf8`.
     fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
+        // Check if the array has nulls
+        if value.null_count() > 0 {
+            return Err(OwnedArrowConversionError::NullNotSupportedYet);
+        }
+
         match &value.data_type() {
             // Arrow uses a bit-packed representation for booleans.
             // Hence we need to unpack the bits to get the actual boolean values.
@@ -309,30 +576,6 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
             &data_type => Err(OwnedArrowConversionError::UnsupportedType {
                 datatype: data_type.clone(),
             }),
-        }
-    }
-}
-
-impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
-    type Error = OwnedArrowConversionError;
-    fn try_from(value: RecordBatch) -> Result<Self, Self::Error> {
-        let num_columns = value.num_columns();
-        let table: Result<IndexMap<_, _>, Self::Error> = value
-            .schema()
-            .fields()
-            .iter()
-            .zip(value.columns())
-            .map(|(field, array_ref)| {
-                let owned_column = OwnedColumn::try_from(array_ref)?;
-                let identifier = Ident::new(field.name());
-                Ok((identifier, owned_column))
-            })
-            .collect();
-        let owned_table = Self::try_new(table?)?;
-        if num_columns == owned_table.num_columns() {
-            Ok(owned_table)
-        } else {
-            Err(OwnedArrowConversionError::DuplicateIdents)
         }
     }
 }

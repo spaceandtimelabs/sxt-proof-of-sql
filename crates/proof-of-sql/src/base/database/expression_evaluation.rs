@@ -1,6 +1,6 @@
 use super::{ExpressionEvaluationError, ExpressionEvaluationResult};
 use crate::base::{
-    database::{OwnedColumn, OwnedTable},
+    database::{owned_column::OwnedNullableColumn, OwnedColumn, OwnedTable},
     math::{
         decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError, Precision},
         BigDecimalExt,
@@ -14,13 +14,34 @@ use sqlparser::ast::{BinaryOperator, Ident, UnaryOperator};
 impl<S: Scalar> OwnedTable<S> {
     /// Evaluate an expression on the table.
     pub fn evaluate(&self, expr: &Expression) -> ExpressionEvaluationResult<OwnedColumn<S>> {
+        // Delegate to evaluate_nullable and unwrap the result if it's not nullable
+        let nullable_result = self.evaluate_nullable(expr)?;
+
+        // If the result has no NULL values, return the values directly
+        if !nullable_result.is_nullable() {
+            Ok(nullable_result.values)
+        } else {
+            // If the result has NULL values, we need to handle them
+            Err(ExpressionEvaluationError::Unsupported {
+                expression: format!("Expression {expr:?} resulted in NULL values, but NULL values are not supported in this context"),
+            })
+        }
+    }
+
+    /// Evaluate an expression on the table, potentially returning NULL values.
+    pub fn evaluate_nullable(
+        &self,
+        expr: &Expression,
+    ) -> ExpressionEvaluationResult<OwnedNullableColumn<S>> {
         match expr {
-            Expression::Column(identifier) => self.evaluate_column(&Ident::from(*identifier)),
-            Expression::Literal(lit) => self.evaluate_literal(lit),
-            Expression::Binary { op, left, right } => {
-                self.evaluate_binary_expr(&(*op).into(), left, right)
+            Expression::Column(identifier) => {
+                self.evaluate_nullable_column(&Ident::from(*identifier))
             }
-            Expression::Unary { op, expr } => self.evaluate_unary_expr((*op).into(), expr),
+            Expression::Literal(lit) => self.evaluate_nullable_literal(lit),
+            Expression::Binary { op, left, right } => {
+                self.evaluate_nullable_binary_expr(&(*op).into(), left, right)
+            }
+            Expression::Unary { op, expr } => self.evaluate_nullable_unary_expr((*op).into(), expr),
             _ => Err(ExpressionEvaluationError::Unsupported {
                 expression: format!("Expression {expr:?} is not supported yet"),
             }),
@@ -35,6 +56,17 @@ impl<S: Scalar> OwnedTable<S> {
                 error: identifier.to_string(),
             })?
             .clone())
+    }
+
+    fn evaluate_nullable_column(
+        &self,
+        identifier: &Ident,
+    ) -> ExpressionEvaluationResult<OwnedNullableColumn<S>> {
+        // Get the column from the table
+        let column = self.evaluate_column(identifier)?;
+
+        // Convert to a non-nullable OwnedNullableColumn
+        Ok(OwnedNullableColumn::new(column))
     }
 
     fn evaluate_literal(&self, lit: &Literal) -> ExpressionEvaluationResult<OwnedColumn<S>> {
@@ -64,12 +96,23 @@ impl<S: Scalar> OwnedTable<S> {
         }
     }
 
-    fn evaluate_unary_expr(
+    fn evaluate_nullable_literal(
+        &self,
+        lit: &Literal,
+    ) -> ExpressionEvaluationResult<OwnedNullableColumn<S>> {
+        // Evaluate the literal as a non-nullable column
+        let column = self.evaluate_literal(lit)?;
+
+        // Convert to a non-nullable OwnedNullableColumn
+        Ok(OwnedNullableColumn::new(column))
+    }
+
+    fn evaluate_nullable_unary_expr(
         &self,
         op: UnaryOperator,
         expr: &Expression,
-    ) -> ExpressionEvaluationResult<OwnedColumn<S>> {
-        let column = self.evaluate(expr)?;
+    ) -> ExpressionEvaluationResult<OwnedNullableColumn<S>> {
+        let column = self.evaluate_nullable(expr)?;
         match op {
             UnaryOperator::Not => Ok(column.element_wise_not()?),
             // Handle unsupported unary operators
@@ -79,14 +122,14 @@ impl<S: Scalar> OwnedTable<S> {
         }
     }
 
-    fn evaluate_binary_expr(
+    fn evaluate_nullable_binary_expr(
         &self,
         op: &BinaryOperator,
         left: &Expression,
         right: &Expression,
-    ) -> ExpressionEvaluationResult<OwnedColumn<S>> {
-        let left = self.evaluate(left)?;
-        let right = self.evaluate(right)?;
+    ) -> ExpressionEvaluationResult<OwnedNullableColumn<S>> {
+        let left = self.evaluate_nullable(left)?;
+        let right = self.evaluate_nullable(right)?;
         match op {
             BinaryOperator::And => Ok(left.element_wise_and(&right)?),
             BinaryOperator::Or => Ok(left.element_wise_or(&right)?),

@@ -1,11 +1,12 @@
 use crate::base::{
     database::{
-        owned_table_utility::*, ColumnOperationError, ExpressionEvaluationError, OwnedColumn,
-        OwnedTable,
+        owned_column::OwnedNullableColumn, owned_table_utility::*, ColumnOperationError,
+        ExpressionEvaluationError, OwnedColumn, OwnedTable,
     },
     math::decimal::Precision,
     scalar::test_scalar::TestScalar,
 };
+use alloc::vec;
 use bigdecimal::BigDecimal;
 use proof_of_sql_parser::{
     intermediate_ast::Literal,
@@ -241,4 +242,172 @@ fn we_cannot_evaluate_expressions_if_column_operation_errors_out() {
             source: ColumnOperationError::DivisionByZero
         })
     ));
+}
+
+#[test]
+fn we_can_evaluate_nullable_columns() {
+    let table: OwnedTable<TestScalar> = owned_table([
+        bigint("ids", [1, 2, 3, 4, 5]),
+        varchar("names", ["Alice", "Bob", "Charlie", "Dave", "Eve"]),
+        boolean("active", [true, false, true, true, false]),
+        int("scores", [10, 20, 30, 40, 50]),
+    ]);
+
+    let expr = col("scores");
+    let result = table.evaluate_nullable(&expr).unwrap();
+
+    assert_eq!(
+        result.values,
+        OwnedColumn::<TestScalar>::Int(vec![10, 20, 30, 40, 50])
+    );
+    assert_eq!(result.presence, None);
+
+    let expr = col("names");
+    let result = table.evaluate_nullable(&expr).unwrap();
+
+    assert_eq!(
+        result.values,
+        OwnedColumn::<TestScalar>::VarChar(vec![
+            "Alice".to_string(),
+            "Bob".to_string(),
+            "Charlie".to_string(),
+            "Dave".to_string(),
+            "Eve".to_string()
+        ])
+    );
+    assert_eq!(result.presence, None);
+}
+
+#[test]
+fn we_can_evaluate_nullable_expressions() {
+    let table: OwnedTable<TestScalar> = owned_table([
+        bigint("ids", [1, 2, 3, 4, 5]),
+        int("values", [10, 20, 30, 40, 50]),
+        boolean("flags", [true, false, true, false, true]),
+    ]);
+
+    let expr = add(col("values"), col("values"));
+    let result = table.evaluate_nullable(&expr).unwrap();
+
+    assert_eq!(
+        result.values,
+        OwnedColumn::<TestScalar>::Int(vec![20, 40, 60, 80, 100])
+    );
+    assert_eq!(result.presence, None);
+
+    let expr = and(col("flags"), col("flags"));
+    let result = table.evaluate_nullable(&expr).unwrap();
+
+    assert_eq!(
+        result.values,
+        OwnedColumn::<TestScalar>::Boolean(vec![true, false, true, false, true])
+    );
+    assert_eq!(result.presence, None);
+}
+
+#[test]
+fn we_can_handle_null_propagation_in_expressions() {
+    let a =
+        OwnedNullableColumn::<TestScalar>::new(OwnedColumn::<TestScalar>::Int(vec![1, 2, 3, 4, 5]));
+    let b = OwnedNullableColumn::<TestScalar>::new(OwnedColumn::<TestScalar>::Int(vec![
+        10, 20, 30, 40, 50,
+    ]));
+    let values_c = OwnedColumn::<TestScalar>::Int(vec![100, 200, 300, 400, 500]);
+    let presence_c = Some(vec![true, false, true, false, true]);
+    let c = OwnedNullableColumn::<TestScalar>::with_presence(values_c, presence_c.clone());
+    let values_d = OwnedColumn::<TestScalar>::Int(vec![1000, 2000, 3000, 4000, 5000]);
+    let presence_d = Some(vec![false, true, false, true, false]);
+    let d = OwnedNullableColumn::<TestScalar>::with_presence(values_d, presence_d.clone());
+    let a_plus_b = a.element_wise_add(&b).unwrap();
+    let c_minus_d = c.element_wise_sub(&d).unwrap();
+    let result = a_plus_b.element_wise_mul(&c_minus_d).unwrap();
+    let expected_values = vec![
+        (1 + 10) * (100 - 1000), // -9900
+        (2 + 20) * (200 - 2000), // -39600
+        (3 + 30) * (300 - 3000), // -89100
+        (4 + 40) * (400 - 4000), // -158400
+        (5 + 50) * (500 - 5000), // -247500
+    ];
+
+    let expected_presence = Some(vec![
+        false, // false (d is NULL)
+        false, // false (c is NULL)
+        false, // false (d is NULL)
+        false, // false (c is NULL)
+        false, // false (d is NULL)
+    ]);
+
+    assert_eq!(
+        result.values,
+        OwnedColumn::<TestScalar>::Int(expected_values)
+    );
+    assert_eq!(result.presence, expected_presence);
+
+    let bool_values_c = OwnedColumn::<TestScalar>::Boolean(vec![true, true, false, false, true]);
+    let bool_presence_c = Some(vec![true, false, true, false, true]);
+    let bool_c = OwnedNullableColumn::<TestScalar>::with_presence(bool_values_c, bool_presence_c);
+    let all_false =
+        OwnedNullableColumn::<TestScalar>::new(OwnedColumn::<TestScalar>::Boolean(vec![
+            false, false, false, false, false,
+        ]));
+    let result = bool_c.element_wise_and(&all_false).unwrap();
+    let expected_values =
+        OwnedColumn::<TestScalar>::Boolean(vec![false, false, false, false, false]);
+    let expected_presence = Some(vec![
+        true, // true AND false = false (not NULL)
+        true, // NULL AND false = false (not NULL)
+        true, // false AND false = false (not NULL)
+        true, // NULL AND false = false (not NULL)
+        true, // true AND false = false (not NULL)
+    ]);
+
+    assert_eq!(result.values, expected_values);
+    assert_eq!(result.presence, expected_presence);
+
+    // NULL OR true = true
+    let all_true =
+        OwnedNullableColumn::<TestScalar>::new(OwnedColumn::<TestScalar>::Boolean(vec![
+            true, true, true, true, true,
+        ]));
+    let result = bool_c.element_wise_or(&all_true).unwrap();
+    let expected_values = OwnedColumn::<TestScalar>::Boolean(vec![true, true, true, true, true]);
+    let expected_presence = Some(vec![
+        true, // true OR true = true (not NULL)
+        true, // NULL OR true = true (not NULL)
+        true, // false OR true = true (not NULL)
+        true, // NULL OR true = true (not NULL)
+        true, // true OR true = true (not NULL)
+    ]);
+
+    assert_eq!(result.values, expected_values);
+    assert_eq!(result.presence, expected_presence);
+}
+
+#[test]
+fn we_can_convert_nullable_to_non_nullable() {
+    let table: OwnedTable<TestScalar> = owned_table([int("a", [1, 2, 3, 4, 5])]);
+
+    let expr = add(col("a"), col("a"));
+    let result = table.evaluate(&expr).unwrap();
+
+    assert_eq!(result, OwnedColumn::<TestScalar>::Int(vec![2, 4, 6, 8, 10]));
+
+    let truly_non_null =
+        OwnedNullableColumn::<TestScalar>::new(OwnedColumn::<TestScalar>::Int(vec![
+            10, 20, 30, 40, 50,
+        ]));
+
+    let all_present = OwnedNullableColumn::<TestScalar>::with_presence(
+        OwnedColumn::<TestScalar>::Int(vec![10, 20, 30, 40, 50]),
+        Some(vec![true, true, true, true, true]),
+    );
+
+    let with_nulls = OwnedNullableColumn::<TestScalar>::with_presence(
+        OwnedColumn::<TestScalar>::Int(vec![100, 200, 300, 400, 500]),
+        Some(vec![true, false, true, false, true]),
+    );
+
+    assert!(!truly_non_null.is_nullable());
+    assert!(all_present.is_nullable());
+    assert!(with_nulls.is_nullable());
 }
