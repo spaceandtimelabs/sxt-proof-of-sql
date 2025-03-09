@@ -1,15 +1,18 @@
-use super::{expr_to_proof_expr, table_reference_to_table_ref, PlannerError, PlannerResult};
+use super::{
+    df_schema_to_column_fields, expr_to_proof_expr, table_reference_to_table_ref, PlannerError,
+    PlannerResult,
+};
 use alloc::vec::Vec;
 use datafusion::{
     common::DFSchema,
-    logical_expr::{Expr, LogicalPlan, TableScan},
+    logical_expr::{Expr, Limit, LogicalPlan, Projection, TableScan, Union},
     sql::{sqlparser::ast::Ident, TableReference},
 };
 use indexmap::IndexMap;
 use proof_of_sql::{
-    base::database::{ColumnField, ColumnRef, ColumnType, TableRef},
+    base::database::{ColumnRef, ColumnType, TableRef},
     sql::{
-        proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
+        proof_exprs::{AliasedDynProofExpr, DynProofExpr, TableExpr},
         proof_plans::DynProofPlan,
     },
 };
@@ -69,13 +72,8 @@ fn table_scan_to_projection(
     // Get aliased expressions
     let aliased_dyn_proof_exprs =
         get_aliased_dyn_proof_exprs(&table_ref, projection, input_schema, projected_schema)?;
-    let column_fields = aliased_dyn_proof_exprs
-        .iter()
-        .map(|aliased_expr| {
-            ColumnField::new(aliased_expr.alias.clone(), aliased_expr.expr.data_type())
-        })
-        .collect::<Vec<_>>();
-    let table_exec = DynProofPlan::new_table(table_ref, column_fields);
+    let input_column_fields = df_schema_to_column_fields(input_schema)?;
+    let table_exec = DynProofPlan::new_table(table_ref, input_column_fields);
     Ok(DynProofPlan::new_projection(
         aliased_dyn_proof_exprs,
         table_exec,
@@ -117,6 +115,30 @@ fn table_scan_to_filter(
     ))
 }
 
+/// Converts a [`datafusion::logical_expr::Projection`] to a [`DynProofPlan`]
+fn projection_to_proof_plan(
+    expr: &[Expr],
+    input: &LogicalPlan,
+    output_schema: &DFSchema,
+    schemas: &IndexMap<TableReference, DFSchema>,
+) -> PlannerResult<DynProofPlan> {
+    let input_plan = logical_plan_to_proof_plan(input, schemas)?;
+    let input_schema = input.schema();
+    let aliased_exprs = expr
+        .iter()
+        .zip(output_schema.fields().into_iter())
+        .map(|(e, field)| -> PlannerResult<AliasedDynProofExpr> {
+            let proof_expr = expr_to_proof_expr(e, input_schema)?;
+            let alias = field.name().as_str().into();
+            Ok(AliasedDynProofExpr {
+                expr: proof_expr,
+                alias,
+            })
+        })
+        .collect::<PlannerResult<Vec<_>>>()?;
+    Ok(DynProofPlan::new_projection(aliased_exprs, input_plan))
+}
+
 /// Visit a [`datafusion::logical_plan::LogicalPlan`] and return a [`DynProofPlan`]
 pub fn logical_plan_to_proof_plan(
     plan: &LogicalPlan,
@@ -130,14 +152,40 @@ pub fn logical_plan_to_proof_plan(
             projection: Some(projection),
             projected_schema,
             filters,
-            fetch: None,
+            fetch,
             ..
         }) => {
-            if filters.is_empty() {
+            let base_plan = if filters.is_empty() {
                 table_scan_to_projection(table_name, schemas, projection, projected_schema)
             } else {
                 table_scan_to_filter(table_name, schemas, projection, projected_schema, filters)
+            }?;
+            if let Some(fetch) = fetch {
+                Ok(DynProofPlan::new_slice(base_plan, 0, Some(*fetch)))
+            } else {
+                Ok(base_plan)
             }
+        }
+        // Projection
+        LogicalPlan::Projection(Projection {
+            input,
+            expr,
+            schema,
+            ..
+        }) => projection_to_proof_plan(expr, input, schema, schemas),
+        // Limit
+        LogicalPlan::Limit(Limit { input, fetch, skip }) => {
+            let input_plan = logical_plan_to_proof_plan(input, schemas)?;
+            Ok(DynProofPlan::new_slice(input_plan, *skip, *fetch))
+        }
+        // Union
+        LogicalPlan::Union(Union { inputs, schema }) => {
+            let input_plans = inputs
+                .iter()
+                .map(|input| logical_plan_to_proof_plan(input, schemas))
+                .collect::<PlannerResult<Vec<_>>>()?;
+            let column_fields = df_schema_to_column_fields(schema)?;
+            Ok(DynProofPlan::new_union(input_plans, column_fields))
         }
         _ => Err(PlannerError::UnsupportedLogicalPlan { plan: plan.clone() }),
     }
@@ -149,8 +197,11 @@ mod tests {
     use crate::{df_util::*, PoSqlTableSource};
     use alloc::{sync::Arc, vec};
     use arrow::datatypes::DataType;
-    use datafusion::logical_expr::{EmptyRelation, Prepare, TableScan, TableSource};
+    use datafusion::logical_expr::{
+        not, BinaryExpr, EmptyRelation, Operator, Prepare, TableScan, TableSource,
+    };
     use indexmap::indexmap;
+    use proof_of_sql::base::database::ColumnField;
 
     #[expect(non_snake_case)]
     fn TABLE_REF_TABLE() -> TableRef {
@@ -167,6 +218,33 @@ mod tests {
                     ("b", DataType::Int32),
                     ("c", DataType::Utf8),
                     ("d", DataType::Boolean),
+                ],
+            ),
+        }
+    }
+
+    #[expect(non_snake_case)]
+    fn UNION_SCHEMAS() -> IndexMap<TableReference, DFSchema> {
+        indexmap! {
+            TableReference::from("table1") => df_schema(
+                "table1",
+                vec![
+                    ("a1", DataType::Int64),
+                    ("b1", DataType::Int32),
+                ],
+            ),
+            TableReference::from("table2") => df_schema(
+                "table2",
+                vec![
+                    ("a2", DataType::Int64),
+                    ("b2", DataType::Int32),
+                ],
+            ),
+            TableReference::from("schema.table3") => df_schema(
+                "table3",
+                vec![
+                    ("a3", DataType::Int64),
+                    ("b3", DataType::Int32),
                 ],
             ),
         }
@@ -327,19 +405,12 @@ mod tests {
     #[test]
     fn we_can_convert_table_scan_plan_to_proof_plan_without_filter_or_fetch_limit() {
         let plan = LogicalPlan::TableScan(
-            TableScan::try_new(
-                "table",
-                TABLE_SOURCE(),
-                Some(vec![0, 1, 2, 3]),
-                vec![],
-                None,
-            )
-            .unwrap(),
+            TableScan::try_new("table", TABLE_SOURCE(), Some(vec![0, 1, 2]), vec![], None).unwrap(),
         );
         let schemas = SCHEMAS();
         let result = logical_plan_to_proof_plan(&plan, &schemas).unwrap();
         let expected = DynProofPlan::new_projection(
-            vec![ALIASED_A(), ALIASED_B(), ALIASED_C(), ALIASED_D()],
+            vec![ALIASED_A(), ALIASED_B(), ALIASED_C()],
             DynProofPlan::new_table(
                 TABLE_REF_TABLE(),
                 vec![
@@ -439,6 +510,397 @@ mod tests {
         let schemas = EMPTY_SCHEMAS();
         let result = logical_plan_to_proof_plan(&plan, &schemas);
         assert!(matches!(result, Err(PlannerError::TableNotFound { .. })));
+    }
+
+    #[test]
+    fn we_can_convert_table_scan_plan_to_proof_plan_without_filter_but_with_fetch_limit() {
+        let plan = LogicalPlan::TableScan(
+            TableScan::try_new(
+                "table",
+                TABLE_SOURCE(),
+                Some(vec![0, 1, 2, 3]),
+                vec![],
+                Some(2),
+            )
+            .unwrap(),
+        );
+        let schemas = SCHEMAS();
+        let result = logical_plan_to_proof_plan(&plan, &schemas).unwrap();
+        let expected = DynProofPlan::new_slice(
+            DynProofPlan::new_projection(
+                vec![ALIASED_A(), ALIASED_B(), ALIASED_C(), ALIASED_D()],
+                DynProofPlan::new_table(
+                    TABLE_REF_TABLE(),
+                    vec![
+                        ColumnField::new("a".into(), ColumnType::BigInt),
+                        ColumnField::new("b".into(), ColumnType::Int),
+                        ColumnField::new("c".into(), ColumnType::VarChar),
+                        ColumnField::new("d".into(), ColumnType::Boolean),
+                    ],
+                ),
+            ),
+            0,
+            Some(2),
+        );
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn we_can_convert_table_scan_plan_to_proof_plan_with_filter_and_fetch_limit() {
+        let filter_exprs = vec![
+            df_column("table", "a").gt(df_column("table", "b")),
+            df_column("table", "d"),
+        ];
+        let plan = LogicalPlan::TableScan(
+            TableScan::try_new(
+                "table",
+                TABLE_SOURCE(),
+                Some(vec![0, 3]),
+                filter_exprs,
+                Some(5),
+            )
+            .unwrap(),
+        );
+        let schemas = SCHEMAS();
+        let result = logical_plan_to_proof_plan(&plan, &schemas).unwrap();
+        let expected = DynProofPlan::new_slice(
+            DynProofPlan::new_filter(
+                vec![ALIASED_A(), ALIASED_D()],
+                TableExpr {
+                    table_ref: TABLE_REF_TABLE(),
+                },
+                DynProofExpr::try_new_and(
+                    DynProofExpr::try_new_inequality(
+                        DynProofExpr::new_column(ColumnRef::new(
+                            TABLE_REF_TABLE(),
+                            "a".into(),
+                            ColumnType::BigInt,
+                        )),
+                        DynProofExpr::new_column(ColumnRef::new(
+                            TABLE_REF_TABLE(),
+                            "b".into(),
+                            ColumnType::Int,
+                        )),
+                        false,
+                    )
+                    .unwrap(),
+                    DynProofExpr::new_column(ColumnRef::new(
+                        TABLE_REF_TABLE(),
+                        "d".into(),
+                        ColumnType::Boolean,
+                    )),
+                )
+                .unwrap(),
+            ),
+            0,
+            Some(5),
+        );
+        assert_eq!(result, expected);
+    }
+
+    // Projection
+    #[test]
+    fn we_can_convert_projection_plan_to_proof_plan() {
+        let plan = LogicalPlan::Projection(
+            Projection::try_new(
+                vec![
+                    Expr::BinaryExpr(BinaryExpr::new(
+                        Box::new(df_column("table", "a")),
+                        Operator::Plus,
+                        Box::new(df_column("table", "b")),
+                    )),
+                    not(df_column("table", "d")),
+                ],
+                Arc::new(LogicalPlan::TableScan(
+                    TableScan::try_new("table", TABLE_SOURCE(), Some(vec![0, 1, 3]), vec![], None)
+                        .unwrap(),
+                )),
+            )
+            .unwrap(),
+        );
+        let schemas = SCHEMAS();
+        let result = logical_plan_to_proof_plan(&plan, &schemas).unwrap();
+        let expected = DynProofPlan::new_projection(
+            vec![
+                AliasedDynProofExpr {
+                    expr: DynProofExpr::try_new_add(
+                        DynProofExpr::new_column(ColumnRef::new(
+                            TABLE_REF_TABLE(),
+                            "a".into(),
+                            ColumnType::BigInt,
+                        )),
+                        DynProofExpr::new_column(ColumnRef::new(
+                            TABLE_REF_TABLE(),
+                            "b".into(),
+                            ColumnType::Int,
+                        )),
+                    )
+                    .unwrap(),
+                    alias: "table.a + table.b".into(),
+                },
+                AliasedDynProofExpr {
+                    expr: DynProofExpr::try_new_not(DynProofExpr::new_column(ColumnRef::new(
+                        TABLE_REF_TABLE(),
+                        "d".into(),
+                        ColumnType::Boolean,
+                    )))
+                    .unwrap(),
+                    alias: "NOT table.d".into(),
+                },
+            ],
+            DynProofPlan::new_projection(
+                vec![ALIASED_A(), ALIASED_B(), ALIASED_D()],
+                DynProofPlan::new_table(
+                    TABLE_REF_TABLE(),
+                    vec![
+                        ColumnField::new("a".into(), ColumnType::BigInt),
+                        ColumnField::new("b".into(), ColumnType::Int),
+                        ColumnField::new("c".into(), ColumnType::VarChar),
+                        ColumnField::new("d".into(), ColumnType::Boolean),
+                    ],
+                ),
+            ),
+        );
+        assert_eq!(result, expected);
+    }
+
+    // Limit
+    // Note that either fetch or skip will exist or optimizer will remove the Limit node
+    #[test]
+    fn we_can_convert_limit_plan_with_fetch_and_skip_to_proof_plan() {
+        let plan = LogicalPlan::Limit(Limit {
+            input: Arc::new(LogicalPlan::TableScan(
+                TableScan::try_new(
+                    "table",
+                    TABLE_SOURCE(),
+                    Some(vec![0, 1]),
+                    vec![],
+                    // Optimizer will put a fetch on TableScan if there is a non-empty fetch in an outer Limit
+                    Some(5),
+                )
+                .unwrap(),
+            )),
+            fetch: Some(3),
+            skip: 2,
+        });
+        let schemas = SCHEMAS();
+        let result = logical_plan_to_proof_plan(&plan, &schemas).unwrap();
+        let expected = DynProofPlan::new_slice(
+            DynProofPlan::new_slice(
+                DynProofPlan::new_projection(
+                    vec![ALIASED_A(), ALIASED_B()],
+                    DynProofPlan::new_table(
+                        TABLE_REF_TABLE(),
+                        vec![
+                            ColumnField::new("a".into(), ColumnType::BigInt),
+                            ColumnField::new("b".into(), ColumnType::Int),
+                            ColumnField::new("c".into(), ColumnType::VarChar),
+                            ColumnField::new("d".into(), ColumnType::Boolean),
+                        ],
+                    ),
+                ),
+                0,
+                Some(5),
+            ),
+            2,
+            Some(3),
+        );
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn we_can_convert_limit_plan_with_fetch_no_skip_to_proof_plan() {
+        //TODO: Optimize proof plan to remove redundant slices
+        let plan = LogicalPlan::Limit(Limit {
+            input: Arc::new(LogicalPlan::TableScan(
+                TableScan::try_new("table", TABLE_SOURCE(), Some(vec![0, 1]), vec![], Some(3))
+                    .unwrap(),
+            )),
+            fetch: Some(3),
+            skip: 0,
+        });
+
+        let schemas = SCHEMAS();
+        let result = logical_plan_to_proof_plan(&plan, &schemas).unwrap();
+
+        let expected = DynProofPlan::new_slice(
+            DynProofPlan::new_slice(
+                DynProofPlan::new_projection(
+                    vec![ALIASED_A(), ALIASED_B()],
+                    DynProofPlan::new_table(
+                        TABLE_REF_TABLE(),
+                        vec![
+                            ColumnField::new("a".into(), ColumnType::BigInt),
+                            ColumnField::new("b".into(), ColumnType::Int),
+                            ColumnField::new("c".into(), ColumnType::VarChar),
+                            ColumnField::new("d".into(), ColumnType::Boolean),
+                        ],
+                    ),
+                ),
+                0,
+                Some(3),
+            ),
+            0,
+            Some(3),
+        );
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn we_can_convert_limit_plan_with_skip_no_fetch_to_proof_plan() {
+        let plan = LogicalPlan::Limit(Limit {
+            input: Arc::new(LogicalPlan::TableScan(
+                TableScan::try_new("table", TABLE_SOURCE(), Some(vec![0, 1]), vec![], None)
+                    .unwrap(),
+            )),
+            fetch: None,
+            skip: 2,
+        });
+
+        let schemas = SCHEMAS();
+        let result = logical_plan_to_proof_plan(&plan, &schemas).unwrap();
+
+        let expected = DynProofPlan::new_slice(
+            DynProofPlan::new_projection(
+                vec![ALIASED_A(), ALIASED_B()],
+                DynProofPlan::new_table(
+                    TABLE_REF_TABLE(),
+                    vec![
+                        ColumnField::new("a".into(), ColumnType::BigInt),
+                        ColumnField::new("b".into(), ColumnType::Int),
+                        ColumnField::new("c".into(), ColumnType::VarChar),
+                        ColumnField::new("d".into(), ColumnType::Boolean),
+                    ],
+                ),
+            ),
+            2,
+            None,
+        );
+        assert_eq!(result, expected);
+    }
+
+    // Union
+    #[expect(clippy::too_many_lines)]
+    #[test]
+    fn we_can_convert_union_plan_to_proof_plan() {
+        let plan = LogicalPlan::Union(Union {
+            schema: Arc::new(df_schema(
+                "table",
+                vec![("a", DataType::Int64), ("b", DataType::Int32)],
+            )),
+            inputs: vec![
+                Arc::new(LogicalPlan::TableScan(
+                    TableScan::try_new("table1", TABLE_SOURCE(), Some(vec![0, 1]), vec![], None)
+                        .unwrap(),
+                )),
+                Arc::new(LogicalPlan::TableScan(
+                    TableScan::try_new("table2", TABLE_SOURCE(), Some(vec![0, 1]), vec![], None)
+                        .unwrap(),
+                )),
+                Arc::new(LogicalPlan::TableScan(
+                    TableScan::try_new(
+                        "schema.table3",
+                        TABLE_SOURCE(),
+                        Some(vec![0, 1]),
+                        vec![],
+                        None,
+                    )
+                    .unwrap(),
+                )),
+            ],
+        });
+        let schemas = UNION_SCHEMAS();
+        let result = logical_plan_to_proof_plan(&plan, &schemas).unwrap();
+        let expected = DynProofPlan::new_union(
+            vec![
+                DynProofPlan::new_projection(
+                    vec![
+                        AliasedDynProofExpr {
+                            expr: DynProofExpr::new_column(ColumnRef::new(
+                                TableRef::from_names(None, "table1"),
+                                "a1".into(),
+                                ColumnType::BigInt,
+                            )),
+                            alias: "a".into(),
+                        },
+                        AliasedDynProofExpr {
+                            expr: DynProofExpr::new_column(ColumnRef::new(
+                                TableRef::from_names(None, "table1"),
+                                "b1".into(),
+                                ColumnType::Int,
+                            )),
+                            alias: "b".into(),
+                        },
+                    ],
+                    DynProofPlan::new_table(
+                        TableRef::from_names(None, "table1"),
+                        vec![
+                            ColumnField::new("a1".into(), ColumnType::BigInt),
+                            ColumnField::new("b1".into(), ColumnType::Int),
+                        ],
+                    ),
+                ),
+                DynProofPlan::new_projection(
+                    vec![
+                        AliasedDynProofExpr {
+                            expr: DynProofExpr::new_column(ColumnRef::new(
+                                TableRef::from_names(None, "table2"),
+                                "a2".into(),
+                                ColumnType::BigInt,
+                            )),
+                            alias: "a".into(),
+                        },
+                        AliasedDynProofExpr {
+                            expr: DynProofExpr::new_column(ColumnRef::new(
+                                TableRef::from_names(None, "table2"),
+                                "b2".into(),
+                                ColumnType::Int,
+                            )),
+                            alias: "b".into(),
+                        },
+                    ],
+                    DynProofPlan::new_table(
+                        TableRef::from_names(None, "table2"),
+                        vec![
+                            ColumnField::new("a2".into(), ColumnType::BigInt),
+                            ColumnField::new("b2".into(), ColumnType::Int),
+                        ],
+                    ),
+                ),
+                DynProofPlan::new_projection(
+                    vec![
+                        AliasedDynProofExpr {
+                            expr: DynProofExpr::new_column(ColumnRef::new(
+                                TableRef::from_names(Some("schema"), "table3"),
+                                "a3".into(),
+                                ColumnType::BigInt,
+                            )),
+                            alias: "a".into(),
+                        },
+                        AliasedDynProofExpr {
+                            expr: DynProofExpr::new_column(ColumnRef::new(
+                                TableRef::from_names(Some("schema"), "table3"),
+                                "b3".into(),
+                                ColumnType::Int,
+                            )),
+                            alias: "b".into(),
+                        },
+                    ],
+                    DynProofPlan::new_table(
+                        TableRef::from_names(Some("schema"), "table3"),
+                        vec![
+                            ColumnField::new("a3".into(), ColumnType::BigInt),
+                            ColumnField::new("b3".into(), ColumnType::Int),
+                        ],
+                    ),
+                ),
+            ],
+            vec![
+                ColumnField::new("a".into(), ColumnType::BigInt),
+                ColumnField::new("b".into(), ColumnType::Int),
+            ],
+        );
+        assert_eq!(result, expected);
     }
 
     // Unsupported
