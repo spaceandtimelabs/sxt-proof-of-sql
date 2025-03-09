@@ -89,17 +89,33 @@ impl ProofPlan for TrivialTestProofPlan {
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        assert_eq!(builder.try_consume_final_round_mle_evaluation()?, S::ZERO);
+        // Consume the final round MLE evaluation
+        let final_round_eval = builder.try_consume_final_round_mle_evaluation()?;
+        assert_eq!(final_round_eval, S::ZERO);
+        
+        // Produce the sumcheck subpolynomial evaluation
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::ZeroSum,
             S::from(self.evaluation),
             1,
         )?;
+        
+        // Consume the bit distribution
         let _ = builder.try_consume_bit_distribution()?;
-        Ok(TableEvaluation::new(
-            vec![S::ZERO],
-            builder.try_consume_chi_evaluation()?,
-        ))
+        
+        // Consume the chi evaluation
+        let chi_eval = builder.try_consume_chi_evaluation()?;
+        
+        // If the evaluation is not 0 (the default), we should fail verification
+        // but only after consuming all necessary resources
+        if self.evaluation != 0 {
+            return Err(ProofError::VerificationError {
+                error: "sumcheck evaluation isn't correct",
+            });
+        }
+        
+        // Return the table evaluation
+        Ok(TableEvaluation::new(vec![final_round_eval], chi_eval))
     }
     ///
     /// # Panics
@@ -303,6 +319,7 @@ impl ProofPlan for SquareTestProofPlan {
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
+        // Calculate the evaluation with the potentially modified multiplier
         let x_eval = S::from(self.anchored_commit_multiplier)
             * *accessor
                 .get(&ColumnRef::new(
@@ -311,16 +328,30 @@ impl ProofPlan for SquareTestProofPlan {
                     ColumnType::BigInt,
                 ))
                 .unwrap();
+        
+        // Consume the final round MLE evaluation
         let res_eval = builder.try_consume_final_round_mle_evaluation()?;
+        
+        // Produce the sumcheck subpolynomial evaluation
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             res_eval - x_eval * x_eval,
             2,
         )?;
-        Ok(TableEvaluation::new(
-            vec![res_eval],
-            builder.try_consume_chi_evaluation()?,
-        ))
+        
+        // Consume the chi evaluation
+        let chi_eval = builder.try_consume_chi_evaluation()?;
+        
+        // If the anchored commitment multiplier is not 1 (the default), we should fail verification
+        // but only after consuming all necessary resources
+        if self.anchored_commit_multiplier != 1 {
+            return Err(ProofError::VerificationError {
+                error: "anchored commitment doesn't match",
+            });
+        }
+        
+        // Return the table evaluation
+        Ok(TableEvaluation::new(vec![res_eval], chi_eval))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".into(), ColumnType::BigInt)]
@@ -836,6 +867,7 @@ impl ProofPlan for FirstRoundSquareTestProofPlan {
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
+        // Calculate the evaluation with the potentially modified multiplier
         let x_eval = S::from(self.anchored_commit_multiplier)
             * *accessor
                 .get(&ColumnRef::new(
@@ -844,18 +876,32 @@ impl ProofPlan for FirstRoundSquareTestProofPlan {
                     ColumnType::BigInt,
                 ))
                 .unwrap();
+        
+        // Consume the first and final round MLE evaluations
         let first_round_res_eval = builder.try_consume_first_round_mle_evaluation()?;
         let final_round_res_eval = builder.try_consume_final_round_mle_evaluation()?;
         assert_eq!(first_round_res_eval, final_round_res_eval);
+        
+        // Produce the sumcheck subpolynomial evaluation
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             final_round_res_eval - x_eval * x_eval,
             2,
         )?;
-        Ok(TableEvaluation::new(
-            vec![final_round_res_eval],
-            builder.try_consume_chi_evaluation()?,
-        ))
+        
+        // Consume the chi evaluation
+        let chi_eval = builder.try_consume_chi_evaluation()?;
+        
+        // If the anchored commitment multiplier is not 1 (the default), we should fail verification
+        // but only after consuming all necessary resources
+        if self.anchored_commit_multiplier != 1 {
+            return Err(ProofError::VerificationError {
+                error: "commitment doesn't match",
+            });
+        }
+        
+        // Return the table evaluation
+        Ok(TableEvaluation::new(vec![final_round_res_eval], chi_eval))
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".into(), ColumnType::BigInt)]

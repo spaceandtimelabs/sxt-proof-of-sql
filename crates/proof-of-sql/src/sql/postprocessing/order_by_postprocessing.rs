@@ -59,8 +59,9 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
             compare_indexes_by_owned_columns_with_direction(&column_direction_pairs, a, b)
         });
         // Apply the ordering
+        let table_map = owned_table.into_inner();
         Ok(
-            OwnedTable::<S>::try_from_iter(owned_table.into_inner().into_iter().map(
+            OwnedTable::<S>::try_from_iter(table_map.into_iter().map(
                 |(identifier, column)| {
                     (
                         identifier,
@@ -70,7 +71,7 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
                     )
                 },
             ))
-            .expect("There should be no column length mismatch here"),
+            .expect("There should be no columns with differing lengths here"),
         )
     }
 }

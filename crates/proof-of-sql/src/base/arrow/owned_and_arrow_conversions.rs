@@ -37,6 +37,7 @@ use proof_of_sql_parser::{
 };
 use snafu::Snafu;
 use sqlparser::ast::Ident;
+use crate::base::database::TableError;
 
 #[derive(Snafu, Debug)]
 #[non_exhaustive]
@@ -80,6 +81,18 @@ pub enum OwnedArrowConversionError {
         /// The number that failed to convert
         number: i256,
     },
+    /// This error occurs when there's an issue with table operations.
+    #[snafu(display("table error: {source}"))]
+    TableError {
+        /// The underlying table error
+        source: TableError,
+    },
+}
+
+impl From<TableError> for OwnedArrowConversionError {
+    fn from(error: TableError) -> Self {
+        Self::TableError { source: error }
+    }
 }
 
 /// # Panics
@@ -369,7 +382,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
         Ok(OwnedNullableColumn::with_presence(
             owned_column,
             Some(presence),
-        ))
+        )?)
     }
 }
 

@@ -383,10 +383,10 @@ impl ArrayRefExt for ArrayRef {
                     });
                 }
                 let values = alloc.alloc_slice_fill_with(range_len, |i| bool_vec[i]);
-                Ok(NullableColumn::with_presence(
+                NullableColumn::with_presence(
                     Column::Boolean(values),
                     Some(presence_slice),
-                ))
+                ).map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
             }
             DataType::UInt8 => {
                 let array = self.as_any().downcast_ref::<UInt8Array>().unwrap();
@@ -396,10 +396,10 @@ impl ArrayRefExt for ArrayRef {
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
-                Ok(NullableColumn::with_presence(
+                NullableColumn::with_presence(
                     Column::Uint8(values_slice),
                     Some(presence_slice),
-                ))
+                ).map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
             }
             DataType::Int8 => {
                 let array = self.as_any().downcast_ref::<Int8Array>().unwrap();
@@ -409,10 +409,10 @@ impl ArrayRefExt for ArrayRef {
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
-                Ok(NullableColumn::with_presence(
+                NullableColumn::with_presence(
                     Column::TinyInt(values_slice),
                     Some(presence_slice),
-                ))
+                ).map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
             }
             DataType::Int16 => {
                 let array = self.as_any().downcast_ref::<Int16Array>().unwrap();
@@ -422,10 +422,10 @@ impl ArrayRefExt for ArrayRef {
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
-                Ok(NullableColumn::with_presence(
+                NullableColumn::with_presence(
                     Column::SmallInt(values_slice),
                     Some(presence_slice),
-                ))
+                ).map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
             }
             DataType::Int32 => {
                 let array = self.as_any().downcast_ref::<Int32Array>().unwrap();
@@ -435,10 +435,10 @@ impl ArrayRefExt for ArrayRef {
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
-                Ok(NullableColumn::with_presence(
+                NullableColumn::with_presence(
                     Column::Int(values_slice),
                     Some(presence_slice),
-                ))
+                ).map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
             }
             DataType::Int64 => {
                 let array = self.as_any().downcast_ref::<Int64Array>().unwrap();
@@ -448,10 +448,10 @@ impl ArrayRefExt for ArrayRef {
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
-                Ok(NullableColumn::with_presence(
+                NullableColumn::with_presence(
                     Column::BigInt(values_slice),
                     Some(presence_slice),
-                ))
+                ).map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
             }
             DataType::Decimal128(38, 0) => {
                 let array = self.as_any().downcast_ref::<Decimal128Array>().unwrap();
@@ -461,10 +461,10 @@ impl ArrayRefExt for ArrayRef {
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
-                Ok(NullableColumn::with_presence(
+                NullableColumn::with_presence(
                     Column::Int128(values_slice),
                     Some(presence_slice),
-                ))
+                ).map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
             }
             DataType::Decimal256(precision, scale) if *precision <= 75 => {
                 let array = self.as_any().downcast_ref::<Decimal256Array>().unwrap();
@@ -483,10 +483,10 @@ impl ArrayRefExt for ArrayRef {
                     }
                 }
                 let scalars = alloc.alloc_slice_copy(&scals);
-                Ok(NullableColumn::with_presence(
+                NullableColumn::with_presence(
                     Column::Decimal75(Precision::new(*precision)?, *scale, scalars),
                     Some(presence_slice),
-                ))
+                ).map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
             }
             DataType::Utf8 => {
                 let array = self.as_any().downcast_ref::<StringArray>().unwrap();
@@ -506,10 +506,10 @@ impl ArrayRefExt for ArrayRef {
                         range_len,
                         "Precomputed scalars length must match range length"
                     );
-                    Ok(NullableColumn::with_presence(
+                    NullableColumn::with_presence(
                         Column::VarChar((strings, scals)),
                         Some(presence_slice),
-                    ))
+                    ).map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
                 } else {
                     return Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
@@ -535,10 +535,10 @@ impl ArrayRefExt for ArrayRef {
                         range_len,
                         "Precomputed scalars length must match range length"
                     );
-                    Ok(NullableColumn::with_presence(
+                    NullableColumn::with_presence(
                         Column::VarBinary((binary_refs, scals)),
                         Some(presence_slice),
-                    ))
+                    ).map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
                 } else {
                     return Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
@@ -595,10 +595,10 @@ impl ArrayRefExt for ArrayRef {
                     ArrowTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
                 };
 
-                Ok(NullableColumn::with_presence(
+                NullableColumn::with_presence(
                     Column::TimestampTZ(time_unit, PoSQLTimeZone::try_from(tz)?, values_slice),
                     Some(presence_slice),
-                ))
+                ).map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
             }
             _ => Err(ArrowArrayToColumnConversionError::UnsupportedType {
                 datatype: self.data_type().clone(),

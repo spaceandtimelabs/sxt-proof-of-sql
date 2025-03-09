@@ -314,10 +314,10 @@ fn we_can_handle_null_propagation_in_expressions() {
     ]));
     let values_c = OwnedColumn::<TestScalar>::Int(vec![100, 200, 300, 400, 500]);
     let presence_c = Some(vec![true, false, true, false, true]);
-    let c = OwnedNullableColumn::<TestScalar>::with_presence(values_c, presence_c.clone());
+    let c = OwnedNullableColumn::<TestScalar>::with_presence(values_c, presence_c.clone()).unwrap();
     let values_d = OwnedColumn::<TestScalar>::Int(vec![1000, 2000, 3000, 4000, 5000]);
     let presence_d = Some(vec![false, true, false, true, false]);
-    let d = OwnedNullableColumn::<TestScalar>::with_presence(values_d, presence_d.clone());
+    let d = OwnedNullableColumn::<TestScalar>::with_presence(values_d, presence_d.clone()).unwrap();
     let a_plus_b = a.element_wise_add(&b).unwrap();
     let c_minus_d = c.element_wise_sub(&d).unwrap();
     let result = a_plus_b.element_wise_mul(&c_minus_d).unwrap();
@@ -345,7 +345,7 @@ fn we_can_handle_null_propagation_in_expressions() {
 
     let bool_values_c = OwnedColumn::<TestScalar>::Boolean(vec![true, true, false, false, true]);
     let bool_presence_c = Some(vec![true, false, true, false, true]);
-    let bool_c = OwnedNullableColumn::<TestScalar>::with_presence(bool_values_c, bool_presence_c);
+    let bool_c = OwnedNullableColumn::<TestScalar>::with_presence(bool_values_c, bool_presence_c).unwrap();
     let all_false =
         OwnedNullableColumn::<TestScalar>::new(OwnedColumn::<TestScalar>::Boolean(vec![
             false, false, false, false, false,
@@ -400,12 +400,12 @@ fn we_can_convert_nullable_to_non_nullable() {
     let all_present = OwnedNullableColumn::<TestScalar>::with_presence(
         OwnedColumn::<TestScalar>::Int(vec![10, 20, 30, 40, 50]),
         Some(vec![true, true, true, true, true]),
-    );
+    ).unwrap();
 
     let with_nulls = OwnedNullableColumn::<TestScalar>::with_presence(
         OwnedColumn::<TestScalar>::Int(vec![100, 200, 300, 400, 500]),
         Some(vec![true, false, true, false, true]),
-    );
+    ).unwrap();
 
     assert!(!truly_non_null.is_nullable());
     assert!(all_present.is_nullable());

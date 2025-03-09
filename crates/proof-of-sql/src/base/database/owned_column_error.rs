@@ -1,4 +1,4 @@
-use crate::base::database::ColumnType;
+use crate::base::database::{ColumnType, table::TableError};
 use alloc::string::String;
 use snafu::Snafu;
 
@@ -25,6 +25,18 @@ pub enum OwnedColumnError {
         /// The underlying error
         error: String,
     },
+    /// Table error.
+    #[snafu(display("Table error: {source}"))]
+    TableError {
+        /// The underlying table error
+        source: TableError,
+    },
+}
+
+impl From<TableError> for OwnedColumnError {
+    fn from(error: TableError) -> Self {
+        Self::TableError { source: error }
+    }
 }
 
 /// Errors that can occur when coercing a column.

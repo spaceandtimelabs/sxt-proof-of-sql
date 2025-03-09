@@ -6,6 +6,8 @@ pub(crate) mod mock_verification_builder;
 pub(crate) use final_round_builder::FinalRoundBuilder;
 #[cfg(all(test, feature = "blitzar"))]
 mod final_round_builder_test;
+#[cfg(test)]
+mod final_round_builder_null_test;
 
 mod composite_polynomial_builder;
 pub(crate) use composite_polynomial_builder::CompositePolynomialBuilder;

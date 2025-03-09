@@ -48,6 +48,22 @@ use not_expr::NotExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod not_expr_test;
 
+// New nullability expressions
+mod is_null_expr;
+pub(crate) use is_null_expr::IsNullExpr;
+#[cfg(all(test, feature = "blitzar"))]
+mod is_null_expr_test;
+
+mod is_not_null_expr;
+pub(crate) use is_not_null_expr::IsNotNullExpr;
+#[cfg(all(test, feature = "blitzar"))]
+mod is_not_null_expr_test;
+
+mod is_true_expr;
+pub(crate) use is_true_expr::IsTrueExpr;
+#[cfg(all(test, feature = "blitzar"))]
+mod is_true_expr_test;
+
 mod comparison_util;
 pub(crate) use comparison_util::scale_and_subtract;
 
