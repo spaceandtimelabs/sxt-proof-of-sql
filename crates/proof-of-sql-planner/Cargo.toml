@@ -16,6 +16,8 @@ snafu = { workspace = true }
 sqlparser = { workspace = true }
 
 [dev-dependencies]
+ark-std = { workspace = true }
+blitzar = { workspace = true }
 bumpalo = { workspace = true }
 
 [lints]
