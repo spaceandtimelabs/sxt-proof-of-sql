@@ -14,7 +14,7 @@ use crate::{
             dyn_proof_expr_builder::DecimalError::{InvalidPrecision, InvalidScale},
             ConversionError::DecimalConversionError,
         },
-        proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
+        proof_exprs::{ColumnExpr, DynProofExpr, IsNotNullExpr, IsNullExpr, ProofExpr},
     },
 };
 use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
@@ -64,6 +64,14 @@ impl DynProofExprBuilder<'_> {
             }
             Expression::Unary { op, expr } => self.visit_unary_expr((*op).into(), expr),
             Expression::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
+            Expression::IsNull(expr) => {
+                let inner_expr = self.visit_expr(expr)?;
+                Ok(DynProofExpr::IsNull(IsNullExpr::new(Box::new(inner_expr))))
+            },
+            Expression::IsNotNull(expr) => {
+                let inner_expr = self.visit_expr(expr)?;
+                Ok(DynProofExpr::IsNotNull(IsNotNullExpr::new(Box::new(inner_expr))))
+            },
             _ => Err(ConversionError::Unprovable {
                 error: format!("Expression {expr:?} is not supported yet"),
             }),
