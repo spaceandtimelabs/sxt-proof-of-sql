@@ -4,9 +4,11 @@
 //! # Example
 //! ```
 //! use bumpalo::Bump;
-//! use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+//! use proof_of_sql::base::{database::table_utility::*};
+//! # use proof_of_sql::base::scalar::MontScalar;
+//! # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 //! let alloc = Bump::new();
-//! let result = table::<Curve25519Scalar>([
+//! let result = table::<MyScalar>([
 //!     borrowed_bigint("a", [1, 2, 3], &alloc),
 //!     borrowed_boolean("b", [true, false, true], &alloc),
 //!     borrowed_int128("c", [1, 2, 3], &alloc),
@@ -31,9 +33,11 @@ use sqlparser::ast::Ident;
 /// # Example
 /// ```
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_bigint("a", [1, 2, 3], &alloc),
 ///     borrowed_boolean("b", [true, false, true], &alloc),
 ///     borrowed_int128("c", [1, 2, 3], &alloc),
@@ -69,9 +73,11 @@ pub fn table_with_row_count<'a, S: Scalar>(
 /// # Example
 /// ```
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_uint8("a", [1_u8, 2, 3], &alloc),
 /// ]);
 ///```
@@ -90,9 +96,11 @@ pub fn borrowed_uint8<S: Scalar>(
 /// # Example
 /// ```
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_tinyint("a", [1_i8, 2, 3], &alloc),
 /// ]);
 ///```
@@ -112,9 +120,11 @@ pub fn borrowed_tinyint<S: Scalar>(
 /// # Example
 /// ```rust
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_smallint("a", [1_i16, 2, 3], &alloc),
 /// ]);
 /// ```
@@ -135,9 +145,11 @@ pub fn borrowed_smallint<S: Scalar>(
 /// # Example
 /// ```rust
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_int("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
@@ -158,9 +170,11 @@ pub fn borrowed_int<S: Scalar>(
 /// # Example
 /// ```rust
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_bigint("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
@@ -180,9 +194,11 @@ pub fn borrowed_bigint<S: Scalar>(
 /// # Example
 /// ```
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_boolean("a", [true, false, true], &alloc),
 /// ]);
 /// ```
@@ -202,9 +218,11 @@ pub fn borrowed_boolean<S: Scalar>(
 /// # Example
 /// ```
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_int128("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
@@ -224,9 +242,11 @@ pub fn borrowed_int128<S: Scalar>(
 /// # Example
 /// ```
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_scalar("a", [1, 2, 3], &alloc),
 /// ]);
 /// ```
@@ -245,9 +265,11 @@ pub fn borrowed_scalar<S: Scalar>(
 /// # Example
 /// ```
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_varchar("a", ["a", "b", "c"], &alloc),
 /// ]);
 /// ```
@@ -274,9 +296,11 @@ pub fn borrowed_varchar<'a, S: Scalar>(
 /// # Example
 /// ```
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*, scalar::Curve25519Scalar};
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_decimal75("a", 12, 1, [1, 2, 3], &alloc),
 /// ]);
 /// ```
@@ -314,14 +338,14 @@ pub fn borrowed_decimal75<S: Scalar>(
 /// # Example
 /// ```
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*,
-///     scalar::Curve25519Scalar,
-/// };
+/// use proof_of_sql::base::{database::table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// use proof_of_sql_parser::{
 ///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
 ///
 /// let alloc = Bump::new();
-/// let result = table::<Curve25519Scalar>([
+/// let result = table::<MyScalar>([
 ///     borrowed_timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), vec![1625072400, 1625076000, 1625079600], &alloc),
 /// ]);
 /// ```

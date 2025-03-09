@@ -7,8 +7,8 @@ use crate::{
         },
         map::{indexmap, IndexMap, IndexSet},
         math::decimal::Precision,
-        scalar::Curve25519Scalar,
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         proof::{
             exercise_verification, FirstRoundBuilder, ProofPlan, ProvableQueryResult,

@@ -7,8 +7,6 @@ pub use blitzar::{
     proof::InnerProductProof,
 };
 use core::ops::{AddAssign, SubAssign};
-use curve25519_dalek::ristretto::RistrettoPoint;
-
 mod committable_column;
 pub use committable_column::CommittableColumn;
 
@@ -16,7 +14,6 @@ mod vec_commitment_ext;
 pub use vec_commitment_ext::{NumColumnsMismatch, VecCommitmentExt};
 
 mod column_bounds;
-use super::scalar::Curve25519Scalar;
 pub use column_bounds::{Bounds, ColumnBounds, NegativeBounds};
 
 mod column_commitment_metadata;
@@ -94,66 +91,8 @@ pub trait Commitment:
     fn to_transcript_bytes(&self) -> Vec<u8>;
 }
 
-impl Commitment for RistrettoPoint {
-    type Scalar = Curve25519Scalar;
-    type PublicSetup<'a> = ();
-    #[cfg(feature = "blitzar")]
-    fn compute_commitments(
-        committable_columns: &[CommittableColumn],
-        offset: usize,
-        _setup: &Self::PublicSetup<'_>,
-    ) -> Vec<Self> {
-        use curve25519_dalek::ristretto::CompressedRistretto;
-
-        let sequences: Vec<_> = committable_columns.iter().map(Into::into).collect();
-        let mut compressed_commitments =
-            vec![CompressedRistretto::default(); committable_columns.len()];
-        blitzar::compute::compute_curve25519_commitments(
-            &mut compressed_commitments,
-            &sequences,
-            offset as u64,
-        );
-        compressed_commitments
-            .into_iter()
-            .map(|cc| {
-                cc.decompress().expect(
-                    "invalid ristretto point decompression in Commitment::compute_commitments",
-                )
-            })
-            .collect()
-    }
-    #[cfg(not(feature = "blitzar"))]
-    fn compute_commitments(
-        _committable_columns: &[CommittableColumn],
-        _offset: usize,
-        _setup: &Self::PublicSetup<'_>,
-    ) -> Vec<Self> {
-        unimplemented!()
-    }
-
-    fn to_transcript_bytes(&self) -> Vec<u8> {
-        self.compress().as_bytes().to_vec()
-    }
-}
-
 mod commitment_evaluation_proof;
 pub use commitment_evaluation_proof::CommitmentEvaluationProof;
+
 #[cfg(test)]
 pub(crate) mod commitment_evaluation_proof_test;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use curve25519_dalek::{constants::RISTRETTO_BASEPOINT_POINT, ristretto::RistrettoPoint};
-
-    #[test]
-    fn we_get_different_transcript_bytes_from_different_ristretto_point_commitments() {
-        let commitment1 = RistrettoPoint::default();
-        let commitment2 = RISTRETTO_BASEPOINT_POINT;
-
-        assert_ne!(
-            commitment1.to_transcript_bytes(),
-            commitment2.to_transcript_bytes()
-        );
-    }
-}
