@@ -1,8 +1,11 @@
 use super::{ProofPlan, VerifiableQueryResult};
-use crate::base::{
-    commitment::{Commitment, CommittableColumn},
-    database::{owned_table_utility::*, OwnedColumn, OwnedTable, TableRef, TestAccessor},
-    scalar::{Curve25519Scalar, Scalar},
+use crate::{
+    base::{
+        commitment::{Commitment, CommittableColumn},
+        database::{owned_table_utility::*, OwnedColumn, OwnedTable, TableRef, TestAccessor},
+        scalar::Scalar,
+    },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
 };
 use blitzar::proof::InnerProductProof;
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};

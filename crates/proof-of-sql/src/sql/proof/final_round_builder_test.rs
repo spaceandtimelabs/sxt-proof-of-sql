@@ -1,8 +1,10 @@
 use super::{FinalRoundBuilder, ProvableQueryResult};
-use crate::base::{
-    commitment::{Commitment, CommittableColumn},
-    database::{Column, ColumnField, ColumnType},
-    scalar::Curve25519Scalar,
+use crate::{
+    base::{
+        commitment::{Commitment, CommittableColumn},
+        database::{Column, ColumnField, ColumnType},
+    },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
 };
 use alloc::{collections::VecDeque, sync::Arc};
 #[cfg(feature = "arrow")]
