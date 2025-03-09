@@ -75,3 +75,5 @@ output/
 solidity/lcov.info
 solidity/coverage-report
 solidity/docs
+autogen_logs/
+_autocoder/
