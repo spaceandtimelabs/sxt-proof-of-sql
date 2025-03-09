@@ -28,7 +28,7 @@ use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::Rng;
 
 /// Bench dory performance when appending rows to a table. This includes the computation of
-/// commitments. Chose the number of columns to randomly generate across supported `PoSQL`
+/// commitments. Choose the number of columns to randomly generate across supported `PoSQL`
 /// data types, and choose the number of rows to append at a time.
 ///
 /// ```text

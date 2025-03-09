@@ -48,7 +48,7 @@ So, $L$ and $R$ are reorderings of $(C_L,A)$ and $(C_R,B)$.  To prove that $J = 
 
 \textbf{2. Uniqueness of rows of $J$}
 
-We can just focus on the prover-provided index columns $\bar{i}_L$ and $\bar{i}_R$. We need to prove that $(\bar{i}_L, \bar{i}_R)$ is strictly increasing (or decreasing) to show that rows of $J$ are unique. Note that if $R$ can not have more than $2^{BITS}$ rows we can use $\bar{i} = \bar{i}_L \cdot 2^{BITS} + \bar{i}_R$ as a shortcut. That is, $(\bar{i}_L, \bar{i}_R)$ is strictly increasing (or decreasing) if and only if $\bar{i}$ is.\\
+We can just focus on the prover-provided index columns $\bar{i}_L$ and $\bar{i}_R$. We need to prove that $(\bar{i}_L, \bar{i}_R)$ is strictly increasing (or decreasing) to show that rows of $J$ are unique. Note that if $R$ cannot have more than $2^{BITS}$ rows we can use $\bar{i} = \bar{i}_L \cdot 2^{BITS} + \bar{i}_R$ as a shortcut. That is, $(\bar{i}_L, \bar{i}_R)$ is strictly increasing (or decreasing) if and only if $\bar{i}$ is.\\
 \noindent With (1) and (2), $J$ is a subset of the inner join. That is, if we can prove that the row count of $J$ matches that of the inner join, we will establish that it is exactly the inner join.\\
 
 \textbf{3. Row count}
