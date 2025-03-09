@@ -93,6 +93,11 @@ impl<S: Scalar> OwnedTable<S> {
                 its.timezone(),
                 vec![its.timestamp().timestamp(); len],
             )),
+            Literal::Null => {
+                // For a NULL literal, we'll create a boolean column with all false values
+                // This will be converted to a nullable column with all NULL values in evaluate_nullable_literal
+                Ok(OwnedColumn::Boolean(vec![false; len]))
+            },
         }
     }
 
@@ -100,11 +105,22 @@ impl<S: Scalar> OwnedTable<S> {
         &self,
         lit: &Literal,
     ) -> ExpressionEvaluationResult<OwnedNullableColumn<S>> {
-        // Evaluate the literal as a non-nullable column
-        let column = self.evaluate_literal(lit)?;
-
-        // Convert to a non-nullable OwnedNullableColumn
-        Ok(OwnedNullableColumn::new(column))
+        match lit {
+            Literal::Null => {
+                // For a NULL literal, create a boolean column with all values marked as NULL
+                let len = self.num_rows();
+                let values = OwnedColumn::Boolean(vec![false; len]);
+                let presence = Some(vec![false; len]); // All values are NULL
+                Ok(OwnedNullableColumn::with_presence(values, presence)
+                    .expect("Presence vector has the same length as values"))
+            },
+            _ => {
+                // For other literals, evaluate as non-nullable column
+                let column = self.evaluate_literal(lit)?;
+                // Convert to a non-nullable OwnedNullableColumn
+                Ok(OwnedNullableColumn::new(column))
+            }
+        }
     }
 
     fn evaluate_nullable_unary_expr(

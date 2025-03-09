@@ -131,6 +131,7 @@ impl DynProofExprBuilder<'_> {
                     timestamp,
                 )))
             }
+            Literal::Null => Ok(DynProofExpr::new_literal(LiteralValue::BigInt(0))),
         }
     }
 

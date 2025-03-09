@@ -1,5 +1,5 @@
 use crate::{
-    intermediate_ast::OrderByDirection::{Asc, Desc},
+    intermediate_ast::{OrderByDirection::{Asc, Desc}, Literal},
     sql::*,
     utility::*,
     SelectStatement,
@@ -1432,6 +1432,119 @@ fn we_can_use_aggregation_inside_another_aggregation() {
         query_all(
             vec![col_res((lit(2) * col("a")).max().sum(), "__sum__")],
             tab(None, "tab"),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_with_null_literal() {
+    let ast = "SELECT NULL FROM tab"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(
+            vec![col_res(lit(Literal::Null), "__expr__")],
+            tab(None, "tab"),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_with_is_null_expression() {
+    let ast = "SELECT a FROM tab WHERE a IS NULL"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "tab"),
+            is_null(col("a")),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_with_is_not_null_expression() {
+    let ast = "SELECT a FROM tab WHERE a IS NOT NULL"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "tab"),
+            is_not_null(col("a")),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_with_is_true_expression() {
+    let ast = "SELECT a FROM tab WHERE a IS TRUE"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "tab"),
+            is_true(col("a")),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_comparing_with_null() {
+    let ast = "SELECT a FROM tab WHERE a = NULL"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "tab"),
+            equal(col("a"), lit(Literal::Null)),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_with_complex_null_expressions() {
+    let ast = "SELECT a FROM tab WHERE (a IS NULL) OR (b IS NOT NULL AND c IS TRUE)"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "tab"),
+            or(
+                is_null(col("a")),
+                and(
+                    is_not_null(col("b")),
+                    is_true(col("c"))
+                )
+            ),
             vec![],
         ),
         vec![],
