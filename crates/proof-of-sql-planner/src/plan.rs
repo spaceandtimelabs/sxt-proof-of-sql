@@ -115,6 +115,30 @@ fn table_scan_to_filter(
     ))
 }
 
+/// Converts a [`datafusion::logical_expr::Projection`] to a [`DynProofPlan`]
+fn projection_to_proof_plan(
+    expr: &[Expr],
+    input: &LogicalPlan,
+    output_schema: &DFSchema,
+    schemas: &IndexMap<TableReference, DFSchema>,
+) -> PlannerResult<DynProofPlan> {
+    let input_plan = logical_plan_to_proof_plan(input, schemas)?;
+    let input_schema = input.schema();
+    let aliased_exprs = expr
+        .iter()
+        .zip(output_schema.fields().into_iter())
+        .map(|(e, field)| -> PlannerResult<AliasedDynProofExpr> {
+            let proof_expr = expr_to_proof_expr(e, input_schema)?;
+            let alias = field.name().as_str().into();
+            Ok(AliasedDynProofExpr {
+                expr: proof_expr,
+                alias,
+            })
+        })
+        .collect::<PlannerResult<Vec<_>>>()?;
+    Ok(DynProofPlan::new_projection(aliased_exprs, input_plan))
+}
+
 /// Visit a [`datafusion::logical_plan::LogicalPlan`] and return a [`DynProofPlan`]
 pub fn logical_plan_to_proof_plan(
     plan: &LogicalPlan,
@@ -148,23 +172,7 @@ pub fn logical_plan_to_proof_plan(
             expr,
             schema,
             ..
-        }) => {
-            let input_plan = logical_plan_to_proof_plan(input, schemas)?;
-            let input_schema = input.schema();
-            let aliased_exprs = expr
-                .iter()
-                .zip(schema.fields().into_iter())
-                .map(|(e, field)| -> PlannerResult<AliasedDynProofExpr> {
-                    let proof_expr = expr_to_proof_expr(e, input_schema)?;
-                    let alias = field.name().as_str().into();
-                    Ok(AliasedDynProofExpr {
-                        expr: proof_expr,
-                        alias,
-                    })
-                })
-                .collect::<PlannerResult<Vec<_>>>()?;
-            Ok(DynProofPlan::new_projection(aliased_exprs, input_plan))
-        }
+        }) => projection_to_proof_plan(expr, input, schema, schemas),
         // Limit
         LogicalPlan::Limit(Limit { input, fetch, skip }) => {
             let input_plan = logical_plan_to_proof_plan(input, schemas)?;
