@@ -1,7 +1,7 @@
 use super::ConversionError;
 use crate::{
     base::{
-        database::{ColumnRef, LiteralValue},
+        database::{ColumnRef, ColumnType, LiteralValue},
         map::IndexMap,
         math::{
             decimal::{DecimalError, Precision},
@@ -14,7 +14,7 @@ use crate::{
             dyn_proof_expr_builder::DecimalError::{InvalidPrecision, InvalidScale},
             ConversionError::DecimalConversionError,
         },
-        proof_exprs::{ColumnExpr, DynProofExpr, IsNotNullExpr, IsNullExpr, ProofExpr},
+        proof_exprs::{ColumnExpr, DynProofExpr, IsNotNullExpr, IsNullExpr, IsTrueExpr, ProofExpr},
     },
 };
 use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
@@ -71,6 +71,16 @@ impl DynProofExprBuilder<'_> {
             Expression::IsNotNull(expr) => {
                 let inner_expr = self.visit_expr(expr)?;
                 Ok(DynProofExpr::IsNotNull(IsNotNullExpr::new(Box::new(inner_expr))))
+            },
+            Expression::IsTrue(expr) => {
+                let inner_expr = self.visit_expr(expr)?;
+                if inner_expr.data_type() != ColumnType::Boolean {
+                    return Err(ConversionError::InvalidDataType {
+                        expected: ColumnType::Boolean,
+                        actual: inner_expr.data_type(),
+                    });
+                }
+                Ok(DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(inner_expr))))
             },
             _ => Err(ConversionError::Unprovable {
                 error: format!("Expression {expr:?} is not supported yet"),
