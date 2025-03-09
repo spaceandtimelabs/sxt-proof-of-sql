@@ -82,7 +82,8 @@ pub(crate) fn column_to_column_ref(column: &Column, schema: &DFSchema) -> Planne
 }
 
 /// Convert a Vec<ColumnField> to a Schema
-pub(crate) fn column_fields_to_schema(column_fields: Vec<ColumnField>) -> Schema {
+#[must_use]
+pub fn column_fields_to_schema(column_fields: Vec<ColumnField>) -> Schema {
     Schema::new(
         column_fields
             .into_iter()
