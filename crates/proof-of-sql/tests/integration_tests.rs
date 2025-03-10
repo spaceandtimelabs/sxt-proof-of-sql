@@ -10,6 +10,7 @@ use proof_of_sql::{
     base::{
         database::{
             owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
+            OwnedColumn,
         },
         scalar::Curve25519Scalar,
     },
@@ -1179,6 +1180,155 @@ fn we_can_perform_equality_checks_on_rich_var_binary_data() {
         varbinary("e", [vec![0xFF, 0x00], vec![0xFF; 31], vec![0x78]]),
         varbinary("f", [vec![0xFF, 0x00], vec![0xFF; 31], vec![0x78]]),
         varbinary("g", [vec![0xA1], vec![0xA4], vec![0xA5]]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+#[cfg(feature = "blitzar")]
+fn we_can_prove_nullable_table_with_is_null_with_curve25519() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([
+            nullable_column(
+                "a",
+                OwnedColumn::BigInt(vec![1, 3, 3, 4, 5]),
+                Some(vec![true, false, true, false, true])
+            ),
+            nullable_column(
+                "b",
+                OwnedColumn::VarChar(vec!["x".to_string(), "y".to_string(), "z".to_string(), "w".to_string(), "v".to_string()]),
+                Some(vec![true, false, true, true, false])
+            ),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE b IS NULL".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result =
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &())
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        nullable_column(
+            "a",
+            OwnedColumn::BigInt(vec![]),
+            Some(vec![])
+        ),
+        nullable_column(
+            "b",
+            OwnedColumn::VarChar(vec![]),
+            Some(vec![])
+        ),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+fn we_can_prove_nullable_table_with_is_not_null_with_dory() {
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([
+            nullable_column(
+                "a",
+                OwnedColumn::BigInt(vec![3, 5]),
+                Some(vec![false, true])
+            ),
+            nullable_column(
+                "b",
+                OwnedColumn::VarChar(vec!["y".to_string(), "v".to_string()]),
+                Some(vec![false, false])
+            ),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE b IS NOT NULL".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result =
+        VerifiableQueryResult::<DoryEvaluationProof>::new(query.proof_expr(), &accessor, &dory_prover_setup);
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        nullable_column(
+            "a",
+            OwnedColumn::BigInt(vec![3, 5]),
+            Some(vec![false, true])
+        ),
+        nullable_column(
+            "b",
+            OwnedColumn::VarChar(vec!["y".to_string(), "v".to_string()]),
+            Some(vec![false, false])
+        ),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+fn we_can_prove_nullable_table_with_is_true_with_dory() {
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([
+            nullable_column(
+                "a",
+                OwnedColumn::BigInt(vec![1, 3, 3, 4, 5]),
+                Some(vec![true, false, true, false, true])
+            ),
+            nullable_column(
+                "b",
+                OwnedColumn::Boolean(vec![true, false, true, false, true]),
+                Some(vec![true, false, true, true, false])
+            ),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE b IS TRUE".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result =
+        VerifiableQueryResult::<DoryEvaluationProof>::new(query.proof_expr(), &accessor, &dory_prover_setup);
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        nullable_column(
+            "a",
+            OwnedColumn::BigInt(vec![1, 3, 5]),
+            Some(vec![true, false, true])
+        ),
+        nullable_column(
+            "b",
+            OwnedColumn::Boolean(vec![true, true, true]),
+            Some(vec![true, true, true])
+        ),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }

@@ -55,8 +55,8 @@ impl ProofExpr for IsNotNullExpr {
         // We have a presence slice, so we need to check each value
         let presence_slice = presence.unwrap();
         
-        // Performance optimization: Use alloc_slice_copy when possible to avoid the closure overhead
-        let result_slice = alloc.alloc_slice_copy(presence_slice);
+        // Create a new slice with negated values since presence[i]=true means NULL
+        let result_slice = alloc.alloc_slice_fill_with(presence_slice.len(), |i| !presence_slice[i]);
         
         Column::Boolean(result_slice)
     }
@@ -84,7 +84,8 @@ impl ProofExpr for IsNotNullExpr {
             alloc.alloc_slice_fill_copy(table.num_rows(), true)
         } else {
             let presence_slice = presence.unwrap();
-            alloc.alloc_slice_copy(presence_slice)
+            // Create a new slice with negated values since presence[i]=true means NULL
+            alloc.alloc_slice_fill_with(presence_slice.len(), |i| !presence_slice[i])
         };
         
         // We still need to create a NullableColumn for the record_is_not_null_check operation

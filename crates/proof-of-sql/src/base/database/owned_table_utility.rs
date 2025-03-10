@@ -13,7 +13,7 @@
 //!     decimal75("f", 12, 1, [1, 2, 3]),
 //! ]);
 //! ```
-use super::{OwnedColumn, OwnedTable};
+use super::{OwnedColumn, OwnedTable, OwnedNullableColumn};
 use crate::base::scalar::Scalar;
 use alloc::{string::String, vec::Vec};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
@@ -43,6 +43,27 @@ pub fn owned_table<S: Scalar>(
     iter: impl IntoIterator<Item = (Ident, OwnedColumn<S>)>,
 ) -> OwnedTable<S> {
     OwnedTable::try_from_iter(iter).unwrap()
+}
+
+/// Creates a nullable column with the given values and presence vector.
+/// This is primarily intended for use in conjunction with [`owned_table`].
+///
+/// # Example
+/// ```
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// let column = nullable_column(
+///     "a",
+///     OwnedColumn::BigInt(vec![1, 2, 3]),
+///     Some(vec![true, false, true])
+/// );
+/// ```
+pub fn nullable_column<S: Scalar>(
+    name: impl Into<Ident>,
+    values: OwnedColumn<S>,
+    presence: Option<Vec<bool>>,
+) -> (Ident, OwnedColumn<S>) {
+    let nullable = OwnedNullableColumn::with_presence(values, presence).unwrap();
+    (name.into(), nullable.values)
 }
 
 /// Creates a (Ident, `OwnedColumn`) pair for a uint8 column.
