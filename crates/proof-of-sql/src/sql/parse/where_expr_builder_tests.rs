@@ -383,3 +383,16 @@ fn we_do_not_expect_an_error_while_trying_to_check_bigint_column_eq_decimal_with
     )
     .is_ok());
 }
+
+#[test]
+fn we_can_directly_check_is_true_expression() {
+    let column_mapping = get_column_mappings_for_testing();
+    let builder = WhereExprBuilder::new(&column_mapping);
+    let column_expr = col("boolean_column");
+    let is_true_expr = is_true(column_expr);
+    let result = builder.build(Some(is_true_expr));
+    assert!(result.is_ok());
+    
+    let built_expr = result.unwrap().unwrap();
+    assert_eq!(crate::sql::proof_exprs::ProofExpr::data_type(&built_expr), ColumnType::Boolean);
+}

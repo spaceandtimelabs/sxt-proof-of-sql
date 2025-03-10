@@ -2192,3 +2192,98 @@ fn we_can_serialize_list_of_filters_from_query_expr() {
     assert_eq!(filter_execs.len(), deserialized_as_ref.len());
     assert_eq!(filter_execs[0], deserialized_as_ref[0]);
 }
+
+/// Creates a new [`QueryExpr`], with the given select statement and a sample schema accessor
+/// with nullable columns.
+fn query_expr_for_nullable_test_table(sql_text: &str) -> QueryExpr {
+    let schema_accessor = schema_accessor_from_table_ref_with_schema(
+        &TableRef::new("test", "nullable_table"),
+        indexmap! {
+            "nullable_int".into() => ColumnType::BigInt,
+            "nullable_varchar".into() => ColumnType::VarChar,
+            "non_nullable_int".into() => ColumnType::Int128,
+            "nullable_bool".into() => ColumnType::Boolean,
+        },
+    );
+    let default_schema: Ident = "test".into();
+    let select_statement = SelectStatementParser::new().parse(sql_text).unwrap();
+    QueryExpr::try_new(select_statement, default_schema, &schema_accessor).unwrap()
+}
+
+#[test]
+fn we_can_parse_query_with_is_null_expression() {
+    let query_expr = query_expr_for_nullable_test_table(
+        "select * from nullable_table where nullable_int IS NULL",
+    );
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
+    
+    let filter_plan = query_expr.proof_expr();
+    let serialized = flexbuffers::to_vec(&filter_plan).unwrap();
+    let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    assert_eq!(filter_plan, &deserialized);
+}
+
+#[test]
+fn we_can_parse_query_with_is_not_null_expression() {
+    let query_expr = query_expr_for_nullable_test_table(
+        "select * from nullable_table where nullable_int IS NOT NULL",
+    );
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
+    
+    let filter_plan = query_expr.proof_expr();
+    let serialized = flexbuffers::to_vec(&filter_plan).unwrap();
+    let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    assert_eq!(filter_plan, &deserialized);
+}
+
+#[test]
+fn postgres_like_null_comparison_behavior() {
+    let query_expr = query_expr_for_nullable_test_table(
+        "select * from nullable_table where nullable_int = 5 OR nullable_int IS NULL",
+    );
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
+    
+    let filter_plan = query_expr.proof_expr();
+    let serialized = flexbuffers::to_vec(&filter_plan).unwrap();
+    let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    assert_eq!(filter_plan, &deserialized);
+}
+
+#[test]
+fn null_literal_in_select_clause() {
+    let query_expr = query_expr_for_nullable_test_table(
+        "select NULL from nullable_table",
+    );
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
+    
+    let proof_plan = query_expr.proof_expr();
+    let serialized = flexbuffers::to_vec(&proof_plan).unwrap();
+    let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    assert_eq!(proof_plan, &deserialized);
+}
+
+#[test]
+fn we_can_group_by_nullable_columns() {
+    let query_expr = query_expr_for_nullable_test_table(
+        "select nullable_int, count(*) from nullable_table group by nullable_int",
+    );
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
+    
+    let proof_plan = query_expr.proof_expr();
+    let serialized = flexbuffers::to_vec(&proof_plan).unwrap();
+    let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    assert_eq!(proof_plan, &deserialized);
+}
+
+#[test]
+fn we_can_order_by_nullable_columns() {
+    let query_expr = query_expr_for_nullable_test_table(
+        "select * from nullable_table order by nullable_int",
+    );
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
+    
+    let proof_plan = query_expr.proof_expr();
+    let serialized = flexbuffers::to_vec(&proof_plan).unwrap();
+    let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    assert_eq!(proof_plan, &deserialized);
+}

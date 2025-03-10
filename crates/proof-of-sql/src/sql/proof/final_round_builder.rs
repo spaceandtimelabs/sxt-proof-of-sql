@@ -5,10 +5,12 @@ use crate::{
         commitment::{Commitment, CommittableColumn, VecCommitmentExt},
         polynomial::MultilinearExtension,
         scalar::Scalar,
+        database::{Column, NullableColumn},
     },
     utils::log,
 };
 use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
+use bumpalo::Bump;
 
 /// Track components used to form a query's proof
 pub struct FinalRoundBuilder<'a, S: Scalar> {
@@ -147,10 +149,84 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
+    /// 
     /// # Panics
     ///
     /// Will panic if there are no post-result challenges available to pop from the stack.
     pub fn consume_post_result_challenge(&mut self) -> S {
         self.post_result_challenges.pop_front().unwrap()
+    }
+
+    /// Records an IS NULL check for a nullable column
+    pub fn record_is_null_check(&mut self, column: &NullableColumn<'a, S>, _alloc: &'a Bump) {
+        match &column.presence {
+            Some(presence) => {
+                // When presence is Some, use the presence array directly
+                let presence_column = Column::Boolean(presence);
+                self.produce_intermediate_mle(presence_column);
+            }
+            None => {
+                // When presence is None, create a constant false MLE since no values are null
+                let constant_false = Column::Boolean(&[false]);
+                self.produce_intermediate_mle(constant_false);
+            }
+        }
+    }
+
+    /// Records an IS NOT NULL check for a nullable column
+    pub fn record_is_not_null_check(&mut self, column: &NullableColumn<'a, S>, _alloc: &'a Bump) {
+        match &column.presence {
+            Some(presence) => {
+                // When presence is Some, use the presence array directly
+                let presence_column = Column::Boolean(presence);
+                self.produce_intermediate_mle(presence_column);
+            }
+            None => {
+                // When presence is None, create a constant true MLE since all values are non-null
+                let constant_true = Column::Boolean(&[true]);
+                self.produce_intermediate_mle(constant_true);
+            }
+        }
+    }
+
+    /// Records an IS TRUE check for a nullable column
+    pub fn record_is_true_check(&mut self, column: &NullableColumn<'a, S>, _alloc: &'a Bump) {
+        // Verify that we're working with a boolean column
+        if let Column::Boolean(_) = column.values {
+            match &column.presence {
+                Some(presence) => {
+                    // When presence is Some, use the presence array
+                    let presence_column = Column::Boolean(presence);
+                    self.produce_intermediate_mle(presence_column);
+                }
+                None => {
+                    // When presence is None, create a constant true MLE
+                    let constant_true = Column::Boolean(&[true]);
+                    self.produce_intermediate_mle(constant_true);
+                }
+            }
+                } else {
+                } else {
+                    // If there's no presence slice, all values are present (non-NULL)
+                    // We can represent this with a single constant value since it applies to all rows
+                    self.produce_constant_boolean(true, alloc);
+                }
+            },
+            _ => {
+                // IS TRUE can only be applied to boolean expressions
+                // If this is not a boolean column, we should handle this as an error case
+        } else {
+                    // If there's no presence slice, all values are present (non-NULL)
+                    // We can represent this with a single constant value since it applies to all rows
+                    self.produce_constant_boolean(true, alloc);
+                }
+            },
+            _ => {
+                // IS TRUE can only be applied to boolean expressions
+                // If this is not a boolean column, we should handle this as an error case
+                panic!("IS TRUE can only be applied to boolean expressions");
+                panic!("IS TRUE can only be applied to boolean expressions");
+            panic!("IS TRUE can only be applied to boolean expressions");
+        }
     }
 }

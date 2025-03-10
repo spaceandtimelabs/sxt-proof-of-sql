@@ -136,6 +136,24 @@ pub fn div(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     })
 }
 
+/// Construct a new boxed `Expression` IS NULL
+#[must_use]
+pub fn is_null(expr: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::IsNull(expr))
+}
+
+/// Construct a new boxed `Expression` IS NOT NULL
+#[must_use]
+pub fn is_not_null(expr: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::IsNotNull(expr))
+}
+
+/// Construct a new boxed `Expression` IS TRUE
+#[must_use]
+pub fn is_true(expr: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::IsTrue(expr))
+}
+
 /// Get table from schema and name.
 ///
 /// If the schema is `None`, the table is assumed to be in the default schema.

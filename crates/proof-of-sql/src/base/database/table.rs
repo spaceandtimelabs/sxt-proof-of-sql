@@ -1,4 +1,4 @@
-use super::{Column, ColumnField};
+use super::{Column, ColumnField, NullableColumn};
 use crate::base::{map::IndexMap, scalar::Scalar};
 use alloc::vec::Vec;
 use bumpalo::Bump;
@@ -35,6 +35,10 @@ pub enum TableError {
     /// The table is empty and there is no specified row count.
     #[snafu(display("Table is empty and no row count is specified"))]
     EmptyTableWithoutSpecifiedRowCount,
+    
+    /// The presence slice length doesn't match the table row count.
+    #[snafu(display("Presence slice length must match table row count"))]
+    PresenceLengthMismatch,
 }
 /// A table of data, with schema included. This is simply a map from `Ident` to `Column`,
 /// where columns order matters.
@@ -45,6 +49,8 @@ pub enum TableError {
 pub struct Table<'a, S: Scalar> {
     table: IndexMap<Ident, Column<'a, S>>,
     row_count: usize,
+    // Map to store the presence information for each column
+    presence_map: IndexMap<Ident, &'a [bool]>,
 }
 impl<'a, S: Scalar> Table<'a, S> {
     /// Creates a new [`Table`] with the given columns and default [`TableOptions`].
@@ -59,20 +65,32 @@ impl<'a, S: Scalar> Table<'a, S> {
     ) -> Result<Self, TableError> {
         match (table.is_empty(), options.row_count) {
             (true, None) => Err(TableError::EmptyTableWithoutSpecifiedRowCount),
-            (true, Some(row_count)) => Ok(Self { table, row_count }),
+            (true, Some(row_count)) => Ok(Self { 
+                table, 
+                row_count,
+                presence_map: IndexMap::default(),
+            }),
             (false, None) => {
                 let row_count = table[0].len();
                 if table.values().any(|column| column.len() != row_count) {
                     Err(TableError::ColumnLengthMismatch)
                 } else {
-                    Ok(Self { table, row_count })
+                    Ok(Self { 
+                        table, 
+                        row_count,
+                        presence_map: IndexMap::default(),
+                    })
                 }
             }
             (false, Some(row_count)) => {
                 if table.values().any(|column| column.len() != row_count) {
                     Err(TableError::ColumnLengthMismatchWithSpecifiedRowCount)
                 } else {
-                    Ok(Self { table, row_count })
+                    Ok(Self { 
+                        table, 
+                        row_count,
+                        presence_map: IndexMap::default(),
+                    })
                 }
             }
         }
@@ -109,14 +127,26 @@ impl<'a, S: Scalar> Table<'a, S> {
         self.table.is_empty()
     }
     /// Returns the columns of this table as an `IndexMap`
+    /// This method maintains backward compatibility with existing code
     #[must_use]
     pub fn into_inner(self) -> IndexMap<Ident, Column<'a, S>> {
         self.table
+    }
+    
+    /// Returns both the columns and presence information of this table
+    #[must_use]
+    pub fn into_inner_with_presence(self) -> (IndexMap<Ident, Column<'a, S>>, IndexMap<Ident, &'a [bool]>) {
+        (self.table, self.presence_map)
     }
     /// Returns the columns of this table as an `IndexMap`
     #[must_use]
     pub fn inner_table(&self) -> &IndexMap<Ident, Column<'a, S>> {
         &self.table
+    }
+    /// Returns the presence map of this table
+    #[must_use]
+    pub fn presence_map(&self) -> &IndexMap<Ident, &'a [bool]> {
+        &self.presence_map
     }
     /// Return the schema of this table as a `Vec` of `ColumnField`s
     #[must_use]
@@ -140,11 +170,169 @@ impl<'a, S: Scalar> Table<'a, S> {
         self.table.values().nth(index)
     }
     /// Add the `rho` column as the last column to the table.
+    /// If a column named "rho" already exists, it will be returned unchanged.
     #[must_use]
     pub fn add_rho_column(mut self, alloc: &'a Bump) -> Self {
-        self.table
-            .insert(Ident::new("rho"), Column::rho(self.row_count, alloc));
+        let rho_ident = Ident::new("rho");
+        if self.table.contains_key(&rho_ident) {
+            return self;
+        }
+        
+        self.table.insert(rho_ident.clone(), Column::rho(self.row_count, alloc));
+        // The rho column is always fully present (no NULL values)
         self
+    }
+
+    /// Create a new Table with the same schema but with all values present (no NULLs)
+    #[must_use]
+    pub fn with_all_present(self) -> Self {
+        Self {
+            table: self.table,
+            row_count: self.row_count,
+            presence_map: IndexMap::default(),
+        }
+    }
+
+    /// Merge the presence information from another table
+    /// This is useful when creating a new table from another table
+    #[must_use]
+    pub fn with_presence_from(mut self, other: &Self) -> Self {
+        for (ident, presence) in other.presence_map.iter() {
+            if self.table.contains_key(ident) {
+                self.presence_map.insert(ident.clone(), *presence);
+            }
+        }
+        self
+    }
+
+    /// Set the presence slice for a column
+    /// 
+    /// Returns an error if the presence slice length doesn't match the table row count
+    pub fn set_column_presence(&mut self, column_name: &str, presence: &'a [bool]) -> Result<(), TableError> {
+        let ident = Ident::new(column_name);
+        if self.table.contains_key(&ident) {
+            if presence.len() != self.row_count {
+                return Err(TableError::PresenceLengthMismatch);
+            }
+            self.presence_map.insert(ident, presence);
+        }
+        Ok(())
+    }
+
+    /// Returns the presence slice for a given expression if it's stored in the table
+    /// This is used for checking nullability of expressions
+    pub fn presence_for_expr(&self, expr: &(impl crate::sql::proof_exprs::ProofExpr + 'static)) -> Option<&'a [bool]> {
+        use crate::sql::proof_exprs::{ColumnExpr, DynProofExpr};
+        use core::any::Any;
+        
+        if let Some(column_expr) = (expr as &dyn Any).downcast_ref::<ColumnExpr>() {
+            let ident = column_expr.column_id();
+            return self.presence_map.get(&ident).copied();
+        }
+        
+        if let Some(dyn_expr) = (expr as &dyn Any).downcast_ref::<DynProofExpr>() {
+            match dyn_expr {
+                DynProofExpr::Column(column_expr) => {
+                    let ident = column_expr.column_id();
+                    return self.presence_map.get(&ident).copied();
+                },
+                // These expressions always produce non-NULL results regardless of their inputs
+                DynProofExpr::IsNull(_) | 
+                DynProofExpr::IsNotNull(_) | 
+                DynProofExpr::IsTrue(_) |
+                DynProofExpr::Literal(_) => {
+                    return None;
+                },
+                // For all other expressions, we need to check their column references
+                _ => {
+                    // Pre-allocate capacity for the IndexSet to avoid reallocations in the hot path
+                    use crate::base::map::IndexSet;
+                    const INITIAL_COLUMN_CAPACITY: usize = 4;
+                    let mut columns = IndexSet::with_capacity_and_hasher(INITIAL_COLUMN_CAPACITY, Default::default());
+                    
+                    expr.get_column_references(&mut columns);
+                    
+                    // If we have any column references, check them for nullability
+                    if !columns.is_empty() {
+                        for column_ref in columns {
+                            let ident = column_ref.column_id();
+                            if let Some(presence) = self.presence_map.get(&ident).copied() {
+                                return Some(presence);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Default case: all values are present (non-NULL)
+        None
+    }
+
+    /// Returns a nullable column by name, if it exists in the table.
+    ///
+    /// This method retrieves a column by name and wraps it in a `NullableColumn` structure
+    /// that includes presence information (NULL values). If the column has associated
+    /// presence data in the presence map, it will be included in the returned `NullableColumn`.
+    ///
+    /// # Arguments
+    ///
+    /// * `column_name` - The name of the column to retrieve
+    ///
+    /// # Returns
+    ///
+    /// * `Some(NullableColumn)` if the column exists
+    /// * `None` if no column with the given name exists
+    pub fn nullable_column(&self, column_name: &str) -> Option<NullableColumn<'a, S>> {
+        let ident = Ident::new(column_name);
+        
+        self.table.get(&ident).map(|column| {
+            let presence = self.presence_map.get(&ident).copied();
+            NullableColumn::with_presence(*column, presence).unwrap_or_else(|_| {
+                // This should never happen as we control the presence data internally
+                // and ensure it's the correct length
+                NullableColumn::new(*column)
+            })
+        })
+    }
+
+    /// Returns the presence information for a column by name, if it exists.
+    ///
+    /// The presence information is a boolean slice where `true` indicates a value is present (non-NULL)
+    /// and `false` indicates a NULL value. If no presence information exists for the column,
+    /// this method returns `None`, which means all values in the column are non-NULL.
+    ///
+    /// # Arguments
+    ///
+    /// * `column_name` - The name of the column to retrieve presence information for
+    ///
+    /// # Returns
+    ///
+    /// * `Some(&[bool])` - The presence information for the column if it exists
+    /// * `None` - If the column doesn't exist or has no NULL values (all values are present)
+    pub fn column_presence(&self, column_name: &str) -> Option<&'a [bool]> {
+        let ident = Ident::new(column_name);
+        self.presence_map.get(&ident).copied()
+    }
+
+    /// Creates a new [`Table`] with the given columns, presence information, and with [`TableOptions`].
+    pub fn try_new_with_presence(
+        table: IndexMap<Ident, Column<'a, S>>,
+        presence_map: IndexMap<Ident, &'a [bool]>,
+        options: TableOptions,
+    ) -> Result<Self, TableError> {
+        let mut result = Self::try_new_with_options(table, options)?;
+        
+        for (ident, presence) in presence_map {
+            if result.table.contains_key(&ident) {
+                if presence.len() != result.row_count {
+                    return Err(TableError::PresenceLengthMismatch);
+                }
+                result.presence_map.insert(ident, presence);
+            }
+        }
+        
+        Ok(result)
     }
 }
 
@@ -153,6 +341,7 @@ impl<'a, S: Scalar> Table<'a, S> {
 impl<S: Scalar> PartialEq for Table<'_, S> {
     fn eq(&self, other: &Self) -> bool {
         self.table == other.table
+            && self.presence_map == other.presence_map
             && self
                 .table
                 .keys()

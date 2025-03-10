@@ -95,7 +95,8 @@ impl From<Literal> for Expr {
                     ),
                     value: timestamp.timestamp().to_string(),
                 }
-            }
+            },
+            Literal::Null => Expr::Value(Value::Null),
         }
     }
 }
@@ -163,6 +164,9 @@ impl From<Expression> for Expr {
                 special: false,
                 order_by: vec![],
             }),
+            Expression::IsNull(expr) => Expr::IsNull(Box::new((*expr).into())),
+            Expression::IsNotNull(expr) => Expr::IsNotNull(Box::new((*expr).into())),
+            Expression::IsTrue(expr) => Expr::IsTrue(Box::new((*expr).into())),
         }
     }
 }

@@ -181,9 +181,9 @@ impl<'a, S: Scalar> From<&Table<'a, S>> for OwnedTable<S> {
 
 impl<'a, S: Scalar> From<Table<'a, S>> for OwnedTable<S> {
     fn from(value: Table<'a, S>) -> Self {
+        let table_map = value.into_inner();
         OwnedTable::try_from_iter(
-            value
-                .into_inner()
+            table_map
                 .into_iter()
                 .map(|(name, column)| (name, OwnedColumn::from(&column))),
         )

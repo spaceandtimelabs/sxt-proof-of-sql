@@ -185,6 +185,15 @@ pub enum Expression {
         /// The expression to aggregate
         expr: Box<Expression>,
     },
+    
+    /// IS NULL expression
+    IsNull(Box<Expression>),
+    
+    /// IS NOT NULL expression
+    IsNotNull(Box<Expression>),
+    
+    /// IS TRUE expression
+    IsTrue(Box<Expression>),
 }
 
 impl Expression {
@@ -232,6 +241,25 @@ impl Expression {
             expr: Box::new(self),
         })
     }
+
+    /// Create a new `IS NULL` expression
+    #[must_use]
+    pub fn is_null(self) -> Box<Self> {
+        Box::new(Expression::IsNull(Box::new(self)))
+    }
+
+    /// Create a new `IS NOT NULL` expression
+    #[must_use]
+    pub fn is_not_null(self) -> Box<Self> {
+        Box::new(Expression::IsNotNull(Box::new(self)))
+    }
+
+    /// Create a new `IS TRUE` expression
+    #[must_use]
+    pub fn is_true(self) -> Box<Self> {
+        Box::new(Expression::IsTrue(Box::new(self)))
+    }
+
     /// Create an `AliasedResultExpr` from an `Expression` using the provided alias.
     /// # Panics
     ///
@@ -351,6 +379,8 @@ pub enum Literal {
     Decimal(BigDecimal),
     /// Timestamp Literal
     Timestamp(PoSQLTimestamp),
+    /// Null Literal
+    Null,
 }
 
 impl From<bool> for Literal {

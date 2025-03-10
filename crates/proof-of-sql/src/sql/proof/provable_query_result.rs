@@ -5,6 +5,7 @@ use crate::base::{
     scalar::{Scalar, ScalarExt},
 };
 use alloc::{vec, vec::Vec};
+use core::convert::TryFrom;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
@@ -17,13 +18,11 @@ pub struct ProvableQueryResult {
     data: Vec<u8>,
 }
 
-// TODO: Handle truncation properly. The `allow(clippy::cast_possible_truncation)` is a temporary fix and should be replaced with proper logic to manage possible truncation scenarios.
 impl ProvableQueryResult {
-    #[allow(clippy::cast_possible_truncation)]
     /// The number of columns in the result
     #[must_use]
     pub fn num_columns(&self) -> usize {
-        self.num_columns as usize
+        usize::try_from(self.num_columns).unwrap_or(usize::MAX)
     }
     /// A mutable reference to the number of columns in the result. Because the struct is deserialized from untrusted data, it
     /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
@@ -32,11 +31,10 @@ impl ProvableQueryResult {
         &mut self.num_columns
     }
 
-    #[allow(clippy::cast_possible_truncation)]
     /// The number of rows in the result
     #[must_use]
     pub fn table_length(&self) -> usize {
-        self.table_length as usize
+        usize::try_from(self.table_length).unwrap_or(usize::MAX)
     }
     /// A mutable reference to the underlying encoded data of the result. Because the struct is deserialized from untrusted data, it
     /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
@@ -64,7 +62,9 @@ impl ProvableQueryResult {
     pub fn new<'a, S: Scalar>(table_length: u64, columns: &'a [Column<'a, S>]) -> Self {
         assert!(columns
             .iter()
-            .all(|column| table_length == column.len() as u64));
+            .all(|column| {
+                u64::try_from(column.len()).map(|len| table_length == len).unwrap_or(false)
+            }));
         let mut sz = 0;
         for col in columns {
             sz += col.num_bytes(table_length);
@@ -75,13 +75,12 @@ impl ProvableQueryResult {
             sz += col.write(&mut data[sz..], table_length);
         }
         ProvableQueryResult {
-            num_columns: columns.len() as u64,
+            num_columns: u64::try_from(columns.len()).unwrap_or_default(),
             table_length,
             data,
         }
     }
 
-    #[allow(clippy::cast_possible_truncation)]
     #[allow(
         clippy::missing_panics_doc,
         reason = "Assertions ensure preconditions are met, eliminating the possibility of panic."
@@ -98,13 +97,13 @@ impl ProvableQueryResult {
         output_length: usize,
         column_result_fields: &[ColumnField],
     ) -> Result<Vec<S>, QueryError> {
-        if self.num_columns as usize != column_result_fields.len() {
+        if self.num_columns() != column_result_fields.len() {
             return Err(QueryError::InvalidColumnCount);
         }
         let mut evaluation_vec = vec![Zero::zero(); output_length];
         compute_evaluation_vector(&mut evaluation_vec, evaluation_point);
         let mut offset: usize = 0;
-        let mut res = Vec::with_capacity(self.num_columns as usize);
+        let mut res = Vec::with_capacity(self.num_columns());
 
         for field in column_result_fields {
             let mut val = S::zero();
@@ -246,11 +245,12 @@ impl ProvableQueryResult {
 impl<S: Scalar> From<Table<'_, S>> for ProvableQueryResult {
     fn from(table: Table<S>) -> Self {
         let num_rows = table.num_rows();
-        let columns = table
-            .into_inner()
+        let table_map = table.into_inner();
+        let columns = table_map
             .into_iter()
             .map(|(_, col)| col)
             .collect::<Vec<_>>();
-        Self::new(num_rows as u64, &columns)
+        let table_length = u64::try_from(num_rows).unwrap_or_default();
+        Self::new(table_length, &columns)
     }
 }

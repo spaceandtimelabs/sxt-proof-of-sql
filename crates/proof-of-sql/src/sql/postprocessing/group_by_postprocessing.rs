@@ -40,6 +40,9 @@ fn contains_nested_aggregation(expr: &Expression, is_agg: bool) -> bool {
             contains_nested_aggregation(left, is_agg) || contains_nested_aggregation(right, is_agg)
         }
         Expression::Unary { expr, .. } => contains_nested_aggregation(expr, is_agg),
+        Expression::IsNull(expr) | Expression::IsNotNull(expr) | Expression::IsTrue(expr) => {
+            contains_nested_aggregation(expr, is_agg)
+        }
     }
 }
 
@@ -57,6 +60,9 @@ fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Ident> {
             left_identifiers
         }
         Expression::Unary { expr, .. } => get_free_identifiers_from_expr(expr),
+        Expression::IsNull(expr) | Expression::IsNotNull(expr) | Expression::IsTrue(expr) => {
+            get_free_identifiers_from_expr(expr)
+        }
     }
 }
 
@@ -117,6 +123,18 @@ fn get_aggregate_and_remainder_expressions(
                 op,
                 expr: Box::new(remainder?),
             })
+        }
+        Expression::IsNull(expr) => {
+            let inner_remainder = get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
+            Ok(Expression::IsNull(Box::new(inner_remainder?)))
+        }
+        Expression::IsNotNull(expr) => {
+            let inner_remainder = get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
+            Ok(Expression::IsNotNull(Box::new(inner_remainder?)))
+        }
+        Expression::IsTrue(expr) => {
+            let inner_remainder = get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
+            Ok(Expression::IsTrue(Box::new(inner_remainder?)))
         }
     }
 }
