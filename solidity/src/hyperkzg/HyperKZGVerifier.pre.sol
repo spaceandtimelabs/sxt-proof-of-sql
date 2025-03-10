@@ -101,8 +101,9 @@ library HyperKZGVerifier {
     /// * `y` - the y value being verified
     /// @dev This function verifies a HyperKZG proof by:*
     /// 1. Running a Fiat-Shamir transcript to generate challenges r, q, d
-    ///    WARNING: The public inputs `x,y,commitment_ptr` are NOT inclided in the transcript and need to be
-    ///    added, either explicitly or implicitly, before calling this function
+    /// WARNING: The public inputs (x, y, the commitments, digest of the KZG SRS, degree bound, etc) are
+    /// NOT included in the transcript and need to be added, either explicitly or implicitly,
+    /// before calling this function
     /// 2. Computing the bivariate evaluation b:
     ///    \\[ b = \sum_{i=0}^{\ell-1}\sum_{j=0}^2 q^id^j \texttt{v}[i][j] \\]
     /// 3. Verifying v array consistency with the evaluation points by checking for each i:
@@ -216,8 +217,9 @@ library HyperKZGVerifier {
                 if iszero(ell) { err(ERR_HYPER_KZG_EMPTY_POINT) }
 
                 // Step 1: Run the transcript
-                // WARNING: The public inputs `x,y,commitment_ptr` are NOT inclided in the transcript and need to be
-                // added, either explicitly or implicitly, before calling this function
+                // WARNING: The public inputs (x, y, the commitments, digest of the KZG SRS, degree bound, etc) are
+                // NOT included in the transcript and need to be added, either explicitly or implicitly,
+                // before calling this function
                 let r, q, d :=
                     run_transcript(proof_ptr, v_ptr(proof_ptr, ell), w_ptr(proof_ptr, ell), transcript_ptr, ell)
 
