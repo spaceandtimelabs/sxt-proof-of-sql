@@ -56,8 +56,81 @@ impl From<i32> for I256 {
     }
 }
 
+impl From<i128> for I256 {
+    fn from(value: i128) -> Self {
+        let abs_u128 = value.unsigned_abs();
+        let low = abs_u128 as u64;
+        let high = (abs_u128 >> 64) as u64;
+        let abs = Self([low, high, 0, 0]);
+        if value >= 0 {
+            abs
+        } else {
+            abs.neg()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_i128_to_i256_conversion() {
+        // Test zero
+        assert_eq!(I256::from(0i128), ZERO);
+
+        // Test positive values
+        assert_eq!(I256::from(1i128), ONE);
+        assert_eq!(I256::from(2i128), TWO);
+
+        // Test negative values
+        assert_eq!(I256::from(-1i128), NEG_ONE);
+        assert_eq!(I256::from(-2i128), NEG_TWO);
+
+        // Test boundary values
+        assert_eq!(
+            I256::from(i128::MIN),
+            I256([0, 0x8000_0000_0000_0000, 0, 0]).neg()
+        );
+        assert_eq!(
+            I256::from(i128::MAX),
+            I256([0xFFFF_FFFF_FFFF_FFFF, 0x7FFF_FFFF_FFFF_FFFF, 0, 0])
+        );
+
+        // Test some random values
+        let test_values = [
+            42i128,
+            -42i128,
+            1234567890i128,
+            -1234567890i128,
+            i128::from(i64::MAX),
+            i128::from(i64::MIN),
+        ];
+
+        for &value in &test_values {
+            let converted = I256::from(value);
+            if value >= 0 {
+                assert_eq!(
+                    converted.0[0],
+                    (value as u128 & 0xFFFF_FFFF_FFFF_FFFF) as u64
+                );
+                assert_eq!(
+                    converted.0[1],
+                    ((value as u128 >> 64) & 0xFFFF_FFFF_FFFF_FFFF) as u64
+                );
+                assert_eq!(converted.0[2], 0);
+                assert_eq!(converted.0[3], 0);
+            } else {
+                let abs_value = value.unsigned_abs();
+                let expected = I256([
+                    (abs_value & 0xFFFF_FFFF_FFFF_FFFF) as u64,
+                    ((abs_value >> 64) & 0xFFFF_FFFF_FFFF_FFFF) as u64,
+                    0,
+                    0,
+                ])
+                .neg();
+                assert_eq!(converted, expected);
+            }
+        }
+    }
     use super::I256;
     use crate::base::scalar::{test_scalar::TestScalar, MontScalar, Scalar};
     use ark_ff::MontFp;

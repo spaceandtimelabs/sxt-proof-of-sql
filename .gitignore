@@ -77,3 +77,5 @@ solidity/coverage-report
 solidity/docs
 autogen_logs/
 _autocoder/
+_autocoder/tasks/*/bash_cmd.*
+prompts/
