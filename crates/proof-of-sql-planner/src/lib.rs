@@ -16,6 +16,6 @@ mod plan;
 pub use plan::logical_plan_to_proof_plan;
 mod util;
 pub(crate) use util::{
-    column_fields_to_schema, column_to_column_ref, scalar_value_to_literal_value,
-    table_reference_to_table_ref,
+    column_fields_to_schema, column_to_column_ref, df_schema_to_column_fields,
+    scalar_value_to_literal_value, table_reference_to_table_ref,
 };

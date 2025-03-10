@@ -99,4 +99,16 @@ impl DynProofPlan {
     ) -> Self {
         Self::Filter(FilterExec::new(aliased_results, input, filter_expr))
     }
+
+    /// Creates a new slice plan.
+    #[must_use]
+    pub fn new_slice(input: DynProofPlan, skip: usize, fetch: Option<usize>) -> Self {
+        Self::Slice(SliceExec::new(Box::new(input), skip, fetch))
+    }
+
+    /// Creates a new union plan.
+    #[must_use]
+    pub fn new_union(inputs: Vec<DynProofPlan>, schema: Vec<ColumnField>) -> Self {
+        Self::Union(UnionExec::new(inputs, schema))
+    }
 }
