@@ -52,6 +52,14 @@ pub(crate) fn scalar_value_to_literal_value(value: ScalarValue) -> PlannerResult
             PoSQLTimeZone::utc(),
             v,
         )),
+        ScalarValue::Decimal128(Some(v), _, _) => {
+            use proof_of_sql::base::math::I256;
+            Ok(LiteralValue::Decimal(I256::from(v)))
+        }
+        ScalarValue::Decimal256(Some(v), _, _) => {
+            use proof_of_sql::base::math::I256;
+            Ok(LiteralValue::Decimal(v.into()))
+        }
         _ => Err(PlannerError::UnsupportedDataType {
             data_type: value.data_type().clone(),
         }),
@@ -149,6 +157,7 @@ mod tests {
     // ScalarValue to LiteralValue
     #[test]
     fn we_can_convert_scalar_value_to_literal_value() {
+        use proof_of_sql::base::math::I256;
         // Boolean
         let value = ScalarValue::Boolean(Some(true));
         assert_eq!(
@@ -248,6 +257,55 @@ mod tests {
                 PoSQLTimeZone::utc(),
                 1_741_236_192_123_456_789_i64
             )
+        );
+
+        // Decimal128
+        let value = ScalarValue::Decimal128(Some(123), 38, 0);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal(I256::from(123i128))
+        );
+
+        // Decimal256
+        let value =
+            ScalarValue::Decimal256(Some(arrow::datatypes::i256::i256::from_i128(456)), 76, 0);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal(I256::from(456i128))
+        );
+
+        // Test edge cases for Decimal128
+        let value = ScalarValue::Decimal128(Some(i128::MIN), 38, 0);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal(I256::from(i128::MIN))
+        );
+
+        let value = ScalarValue::Decimal128(Some(i128::MAX), 38, 0);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal(I256::from(i128::MAX))
+        );
+
+        let value = ScalarValue::Decimal128(Some(0), 38, 0);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal(I256::from(0i128))
+        );
+
+        // Test edge cases for Decimal256
+        let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::i256::MIN), 76, 0);
+        let result = scalar_value_to_literal_value(value).unwrap();
+        assert!(matches!(result, LiteralValue::Decimal(_)));
+
+        let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::i256::MAX), 76, 0);
+        let result = scalar_value_to_literal_value(value).unwrap();
+        assert!(matches!(result, LiteralValue::Decimal(_)));
+
+        let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::i256::ZERO), 76, 0);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal(I256::from(0i128))
         );
 
         // Unsupported
