@@ -1338,3 +1338,58 @@ fn we_can_prove_nullable_table_with_is_true_with_dory() {
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
+
+#[test]
+fn we_can_prove_nullable_table_with_arithmetic_operations_with_dory() {
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([
+            nullable_column(
+                "a",
+                OwnedColumn::BigInt(vec![1, 2, 3, 4, 5]),
+                Some(vec![false, false, true, false, false]),
+            ),
+            nullable_column(
+                "b",
+                OwnedColumn::BigInt(vec![1, 0, 2, 2, 3]),
+                Some(vec![false, true, false, false, false]),
+            ),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE a + b = 2".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
+        query.proof_expr(),
+        &accessor,
+        &dory_prover_setup,
+    );
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        nullable_column(
+            "a",
+            OwnedColumn::BigInt(vec![1, 2]),
+            Some(vec![false, false]),
+        ),
+        nullable_column(
+            "b",
+            OwnedColumn::BigInt(vec![1, 0]),
+            Some(vec![false, false]),
+        ),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
