@@ -18,7 +18,7 @@ import "../base/Errors.sol";
 /// \\[ \begin{aligned}
 /// \texttt{com[i]}&=\overline{P}^{(i+1)}=C_{i+2} & i&\in[0,\ell-1)\\\\
 /// \texttt{v[i][0]}&=v_{i+1,1}=y_{pos}^{(i)} & i&\in[0,\ell)\\\\
-/// \texttt{v[i][1]}&=v_{i+1,2}=y_{pos}^{(i)} & i&\in[0,\ell)\\\\
+/// \texttt{v[i][1]}&=v_{i+1,2}=y_{neg}^{(i)} & i&\in[0,\ell)\\\\
 /// \texttt{v[i][2]}&=v_{i+1,3}=y^{(i)} & i&\in[0,\ell)\\\\
 /// \texttt{w[j]}&=W_{j+1} & j&\in[0,3)\\\\
 /// \texttt{r}&=r \text{ and } (u_1,u_2,u_3)=(r,-r,r^2)\\\\
@@ -75,7 +75,7 @@ import "../base/Errors.sol";
 /// L &= (1+d+d^2)\cdot \left(\texttt{commitment}+q \cdot \sum_{i=0}^{\ell-2}q^i\cdot \texttt{com}[i]\right) \\\\
 /// &\phantom{=} + b\cdot\left(-G\right) \\\\
 /// &\phantom{=} +r\cdot \texttt{w}[0]+(-dr)\cdot \texttt{w}[1]+(dr)^2\cdot \texttt{w}[2]\\\\
-/// R &= \sum_{j=0}^2 d^2\cdot \texttt{w}[j]
+/// R &= \sum_{j=0}^2 d^j\cdot \texttt{w}[j]
 /// \end{aligned}$$
 /// and the checks are:
 /// $$\begin{aligned}
@@ -101,6 +101,8 @@ library HyperKZGVerifier {
     /// * `y` - the y value being verified
     /// @dev This function verifies a HyperKZG proof by:*
     /// 1. Running a Fiat-Shamir transcript to generate challenges r, q, d
+    ///    WARNING: The public inputs `x,y,commitment_ptr` are NOT inclided in the transcript and need to be
+    ///    added, either explicitly or implicitly, before calling this function
     /// 2. Computing the bivariate evaluation b:
     ///    \\[ b = \sum_{i=0}^{\ell-1}\sum_{j=0}^2 q^id^j \texttt{v}[i][j] \\]
     /// 3. Verifying v array consistency with the evaluation points by checking for each i:
@@ -214,6 +216,8 @@ library HyperKZGVerifier {
                 if iszero(ell) { err(ERR_HYPER_KZG_EMPTY_POINT) }
 
                 // Step 1: Run the transcript
+                // WARNING: The public inputs `x,y,commitment_ptr` are NOT inclided in the transcript and need to be
+                // added, either explicitly or implicitly, before calling this function
                 let r, q, d :=
                     run_transcript(proof_ptr, v_ptr(proof_ptr, ell), w_ptr(proof_ptr, ell), transcript_ptr, ell)
 
