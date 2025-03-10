@@ -4,6 +4,8 @@ mod final_round_builder;
 #[cfg(test)]
 pub(crate) mod mock_verification_builder;
 pub(crate) use final_round_builder::FinalRoundBuilder;
+#[cfg(test)]
+mod final_round_builder_null_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod final_round_builder_test;
 

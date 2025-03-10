@@ -189,6 +189,28 @@ impl QueryContextBuilder<'_> {
                 self.visit_binary_expr(&(*op).into(), left, right)
             }
             Expression::Aggregation { op, expr } => self.visit_agg_expr(*op, expr),
+            Expression::IsNull(expr) => {
+                // Check the inner expression type
+                self.visit_expr(expr)?;
+                // IS NULL always returns a boolean
+                Ok(ColumnType::Boolean)
+            }
+            Expression::IsNotNull(expr) => {
+                // Check the inner expression type
+                self.visit_expr(expr)?;
+                // IS NOT NULL always returns a boolean
+                Ok(ColumnType::Boolean)
+            }
+            Expression::IsTrue(expr) => {
+                let dtype = self.visit_expr(expr)?;
+                if dtype != ColumnType::Boolean {
+                    return Err(ConversionError::InvalidDataType {
+                        expected: ColumnType::Boolean,
+                        actual: dtype,
+                    });
+                }
+                Ok(ColumnType::Boolean)
+            }
         }
     }
 
@@ -285,7 +307,7 @@ impl QueryContextBuilder<'_> {
     fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
         match literal {
             Literal::Boolean(_) => Ok(ColumnType::Boolean),
-            Literal::BigInt(_) => Ok(ColumnType::BigInt),
+            Literal::BigInt(_) | Literal::Null => Ok(ColumnType::BigInt), // NULL literals default to BigInt type
             Literal::Int128(_) => Ok(ColumnType::Int128),
             Literal::VarChar(_) => Ok(ColumnType::VarChar),
             Literal::VarBinary(_) => Ok(ColumnType::VarBinary),
