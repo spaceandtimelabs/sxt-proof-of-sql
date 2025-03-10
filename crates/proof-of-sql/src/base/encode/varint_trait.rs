@@ -23,7 +23,7 @@ use ark_ff::MontConfig;
 
 /// Most-significant byte, == 0x80
 pub const MSB: u8 = 0b1000_0000;
-/// All bits except for the most significant. Can be used as bitmask to drop the most-signficant
+/// All bits except for the most significant. Can be used as bitmask to drop the most-significant
 /// bit using `&` (binary-and).
 const DROP_MSB: u8 = 0b0111_1111;
 
