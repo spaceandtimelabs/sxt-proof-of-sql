@@ -64,7 +64,7 @@ impl DoryMessages {
     /// # Panics
     ///
     /// Will panic if there are no messages in the queue (i.e., `F_messages` is empty), indicating that the prover attempted to receive a message that was never sent.
-    pub(super) fn prover_recieve_F_message(&mut self, transcript: &mut impl Transcript) -> F {
+    pub(super) fn prover_receive_F_message(&mut self, transcript: &mut impl Transcript) -> F {
         let message = self.F_messages.pop().unwrap();
         transcript.extend_canonical_serialize_as_le(&message);
         message
@@ -74,7 +74,7 @@ impl DoryMessages {
     /// # Panics
     ///
     /// Will panic if there are no messages in the queue (i.e., `G1_messages` is empty), indicating
-    pub(super) fn prover_recieve_G1_message(
+    pub(super) fn prover_receive_G1_message(
         &mut self,
         transcript: &mut impl Transcript,
     ) -> G1Affine {
@@ -87,7 +87,7 @@ impl DoryMessages {
     /// # Panics
     ///
     /// Will panic if there are no messages in the queue (i.e., `G2_messages` is empty), indicating that the prover attempted to receive a message that was never sent.
-    pub(super) fn prover_recieve_G2_message(
+    pub(super) fn prover_receive_G2_message(
         &mut self,
         transcript: &mut impl Transcript,
     ) -> G2Affine {
@@ -100,7 +100,7 @@ impl DoryMessages {
     /// # Panics
     ///
     /// Will panic if there are no messages in the queue (i.e., `GT_messages` is empty), indicating that the prover attempted to receive a message that was never sent.
-    pub(super) fn prover_recieve_GT_message(&mut self, transcript: &mut impl Transcript) -> GT {
+    pub(super) fn prover_receive_GT_message(&mut self, transcript: &mut impl Transcript) -> GT {
         let message = self.GT_messages.pop().unwrap();
         transcript.extend_canonical_serialize_as_le(&message);
         message
