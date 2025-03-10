@@ -2216,7 +2216,7 @@ fn we_can_parse_query_with_is_null_expression() {
         "select * from nullable_table where nullable_int IS NULL",
     );
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
-    
+
     let filter_plan = query_expr.proof_expr();
     let serialized = flexbuffers::to_vec(&filter_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
@@ -2229,7 +2229,7 @@ fn we_can_parse_query_with_is_not_null_expression() {
         "select * from nullable_table where nullable_int IS NOT NULL",
     );
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
-    
+
     let filter_plan = query_expr.proof_expr();
     let serialized = flexbuffers::to_vec(&filter_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
@@ -2242,7 +2242,7 @@ fn postgres_like_null_comparison_behavior() {
         "select * from nullable_table where nullable_int = 5 OR nullable_int IS NULL",
     );
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
-    
+
     let filter_plan = query_expr.proof_expr();
     let serialized = flexbuffers::to_vec(&filter_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
@@ -2251,11 +2251,9 @@ fn postgres_like_null_comparison_behavior() {
 
 #[test]
 fn null_literal_in_select_clause() {
-    let query_expr = query_expr_for_nullable_test_table(
-        "select NULL from nullable_table",
-    );
+    let query_expr = query_expr_for_nullable_test_table("select NULL from nullable_table");
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
-    
+
     let proof_plan = query_expr.proof_expr();
     let serialized = flexbuffers::to_vec(&proof_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
@@ -2268,7 +2266,7 @@ fn we_can_group_by_nullable_columns() {
         "select nullable_int, count(*) from nullable_table group by nullable_int",
     );
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
-    
+
     let proof_plan = query_expr.proof_expr();
     let serialized = flexbuffers::to_vec(&proof_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
@@ -2277,11 +2275,10 @@ fn we_can_group_by_nullable_columns() {
 
 #[test]
 fn we_can_order_by_nullable_columns() {
-    let query_expr = query_expr_for_nullable_test_table(
-        "select * from nullable_table order by nullable_int",
-    );
+    let query_expr =
+        query_expr_for_nullable_test_table("select * from nullable_table order by nullable_int");
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
-    
+
     let proof_plan = query_expr.proof_expr();
     let serialized = flexbuffers::to_vec(&proof_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();

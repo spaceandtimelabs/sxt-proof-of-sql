@@ -60,11 +60,11 @@ impl ProvableQueryResult {
     /// which should never happen.
     #[must_use]
     pub fn new<'a, S: Scalar>(table_length: u64, columns: &'a [Column<'a, S>]) -> Self {
-        assert!(columns
-            .iter()
-            .all(|column| {
-                u64::try_from(column.len()).map(|len| table_length == len).unwrap_or(false)
-            }));
+        assert!(columns.iter().all(|column| {
+            u64::try_from(column.len())
+                .map(|len| table_length == len)
+                .unwrap_or(false)
+        }));
         let mut sz = 0;
         for col in columns {
             sz += col.num_bytes(table_length);

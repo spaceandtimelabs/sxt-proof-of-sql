@@ -1,8 +1,10 @@
-use super::{Column, ColumnCoercionError, ColumnType, NullableColumn, OwnedColumnError, OwnedColumnResult};
+use super::{
+    Column, ColumnCoercionError, ColumnType, NullableColumn, OwnedColumnError, OwnedColumnResult,
+};
 use crate::base::{
     database::table::TableError,
     math::{
-        decimal::Precision, 
+        decimal::Precision,
         permutation::{Permutation, PermutationError},
     },
     scalar::Scalar,
@@ -205,7 +207,7 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })?;
                 Ok(OwnedColumn::Boolean(result))
-            },
+            }
             ColumnType::Uint8 => {
                 let result: Result<Vec<u8>, _> = scalars
                     .iter()
@@ -216,7 +218,7 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })
                     .map(OwnedColumn::Uint8)
-            },
+            }
             ColumnType::TinyInt => {
                 let result: Result<Vec<i8>, _> = scalars
                     .iter()
@@ -227,7 +229,7 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })
                     .map(OwnedColumn::TinyInt)
-            },
+            }
             ColumnType::SmallInt => {
                 let result: Result<Vec<i16>, _> = scalars
                     .iter()
@@ -238,7 +240,7 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })
                     .map(OwnedColumn::SmallInt)
-            },
+            }
             ColumnType::Int => {
                 let result: Result<Vec<i32>, _> = scalars
                     .iter()
@@ -249,7 +251,7 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })
                     .map(OwnedColumn::Int)
-            },
+            }
             ColumnType::BigInt => {
                 let result: Result<Vec<i64>, _> = scalars
                     .iter()
@@ -260,7 +262,7 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })
                     .map(OwnedColumn::BigInt)
-            },
+            }
             ColumnType::Int128 => {
                 let result: Result<Vec<i128>, _> = scalars
                     .iter()
@@ -271,11 +273,11 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })
                     .map(OwnedColumn::Int128)
-            },
+            }
             ColumnType::Scalar => Ok(OwnedColumn::Scalar(scalars.to_vec())),
             ColumnType::Decimal75(precision, scale) => {
                 Ok(OwnedColumn::Decimal75(precision, scale, scalars.to_vec()))
-            },
+            }
             ColumnType::TimestampTZ(tu, tz) => {
                 let raw_values: Vec<i64> = scalars
                     .iter()
@@ -285,7 +287,7 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })?;
                 Ok(OwnedColumn::TimestampTZ(tu, tz, raw_values))
-            },
+            }
             // Can not convert scalars to VarChar
             ColumnType::VarChar | ColumnType::VarBinary => Err(OwnedColumnError::TypeCastError {
                 from_type: ColumnType::Scalar,
@@ -446,59 +448,47 @@ impl<S: Scalar> OwnedColumn<S> {
         } else if let OwnedColumn::Scalar(vec) = self {
             match to_type {
                 ColumnType::Uint8 => {
-                    let result: Result<Vec<u8>, _> = vec
-                        .into_iter()
-                        .map(TryInto::try_into)
-                        .collect();
+                    let result: Result<Vec<u8>, _> =
+                        vec.into_iter().map(TryInto::try_into).collect();
                     result
                         .map_err(|_| ColumnCoercionError::Overflow)
                         .map(OwnedColumn::Uint8)
-                },
+                }
                 ColumnType::TinyInt => {
-                    let result: Result<Vec<i8>, _> = vec
-                        .into_iter()
-                        .map(TryInto::try_into)
-                        .collect();
+                    let result: Result<Vec<i8>, _> =
+                        vec.into_iter().map(TryInto::try_into).collect();
                     result
                         .map_err(|_| ColumnCoercionError::Overflow)
                         .map(OwnedColumn::TinyInt)
-                },
+                }
                 ColumnType::SmallInt => {
-                    let result: Result<Vec<i16>, _> = vec
-                        .into_iter()
-                        .map(TryInto::try_into)
-                        .collect();
+                    let result: Result<Vec<i16>, _> =
+                        vec.into_iter().map(TryInto::try_into).collect();
                     result
                         .map_err(|_| ColumnCoercionError::Overflow)
                         .map(OwnedColumn::SmallInt)
-                },
+                }
                 ColumnType::Int => {
-                    let result: Result<Vec<i32>, _> = vec
-                        .into_iter()
-                        .map(TryInto::try_into)
-                        .collect();
+                    let result: Result<Vec<i32>, _> =
+                        vec.into_iter().map(TryInto::try_into).collect();
                     result
                         .map_err(|_| ColumnCoercionError::Overflow)
                         .map(OwnedColumn::Int)
-                },
+                }
                 ColumnType::BigInt => {
-                    let result: Result<Vec<i64>, _> = vec
-                        .into_iter()
-                        .map(TryInto::try_into)
-                        .collect();
+                    let result: Result<Vec<i64>, _> =
+                        vec.into_iter().map(TryInto::try_into).collect();
                     result
                         .map_err(|_| ColumnCoercionError::Overflow)
                         .map(OwnedColumn::BigInt)
-                },
+                }
                 ColumnType::Int128 => {
-                    let result: Result<Vec<i128>, _> = vec
-                        .into_iter()
-                        .map(TryInto::try_into)
-                        .collect();
+                    let result: Result<Vec<i128>, _> =
+                        vec.into_iter().map(TryInto::try_into).collect();
                     result
                         .map_err(|_| ColumnCoercionError::Overflow)
                         .map(OwnedColumn::Int128)
-                },
+                }
                 ColumnType::Decimal75(precision, scale) => {
                     Ok(OwnedColumn::Decimal75(precision, scale, vec))
                 }
@@ -525,7 +515,10 @@ impl<S: Scalar> OwnedNullableColumn<S> {
     ///
     /// Returns an error if the presence vector is `Some` and its length does not match the values length
     #[must_use]
-    pub fn with_presence(values: OwnedColumn<S>, presence: Option<Vec<bool>>) -> Result<Self, TableError> {
+    pub fn with_presence(
+        values: OwnedColumn<S>,
+        presence: Option<Vec<bool>>,
+    ) -> Result<Self, TableError> {
         if let Some(presence_vec) = &presence {
             if values.len() != presence_vec.len() {
                 return Err(TableError::PresenceLengthMismatch);
@@ -1270,7 +1263,8 @@ mod test {
         }
 
         let presence = Some(vec![true, true, true]);
-        let nullable_column = OwnedNullableColumn::with_presence(owned_column.clone(), presence).unwrap();
+        let nullable_column =
+            OwnedNullableColumn::with_presence(owned_column.clone(), presence).unwrap();
         assert_eq!(nullable_column.len(), 3);
         assert!(nullable_column.is_nullable());
 
@@ -1296,7 +1290,10 @@ mod test {
         let presence = Some(vec![true, false]);
         let result = OwnedNullableColumn::with_presence(owned_column, presence);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), TableError::PresenceLengthMismatch));
+        assert!(matches!(
+            result.unwrap_err(),
+            TableError::PresenceLengthMismatch
+        ));
     }
 
     #[test]
@@ -1365,7 +1362,8 @@ mod test {
         assert_eq!(nullable_column.scalar_at(2), Some(Some(30i32.into())));
 
         let presence = Some(vec![true, true, true]);
-        let nullable_column = OwnedNullableColumn::with_presence(owned_column.clone(), presence).unwrap();
+        let nullable_column =
+            OwnedNullableColumn::with_presence(owned_column.clone(), presence).unwrap();
         assert_eq!(nullable_column.scalar_at(0), Some(Some(10i32.into())));
         assert_eq!(nullable_column.scalar_at(1), Some(Some(20i32.into())));
         assert_eq!(nullable_column.scalar_at(2), Some(Some(30i32.into())));

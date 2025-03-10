@@ -95,7 +95,7 @@ impl From<Literal> for Expr {
                     ),
                     value: timestamp.timestamp().to_string(),
                 }
-            },
+            }
             Literal::Null => Expr::Value(Value::Null),
         }
     }

@@ -73,7 +73,7 @@ mod owned_table_test;
 pub mod owned_table_utility;
 
 mod table;
-pub use table::{Table, TableOptions, TableError};
+pub use table::{Table, TableError, TableOptions};
 #[cfg(test)]
 mod table_test;
 pub mod table_utility;

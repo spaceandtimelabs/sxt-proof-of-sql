@@ -1,4 +1,4 @@
-use crate::base::database::{ColumnType, table::TableError};
+use crate::base::database::{table::TableError, ColumnType};
 use alloc::string::String;
 use snafu::Snafu;
 

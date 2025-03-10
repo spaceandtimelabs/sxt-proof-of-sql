@@ -59,15 +59,16 @@ impl ProofExpr for IsTrueExpr {
     ) -> Column<'a, S> {
         // Evaluate the inner expression
         let inner_column = self.expr.result_evaluate(alloc, table);
-        
+
         // Since we need to create a nullable column to check for null values,
         // we need to create a temporary NullableColumn with the presence slice
-        let nullable_column = NullableColumn::with_presence(inner_column, table.presence_for_expr(&*self.expr))
-            .unwrap_or_else(|_| {
-                // If there's an error, assume no NULLs (all values present)
-                NullableColumn::new(inner_column)
-            });
-        
+        let nullable_column =
+            NullableColumn::with_presence(inner_column, table.presence_for_expr(&*self.expr))
+                .unwrap_or_else(|_| {
+                    // If there's an error, assume no NULLs (all values present)
+                    NullableColumn::new(inner_column)
+                });
+
         // Create result boolean array
         // For IS TRUE, we need both:
         // 1. Not NULL
@@ -83,7 +84,7 @@ impl ProofExpr for IsTrueExpr {
                 }
             }
         });
-        
+
         Column::Boolean(result_slice)
     }
 
@@ -94,11 +95,12 @@ impl ProofExpr for IsTrueExpr {
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
         let inner_column = self.expr.prover_evaluate(builder, alloc, table);
-        let nullable_column = NullableColumn::with_presence(inner_column, table.presence_for_expr(&*self.expr))
-            .unwrap_or_else(|_| {
-                // If there's an error, assume no NULLs (all values present)
-                NullableColumn::new(inner_column)
-            });
+        let nullable_column =
+            NullableColumn::with_presence(inner_column, table.presence_for_expr(&*self.expr))
+                .unwrap_or_else(|_| {
+                    // If there's an error, assume no NULLs (all values present)
+                    NullableColumn::new(inner_column)
+                });
         let result_slice = alloc.alloc_slice_fill_with(table.num_rows(), |i| {
             if nullable_column.is_null(i) {
                 false // NULL values are never TRUE
@@ -110,10 +112,10 @@ impl ProofExpr for IsTrueExpr {
                 }
             }
         });
-        
+
         // Record the IS TRUE operation in the proof
         builder.record_is_true_check(&nullable_column, alloc);
-        
+
         Column::Boolean(result_slice)
     }
 
@@ -125,7 +127,7 @@ impl ProofExpr for IsTrueExpr {
     ) -> Result<S, ProofError> {
         // Get the evaluation of the inner expression
         let _inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
-        
+
         // Get the next value from the builder
         Ok(builder.try_consume_final_round_mle_evaluation()?)
     }
@@ -133,4 +135,4 @@ impl ProofExpr for IsTrueExpr {
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         self.expr.get_column_references(columns);
     }
-} 
+}

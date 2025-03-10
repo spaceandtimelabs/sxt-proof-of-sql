@@ -1,5 +1,8 @@
 use crate::{
-    intermediate_ast::{OrderByDirection::{Asc, Desc}, Literal},
+    intermediate_ast::{
+        Literal,
+        OrderByDirection::{Asc, Desc},
+    },
     sql::*,
     utility::*,
     SelectStatement,
@@ -1442,9 +1445,7 @@ fn we_can_use_aggregation_inside_another_aggregation() {
 
 #[test]
 fn we_can_parse_a_query_with_null_literal() {
-    let ast = "SELECT NULL FROM tab"
-        .parse::<SelectStatement>()
-        .unwrap();
+    let ast = "SELECT NULL FROM tab".parse::<SelectStatement>().unwrap();
     let expected_ast = select(
         query_all(
             vec![col_res(lit(Literal::Null), "__expr__")],
@@ -1540,10 +1541,7 @@ fn we_can_parse_a_query_with_complex_null_expressions() {
             tab(None, "tab"),
             or(
                 is_null(col("a")),
-                and(
-                    is_not_null(col("b")),
-                    is_true(col("c"))
-                )
+                and(is_not_null(col("b")), is_true(col("c"))),
             ),
             vec![],
         ),

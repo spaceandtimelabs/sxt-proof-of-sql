@@ -61,16 +61,14 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
         // Apply the ordering
         let table_map = owned_table.into_inner();
         Ok(
-            OwnedTable::<S>::try_from_iter(table_map.into_iter().map(
-                |(identifier, column)| {
-                    (
-                        identifier,
-                        column
-                            .try_permute(&permutation)
-                            .expect("There should be no column length mismatch here"),
-                    )
-                },
-            ))
+            OwnedTable::<S>::try_from_iter(table_map.into_iter().map(|(identifier, column)| {
+                (
+                    identifier,
+                    column
+                        .try_permute(&permutation)
+                        .expect("There should be no column length mismatch here"),
+                )
+            }))
             .expect("There should be no columns with differing lengths here"),
         )
     }

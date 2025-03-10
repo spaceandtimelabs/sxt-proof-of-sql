@@ -3,9 +3,9 @@ use crate::{
     base::{
         bit::BitDistribution,
         commitment::{Commitment, CommittableColumn, VecCommitmentExt},
+        database::{Column, NullableColumn},
         polynomial::MultilinearExtension,
         scalar::Scalar,
-        database::{Column, NullableColumn},
     },
     utils::log,
 };
@@ -149,7 +149,7 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
-    /// 
+    ///
     /// # Panics
     ///
     /// Will panic if there are no post-result challenges available to pop from the stack.

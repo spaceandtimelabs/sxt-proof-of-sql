@@ -1440,7 +1440,8 @@ mod test {
         let nullable = OwnedNullableColumn::<TestScalar>::with_presence(
             OwnedColumn::<TestScalar>::Int(vec![1, 5, 3, 0]),
             Some(vec![true, false, true, false]),
-        ).unwrap();
+        )
+        .unwrap();
 
         let result = non_nullable.element_wise_eq(&nullable).unwrap();
         assert_eq!(
@@ -1466,7 +1467,8 @@ mod test {
         let nullable2 = OwnedNullableColumn::<TestScalar>::with_presence(
             OwnedColumn::<TestScalar>::Int(vec![0, 2, 0, 4]),
             Some(vec![false, true, false, true]),
-        ).unwrap();
+        )
+        .unwrap();
 
         let result = nullable.element_wise_eq(&nullable2).unwrap();
         assert_eq!(
@@ -1486,7 +1488,8 @@ mod test {
         let nullable = OwnedNullableColumn::<TestScalar>::with_presence(
             OwnedColumn::<TestScalar>::Int(vec![1, 2, 3, 4]),
             Some(vec![true, false, true, false]),
-        ).unwrap();
+        )
+        .unwrap();
 
         let result = non_nullable.element_wise_add(&nullable).unwrap();
         assert_eq!(
@@ -1519,7 +1522,8 @@ mod test {
         let nullable2 = OwnedNullableColumn::<TestScalar>::with_presence(
             OwnedColumn::<TestScalar>::Int(vec![5, 10, 15, 20]),
             Some(vec![false, true, false, true]),
-        ).unwrap();
+        )
+        .unwrap();
 
         let result = nullable.element_wise_add(&nullable2).unwrap();
         assert_eq!(

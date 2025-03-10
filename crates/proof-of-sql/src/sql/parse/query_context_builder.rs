@@ -194,13 +194,13 @@ impl QueryContextBuilder<'_> {
                 self.visit_expr(expr)?;
                 // IS NULL always returns a boolean
                 Ok(ColumnType::Boolean)
-            },
+            }
             Expression::IsNotNull(expr) => {
                 // Check the inner expression type
                 self.visit_expr(expr)?;
                 // IS NOT NULL always returns a boolean
                 Ok(ColumnType::Boolean)
-            },
+            }
             Expression::IsTrue(expr) => {
                 let dtype = self.visit_expr(expr)?;
                 if dtype != ColumnType::Boolean {
@@ -210,7 +210,7 @@ impl QueryContextBuilder<'_> {
                     });
                 }
                 Ok(ColumnType::Boolean)
-            },
+            }
         }
     }
 

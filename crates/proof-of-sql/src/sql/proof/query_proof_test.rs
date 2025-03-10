@@ -92,20 +92,20 @@ impl ProofPlan for TrivialTestProofPlan {
         // Consume the final round MLE evaluation
         let final_round_eval = builder.try_consume_final_round_mle_evaluation()?;
         assert_eq!(final_round_eval, S::ZERO);
-        
+
         // Produce the sumcheck subpolynomial evaluation
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::ZeroSum,
             S::from(self.evaluation),
             1,
         )?;
-        
+
         // Consume the bit distribution
         let _ = builder.try_consume_bit_distribution()?;
-        
+
         // Consume the chi evaluation
         let chi_eval = builder.try_consume_chi_evaluation()?;
-        
+
         // If the evaluation is not 0 (the default), we should fail verification
         // but only after consuming all necessary resources
         if self.evaluation != 0 {
@@ -113,7 +113,7 @@ impl ProofPlan for TrivialTestProofPlan {
                 error: "sumcheck evaluation isn't correct",
             });
         }
-        
+
         // Return the table evaluation
         Ok(TableEvaluation::new(vec![final_round_eval], chi_eval))
     }
@@ -328,20 +328,20 @@ impl ProofPlan for SquareTestProofPlan {
                     ColumnType::BigInt,
                 ))
                 .unwrap();
-        
+
         // Consume the final round MLE evaluation
         let res_eval = builder.try_consume_final_round_mle_evaluation()?;
-        
+
         // Produce the sumcheck subpolynomial evaluation
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             res_eval - x_eval * x_eval,
             2,
         )?;
-        
+
         // Consume the chi evaluation
         let chi_eval = builder.try_consume_chi_evaluation()?;
-        
+
         // If the anchored commitment multiplier is not 1 (the default), we should fail verification
         // but only after consuming all necessary resources
         if self.anchored_commit_multiplier != 1 {
@@ -349,7 +349,7 @@ impl ProofPlan for SquareTestProofPlan {
                 error: "anchored commitment doesn't match",
             });
         }
-        
+
         // Return the table evaluation
         Ok(TableEvaluation::new(vec![res_eval], chi_eval))
     }
@@ -876,22 +876,22 @@ impl ProofPlan for FirstRoundSquareTestProofPlan {
                     ColumnType::BigInt,
                 ))
                 .unwrap();
-        
+
         // Consume the first and final round MLE evaluations
         let first_round_res_eval = builder.try_consume_first_round_mle_evaluation()?;
         let final_round_res_eval = builder.try_consume_final_round_mle_evaluation()?;
         assert_eq!(first_round_res_eval, final_round_res_eval);
-        
+
         // Produce the sumcheck subpolynomial evaluation
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             final_round_res_eval - x_eval * x_eval,
             2,
         )?;
-        
+
         // Consume the chi evaluation
         let chi_eval = builder.try_consume_chi_evaluation()?;
-        
+
         // If the anchored commitment multiplier is not 1 (the default), we should fail verification
         // but only after consuming all necessary resources
         if self.anchored_commit_multiplier != 1 {
@@ -899,7 +899,7 @@ impl ProofPlan for FirstRoundSquareTestProofPlan {
                 error: "commitment doesn't match",
             });
         }
-        
+
         // Return the table evaluation
         Ok(TableEvaluation::new(vec![final_round_res_eval], chi_eval))
     }

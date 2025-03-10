@@ -13,7 +13,7 @@
 //!     decimal75("f", 12, 1, [1, 2, 3]),
 //! ]);
 //! ```
-use super::{OwnedColumn, OwnedTable, OwnedNullableColumn};
+use super::{OwnedColumn, OwnedNullableColumn, OwnedTable};
 use crate::base::scalar::Scalar;
 use alloc::{string::String, vec::Vec};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};

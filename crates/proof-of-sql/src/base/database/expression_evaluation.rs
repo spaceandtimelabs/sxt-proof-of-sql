@@ -97,7 +97,7 @@ impl<S: Scalar> OwnedTable<S> {
                 // For a NULL literal, we'll create a boolean column with all false values
                 // This will be converted to a nullable column with all NULL values in evaluate_nullable_literal
                 Ok(OwnedColumn::Boolean(vec![false; len]))
-            },
+            }
         }
     }
 
@@ -113,7 +113,7 @@ impl<S: Scalar> OwnedTable<S> {
                 let presence = Some(vec![false; len]); // All values are NULL
                 Ok(OwnedNullableColumn::with_presence(values, presence)
                     .expect("Presence vector has the same length as values"))
-            },
+            }
             _ => {
                 // For other literals, evaluate as non-nullable column
                 let column = self.evaluate_literal(lit)?;

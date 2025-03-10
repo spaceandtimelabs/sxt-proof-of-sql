@@ -125,15 +125,18 @@ fn get_aggregate_and_remainder_expressions(
             })
         }
         Expression::IsNull(expr) => {
-            let inner_remainder = get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
+            let inner_remainder =
+                get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
             Ok(Expression::IsNull(Box::new(inner_remainder?)))
         }
         Expression::IsNotNull(expr) => {
-            let inner_remainder = get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
+            let inner_remainder =
+                get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
             Ok(Expression::IsNotNull(Box::new(inner_remainder?)))
         }
         Expression::IsTrue(expr) => {
-            let inner_remainder = get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
+            let inner_remainder =
+                get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
             Ok(Expression::IsTrue(Box::new(inner_remainder?)))
         }
     }

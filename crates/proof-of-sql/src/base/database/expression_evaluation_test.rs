@@ -345,7 +345,8 @@ fn we_can_handle_null_propagation_in_expressions() {
 
     let bool_values_c = OwnedColumn::<TestScalar>::Boolean(vec![true, true, false, false, true]);
     let bool_presence_c = Some(vec![true, false, true, false, true]);
-    let bool_c = OwnedNullableColumn::<TestScalar>::with_presence(bool_values_c, bool_presence_c).unwrap();
+    let bool_c =
+        OwnedNullableColumn::<TestScalar>::with_presence(bool_values_c, bool_presence_c).unwrap();
     let all_false =
         OwnedNullableColumn::<TestScalar>::new(OwnedColumn::<TestScalar>::Boolean(vec![
             false, false, false, false, false,
@@ -400,12 +401,14 @@ fn we_can_convert_nullable_to_non_nullable() {
     let all_present = OwnedNullableColumn::<TestScalar>::with_presence(
         OwnedColumn::<TestScalar>::Int(vec![10, 20, 30, 40, 50]),
         Some(vec![true, true, true, true, true]),
-    ).unwrap();
+    )
+    .unwrap();
 
     let with_nulls = OwnedNullableColumn::<TestScalar>::with_presence(
         OwnedColumn::<TestScalar>::Int(vec![100, 200, 300, 400, 500]),
         Some(vec![true, false, true, false, true]),
-    ).unwrap();
+    )
+    .unwrap();
 
     assert!(!truly_non_null.is_nullable());
     assert!(all_present.is_nullable());

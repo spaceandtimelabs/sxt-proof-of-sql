@@ -33,17 +33,17 @@ impl IsNullExpr {
         inner_column: Column<'a, S>,
     ) -> (Column<'a, S>, NullableColumn<'a, S>) {
         // Create a nullable column with the presence slice
-        let nullable_column = NullableColumn::with_presence(inner_column, table.presence_for_expr(&*self.expr))
-            .unwrap_or_else(|_| {
-                // If there's an error, assume no NULLs (all values present)
-                NullableColumn::new(inner_column)
-            });
-        
+        let nullable_column =
+            NullableColumn::with_presence(inner_column, table.presence_for_expr(&*self.expr))
+                .unwrap_or_else(|_| {
+                    // If there's an error, assume no NULLs (all values present)
+                    NullableColumn::new(inner_column)
+                });
+
         // Create result boolean array - true if null, false if not null
-        let result_slice = alloc.alloc_slice_fill_with(table.num_rows(), |i| {
-            nullable_column.is_null(i)
-        });
-        
+        let result_slice =
+            alloc.alloc_slice_fill_with(table.num_rows(), |i| nullable_column.is_null(i));
+
         (Column::Boolean(result_slice), nullable_column)
     }
 }
@@ -60,7 +60,7 @@ impl ProofExpr for IsNullExpr {
     ) -> Column<'a, S> {
         // Evaluate the inner expression
         let inner_column = self.expr.result_evaluate(alloc, table);
-        
+
         // Use the helper function to create the result column and discard the nullable column
         self.create_is_null_column(alloc, table, inner_column).0
     }
@@ -73,10 +73,10 @@ impl ProofExpr for IsNullExpr {
     ) -> Column<'a, S> {
         let inner_column = self.expr.prover_evaluate(builder, alloc, table);
         let (result, nullable_column) = self.create_is_null_column(alloc, table, inner_column);
-        
+
         // Record the IS NULL operation in the proof
         builder.record_is_null_check(&nullable_column, alloc);
-        
+
         result
     }
 
@@ -92,8 +92,8 @@ impl ProofExpr for IsNullExpr {
     ) -> Result<S, ProofError> {
         // Get the evaluation of the inner expression
         let _inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
-        
+
         // Get the next value from the builder
         Ok(builder.try_consume_final_round_mle_evaluation()?)
     }
-} 
+}

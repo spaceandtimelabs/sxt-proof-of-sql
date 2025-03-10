@@ -67,11 +67,13 @@ impl DynProofExprBuilder<'_> {
             Expression::IsNull(expr) => {
                 let inner_expr = self.visit_expr(expr)?;
                 Ok(DynProofExpr::IsNull(IsNullExpr::new(Box::new(inner_expr))))
-            },
+            }
             Expression::IsNotNull(expr) => {
                 let inner_expr = self.visit_expr(expr)?;
-                Ok(DynProofExpr::IsNotNull(IsNotNullExpr::new(Box::new(inner_expr))))
-            },
+                Ok(DynProofExpr::IsNotNull(IsNotNullExpr::new(Box::new(
+                    inner_expr,
+                ))))
+            }
             Expression::IsTrue(expr) => {
                 let inner_expr = self.visit_expr(expr)?;
                 if inner_expr.data_type() != ColumnType::Boolean {
@@ -81,7 +83,7 @@ impl DynProofExprBuilder<'_> {
                     });
                 }
                 Ok(DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(inner_expr))))
-            },
+            }
             _ => Err(ConversionError::Unprovable {
                 error: format!("Expression {expr:?} is not supported yet"),
             }),

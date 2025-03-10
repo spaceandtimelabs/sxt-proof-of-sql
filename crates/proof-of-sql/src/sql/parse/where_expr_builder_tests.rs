@@ -392,7 +392,10 @@ fn we_can_directly_check_is_true_expression() {
     let is_true_expr = is_true(column_expr);
     let result = builder.build(Some(is_true_expr));
     assert!(result.is_ok());
-    
+
     let built_expr = result.unwrap().unwrap();
-    assert_eq!(crate::sql::proof_exprs::ProofExpr::data_type(&built_expr), ColumnType::Boolean);
+    assert_eq!(
+        crate::sql::proof_exprs::ProofExpr::data_type(&built_expr),
+        ColumnType::Boolean
+    );
 }

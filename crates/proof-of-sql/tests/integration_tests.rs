@@ -9,8 +9,8 @@ use proof_of_sql::proof_primitive::hyperkzg::HyperKZGCommitmentEvaluationProof;
 use proof_of_sql::{
     base::{
         database::{
-            owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
-            OwnedColumn,
+            owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableTestAccessor, TableRef,
+            TestAccessor,
         },
         scalar::Curve25519Scalar,
     },
@@ -1194,12 +1194,18 @@ fn we_can_prove_nullable_table_with_is_null_with_curve25519() {
             nullable_column(
                 "a",
                 OwnedColumn::BigInt(vec![1, 3, 3, 4, 5]),
-                Some(vec![true, false, true, false, true])
+                Some(vec![true, false, true, false, true]),
             ),
             nullable_column(
                 "b",
-                OwnedColumn::VarChar(vec!["x".to_string(), "y".to_string(), "z".to_string(), "w".to_string(), "v".to_string()]),
-                Some(vec![true, false, true, true, false])
+                OwnedColumn::VarChar(vec![
+                    "x".to_string(),
+                    "y".to_string(),
+                    "z".to_string(),
+                    "w".to_string(),
+                    "v".to_string(),
+                ]),
+                Some(vec![true, false, true, true, false]),
             ),
         ]),
         0,
@@ -1217,16 +1223,8 @@ fn we_can_prove_nullable_table_with_is_null_with_curve25519() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        nullable_column(
-            "a",
-            OwnedColumn::BigInt(vec![]),
-            Some(vec![])
-        ),
-        nullable_column(
-            "b",
-            OwnedColumn::VarChar(vec![]),
-            Some(vec![])
-        ),
+        nullable_column("a", OwnedColumn::BigInt(vec![]), Some(vec![])),
+        nullable_column("b", OwnedColumn::VarChar(vec![]), Some(vec![])),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -1238,19 +1236,20 @@ fn we_can_prove_nullable_table_with_is_not_null_with_dory() {
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
     let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
-    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         TableRef::new("sxt", "table"),
         owned_table([
             nullable_column(
                 "a",
                 OwnedColumn::BigInt(vec![3, 5]),
-                Some(vec![false, true])
+                Some(vec![false, true]),
             ),
             nullable_column(
                 "b",
                 OwnedColumn::VarChar(vec!["y".to_string(), "v".to_string()]),
-                Some(vec![false, false])
+                Some(vec![false, false]),
             ),
         ]),
         0,
@@ -1261,8 +1260,11 @@ fn we_can_prove_nullable_table_with_is_not_null_with_dory() {
         &accessor,
     )
     .unwrap();
-    let verifiable_result =
-        VerifiableQueryResult::<DoryEvaluationProof>::new(query.proof_expr(), &accessor, &dory_prover_setup);
+    let verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
+        query.proof_expr(),
+        &accessor,
+        &dory_prover_setup,
+    );
     let owned_table_result = verifiable_result
         .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
         .unwrap()
@@ -1271,12 +1273,12 @@ fn we_can_prove_nullable_table_with_is_not_null_with_dory() {
         nullable_column(
             "a",
             OwnedColumn::BigInt(vec![3, 5]),
-            Some(vec![false, true])
+            Some(vec![false, true]),
         ),
         nullable_column(
             "b",
             OwnedColumn::VarChar(vec!["y".to_string(), "v".to_string()]),
-            Some(vec![false, false])
+            Some(vec![false, false]),
         ),
     ]);
     assert_eq!(owned_table_result, expected_result);
@@ -1289,19 +1291,20 @@ fn we_can_prove_nullable_table_with_is_true_with_dory() {
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
     let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
-    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         TableRef::new("sxt", "table"),
         owned_table([
             nullable_column(
                 "a",
                 OwnedColumn::BigInt(vec![1, 3, 3, 4, 5]),
-                Some(vec![true, false, true, false, true])
+                Some(vec![true, false, true, false, true]),
             ),
             nullable_column(
                 "b",
                 OwnedColumn::Boolean(vec![true, false, true, false, true]),
-                Some(vec![true, false, true, true, false])
+                Some(vec![true, false, true, true, false]),
             ),
         ]),
         0,
@@ -1312,8 +1315,11 @@ fn we_can_prove_nullable_table_with_is_true_with_dory() {
         &accessor,
     )
     .unwrap();
-    let verifiable_result =
-        VerifiableQueryResult::<DoryEvaluationProof>::new(query.proof_expr(), &accessor, &dory_prover_setup);
+    let verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
+        query.proof_expr(),
+        &accessor,
+        &dory_prover_setup,
+    );
     let owned_table_result = verifiable_result
         .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
         .unwrap()
@@ -1322,12 +1328,12 @@ fn we_can_prove_nullable_table_with_is_true_with_dory() {
         nullable_column(
             "a",
             OwnedColumn::BigInt(vec![1, 3, 5]),
-            Some(vec![true, false, true])
+            Some(vec![true, false, true]),
         ),
         nullable_column(
             "b",
             OwnedColumn::Boolean(vec![true, true, true]),
-            Some(vec![true, true, true])
+            Some(vec![true, true, true]),
         ),
     ]);
     assert_eq!(owned_table_result, expected_result);

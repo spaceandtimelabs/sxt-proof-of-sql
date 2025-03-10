@@ -185,13 +185,13 @@ pub enum Expression {
         /// The expression to aggregate
         expr: Box<Expression>,
     },
-    
+
     /// IS NULL expression
     IsNull(Box<Expression>),
-    
+
     /// IS NOT NULL expression
     IsNotNull(Box<Expression>),
-    
+
     /// IS TRUE expression
     IsTrue(Box<Expression>),
 }
