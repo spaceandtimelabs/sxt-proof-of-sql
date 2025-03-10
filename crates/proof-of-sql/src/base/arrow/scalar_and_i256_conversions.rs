@@ -1,5 +1,6 @@
-use crate::base::scalar::Scalar;
+use crate::base::{math::i256::I256 as PoSqlI256, scalar::Scalar};
 use arrow::datatypes::i256;
+use core::ops::Neg;
 
 const MIN_SUPPORTED_I256: i256 = i256::from_parts(
     326_411_208_032_252_286_695_448_638_536_326_387_210,
@@ -52,14 +53,35 @@ pub fn convert_i256_to_scalar<S: Scalar>(value: &i256) -> Option<S> {
     }
 }
 
+#[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+impl From<i256> for PoSqlI256 {
+    fn from(value: i256) -> Self {
+        if value == i256::MIN {
+            PoSqlI256::new([0, 0, 0, i64::MIN as u64])
+        } else {
+            // Prepare the absolute value for conversion
+            let abs_value = if value.is_negative() { -value } else { value };
+            let (low, high) = abs_value.to_parts();
+            let abs_posql = PoSqlI256::new([
+                low as u64,
+                (low >> 64) as u64,
+                high as u64,
+                (high >> 64) as u64,
+            ]);
+            if value.is_negative() {
+                abs_posql.neg()
+            } else {
+                abs_posql
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
-    use super::{convert_i256_to_scalar, convert_scalar_to_i256};
-    use crate::base::{
-        database::scalar_and_i256_conversions::{MAX_SUPPORTED_I256, MIN_SUPPORTED_I256},
-        scalar::{test_scalar::TestScalar, Scalar},
-    };
+    use super::*;
+    use crate::base::scalar::{test_scalar::TestScalar, Scalar};
     use arrow::datatypes::i256;
     use num_traits::Zero;
     use rand::RngCore;
@@ -192,5 +214,46 @@ mod tests {
             let back_to_i256 = i256::from(curve25519_scalar);
             assert_eq!(i256_value, back_to_i256, "Round-trip conversion failed");
         }
+    }
+
+    #[expect(clippy::cast_sign_loss)]
+    #[test]
+    fn test_arrow_i256_to_posql_i256_conversion() {
+        // Test zero
+        assert_eq!(PoSqlI256::from(i256::ZERO), PoSqlI256::new([0, 0, 0, 0]));
+
+        // Test positive values
+        assert_eq!(PoSqlI256::from(i256::from(1)), PoSqlI256::new([1, 0, 0, 0]));
+        assert_eq!(PoSqlI256::from(i256::from(2)), PoSqlI256::new([2, 0, 0, 0]));
+
+        // Test negative values
+        assert_eq!(
+            PoSqlI256::from(i256::from(-1)),
+            PoSqlI256::new([u64::MAX; 4])
+        );
+        assert_eq!(
+            PoSqlI256::from(i256::from(-2)),
+            PoSqlI256::new([u64::MAX - 1, u64::MAX, u64::MAX, u64::MAX])
+        );
+
+        // Test some boundary values
+        assert_eq!(
+            PoSqlI256::from(i256::MAX),
+            PoSqlI256::new([u64::MAX, u64::MAX, u64::MAX, i64::MAX as u64])
+        );
+        assert_eq!(
+            PoSqlI256::from(i256::MIN),
+            PoSqlI256::new([0, 0, 0, i64::MIN as u64])
+        );
+
+        // Test other values
+        assert_eq!(
+            PoSqlI256::from(i256::from_parts(40, 20)),
+            PoSqlI256::new([40, 0, 20, 0])
+        );
+        assert_eq!(
+            PoSqlI256::from(i256::from_parts(20, -20)),
+            PoSqlI256::new([20, 0, u64::MAX - 19, u64::MAX])
+        );
     }
 }
