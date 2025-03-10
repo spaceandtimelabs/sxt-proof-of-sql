@@ -18,8 +18,18 @@ uint256 constant WORDX2_SIZE = 0x20 * 2;
 uint256 constant WORDX3_SIZE = 0x20 * 3;
 /// @dev Size of four words in bytes.
 uint256 constant WORDX4_SIZE = 0x20 * 4;
+/// @dev Size of five words in bytes.
+uint256 constant WORDX5_SIZE = 0x20 * 5;
 /// @dev Size of six words in bytes.
 uint256 constant WORDX6_SIZE = 0x20 * 6;
+/// @dev Size of eight words in bytes.
+uint256 constant WORDX8_SIZE = 0x20 * 8;
+/// @dev Size of nine words in bytes.
+uint256 constant WORDX9_SIZE = 0x20 * 9;
+/// @dev Size of ten words in bytes.
+uint256 constant WORDX10_SIZE = 0x20 * 10;
+/// @dev Size of eleven words in bytes.
+uint256 constant WORDX11_SIZE = 0x20 * 11;
 /// @dev Size of twelve words in bytes.
 uint256 constant WORDX12_SIZE = 0x20 * 12;
 
@@ -92,6 +102,11 @@ uint256 constant G2_NEG_GEN_X_IMAG = 0x198e9393920d483a7260bfb731fb5d25f1aa49333
 uint256 constant G2_NEG_GEN_Y_REAL = 0x1d9befcd05a5323e6da4d435f3b617cdb3af83285c2df711ef39c01571827f9d;
 /// @dev The G2 negated generator point's y-coordinate imaginary component.
 uint256 constant G2_NEG_GEN_Y_IMAG = 0x275dc4a288d1afb3cbb1ac09187524c7db36395df7be3b99e673b13a075a65ec;
+
+uint256 constant VK_TAU_HX_REAL = 0x26787d1c508c26d6ea86ad6460de9fc29ba207e3cb2e57e5b0d82413f3098a9e;
+uint256 constant VK_TAU_HX_IMAG = 0x2b20cbaaab03ac14e5957f6f18c5a62b693a5c5ebe02ed09fa928f0db02bf9f6;
+uint256 constant VK_TAU_HY_REAL = 0x1a44ae9f94f7e4a96d8ea5f1d1a67f22e292e9f58cdd85813381156679888a01;
+uint256 constant VK_TAU_HY_IMAG = 0x01ea86d896eddc7a6edac41e80a9e9059440e9b3baf2186fad830ae001a1482a;
 
 /// @dev Size of the verification builder in bytes.
 uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 11;

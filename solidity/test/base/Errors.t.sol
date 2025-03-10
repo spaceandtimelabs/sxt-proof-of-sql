@@ -7,26 +7,30 @@ import "../../src/base/Errors.sol";
 
 contract ErrorsTest is Test {
     function testErrorConstantsMatchSelectors() public pure {
-        bytes4[11] memory selectors = [
+        bytes4[13] memory selectors = [
             Errors.InvalidECAddInputs.selector,
             Errors.InvalidECMulInputs.selector,
             Errors.InvalidECPairingInputs.selector,
             Errors.RoundEvaluationMismatch.selector,
             Errors.EmptyQueue.selector,
             Errors.HyperKZGInconsistentV.selector,
+            Errors.HyperKZGEmptyPoint.selector,
+            Errors.HyperKZGPairingCheckFailed.selector,
             Errors.ConstraintDegreeTooHigh.selector,
             Errors.IncorrectCaseConst.selector,
             Errors.UnsupportedLiteralVariant.selector,
             Errors.InvalidIndex.selector,
             Errors.UnsupportedProofExprVariant.selector
         ];
-        uint32[11] memory selectorConstants = [
+        uint32[13] memory selectorConstants = [
             ERR_INVALID_EC_ADD_INPUTS,
             ERR_INVALID_EC_MUL_INPUTS,
             ERR_INVALID_EC_PAIRING_INPUTS,
             ERR_ROUND_EVALUATION_MISMATCH,
             ERR_EMPTY_QUEUE,
             ERR_HYPER_KZG_INCONSISTENT_V,
+            ERR_HYPER_KZG_EMPTY_POINT,
+            ERR_HYPER_KZG_PAIRING_CHECK_FAILED,
             ERR_CONSTRAINT_DEGREE_TOO_HIGH,
             ERR_INCORRECT_CASE_CONST,
             ERR_UNSUPPORTED_LITERAL_VARIANT,
@@ -74,6 +78,18 @@ contract ErrorsTest is Test {
     function testErrorFailedHyperKZGInconsistentV() public {
         vm.expectRevert(Errors.HyperKZGInconsistentV.selector);
         Errors.__err(ERR_HYPER_KZG_INCONSISTENT_V);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorFailedHyperKZGEmptyPoint() public {
+        vm.expectRevert(Errors.HyperKZGEmptyPoint.selector);
+        Errors.__err(ERR_HYPER_KZG_EMPTY_POINT);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorFailedHyperKZGPairingCheckFailed() public {
+        vm.expectRevert(Errors.HyperKZGPairingCheckFailed.selector);
+        Errors.__err(ERR_HYPER_KZG_PAIRING_CHECK_FAILED);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
