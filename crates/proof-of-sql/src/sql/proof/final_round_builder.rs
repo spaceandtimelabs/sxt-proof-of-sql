@@ -4,8 +4,8 @@ use crate::{
         bit::BitDistribution,
         commitment::{Commitment, CommittableColumn, VecCommitmentExt},
         polynomial::MultilinearExtension,
-        proof::ProofSizeMismatch,
         scalar::Scalar,
+        database::{Column, NullableColumn},
     },
     utils::log,
 };
@@ -13,7 +13,7 @@ use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
 use bumpalo::Bump;
 
 /// Track components used to form a query's proof
-pub struct FinalRoundBuilder<'a, S: Scalar + 'a> {
+pub struct FinalRoundBuilder<'a, S: Scalar> {
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
     commitment_descriptor: Vec<CommittableColumn<'a>>,
@@ -29,7 +29,7 @@ pub struct FinalRoundBuilder<'a, S: Scalar + 'a> {
     post_result_challenges: VecDeque<S>,
 }
 
-impl<'a, S: Scalar + 'a> FinalRoundBuilder<'a, S> {
+impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
     pub fn new(num_sumcheck_variables: usize, post_result_challenges: VecDeque<S>) -> Self {
         Self {
             num_sumcheck_variables,
@@ -157,95 +157,55 @@ impl<'a, S: Scalar + 'a> FinalRoundBuilder<'a, S> {
         self.post_result_challenges.pop_front().unwrap()
     }
 
-    /// Pops a challenge off the stack of post-result challenges.
-    ///
-    /// These challenges are used in creation of the constraints in the proof.
-    /// Specifically, these are the challenges that the verifier sends to
-    /// the prover after the prover sends the result, but before the prover
-    /// send commitments to the intermediate witness columns.
-    ///
-    /// Returns a `Result` that will be `Err(ProofSizeMismatch::PostResultCountMismatch)`
-    /// if there are no post-result challenges available to pop from the stack.
-    pub fn try_consume_post_result_challenge(&mut self) -> Result<S, ProofSizeMismatch> {
-        self.post_result_challenges
-            .pop_front()
-            .ok_or(ProofSizeMismatch::PostResultCountMismatch)
-    }
-
-    /// Add a helper method to produce a constant boolean column with a single value
-    fn produce_constant_boolean(&mut self, value: bool, alloc: &'a Bump) {
-        let bool_slice = alloc.alloc_slice_fill_copy(1, value);
-        let column = crate::base::database::Column::Boolean(bool_slice);
-        self.produce_intermediate_mle(column);
-    }
-
-    /// Record an IS NULL check in the proof
-    pub fn record_is_null_check<S2: Scalar>(&mut self, column: &crate::base::database::NullableColumn<'a, S2>, alloc: &'a Bump) {
-        // For IS NULL operation, we need to include the presence information in the proof
-        // In SQL, IS NULL checks if a value is NULL (missing)
-        // We represent this by adding the presence information to the proof
-        
-        // Extract presence information from the column
-        // If the column has a presence slice, we need to add it to the proof
-        if let Some(presence) = column.presence {
-            // For each row, we need to add a check that determines if the value is NULL
-            // In our implementation, a NULL value is represented by a false in the presence slice
-            // This is used by the verify_is_null_check method in the verification builder
-            
-            // Add the presence column as an intermediate witness column
-            // This allows the verifier to check IS NULL operations correctly
-            let presence_column = crate::base::database::Column::Boolean(presence);
-            self.produce_intermediate_mle(presence_column);
-        } else {
-            // If there's no presence slice, all values are present (non-NULL)
-            // For IS NULL check, this means all rows should return FALSE
-            // We represent this with a single constant FALSE value since it applies to all rows
-            self.produce_constant_boolean(false, alloc);
+    /// Records an IS NULL check for a nullable column
+    pub fn record_is_null_check(&mut self, column: &NullableColumn<'a, S>, _alloc: &'a Bump) {
+        match &column.presence {
+            Some(presence) => {
+                // When presence is Some, use the presence array directly
+                let presence_column = Column::Boolean(presence);
+                self.produce_intermediate_mle(presence_column);
+            }
+            None => {
+                // When presence is None, create a constant false MLE since no values are null
+                let constant_false = Column::Boolean(&[false]);
+                self.produce_intermediate_mle(constant_false);
+            }
         }
     }
 
-    /// Record an IS NOT NULL check in the proof
-    pub fn record_is_not_null_check<S2: Scalar>(&mut self, column: &crate::base::database::NullableColumn<'a, S2>, alloc: &'a Bump) {
-        // For IS NOT NULL operation, we need to include the presence information in the proof
-        // In SQL, IS NOT NULL checks if a value is not NULL (present)
-        // We represent this by adding the presence information to the proof
-        
-        // Extract presence information from the column
-        // If the column has a presence slice, we need to add it to the proof
-        if let Some(presence) = column.presence {
-            // For each row, we need to add a check that determines if the value is not NULL
-            // In our implementation, a non-NULL value is represented by a true in the presence slice
-            // This is used by the verify_is_not_null_check method in the verification builder
-            
-            // Add the presence column as an intermediate witness column
-            // This allows the verifier to check IS NOT NULL operations correctly
-            let presence_column = crate::base::database::Column::Boolean(presence);
-            self.produce_intermediate_mle(presence_column);
-        } else {
-            // If there's no presence slice, all values are present (non-NULL)
-            // We can represent this with a single constant value since it applies to all rows
-            // The verifier will use this to correctly determine that all values are not NULL
-            self.produce_constant_boolean(true, alloc);
+    /// Records an IS NOT NULL check for a nullable column
+    pub fn record_is_not_null_check(&mut self, column: &NullableColumn<'a, S>, _alloc: &'a Bump) {
+        match &column.presence {
+            Some(presence) => {
+                // When presence is Some, use the presence array directly
+                let presence_column = Column::Boolean(presence);
+                self.produce_intermediate_mle(presence_column);
+            }
+            None => {
+                // When presence is None, create a constant true MLE since all values are non-null
+                let constant_true = Column::Boolean(&[true]);
+                self.produce_intermediate_mle(constant_true);
+            }
         }
     }
 
-    /// Record an IS TRUE check in the proof
-    pub fn record_is_true_check<S2: Scalar>(&mut self, column: &crate::base::database::NullableColumn<'a, S2>, alloc: &'a Bump) {
-        // For IS TRUE operation, we need to include the presence information and the actual values
-        // In SQL, IS TRUE checks if a value is both not NULL and TRUE
-        
-        // First, we need to check if the column is boolean, since IS TRUE only applies to boolean expressions
-        match column.values {
-            crate::base::database::Column::Boolean(_values) => {
-                // For IS TRUE check, we only need to add one intermediate MLE to the proof
-                // This follows the same pattern as record_is_null_check and record_is_not_null_check
-                
-                // Extract presence information from the column
-                // If the column has a presence slice, we need to add it to the proof
-                if let Some(presence) = column.presence {
-                    // Add the presence column as an intermediate witness column
-                    let presence_column = crate::base::database::Column::Boolean(presence);
+    /// Records an IS TRUE check for a nullable column
+    pub fn record_is_true_check(&mut self, column: &NullableColumn<'a, S>, _alloc: &'a Bump) {
+        // Verify that we're working with a boolean column
+        if let Column::Boolean(_) = column.values {
+            match &column.presence {
+                Some(presence) => {
+                    // When presence is Some, use the presence array
+                    let presence_column = Column::Boolean(presence);
                     self.produce_intermediate_mle(presence_column);
+                }
+                None => {
+                    // When presence is None, create a constant true MLE
+                    let constant_true = Column::Boolean(&[true]);
+                    self.produce_intermediate_mle(constant_true);
+                }
+            }
+                } else {
                 } else {
                     // If there's no presence slice, all values are present (non-NULL)
                     // We can represent this with a single constant value since it applies to all rows
@@ -255,8 +215,18 @@ impl<'a, S: Scalar + 'a> FinalRoundBuilder<'a, S> {
             _ => {
                 // IS TRUE can only be applied to boolean expressions
                 // If this is not a boolean column, we should handle this as an error case
+        } else {
+                    // If there's no presence slice, all values are present (non-NULL)
+                    // We can represent this with a single constant value since it applies to all rows
+                    self.produce_constant_boolean(true, alloc);
+                }
+            },
+            _ => {
+                // IS TRUE can only be applied to boolean expressions
+                // If this is not a boolean column, we should handle this as an error case
                 panic!("IS TRUE can only be applied to boolean expressions");
-            }
+                panic!("IS TRUE can only be applied to boolean expressions");
+            panic!("IS TRUE can only be applied to boolean expressions");
         }
     }
 }

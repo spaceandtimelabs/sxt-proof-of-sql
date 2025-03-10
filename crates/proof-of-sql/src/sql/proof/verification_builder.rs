@@ -47,15 +47,6 @@ pub trait VerificationBuilder<S: Scalar> {
 
     /// Retrieves the `rho_256_evaluation` from the `mle_evaluations`
     fn rho_256_evaluation(&self) -> Option<S>;
-
-    /// Verify an IS NULL check
-    fn verify_is_null_check(&mut self, inner_eval: S, _chi_eval: S) -> Result<S, crate::base::proof::ProofError>;
-
-    /// Verify an IS NOT NULL check
-    fn verify_is_not_null_check(&mut self, inner_eval: S, _chi_eval: S) -> Result<S, crate::base::proof::ProofError>;
-
-    /// Verify an IS TRUE check
-    fn verify_is_true_check(&mut self, inner_eval: S, _chi_eval: S) -> Result<S, crate::base::proof::ProofError>;
 }
 
 /// Track components used to verify a query's proof
@@ -66,9 +57,9 @@ pub struct VerificationBuilderImpl<'a, S: Scalar> {
     bit_distributions: &'a [BitDistribution],
     consumed_chi_evaluations: usize,
     consumed_rho_evaluations: usize,
-    first_round_mle_index: usize,
-    final_round_mle_index: usize,
-    subpolynomial_index: usize,
+    consumed_first_round_pcs_proof_mles: usize,
+    consumed_final_round_pcs_proof_mles: usize,
+    produced_subpolynomials: usize,
     /// The challenges used in creation of the constraints in the proof.
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
@@ -104,9 +95,9 @@ impl<'a, S: Scalar> VerificationBuilderImpl<'a, S> {
             sumcheck_evaluation: S::zero(),
             consumed_chi_evaluations: 0,
             consumed_rho_evaluations: 0,
-            first_round_mle_index: 0,
-            final_round_mle_index: 0,
-            subpolynomial_index: 0,
+            consumed_first_round_pcs_proof_mles: 0,
+            consumed_final_round_pcs_proof_mles: 0,
+            produced_subpolynomials: 0,
             post_result_challenges,
             chi_evaluation_length_queue,
             rho_evaluation_length_queue,
@@ -114,9 +105,25 @@ impl<'a, S: Scalar> VerificationBuilderImpl<'a, S> {
         }
     }
 
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The panic condition is clear due to the assertion that checks if the computation is completed."
+    )]
     /// Get the evaluation of the sumcheck polynomial at its randomly selected point
     pub fn sumcheck_evaluation(&self) -> S {
+        assert!(self.completed());
         self.sumcheck_evaluation
+    }
+
+    /// Check that the verification builder is completely built up
+    fn completed(&self) -> bool {
+        self.bit_distributions.is_empty()
+            && self.produced_subpolynomials == self.subpolynomial_multipliers.len()
+            && self.consumed_first_round_pcs_proof_mles
+                == self.mle_evaluations.first_round_pcs_proof_evaluations.len()
+            && self.consumed_final_round_pcs_proof_mles
+                == self.mle_evaluations.final_round_pcs_proof_evaluations.len()
+            && self.post_result_challenges.is_empty()
     }
 }
 
@@ -152,8 +159,8 @@ impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
     }
 
     fn try_consume_first_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
-        let index = self.first_round_mle_index;
-        self.first_round_mle_index += 1;
+        let index = self.consumed_first_round_pcs_proof_mles;
+        self.consumed_first_round_pcs_proof_mles += 1;
         self.mle_evaluations
             .first_round_pcs_proof_evaluations
             .get(index)
@@ -162,8 +169,8 @@ impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
     }
 
     fn try_consume_final_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
-        let index = self.final_round_mle_index;
-        self.final_round_mle_index += 1;
+        let index = self.consumed_final_round_pcs_proof_mles;
+        self.consumed_final_round_pcs_proof_mles += 1;
         self.mle_evaluations
             .final_round_pcs_proof_evaluations
             .get(index)
@@ -198,7 +205,7 @@ impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
     ) -> Result<(), ProofSizeMismatch> {
         self.sumcheck_evaluation += self
             .subpolynomial_multipliers
-            .get(self.subpolynomial_index)
+            .get(self.produced_subpolynomials)
             .copied()
             .ok_or(ProofSizeMismatch::ConstraintCountMismatch)?
             * match subpolynomial_type {
@@ -215,7 +222,7 @@ impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
                     eval
                 }
             };
-        self.subpolynomial_index += 1;
+        self.produced_subpolynomials += 1;
         Ok(())
     }
 
@@ -237,41 +244,5 @@ impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
 
     fn rho_256_evaluation(&self) -> Option<S> {
         self.mle_evaluations.rho_256_evaluation
-    }
-
-    fn verify_is_null_check(&mut self, inner_eval: S, _chi_eval: S) -> Result<S, crate::base::proof::ProofError> {
-        // For IS NULL checks, the inner_eval represents the presence indicator
-        // In SQL, IS NULL is TRUE when the value is NULL, which means presence = 0
-        // So we need to return (1 - presence) as our result
-        //
-        // The presence value is 0 for NULL and 1 for non-NULL, so we invert it:
-        // - If inner_eval = 0 (NULL) => 1 - 0 = 1 (TRUE)
-        // - If inner_eval = 1 (not NULL) => 1 - 1 = 0 (FALSE)
-        Ok(S::one() - inner_eval)
-    }
-
-    fn verify_is_not_null_check(&mut self, inner_eval: S, _chi_eval: S) -> Result<S, crate::base::proof::ProofError> {
-        // For IS NOT NULL checks, the inner_eval represents the presence indicator
-        // In SQL, IS NOT NULL is TRUE when the value is not NULL, which means presence = 1
-        // So we just return the presence value directly
-        //
-        // The presence value is 0 for NULL and 1 for non-NULL:
-        // - If inner_eval = 0 (NULL) => 0 (FALSE)
-        // - If inner_eval = 1 (not NULL) => 1 (TRUE)
-        Ok(inner_eval)
-    }
-
-    fn verify_is_true_check(&mut self, inner_eval: S, chi_eval: S) -> Result<S, crate::base::proof::ProofError> {
-        // For IS TRUE checks, we need to verify that:
-        // 1. The value is not NULL (presence = 1)
-        // 2. The value is TRUE (value = 1)
-        //
-        // SQL's IS TRUE is true only when the value is both not NULL and TRUE
-        // - If presence = 0 (NULL), result is FALSE
-        // - If presence = 1 and value = 0, result is FALSE
-        // - If presence = 1 and value = 1, result is TRUE
-        //
-        // The formula is: presence AND value = presence * value
-        Ok(chi_eval * inner_eval)
     }
 }

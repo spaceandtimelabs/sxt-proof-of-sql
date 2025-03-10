@@ -88,7 +88,6 @@ impl ProofExpr for IsNotNullExpr {
         };
         
         // We still need to create a NullableColumn for the record_is_not_null_check operation
-        // but we can optimize by using the presence directly
         let nullable_column = match NullableColumn::with_presence(inner_column, presence) {
             Ok(col) => col,
             Err(err) => {
@@ -109,19 +108,11 @@ impl ProofExpr for IsNotNullExpr {
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
     ) -> Result<S, ProofError> {
-        tracing::trace!("IsNotNullExpr: Starting verifier evaluation");
-        
         // Get the evaluation of the inner expression
-        let inner_eval = match self.expr.verifier_evaluate(builder, accessor, chi_eval) {
-            Ok(eval) => eval,
-            Err(err) => {
-                tracing::warn!("IsNotNullExpr: Error evaluating inner expression: {:?}", err);
-                return Err(err);
-            }
-        };
+        let _inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
         
-        // Verify the IS NOT NULL check
-        builder.verify_is_not_null_check(inner_eval, chi_eval)
+        // Get the next value from the builder
+        Ok(builder.try_consume_final_round_mle_evaluation()?)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

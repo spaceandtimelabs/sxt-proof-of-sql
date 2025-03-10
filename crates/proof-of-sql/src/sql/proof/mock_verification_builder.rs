@@ -104,18 +104,6 @@ impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
             .take(count)
             .collect()
     }
-
-    fn verify_is_null_check(&mut self, inner_eval: S, _chi_eval: S) -> Result<S, crate::base::proof::ProofError> {
-        Ok(inner_eval)
-    }
-
-    fn verify_is_not_null_check(&mut self, inner_eval: S, _chi_eval: S) -> Result<S, crate::base::proof::ProofError> {
-        Ok(inner_eval)
-    }
-
-    fn verify_is_true_check(&mut self, inner_eval: S, _chi_eval: S) -> Result<S, crate::base::proof::ProofError> {
-        Ok(inner_eval)
-    }
 }
 
 impl<S: Scalar> MockVerificationBuilder<S> {

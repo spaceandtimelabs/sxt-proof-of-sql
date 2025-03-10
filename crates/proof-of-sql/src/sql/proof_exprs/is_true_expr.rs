@@ -124,10 +124,10 @@ impl ProofExpr for IsTrueExpr {
         chi_eval: S,
     ) -> Result<S, ProofError> {
         // Get the evaluation of the inner expression
-        let inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
+        let _inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
         
-        // Verify the IS TRUE check
-        builder.verify_is_true_check(inner_eval, chi_eval)
+        // Get the next value from the builder
+        Ok(builder.try_consume_final_round_mle_evaluation()?)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
