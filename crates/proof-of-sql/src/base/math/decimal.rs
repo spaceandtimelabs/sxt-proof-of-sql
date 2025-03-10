@@ -88,7 +88,8 @@ impl From<DecimalError> for String {
 
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Copy)]
 /// limit-enforced precision
-pub struct Precision(u8);
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
+pub struct Precision(#[cfg_attr(test, proptest(strategy = "1..76u8"))] u8);
 pub(crate) const MAX_SUPPORTED_PRECISION: u8 = 75;
 
 impl Precision {

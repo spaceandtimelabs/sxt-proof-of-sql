@@ -6,6 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
 import "../../src/base/Errors.sol";
 import {Sumcheck} from "../../src/proof/Sumcheck.pre.sol";
+import {F, FF} from "../base/FieldUtil.sol";
 
 library SumcheckTestWrapper {
     /// @notice Wrapper function to verify a sumcheck proof
@@ -123,24 +124,24 @@ contract SumcheckTest is Test {
         uint256[] memory validProof = new uint256[](numVars * (degree + 1));
         uint256[] memory evalPoint = new uint256[](numVars);
 
-        uint256 nextSum = 0;
+        FF nextSum = F.ZERO;
         uint256 j = 0;
         for (uint256 i = 0; i < numVars; ++i) {
             uint256[] memory curRound = new uint256[](degree + 1);
-            uint256 curSum = 0;
+            FF curSum = F.ZERO;
             for (uint256 d = 1; d < degree + 1; ++d) {
                 curRound[d] = j < rand.length ? rand[j] : 0;
-                curSum = addmod(curSum, curRound[d], MODULUS);
+                curSum = curSum + F.from(curRound[d]);
                 ++j;
             }
-            curSum = addmod(curSum, curRound[degree], MODULUS);
-            curRound[0] = addmod(nextSum, (MODULUS - (curSum % MODULUS)), MODULUS);
+            curSum = curSum + F.from(curRound[degree]);
+            curRound[0] = (nextSum - curSum).into();
             transcriptP = uint256(keccak256(abi.encodePacked(transcriptP, curRound)));
             uint256 challenge = transcriptP & MODULUS_MASK;
-            nextSum = 0;
+            nextSum = F.ZERO;
             for (uint256 d = 0; d < degree + 1; ++d) {
                 validProof[i * (degree + 1) + d] = curRound[d];
-                nextSum = addmod(mulmod(nextSum, challenge, MODULUS), curRound[d], MODULUS);
+                nextSum = nextSum * F.from(challenge) + F.from(curRound[d]);
             }
             evalPoint[i] = challenge;
         }
@@ -151,6 +152,6 @@ contract SumcheckTest is Test {
         for (uint256 i = 0; i < numVars; ++i) {
             assert(evaluationPoint[i] == evalPoint[i]);
         }
-        assert(expectedEvaluation == nextSum);
+        assert(expectedEvaluation == nextSum.into());
     }
 }

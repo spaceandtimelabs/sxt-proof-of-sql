@@ -8,6 +8,46 @@ use crate::{
 use bumpalo::Bump;
 
 #[test]
+#[should_panic(expected = "MAX can not be applied to varbinary")]
+fn we_cannot_apply_max_to_varbinary() {
+    let col: Column<'_, TestScalar> = Column::VarBinary((&[], &[]));
+    let indexes = &[];
+    let counts = &[];
+    let alloc = bumpalo::Bump::new();
+    let _ = max_aggregate_column_by_index_counts(&alloc, &col, counts, indexes);
+}
+
+#[test]
+#[should_panic(expected = "MIN can not be applied to varbinary")]
+fn we_cannot_apply_min_to_varbinary() {
+    let col: Column<'_, TestScalar> = Column::VarBinary((&[], &[]));
+    let indexes = &[];
+    let counts = &[];
+    let alloc = bumpalo::Bump::new();
+    let _ = min_aggregate_column_by_index_counts(&alloc, &col, counts, indexes);
+}
+
+#[test]
+#[should_panic(expected = "MAX can not be applied to varchar")]
+fn we_cannot_apply_max_to_varchar() {
+    let col: Column<'_, TestScalar> = Column::VarChar((&[], &[]));
+    let indexes = &[];
+    let counts = &[];
+    let alloc = bumpalo::Bump::new();
+    let _ = max_aggregate_column_by_index_counts(&alloc, &col, counts, indexes);
+}
+
+#[test]
+#[should_panic(expected = "MIN can not be applied to varchar")]
+fn we_cannot_apply_min_to_varchar() {
+    let col: Column<'_, TestScalar> = Column::VarChar((&[], &[]));
+    let indexes = &[];
+    let counts = &[];
+    let alloc = bumpalo::Bump::new();
+    let _ = min_aggregate_column_by_index_counts(&alloc, &col, counts, indexes);
+}
+
+#[test]
 fn we_can_aggregate_empty_columns() {
     let column_a = Column::BigInt::<TestScalar>(&[]);
     let column_b = Column::VarChar((&[], &[]));

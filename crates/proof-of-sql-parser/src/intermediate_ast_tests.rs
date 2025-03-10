@@ -11,7 +11,7 @@ use alloc::{
 };
 use bigdecimal::BigDecimal;
 
-// Sting parser tests
+// String parser tests
 #[test]
 fn we_can_parse_simple_strings() {
     assert_eq!(
@@ -60,7 +60,7 @@ fn we_cannot_parse_strings_having_more_than_two_quotes() {
 }
 
 #[test]
-fn we_can_parse_strings_strings_containing_spaces() {
+fn we_can_parse_strings_containing_spaces() {
     assert_eq!(
         StringLiteralParser::new().parse("'  a12fdf 3a  '"),
         Ok("  a12fdf 3a  ".to_string())

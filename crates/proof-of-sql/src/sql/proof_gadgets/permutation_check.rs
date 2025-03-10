@@ -130,3 +130,60 @@ pub(crate) fn verify_permutation_check<S: Scalar>(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{final_round_evaluate_permutation_check, verify_permutation_check};
+    use crate::{
+        base::{
+            database::table_utility::borrowed_bigint,
+            polynomial::MultilinearExtension,
+            scalar::{test_scalar::TestScalar, Scalar},
+        },
+        sql::proof::{mock_verification_builder::run_verify_for_each_row, FinalRoundBuilder},
+    };
+    use bumpalo::Bump;
+    use std::collections::VecDeque;
+
+    #[test]
+    fn we_can_do_permutation_check() {
+        let alloc = Bump::new();
+        let column = borrowed_bigint::<TestScalar>("a", [1, 2, 3], &alloc).1;
+        let candidate_table = borrowed_bigint::<TestScalar>("c", [2, 3, 1], &alloc).1;
+        let mut final_round_builder: FinalRoundBuilder<TestScalar> =
+            FinalRoundBuilder::new(3, VecDeque::new());
+        final_round_evaluate_permutation_check(
+            &mut final_round_builder,
+            &alloc,
+            TestScalar::TWO,
+            TestScalar::TEN,
+            &[true, true, true],
+            &[column],
+            &[candidate_table],
+        );
+        let verification_builder = run_verify_for_each_row(
+            3,
+            &final_round_builder,
+            3,
+            |verification_builder, chi_eval, evaluation_point| {
+                verify_permutation_check(
+                    verification_builder,
+                    TestScalar::TWO,
+                    TestScalar::TEN,
+                    chi_eval,
+                    &[column.inner_product(evaluation_point)],
+                    &[candidate_table.inner_product(evaluation_point)],
+                )
+                .unwrap();
+            },
+        );
+        assert!(verification_builder
+            .get_identity_results()
+            .iter()
+            .all(|v| v.iter().all(|val| *val)));
+        assert!(verification_builder
+            .get_zero_sum_results()
+            .iter()
+            .all(|v| *v));
+    }
+}

@@ -7,7 +7,12 @@ use crate::{
     },
     Identifier, ResourceId, SelectStatement,
 };
-use alloc::{boxed::Box, string::ToString, vec};
+use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString},
+    vec,
+};
 use core::fmt::Display;
 use sqlparser::ast::{
     BinaryOperator, DataType, Expr, Function, FunctionArg, FunctionArgExpr, GroupByExpr, Ident,
@@ -66,6 +71,17 @@ impl From<Literal> for Expr {
     fn from(literal: Literal) -> Self {
         match literal {
             Literal::VarChar(s) => Expr::Value(Value::SingleQuotedString(s)),
+            Literal::VarBinary(bytes) => {
+                // Convert binary data to hex string for SQL representation
+                let hex_string =
+                    bytes
+                        .iter()
+                        .fold(String::with_capacity(bytes.len() * 2), |mut acc, byte| {
+                            acc.push_str(&format!("{byte:02x}"));
+                            acc
+                        });
+                Expr::Value(Value::HexStringLiteral(hex_string))
+            }
             Literal::BigInt(n) => Expr::Value(Value::Number(n.to_string(), false)),
             Literal::Int128(n) => Expr::Value(Value::Number(n.to_string(), false)),
             Literal::Decimal(n) => Expr::Value(Value::Number(n.to_string(), false)),

@@ -15,6 +15,12 @@ library VerificationBuilder {
         uint256[] finalRoundMLEs;
         uint256[] chiEvaluations;
         uint256[] rhoEvaluations;
+        uint256[] constraintMultipliers;
+        uint256 maxDegree;
+        uint256 aggregateEvaluation;
+        uint256 rowMultipliersEvaluation;
+        uint256[] columnEvaluations;
+        uint256[] tableChiEvaluations;
     }
 
     /// @notice Allocates and reserves a block of memory for a verification builder
@@ -315,6 +321,263 @@ library VerificationBuilder {
                 value := dequeue(add(builder_ptr, BUILDER_RHO_EVALUATIONS_OFFSET))
             }
             __value := builder_consume_rho_evaluation(__builder)
+        }
+    }
+
+    /// @notice Sets the constraint multipliers in the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_set_constraint_multipliers(builder_ptr, values_ptr)
+    /// ```
+    /// @param __builder The builder struct
+    /// @param __values The constraint multipliers array
+    function __setConstraintMultipliers(Builder memory __builder, uint256[] memory __values) internal pure {
+        assembly {
+            function builder_set_constraint_multipliers(builder_ptr, values_ptr) {
+                mstore(add(builder_ptr, BUILDER_CONSTRAINT_MULTIPLIERS_OFFSET), values_ptr)
+            }
+            builder_set_constraint_multipliers(__builder, __values)
+        }
+    }
+
+    /// @notice Sets the max degree in the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_set_max_degree(builder_ptr, value)
+    /// ```
+    /// @param __builder The builder struct
+    /// @param __value The max degree value
+    function __setMaxDegree(Builder memory __builder, uint256 __value) internal pure {
+        assembly {
+            function builder_set_max_degree(builder_ptr, value) {
+                mstore(add(builder_ptr, BUILDER_MAX_DEGREE_OFFSET), value)
+            }
+            builder_set_max_degree(__builder, __value)
+        }
+    }
+
+    /// @notice Sets the aggregate evaluation in the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_set_aggregate_evaluation(builder_ptr, value)
+    /// ```
+    /// @param __builder The builder struct
+    /// @param __value The aggregate evaluation value
+    function __setAggregateEvaluation(Builder memory __builder, uint256 __value) internal pure {
+        assembly {
+            function builder_set_aggregate_evaluation(builder_ptr, value) {
+                mstore(add(builder_ptr, BUILDER_AGGREGATE_EVALUATION_OFFSET), value)
+            }
+            builder_set_aggregate_evaluation(__builder, __value)
+        }
+    }
+
+    /// @notice Sets the row multipliers evaluation in the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_set_row_multipliers_evaluation(builder_ptr, value)
+    /// ```
+    /// @param __builder The builder struct
+    /// @param __value The row multipliers evaluation value
+    function __setRowMultipliersEvaluation(Builder memory __builder, uint256 __value) internal pure {
+        assembly {
+            function builder_set_row_multipliers_evaluation(builder_ptr, value) {
+                mstore(add(builder_ptr, BUILDER_ROW_MULTIPLIERS_EVALUATION_OFFSET), value)
+            }
+            builder_set_row_multipliers_evaluation(__builder, __value)
+        }
+    }
+
+    function __produceZerosumConstraint(Builder memory __builder, uint256 __evaluation, uint256 __degree)
+        internal
+        pure
+    {
+        assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/Queue.pre.sol
+            function dequeue(queue_ptr) -> value {
+                revert(0, 0)
+            }
+            function builder_produce_zerosum_constraint(builder_ptr, evaluation, degree) {
+                if gt(degree, mload(add(builder_ptr, BUILDER_MAX_DEGREE_OFFSET))) {
+                    err(ERR_CONSTRAINT_DEGREE_TOO_HIGH)
+                }
+                // builder.aggregateEvaluation += evaluation * dequeue(builder.constraintMultipliers)
+                mstore(
+                    add(builder_ptr, BUILDER_AGGREGATE_EVALUATION_OFFSET),
+                    addmod(
+                        mload(add(builder_ptr, BUILDER_AGGREGATE_EVALUATION_OFFSET)),
+                        mulmod(evaluation, dequeue(add(builder_ptr, BUILDER_CONSTRAINT_MULTIPLIERS_OFFSET)), MODULUS),
+                        MODULUS
+                    )
+                )
+            }
+            builder_produce_zerosum_constraint(__builder, __evaluation, __degree)
+        }
+    }
+
+    function __produceIdentityConstraint(Builder memory __builder, uint256 __evaluation, uint256 __degree)
+        internal
+        pure
+    {
+        assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/Queue.pre.sol
+            function dequeue(queue_ptr) -> value {
+                revert(0, 0)
+            }
+            function builder_produce_identity_constraint(builder_ptr, evaluation, degree) {
+                if gt(add(degree, 1), mload(add(builder_ptr, BUILDER_MAX_DEGREE_OFFSET))) {
+                    err(ERR_CONSTRAINT_DEGREE_TOO_HIGH)
+                }
+                // builder.aggregateEvaluation +=
+                //     evaluation * dequeue(builder.constraintMultipliers) * builder.rowMultipliersEvaluation;
+                mstore(
+                    add(builder_ptr, BUILDER_AGGREGATE_EVALUATION_OFFSET),
+                    addmod(
+                        mload(add(builder_ptr, BUILDER_AGGREGATE_EVALUATION_OFFSET)),
+                        mulmod(
+                            evaluation,
+                            mulmod(
+                                dequeue(add(builder_ptr, BUILDER_CONSTRAINT_MULTIPLIERS_OFFSET)),
+                                mload(add(builder_ptr, BUILDER_ROW_MULTIPLIERS_EVALUATION_OFFSET)),
+                                MODULUS
+                            ),
+                            MODULUS
+                        ),
+                        MODULUS
+                    )
+                )
+            }
+            builder_produce_identity_constraint(__builder, __evaluation, __degree)
+        }
+    }
+
+    /// @notice Sets the column evaluations in the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_set_column_evaluations(builder_ptr, values_ptr)
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// * `values_ptr` - pointer to the array in memory
+    /// @param __builder The builder struct
+    /// @param __values The column evaluation values array
+    function __setColumnEvaluations(Builder memory __builder, uint256[] memory __values) internal pure {
+        assembly {
+            function builder_set_column_evaluations(builder_ptr, values_ptr) {
+                mstore(add(builder_ptr, BUILDER_COLUMN_EVALUATIONS_OFFSET), values_ptr)
+            }
+            builder_set_column_evaluations(__builder, __values)
+        }
+    }
+
+    /// @notice Gets a column evaluation by column number
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_column_evaluation(builder_ptr, column_num) -> value
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// * `column_num` - the column number to get evaluation for
+    /// ##### Return Values
+    /// * `value` - the column evaluation
+    /// @param __builder The builder struct
+    /// @param __columnNum The column number
+    /// @return __value The column evaluation value
+    function __getColumnEvaluation(Builder memory __builder, uint256 __columnNum)
+        internal
+        pure
+        returns (uint256 __value)
+    {
+        assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/Array.pre.sol
+            function get_array_element(arr_ptr, index) -> value {
+                revert(0, 0)
+            }
+            function builder_get_column_evaluation(builder_ptr, column_num) -> value {
+                value := get_array_element(add(builder_ptr, BUILDER_COLUMN_EVALUATIONS_OFFSET), column_num)
+            }
+            __value := builder_get_column_evaluation(__builder, __columnNum)
+        }
+    }
+
+    /// @notice Sets the table chi evaluations in the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_set_table_chi_evaluations(builder_ptr, values_ptr)
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// * `values_ptr` - pointer to the array in memory
+    /// @param __builder The builder struct
+    /// @param __values The table chi evaluation values array
+    function __setTableChiEvaluations(Builder memory __builder, uint256[] memory __values) internal pure {
+        assembly {
+            function builder_set_table_chi_evaluations(builder_ptr, values_ptr) {
+                mstore(add(builder_ptr, BUILDER_TABLE_CHI_EVALUATIONS_OFFSET), values_ptr)
+            }
+            builder_set_table_chi_evaluations(__builder, __values)
+        }
+    }
+
+    /// @notice Gets a table chi evaluation by table number
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_table_chi_evaluation(builder_ptr, table_num) -> value
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// * `table_num` - the table number to get evaluation for
+    /// ##### Return Values
+    /// * `value` - the table chi evaluation
+    /// @param __builder The builder struct
+    /// @param __tableNum The table number
+    /// @return __value The table chi evaluation value
+    function __getTableChiEvaluation(Builder memory __builder, uint256 __tableNum)
+        internal
+        pure
+        returns (uint256 __value)
+    {
+        assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../base/Array.pre.sol
+            function get_array_element(arr_ptr, index) -> value {
+                revert(0, 0)
+            }
+            function builder_get_table_chi_evaluation(builder_ptr, table_num) -> value {
+                value := get_array_element(add(builder_ptr, BUILDER_TABLE_CHI_EVALUATIONS_OFFSET), table_num)
+            }
+            __value := builder_get_table_chi_evaluation(__builder, __tableNum)
         }
     }
 }

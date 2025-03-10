@@ -170,7 +170,7 @@ impl Commitment for NaiveCommitment {
 
 #[allow(clippy::similar_names)]
 #[test]
-fn we_can_compute_commitments_from_commitable_columns() {
+fn we_can_compute_commitments_from_committable_columns() {
     let column_a = [1i64, 10, -5, 0, 10];
     let column_b = vec![
         [1, 0, 0, 0],
@@ -183,40 +183,40 @@ fn we_can_compute_commitments_from_commitable_columns() {
         column_a.iter().map(core::convert::Into::into).collect();
     let column_b_scalars: Vec<TestScalar> =
         column_b.iter().map(core::convert::Into::into).collect();
-    let commitable_column_a = CommittableColumn::BigInt(&column_a);
-    let commitable_column_b = CommittableColumn::VarChar(column_b);
-    let committable_columns: &[CommittableColumn] = &[commitable_column_a, commitable_column_b];
+    let committable_column_a = CommittableColumn::BigInt(&column_a);
+    let committable_column_b = CommittableColumn::VarChar(column_b);
+    let committable_columns: &[CommittableColumn] = &[committable_column_a, committable_column_b];
     let commitments = NaiveCommitment::compute_commitments(committable_columns, 0, &());
     assert_eq!(commitments[0].0, column_a_scalars);
     assert_eq!(commitments[1].0, column_b_scalars);
 }
 
 #[test]
-fn we_can_compute_commitments_from_commitable_columns_with_offset() {
+fn we_can_compute_commitments_from_committable_columns_with_offset() {
     let column_a = [0i64, 1, 10, -5, 0, 10];
     let column_a_scalars: Vec<TestScalar> =
         column_a.iter().map(core::convert::Into::into).collect();
-    let commitable_column_a = CommittableColumn::BigInt(&column_a[1..]);
-    let committable_columns: &[CommittableColumn] = &[commitable_column_a];
+    let committable_column_a = CommittableColumn::BigInt(&column_a[1..]);
+    let committable_columns: &[CommittableColumn] = &[committable_column_a];
     let commitments = NaiveCommitment::compute_commitments(committable_columns, 1, &());
     assert_eq!(commitments[0].0, column_a_scalars);
 }
 
 #[test]
-fn we_can_compute_commitments_from_commitable_varbinary_column() {
+fn we_can_compute_commitments_from_committable_varbinary_column() {
     let varbinary_data = vec![[1u64, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]];
     let varbinary_scalars: Vec<TestScalar> = varbinary_data.iter().map(Into::into).collect();
-    let commitable_column_varbinary = CommittableColumn::VarBinary(varbinary_data);
-    let commitments = NaiveCommitment::compute_commitments(&[commitable_column_varbinary], 0, &());
+    let committable_column_varbinary = CommittableColumn::VarBinary(varbinary_data);
+    let commitments = NaiveCommitment::compute_commitments(&[committable_column_varbinary], 0, &());
     assert_eq!(commitments[0].0, varbinary_scalars);
 }
 
 #[test]
-fn we_can_compute_commitments_from_commitable_varbinary_column_with_offset() {
+fn we_can_compute_commitments_from_committable_varbinary_column_with_offset() {
     let raw_limb_data = [[100u64, 101, 102, 103], [1, 2, 3, 4], [5, 6, 7, 8]];
     let trimmed_data = &raw_limb_data[1..];
-    let commitable_column = CommittableColumn::VarBinary(trimmed_data.to_vec());
-    let commitments = NaiveCommitment::compute_commitments(&[commitable_column], 1, &());
+    let committable_column = CommittableColumn::VarBinary(trimmed_data.to_vec());
+    let commitments = NaiveCommitment::compute_commitments(&[committable_column], 1, &());
     let expected: Vec<TestScalar> = core::iter::once(TestScalar::ZERO)
         .chain(trimmed_data.iter().map(Into::into))
         .collect();

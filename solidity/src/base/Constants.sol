@@ -33,6 +33,32 @@ uint256 constant WORDX11_SIZE = 0x20 * 11;
 /// @dev Size of twelve words in bytes.
 uint256 constant WORDX12_SIZE = 0x20 * 12;
 
+/// @dev Size of uint32 in bytes
+uint256 constant UINT32_SIZE = 0x04;
+/// @dev Number of bits needed to pad uint32 to 256 bits
+/// @dev This is useful for shifting a uint256 to the right to extract a uint32
+uint256 constant UINT32_PADDING_BITS = 0xE0;
+/// @dev Size of uint64 in bytes
+uint256 constant UINT64_SIZE = 0x08;
+/// @dev Number of bits needed to pad uint64 to 256 bits
+/// @dev This is useful for shifting a uint256 to the right to extract a uint64
+uint256 constant UINT64_PADDING_BITS = 0xC0;
+/// @dev Size of int64 in bytes
+uint256 constant INT64_SIZE = 0x08;
+/// @dev Number of bits needed to pad int64 to 256 bits
+/// @dev This is useful for shifting a uint256 to the right to extract a int64
+uint256 constant INT64_PADDING_BITS = 0xC0;
+/// @dev Size of int64 minus one byte
+uint256 constant INT64_SIZE_MINUS_ONE = 0x07;
+
+/// @dev Column variant constant for proof expressions
+uint32 constant COLUMN_EXPR_VARIANT = 0;
+/// @dev Literal variant constant for proof expressions
+uint32 constant LITERAL_EXPR_VARIANT = 1;
+
+/// @dev BigInt variant constant for literal expressions
+uint32 constant LITERAL_BIGINT_VARIANT = 0;
+
 /// @dev Position of the free memory pointer in the context of the EVM memory.
 uint256 constant FREE_PTR = 0x40;
 
@@ -83,7 +109,7 @@ uint256 constant VK_TAU_HY_REAL = 0x1a44ae9f94f7e4a96d8ea5f1d1a67f22e292e9f58cdd
 uint256 constant VK_TAU_HY_IMAG = 0x01ea86d896eddc7a6edac41e80a9e9059440e9b3baf2186fad830ae001a1482a;
 
 /// @dev Size of the verification builder in bytes.
-uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 5;
+uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 11;
 /// @dev Offset of the pointer to the challenge queue in the verification builder.
 uint256 constant BUILDER_CHALLENGES_OFFSET = 0x20 * 0;
 /// @dev Offset of the pointer to the first round MLEs in the verification builder.
@@ -94,3 +120,15 @@ uint256 constant BUILDER_FINAL_ROUND_MLES_OFFSET = 0x20 * 2;
 uint256 constant BUILDER_CHI_EVALUATIONS_OFFSET = 0x20 * 3;
 /// @dev Offset of the pointer to the rho evaluations in the verification builder.
 uint256 constant BUILDER_RHO_EVALUATIONS_OFFSET = 0x20 * 4;
+/// @dev Offset of the pointer to the constraint multipliers in the verification builder.
+uint256 constant BUILDER_CONSTRAINT_MULTIPLIERS_OFFSET = 0x20 * 5;
+/// @dev Offset of the max degree in the verification builder.
+uint256 constant BUILDER_MAX_DEGREE_OFFSET = 0x20 * 6;
+/// @dev Offset of the aggregate evaluation in the verification builder.
+uint256 constant BUILDER_AGGREGATE_EVALUATION_OFFSET = 0x20 * 7;
+/// @dev Offset of the row multipliers evaluation in the verification builder.
+uint256 constant BUILDER_ROW_MULTIPLIERS_EVALUATION_OFFSET = 0x20 * 8;
+/// @dev Offset of the pointer to the column evaluations in the verification builder.
+uint256 constant BUILDER_COLUMN_EVALUATIONS_OFFSET = 0x20 * 9;
+/// @dev Offset of the pointer to the table chi evaluations in the verification builder.
+uint256 constant BUILDER_TABLE_CHI_EVALUATIONS_OFFSET = 0x20 * 10;

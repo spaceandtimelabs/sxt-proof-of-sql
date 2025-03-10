@@ -183,8 +183,8 @@ mod tests {
         base::{
             database::{owned_table_utility::*, ColumnRef, ColumnType, OwnedTableTestAccessor},
             math::decimal::Precision,
-            scalar::Curve25519Scalar,
         },
+        proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
         sql::proof::VerifiableQueryResult,
     };
     use blitzar::proof::InnerProductProof;

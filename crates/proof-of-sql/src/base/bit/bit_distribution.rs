@@ -21,7 +21,7 @@ pub struct BitDistribution {
 
 /// Errors associated with `BitDistribution`
 #[derive(Debug)]
-pub enum BitDistrubutionError {
+pub enum BitDistributionError {
     /// No lead bit was provided when the lead bit is variable
     NoLeadBit,
     /// Failed to verify bit decomposition
@@ -81,11 +81,11 @@ impl BitDistribution {
         &self,
         bit_evals: &[S],
         chi_eval: S,
-    ) -> Result<S, BitDistrubutionError> {
+    ) -> Result<S, BitDistributionError> {
         if U256::from(self.vary_mask) & (U256::ONE.shl(255)) != U256::ZERO {
             bit_evals
                 .last()
-                .ok_or(BitDistrubutionError::NoLeadBit)
+                .ok_or(BitDistributionError::NoLeadBit)
                 .copied()
         } else if U256::from(self.leading_bit_mask) & U256::ONE.shl(255) == U256::ZERO {
             Ok(S::ZERO)

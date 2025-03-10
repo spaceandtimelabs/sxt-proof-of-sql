@@ -48,6 +48,7 @@ pub enum DynProofExpr {
 }
 impl DynProofExpr {
     /// Create column expression
+    #[must_use]
     pub fn new_column(column_ref: ColumnRef) -> Self {
         Self::Column(ColumnExpr::new(column_ref))
     }
@@ -69,6 +70,7 @@ impl DynProofExpr {
         Ok(Self::Not(NotExpr::new(Box::new(expr))))
     }
     /// Create CONST expression
+    #[must_use]
     pub fn new_literal(value: LiteralValue) -> Self {
         Self::Literal(LiteralExpr::new(value))
     }
@@ -161,6 +163,7 @@ impl DynProofExpr {
     }
 
     /// Create a new aggregate expression
+    #[must_use]
     pub fn new_aggregate(op: AggregationOperator, expr: DynProofExpr) -> Self {
         Self::Aggregate(AggregateExpr::new(op, Box::new(expr)))
     }

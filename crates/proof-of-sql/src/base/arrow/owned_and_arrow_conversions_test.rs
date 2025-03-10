@@ -12,6 +12,7 @@ use arrow::{
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
+use proptest::prelude::*;
 
 fn we_can_convert_between_owned_column_and_array_ref_impl(
     owned_column: &OwnedColumn<TestScalar>,
@@ -196,4 +197,14 @@ fn we_can_convert_between_owned_table_and_record_batch() {
 fn we_panic_when_converting_an_owned_table_with_a_scalar_column() {
     let owned_table = owned_table::<TestScalar>([scalar("a", [0; 0])]);
     let _ = RecordBatch::try_from(owned_table);
+}
+
+proptest! {
+    #[test]
+    fn we_can_roundtrip_arbitrary_owned_column(owned_column: OwnedColumn<TestScalar>) {
+        let arrow = ArrayRef::from(owned_column.clone());
+        let actual = OwnedColumn::try_from(arrow).unwrap();
+
+        prop_assert_eq!(actual, owned_column);
+    }
 }

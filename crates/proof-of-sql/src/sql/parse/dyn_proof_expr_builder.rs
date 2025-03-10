@@ -87,6 +87,9 @@ impl DynProofExprBuilder<'_> {
             Literal::Boolean(b) => Ok(DynProofExpr::new_literal(LiteralValue::Boolean(*b))),
             Literal::BigInt(i) => Ok(DynProofExpr::new_literal(LiteralValue::BigInt(*i))),
             Literal::Int128(i) => Ok(DynProofExpr::new_literal(LiteralValue::Int128(*i))),
+            Literal::VarBinary(bytes) => Ok(DynProofExpr::new_literal(LiteralValue::VarBinary(
+                bytes.clone(),
+            ))),
             Literal::Decimal(d) => {
                 let raw_scale = d.scale();
                 let scale = raw_scale.try_into().map_err(|_| InvalidScale {

@@ -3,7 +3,8 @@
 pragma solidity ^0.8.28;
 
 import "../../src/base/Constants.sol";
-import {LagrangeBasisEvaluation} from "../../src/base/LagrangeBasisEvaluation.sol";
+import {LagrangeBasisEvaluation} from "./../../src/base/LagrangeBasisEvaluation.sol";
+import {F, FF} from "./FieldUtil.sol";
 
 /// A library for efficiently computing sums over Lagrange basis polynomials evaluated at points.
 library LagrangeBasisEvaluationTest {
@@ -99,21 +100,21 @@ library LagrangeBasisEvaluationTest {
             point[i] = rand[i];
         }
 
-        uint256 sum = 0;
+        FF sum = F.ZERO;
         for (uint256 i = 0; i < (1 << numVars) + EXTRA_FUZZ_LENGTH; ++i) {
-            uint256 product = 1;
+            FF product = F.ONE;
             for (uint256 j = 0; j < numVars; ++j) {
-                uint256 term = point[j] % MODULUS;
+                FF term = F.from(point[j]);
                 if ((i >> j) & 1 == 0) {
-                    term = (MODULUS + 1 - term) % MODULUS;
+                    term = F.ONE - term;
                 }
-                product = mulmod(product, term, MODULUS);
+                product = product * term;
             }
             if (i >> numVars != 0) {
-                product = 0;
+                product = F.ZERO;
             }
-            assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(i, point) == sum);
-            sum = addmod(sum, product, MODULUS);
+            assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(i, point) == sum.into());
+            sum = sum + product;
         }
     }
 
@@ -129,24 +130,24 @@ library LagrangeBasisEvaluationTest {
             b[i] = rand[i + numVars];
         }
 
-        uint256 sum = 0;
+        FF sum = F.ZERO;
         for (uint256 i = 0; i < (1 << numVars) + EXTRA_FUZZ_LENGTH; ++i) {
-            uint256 product = 1;
+            FF product = F.ONE;
             for (uint256 j = 0; j < numVars; ++j) {
-                uint256 aTerm = a[j] % MODULUS;
-                uint256 bTerm = b[j] % MODULUS;
+                FF aTerm = F.from(a[j]);
+                FF bTerm = F.from(b[j]);
                 if ((i >> j) & 1 == 0) {
-                    aTerm = (MODULUS + 1 - aTerm) % MODULUS;
-                    bTerm = (MODULUS + 1 - bTerm) % MODULUS;
+                    aTerm = F.ONE - aTerm;
+                    bTerm = F.ONE - bTerm;
                 }
-                product = mulmod(product, mulmod(aTerm, bTerm, MODULUS), MODULUS);
+                product = product * aTerm * bTerm;
             }
             if (i >> numVars != 0) {
-                product = 0;
+                product = F.ZERO;
             }
 
-            assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(i, a, b) == sum);
-            sum = addmod(sum, product, MODULUS);
+            assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(i, a, b) == sum.into());
+            sum = sum + product;
         }
     }
 }

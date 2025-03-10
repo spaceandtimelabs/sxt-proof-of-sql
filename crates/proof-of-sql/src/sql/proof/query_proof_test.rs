@@ -11,8 +11,9 @@ use crate::{
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
-        scalar::{Curve25519Scalar, Scalar},
+        scalar::Scalar,
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::proof::{FirstRoundBuilder, QueryData, SumcheckSubpolynomialType},
 };
 use bumpalo::Bump;

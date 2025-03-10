@@ -334,6 +334,8 @@ LiteralValue: Box<intermediate_ast::Literal> = {
     <value: BooleanLiteral> => Box::new(intermediate_ast::Literal::Boolean(value)),
 
     <value: StringLiteral> => Box::new(intermediate_ast::Literal::VarChar(<>)),
+    
+    <value: HexLiteral> => Box::new(intermediate_ast::Literal::VarBinary(<>)),
 
     <value: Int128UnaryNumericLiteral> => if <> <= i64::MAX.into() && <> >= i64::MIN.into() {
         Box::new(intermediate_ast::Literal::BigInt(<> as i64))
@@ -375,6 +377,24 @@ UInt64NumericLiteral: u64 = {
 
 pub StringLiteral: String = {
     STRING_LITERAL => <>[1..<>.len() - 1].replace("''", "'"),
+};
+
+pub HexLiteral: Vec<u8> = {
+    r"0x([0-9a-fA-F]{2})*" => {
+        let hex_str = &<>[2..]; // Skip the "0x" prefix
+        let mut bytes = Vec::with_capacity(hex_str.len() / 2);
+        
+        for i in (0..hex_str.len()).step_by(2) {
+            if i + 1 < hex_str.len() {
+                let byte_str = &hex_str[i..i+2];
+                if let Ok(byte) = u8::from_str_radix(byte_str, 16) {
+                    bytes.push(byte);
+                }
+            }
+        }
+        
+        bytes
+    },
 };
 
 pub BooleanLiteral: bool = {
@@ -454,6 +474,9 @@ match {
     ">" => ">",
     "<" => "<",
     ";" => ";",
+    
+    // Hex literal for VarBinary
+    r"0x([0-9a-fA-F]{2})*" => r"0x([0-9a-fA-F]{2})*",
 } else {
     r"[A-Za-z_][A-Za-z0-9_]*" => ID,
     // Decimal numbers with mandatory fractional part

@@ -1,9 +1,9 @@
 use crate::base::{
     database::ColumnType,
     math::{decimal::Precision, i256::I256},
-    scalar::Scalar,
+    scalar::{Scalar, ScalarExt},
 };
-use alloc::string::String;
+use alloc::{string::String, vec::Vec};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub enum LiteralValue {
     /// Boolean literals
     Boolean(bool),
-    /// i8 literals
+    /// u8 literals
     Uint8(u8),
     /// i8 literals
     TinyInt(i8),
@@ -32,6 +32,9 @@ pub enum LiteralValue {
     ///  - the first element maps to the str value.
     ///  - the second element maps to the str hash (see [`crate::base::scalar::Scalar`]).
     VarChar(String),
+    /// Binary data literals
+    ///  - the backing store is a Vec<u8> for variable length binary data
+    VarBinary(Vec<u8>),
     /// i128 literals
     Int128(i128),
     /// Decimal literals with a max width of 252 bits
@@ -56,6 +59,7 @@ impl LiteralValue {
             Self::Int(_) => ColumnType::Int,
             Self::BigInt(_) => ColumnType::BigInt,
             Self::VarChar(_) => ColumnType::VarChar,
+            Self::VarBinary(_) => ColumnType::VarBinary,
             Self::Int128(_) => ColumnType::Int128,
             Self::Scalar(_) => ColumnType::Scalar,
             Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(*precision, *scale),
@@ -73,6 +77,7 @@ impl LiteralValue {
             Self::Int(i) => i.into(),
             Self::BigInt(i) => i.into(),
             Self::VarChar(str) => str.into(),
+            Self::VarBinary(bytes) => S::from_byte_slice_via_hash(bytes),
             Self::Decimal75(_, _, i) => i.into_scalar(),
             Self::Int128(i) => i.into(),
             Self::Scalar(limbs) => (*limbs).into(),
