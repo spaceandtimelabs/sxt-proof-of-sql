@@ -1382,13 +1382,13 @@ fn we_can_prove_nullable_table_with_arithmetic_operations_with_dory() {
     let expected_result = owned_table([
         nullable_column(
             "a",
-            OwnedColumn::BigInt(vec![1, 2]),
-            Some(vec![false, false]),
+            OwnedColumn::BigInt(vec![1]),
+            Some(vec![false]),
         ),
         nullable_column(
             "b",
-            OwnedColumn::BigInt(vec![1, 0]),
-            Some(vec![false, false]),
+            OwnedColumn::BigInt(vec![1]),
+            Some(vec![false]),
         ),
     ]);
     assert_eq!(owned_table_result, expected_result);
