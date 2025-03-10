@@ -150,7 +150,9 @@ impl<S: Scalar> From<OwnedNullableColumn<S>> for ArrayRef {
         }
 
         let presence = value.presence.unwrap();
-        let null_buffer = NullBuffer::from_iter((0..presence.len()).map(|i| presence[i]));
+        let null_buffer = (0..presence.len())
+            .map(|i| presence[i])
+            .collect::<NullBuffer>();
 
         match value.values {
             OwnedColumn::Boolean(col) => Arc::new(BooleanArray::new(col.into(), Some(null_buffer))),
@@ -176,7 +178,7 @@ impl<S: Scalar> From<OwnedNullableColumn<S>> for ArrayRef {
             OwnedColumn::VarChar(col) => {
                 let mut builder = arrow::array::StringBuilder::with_capacity(
                     col.len(),
-                    col.iter().map(|s| s.len()).sum(),
+                    col.iter().map(String::len).sum(),
                 );
                 for (i, s) in col.iter().enumerate() {
                     if presence[i] {
@@ -190,7 +192,7 @@ impl<S: Scalar> From<OwnedNullableColumn<S>> for ArrayRef {
             OwnedColumn::VarBinary(col) => {
                 let mut builder = arrow::array::BinaryBuilder::with_capacity(
                     col.len(),
-                    col.iter().map(|s| s.len()).sum(),
+                    col.iter().map(Vec::len).sum(),
                 );
                 for (i, s) in col.iter().enumerate() {
                     if presence[i] {
@@ -221,6 +223,7 @@ impl<S: Scalar> From<OwnedNullableColumn<S>> for ArrayRef {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 impl<S: Scalar> TryFrom<OwnedTable<S>> for RecordBatch {
     type Error = ArrowError;
     fn try_from(value: OwnedTable<S>) -> Result<Self, Self::Error> {
@@ -246,6 +249,7 @@ impl<S: Scalar> TryFrom<ArrayRef> for OwnedNullableColumn<S> {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
     type Error = OwnedArrowConversionError;
 
@@ -260,6 +264,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
         let len = value.len();
         let mut presence = vec![true; len];
 
+        #[allow(clippy::needless_range_loop)]
         for i in 0..len {
             if value.is_null(i) {
                 presence[i] = false;
@@ -420,7 +425,6 @@ impl<S: Scalar> TryFrom<ArrayRef> for OwnedColumn<S> {
 impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     type Error = OwnedArrowConversionError;
 
-    #[allow(clippy::too_many_lines)]
     /// # Panics
     ///
     /// Will panic if downcasting fails for the following types:
@@ -431,6 +435,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     /// - `Decimal128Array` when converting from `DataType::Decimal128(38, 0)`.
     /// - `Decimal256Array` when converting from `DataType::Decimal256` if precision is less than or equal to 75.
     /// - `StringArray` when converting from `DataType::Utf8`.
+    #[allow(clippy::too_many_lines)]
     fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
         // Check if the array has nulls
         if value.null_count() > 0 {

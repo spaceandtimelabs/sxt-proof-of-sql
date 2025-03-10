@@ -25,7 +25,7 @@ impl IsNullExpr {
     }
 
     /// Helper function to create a nullable column and evaluate IS NULL condition
-    /// This reduces code duplication between result_evaluate and prover_evaluate
+    /// This reduces code duplication between `result_evaluate` and `prover_evaluate`
     fn create_is_null_column<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,

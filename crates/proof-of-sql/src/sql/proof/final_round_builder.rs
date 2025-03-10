@@ -159,42 +159,39 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
 
     /// Records an IS NULL check for a nullable column
     pub fn record_is_null_check(&mut self, column: &NullableColumn<'a, S>, alloc: &'a Bump) {
-        match &column.presence {
-            Some(presence) => {
-                // When presence is Some, use the presence array directly
-                let presence_column = Column::Boolean(presence);
-                self.produce_intermediate_mle(presence_column);
-            }
-            None => {
-                // When presence is None, create a constant false MLE since no values are null
-                let table_size = column.values.len();
-                let all_false = alloc.alloc_slice_fill_copy(table_size, false);
-                let constant_false = Column::Boolean(all_false);
-                self.produce_intermediate_mle(constant_false);
-            }
+        if let Some(presence) = &column.presence {
+            // When presence is Some, use the presence array directly
+            let presence_column = Column::Boolean(presence);
+            self.produce_intermediate_mle(presence_column);
+        } else {
+            // When presence is None, create a constant false MLE since no values are null
+            let table_size = column.values.len();
+            let all_false = alloc.alloc_slice_fill_copy(table_size, false);
+            let constant_false = Column::Boolean(all_false);
+            self.produce_intermediate_mle(constant_false);
         }
     }
 
     /// Records an IS NOT NULL check for a nullable column
     pub fn record_is_not_null_check(&mut self, column: &NullableColumn<'a, S>, alloc: &'a Bump) {
-        match &column.presence {
-            Some(presence) => {
-                // When presence is Some, negate the presence array since presence[i]=true means NULL
-                let not_null = alloc.alloc_slice_fill_with(presence.len(), |i| !presence[i]);
-                let presence_column = Column::Boolean(not_null);
-                self.produce_intermediate_mle(presence_column);
-            }
-            None => {
-                // When presence is None, all values are non-null so return constant true
-                let table_size = column.values.len();
-                let all_true = alloc.alloc_slice_fill_copy(table_size, true);
-                let constant_true = Column::Boolean(all_true);
-                self.produce_intermediate_mle(constant_true);
-            }
+        if let Some(presence) = &column.presence {
+            // When presence is Some, negate the presence array since presence[i]=true means NULL
+            let not_null = alloc.alloc_slice_fill_with(presence.len(), |i| !presence[i]);
+            let presence_column = Column::Boolean(not_null);
+            self.produce_intermediate_mle(presence_column);
+        } else {
+            // When presence is None, all values are non-null so return constant true
+            let table_size = column.values.len();
+            let all_true = alloc.alloc_slice_fill_copy(table_size, true);
+            let constant_true = Column::Boolean(all_true);
+            self.produce_intermediate_mle(constant_true);
         }
     }
 
     /// Records an IS TRUE check for a nullable column
+    ///
+    /// # Panics
+    /// Panics if the provided column is not a boolean column (i.e., if `column.values` is not `Column::Boolean`)
     pub fn record_is_true_check(&mut self, column: &NullableColumn<'a, S>, alloc: &'a Bump) {
         // Verify that we're working with a boolean column
         if let Column::Boolean(values) = column.values {

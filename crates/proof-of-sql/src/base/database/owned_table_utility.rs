@@ -45,18 +45,11 @@ pub fn owned_table<S: Scalar>(
     OwnedTable::try_from_iter(iter).unwrap()
 }
 
-/// Creates a nullable column with the given values and presence vector.
-/// This is primarily intended for use in conjunction with [`owned_table`].
+/// Creates a nullable column with the given name, values, and presence vector.
 ///
-/// # Example
-/// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let column = nullable_column(
-///     "a",
-///     OwnedColumn::BigInt(vec![1, 2, 3]),
-///     Some(vec![true, false, true])
-/// );
-/// ```
+/// # Panics
+///
+/// Panics if the presence vector length does not match the values length.
 pub fn nullable_column<S: Scalar>(
     name: impl Into<Ident>,
     values: OwnedColumn<S>,

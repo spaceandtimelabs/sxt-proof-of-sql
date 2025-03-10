@@ -66,7 +66,7 @@ pub enum Column<'a, S: Scalar> {
 /// and a `true` value indicates the presence of a value at the corresponding index,
 /// while a `false` value indicates NULL.
 ///
-/// This implementation follows the PostgreSQL approach to NULL values by using
+/// This implementation follows the `PostgreSQL` approach to NULL values by using
 /// a separate boolean array to track presence.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct NullableColumn<'a, S: Scalar> {
@@ -78,7 +78,7 @@ pub struct NullableColumn<'a, S: Scalar> {
 }
 
 impl<'a, S: Scalar> NullableColumn<'a, S> {
-    /// Creates a new NullableColumn without any NULL values
+    /// Creates a new `NullableColumn` without any NULL values
     /// (all values are present)
     #[must_use]
     pub fn new(values: Column<'a, S>) -> Self {
@@ -88,10 +88,9 @@ impl<'a, S: Scalar> NullableColumn<'a, S> {
         }
     }
 
-    /// Creates a new NullableColumn with the given values and presence slice
+    /// Creates a new `NullableColumn` with the given values and presence slice
     ///
     /// Returns an error if the presence slice is `Some` and its length does not match the values length
-    #[must_use]
     pub fn with_presence(
         values: Column<'a, S>,
         presence: Option<&'a [bool]>,
@@ -142,9 +141,7 @@ impl<'a, S: Scalar> NullableColumn<'a, S> {
     pub fn is_null(&self, index: usize) -> bool {
         // Perform a single length check to avoid multiple bounds checks in large datasets
         let column_len = self.len();
-        if index >= column_len {
-            panic!("Index out of bounds");
-        }
+        assert!(index < column_len, "Index out of bounds");
 
         // Use a direct access pattern that's more efficient for large datasets
         match self.presence {
@@ -162,9 +159,7 @@ impl<'a, S: Scalar> NullableColumn<'a, S> {
     pub fn scalar_at(&self, index: usize) -> Option<Option<S>> {
         // Perform a single length check to avoid multiple bounds checks in large datasets
         let column_len = self.len();
-        if index >= column_len {
-            panic!("Index out of bounds");
-        }
+        assert!(index < column_len, "Index out of bounds");
 
         // Optimize the NULL check for large datasets by avoiding unnecessary operations
         // Check if the value is NULL first to avoid unnecessary scalar conversion
@@ -178,7 +173,7 @@ impl<'a, S: Scalar> NullableColumn<'a, S> {
         self.values.scalar_at(index).map(Some)
     }
 
-    /// Create a NullableColumn from an OwnedNullableColumn
+    /// Create a `NullableColumn` from an `OwnedNullableColumn`
     pub fn from_owned_nullable_column(
         owned_column: &'a OwnedNullableColumn<S>,
         alloc: &'a Bump,

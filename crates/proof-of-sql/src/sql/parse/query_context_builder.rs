@@ -307,7 +307,7 @@ impl QueryContextBuilder<'_> {
     fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
         match literal {
             Literal::Boolean(_) => Ok(ColumnType::Boolean),
-            Literal::BigInt(_) => Ok(ColumnType::BigInt),
+            Literal::BigInt(_) | Literal::Null => Ok(ColumnType::BigInt), // NULL literals default to BigInt type
             Literal::Int128(_) => Ok(ColumnType::Int128),
             Literal::VarChar(_) => Ok(ColumnType::VarChar),
             Literal::VarBinary(_) => Ok(ColumnType::VarBinary),
@@ -322,7 +322,6 @@ impl QueryContextBuilder<'_> {
                 ))
             }
             Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(its.timeunit(), its.timezone())),
-            Literal::Null => Ok(ColumnType::BigInt), // NULL literals default to BigInt type
         }
     }
 

@@ -17,14 +17,14 @@ impl<S: Scalar> OwnedTable<S> {
         // Delegate to evaluate_nullable and unwrap the result if it's not nullable
         let nullable_result = self.evaluate_nullable(expr)?;
 
-        // If the result has no NULL values, return the values directly
-        if !nullable_result.is_nullable() {
-            Ok(nullable_result.values)
-        } else {
+        if nullable_result.is_nullable() {
             // If the result has NULL values, we need to handle them
             Err(ExpressionEvaluationError::Unsupported {
                 expression: format!("Expression {expr:?} resulted in NULL values, but NULL values are not supported in this context"),
             })
+        } else {
+            // If the result has no NULL values, return the values directly
+            Ok(nullable_result.values)
         }
     }
 
@@ -101,25 +101,31 @@ impl<S: Scalar> OwnedTable<S> {
         }
     }
 
+    /// Evaluates a literal expression and returns a nullable column.
+    ///
+    /// For NULL literals, creates a boolean column with all values marked as NULL.
+    /// For other literals, evaluates as a non-nullable column and wraps it in a nullable column.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the presence vector length does not match the values length,
+    /// which should never happen as we construct both vectors with the same length.
     fn evaluate_nullable_literal(
         &self,
         lit: &Literal,
     ) -> ExpressionEvaluationResult<OwnedNullableColumn<S>> {
-        match lit {
-            Literal::Null => {
-                // For a NULL literal, create a boolean column with all values marked as NULL
-                let len = self.num_rows();
-                let values = OwnedColumn::Boolean(vec![false; len]);
-                let presence = Some(vec![false; len]); // All values are NULL
-                Ok(OwnedNullableColumn::with_presence(values, presence)
-                    .expect("Presence vector has the same length as values"))
-            }
-            _ => {
-                // For other literals, evaluate as non-nullable column
-                let column = self.evaluate_literal(lit)?;
-                // Convert to a non-nullable OwnedNullableColumn
-                Ok(OwnedNullableColumn::new(column))
-            }
+        if matches!(lit, Literal::Null) {
+            // For a NULL literal, create a boolean column with all values marked as NULL
+            let len = self.num_rows();
+            let values = OwnedColumn::Boolean(vec![false; len]);
+            let presence = Some(vec![false; len]); // All values are NULL
+            Ok(OwnedNullableColumn::with_presence(values, presence)
+                .expect("Presence vector has the same length as values"))
+        } else {
+            // For other literals, evaluate as non-nullable column
+            let column = self.evaluate_literal(lit)?;
+            // Convert to a non-nullable OwnedNullableColumn
+            Ok(OwnedNullableColumn::new(column))
         }
     }
 

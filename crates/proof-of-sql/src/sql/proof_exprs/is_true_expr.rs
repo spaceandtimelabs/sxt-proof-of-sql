@@ -27,9 +27,11 @@ impl IsTrueExpr {
     /// Panics if the provided expression is not a boolean expression
     pub fn new(expr: Box<DynProofExpr>) -> Self {
         // Validate that the expression is a boolean expression
-        if expr.data_type() != ColumnType::Boolean {
-            panic!("IsTrueExpr can only be applied to boolean expressions, but got expression of type: {}", expr.data_type());
-        }
+        assert!(
+            expr.data_type() == ColumnType::Boolean,
+            "IsTrueExpr can only be applied to boolean expressions, but got expression of type: {}",
+            expr.data_type()
+        );
         Self { expr }
     }
 

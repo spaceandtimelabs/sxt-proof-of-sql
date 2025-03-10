@@ -40,6 +40,9 @@ pub enum TableError {
     #[snafu(display("Presence slice length must match table row count"))]
     PresenceLengthMismatch,
 }
+
+type TableSplit<'a, S> = (IndexMap<Ident, Column<'a, S>>, IndexMap<Ident, &'a [bool]>);
+
 /// A table of data, with schema included. This is simply a map from `Ident` to `Column`,
 /// where columns order matters.
 /// This is primarily used as an internal result that is used before
@@ -135,9 +138,7 @@ impl<'a, S: Scalar> Table<'a, S> {
 
     /// Returns both the columns and presence information of this table
     #[must_use]
-    pub fn into_inner_with_presence(
-        self,
-    ) -> (IndexMap<Ident, Column<'a, S>>, IndexMap<Ident, &'a [bool]>) {
+    pub fn into_inner_with_presence(self) -> TableSplit<'a, S> {
         (self.table, self.presence_map)
     }
     /// Returns the columns of this table as an `IndexMap`
@@ -200,7 +201,7 @@ impl<'a, S: Scalar> Table<'a, S> {
     /// This is useful when creating a new table from another table
     #[must_use]
     pub fn with_presence_from(mut self, other: &Self) -> Self {
-        for (ident, presence) in other.presence_map.iter() {
+        for (ident, presence) in &other.presence_map {
             if self.table.contains_key(ident) {
                 self.presence_map.insert(ident.clone(), *presence);
             }
@@ -257,10 +258,11 @@ impl<'a, S: Scalar> Table<'a, S> {
                 _ => {
                     // Pre-allocate capacity for the IndexSet to avoid reallocations in the hot path
                     use crate::base::map::IndexSet;
+                    use std::hash::BuildHasherDefault;
                     const INITIAL_COLUMN_CAPACITY: usize = 4;
                     let mut columns = IndexSet::with_capacity_and_hasher(
                         INITIAL_COLUMN_CAPACITY,
-                        Default::default(),
+                        BuildHasherDefault::default(),
                     );
 
                     expr.get_column_references(&mut columns);
@@ -296,6 +298,7 @@ impl<'a, S: Scalar> Table<'a, S> {
     ///
     /// * `Some(NullableColumn)` if the column exists
     /// * `None` if no column with the given name exists
+    #[must_use]
     pub fn nullable_column(&self, column_name: &str) -> Option<NullableColumn<'a, S>> {
         let ident = Ident::new(column_name);
 
@@ -323,6 +326,7 @@ impl<'a, S: Scalar> Table<'a, S> {
     ///
     /// * `Some(&[bool])` - The presence information for the column if it exists
     /// * `None` - If the column doesn't exist or has no NULL values (all values are present)
+    #[must_use]
     pub fn column_presence(&self, column_name: &str) -> Option<&'a [bool]> {
         let ident = Ident::new(column_name);
         self.presence_map.get(&ident).copied()
