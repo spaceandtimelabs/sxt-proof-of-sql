@@ -2218,7 +2218,7 @@ fn we_can_parse_query_with_is_null_expression() {
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 
     let filter_plan = query_expr.proof_expr();
-    let serialized = flexbuffers::to_vec(&filter_plan).unwrap();
+    let serialized = flexbuffers::to_vec(filter_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
     assert_eq!(filter_plan, &deserialized);
 }
@@ -2231,7 +2231,7 @@ fn we_can_parse_query_with_is_not_null_expression() {
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 
     let filter_plan = query_expr.proof_expr();
-    let serialized = flexbuffers::to_vec(&filter_plan).unwrap();
+    let serialized = flexbuffers::to_vec(filter_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
     assert_eq!(filter_plan, &deserialized);
 }
@@ -2244,7 +2244,7 @@ fn postgres_like_null_comparison_behavior() {
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 
     let filter_plan = query_expr.proof_expr();
-    let serialized = flexbuffers::to_vec(&filter_plan).unwrap();
+    let serialized = flexbuffers::to_vec(filter_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
     assert_eq!(filter_plan, &deserialized);
 }
@@ -2255,7 +2255,7 @@ fn null_literal_in_select_clause() {
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 
     let proof_plan = query_expr.proof_expr();
-    let serialized = flexbuffers::to_vec(&proof_plan).unwrap();
+    let serialized = flexbuffers::to_vec(proof_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
     assert_eq!(proof_plan, &deserialized);
 }
@@ -2268,7 +2268,7 @@ fn we_can_group_by_nullable_columns() {
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 
     let proof_plan = query_expr.proof_expr();
-    let serialized = flexbuffers::to_vec(&proof_plan).unwrap();
+    let serialized = flexbuffers::to_vec(proof_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
     assert_eq!(proof_plan, &deserialized);
 }
@@ -2280,7 +2280,7 @@ fn we_can_order_by_nullable_columns() {
     assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 
     let proof_plan = query_expr.proof_expr();
-    let serialized = flexbuffers::to_vec(&proof_plan).unwrap();
+    let serialized = flexbuffers::to_vec(proof_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
     assert_eq!(proof_plan, &deserialized);
 }

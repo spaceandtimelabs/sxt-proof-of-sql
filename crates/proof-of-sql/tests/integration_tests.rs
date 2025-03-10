@@ -7,12 +7,9 @@ use proof_of_sql::base::commitment::InnerProductProof;
 #[cfg(feature = "hyperkzg")]
 use proof_of_sql::proof_primitive::hyperkzg::HyperKZGCommitmentEvaluationProof;
 use proof_of_sql::{
-    base::{
-        database::{
-            owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableTestAccessor, TableRef,
-            TestAccessor,
-        },
-        scalar::Curve25519Scalar,
+    base::database::{
+        owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableTestAccessor, TableRef,
+        TestAccessor,
     },
     proof_primitive::{
         dory::{

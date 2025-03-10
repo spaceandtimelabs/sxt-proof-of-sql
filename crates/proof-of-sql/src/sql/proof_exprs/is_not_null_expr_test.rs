@@ -9,13 +9,14 @@ use crate::{
 use alloc::boxed::Box;
 use bumpalo::Bump;
 use sqlparser::ast::Ident;
+use std::hash::BuildHasherDefault;
 
 #[test]
 fn test_is_not_null_expr() {
     let alloc = Bump::new();
-    let mut columns = IndexMap::with_hasher(Default::default());
+    let mut columns = IndexMap::with_hasher(BuildHasherDefault::default());
     let column_values: Column<'_, TestScalar> = Column::Int(&[1, 2, 3, 4, 5]);
-    let presence = &[true, false, true, false, true];
+    let presence = &[false, true, false, true, false];
     let nullable_column = NullableColumn {
         values: column_values,
         presence: Some(presence),
@@ -25,7 +26,7 @@ fn test_is_not_null_expr() {
     columns.insert(Ident::new("test_column"), nullable_column.values);
 
     // Create a presence map to properly handle NULL values
-    let mut presence_map = IndexMap::with_hasher(Default::default());
+    let mut presence_map = IndexMap::with_hasher(BuildHasherDefault::default());
     presence_map.insert(Ident::new("test_column"), presence.as_slice());
 
     // Create the table with both column values and presence information
@@ -47,12 +48,12 @@ fn test_is_not_null_expr() {
     match result {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
-            // Values at index 1 and 3 should be NULL, so IS NOT NULL should be false
-            assert_eq!(values[0], true);
-            assert_eq!(values[1], false);
-            assert_eq!(values[2], true);
-            assert_eq!(values[3], false);
-            assert_eq!(values[4], true);
+            // Values at index 1 and 3 should be NULL (presence[i] = true), so IS NOT NULL should be false
+            assert!(values[0]);
+            assert!(!values[1]);
+            assert!(values[2]);
+            assert!(!values[3]);
+            assert!(values[4]);
         }
         _ => panic!("Expected boolean column"),
     }

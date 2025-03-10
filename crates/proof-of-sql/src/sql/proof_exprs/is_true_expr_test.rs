@@ -9,11 +9,12 @@ use crate::{
 use alloc::boxed::Box;
 use bumpalo::Bump;
 use sqlparser::ast::Ident;
+use std::hash::BuildHasherDefault;
 
 #[test]
 fn test_is_true_expr() {
     let alloc = Bump::new();
-    let mut table_map = IndexMap::with_hasher(Default::default());
+    let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());
     let column_values: Column<'_, TestScalar> = Column::Boolean(&[true, false, true, false, true]);
     let presence = &[true, false, true, false, true];
     let nullable_column = NullableColumn {
@@ -24,7 +25,7 @@ fn test_is_true_expr() {
     table_map.insert(Ident::new("test_column"), nullable_column.values);
 
     // Create a presence map to properly handle NULL values
-    let mut presence_map = IndexMap::with_hasher(Default::default());
+    let mut presence_map = IndexMap::with_hasher(BuildHasherDefault::default());
     presence_map.insert(Ident::new("test_column"), presence.as_slice());
 
     // Create the table with both column values and presence information
@@ -44,11 +45,11 @@ fn test_is_true_expr() {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // IS TRUE should be true only for non-NULL true values (index 0 and 2)
-            assert_eq!(values[0], true); // true and not NULL
-            assert_eq!(values[1], false); // NULL
-            assert_eq!(values[2], true); // true and not NULL
-            assert_eq!(values[3], false); // NULL
-            assert_eq!(values[4], true); // true and not NULL
+            assert!(values[0]); // true and not NULL
+            assert!(!values[1]); // NULL
+            assert!(values[2]); // true and not NULL
+            assert!(!values[3]); // NULL
+            assert!(values[4]); // true and not NULL
         }
         _ => panic!("Expected boolean column"),
     }
@@ -57,7 +58,7 @@ fn test_is_true_expr() {
 #[test]
 fn test_is_true_expr_with_false_values() {
     let alloc = Bump::new();
-    let mut table_map = IndexMap::with_hasher(Default::default());
+    let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());
     let column_values: Column<'_, TestScalar> = Column::Boolean(&[true, false, true, false, false]);
     let presence = &[true, false, true, false, false];
     let nullable_column = NullableColumn {
@@ -67,7 +68,7 @@ fn test_is_true_expr_with_false_values() {
 
     table_map.insert(Ident::new("test_column"), nullable_column.values);
 
-    let mut presence_map = IndexMap::with_hasher(Default::default());
+    let mut presence_map = IndexMap::with_hasher(BuildHasherDefault::default());
     presence_map.insert(Ident::new("test_column"), presence.as_slice());
 
     let table =
@@ -86,11 +87,11 @@ fn test_is_true_expr_with_false_values() {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // IS TRUE should be true only for non-NULL true values (index 0 and 2)
-            assert_eq!(values[0], true); // true and not NULL (presence[0] = true, values[0] = true)
-            assert_eq!(values[1], false); // NULL (presence[1] = false)
-            assert_eq!(values[2], true); // true and not NULL (presence[2] = true, values[2] = true)
-            assert_eq!(values[3], false); // NULL (presence[3] = false)
-            assert_eq!(values[4], false); // NULL (presence[4] = false)
+            assert!(values[0]); // true and not NULL (presence[0] = true, values[0] = true)
+            assert!(!values[1]); // NULL (presence[1] = false)
+            assert!(values[2]); // true and not NULL (presence[2] = true, values[2] = true)
+            assert!(!values[3]); // NULL (presence[3] = false)
+            assert!(!values[4]); // NULL (presence[4] = false)
         }
         _ => panic!("Expected boolean column"),
     }
@@ -99,7 +100,7 @@ fn test_is_true_expr_with_false_values() {
 #[test]
 fn test_is_true_expr_with_boolean_column() {
     let alloc = Bump::new();
-    let mut table_map = IndexMap::with_hasher(Default::default());
+    let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());
     let column_values: Column<'_, TestScalar> = Column::Boolean(&[true, false, true, false, true]);
     let presence = &[true, false, true, false, true];
     let nullable_column = NullableColumn {
@@ -109,7 +110,7 @@ fn test_is_true_expr_with_boolean_column() {
 
     table_map.insert(Ident::new("test_column"), nullable_column.values);
 
-    let mut presence_map = IndexMap::with_hasher(Default::default());
+    let mut presence_map = IndexMap::with_hasher(BuildHasherDefault::default());
     presence_map.insert(Ident::new("test_column"), presence.as_slice());
 
     let table =
@@ -128,11 +129,11 @@ fn test_is_true_expr_with_boolean_column() {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // IS TRUE should be true only for non-NULL true values (index 0 and 2)
-            assert_eq!(values[0], true); // true and not NULL
-            assert_eq!(values[1], false); // NULL
-            assert_eq!(values[2], true); // true and not NULL
-            assert_eq!(values[3], false); // NULL
-            assert_eq!(values[4], true); // true and not NULL
+            assert!(values[0]); // true and not NULL
+            assert!(!values[1]); // NULL
+            assert!(values[2]); // true and not NULL
+            assert!(!values[3]); // NULL
+            assert!(values[4]); // true and not NULL
         }
         _ => panic!("Expected boolean column"),
     }
@@ -141,7 +142,7 @@ fn test_is_true_expr_with_boolean_column() {
 #[test]
 fn test_is_true_expr_with_non_boolean_column() {
     let alloc = Bump::new();
-    let mut table_map = IndexMap::with_hasher(Default::default());
+    let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());
     let column_values: Column<'_, TestScalar> = Column::Boolean(&[true, false, true, false, false]);
     let presence = &[true, true, false, false, true];
     let nullable_column = NullableColumn {
@@ -151,7 +152,7 @@ fn test_is_true_expr_with_non_boolean_column() {
 
     table_map.insert(Ident::new("test_column"), nullable_column.values);
 
-    let mut presence_map = IndexMap::with_hasher(Default::default());
+    let mut presence_map = IndexMap::with_hasher(BuildHasherDefault::default());
     presence_map.insert(Ident::new("test_column"), presence.as_slice());
 
     let table =
@@ -170,11 +171,11 @@ fn test_is_true_expr_with_non_boolean_column() {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // IS TRUE should be true only for non-NULL true values (index 0)
-            assert_eq!(values[0], true); // true and not NULL
-            assert_eq!(values[1], false); // false and not NULL
-            assert_eq!(values[2], false); // NULL
-            assert_eq!(values[3], false); // NULL
-            assert_eq!(values[4], false); // false and not NULL
+            assert!(values[0]); // true and not NULL
+            assert!(!values[1]); // false and not NULL
+            assert!(!values[2]); // NULL
+            assert!(!values[3]); // NULL
+            assert!(!values[4]); // false and not NULL
         }
         _ => panic!("Expected boolean column"),
     }

@@ -1470,7 +1470,7 @@ mod tests {
     #[test]
     fn we_can_convert_valid_binary_array_refs_into_valid_columns_using_precomputed_scalars() {
         let alloc = Bump::new();
-        let data = vec![b"ab".as_slice(), b"-f34".as_slice()];
+        let data = [b"ab".as_slice(), b"-f34".as_slice()];
         let scals: Vec<_> = data
             .iter()
             .copied()
@@ -1572,9 +1572,9 @@ mod tests {
 
         match nullable_column.values {
             Column::Boolean(values) => {
-                assert_eq!(values[0], true);
-                assert_eq!(values[1], false);
-                assert_eq!(values[2], false);
+                assert!(values[0]);
+                assert!(!values[1]);
+                assert!(!values[2]);
             }
             _ => panic!("Expected Boolean column"),
         }
