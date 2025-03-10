@@ -1,5 +1,8 @@
 use super::SumcheckMleEvaluations;
-use crate::{base::scalar::Curve25519Scalar, sql::proof::SumcheckRandomScalars};
+use crate::{
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
+    sql::proof::SumcheckRandomScalars,
+};
 use num_traits::One;
 
 #[test]

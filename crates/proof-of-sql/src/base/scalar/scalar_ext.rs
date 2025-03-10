@@ -76,15 +76,12 @@ pub(crate) fn test_scalar_constants<S: Scalar>() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        base::scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar},
-        proof_primitive::dory::DoryScalar,
-    };
+    use crate::base::scalar::{test_scalar::TestScalar, MontScalar};
     use bytemuck::cast;
 
     #[test]
     fn we_can_get_zero_from_zero_bytes() {
-        assert_eq!(DoryScalar::from_byte_slice_via_hash(&[]), DoryScalar::ZERO);
+        assert_eq!(TestScalar::from_byte_slice_via_hash(&[]), TestScalar::ZERO);
     }
 
     #[test]
@@ -96,7 +93,7 @@ mod tests {
             0xa1, 0x2d, 0x6c, 0x05,
         ];
 
-        let scalar_from_bytes: DoryScalar = DoryScalar::from_byte_slice_via_hash(b"abc");
+        let scalar_from_bytes: TestScalar = TestScalar::from_byte_slice_via_hash(b"abc");
 
         let limbs_native: [u64; 4] = cast(expected);
         let limbs_le = [
@@ -105,7 +102,7 @@ mod tests {
             u64::from_le_bytes(limbs_native[2].to_le_bytes()),
             u64::from_le_bytes(limbs_native[3].to_le_bytes()),
         ];
-        let scalar_from_ref = DoryScalar::from(limbs_le);
+        let scalar_from_ref = TestScalar::from(limbs_le);
 
         assert_eq!(
             scalar_from_bytes, scalar_from_ref,
@@ -113,19 +110,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn scalar_comparison_works() {
-        let zero = Curve25519Scalar::ZERO;
-        let one = Curve25519Scalar::ONE;
-        let two = Curve25519Scalar::TWO;
-        let max = Curve25519Scalar::MAX_SIGNED;
-        let min = max + one;
-        assert_eq!(max.signed_cmp(&one), Ordering::Greater);
-        assert_eq!(one.signed_cmp(&zero), Ordering::Greater);
-        assert_eq!(min.signed_cmp(&zero), Ordering::Less);
-        assert_eq!((two * max).signed_cmp(&zero), Ordering::Less);
-        assert_eq!(two * max + one, zero);
-    }
     #[test]
     fn we_can_compute_powers_of_10() {
         for i in 0..=u128::MAX.ilog10() {
@@ -140,5 +124,19 @@ mod tests {
                 "10000000000000000000000000000000000000000000000000000000000000000000000000000"
             ))
         );
+    }
+
+    #[test]
+    fn scalar_comparison_works() {
+        let zero = TestScalar::ZERO;
+        let one = TestScalar::ONE;
+        let two = TestScalar::TWO;
+        let max = TestScalar::MAX_SIGNED;
+        let min = max + one;
+        assert_eq!(max.signed_cmp(&one), Ordering::Greater);
+        assert_eq!(one.signed_cmp(&zero), Ordering::Greater);
+        assert_eq!(min.signed_cmp(&zero), Ordering::Less);
+        assert_eq!((two * max).signed_cmp(&zero), Ordering::Less);
+        assert_eq!(two * max + one, zero);
     }
 }

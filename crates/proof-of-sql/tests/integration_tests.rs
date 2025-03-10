@@ -14,9 +14,12 @@ use proof_of_sql::{
         },
         scalar::Curve25519Scalar,
     },
-    proof_primitive::dory::{
-        DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
-        DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+    proof_primitive::{
+        dory::{
+            DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
+            DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+        },
+        inner_product::curve_25519_scalar::Curve25519Scalar,
     },
     sql::{
         parse::{ConversionError, QueryExpr},

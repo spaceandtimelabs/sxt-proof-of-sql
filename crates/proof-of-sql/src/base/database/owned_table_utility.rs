@@ -3,8 +3,10 @@
 //!
 //! # Example
 //! ```
-//! use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-//! let result = owned_table::<Curve25519Scalar>([
+//! use proof_of_sql::base::{database::owned_table_utility::*};
+//! # use proof_of_sql::base::scalar::MontScalar;
+//! # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+//! let result = owned_table::<MyScalar>([
 //!     bigint("a", [1, 2, 3]),
 //!     boolean("b", [true, false, true]),
 //!     int128("c", [1, 2, 3]),
@@ -26,14 +28,16 @@ use sqlparser::ast::Ident;
 ///
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
-///     bigint("a", [1, 2, 3]),
-///     boolean("b", [true, false, true]),
-///     int128("c", [1, 2, 3]),
-///     scalar("d", [1, 2, 3]),
-///     varchar("e", ["a", "b", "c"]),
-///     decimal75("f", 12, 1, [1, 2, 3]),
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
+///      bigint("a", [1, 2, 3]),
+///      boolean("b", [true, false, true]),
+///      int128("c", [1, 2, 3]),
+///      scalar("d", [1, 2, 3]),
+///      varchar("e", ["a", "b", "c"]),
+///      decimal75("f", 12, 1, [1, 2, 3]),
 /// ]);
 /// ```
 /// ///
@@ -63,8 +67,10 @@ pub fn nullable_column<S: Scalar>(
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///     uint8("a", [1_u8, 2, 3]),
 /// ]);
 ///```
@@ -82,8 +88,10 @@ pub fn uint8<S: Scalar>(
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///     tinyint("a", [1_i8, 2, 3]),
 /// ]);
 ///```
@@ -101,8 +109,10 @@ pub fn tinyint<S: Scalar>(
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```rust
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///     smallint("a", [1_i16, 2, 3]),
 /// ]);
 /// ```
@@ -120,8 +130,10 @@ pub fn smallint<S: Scalar>(
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```rust
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///     int("a", [1, 2, 3]),
 /// ]);
 /// ```
@@ -139,8 +151,10 @@ pub fn int<S: Scalar>(
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```rust
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///     bigint("a", [1, 2, 3]),
 /// ]);
 /// ```
@@ -159,8 +173,10 @@ pub fn bigint<S: Scalar>(
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///     boolean("a", [true, false, true]),
 /// ]);
 /// ```
@@ -178,8 +194,10 @@ pub fn boolean<S: Scalar>(
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///     int128("a", [1, 2, 3]),
 /// ]);
 /// ```
@@ -197,8 +215,10 @@ pub fn int128<S: Scalar>(
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///     scalar("a", [1, 2, 3]),
 /// ]);
 /// ```
@@ -216,8 +236,10 @@ pub fn scalar<S: Scalar>(
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///     varchar("a", ["a", "b", "c"]),
 /// ]);
 /// ```
@@ -235,8 +257,10 @@ pub fn varchar<S: Scalar>(
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///    varbinary("a", [[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
 /// ]);
 /// ```
@@ -254,8 +278,10 @@ pub fn varbinary<S: Scalar>(
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///     decimal75("a", 12, 1, [1, 2, 3]),
 /// ]);
 /// ```
@@ -289,13 +315,12 @@ pub fn decimal75<S: Scalar>(
 ///
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*,
-///     scalar::Curve25519Scalar,
-/// };
+/// use proof_of_sql::base::{database::owned_table_utility::*, };
 /// use proof_of_sql_parser::{
 ///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
-///
-/// let result = owned_table::<Curve25519Scalar>([
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+/// let result = owned_table::<MyScalar>([
 ///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), vec![1625072400, 1625076000, 1625079600]),
 /// ]);
 /// ```

@@ -1,4 +1,4 @@
-use super::{Scalar, ScalarConversionError};
+use crate::base::scalar::{Scalar, ScalarConversionError};
 use alloc::{
     format,
     string::{String, ToString},
@@ -19,7 +19,6 @@ use core::{
 use num_bigint::BigInt;
 use num_traits::{Signed, Zero};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
 #[derive(CanonicalSerialize, CanonicalDeserialize, TransparentWrapper)]
 /// A wrapper struct around a `Fp256<MontBackend<T, 4>>` that can easily implement the `Scalar` trait.
 ///
@@ -181,30 +180,30 @@ where
     }
 }
 
-/// A wrapper type around the field element `ark_curve25519::Fr` and should be used in place of `ark_curve25519::Fr`.
-///
-/// Using the `Scalar` trait rather than this type is encouraged to allow for easier switching of the underlying field.
-pub type Curve25519Scalar = MontScalar<ark_curve25519::FrConfig>;
-
 impl<T: MontConfig<4>> MontScalar<T> {
     /// Convenience function for creating a new `MontScalar<T>` from the underlying `Fp256<MontBackend<T, 4>>`. Should only be used in tests.
     #[cfg(test)]
+    #[must_use]
     pub fn new(value: Fp256<MontBackend<T, 4>>) -> Self {
         Self(value)
     }
+
     /// Create a new `MontScalar<T>` from a `[u64, 4]`. The array is expected to be in non-montgomery form.
     ///
     /// # Panics
     ///
     /// This method will panic if the provided `[u64; 4]` cannot be converted into a valid `BigInt` due to an overflow or invalid input. The method unwraps the result of `Fp::from_bigint`, which will panic if the `BigInt` does not represent a valid field element ("Invalid input" refers to an integer that is outside the valid range [0,p-1] for the prime field or cannot be represented as a canonical field element. It can also occur due to overflow or issues in the conversion process.).
+    #[must_use]
     pub fn from_bigint(vals: [u64; 4]) -> Self {
         Self(Fp::from_bigint(ark_ff::BigInt(vals)).unwrap())
     }
     /// Create a new `MontScalar<T>` from a `[u8]` modulus the field order. The array is expected to be in non-montgomery form.
+    #[must_use]
     pub fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
         Self(Fp::from_le_bytes_mod_order(bytes))
     }
     /// Create a `Vec<u8>` from a `MontScalar<T>`. The array will be in non-montgomery form.
+    #[must_use]
     #[allow(clippy::wrong_self_convention)]
     pub fn to_bytes_le(&self) -> Vec<u8> {
         self.0.into_bigint().to_bytes_le()
@@ -216,6 +215,7 @@ impl<T: MontConfig<4>> MontScalar<T> {
     }
     /// Convenience function for converting a slice of `Curve25519Scalar` into a vector of `ark_curve25519::Fr`. Should not be used outside of tests.
     #[cfg(test)]
+    #[must_use]
     pub fn unwrap_slice(slice: &[Self]) -> Vec<Fp256<MontBackend<T, 4>>> {
         slice.iter().map(|x| x.0).collect()
     }
@@ -255,31 +255,6 @@ impl<T: MontConfig<4>> From<[u64; 4]> for MontScalar<T> {
 impl<T: MontConfig<4>> ark_std::UniformRand for MontScalar<T> {
     fn rand<R: ark_std::rand::Rng + ?Sized>(rng: &mut R) -> Self {
         Self(ark_ff::UniformRand::rand(rng))
-    }
-}
-
-impl core::ops::Mul<curve25519_dalek::ristretto::RistrettoPoint> for Curve25519Scalar {
-    type Output = curve25519_dalek::ristretto::RistrettoPoint;
-    fn mul(self, rhs: curve25519_dalek::ristretto::RistrettoPoint) -> Self::Output {
-        curve25519_dalek::scalar::Scalar::from(self) * rhs
-    }
-}
-impl core::ops::Mul<Curve25519Scalar> for curve25519_dalek::ristretto::RistrettoPoint {
-    type Output = curve25519_dalek::ristretto::RistrettoPoint;
-    fn mul(self, rhs: Curve25519Scalar) -> Self::Output {
-        self * curve25519_dalek::scalar::Scalar::from(rhs)
-    }
-}
-impl core::ops::Mul<&curve25519_dalek::ristretto::RistrettoPoint> for Curve25519Scalar {
-    type Output = curve25519_dalek::ristretto::RistrettoPoint;
-    fn mul(self, rhs: &curve25519_dalek::ristretto::RistrettoPoint) -> Self::Output {
-        curve25519_dalek::scalar::Scalar::from(self) * rhs
-    }
-}
-impl core::ops::Mul<Curve25519Scalar> for &curve25519_dalek::ristretto::RistrettoPoint {
-    type Output = curve25519_dalek::ristretto::RistrettoPoint;
-    fn mul(self, rhs: Curve25519Scalar) -> Self::Output {
-        self * curve25519_dalek::scalar::Scalar::from(rhs)
     }
 }
 
@@ -326,22 +301,6 @@ impl<T: MontConfig<4>> core::ops::Neg for &MontScalar<T> {
     type Output = MontScalar<T>;
     fn neg(self) -> Self::Output {
         MontScalar(-self.0)
-    }
-}
-impl From<Curve25519Scalar> for curve25519_dalek::scalar::Scalar {
-    fn from(value: Curve25519Scalar) -> Self {
-        (&value).into()
-    }
-}
-
-impl From<&Curve25519Scalar> for curve25519_dalek::scalar::Scalar {
-    ///
-    /// # Panics
-    ///
-    /// This method will panic if the byte array is not of the expected length (32 bytes) or if it cannot be converted to a valid canonical scalar. However, under normal conditions, valid `Curve25519Scalar` values should always satisfy these requirements.
-    fn from(value: &Curve25519Scalar) -> Self {
-        let bytes = ark_ff::BigInteger::to_bytes_le(&value.0.into_bigint());
-        curve25519_dalek::scalar::Scalar::from_canonical_bytes(bytes.try_into().unwrap()).unwrap()
     }
 }
 

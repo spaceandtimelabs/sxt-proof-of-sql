@@ -3,11 +3,11 @@ mod scalar;
 pub use scalar::Scalar;
 mod error;
 pub use error::ScalarConversionError;
+/// TODO add doc
 mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
-pub use mont_scalar::Curve25519Scalar;
-pub(crate) use mont_scalar::MontScalar;
+pub use mont_scalar::MontScalar;
 /// Module for a test Scalar
 #[cfg(test)]
 pub mod test_scalar;
