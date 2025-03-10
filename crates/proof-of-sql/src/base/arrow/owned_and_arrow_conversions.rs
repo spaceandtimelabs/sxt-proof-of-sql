@@ -13,9 +13,8 @@
 //! This does not check that the values are less than 39 digits.
 //! However, the actual arrow backing `i128` is the correct value.
 use super::scalar_and_i256_conversions::{convert_i256_to_scalar, convert_scalar_to_i256};
-use crate::base::database::TableError;
 use crate::base::{
-    database::{OwnedColumn, OwnedNullableColumn, OwnedTable, OwnedTableError},
+    database::{OwnedColumn, OwnedNullableColumn, OwnedTable, OwnedTableError, TableError},
     map::IndexMap,
     math::decimal::Precision,
     scalar::Scalar,

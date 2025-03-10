@@ -1,7 +1,6 @@
 use super::{owned_column::OwnedNullableColumn, LiteralValue, TableRef};
 use crate::base::{
-    database::owned_column::OwnedColumn,
-    database::table::TableError,
+    database::{owned_column::OwnedColumn, table::TableError},
     math::decimal::Precision,
     scalar::{Scalar, ScalarExt},
     slice_ops::slice_cast_with,
