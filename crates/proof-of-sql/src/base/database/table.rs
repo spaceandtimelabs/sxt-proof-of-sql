@@ -258,7 +258,7 @@ impl<'a, S: Scalar> Table<'a, S> {
                 _ => {
                     // Pre-allocate capacity for the IndexSet to avoid reallocations in the hot path
                     use crate::base::map::IndexSet;
-                    use std::hash::BuildHasherDefault;
+                    use core::hash::BuildHasherDefault;
                     const INITIAL_COLUMN_CAPACITY: usize = 4;
                     let mut columns = IndexSet::with_capacity_and_hasher(
                         INITIAL_COLUMN_CAPACITY,
