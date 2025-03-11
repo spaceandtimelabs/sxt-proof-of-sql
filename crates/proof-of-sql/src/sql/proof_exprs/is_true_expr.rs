@@ -6,7 +6,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -97,26 +97,49 @@ impl ProofExpr for IsTrueExpr {
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
         let inner_column = self.expr.prover_evaluate(builder, alloc, table);
-        let nullable_column =
-            NullableColumn::with_presence(inner_column, table.presence_for_expr(&*self.expr))
-                .unwrap_or_else(|_| {
-                    // If there's an error, assume no NULLs (all values present)
-                    NullableColumn::new(inner_column)
-                });
-        let result_slice = alloc.alloc_slice_fill_with(table.num_rows(), |i| {
-            if nullable_column.is_null(i) {
-                false // NULL values are never TRUE
-            } else {
-                // Check if the value is true
-                match nullable_column.values {
-                    Column::Boolean(values) => values[i],
-                    _ => panic!("IS TRUE can only be applied to boolean expressions"),
-                }
-            }
-        });
+        let presence = table.presence_for_expr(&*self.expr);
 
-        // Record the IS TRUE operation in the proof
+        // Compute the not-null indicator: if no presence then all entries are not null, else invert the presence slice
+        let not_null = if presence.is_none() {
+            alloc.alloc_slice_fill_copy(table.num_rows(), true)
+        } else {
+            let presence_slice = presence.unwrap();
+            alloc.alloc_slice_fill_with(presence_slice.len(), |i| !presence_slice[i])
+        };
+
+        // Compute result as the product (logical AND) of not_null and the inner boolean value
+        let result_slice = if let Column::Boolean(inner_values) = inner_column {
+            alloc.alloc_slice_fill_with(table.num_rows(), |i| not_null[i] && inner_values[i])
+        } else {
+            panic!("IS TRUE can only be applied to boolean expressions");
+        };
+
+        // Create a nullable column using the original presence
+        let nullable_column = match NullableColumn::with_presence(inner_column, presence) {
+            Ok(col) => col,
+            Err(err) => {
+                tracing::warn!(
+                    "IsTrueExpr: Error creating NullableColumn: {:?}, assuming no NULLs",
+                    err
+                );
+                NullableColumn::new(inner_column)
+            }
+        };
+
+        // Record the IS TRUE check in the proof
         builder.record_is_true_check(&nullable_column, alloc);
+
+        // For boolean expressions, enforce algebraically that the result equals (not_null * inner_value)
+        if let Column::Boolean(inner_values) = inner_column {
+            let expected =
+                alloc.alloc_slice_fill_with(table.num_rows(), |i| not_null[i] && inner_values[i]);
+            let mismatch =
+                alloc.alloc_slice_fill_with(table.num_rows(), |i| result_slice[i] != expected[i]);
+            builder.produce_sumcheck_subpolynomial(
+                SumcheckSubpolynomialType::Identity,
+                vec![(S::one(), vec![Box::new(&*mismatch)])],
+            );
+        }
 
         Column::Boolean(result_slice)
     }
@@ -130,7 +153,14 @@ impl ProofExpr for IsTrueExpr {
         // Get the evaluation of the inner expression
         let _inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
 
-        // Get the next value from the builder
+        // Enforce final consistency check by producing the sumcheck subpolynomial evaluation which should yield zero
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
+            SumcheckSubpolynomialType::Identity,
+            S::zero(),
+            2,
+        )?;
+
+        // Now, consume the final round MLE evaluation for IS TRUE
         Ok(builder.try_consume_final_round_mle_evaluation()?)
     }
 
