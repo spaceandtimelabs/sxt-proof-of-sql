@@ -13,6 +13,7 @@ if [ ! -f "$YAML_FILE" ]; then
   echo "Error: $YAML_FILE not found."
   echo "Please run this script from the repository root or update YAML_FILE accordingly."
   echo "Exiting with status 0, no commands executed."
+  exit 0
 
 fi
 
