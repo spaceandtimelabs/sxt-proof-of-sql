@@ -6,7 +6,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -77,6 +77,28 @@ impl ProofExpr for IsNullExpr {
         // Record the IS NULL operation in the proof
         builder.record_is_null_check(&nullable_column, alloc);
 
+        // For boolean columns, we can add a constraint that when is_null is true, the inner value must be false
+        if let Column::Boolean(inner_values) = inner_column {
+            // Get the is_null slice (presence slice)
+            let is_null_slice = if let Some(presence) = &nullable_column.presence {
+                presence
+            } else {
+                // If presence is None, all values are non-null, so is_null is all false
+                // Convert the mutable slice to an immutable reference to match the presence type
+                &*alloc.alloc_slice_fill_copy(table.num_rows(), false)
+            };
+
+            // Create a slice that is true when is_null is true and inner_value is true (which should never happen)
+            let invalid_state = alloc
+                .alloc_slice_fill_with(table.num_rows(), |i| is_null_slice[i] && inner_values[i]);
+
+            // Add a constraint that invalid_state must be all false
+            builder.produce_sumcheck_subpolynomial(
+                SumcheckSubpolynomialType::Identity,
+                vec![(S::one(), vec![Box::new(&*invalid_state)])],
+            );
+        }
+
         result
     }
 
@@ -91,9 +113,24 @@ impl ProofExpr for IsNullExpr {
         chi_eval: S,
     ) -> Result<S, ProofError> {
         // Get the evaluation of the inner expression
-        let _inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
+        let inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
 
-        // Get the next value from the builder
-        Ok(builder.try_consume_final_round_mle_evaluation()?)
+        // Get the is_null evaluation from the builder
+        let is_null_eval = builder.try_consume_final_round_mle_evaluation()?;
+
+        // For boolean columns, we verify that when is_null is true, the inner value must be false
+        // This means is_null * inner_eval must be 0
+        if self.expr.data_type() == ColumnType::Boolean {
+            // Constraint: is_null_eval * inner_eval = 0
+            // This ensures that if a value is null (is_null_eval = 1), then inner_eval must be 0
+            builder.try_produce_sumcheck_subpolynomial_evaluation(
+                SumcheckSubpolynomialType::Identity,
+                is_null_eval * inner_eval,
+                2,
+            )?;
+        }
+
+        // Return the is_null evaluation
+        Ok(is_null_eval)
     }
 }
