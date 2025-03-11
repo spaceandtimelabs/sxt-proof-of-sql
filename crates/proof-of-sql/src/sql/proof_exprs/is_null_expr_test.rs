@@ -16,7 +16,8 @@ fn test_is_null_expr() {
     let alloc = Bump::new();
     let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());
     let column_values: Column<'_, TestScalar> = Column::Int(&[1, 2, 3, 4, 5]);
-    let presence = &[true, false, true, false, true];
+    // In our implementation, presence[i] = true means the value IS NULL
+    let presence = &[false, true, false, true, false];
     let nullable_column = NullableColumn {
         values: column_values,
         presence: Some(presence),
@@ -46,12 +47,13 @@ fn test_is_null_expr() {
     match result {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
-            // Values at index 1 and 3 should be NULL, so IS NULL should be true
-            assert!(!values[0]);
-            assert!(values[1]);
-            assert!(!values[2]);
-            assert!(values[3]);
-            assert!(!values[4]);
+            // presence[i] = true means IS NULL should be true
+            // Values at index 1 and 3 should be NULL (presence is true)
+            assert!(!values[0]); // presence[0] = false
+            assert!(values[1]); // presence[1] = true
+            assert!(!values[2]); // presence[2] = false
+            assert!(values[3]); // presence[3] = true
+            assert!(!values[4]); // presence[4] = false
         }
         _ => panic!("Expected boolean column"),
     }
