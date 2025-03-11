@@ -6,118 +6,93 @@ import {Test} from "forge-std/Test.sol";
 import "../../src/base/Errors.sol";
 
 contract ErrorsTest is Test {
-    function testErrorConstantsMatchSelectors() public pure {
-        bytes4[13] memory selectors = [
-            Errors.InvalidECAddInputs.selector,
-            Errors.InvalidECMulInputs.selector,
-            Errors.InvalidECPairingInputs.selector,
-            Errors.RoundEvaluationMismatch.selector,
-            Errors.EmptyQueue.selector,
-            Errors.HyperKZGInconsistentV.selector,
-            Errors.HyperKZGEmptyPoint.selector,
-            Errors.HyperKZGPairingCheckFailed.selector,
-            Errors.ConstraintDegreeTooHigh.selector,
-            Errors.IncorrectCaseConst.selector,
-            Errors.UnsupportedLiteralVariant.selector,
-            Errors.InvalidIndex.selector,
-            Errors.UnsupportedProofExprVariant.selector
-        ];
-        uint32[13] memory selectorConstants = [
-            ERR_INVALID_EC_ADD_INPUTS,
-            ERR_INVALID_EC_MUL_INPUTS,
-            ERR_INVALID_EC_PAIRING_INPUTS,
-            ERR_ROUND_EVALUATION_MISMATCH,
-            ERR_EMPTY_QUEUE,
-            ERR_HYPER_KZG_INCONSISTENT_V,
-            ERR_HYPER_KZG_EMPTY_POINT,
-            ERR_HYPER_KZG_PAIRING_CHECK_FAILED,
-            ERR_CONSTRAINT_DEGREE_TOO_HIGH,
-            ERR_INCORRECT_CASE_CONST,
-            ERR_UNSUPPORTED_LITERAL_VARIANT,
-            ERR_INVALID_INDEX,
-            ERR_UNSUPPORTED_PROOF_EXPR_VARIANT
-        ];
-        assert(selectors.length == selectorConstants.length);
-        uint256 length = selectors.length;
-        for (uint256 i = 0; i < length; ++i) {
-            assert(selectors[i] == bytes4(selectorConstants[i]));
-        }
-    }
-
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedInvalidECAddInputs() public {
+    function testErrorInvalidECAddInputs() public {
+        assert(Errors.InvalidECAddInputs.selector == bytes4(ERR_INVALID_EC_ADD_INPUTS));
         vm.expectRevert(Errors.InvalidECAddInputs.selector);
         Errors.__err(ERR_INVALID_EC_ADD_INPUTS);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedInvalidECMulInputs() public {
+    function testErrorInvalidECMulInputs() public {
+        assert(Errors.InvalidECMulInputs.selector == bytes4(ERR_INVALID_EC_MUL_INPUTS));
         vm.expectRevert(Errors.InvalidECMulInputs.selector);
         Errors.__err(ERR_INVALID_EC_MUL_INPUTS);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedInvalidECPairingInputs() public {
+    function testErrorInvalidECPairingInputs() public {
+        assert(Errors.InvalidECPairingInputs.selector == bytes4(ERR_INVALID_EC_PAIRING_INPUTS));
         vm.expectRevert(Errors.InvalidECPairingInputs.selector);
         Errors.__err(ERR_INVALID_EC_PAIRING_INPUTS);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedRoundEvaluationMismatch() public {
+    function testErrorRoundEvaluationMismatch() public {
+        assert(Errors.RoundEvaluationMismatch.selector == bytes4(ERR_ROUND_EVALUATION_MISMATCH));
         vm.expectRevert(Errors.RoundEvaluationMismatch.selector);
         Errors.__err(ERR_ROUND_EVALUATION_MISMATCH);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedEmptyQueue() public {
+    function testErrorEmptyQueue() public {
+        assert(Errors.EmptyQueue.selector == bytes4(ERR_EMPTY_QUEUE));
         vm.expectRevert(Errors.EmptyQueue.selector);
         Errors.__err(ERR_EMPTY_QUEUE);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedHyperKZGInconsistentV() public {
+    function testErrorHyperKZGInconsistentV() public {
+        assert(Errors.HyperKZGInconsistentV.selector == bytes4(ERR_HYPER_KZG_INCONSISTENT_V));
         vm.expectRevert(Errors.HyperKZGInconsistentV.selector);
         Errors.__err(ERR_HYPER_KZG_INCONSISTENT_V);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedHyperKZGEmptyPoint() public {
+    function testErrorHyperKZGEmptyPoint() public {
+        assert(Errors.HyperKZGEmptyPoint.selector == bytes4(ERR_HYPER_KZG_EMPTY_POINT));
         vm.expectRevert(Errors.HyperKZGEmptyPoint.selector);
         Errors.__err(ERR_HYPER_KZG_EMPTY_POINT);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedHyperKZGPairingCheckFailed() public {
+    function testErrorHyperKZGPairingCheckFailed() public {
+        assert(Errors.HyperKZGPairingCheckFailed.selector == bytes4(ERR_HYPER_KZG_PAIRING_CHECK_FAILED));
         vm.expectRevert(Errors.HyperKZGPairingCheckFailed.selector);
         Errors.__err(ERR_HYPER_KZG_PAIRING_CHECK_FAILED);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedConstraintDegreeTooHigh() public {
+    function testErrorConstraintDegreeTooHigh() public {
+        assert(Errors.ConstraintDegreeTooHigh.selector == bytes4(ERR_CONSTRAINT_DEGREE_TOO_HIGH));
         vm.expectRevert(Errors.ConstraintDegreeTooHigh.selector);
         Errors.__err(ERR_CONSTRAINT_DEGREE_TOO_HIGH);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedIncorrectCaseConst() public {
+    function testErrorIncorrectCaseConst() public {
+        assert(Errors.IncorrectCaseConst.selector == bytes4(ERR_INCORRECT_CASE_CONST));
         vm.expectRevert(Errors.IncorrectCaseConst.selector);
         Errors.__err(ERR_INCORRECT_CASE_CONST);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedUnsupportedLiteralVariant() public {
+    function testErrorUnsupportedLiteralVariant() public {
+        assert(Errors.UnsupportedLiteralVariant.selector == bytes4(ERR_UNSUPPORTED_LITERAL_VARIANT));
         vm.expectRevert(Errors.UnsupportedLiteralVariant.selector);
         Errors.__err(ERR_UNSUPPORTED_LITERAL_VARIANT);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedInvalidIndex() public {
+    function testErrorInvalidIndex() public {
+        assert(Errors.InvalidIndex.selector == bytes4(ERR_INVALID_INDEX));
         vm.expectRevert(Errors.InvalidIndex.selector);
         Errors.__err(ERR_INVALID_INDEX);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function testErrorFailedUnsupportedProofExprVariant() public {
+    function testErrorUnsupportedProofExprVariant() public {
+        assert(Errors.UnsupportedProofExprVariant.selector == bytes4(ERR_UNSUPPORTED_PROOF_EXPR_VARIANT));
         vm.expectRevert(Errors.UnsupportedProofExprVariant.selector);
         Errors.__err(ERR_UNSUPPORTED_PROOF_EXPR_VARIANT);
     }
