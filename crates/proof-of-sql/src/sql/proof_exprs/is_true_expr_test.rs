@@ -56,6 +56,41 @@ fn test_is_true_expr() {
 }
 
 #[test]
+#[should_panic]
+fn we_should_obtain_a_verification_error_if_a_malicious_prover_returns_the_wrong_result() {
+    let alloc = Bump::new();
+    let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());
+    let column_values: Column<'_, TestScalar> = Column::Boolean(&[true, false, true, false, true]);
+    let presence = &[true, false, true, false, true];
+    let nullable_column = NullableColumn {
+        values: column_values,
+        presence: Some(presence),
+    };
+
+    table_map.insert(Ident::new("test_column"), nullable_column.values);
+
+    // Create a presence map to properly handle NULL values
+    let mut presence_map = IndexMap::with_hasher(BuildHasherDefault::default());
+    presence_map.insert(Ident::new("test_column"), presence.as_slice());
+
+    // Create the table with both column values and presence information
+    let table =
+        Table::try_new_with_presence(table_map, presence_map, TableOptions::new(Some(5))).unwrap();
+
+    let column_ref = ColumnRef::new(
+        TableRef::new("", "test"),
+        Ident::new("test_column"),
+        ColumnType::Boolean,
+    );
+    let column_expr = DynProofExpr::new_column(column_ref);
+    let mut is_true_expr = IsTrueExpr::new(Box::new(column_expr));
+    is_true_expr.malicious = true;
+    let result = is_true_expr.result_evaluate(&alloc, &table);
+
+    assert_eq!(result, Column::Boolean(&[true, true, true, true, true]));
+}
+
+#[test]
 fn test_is_true_expr_with_false_values() {
     let alloc = Bump::new();
     let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());

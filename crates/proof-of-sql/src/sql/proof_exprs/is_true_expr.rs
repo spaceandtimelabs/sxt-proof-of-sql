@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct IsTrueExpr {
     expr: Box<DynProofExpr>,
+    pub(crate) malicious: bool,
 }
 
 impl IsTrueExpr {
@@ -32,7 +33,10 @@ impl IsTrueExpr {
             "IsTrueExpr can only be applied to boolean expressions, but got expression of type: {}",
             expr.data_type()
         );
-        Self { expr }
+        Self {
+            expr,
+            malicious: false,
+        }
     }
 
     /// Try to create a new IS TRUE expression
@@ -45,7 +49,10 @@ impl IsTrueExpr {
                 error: "IsTrueExpr can only be applied to boolean expressions",
             });
         }
-        Ok(Self { expr })
+        Ok(Self {
+            expr,
+            malicious: false,
+        })
     }
 }
 
@@ -76,6 +83,9 @@ impl ProofExpr for IsTrueExpr {
         // 1. Not NULL
         // 2. Value is TRUE
         let result_slice = alloc.alloc_slice_fill_with(table.num_rows(), |i| {
+            if self.malicious {
+                return true;
+            }
             if nullable_column.is_null(i) {
                 false // NULL values are never TRUE
             } else {
@@ -109,7 +119,13 @@ impl ProofExpr for IsTrueExpr {
 
         // Compute result as the product (logical AND) of not_null and the inner boolean value
         let result_slice = if let Column::Boolean(inner_values) = inner_column {
-            alloc.alloc_slice_fill_with(table.num_rows(), |i| not_null[i] && inner_values[i])
+            alloc.alloc_slice_fill_with(table.num_rows(), |i| {
+                if self.malicious {
+                    true
+                } else {
+                    not_null[i] && inner_values[i]
+                }
+            })
         } else {
             panic!("IS TRUE can only be applied to boolean expressions");
         };
@@ -133,8 +149,13 @@ impl ProofExpr for IsTrueExpr {
         if let Column::Boolean(inner_values) = inner_column {
             let expected =
                 alloc.alloc_slice_fill_with(table.num_rows(), |i| not_null[i] && inner_values[i]);
-            let mismatch =
-                alloc.alloc_slice_fill_with(table.num_rows(), |i| result_slice[i] != expected[i]);
+            let mismatch = alloc.alloc_slice_fill_with(table.num_rows(), |i| {
+                if self.malicious {
+                    false
+                } else {
+                    result_slice[i] != expected[i]
+                }
+            });
             builder.produce_sumcheck_subpolynomial(
                 SumcheckSubpolynomialType::Identity,
                 vec![(S::one(), vec![Box::new(&*mismatch)])],
