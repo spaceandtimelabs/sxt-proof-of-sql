@@ -6,7 +6,7 @@ use datafusion::{
 };
 use proof_of_sql::base::{
     database::{ColumnField, ColumnRef, ColumnType, LiteralValue, TableRef},
-    math::{decimal::Precision, i256::I256},
+    math::decimal::Precision,
 };
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use sqlparser::ast::Ident;
@@ -58,7 +58,7 @@ pub(crate) fn scalar_value_to_literal_value(value: ScalarValue) -> PlannerResult
         ScalarValue::Decimal128(Some(v), precision, scale) => Ok(LiteralValue::Decimal75(
             Precision::new(precision)?,
             scale,
-            I256::from(v),
+            v.into(),
         )),
         ScalarValue::Decimal256(Some(v), precision, scale) => Ok(LiteralValue::Decimal75(
             Precision::new(precision)?,
@@ -130,7 +130,7 @@ pub(crate) fn df_schema_to_column_fields(schema: &DFSchema) -> PlannerResult<Vec
 #[cfg(test)]
 mod tests {
     use super::*;
-    use arrow::datatypes::{i256 as ArrowI256, DataType};
+    use arrow::datatypes::DataType;
 
     // TableReference to TableRef
     #[test]
@@ -271,58 +271,87 @@ mod tests {
         let value = ScalarValue::Decimal128(Some(123), 38, 0);
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
-            LiteralValue::Decimal75(Precision::new(38).unwrap(), 0, I256::from(123i128))
+            LiteralValue::Decimal75(
+                Precision::new(38).unwrap(),
+                0,
+                proof_of_sql::base::math::i256::I256::from(123i128)
+            )
         );
 
         // Test edge cases for Decimal128
         let value = ScalarValue::Decimal128(Some(i128::MIN), 38, 10);
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
-            LiteralValue::Decimal75(Precision::new(38).unwrap(), 10, I256::from(i128::MIN))
+            LiteralValue::Decimal75(
+                Precision::new(38).unwrap(),
+                10,
+                proof_of_sql::base::math::i256::I256::from(i128::MIN)
+            )
         );
 
         let value = ScalarValue::Decimal128(Some(i128::MAX), 28, -5);
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
-            LiteralValue::Decimal75(Precision::new(28).unwrap(), -5, I256::from(i128::MAX))
+            LiteralValue::Decimal75(
+                Precision::new(28).unwrap(),
+                -5,
+                proof_of_sql::base::math::i256::I256::from(i128::MAX)
+            )
         );
 
         let value = ScalarValue::Decimal128(Some(0), 38, 0);
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
-            LiteralValue::Decimal75(Precision::new(38).unwrap(), 0, I256::from(0i128))
+            LiteralValue::Decimal75(
+                Precision::new(38).unwrap(),
+                0,
+                proof_of_sql::base::math::i256::I256::from(0i128)
+            )
         );
 
         // Decimal256
-        let value = ScalarValue::Decimal256(Some(ArrowI256::from_i128(-456)), 75, 120);
+        let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::from_i128(-456)), 75, 120);
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
-            LiteralValue::Decimal75(Precision::new(75).unwrap(), 120, I256::from(-456i128))
+            LiteralValue::Decimal75(
+                Precision::new(75).unwrap(),
+                120,
+                proof_of_sql::base::math::i256::I256::from(-456i128)
+            )
         );
 
         // Test edge cases for Decimal256
-        let value = ScalarValue::Decimal256(Some(ArrowI256::MIN), 75, 127);
+        let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::MIN), 75, 127);
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
             LiteralValue::Decimal75(
                 Precision::new(75).unwrap(),
                 127,
-                I256::new([0, 0, 0, i64::MIN as u64])
+                proof_of_sql::base::math::i256::I256::new([0, 0, 0, i64::MIN as u64])
             )
         );
-        let value = ScalarValue::Decimal256(Some(ArrowI256::MAX), 75, -128);
+        let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::MAX), 75, -128);
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
             LiteralValue::Decimal75(
                 Precision::new(75).unwrap(),
                 -128,
-                I256::new([u64::MAX, u64::MAX, u64::MAX, i64::MAX as u64])
+                proof_of_sql::base::math::i256::I256::new([
+                    u64::MAX,
+                    u64::MAX,
+                    u64::MAX,
+                    i64::MAX as u64
+                ])
             )
         );
-        let value = ScalarValue::Decimal256(Some(ArrowI256::ZERO), 75, 0);
+        let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::ZERO), 75, 0);
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
-            LiteralValue::Decimal75(Precision::new(75).unwrap(), 0, I256::from(0i128))
+            LiteralValue::Decimal75(
+                Precision::new(75).unwrap(),
+                0,
+                proof_of_sql::base::math::i256::I256::from(0i128)
+            )
         );
     }
 

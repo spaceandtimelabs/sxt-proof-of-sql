@@ -67,18 +67,15 @@ impl From<i32> for I256 {
     }
 }
 
-#[expect(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 impl From<i128> for I256 {
     fn from(value: i128) -> Self {
-        let abs_u128 = value.unsigned_abs();
-        let low = abs_u128 as u64;
-        let high = (abs_u128 >> 64) as u64;
-        let abs = Self([low, high, 0, 0]);
-        if value >= 0 {
-            abs
-        } else {
-            abs.neg()
-        }
+        Self([
+            value as u64,
+            (value >> 64) as u64,
+            (value >> 127) as u64,
+            (value >> 127) as u64,
+        ])
     }
 }
 
