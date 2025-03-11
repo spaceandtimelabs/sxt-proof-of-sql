@@ -1358,7 +1358,7 @@ fn we_can_prove_nullable_table_with_arithmetic_operations_with_dory() {
             ),
             nullable_column(
                 "b",
-                OwnedColumn::BigInt(vec![1, 0, 2, 2, 3]),
+                OwnedColumn::BigInt(vec![1, 6, 2, 2, 3]),
                 Some(vec![false, true, false, false, false]),
             ),
         ]),
