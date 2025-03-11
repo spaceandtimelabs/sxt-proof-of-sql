@@ -1,4 +1,4 @@
-use crate::base::scalar::Scalar;
+use crate::base::{math, scalar::Scalar};
 use arrow::datatypes::i256;
 
 const MIN_SUPPORTED_I256: i256 = i256::from_parts(
@@ -52,15 +52,24 @@ pub fn convert_i256_to_scalar<S: Scalar>(value: &i256) -> Option<S> {
     }
 }
 
+#[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+impl From<i256> for math::i256::I256 {
+    fn from(value: i256) -> Self {
+        let (low, high) = value.to_parts();
+        Self::new([
+            low as u64,
+            (low >> 64) as u64,
+            high as u64,
+            (high >> 64) as u64,
+        ])
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
-    use super::{convert_i256_to_scalar, convert_scalar_to_i256};
-    use crate::base::{
-        database::scalar_and_i256_conversions::{MAX_SUPPORTED_I256, MIN_SUPPORTED_I256},
-        scalar::{test_scalar::TestScalar, Scalar},
-    };
-    use arrow::datatypes::i256;
+    use super::*;
+    use crate::base::scalar::{test_scalar::TestScalar, Scalar};
     use num_traits::Zero;
     use rand::RngCore;
 
@@ -192,5 +201,55 @@ mod tests {
             let back_to_i256 = i256::from(curve25519_scalar);
             assert_eq!(i256_value, back_to_i256, "Round-trip conversion failed");
         }
+    }
+
+    #[expect(clippy::cast_sign_loss)]
+    #[test]
+    fn test_arrow_i256_to_posql_i256_conversion() {
+        // Test zero
+        assert_eq!(
+            math::i256::I256::from(i256::ZERO),
+            math::i256::I256::new([0, 0, 0, 0])
+        );
+
+        // Test positive values
+        assert_eq!(
+            math::i256::I256::from(i256::from(1)),
+            math::i256::I256::new([1, 0, 0, 0])
+        );
+        assert_eq!(
+            math::i256::I256::from(i256::from(2)),
+            math::i256::I256::new([2, 0, 0, 0])
+        );
+
+        // Test negative values
+        assert_eq!(
+            math::i256::I256::from(i256::from(-1)),
+            math::i256::I256::new([u64::MAX; 4])
+        );
+        assert_eq!(
+            math::i256::I256::from(i256::from(-2)),
+            math::i256::I256::new([u64::MAX - 1, u64::MAX, u64::MAX, u64::MAX])
+        );
+
+        // Test some boundary values
+        assert_eq!(
+            math::i256::I256::from(i256::MAX),
+            math::i256::I256::new([u64::MAX, u64::MAX, u64::MAX, i64::MAX as u64])
+        );
+        assert_eq!(
+            math::i256::I256::from(i256::MIN),
+            math::i256::I256::new([0, 0, 0, i64::MIN as u64])
+        );
+
+        // Test other values
+        assert_eq!(
+            math::i256::I256::from(i256::from_parts(40, 20)),
+            math::i256::I256::new([40, 0, 20, 0])
+        );
+        assert_eq!(
+            math::i256::I256::from(i256::from_parts(20, -20)),
+            math::i256::I256::new([20, 0, u64::MAX - 19, u64::MAX])
+        );
     }
 }

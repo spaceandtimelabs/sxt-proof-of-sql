@@ -3,7 +3,7 @@ use datafusion::{
     common::DataFusionError,
     logical_expr::{Expr, LogicalPlan, Operator},
 };
-use proof_of_sql::sql::parse::ConversionError;
+use proof_of_sql::{base::math::decimal::DecimalError, sql::parse::ConversionError};
 use snafu::Snafu;
 use sqlparser::parser::ParserError;
 
@@ -15,6 +15,12 @@ pub enum PlannerError {
     ConversionError {
         /// Underlying conversion error
         source: ConversionError,
+    },
+    /// Returned when a decimal error occurs
+    #[snafu(transparent)]
+    DecimalError {
+        /// Underlying decimal error
+        source: DecimalError,
     },
     /// Returned when sqlparser fails to parse a query
     #[snafu(transparent)]
