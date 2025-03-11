@@ -71,7 +71,7 @@ impl<S: Scalar> CompositePolynomial<S> {
         }
         self.products.push((coefficient, indexed_product));
     }
-    /// Generate random `CompositePolnomial`.
+    /// Generate random `CompositePolynomial`.
     #[cfg(test)]
     pub fn rand(
         num_variables: usize,
