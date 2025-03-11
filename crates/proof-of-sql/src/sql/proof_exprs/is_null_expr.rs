@@ -8,8 +8,7 @@ use crate::{
     },
     sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
-use alloc::boxed::Box;
-use alloc::vec;
+use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
