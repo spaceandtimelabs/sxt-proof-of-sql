@@ -28,6 +28,13 @@ contract ErrorsTest is Test {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorInvalidSumcheckProofSize() public {
+        assert(Errors.InvalidSumcheckProofSize.selector == bytes4(ERR_INVALID_SUMCHECK_PROOF_SIZE));
+        vm.expectRevert(Errors.InvalidSumcheckProofSize.selector);
+        Errors.__err(ERR_INVALID_SUMCHECK_PROOF_SIZE);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorRoundEvaluationMismatch() public {
         assert(Errors.RoundEvaluationMismatch.selector == bytes4(ERR_ROUND_EVALUATION_MISMATCH));
         vm.expectRevert(Errors.RoundEvaluationMismatch.selector);
