@@ -321,7 +321,7 @@ mod test {
     }
 
     #[test]
-    fn we_cannot_do_fallable_binary_op_on_a_single_value_and_a_slice_if_error_anywhere() {
+    fn we_cannot_do_fallible_binary_op_on_a_single_value_and_a_slice_if_error_anywhere() {
         // No casting
         let slice = [1, i16::MAX, 1];
         assert!(matches!(

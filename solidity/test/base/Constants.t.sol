@@ -28,7 +28,12 @@ contract ConstantsTest is Test {
         assert(WORDX2_SIZE == 2 * WORD_SIZE);
         assert(WORDX3_SIZE == 3 * WORD_SIZE);
         assert(WORDX4_SIZE == 4 * WORD_SIZE);
+        assert(WORDX5_SIZE == 5 * WORD_SIZE);
         assert(WORDX6_SIZE == 6 * WORD_SIZE);
+        assert(WORDX8_SIZE == 8 * WORD_SIZE);
+        assert(WORDX9_SIZE == 9 * WORD_SIZE);
+        assert(WORDX10_SIZE == 10 * WORD_SIZE);
+        assert(WORDX11_SIZE == 11 * WORD_SIZE);
         assert(WORDX12_SIZE == 12 * WORD_SIZE);
     }
 
