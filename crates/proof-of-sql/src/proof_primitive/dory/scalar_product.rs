@@ -70,8 +70,8 @@ pub fn scalar_product_verify(
     {
         return false;
     }
-    let E_1 = messages.prover_recieve_G1_message(transcript);
-    let E_2 = messages.prover_recieve_G2_message(transcript);
+    let E_1 = messages.prover_receive_G1_message(transcript);
+    let E_2 = messages.prover_receive_G2_message(transcript);
     let (d, d_inv) = messages.verifier_F_message(transcript);
     let res = pairings::pairing(E_1 + setup.Gamma_1_0 * d, E_2 + setup.Gamma_2_0 * d_inv)
         == (state.C + setup.chi[0] + state.D_2 * d + state.D_1 * d_inv).compute();
