@@ -134,6 +134,16 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
     })
 }
 
+/// Convert column to scalar slice.
+#[expect(clippy::missing_panics_doc)]
+pub(crate) fn columns_to_scalar_slice<'a, S: Scalar>(
+    column: &Column<'a, S>,
+    alloc: &'a Bump,
+) -> &'a [S] {
+    alloc.alloc_slice_fill_with(column.len(), |i| column.scalar_at(i).unwrap())
+}
+
+
 #[expect(dead_code)]
 /// Multiply two [`ColumnarValues`] together.
 /// # Panics
