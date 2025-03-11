@@ -284,7 +284,6 @@ fn modulo_integer_columns<
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length or column type division is unsupported.
 #[allow(clippy::too_many_lines)]
-#[cfg_attr(not(test), expect(dead_code))]
 pub(crate) fn divide_columns<'a, S: Scalar>(
     lhs: &Column<'a, S>,
     rhs: &Column<'a, S>,
@@ -405,7 +404,6 @@ pub(crate) fn divide_columns<'a, S: Scalar>(
     }
 }
 
-#[cfg_attr(not(test), expect(dead_code))]
 /// Take the modulo of one column against another.
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length.

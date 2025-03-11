@@ -197,6 +197,8 @@ pub fn try_divide_column_types(
 #[cfg(test)]
 mod test {
     use super::*;
+    use itertools::iproduct;
+    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_add_numeric_types() {
@@ -774,5 +776,47 @@ mod test {
                 source: DecimalError::InvalidScale { .. }
             })
         ));
+    }
+
+    #[test]
+    fn we_can_get_correct_column_types_for_divide_and_modulo() {
+        let eligible_columns = [
+            ColumnType::TinyInt,
+            ColumnType::SmallInt,
+            ColumnType::Int,
+            ColumnType::BigInt,
+            ColumnType::Int128,
+        ];
+        let eligible_columns_enumerated = eligible_columns.into_iter().enumerate();
+        for ((ni, numerator), (di, denominator)) in iproduct!(
+            eligible_columns_enumerated.clone(),
+            eligible_columns_enumerated
+        ) {
+            let remainder = try_divide_modulo_column_types(numerator, denominator).unwrap();
+            let expected_remainder = if di > ni { denominator } else { numerator };
+            assert_eq!(remainder, (numerator, expected_remainder));
+        }
+        let ineligible_columns = [
+            ColumnType::Uint8,
+            ColumnType::Scalar,
+            ColumnType::Boolean,
+            ColumnType::VarBinary,
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::new(1)),
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 1),
+            ColumnType::VarChar,
+        ];
+        for (left_type, right_type) in iproduct!(eligible_columns, ineligible_columns)
+            .chain(iproduct!(ineligible_columns, eligible_columns))
+        {
+            let err = try_divide_modulo_column_types(left_type, right_type).unwrap_err();
+            assert!(matches!(
+                err,
+                ColumnOperationError::BinaryOperationInvalidColumnType {
+                    operator: _,
+                    left_type: _,
+                    right_type: _
+                }
+            ));
+        }
     }
 }
