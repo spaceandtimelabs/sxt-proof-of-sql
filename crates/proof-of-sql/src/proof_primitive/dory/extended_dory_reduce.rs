@@ -68,19 +68,19 @@ pub fn extended_dory_reduce_verify(
     {
         return false;
     }
-    let D_1L = messages.prover_recieve_GT_message(transcript);
-    let D_1R = messages.prover_recieve_GT_message(transcript);
-    let D_2L = messages.prover_recieve_GT_message(transcript);
-    let D_2R = messages.prover_recieve_GT_message(transcript);
-    let E_1beta = messages.prover_recieve_G1_message(transcript);
-    let E_2beta = messages.prover_recieve_G2_message(transcript);
+    let D_1L = messages.prover_receive_GT_message(transcript);
+    let D_1R = messages.prover_receive_GT_message(transcript);
+    let D_2L = messages.prover_receive_GT_message(transcript);
+    let D_2R = messages.prover_receive_GT_message(transcript);
+    let E_1beta = messages.prover_receive_G1_message(transcript);
+    let E_2beta = messages.prover_receive_G2_message(transcript);
     let betas = messages.verifier_F_message(transcript);
-    let C_plus = messages.prover_recieve_GT_message(transcript);
-    let C_minus = messages.prover_recieve_GT_message(transcript);
-    let E_1plus = messages.prover_recieve_G1_message(transcript);
-    let E_1minus = messages.prover_recieve_G1_message(transcript);
-    let E_2plus = messages.prover_recieve_G2_message(transcript);
-    let E_2minus = messages.prover_recieve_G2_message(transcript);
+    let C_plus = messages.prover_receive_GT_message(transcript);
+    let C_minus = messages.prover_receive_GT_message(transcript);
+    let E_1plus = messages.prover_receive_G1_message(transcript);
+    let E_1minus = messages.prover_receive_G1_message(transcript);
+    let E_2plus = messages.prover_receive_G2_message(transcript);
+    let E_2minus = messages.prover_receive_G2_message(transcript);
     let alphas = messages.verifier_F_message(transcript);
     dory_reduce_verify_update_C(
         &mut state.base_state,

@@ -103,13 +103,13 @@ impl<S: Scalar> ContextProvider for PoSqlContextProvider<'_, S> {
 }
 
 /// A [`TableSource`] implementation for Proof of SQL
-struct PoSqlTableSource {
+pub(crate) struct PoSqlTableSource {
     schema: SchemaRef,
 }
 
 impl PoSqlTableSource {
     /// Create a new `PoSqlTableSource`
-    fn new(column_fields: Vec<ColumnField>) -> Self {
+    pub(crate) fn new(column_fields: Vec<ColumnField>) -> Self {
         let arrow_schema = Schema::new(
             column_fields
                 .into_iter()
@@ -150,9 +150,9 @@ mod tests {
     use bumpalo::Bump;
     use core::any::TypeId;
     use indexmap::indexmap;
-    use proof_of_sql::base::{
-        database::{table_utility::*, ColumnType},
-        scalar::Curve25519Scalar,
+    use proof_of_sql::{
+        base::database::{table_utility::*, ColumnType},
+        proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     };
 
     // PoSqlTableSource

@@ -9,11 +9,14 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{
-        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+    sql::{
+        proof::{
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+        },
+        proof_exprs::{AliasedDynProofExpr, DynProofExpr, TableExpr},
     },
 };
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -66,4 +69,46 @@ pub enum DynProofPlan {
     ///     ON col1 = col2
     /// ```
     SortMergeJoin(SortMergeJoinExec),
+}
+
+impl DynProofPlan {
+    /// Creates a new empty plan.
+    #[must_use]
+    pub fn new_empty() -> Self {
+        Self::Empty(EmptyExec::new())
+    }
+
+    /// Creates a new table plan.
+    #[must_use]
+    pub fn new_table(table_ref: TableRef, schema: Vec<ColumnField>) -> Self {
+        Self::Table(TableExec::new(table_ref, schema))
+    }
+
+    /// Creates a new projection plan.
+    #[must_use]
+    pub fn new_projection(aliased_results: Vec<AliasedDynProofExpr>, input: DynProofPlan) -> Self {
+        Self::Projection(ProjectionExec::new(aliased_results, Box::new(input)))
+    }
+
+    /// Creates a new filter plan.
+    #[must_use]
+    pub fn new_filter(
+        aliased_results: Vec<AliasedDynProofExpr>,
+        input: TableExpr,
+        filter_expr: DynProofExpr,
+    ) -> Self {
+        Self::Filter(FilterExec::new(aliased_results, input, filter_expr))
+    }
+
+    /// Creates a new slice plan.
+    #[must_use]
+    pub fn new_slice(input: DynProofPlan, skip: usize, fetch: Option<usize>) -> Self {
+        Self::Slice(SliceExec::new(Box::new(input), skip, fetch))
+    }
+
+    /// Creates a new union plan.
+    #[must_use]
+    pub fn new_union(inputs: Vec<DynProofPlan>, schema: Vec<ColumnField>) -> Self {
+        Self::Union(UnionExec::new(inputs, schema))
+    }
 }

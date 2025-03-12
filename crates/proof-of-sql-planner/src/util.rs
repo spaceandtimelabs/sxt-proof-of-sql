@@ -4,8 +4,12 @@ use datafusion::{
     catalog::TableReference,
     common::{Column, DFSchema, ScalarValue},
 };
-use proof_of_sql::base::database::{ColumnField, ColumnRef, ColumnType, LiteralValue, TableRef};
+use proof_of_sql::base::{
+    database::{ColumnField, ColumnRef, ColumnType, LiteralValue, TableRef},
+    math::decimal::Precision,
+};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use sqlparser::ast::Ident;
 
 /// Convert a [`TableReference`] to a [`TableRef`]
 ///
@@ -30,6 +34,7 @@ pub(crate) fn scalar_value_to_literal_value(value: ScalarValue) -> PlannerResult
         ScalarValue::Int64(Some(v)) => Ok(LiteralValue::BigInt(v)),
         ScalarValue::UInt8(Some(v)) => Ok(LiteralValue::Uint8(v)),
         ScalarValue::Utf8(Some(v)) => Ok(LiteralValue::VarChar(v)),
+        ScalarValue::Binary(Some(v)) => Ok(LiteralValue::VarBinary(v)),
         ScalarValue::TimestampSecond(Some(v), None) => Ok(LiteralValue::TimeStampTZ(
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::utc(),
@@ -49,6 +54,16 @@ pub(crate) fn scalar_value_to_literal_value(value: ScalarValue) -> PlannerResult
             PoSQLTimeUnit::Nanosecond,
             PoSQLTimeZone::utc(),
             v,
+        )),
+        ScalarValue::Decimal128(Some(v), precision, scale) => Ok(LiteralValue::Decimal75(
+            Precision::new(precision)?,
+            scale,
+            v.into(),
+        )),
+        ScalarValue::Decimal256(Some(v), precision, scale) => Ok(LiteralValue::Decimal75(
+            Precision::new(precision)?,
+            scale,
+            v.into(),
         )),
         _ => Err(PlannerError::UnsupportedDataType {
             data_type: value.data_type().clone(),
@@ -80,7 +95,8 @@ pub(crate) fn column_to_column_ref(column: &Column, schema: &DFSchema) -> Planne
 }
 
 /// Convert a Vec<ColumnField> to a Schema
-pub(crate) fn column_fields_to_schema(column_fields: Vec<ColumnField>) -> Schema {
+#[must_use]
+pub fn column_fields_to_schema(column_fields: Vec<ColumnField>) -> Schema {
     Schema::new(
         column_fields
             .into_iter()
@@ -91,6 +107,24 @@ pub(crate) fn column_fields_to_schema(column_fields: Vec<ColumnField>) -> Schema
             })
             .collect::<Vec<_>>(),
     )
+}
+
+/// Convert a [`DFSchema`] to a Vec<ColumnField>
+///
+/// Note that this returns an error if any column has an unsupported `DataType`
+pub(crate) fn df_schema_to_column_fields(schema: &DFSchema) -> PlannerResult<Vec<ColumnField>> {
+    schema
+        .fields()
+        .iter()
+        .map(|field| -> PlannerResult<ColumnField> {
+            let column_type = ColumnType::try_from(field.data_type().clone()).map_err(|_e| {
+                PlannerError::UnsupportedDataType {
+                    data_type: field.data_type().clone(),
+                }
+            })?;
+            Ok(ColumnField::new(Ident::new(field.name()), column_type))
+        })
+        .collect::<PlannerResult<Vec<ColumnField>>>()
 }
 
 #[cfg(test)]
@@ -177,6 +211,13 @@ mod tests {
             LiteralValue::VarChar("value".to_string())
         );
 
+        // Binary
+        let value = ScalarValue::Binary(Some(vec![72, 97, 108, 108, 101, 108, 117, 106, 97, 104]));
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::VarBinary(vec![72, 97, 108, 108, 101, 108, 117, 106, 97, 104])
+        );
+
         // TimestampSecond
         // Thu Mar 06 2025 04:43:12 GMT+0000
         let value = ScalarValue::TimestampSecond(Some(1_741_236_192_i64), None);
@@ -221,7 +262,101 @@ mod tests {
                 1_741_236_192_123_456_789_i64
             )
         );
+    }
 
+    #[expect(clippy::cast_sign_loss)]
+    #[test]
+    fn we_can_convert_scalar_value_to_literal_value_for_decimals() {
+        // Decimal128
+        let value = ScalarValue::Decimal128(Some(123), 38, 0);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal75(
+                Precision::new(38).unwrap(),
+                0,
+                proof_of_sql::base::math::i256::I256::from(123i128)
+            )
+        );
+
+        // Test edge cases for Decimal128
+        let value = ScalarValue::Decimal128(Some(i128::MIN), 38, 10);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal75(
+                Precision::new(38).unwrap(),
+                10,
+                proof_of_sql::base::math::i256::I256::from(i128::MIN)
+            )
+        );
+
+        let value = ScalarValue::Decimal128(Some(i128::MAX), 28, -5);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal75(
+                Precision::new(28).unwrap(),
+                -5,
+                proof_of_sql::base::math::i256::I256::from(i128::MAX)
+            )
+        );
+
+        let value = ScalarValue::Decimal128(Some(0), 38, 0);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal75(
+                Precision::new(38).unwrap(),
+                0,
+                proof_of_sql::base::math::i256::I256::from(0i128)
+            )
+        );
+
+        // Decimal256
+        let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::from_i128(-456)), 75, 120);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal75(
+                Precision::new(75).unwrap(),
+                120,
+                proof_of_sql::base::math::i256::I256::from(-456i128)
+            )
+        );
+
+        // Test edge cases for Decimal256
+        let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::MIN), 75, 127);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal75(
+                Precision::new(75).unwrap(),
+                127,
+                proof_of_sql::base::math::i256::I256::new([0, 0, 0, i64::MIN as u64])
+            )
+        );
+        let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::MAX), 75, -128);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal75(
+                Precision::new(75).unwrap(),
+                -128,
+                proof_of_sql::base::math::i256::I256::new([
+                    u64::MAX,
+                    u64::MAX,
+                    u64::MAX,
+                    i64::MAX as u64
+                ])
+            )
+        );
+        let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::ZERO), 75, 0);
+        assert_eq!(
+            scalar_value_to_literal_value(value).unwrap(),
+            LiteralValue::Decimal75(
+                Precision::new(75).unwrap(),
+                0,
+                proof_of_sql::base::math::i256::I256::from(0i128)
+            )
+        );
+    }
+
+    #[test]
+    fn we_cannot_convert_scalar_value_to_literal_value_if_unsupported() {
         // Unsupported
         let value = ScalarValue::Float32(Some(1.0));
         assert!(matches!(
@@ -303,5 +438,40 @@ mod tests {
                 &Field::new("b", DataType::Utf8, false),
             ]
         );
+    }
+
+    // DFSchema to Vec<ColumnField>
+    #[test]
+    fn we_can_convert_df_schema_to_column_fields() {
+        // Empty
+        let arrow_schema = Schema::new(Vec::<Field>::new());
+        let df_schema = DFSchema::try_from(arrow_schema).unwrap();
+        let column_fields = df_schema_to_column_fields(&df_schema).unwrap();
+        assert_eq!(column_fields, Vec::<ColumnField>::new());
+
+        // Non-empty
+        let arrow_schema = Schema::new(vec![
+            Field::new("a", DataType::Int16, false),
+            Field::new("b", DataType::Utf8, false),
+        ]);
+        let df_schema = DFSchema::try_from(arrow_schema).unwrap();
+        let column_fields = df_schema_to_column_fields(&df_schema).unwrap();
+        assert_eq!(
+            column_fields,
+            vec![
+                ColumnField::new("a".into(), ColumnType::SmallInt),
+                ColumnField::new("b".into(), ColumnType::VarChar),
+            ]
+        );
+    }
+
+    #[test]
+    fn we_cannot_convert_df_schema_to_column_fields_with_unsupported_data_type() {
+        let arrow_schema = Schema::new(vec![Field::new("a", DataType::Float32, false)]);
+        let df_schema = DFSchema::try_from(arrow_schema).unwrap();
+        assert!(matches!(
+            df_schema_to_column_fields(&df_schema),
+            Err(PlannerError::UnsupportedDataType { .. })
+        ));
     }
 }

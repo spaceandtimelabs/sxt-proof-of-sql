@@ -10,7 +10,7 @@ pub trait ZigZag<T> {
     fn zigzag(&self) -> T;
 }
 
-/// Zigzag convertion from a dalek Scalar to a [`ZigZag`] u256 integer
+/// Zigzag conversion from a dalek Scalar to a [`ZigZag`] u256 integer
 ///
 /// For this conversion, we compute:
 ///
@@ -61,7 +61,7 @@ impl<T: MontConfig<4>> ZigZag<U256> for MontScalar<T> {
     }
 }
 
-/// Zigzag convertion from an u256 integer to a dalek Scalar.
+/// Zigzag conversion from an u256 integer to a dalek Scalar.
 ///
 /// For this conversion, we first verify if `self` is an odd or even number.
 /// In case `self` is odd, the encoded number represents a negative

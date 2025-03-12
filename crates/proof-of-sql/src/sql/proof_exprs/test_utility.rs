@@ -109,6 +109,11 @@ pub fn const_varchar(val: &str) -> DynProofExpr {
     DynProofExpr::new_literal(LiteralValue::VarChar(val.to_string()))
 }
 
+/// Creates a new `DynProofExpr::Literal` expression for a varbinary value.
+pub fn const_varbinary(val: &[u8]) -> DynProofExpr {
+    DynProofExpr::new_literal(LiteralValue::VarBinary(val.to_vec()))
+}
+
 /// Create a constant scalar value. Used if we don't want to specify column types.
 pub fn const_scalar<S: Scalar, T: Into<S>>(val: T) -> DynProofExpr {
     DynProofExpr::new_literal(LiteralValue::Scalar(val.into().into()))

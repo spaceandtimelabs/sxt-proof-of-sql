@@ -1,9 +1,9 @@
 use arrow::datatypes::DataType;
 use datafusion::{
     common::DataFusionError,
-    logical_expr::{Expr, Operator},
+    logical_expr::{Expr, LogicalPlan, Operator},
 };
-use proof_of_sql::sql::parse::ConversionError;
+use proof_of_sql::{base::math::decimal::DecimalError, sql::parse::ConversionError};
 use snafu::Snafu;
 use sqlparser::parser::ParserError;
 
@@ -16,6 +16,12 @@ pub enum PlannerError {
         /// Underlying conversion error
         source: ConversionError,
     },
+    /// Returned when a decimal error occurs
+    #[snafu(transparent)]
+    DecimalError {
+        /// Underlying decimal error
+        source: DecimalError,
+    },
     /// Returned when sqlparser fails to parse a query
     #[snafu(transparent)]
     SqlParserError {
@@ -27,6 +33,12 @@ pub enum PlannerError {
     DataFusionError {
         /// Underlying datafusion error
         source: DataFusionError,
+    },
+    /// Returned if a table is not found
+    #[snafu(display("Table not found: {}", table_name))]
+    TableNotFound {
+        /// Table name
+        table_name: String,
     },
     /// Returned when a datatype is not supported
     #[snafu(display("Unsupported datatype: {}", data_type))]
@@ -45,6 +57,12 @@ pub enum PlannerError {
     UnsupportedLogicalExpression {
         /// Unsupported logical expression
         expr: Expr,
+    },
+    /// Returned when a `LogicalPlan` is not supported
+    #[snafu(display("LogicalPlan is not supported"))]
+    UnsupportedLogicalPlan {
+        /// Unsupported `LogicalPlan`
+        plan: LogicalPlan,
     },
     /// Returned when the `LogicalPlan` is not resolved
     #[snafu(display("LogicalPlan is not resolved"))]
