@@ -716,6 +716,73 @@ mod tests {
     use alloc::{string::String, vec};
 
     #[test]
+    fn we_can_check_precision_value_for_nonnumeric_and_display_fixedsizebinary() {
+        // Boolean -> precision_value() should yield None
+        let boolean_type = ColumnType::Boolean;
+        assert_eq!(boolean_type.precision_value(), None);
+        assert_eq!(boolean_type.to_string(), "BOOLEAN");
+
+        // VarChar -> precision_value() should yield None
+        let varchar_type = ColumnType::VarChar;
+        assert_eq!(varchar_type.precision_value(), None);
+        assert_eq!(varchar_type.to_string(), "VARCHAR");
+
+        // VarBinary -> precision_value() should yield None
+        let varbinary_type = ColumnType::VarBinary;
+        assert_eq!(varbinary_type.precision_value(), None);
+        assert_eq!(varbinary_type.to_string(), "BINARY");
+
+        // FixedSizeBinary -> precision_value() should yield None,
+        // and the Display format needs coverage
+        let fsb_type = ColumnType::FixedSizeBinary(NonNegativeI32::try_from(4).unwrap());
+        assert_eq!(fsb_type.precision_value(), None);
+        assert_eq!(fsb_type.to_string(), "FIXEDSIZEBINARY(4)");
+    }
+
+    #[test]
+    fn we_can_convert_owned_fixed_size_binary() {
+        let alloc = Bump::new();
+        let data = vec![10u8, 20u8, 30u8, 40u8];
+        let bw = NonNegativeI32::try_from(2).unwrap();
+        let owned = OwnedColumn::FixedSizeBinary(bw, data.clone());
+        let col = Column::<TestScalar>::from_owned_column(&owned, &alloc);
+
+        match col {
+            Column::FixedSizeBinary(width, bytes) => {
+                assert_eq!(width, bw);
+                assert_eq!(bytes, data.as_slice());
+            }
+            _ => panic!("Expected a FixedSizeBinary column"),
+        }
+    }
+
+    #[test]
+    fn we_can_call_as_fixed_size_binary() {
+        let bw = NonNegativeI32::try_from(2).unwrap();
+        let fs_col = Column::<TestScalar>::FixedSizeBinary(bw, &[1, 2, 3, 4]);
+        assert_eq!(fs_col.as_fixed_size_binary(), Some((bw, &[1, 2, 3, 4][..])));
+
+        let big_int_col = Column::<TestScalar>::BigInt(&[100, 200]);
+        assert_eq!(big_int_col.as_fixed_size_binary(), None);
+    }
+
+    #[test]
+    #[should_panic(expected = "Unimplemented until needed")]
+    fn we_cannot_scalar_at_fixed_size_binary() {
+        let bw = NonNegativeI32::try_from(2).unwrap();
+        let col = Column::<TestScalar>::FixedSizeBinary(bw, &[1, 2]); // length=1 row if bw=2
+        let _ = col.scalar_at(0);
+    }
+
+    #[test]
+    #[should_panic(expected = "Unimplemented until needed")]
+    fn we_cannot_call_to_scalar_with_scaling_on_fixed_size_binary() {
+        let bw = NonNegativeI32::try_from(2).unwrap();
+        let col = Column::<TestScalar>::FixedSizeBinary(bw, &[10, 20, 30, 40]);
+        let _ = col.to_scalar_with_scaling(1);
+    }
+
+    #[test]
     fn column_type_serializes_to_string() {
         let column_type = ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc());
         let serialized = serde_json::to_string(&column_type).unwrap();

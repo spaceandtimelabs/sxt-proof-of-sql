@@ -257,6 +257,41 @@ mod tests {
     use blitzar::compute::compute_curve25519_commitments;
     use curve25519_dalek::ristretto::CompressedRistretto;
 
+    #[cfg(all(test, feature = "blitzar"))]
+    #[test]
+    fn we_can_convert_and_commit_fixed_size_binary() {
+        use crate::base::{
+            database::{Column, OwnedColumn},
+            math::non_negative_i32::NonNegativeI32,
+        };
+        use blitzar::compute::compute_curve25519_commitments;
+        use blitzar::sequence::Sequence;
+        use curve25519_dalek::ristretto::CompressedRistretto;
+
+        let bw = NonNegativeI32::try_from(2).unwrap();
+        let bytes = [10_u8, 20_u8, 30_u8, 40_u8];
+
+        let col: Column<'_, TestScalar> = Column::FixedSizeBinary(bw, &bytes);
+        let commit_col = CommittableColumn::from(&col);
+        assert_eq!(commit_col, CommittableColumn::FixedSizeBinary(bw, &bytes));
+
+        let owned_col: OwnedColumn<TestScalar> = OwnedColumn::FixedSizeBinary(bw, bytes.to_vec());
+        let commit_owned_col = CommittableColumn::from(&owned_col);
+        match commit_owned_col {
+            CommittableColumn::FixedSizeBinary(w, arr) => {
+                assert_eq!(w, bw);
+                assert_eq!(arr, bytes);
+            }
+            _ => panic!("Expected a FixedSizeBinary variant"),
+        }
+
+        let sequence = Sequence::from(&commit_col);
+        let sequence_check = Sequence::from(bytes.as_slice());
+        let mut commitments = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(&mut commitments, &[sequence, sequence_check], 0);
+        assert_eq!(commitments[0], commitments[1]);
+    }
+
     #[test]
     fn we_can_get_type_and_length_of_varbinary_column() {
         // empty case

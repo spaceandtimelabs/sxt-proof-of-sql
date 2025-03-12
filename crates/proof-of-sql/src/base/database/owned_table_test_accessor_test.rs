@@ -8,9 +8,53 @@ use crate::base::{
         Commitment, CommittableColumn,
     },
     database::{owned_table_utility::*, TableRef},
+    math::non_negative_i32::NonNegativeI32,
     scalar::test_scalar::TestScalar,
 };
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+
+#[test]
+fn we_can_access_fixed_size_binary_column() {
+    let table_ref = TableRef::new("sxt", "fixed_size_bin_test");
+
+    // We'll store 2 rows, each 2 bytes wide. So the full buffer is 4 bytes.
+    let col_width = NonNegativeI32::try_from(2).unwrap();
+    let row0 = [0x01_u8, 0x02_u8];
+    let row1 = [0x03_u8, 0x04_u8];
+    let mut buffer = Vec::new();
+    buffer.extend_from_slice(&row0);
+    buffer.extend_from_slice(&row1);
+
+    // Use the owned_table_utility::fixed_size_binary helper to build OwnedColumn::FixedSizeBinary
+    // For example: fixed_size_binary("col_fsb", 2, [0x01,0x02,0x03,0x04])
+    let data = owned_table(vec![fixed_size_binary(
+        "fsb_column",
+        col_width,
+        buffer.clone(),
+    )]);
+    let mut accessor = OwnedTableTestAccessor::<NaiveEvaluationProof>::new_empty_with_setup(());
+
+    // Add the table
+    accessor.add_table(table_ref.clone(), data, 0);
+
+    // Retrieve the column; that calls the branch in get_column(...) for OwnedColumn::FixedSizeBinary
+    let col_ref = crate::base::database::ColumnRef::new(
+        table_ref.clone(),
+        "fsb_column".into(),
+        crate::base::database::ColumnType::FixedSizeBinary(col_width),
+    );
+    let col = accessor.get_column(col_ref);
+
+    match col {
+        Column::FixedSizeBinary(w, bytes) => {
+            assert_eq!(w, col_width);
+            assert_eq!(bytes.len(), 4);
+            assert_eq!(&bytes[0..2], &row0);
+            assert_eq!(&bytes[2..4], &row1);
+        }
+        _ => panic!("Expected Column::FixedSizeBinary"),
+    }
+}
 
 #[test]
 fn we_can_query_the_length_of_a_table() {

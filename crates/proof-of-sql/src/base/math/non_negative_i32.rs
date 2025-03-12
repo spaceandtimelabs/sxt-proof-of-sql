@@ -80,3 +80,63 @@ impl From<WidthError> for String {
         error.to_string()
     }
 }
+
+#[cfg(test)]
+mod precision_tests {
+
+    use super::*;
+
+    #[test]
+    fn we_can_display_widtherror() {
+        let e = WidthError(-5);
+        assert_eq!(e.to_string(), "negative width: -5");
+        let as_string: String = e.into();
+        assert_eq!(as_string, "negative width: -5");
+    }
+
+    #[test]
+    fn we_can_display_nonnegativei32() {
+        let val = NonNegativeI32::try_from(5).unwrap();
+        assert_eq!(val.to_string(), "5");
+    }
+
+    #[test]
+    fn we_can_convert_nonnegativei32_to_primitives() {
+        let val = NonNegativeI32::try_from(5).unwrap();
+        let as_i32: i32 = val.into();
+        assert_eq!(as_i32, 5);
+        let as_usize: usize = val.into();
+        assert_eq!(as_usize, 5);
+
+        // Test also the conversion from &NonNegativeI32
+        let val_ref = &val;
+        let as_usize_ref: usize = val_ref.into();
+        assert_eq!(as_usize_ref, 5);
+    }
+
+    #[test]
+    fn we_cannot_construct_nonnegativei32_from_out_of_range() {
+        // 32 is out of range (0..=31)
+        let res = NonNegativeI32::try_from(32);
+        assert!(res.is_err());
+        let err = res.err().unwrap();
+        assert_eq!(err.to_string(), "negative width: 32");
+
+        // negative number is also out of range
+        let res = NonNegativeI32::try_from(-1);
+        assert!(res.is_err());
+        let err = res.err().unwrap();
+        assert_eq!(err.to_string(), "negative width: -1");
+    }
+
+    #[test]
+    fn we_can_construct_nonnegativei32_from_in_range() {
+        // Minimum
+        let zero = NonNegativeI32::try_from(0).unwrap();
+        assert_eq!(zero.to_string(), "0");
+
+        // Maximum
+        let thirty_one = NonNegativeI32::try_from(31).unwrap();
+        assert_eq!(thirty_one.to_string(), "31");
+    }
+}

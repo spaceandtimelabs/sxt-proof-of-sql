@@ -8,6 +8,42 @@ use crate::{
 use bumpalo::Bump;
 
 #[test]
+#[should_panic(expected = "SUM can not be applied to non-numeric types")]
+fn we_cannot_apply_sum_to_fixed_size_binary() {
+    use crate::base::math::non_negative_i32::NonNegativeI32;
+    let col: Column<'_, TestScalar> =
+        Column::FixedSizeBinary(NonNegativeI32::try_from(2).unwrap(), &[]);
+    let indexes = &[];
+    let counts = &[];
+    let alloc = Bump::new();
+    let _ = sum_aggregate_column_by_index_counts(&alloc, &col, counts, indexes);
+}
+
+#[test]
+#[should_panic(expected = "MAX can not be applied to fixed size binary")]
+fn we_cannot_apply_max_to_fixed_size_binary() {
+    use crate::base::math::non_negative_i32::NonNegativeI32;
+    let col: Column<'_, TestScalar> =
+        Column::FixedSizeBinary(NonNegativeI32::try_from(2).unwrap(), &[]);
+    let indexes = &[];
+    let counts = &[];
+    let alloc = Bump::new();
+    let _ = max_aggregate_column_by_index_counts(&alloc, &col, counts, indexes);
+}
+
+#[test]
+#[should_panic(expected = "MIN can not be applied to fixed size binary")]
+fn we_cannot_apply_min_to_fixed_size_binary() {
+    use crate::base::math::non_negative_i32::NonNegativeI32;
+    let col: Column<'_, TestScalar> =
+        Column::FixedSizeBinary(NonNegativeI32::try_from(2).unwrap(), &[]);
+    let indexes = &[];
+    let counts = &[];
+    let alloc = Bump::new();
+    let _ = min_aggregate_column_by_index_counts(&alloc, &col, counts, indexes);
+}
+
+#[test]
 #[should_panic(expected = "MAX can not be applied to varbinary")]
 fn we_cannot_apply_max_to_varbinary() {
     let col: Column<'_, TestScalar> = Column::VarBinary((&[], &[]));

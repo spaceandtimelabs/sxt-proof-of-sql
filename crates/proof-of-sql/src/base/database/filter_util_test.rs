@@ -6,6 +6,33 @@ use crate::base::{
 use bumpalo::Bump;
 
 #[test]
+fn we_can_filter_columns_with_fixed_size_binary() {
+    use crate::base::math::non_negative_i32::NonNegativeI32;
+
+    let selection = vec![true, false, true];
+    // We have 3 rows, each 2 bytes wide => total 6 bytes
+    let data = [10u8, 11u8, 12u8, 13u8, 14u8, 15u8];
+    let byte_width = NonNegativeI32::try_from(2).unwrap();
+    let columns: Vec<Column<'_, TestScalar>> = vec![
+        Column::FixedSizeBinary(byte_width, &data),
+        Column::BigInt(&[100, 200, 300]),
+    ];
+
+    let alloc = Bump::new();
+    let (filtered, len) = filter_columns(&alloc, &columns, &selection);
+    assert_eq!(len, 2);
+
+    // Row indices 0 and 2 are selected. For row 0, we take data[0], data[1].
+    // For row 2, we take data[4], data[5].
+    let expected_bytes = [10, 11, 14, 15];
+    let expected = vec![
+        Column::FixedSizeBinary(byte_width, &expected_bytes),
+        Column::BigInt(&[100, 300]),
+    ];
+    assert_eq!(filtered, expected);
+}
+
+#[test]
 fn we_can_filter_columns() {
     let selection = vec![true, false, true, false, true];
     let str_scalars: [TestScalar; 5] = ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];

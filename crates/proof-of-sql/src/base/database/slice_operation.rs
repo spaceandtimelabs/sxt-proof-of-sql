@@ -284,6 +284,36 @@ pub(crate) fn apply_slice_to_indexes<S: Clone>(
 mod test {
     use super::*;
     use core::cmp::{PartialEq, PartialOrd};
+
+    #[test]
+    fn we_can_repeat_elementwise_fixed_size_binary() {
+        // row0 = [0x01, 0x02, 0x03, 0x04]
+        // row1 = [0x05, 0x06, 0x07, 0x08]
+        // So we have 2 rows, each 4 bytes
+        let col_bytes = [0x01u8, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08];
+        let width = 4;
+        let n = 2;
+
+        // Expect row0 repeated twice, followed by row1 repeated twice
+        // => [0x01,0x02,0x03,0x04, 0x01,0x02,0x03,0x04, 0x05,0x06,0x07,0x08, 0x05,0x06,0x07,0x08]
+        let expected = vec![
+            0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x05, 0x06,
+            0x07, 0x08,
+        ];
+
+        let actual = super::repeat_elementwise_fixed_size_binary(&col_bytes, width, n);
+        assert_eq!(actual, expected);
+
+        // Try n=0 => expect empty
+        let empty_result = super::repeat_elementwise_fixed_size_binary(&col_bytes, width, 0);
+        assert!(empty_result.is_empty());
+
+        // Try empty col_bytes => also expect empty
+        let empty_data = [];
+        let empty_data_result = super::repeat_elementwise_fixed_size_binary(&empty_data, width, n);
+        assert!(empty_data_result.is_empty());
+    }
+
     // Reverse
     #[test]
     fn we_can_reverse_binary_operator() {

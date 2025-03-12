@@ -511,6 +511,31 @@ mod test {
     use bumpalo::Bump;
 
     #[test]
+    fn we_can_test_fixedsizebinary_length_and_is_empty_and_column_type() {
+        use crate::base::math::non_negative_i32::NonNegativeI32;
+
+        // Test length for FixedSizeBinary
+        // We'll store two rows, each 4 bytes wide
+        let row0 = [1_u8, 2_u8, 3_u8, 4_u8];
+        let row1 = [5_u8, 6_u8, 7_u8, 8_u8];
+        let mut data = Vec::new();
+        data.extend_from_slice(&row0);
+        data.extend_from_slice(&row1);
+
+        let bw = NonNegativeI32::try_from(4).unwrap();
+        let col_fixed: OwnedColumn<TestScalar> = OwnedColumn::FixedSizeBinary(bw, data);
+        assert_eq!(col_fixed.len(), 2);
+        assert!(!col_fixed.is_empty());
+        assert_eq!(col_fixed.column_type(), ColumnType::FixedSizeBinary(bw));
+
+        // Test is_empty() for a Uint8 column
+        let col_u8_empty: OwnedColumn<TestScalar> = OwnedColumn::Uint8(Vec::new());
+        assert_eq!(col_u8_empty.len(), 0);
+        assert!(col_u8_empty.is_empty());
+        assert_eq!(col_u8_empty.column_type(), ColumnType::Uint8);
+    }
+
+    #[test]
     fn we_can_compute_inner_product_for_fixed_size_binary_curve25519scalars() {
         let row0 = [0u8; 31]; // 31 zero bytes
         let row1 = [1u8; 31]; // 31 ones

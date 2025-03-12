@@ -126,6 +126,41 @@ mod test {
     use alloc::vec;
 
     #[test]
+    fn we_cannot_chunked_apply_if_slice_length_not_multiple_of_chunk_size() {
+        let permutation = Permutation::try_new(vec![1, 0]).unwrap();
+
+        let slice = [10, 20, 30, 40, 50];
+        let result = permutation.try_chunked_apply(&slice, 2);
+        assert_eq!(
+            result,
+            Err(PermutationError::PermutationSizeMismatch {
+                permutation_size: 2,
+                slice_length: 5
+            })
+        );
+    }
+
+    #[test]
+    fn we_cannot_chunked_apply_if_num_chunks_does_not_match_permutation_length() {
+        let permutation = Permutation::try_new(vec![2, 0, 1]).unwrap();
+
+        let slice_ok = [100, 101, 200, 201, 300, 301];
+        let ok_result = permutation.try_chunked_apply(&slice_ok, 2).unwrap();
+
+        assert_eq!(ok_result, vec![300, 301, 100, 101, 200, 201]);
+
+        let slice_mismatch = [10, 11, 12, 13];
+        let err_result = permutation.try_chunked_apply(&slice_mismatch, 2);
+        assert_eq!(
+            err_result,
+            Err(PermutationError::PermutationSizeMismatch {
+                permutation_size: 3,
+                slice_length: 2
+            })
+        );
+    }
+
+    #[test]
     fn test_apply_permutation() {
         let permutation = Permutation::try_new(vec![1, 0, 2]).unwrap();
         assert_eq!(permutation.size(), 3);

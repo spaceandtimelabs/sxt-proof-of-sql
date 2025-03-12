@@ -263,6 +263,87 @@ mod tests {
     use crate::base::{map::IndexMap, scalar::test_scalar::TestScalar};
 
     #[test]
+    fn we_can_union_fixedsizebinary_columns() {
+        // build have two columns of FixedSizeBinary, each with width=2 bytes per row
+        // col0 => 2 rows => data = [0x10, 0x20,  0x30, 0x40]
+        // col1 => 1 row  => data = [0x50, 0x60]
+        // Union => 3 rows => data = [0x10,0x20,  0x30,0x40,  0x50,0x60]
+
+        use crate::base::math::non_negative_i32::NonNegativeI32;
+        let alloc = bumpalo::Bump::new();
+
+        let data0 = [0x10_u8, 0x20, 0x30, 0x40];
+        let col0: Column<'_, TestScalar> =
+            Column::FixedSizeBinary(NonNegativeI32::try_from(2).unwrap(), &data0[..]);
+
+        let data1 = [0x50_u8, 0x60];
+        let col1 = Column::FixedSizeBinary(NonNegativeI32::try_from(2).unwrap(), &data1[..]);
+
+        let columns = [&col0, &col1];
+        let unioned = column_union(
+            &columns,
+            &alloc,
+            ColumnType::FixedSizeBinary(NonNegativeI32::try_from(2).unwrap()),
+        )
+        .expect("fixedsizebinary union should succeed");
+
+        let expected_data = [0x10, 0x20, 0x30, 0x40, 0x50, 0x60];
+        assert_eq!(
+            unioned,
+            Column::FixedSizeBinary(NonNegativeI32::try_from(2).unwrap(), &expected_data)
+        );
+    }
+
+    #[test]
+    fn we_can_union_tables_with_fixedsizebinary_column() {
+        use crate::base::map::IndexMap;
+        use crate::base::math::non_negative_i32::NonNegativeI32;
+
+        let alloc = Bump::new();
+        let width_2 = NonNegativeI32::try_from(2).unwrap();
+
+        // Table #1: 2 rows
+        let data0 = [0xAAu8, 0xBB, 0xCC, 0xDD];
+        let col0: Column<'_, TestScalar> = Column::FixedSizeBinary(width_2, &data0[..]);
+        let table0 = Table::try_new_with_options(
+            IndexMap::from_iter([("fsb".into(), col0)]),
+            TableOptions::new(Some(2)),
+        )
+        .unwrap();
+
+        // Table #2: 1 row
+        let data1 = [0xEEu8, 0xFF];
+        let col1 = Column::FixedSizeBinary(width_2, &data1[..]);
+        let table1 = Table::try_new_with_options(
+            IndexMap::from_iter([("whatever_name".into(), col1)]),
+            TableOptions::new(Some(1)),
+        )
+        .unwrap();
+
+        // The user wants to union these tables with a single column in the final schema
+        let schema = vec![ColumnField::new(
+            "final_name".into(),
+            ColumnType::FixedSizeBinary(width_2),
+        )];
+
+        // Union them
+        let unioned = table_union(&[table0, table1], &alloc, schema.clone()).unwrap();
+
+        // Check the final data: 3 rows, each row is 2 bytes
+        let expected_bytes = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF];
+        let expected_table = Table::try_new_with_options(
+            IndexMap::from_iter([(
+                "final_name".into(),
+                Column::FixedSizeBinary(width_2, &expected_bytes[..]),
+            )]),
+            TableOptions::new(Some(3)),
+        )
+        .unwrap();
+
+        assert_eq!(unioned, expected_table);
+    }
+
+    #[test]
     fn we_can_union_no_columns() {
         let alloc = Bump::new();
         let result = column_union::<TestScalar>(&[], &alloc, ColumnType::BigInt).unwrap();

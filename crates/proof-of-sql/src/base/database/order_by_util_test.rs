@@ -9,6 +9,47 @@ use crate::{
 use core::cmp::Ordering;
 
 #[test]
+fn we_can_compare_indexes_by_owned_columns_for_varbinary() {
+    // Example dataset
+    let data = vec![
+        b"foo".to_vec(),
+        b"bar".to_vec(),
+        b"baz".to_vec(),
+        b"baz".to_vec(),
+        b"bar".to_vec(),
+    ];
+    let column_varbinary = OwnedColumn::VarBinary(data);
+
+    // We'll just compare a few indexes to ensure the VarBinary case is hit
+    let columns: &[&OwnedColumn<TestScalar>; 1] = &[&column_varbinary];
+    // "foo" vs "bar" => "foo" > "bar"
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 0, 1),
+        core::cmp::Ordering::Greater
+    );
+    // "bar" vs "baz" => "bar" < "baz"
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 1, 2),
+        core::cmp::Ordering::Less
+    );
+    // "baz" vs "baz" => Equal
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 2, 3),
+        core::cmp::Ordering::Equal
+    );
+    // "baz" vs "bar" => "baz" > "bar"
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 3, 4),
+        core::cmp::Ordering::Greater
+    );
+    // "bar" vs "bar" => Equal
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 1, 4),
+        core::cmp::Ordering::Equal
+    );
+}
+
+#[test]
 fn we_can_compare_indexes_by_columns_for_fixedsizebinary_hex_i32_full_suite() {
     // Each row is 4 bytes in big-endian format, representing:
     //  row0 => 0x00 0x00 0x00 0x00  (0)
