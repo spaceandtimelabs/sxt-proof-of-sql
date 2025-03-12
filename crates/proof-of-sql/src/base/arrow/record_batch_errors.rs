@@ -1,6 +1,5 @@
 use super::arrow_array_to_column_conversion::ArrowArrayToColumnConversionError;
 use crate::base::commitment::ColumnCommitmentsMismatch;
-use proof_of_sql_parser::ParseError;
 use snafu::Snafu;
 
 /// Errors that can occur when trying to create or extend a [`TableCommitment`] from a record batch.
@@ -11,12 +10,6 @@ pub enum RecordBatchToColumnsError {
     ArrowArrayToColumnConversionError {
         /// The underlying source error
         source: ArrowArrayToColumnConversionError,
-    },
-    #[snafu(transparent)]
-    /// This error occurs when converting from a record batch name to an identifier fails. (Which may be impossible.)
-    FieldParseFail {
-        /// The underlying source error
-        source: ParseError,
     },
 }
 

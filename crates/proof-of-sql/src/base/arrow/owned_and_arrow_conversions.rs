@@ -31,10 +31,7 @@ use arrow::{
     error::ArrowError,
     record_batch::RecordBatch,
 };
-use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
-    ParseError,
-};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use snafu::Snafu;
 use sqlparser::ast::Ident;
 
@@ -53,12 +50,6 @@ pub enum OwnedArrowConversionError {
     /// This error occurs when trying to convert from a record batch with duplicate idents(e.g. `"a"` and `"A"`).
     #[snafu(display("conversion resulted in duplicate idents"))]
     DuplicateIdents,
-    /// This error occurs when converting from a record batch name to an idents fails. (Which may be impossible.)
-    #[snafu(transparent)]
-    FieldParseFail {
-        /// The underlying source error
-        source: ParseError,
-    },
     /// This error occurs when creating an owned table fails, which should only occur when there are zero columns.
     #[snafu(transparent)]
     InvalidTable {
