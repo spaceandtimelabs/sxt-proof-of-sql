@@ -8,7 +8,7 @@ use crate::{
     },
     sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
-use alloc::{boxed::Box, vec};
+use alloc::boxed::Box;
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -109,24 +109,7 @@ impl ProofExpr for IsTrueExpr {
         let inner_column = self.expr.prover_evaluate(builder, alloc, table);
         let presence = table.presence_for_expr(&*self.expr);
 
-        // Compute the not-null indicator: if no presence then all entries are not null, else invert the presence slice
-        let not_null = if presence.is_none() {
-            alloc.alloc_slice_fill_copy(table.num_rows(), true)
-        } else {
-            let presence_slice = presence.unwrap();
-            alloc.alloc_slice_fill_with(presence_slice.len(), |i| !presence_slice[i])
-        };
-
-        // Compute result as the product (logical AND) of not_null and the inner boolean value
-        let result_slice = if let Column::Boolean(inner_values) = inner_column {
-            alloc.alloc_slice_fill_with(table.num_rows(), |i| {
-                if self.malicious {
-                    true
-                } else {
-                    not_null[i] && inner_values[i]
-                }
-            })
-        } else {
+        let Column::Boolean(inner_values) = inner_column else {
             panic!("IS TRUE can only be applied to boolean expressions");
         };
 
@@ -142,25 +125,25 @@ impl ProofExpr for IsTrueExpr {
             }
         };
 
-        // Record the IS TRUE check in the proof
-        builder.record_is_true_check(&nullable_column, alloc);
-
-        // For boolean expressions, enforce algebraically that the result equals (not_null * inner_value)
-        if let Column::Boolean(inner_values) = inner_column {
-            let expected =
-                alloc.alloc_slice_fill_with(table.num_rows(), |i| not_null[i] && inner_values[i]);
-            let mismatch = alloc.alloc_slice_fill_with(table.num_rows(), |i| {
-                if self.malicious {
-                    false
-                } else {
-                    result_slice[i] != expected[i]
-                }
-            });
-            builder.produce_sumcheck_subpolynomial(
-                SumcheckSubpolynomialType::Identity,
-                vec![(S::one(), vec![Box::new(&*mismatch)])],
-            );
+        // When malicious, produce fake MLE with all true values
+        // Otherwise, record the proper IS TRUE check
+        if self.malicious {
+            builder.produce_intermediate_mle(Column::Boolean(
+                alloc.alloc_slice_fill_copy(table.num_rows(), true),
+            ));
+        } else {
+            builder.record_is_true_check(&nullable_column, alloc);
         }
+
+        // Compute result (which may be incorrect if malicious=true)
+        let result_slice = alloc.alloc_slice_fill_with(table.num_rows(), |i| {
+            if self.malicious {
+                true
+            } else {
+                let not_null = presence.is_none_or(|p| !p[i]);
+                not_null && inner_values[i]
+            }
+        });
 
         Column::Boolean(result_slice)
     }
@@ -172,17 +155,24 @@ impl ProofExpr for IsTrueExpr {
         chi_eval: S,
     ) -> Result<S, ProofError> {
         // Get the evaluation of the inner expression
-        let _inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
+        let inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
 
-        // Enforce final consistency check by producing the sumcheck subpolynomial evaluation which should yield zero
+        // Verify the sumcheck subpolynomial - this ensures correctness across all rows
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             S::zero(),
             2,
         )?;
 
-        // Now, consume the final round MLE evaluation for IS TRUE
-        Ok(builder.try_consume_final_round_mle_evaluation()?)
+        // Get the claimed result and verify it matches inner evaluation
+        let claimed_result = builder.try_consume_final_round_mle_evaluation()?;
+        if claimed_result != inner_eval {
+            return Err(ProofError::VerificationError {
+                error: "IS TRUE verification failed: result does not match inner evaluation",
+            });
+        }
+
+        Ok(inner_eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

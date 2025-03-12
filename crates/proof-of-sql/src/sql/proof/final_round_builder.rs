@@ -196,25 +196,42 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
         // Verify that we're working with a boolean column
         if let Column::Boolean(values) = column.values {
             // For IS TRUE, we need to check if the value is both not null and true
-            match &column.presence {
-                Some(presence) => {
-                    // Create a new array that is true only when:
-                    // 1. The value is not null (presence[i] = false)
-                    // 2. The value is true (values[i] = true)
-                    let mut is_true = Vec::with_capacity(values.len());
-                    for i in 0..values.len() {
-                        is_true.push(!presence[i] && values[i]);
-                    }
-                    // Use the allocator to ensure the vector lives for the required 'a lifetime
-                    let is_true_slice = alloc.alloc_slice_copy(&is_true);
-                    let is_true_column = Column::Boolean(is_true_slice);
-                    self.produce_intermediate_mle(is_true_column);
+            if let Some(presence) = &column.presence {
+                // Create a new array that is true only when:
+                // 1. The value is not null (presence[i] = false)
+                // 2. The value is true (values[i] = true)
+                let mut is_true = Vec::with_capacity(values.len());
+                for i in 0..values.len() {
+                    is_true.push(!presence[i] && values[i]);
                 }
-                None => {
-                    // When presence is None, all values are non-null
-                    // So we just need to check if the values are true
-                    self.produce_intermediate_mle(Column::Boolean(values));
-                }
+                // Use the allocator to ensure the vector lives for the required 'a lifetime
+                let is_true_slice = alloc.alloc_slice_copy(&is_true);
+                let is_true_column = Column::Boolean(is_true_slice);
+                self.produce_intermediate_mle(is_true_column);
+
+                // Create the sumcheck subpolynomial that verifies the IS TRUE constraint
+                let mismatch = alloc.alloc_slice_fill_with(values.len(), |i| {
+                    let expected = !presence[i] && values[i];
+                    is_true[i] != expected
+                });
+                self.produce_sumcheck_subpolynomial(
+                    SumcheckSubpolynomialType::Identity,
+                    vec![(S::one(), vec![Box::new(&*mismatch)])],
+                );
+            } else {
+                // When presence is None, all values are non-null
+                // So we just need to check if the values are true
+                self.produce_intermediate_mle(Column::Boolean(values));
+
+                // Create the sumcheck subpolynomial for the no-nulls case
+                let mismatch = alloc.alloc_slice_fill_with(values.len(), |i| {
+                    let expected = values[i]; // When no nulls, result should match values
+                    values[i] != expected
+                });
+                self.produce_sumcheck_subpolynomial(
+                    SumcheckSubpolynomialType::Identity,
+                    vec![(S::one(), vec![Box::new(&*mismatch)])],
+                );
             }
         } else {
             // IS TRUE can only be applied to boolean expressions
