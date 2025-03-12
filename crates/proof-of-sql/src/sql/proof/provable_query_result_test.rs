@@ -1,12 +1,12 @@
 use super::{ProvableQueryResult, QueryError};
-use crate::base::scalar::test_scalar::TestScalar;
 use crate::{
     base::{
         database::{Column, ColumnField, ColumnType},
-        math::decimal::Precision,
+        math::{decimal::Precision, non_negative_i32::NonNegativeI32},
         polynomial::compute_evaluation_vector,
-        scalar::Scalar,
+        scalar::{test_scalar::TestScalar, Scalar},
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
 };
 use alloc::sync::Arc;
 use arrow::{

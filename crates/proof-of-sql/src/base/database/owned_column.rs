@@ -500,9 +500,12 @@ impl<S: Scalar> OwnedColumn<S> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::base::{
-        math::decimal::Precision,
-        scalar::{test_scalar::TestScalar, Curve25519Scalar, ScalarExt},
+    use crate::{
+        base::{
+            math::decimal::Precision,
+            scalar::{test_scalar::TestScalar, ScalarExt},
+        },
+        proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     };
     use alloc::vec;
     use bumpalo::Bump;
