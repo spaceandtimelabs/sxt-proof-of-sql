@@ -3,6 +3,8 @@ Please be sure to look over the pull request guidelines here: https://github.com
 # Please go through the following checklist
 - [ ] The PR title and commit messages adhere to guidelines here: https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/CONTRIBUTING.md. In particular `!` is used if and only if at least one breaking change has been introduced.
 - [ ] I have run the ci check script with `source scripts/run_ci_checks.sh`.
+- [ ] I have run the clean commit check script with `source scripts/check_commits.sh`, and the commit history is certified to follow clean commit guidelines as described here: https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/COMMIT_GUIDELINES.md
+- [ ] The latest changes from `main` have been incorporated to this PR by simple rebase if possible, if not, then conflicts are resolved appropriately.
 
 # Rationale for this change
 
