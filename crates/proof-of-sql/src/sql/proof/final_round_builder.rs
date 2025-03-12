@@ -9,7 +9,7 @@ use crate::{
     },
     utils::log,
 };
-use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
+use alloc::{boxed::Box, collections::VecDeque, vec, vec::Vec};
 use bumpalo::Bump;
 
 /// Track components used to form a query's proof
