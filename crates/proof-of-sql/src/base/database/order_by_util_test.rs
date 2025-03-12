@@ -9,6 +9,25 @@ use crate::{
 use core::cmp::Ordering;
 
 #[test]
+fn we_cover_the_varbinary_path_after_equal_columns() {
+    let col_bool = Column::Boolean::<TestScalar>(&[true, true]);
+
+    let raw_bytes = [b"foo".as_ref(), b"bar".as_ref()];
+    let scalars = raw_bytes
+        .iter()
+        .map(|b| TestScalar::from_le_bytes_mod_order(b))
+        .collect::<Vec<_>>();
+    let col_varbinary = Column::VarBinary((raw_bytes.as_slice(), scalars.as_slice()));
+
+    let columns = &[col_bool, col_varbinary];
+
+    assert_eq!(
+        compare_indexes_by_columns(columns, 0, 1),
+        core::cmp::Ordering::Greater
+    );
+}
+
+#[test]
 fn we_can_compare_indexes_by_owned_columns_for_varbinary() {
     // Example dataset
     let data = vec![

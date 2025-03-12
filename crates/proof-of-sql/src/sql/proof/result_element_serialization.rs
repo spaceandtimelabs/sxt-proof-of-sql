@@ -167,6 +167,28 @@ mod tests {
     use rand_core::SeedableRng;
 
     #[test]
+    fn we_can_decode_fixedsizebinary_elements() {
+        let data = vec![10, 20, 30, 40, 50, 60, 70, 80];
+        let (decoded, used) = decode_fixedsizebinary_elements(&data, 2, 4).unwrap();
+        assert_eq!(used, 8);
+        assert_eq!(decoded, data);
+
+        let short_data = vec![10, 20, 30, 40, 50, 60, 70];
+        assert!(
+            decode_fixedsizebinary_elements(&short_data, 2, 4).is_err(),
+            "Should fail when data is too short"
+        );
+
+        let n = (usize::MAX / 2) + 1;
+        let row_width = 2;
+        let big_data = Vec::new();
+        assert!(
+            decode_fixedsizebinary_elements(&big_data, n, row_width).is_err(),
+            "Should fail on overflow"
+        );
+    }
+
+    #[test]
     fn we_can_encode_and_decode_empty_buffers() {
         let mut out = vec![0_u8; 0_usize.required_space()];
         let empty_buf: &[u8] = &[][..];

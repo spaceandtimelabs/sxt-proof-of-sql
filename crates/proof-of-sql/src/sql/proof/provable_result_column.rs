@@ -51,7 +51,7 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
     fn write(&self, out: &mut [u8], length: u64) -> usize {
         match self {
             Column::Boolean(col) => col.write(out, length),
-            Column::Uint8(col) | Column::FixedSizeBinary(_, col) => col.write(out, length),
+            Column::Uint8(col) => col.write(out, length),
             Column::TinyInt(col) => col.write(out, length),
             Column::SmallInt(col) => col.write(out, length),
             Column::Int(col) => col.write(out, length),
@@ -60,6 +60,10 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
             Column::Decimal75(_, _, col) | Column::Scalar(col) => col.write(out, length),
             Column::VarChar((col, _)) => col.write(out, length),
             Column::VarBinary((col, _)) => col.write(out, length),
+            Column::FixedSizeBinary(bw, col) => {
+                let width: usize = bw.into();
+                col.write(out, length * width as u64)
+            }
         }
     }
 }
@@ -71,5 +75,28 @@ impl<'a, T: ProvableResultElement<'a>, const N: usize> ProvableResultColumn for 
 
     fn write(&self, out: &mut [u8], length: u64) -> usize {
         (&self[..]).write(out, length)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::base::scalar::test_scalar::TestScalar;
+
+    #[test]
+    fn coverage_for_fixed_size_binary_in_provable_result_column() {
+        let data = vec![10_u8, 20_u8, 30_u8, 40_u8, 50_u8, 60_u8];
+
+        let width = 2.try_into().unwrap();
+        let col: Column<'_, TestScalar> = Column::FixedSizeBinary(width, &data);
+
+        let length = 3;
+        let total_bytes = col.num_bytes(length);
+        assert_eq!(total_bytes, data.len());
+
+        let mut buffer = vec![0; total_bytes];
+        let written_bytes = col.write(&mut buffer, length);
+        assert_eq!(written_bytes, data.len());
+        assert_eq!(buffer, data);
     }
 }

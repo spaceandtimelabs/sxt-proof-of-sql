@@ -340,6 +340,22 @@ mod tests {
     #[cfg(feature = "blitzar")]
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
+    #[cfg(feature = "blitzar")]
+    #[test]
+    fn we_can_commit_fixed_size_binary_columns_for_coverage() {
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 16);
+        let data = vec![10, 20, 30, 40, 50, 60, 70, 80];
+        let width = 4.try_into().unwrap();
+        let binding = data.clone();
+        let committable_columns = vec![CommittableColumn::FixedSizeBinary(width, &binding)];
+        for offset in 0..4 {
+            let result =
+                HyperKZGCommitment::compute_commitments(&committable_columns, offset, &&ck);
+            let expected = compute_expected_commitments(&committable_columns, offset, &ck);
+            assert_eq!(result, expected, "Offset: {offset}");
+        }
+    }
+
     #[test]
     fn we_have_correct_constants_for_bn_scalar() {
         test_scalar_constants::<BNScalar>();

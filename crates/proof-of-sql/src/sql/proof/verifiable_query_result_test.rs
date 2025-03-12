@@ -5,12 +5,13 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::{bigint, owned_table},
+            owned_table_utility::{bigint, fixed_size_binary, owned_table},
             table_utility::*,
             ColumnField, ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, Table,
             TableEvaluation, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
+        math::non_negative_i32::NonNegativeI32,
         proof::ProofError,
         scalar::Scalar,
     },
@@ -77,9 +78,17 @@ impl ProofPlan for EmptyTestQueryExpr {
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        (1..=self.columns)
-            .map(|i| ColumnField::new(format!("a{i}").as_str().into(), ColumnType::BigInt))
-            .collect()
+        let mut fields = Vec::new();
+        fields.push(ColumnField::new("a1".into(), ColumnType::BigInt));
+
+        if self.columns == 2 {
+            let width = NonNegativeI32::try_from(4).unwrap();
+            fields.push(ColumnField::new(
+                "a2".into(),
+                ColumnType::FixedSizeBinary(width),
+            ));
+        }
+        fields
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
@@ -92,24 +101,32 @@ impl ProofPlan for EmptyTestQueryExpr {
 }
 
 #[test]
-fn we_can_verify_queries_on_an_empty_table() {
+fn we_can_verify_queries_on_an_empty_table_with_fixedsizebinary() {
     let expr = EmptyTestQueryExpr {
-        columns: 1,
-        ..Default::default()
+        columns: 2,
+        length: 0,
     };
+
+    let width = NonNegativeI32::try_from(4).unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
         TableRef::new("sxt", "test"),
-        owned_table([bigint("a1", [0_i64; 0])]),
+        owned_table([
+            bigint("a1", [0_i64; 0]),
+            fixed_size_binary("a2", width, vec![]),
+        ]),
         0,
         (),
     );
+
     let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
-    let QueryData {
-        verification_hash: _,
-        table,
-    } = res.verify(&expr, &accessor, &()).unwrap();
-    let expected_res = owned_table([bigint("a1", [0; 0])]);
-    assert_eq!(table, expected_res);
+
+    let QueryData { table, .. } = res.verify(&expr, &accessor, &()).unwrap();
+
+    let expected = owned_table([
+        bigint("a1", [] as [i64; 0]),
+        fixed_size_binary("a2", width, vec![]),
+    ]);
+    assert_eq!(table, expected);
 }
 
 #[test]
@@ -118,9 +135,16 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
         columns: 1,
         ..Default::default()
     };
+
+    let width = NonNegativeI32::try_from(4).unwrap();
+    let data = vec![0];
+
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
         TableRef::new("sxt", "test"),
-        owned_table([bigint("a1", [0_i64; 0])]),
+        owned_table([
+            bigint("a1", [0_i64; 0]),
+            fixed_size_binary("fsb", width, data.clone()),
+        ]),
         0,
         (),
     );

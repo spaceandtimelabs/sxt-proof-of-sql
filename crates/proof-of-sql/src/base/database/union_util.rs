@@ -296,8 +296,7 @@ mod tests {
 
     #[test]
     fn we_can_union_tables_with_fixedsizebinary_column() {
-        use crate::base::map::IndexMap;
-        use crate::base::math::non_negative_i32::NonNegativeI32;
+        use crate::base::{map::IndexMap, math::non_negative_i32::NonNegativeI32};
 
         let alloc = Bump::new();
         let width_2 = NonNegativeI32::try_from(2).unwrap();

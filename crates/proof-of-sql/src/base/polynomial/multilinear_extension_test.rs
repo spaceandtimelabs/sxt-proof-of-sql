@@ -1,4 +1,3 @@
-
 use super::MultilinearExtension;
 use crate::base::{database::Column, scalar::test_scalar::TestScalar};
 use bumpalo::Bump;
