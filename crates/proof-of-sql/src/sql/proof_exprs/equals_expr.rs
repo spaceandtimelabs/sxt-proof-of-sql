@@ -115,24 +115,42 @@ pub fn result_evaluate_equals_zero<'a, S: Scalar>(
     alloc.alloc_slice_fill_with(table_length, |i| lhs[i] == S::zero())
 }
 
-pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
+trait EqualsExprProverUtilities<S: Scalar> {
+    fn get_lhs_inverse<'a>(&self, alloc: &'a Bump, lhs: &[S]) -> &'a [S];
+    fn get_selection<'a>(&self, alloc: &'a Bump, table_length: usize, lhs: &[S]) -> &'a [bool];
+}
+
+struct EqualsExprProverStandardUtilities;
+
+impl<S: Scalar> EqualsExprProverUtilities<S> for EqualsExprProverStandardUtilities {
+    fn get_lhs_inverse<'a>(&self, alloc: &'a Bump, lhs: &[S]) -> &'a [S] {
+        let lhs_pseudo_inv = alloc.alloc_slice_copy(lhs);
+        slice_ops::batch_inversion(lhs_pseudo_inv);
+        lhs_pseudo_inv
+    }
+    fn get_selection<'a>(&self, alloc: &'a Bump, table_length: usize, lhs: &[S]) -> &'a [bool] {
+        alloc.alloc_slice_fill_with(table_length, |i| lhs[i] == S::zero())
+    }
+}
+
+fn prover_evaluate_equals_zero_base<'a, S: Scalar, U: EqualsExprProverUtilities<S>>(
     table_length: usize,
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     lhs: &'a [S],
+    utils: &U,
 ) -> &'a [bool] {
     // lhs_pseudo_inv
-    let lhs_pseudo_inv = alloc.alloc_slice_copy(lhs);
-    slice_ops::batch_inversion(lhs_pseudo_inv);
+    let lhs_pseudo_inv = utils.get_lhs_inverse(alloc, lhs);
 
     builder.produce_intermediate_mle(lhs_pseudo_inv as &[_]);
 
-    // selection_not
-    let selection_not: &[_] = alloc.alloc_slice_fill_with(table_length, |i| lhs[i] != S::zero());
-
     // selection
-    let selection: &[_] = alloc.alloc_slice_fill_with(table_length, |i| !selection_not[i]);
+    let selection = utils.get_selection(alloc, table_length, lhs);
     builder.produce_intermediate_mle(selection);
+
+    // selection_not
+    let selection_not: &[_] = alloc.alloc_slice_fill_with(table_length, |i| !selection[i]);
 
     // subpolynomial: selection * lhs
     builder.produce_sumcheck_subpolynomial(
@@ -153,6 +171,16 @@ pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
     );
 
     selection
+}
+
+pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
+    table_length: usize,
+    builder: &mut FinalRoundBuilder<'a, S>,
+    alloc: &'a Bump,
+    lhs: &'a [S],
+) -> &'a [bool] {
+    let utils = EqualsExprProverStandardUtilities {};
+    prover_evaluate_equals_zero_base(table_length, builder, alloc, lhs, &utils)
 }
 
 pub fn verifier_evaluate_equals_zero<S: Scalar>(
