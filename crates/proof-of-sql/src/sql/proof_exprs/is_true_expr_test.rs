@@ -18,6 +18,66 @@ use sqlparser::ast::Ident;
 use std::hash::BuildHasherDefault;
 
 #[test]
+fn we_can_generate_actual_proof_with_is_true_expr() {
+    use crate::{
+        base::{
+            commitment::naive_evaluation_proof::NaiveEvaluationProof,
+            database::{
+                owned_table_utility::{bigint, boolean, owned_table},
+                OwnedTableTestAccessor,
+            },
+        },
+        sql::{
+            proof::{QueryData, VerifiableQueryResult},
+            proof_exprs::test_utility::{cols_expr_plan, column, tab},
+            proof_plans::test_utility::filter,
+        },
+    };
+
+    // ------------------- Setup -------------------
+    let table_name = TableRef::new("foo", "bar");
+    let accessor = OwnedTableTestAccessor::<NaiveEvaluationProof>::new_from_table(
+        table_name.clone(),
+        owned_table([bigint("A", [1, 2, 3]), boolean("B", [false, true, false])]),
+        0,
+        (),
+    );
+
+    // B
+    let column_b_expr = column(&table_name, "B", &accessor);
+    // B IS TRUE
+    let mut is_true_expr = IsTrueExpr::new(Box::new(column_b_expr));
+    is_true_expr.malicious = true;
+
+    // SELECT A FROM foo.bar WHERE B IS TRUE
+    let query = filter(
+        cols_expr_plan(&table_name, &["A"], &accessor),
+        tab(&table_name),
+        DynProofExpr::IsTrue(is_true_expr),
+    );
+
+    let expected_result = owned_table([bigint("A", [2])]);
+
+    // ------------------- Prover -------------------
+
+    // Prover runs query and generates proof (VerifiableQueryResult contains both).
+    let verifiable_res = VerifiableQueryResult::<NaiveEvaluationProof>::new(&query, &accessor, &());
+
+    // ------------------- Verifier -------------------
+
+    // Verifier verifies this proof/result
+    match verifiable_res.verify(&query, &accessor, &()) {
+        Ok(QueryData { table, .. }) => {
+            assert_eq!(
+                table, expected_result,
+                "The proof was accepted by the verifier, but the result was incorrect."
+            );
+        }
+        Err(err) => println!("Verification failed with error: {err:?}"),
+    }
+}
+
+#[test]
 fn test_is_true_expr() {
     let alloc = Bump::new();
     let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());

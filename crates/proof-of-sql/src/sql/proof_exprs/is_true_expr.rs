@@ -143,7 +143,13 @@ impl ProofExpr for IsTrueExpr {
         };
 
         // Record the IS TRUE check in the proof
-        builder.record_is_true_check(&nullable_column, alloc);
+        if self.malicious {
+            builder.produce_intermediate_mle(Column::Boolean(
+                alloc.alloc_slice_fill_copy(table.num_rows(), true),
+            ));
+        } else {
+            builder.record_is_true_check(&nullable_column, alloc);
+        }
 
         // For boolean expressions, enforce algebraically that the result equals (not_null * inner_value)
         if let Column::Boolean(inner_values) = inner_column {
