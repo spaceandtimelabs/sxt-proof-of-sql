@@ -2,12 +2,18 @@ use crate::{
     base::{
         database::{Column, ColumnRef, ColumnType, NullableColumn, Table, TableOptions, TableRef},
         map::IndexMap,
+        proof::ProofError,
         scalar::test_scalar::TestScalar,
     },
-    sql::proof_exprs::{proof_expr::ProofExpr, DynProofExpr, IsTrueExpr},
+    sql::{
+        proof::mock_verification_builder::MockVerificationBuilder,
+        proof_exprs::{proof_expr::ProofExpr, DynProofExpr, IsTrueExpr},
+    },
 };
 use alloc::boxed::Box;
+use ark_ff::Fp256;
 use bumpalo::Bump;
+use num_traits::{One, Zero};
 use sqlparser::ast::Ident;
 use std::hash::BuildHasherDefault;
 
@@ -52,6 +58,77 @@ fn test_is_true_expr() {
             assert!(values[4]); // true and not NULL
         }
         _ => panic!("Expected boolean column"),
+    }
+}
+
+#[test]
+fn we_should_obtain_a_verification_error_if_a_malicious_prover_returns_the_wrong_result() {
+    let alloc = Bump::new();
+    let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());
+    let column_values: Column<'_, TestScalar> = Column::Boolean(&[true, false, true, false, true]);
+    let presence = &[true, false, true, false, true];
+    let nullable_column = NullableColumn {
+        values: column_values,
+        presence: Some(presence),
+    };
+
+    table_map.insert(Ident::new("test_column"), nullable_column.values);
+
+    // Create a presence map to properly handle NULL values
+    let mut presence_map = IndexMap::with_hasher(BuildHasherDefault::default());
+    presence_map.insert(Ident::new("test_column"), presence.as_slice());
+
+    // Create the table with both column values and presence information
+    let table =
+        Table::try_new_with_presence(table_map, presence_map, TableOptions::new(Some(5))).unwrap();
+
+    let column_ref = ColumnRef::new(
+        TableRef::new("", "test"),
+        Ident::new("test_column"),
+        ColumnType::Boolean,
+    );
+    let column_expr = DynProofExpr::new_column(column_ref);
+    let mut is_true_expr = IsTrueExpr::new(Box::new(column_expr));
+
+    // First get the correct result
+    let correct_result = is_true_expr.result_evaluate(&alloc, &table);
+
+    // Extract the correct boolean values
+    let Column::Boolean(correct_values) = correct_result else {
+        panic!("Expected boolean column")
+    };
+
+    // Now set malicious flag and provide incorrect MLEs
+    is_true_expr.malicious = true;
+
+    // Create a mock builder with tampered final round MLEs
+    // The tampered data should be different from what result_evaluate produced
+    // We use zero for all values when the correct result has some true values
+    let tampered_mles = if correct_values.iter().any(|&x| x) {
+        // If there are any true values, use all zeros to ensure it's different
+        vec![vec![TestScalar::new(Fp256::zero())]]
+    } else {
+        // If all values are false, use all ones to ensure it's different
+        vec![vec![TestScalar::new(Fp256::one())]]
+    };
+
+    let mut builder = MockVerificationBuilder::new(Vec::new(), 0, tampered_mles);
+
+    let accessor = IndexMap::with_hasher(BuildHasherDefault::default());
+    let chi_eval = TestScalar::new(Fp256::one());
+
+    // Verification should fail because the tampered MLEs don't match the correct result
+    let result = is_true_expr.verifier_evaluate(&mut builder, &accessor, chi_eval);
+    assert!(
+        result.is_err(),
+        "Expected verification to fail with tampered MLEs"
+    );
+
+    if let Err(err) = result {
+        assert!(
+            matches!(err, ProofError::VerificationError { .. }),
+            "Expected VerificationError error, got: {err:?}"
+        );
     }
 }
 
@@ -178,5 +255,116 @@ fn test_is_true_expr_with_non_boolean_column() {
             assert!(!values[4]); // false and not NULL
         }
         _ => panic!("Expected boolean column"),
+    }
+}
+
+#[test]
+fn we_should_detect_a_malicious_prover_in_is_true_query() {
+    use crate::{
+        base::{
+            database::{
+                Column, ColumnRef, ColumnType, NullableColumn, Table, TableOptions, TableRef,
+            },
+            map::IndexMap,
+            proof::ProofError,
+            scalar::test_scalar::TestScalar,
+        },
+        sql::{
+            proof::mock_verification_builder::MockVerificationBuilder,
+            proof_exprs::{proof_expr::ProofExpr, DynProofExpr, IsTrueExpr},
+        },
+    };
+    use ark_ff::Fp256;
+    use num_traits::{One, Zero};
+    use sqlparser::ast::Ident;
+    use std::hash::BuildHasherDefault;
+
+    // This test demonstrates how a malicious prover would be detected when using IS TRUE
+    // We'll create a simple table with a boolean column and test the IS TRUE expression
+    // with the malicious flag set
+
+    let alloc = Bump::new();
+    let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());
+
+    // Create a boolean column with [true, false, true] values
+    let column_values: Column<'_, TestScalar> = Column::Boolean(&[true, false, true]);
+
+    // All values are present (not NULL)
+    let presence = &[true, true, true];
+
+    let nullable_column = NullableColumn {
+        values: column_values,
+        presence: Some(presence),
+    };
+
+    // Add the column to the table
+    table_map.insert(Ident::new("a"), nullable_column.values);
+
+    // Create a presence map
+    let mut presence_map = IndexMap::with_hasher(BuildHasherDefault::default());
+    presence_map.insert(Ident::new("a"), presence.as_slice());
+
+    // Create the table
+    let table =
+        Table::try_new_with_presence(table_map, presence_map, TableOptions::new(Some(3))).unwrap();
+
+    // Create a column reference for the 'a' column
+    let column_ref = ColumnRef::new(
+        TableRef::new("sxt", "table"),
+        Ident::new("a"),
+        ColumnType::Boolean,
+    );
+
+    // Create a column expression
+    let column_expr = DynProofExpr::new_column(column_ref);
+
+    // Create an IS TRUE expression
+    let mut is_true_expr = IsTrueExpr::new(Box::new(column_expr));
+
+    // First get the correct result
+    let correct_result = is_true_expr.result_evaluate(&alloc, &table);
+
+    // Extract the correct boolean values
+    let Column::Boolean(correct_values) = correct_result else {
+        panic!("Expected boolean column")
+    };
+
+    // Verify the correct result
+    // IS TRUE should be true only for non-NULL true values (index 0 and 2)
+    assert_eq!(correct_values.len(), 3);
+    assert!(correct_values[0]); // true and not NULL
+    assert!(!correct_values[1]); // false and not NULL
+    assert!(correct_values[2]); // true and not NULL
+
+    // Now set malicious flag to simulate a malicious prover
+    is_true_expr.malicious = true;
+
+    // Create a mock builder with tampered final round MLEs
+    // The tampered data should be different from what result_evaluate produced
+    let tampered_mles = if correct_values.iter().any(|&x| x) {
+        // If there are any true values, use all zeros to ensure it's different
+        vec![vec![TestScalar::new(Fp256::zero())]]
+    } else {
+        // If all values are false, use all ones to ensure it's different
+        vec![vec![TestScalar::new(Fp256::one())]]
+    };
+
+    let mut builder = MockVerificationBuilder::new(Vec::new(), 0, tampered_mles);
+
+    let accessor = IndexMap::with_hasher(BuildHasherDefault::default());
+    let chi_eval = TestScalar::new(Fp256::one());
+
+    // Verification should fail because the tampered MLEs don't match the correct result
+    let result = is_true_expr.verifier_evaluate(&mut builder, &accessor, chi_eval);
+    assert!(
+        result.is_err(),
+        "Expected verification to fail with tampered MLEs"
+    );
+
+    if let Err(err) = result {
+        assert!(
+            matches!(err, ProofError::VerificationError { .. }),
+            "Expected VerificationError error, got: {err:?}"
+        );
     }
 }

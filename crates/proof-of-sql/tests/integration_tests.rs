@@ -1340,6 +1340,80 @@ fn we_can_prove_nullable_table_with_is_true_with_dory() {
 }
 
 #[test]
+fn verification_should_fail_with_tampered_is_true_query_result() {
+    // This test demonstrates that the system detects tampering with query results
+    // when using IS TRUE in a WHERE clause
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+
+    // Create a test table with a boolean column 'a'
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([boolean("a", [true, false, true])]),
+        0,
+    );
+
+    // Create a query that uses IS TRUE in the WHERE clause
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE a IS TRUE".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+
+    // Create a verifiable result with the honest data
+    let honest_verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
+        query.proof_expr(),
+        &accessor,
+        &dory_prover_setup,
+    );
+
+    // Verify the honest result
+    let honest_result = honest_verifiable_result
+        .clone()
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .unwrap()
+        .table;
+
+    // The honest result should contain only the rows where 'a' IS TRUE
+    let expected_result = owned_table([boolean("a", [true, true])]);
+    assert_eq!(honest_result, expected_result);
+
+    // Now create a malicious scenario by creating a table with incorrect data
+    // We'll create a table where all values are true, which would give an incorrect result
+    let mut malicious_accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    malicious_accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([boolean("a", [true, true, true])]), // All values are true, which is incorrect
+        0,
+    );
+
+    // Create a malicious verifiable result
+    let malicious_verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
+        query.proof_expr(),
+        &malicious_accessor,
+        &dory_prover_setup,
+    );
+
+    // Now try to verify the malicious result with the honest verifier setup and accessor
+    // This simulates a situation where the prover is trying to claim all rows satisfy the condition
+    let verification_result =
+        malicious_verifiable_result.verify(query.proof_expr(), &accessor, &dory_verifier_setup);
+
+    // The verification should fail because the proof was created with tampered data
+    assert!(
+        verification_result.is_err(),
+        "Expected verification to fail with tampered data"
+    );
+}
+
+#[test]
 fn we_can_prove_nullable_table_with_arithmetic_operations_with_dory() {
     let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
