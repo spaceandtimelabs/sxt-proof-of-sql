@@ -84,7 +84,7 @@ impl<S: Scalar> DivideAndModuloExprUtilities<S> for StandardDivideAndModuloExprU
             .iter_mut()
             .zip(quotient.iter().copied().zip(rhs.clone()))
         {
-            // We do or rather than and here because scalars wrap negative values, so only one can be true at a time
+            // We do `or` rather than `and` here because scalars wrap negative values, so only one can be true at a time
             let in_range_value = if q < min_sqrt_scalar || q > -min_sqrt_scalar {
                 q
             } else {
