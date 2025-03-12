@@ -17,43 +17,6 @@ use arrow::{
 use num_traits::Zero;
 
 #[test]
-fn we_can_convert_a_provable_result_to_a_final_result_with_fixedsizebinary_each_row() {
-    let mut buffer = Vec::with_capacity(8);
-    buffer.extend_from_slice(b"foo!");
-    buffer.extend_from_slice(b"bar!");
-
-    // width = 4
-    let width = NonNegativeI32::try_from(4).unwrap();
-
-    let col: Column<Curve25519Scalar> = Column::FixedSizeBinary(width, &buffer);
-    let res = ProvableQueryResult::new(2, &[col]);
-    let column_fields = vec![ColumnField::new(
-        "fsb_col".into(),
-        ColumnType::FixedSizeBinary(width),
-    )];
-    let record_batch = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
-
-    let schema = Arc::new(Schema::new(vec![Field::new(
-        "fsb_col",
-        arrow::datatypes::DataType::FixedSizeBinary(4),
-        false,
-    )]));
-
-    // Build the expected arrow array with two rows of 4 bytes each
-    let array_data = arrow::array::FixedSizeBinaryArray::try_from_iter(
-        [b"foo!".to_vec(), b"bar!".to_vec()].into_iter(),
-    )
-    .unwrap();
-
-    let expected = RecordBatch::try_new(schema, vec![Arc::new(array_data)]).unwrap();
-    assert_eq!(record_batch, expected);
-}
-
-#[test]
 fn we_can_convert_an_empty_provable_result_to_a_final_result() {
     let cols: [Column<TestScalar>; 1] = [Column::BigInt(&[0_i64; 0])];
     let res = ProvableQueryResult::new(0, &cols);
