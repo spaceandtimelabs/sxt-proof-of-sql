@@ -68,9 +68,9 @@ pub fn eval_vmv_re_verify(
     if messages.GT_messages.len() < 2 || messages.G1_messages.is_empty() {
         return None;
     }
-    let C = messages.prover_recieve_GT_message(transcript).into();
-    let D_2 = messages.prover_recieve_GT_message(transcript).into();
-    let E_1 = messages.prover_recieve_G1_message(transcript).into();
+    let C = messages.prover_receive_GT_message(transcript).into();
+    let D_2 = messages.prover_receive_GT_message(transcript).into();
+    let E_1 = messages.prover_receive_G1_message(transcript).into();
     let D_1 = state.T;
     let E_2 = DeferredG2::from(setup.Gamma_2_fin) * state.y;
     let s1_tensor = state.r_tensor;

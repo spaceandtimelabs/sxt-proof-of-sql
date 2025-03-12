@@ -148,6 +148,17 @@ impl<'a, S: Scalar> Column<'a, S> {
                 alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
                 alloc.alloc_slice_fill_copy(length, S::from(string)),
             )),
+            LiteralValue::VarBinary(bytes) => {
+                // Convert the bytes to a slice of bytes references
+                let bytes_slice = alloc
+                    .alloc_slice_fill_with(length, |_| alloc.alloc_slice_copy(bytes) as &[_]);
+
+                // Convert the bytes to scalars using from_byte_slice_via_hash
+                let scalars =
+                    alloc.alloc_slice_fill_copy(length, S::from_byte_slice_via_hash(bytes));
+
+                Column::VarBinary((bytes_slice, scalars))
+            }
         }
     }
 
@@ -338,6 +349,7 @@ impl<'a, S: Scalar> Column<'a, S> {
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum ColumnType {
     /// Mapped to bool
     #[serde(alias = "BOOLEAN", alias = "boolean")]
@@ -368,9 +380,11 @@ pub enum ColumnType {
     Decimal75(Precision, i8),
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
+    #[cfg_attr(test, proptest(skip))]
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
     /// Mapped to `S`
     #[serde(alias = "SCALAR", alias = "scalar")]
+    #[cfg_attr(test, proptest(skip))]
     Scalar,
     /// Mapped to [u8]
     #[serde(alias = "BINARY", alias = "BINARY")]
@@ -554,6 +568,19 @@ impl ColumnType {
             | Self::VarChar
             | Self::Boolean
             | Self::Uint8 => false,
+        }
+    }
+
+    /// Returns if the column type supports signed values.
+    #[must_use]
+    pub fn min_scalar<S: Scalar>(&self) -> Option<S> {
+        match self {
+            ColumnType::TinyInt => Some(S::from(i8::MIN)),
+            ColumnType::SmallInt => Some(S::from(i16::MIN)),
+            ColumnType::Int => Some(S::from(i32::MIN)),
+            ColumnType::BigInt => Some(S::from(i64::MIN)),
+            ColumnType::Int128 => Some(S::from(i128::MIN)),
+            _ => None,
         }
     }
 }
@@ -1200,5 +1227,43 @@ mod tests {
 
         let round_trip_owned: OwnedColumn<TestScalar> = (&column).into();
         assert_eq!(owned_varbinary, round_trip_owned);
+    }
+
+    #[test]
+    fn we_can_get_min_scalar() {
+        assert_eq!(
+            ColumnType::TinyInt.min_scalar(),
+            Some(TestScalar::from(i8::MIN))
+        );
+        assert_eq!(
+            ColumnType::SmallInt.min_scalar(),
+            Some(TestScalar::from(i16::MIN))
+        );
+        assert_eq!(
+            ColumnType::Int.min_scalar(),
+            Some(TestScalar::from(i32::MIN))
+        );
+        assert_eq!(
+            ColumnType::BigInt.min_scalar(),
+            Some(TestScalar::from(i64::MIN))
+        );
+        assert_eq!(
+            ColumnType::Int128.min_scalar(),
+            Some(TestScalar::from(i128::MIN))
+        );
+        assert_eq!(ColumnType::Uint8.min_scalar::<TestScalar>(), None);
+        assert_eq!(ColumnType::Scalar.min_scalar::<TestScalar>(), None);
+        assert_eq!(ColumnType::Boolean.min_scalar::<TestScalar>(), None);
+        assert_eq!(ColumnType::VarBinary.min_scalar::<TestScalar>(), None);
+        assert_eq!(
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::new(0))
+                .min_scalar::<TestScalar>(),
+            None
+        );
+        assert_eq!(
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 1).min_scalar::<TestScalar>(),
+            None
+        );
+        assert_eq!(ColumnType::VarChar.min_scalar::<TestScalar>(), None);
     }
 }

@@ -192,10 +192,8 @@ impl ProofPlan for MembershipCheckTestPlan {
 mod tests {
     use super::*;
     use crate::{
-        base::{
-            database::{table_utility::*, ColumnType, TableTestAccessor, TestAccessor},
-            scalar::Curve25519Scalar,
-        },
+        base::database::{table_utility::*, ColumnType, TableTestAccessor, TestAccessor},
+        proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
         sql::proof::VerifiableQueryResult,
     };
     use blitzar::proof::InnerProductProof;

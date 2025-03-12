@@ -54,6 +54,7 @@ impl ColumnCommitmentMetadata {
             | (
                 ColumnType::Boolean
                 | ColumnType::VarChar
+                | ColumnType::VarBinary
                 | ColumnType::Scalar
                 | ColumnType::Decimal75(..),
                 ColumnBounds::NoOrder,
@@ -414,7 +415,7 @@ mod tests {
             assert_eq!(bounds.min(), &1);
             assert_eq!(bounds.max(), &5);
         } else {
-            panic!("Bounds constructed from nonempty TimestampTZ column should be ColumnBounds::BigInt(Bounds::Sharp(_))");
+            panic!("Bounds constructed from nonempty TimestampTZ column should be ColumnBounds::TimestampTZ(Bounds::Sharp(_))");
         }
 
         let varchar_column = OwnedColumn::<TestScalar>::VarChar(
@@ -446,7 +447,7 @@ mod tests {
             assert_eq!(bounds.min(), &0);
             assert_eq!(bounds.max(), &3);
         } else {
-            panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::Int(Bounds::Sharp(_))");
+            panic!("Bounds constructed from nonempty Int column should be ColumnBounds::Int(Bounds::Sharp(_))");
         }
 
         let tinyint_column = OwnedColumn::<TestScalar>::TinyInt([1, 2, 3, 1, 0].to_vec());
@@ -457,7 +458,7 @@ mod tests {
             assert_eq!(bounds.min(), &0);
             assert_eq!(bounds.max(), &3);
         } else {
-            panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::TinyInt(Bounds::Sharp(_))");
+            panic!("Bounds constructed from nonempty TinyInt column should be ColumnBounds::TinyInt(Bounds::Sharp(_))");
         }
 
         let smallint_column = OwnedColumn::<TestScalar>::SmallInt([1, 2, 3, 1, 0].to_vec());
@@ -468,7 +469,7 @@ mod tests {
             assert_eq!(bounds.min(), &0);
             assert_eq!(bounds.max(), &3);
         } else {
-            panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::SmallInt(Bounds::Sharp(_))");
+            panic!("Bounds constructed from nonempty SmallInt column should be ColumnBounds::SmallInt(Bounds::Sharp(_))");
         }
 
         let int128_column = OwnedColumn::<TestScalar>::Int128([].to_vec());

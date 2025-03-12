@@ -113,7 +113,7 @@ pub fn try_multiply_column_types(
 }
 
 /// Determine the output type of a division operation if it is possible
-/// to multiply the two input types. If the types are not compatible, return
+/// to divide the two input types. If the types are not compatible, return
 /// an error.
 ///
 /// # Panics

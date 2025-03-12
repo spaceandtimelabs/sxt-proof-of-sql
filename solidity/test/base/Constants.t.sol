@@ -28,17 +28,44 @@ contract ConstantsTest is Test {
         assert(WORDX2_SIZE == 2 * WORD_SIZE);
         assert(WORDX3_SIZE == 3 * WORD_SIZE);
         assert(WORDX4_SIZE == 4 * WORD_SIZE);
+        assert(WORDX5_SIZE == 5 * WORD_SIZE);
         assert(WORDX6_SIZE == 6 * WORD_SIZE);
+        assert(WORDX8_SIZE == 8 * WORD_SIZE);
+        assert(WORDX9_SIZE == 9 * WORD_SIZE);
+        assert(WORDX10_SIZE == 10 * WORD_SIZE);
+        assert(WORDX11_SIZE == 11 * WORD_SIZE);
         assert(WORDX12_SIZE == 12 * WORD_SIZE);
     }
 
+    function testUint32SizesAreCorrect() public pure {
+        assert(UINT32_SIZE * 8 == 32);
+        assert(UINT32_PADDING_BITS == 256 - 32);
+    }
+
+    function testUint64SizesAreCorrect() public pure {
+        assert(UINT64_SIZE * 8 == 64);
+        assert(UINT64_PADDING_BITS == 256 - 64);
+    }
+
+    function testInt64SizesAreCorrect() public pure {
+        assert(INT64_SIZE * 8 == 64);
+        assert(INT64_PADDING_BITS == 256 - 64);
+        assert(INT64_SIZE_MINUS_ONE == INT64_SIZE - 1);
+    }
+
     function testVerificationBuilderOffsetsAreValid() public pure {
-        uint256[5] memory offsets = [
+        uint256[11] memory offsets = [
             BUILDER_CHALLENGES_OFFSET,
             BUILDER_FIRST_ROUND_MLES_OFFSET,
             BUILDER_FINAL_ROUND_MLES_OFFSET,
             BUILDER_CHI_EVALUATIONS_OFFSET,
-            BUILDER_RHO_EVALUATIONS_OFFSET
+            BUILDER_RHO_EVALUATIONS_OFFSET,
+            BUILDER_CONSTRAINT_MULTIPLIERS_OFFSET,
+            BUILDER_MAX_DEGREE_OFFSET,
+            BUILDER_AGGREGATE_EVALUATION_OFFSET,
+            BUILDER_ROW_MULTIPLIERS_EVALUATION_OFFSET,
+            BUILDER_COLUMN_EVALUATIONS_OFFSET,
+            BUILDER_TABLE_CHI_EVALUATIONS_OFFSET
         ];
         uint256 offsetsLength = offsets.length;
         assert(VERIFICATION_BUILDER_SIZE == offsetsLength * WORD_SIZE);

@@ -6,8 +6,8 @@ use crate::{
             OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
         },
         map::indexmap,
-        scalar::Curve25519Scalar,
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         proof::{
             exercise_verification, FirstRoundBuilder, ProvableQueryResult, ProverEvaluate,
@@ -71,8 +71,14 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_union_exec() {
     accessor.add_table(t1.clone(), data1, 0);
     let ast = union_exec(
         vec![
-            projection(cols_expr_plan(&t1, &["a1"], &accessor), tab(&t1)),
-            projection(cols_expr_plan(&t0, &["a0"], &accessor), tab(&t0)),
+            projection(
+                cols_expr_plan(&t1, &["a1"], &accessor),
+                table_exec(t1, vec![column_field("a1", ColumnType::BigInt)]),
+            ),
+            projection(
+                cols_expr_plan(&t0, &["a0"], &accessor),
+                table_exec(t0.clone(), vec![column_field("a0", ColumnType::BigInt)]),
+            ),
         ],
         vec![column_field("a", ColumnType::BigInt)],
     );
@@ -101,7 +107,16 @@ fn we_can_prove_and_get_the_correct_result_from_a_union_exec() {
     accessor.add_table(t1.clone(), data1, 0);
     let ast = union_exec(
         vec![
-            projection(cols_expr_plan(&t0, &["a0", "b0"], &accessor), tab(&t0)),
+            projection(
+                cols_expr_plan(&t0, &["a0", "b0"], &accessor),
+                table_exec(
+                    t0.clone(),
+                    vec![
+                        column_field("a0", ColumnType::BigInt),
+                        column_field("b0", ColumnType::VarChar),
+                    ],
+                ),
+            ),
             table_exec(
                 t1,
                 vec![
@@ -177,8 +192,26 @@ fn we_can_prove_and_get_the_correct_result_from_a_more_complex_union_exec() {
             slice_exec(
                 union_exec(
                     vec![
-                        projection(cols_expr_plan(&t0, &["a0", "b0"], &accessor), tab(&t0)),
-                        projection(cols_expr_plan(&t1, &["a1", "b1"], &accessor), tab(&t1)),
+                        projection(
+                            cols_expr_plan(&t0, &["a0", "b0"], &accessor),
+                            table_exec(
+                                t0.clone(),
+                                vec![
+                                    column_field("a0", ColumnType::BigInt),
+                                    column_field("b0", ColumnType::VarChar),
+                                ],
+                            ),
+                        ),
+                        projection(
+                            cols_expr_plan(&t1, &["a1", "b1"], &accessor),
+                            table_exec(
+                                t1.clone(),
+                                vec![
+                                    column_field("a1", ColumnType::BigInt),
+                                    column_field("b1", ColumnType::VarChar),
+                                ],
+                            ),
+                        ),
                         slice_exec(
                             filter(
                                 cols_expr_plan(&t2, &["a2", "b2"], &accessor),
@@ -196,7 +229,16 @@ fn we_can_prove_and_get_the_correct_result_from_a_more_complex_union_exec() {
                             tab(&t3),
                             equal(column(&t3, "a3", &accessor), const_int128(6_i128)),
                         ),
-                        projection(cols_expr_plan(&t4, &["a4", "b4"], &accessor), tab(&t4)),
+                        projection(
+                            cols_expr_plan(&t4, &["a4", "b4"], &accessor),
+                            table_exec(
+                                t4.clone(),
+                                vec![
+                                    column_field("a4", ColumnType::BigInt),
+                                    column_field("b4", ColumnType::VarChar),
+                                ],
+                            ),
+                        ),
                         table_exec(
                             t5,
                             vec![
@@ -274,8 +316,26 @@ fn we_can_get_result_from_union_using_first_round_evaluate() {
     ];
     let ast = union_exec(
         vec![
-            projection(cols_expr_plan(&t0, &["a0", "b0"], &accessor), tab(&t0)),
-            projection(cols_expr_plan(&t1, &["a1", "b1"], &accessor), tab(&t1)),
+            projection(
+                cols_expr_plan(&t0, &["a0", "b0"], &accessor),
+                table_exec(
+                    t0.clone(),
+                    vec![
+                        column_field("a0", ColumnType::BigInt),
+                        column_field("b0", ColumnType::VarChar),
+                    ],
+                ),
+            ),
+            projection(
+                cols_expr_plan(&t1, &["a1", "b1"], &accessor),
+                table_exec(
+                    t1.clone(),
+                    vec![
+                        column_field("a1", ColumnType::BigInt),
+                        column_field("b1", ColumnType::VarChar),
+                    ],
+                ),
+            ),
         ],
         fields.clone(),
     );

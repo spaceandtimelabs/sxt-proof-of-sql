@@ -208,7 +208,7 @@ contract ECPrecompilesTest is Test {
     }
 
     function testFuzzECPairingX2WithValidInputsThatDoNotSumToZero(uint256 a, uint256 b) public view {
-        vm.assume(a != 0 || b != 0);
+        vm.assume(addmod(a, b, MODULUS) != 0);
         (uint256 ax, uint256 ay) = ECPrecompilesTestHelper.ecBasePower(a);
         (uint256 bx, uint256 by) = ECPrecompilesTestHelper.ecBasePower(b);
         uint256[12] memory argsPtr = [

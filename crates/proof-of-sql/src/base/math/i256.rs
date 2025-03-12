@@ -1,5 +1,6 @@
 use crate::base::scalar::Scalar;
 use ark_ff::BigInteger;
+use core::ops::Neg;
 use serde::{Deserialize, Serialize};
 
 /// A 256-bit data type with some conversions implemented that interpret it as a signed integer.
@@ -7,12 +8,22 @@ use serde::{Deserialize, Serialize};
 /// This should only implement conversions. If anything else is needed, we should strongly consider an alternative design.
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone, Copy)]
 pub struct I256([u64; 4]);
-impl I256 {
+
+impl Neg for I256 {
+    type Output = Self;
     /// Computes the wrapping negative of the value. This could perhaps be more efficient.
-    fn neg(self) -> Self {
+    fn neg(self) -> Self::Output {
         let mut res = ark_ff::BigInt([0; 4]);
         res.sub_with_borrow(&ark_ff::BigInt(self.0));
         Self(res.0)
+    }
+}
+
+impl I256 {
+    /// Make an `I256` from its limbs.
+    #[must_use]
+    pub fn new(limbs: [u64; 4]) -> Self {
+        Self(limbs)
     }
     #[must_use]
     /// Conversion into a [Scalar] type. The conversion handles negative values. In other words, `-1` maps to `-S::ONE`.
@@ -56,9 +67,21 @@ impl From<i32> for I256 {
     }
 }
 
+#[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+impl From<i128> for I256 {
+    fn from(value: i128) -> Self {
+        Self([
+            value as u64,
+            (value >> 64) as u64,
+            (value >> 127) as u64,
+            (value >> 127) as u64,
+        ])
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::I256;
+    use super::*;
     use crate::base::scalar::{test_scalar::TestScalar, MontScalar, Scalar};
     use ark_ff::MontFp;
     use num_bigint::BigInt;
@@ -263,6 +286,67 @@ mod tests {
             assert_eq!(neg_int256_from_i32, int256_from_i32.neg());
             assert_eq!(int256_from_i32.into_scalar::<TestScalar>(), scalar);
             assert_eq!(neg_int256_from_i32.into_scalar::<TestScalar>(), neg_scalar);
+        }
+    }
+
+    #[expect(clippy::cast_sign_loss)]
+    #[test]
+    fn test_i128_to_i256_conversion() {
+        // Test zero
+        assert_eq!(I256::from(0i128), ZERO);
+
+        // Test positive values
+        assert_eq!(I256::from(1i128), ONE);
+        assert_eq!(I256::from(2i128), TWO);
+
+        // Test negative values
+        assert_eq!(I256::from(-1i128), NEG_ONE);
+        assert_eq!(I256::from(-2i128), NEG_TWO);
+
+        // Test boundary values
+        assert_eq!(
+            I256::from(i128::MIN),
+            I256([0, 0x8000_0000_0000_0000, 0, 0]).neg()
+        );
+        assert_eq!(
+            I256::from(i128::MAX),
+            I256([0xFFFF_FFFF_FFFF_FFFF, 0x7FFF_FFFF_FFFF_FFFF, 0, 0])
+        );
+
+        // Test some random values
+        let test_values = [
+            42i128,
+            -42i128,
+            1_234_567_890i128,
+            -1_234_567_890i128,
+            i128::from(i64::MAX),
+            i128::from(i64::MIN),
+        ];
+
+        for &value in &test_values {
+            let converted = I256::from(value);
+            if value >= 0 {
+                assert_eq!(
+                    converted.0[0],
+                    (value as u128 & 0xFFFF_FFFF_FFFF_FFFF) as u64
+                );
+                assert_eq!(
+                    converted.0[1],
+                    ((value as u128 >> 64) & 0xFFFF_FFFF_FFFF_FFFF) as u64
+                );
+                assert_eq!(converted.0[2], 0);
+                assert_eq!(converted.0[3], 0);
+            } else {
+                let abs_value = value.unsigned_abs();
+                let expected = I256([
+                    (abs_value & 0xFFFF_FFFF_FFFF_FFFF) as u64,
+                    ((abs_value >> 64) & 0xFFFF_FFFF_FFFF_FFFF) as u64,
+                    0,
+                    0,
+                ])
+                .neg();
+                assert_eq!(converted, expected);
+            }
         }
     }
 }

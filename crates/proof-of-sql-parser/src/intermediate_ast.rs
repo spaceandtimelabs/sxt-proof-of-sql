@@ -345,6 +345,8 @@ pub enum Literal {
     Int128(i128),
     /// String Literal
     VarChar(String),
+    /// Binary Data Literal
+    VarBinary(Vec<u8>),
     /// Decimal Literal
     Decimal(BigDecimal),
     /// Timestamp Literal
