@@ -98,7 +98,7 @@ impl<S: Scalar> DivideAndModuloExprUtilities<S> for StandardDivideAndModuloExprU
 
 impl DivideAndModuloExpr {
     #[cfg_attr(not(test), expect(dead_code))]
-    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
+    fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
         Self { lhs, rhs }
     }
 
@@ -108,7 +108,7 @@ impl DivideAndModuloExpr {
     }
 
     #[allow(clippy::missing_panics_doc)]
-    pub fn data_type(&self) -> (ColumnType, ColumnType) {
+    fn data_type(&self) -> (ColumnType, ColumnType) {
         try_divide_modulo_column_types(self.lhs.data_type(), self.rhs.data_type())
             .expect("Failed to divide/modulo column types")
     }
@@ -354,7 +354,7 @@ impl DivideAndModuloExpr {
     }
 
     #[cfg_attr(not(test), expect(dead_code))]
-    pub fn prover_evaluate<'a, S: Scalar>(
+    fn prover_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -373,7 +373,7 @@ impl DivideAndModuloExpr {
     /// # Panics
     /// Panics if the datatype is not supported
     #[cfg_attr(not(test), expect(dead_code))]
-    pub fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
+    fn verifier_evaluate<S: Scalar, B: VerificationBuilder<S>>(
         &self,
         builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
@@ -487,7 +487,7 @@ impl DivideAndModuloExpr {
     }
 
     #[expect(dead_code)]
-    pub fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         self.lhs.get_column_references(columns);
         self.rhs.get_column_references(columns);
     }
