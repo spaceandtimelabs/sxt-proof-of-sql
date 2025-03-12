@@ -7,6 +7,7 @@ use crate::{
     sql::{
         parse::{ConversionError, QueryExpr, WhereExprBuilder},
         proof_exprs::{ColumnExpr, DynProofExpr, LiteralExpr},
+        AnalyzeError,
     },
 };
 use bigdecimal::BigDecimal;
@@ -336,7 +337,9 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
             t.schema_id().cloned().unwrap(),
             &accessor,
         ),
-        Err(ConversionError::DataTypeMismatch { .. })
+        Err(ConversionError::AnalyzeError {
+            source: AnalyzeError::DataTypeMismatch { .. }
+        })
     ));
 }
 
@@ -355,7 +358,9 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
             t.schema_id().cloned().unwrap(),
             &accessor,
         ),
-        Err(ConversionError::DataTypeMismatch { .. })
+        Err(ConversionError::AnalyzeError {
+            source: AnalyzeError::DataTypeMismatch { .. }
+        })
     ));
 }
 

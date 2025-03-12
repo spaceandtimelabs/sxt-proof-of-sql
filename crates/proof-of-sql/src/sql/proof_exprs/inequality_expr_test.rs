@@ -10,10 +10,10 @@ use crate::{
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
-        parse::ConversionError,
         proof::{exercise_verification, VerifiableQueryResult},
         proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
         proof_plans::test_utility::*,
+        AnalyzeError,
     },
 };
 use bumpalo::Bump;
@@ -313,7 +313,7 @@ fn we_cannot_compare_columns_filtering_on_extreme_decimal_values() {
             const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ONE),
             false
         ),
-        Err(ConversionError::DataTypeMismatch { .. })
+        Err(AnalyzeError::DataTypeMismatch { .. })
     ));
 }
 

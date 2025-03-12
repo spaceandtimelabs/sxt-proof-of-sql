@@ -141,7 +141,7 @@ impl DynProofExprBuilder<'_> {
     ) -> Result<DynProofExpr, ConversionError> {
         let expr = self.visit_expr(expr);
         match op {
-            UnaryOperator::Not => DynProofExpr::try_new_not(expr?),
+            UnaryOperator::Not => Ok(DynProofExpr::try_new_not(expr?)?),
             // Handle unsupported operators
             _ => Err(ConversionError::UnsupportedOperation {
                 message: format!("{op:?}"),
@@ -159,42 +159,42 @@ impl DynProofExprBuilder<'_> {
             BinaryOperator::And => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                DynProofExpr::try_new_and(left?, right?)
+                Ok(DynProofExpr::try_new_and(left?, right?)?)
             }
             BinaryOperator::Or => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                DynProofExpr::try_new_or(left?, right?)
+                Ok(DynProofExpr::try_new_or(left?, right?)?)
             }
             BinaryOperator::Eq => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                DynProofExpr::try_new_equals(left?, right?)
+                Ok(DynProofExpr::try_new_equals(left?, right?)?)
             }
             BinaryOperator::Gt => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                DynProofExpr::try_new_inequality(left?, right?, false)
+                Ok(DynProofExpr::try_new_inequality(left?, right?, false)?)
             }
             BinaryOperator::Lt => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                DynProofExpr::try_new_inequality(left?, right?, true)
+                Ok(DynProofExpr::try_new_inequality(left?, right?, true)?)
             }
             BinaryOperator::Plus => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                DynProofExpr::try_new_add(left?, right?)
+                Ok(DynProofExpr::try_new_add(left?, right?)?)
             }
             BinaryOperator::Minus => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                DynProofExpr::try_new_subtract(left?, right?)
+                Ok(DynProofExpr::try_new_subtract(left?, right?)?)
             }
             BinaryOperator::Multiply => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                DynProofExpr::try_new_multiply(left?, right?)
+                Ok(DynProofExpr::try_new_multiply(left?, right?)?)
             }
             BinaryOperator::Divide => Err(ConversionError::Unprovable {
                 error: format!("Binary operator {op:?} is not supported at this location"),

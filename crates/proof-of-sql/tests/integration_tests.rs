@@ -21,6 +21,7 @@ use proof_of_sql::{
         parse::{ConversionError, QueryExpr},
         postprocessing::apply_postprocessing_steps,
         proof::{QueryError, VerifiableQueryResult},
+        AnalyzeError,
     },
 };
 
@@ -454,7 +455,9 @@ fn decimal_type_issues_should_cause_provable_ast_to_fail() {
     let query_string = format!("SELECT d0 + {large_decimal} as res FROM table;");
     assert!(matches!(
         QueryExpr::try_new(query_string.parse().unwrap(), "sxt".into(), &accessor,),
-        Err(ConversionError::DataTypeMismatch { .. })
+        Err(ConversionError::AnalyzeError {
+            source: AnalyzeError::DataTypeMismatch { .. }
+        })
     ));
 }
 
