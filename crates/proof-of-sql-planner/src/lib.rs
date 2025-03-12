@@ -1,7 +1,8 @@
 //! This crate converts a `DataFusion` `LogicalPlan` to a `ProofPlan` and `Postprocessing`
-//#![cfg_attr(not(test), expect(dead_code))] // TODO: remove this when initial development work is done
+#![cfg_attr(not(test), expect(dead_code))] // TODO: remove this when initial development work is done
 #![cfg_attr(test, expect(clippy::missing_panics_doc))]
 extern crate alloc;
+mod aggregate;
 mod context;
 pub use context::PoSqlContextProvider;
 #[cfg(test)]
