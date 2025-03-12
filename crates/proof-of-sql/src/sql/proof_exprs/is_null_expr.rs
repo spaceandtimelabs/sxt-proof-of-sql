@@ -8,7 +8,7 @@ use crate::{
     },
     sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
-use alloc::{boxed::Box, vec};
+use alloc::boxed::Box;
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -77,24 +77,7 @@ impl ProofExpr for IsNullExpr {
         };
         // Record the IS NULL check in the proof
         builder.record_is_null_check(&nullable_column, alloc);
-        if let Column::Boolean(inner_values) = inner_column {
-            let is_not_null_slice = if presence.is_none() {
-                // If no nulls, then every entry is not null
-                alloc.alloc_slice_fill_copy(table.num_rows(), true)
-            } else {
-                let presence_slice = presence.unwrap();
-                // NOT NULL is the negation of presence
-                alloc.alloc_slice_fill_with(presence_slice.len(), |i| !presence_slice[i])
-            };
-            let invalid_state = alloc.alloc_slice_fill_with(table.num_rows(), |i| {
-                is_not_null_slice[i] && inner_values[i]
-            });
-            // Add a constraint that if a value is not null, then the inner boolean must be false
-            builder.produce_sumcheck_subpolynomial(
-                SumcheckSubpolynomialType::Identity,
-                vec![(S::one(), vec![Box::new(&*invalid_state)])],
-            );
-        }
+
         Column::Boolean(result_slice)
     }
 
