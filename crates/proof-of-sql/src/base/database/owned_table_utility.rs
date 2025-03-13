@@ -17,8 +17,9 @@
 //! ```
 use super::{OwnedColumn, OwnedTable};
 use crate::base::{
+    math::non_negative_i32::NonNegativeI32,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    math::non_negative_i32::NonNegativeI32, scalar::Scalar
+    scalar::Scalar,
 };
 use alloc::{string::String, vec::Vec};
 use sqlparser::ast::Ident;

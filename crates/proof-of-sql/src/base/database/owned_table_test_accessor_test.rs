@@ -10,7 +10,6 @@ use crate::base::{
     database::{owned_table_utility::*, TableRef},
     math::non_negative_i32::NonNegativeI32,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    math::non_negative_i32::NonNegativeI32,
     scalar::test_scalar::TestScalar,
 };
 

@@ -7,7 +7,6 @@ use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::iter::Iterator;
 
-#[expect(clippy::too_many_lines)]
 pub trait RepetitionOp {
     fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T>;
 

@@ -20,7 +20,6 @@ use alloc::{
     vec::Vec,
 };
 use itertools::Itertools;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 #[cfg(test)]
 use proptest::strategy::Strategy;
 use serde::{Deserialize, Serialize};
