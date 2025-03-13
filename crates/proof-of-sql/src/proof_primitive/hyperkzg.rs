@@ -5,27 +5,40 @@ use crate::base::{
     slice_ops,
 };
 use alloc::vec::Vec;
-#[cfg(feature = "blitzar")]
+#[cfg(any(feature = "blitzar", feature = "std"))]
 use ark_bn254::G1Affine;
+#[cfg(feature = "std")]
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+#[cfg(feature = "std")]
+use ark_std::error::Error;
 #[cfg(feature = "blitzar")]
 use blitzar;
 use core::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
 use ff::Field;
 #[cfg(not(feature = "blitzar"))]
 use itertools::Itertools;
+#[cfg(feature = "std")]
+use nova_snark::provider::bn256_grumpkin::bn256::Affine as NovaG1Affine;
 use nova_snark::{
     errors::NovaError,
     provider::{
         bn256_grumpkin::bn256::Scalar as NovaScalar,
-        hyperkzg::{CommitmentKey, EvaluationArgument, EvaluationEngine, VerifierKey},
+        hyperkzg::{
+            CommitmentEngine, CommitmentKey, EvaluationArgument, EvaluationEngine, VerifierKey,
+        },
     },
     traits::{
-        evaluation::EvaluationEngineTrait, Engine, TranscriptEngineTrait, TranscriptReprTrait,
+        commitment::CommitmentEngineTrait, evaluation::EvaluationEngineTrait, Engine,
+        TranscriptEngineTrait, TranscriptReprTrait,
     },
 };
-#[cfg(not(feature = "blitzar"))]
-use nova_snark::{provider::hyperkzg::CommitmentEngine, traits::commitment::CommitmentEngineTrait};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "std")]
+use std::{
+    fs::OpenOptions,
+    io::{BufReader, BufWriter},
+    path::Path,
+};
 use tracing::{span, Level};
 
 /// The scalar used in the `HyperKZG` PCS. This is the BN254 scalar.
@@ -198,10 +211,12 @@ impl Engine for HyperKZGEngine {
     type Base = nova_snark::provider::bn256_grumpkin::bn256::Base;
     type Scalar = NovaScalar;
     type GE = nova_snark::provider::bn256_grumpkin::bn256::Point;
-    type RO = nova_snark::provider::poseidon::PoseidonRO<Self::Base, Self::Scalar>;
+    type RO = nova_snark::provider::poseidon::PoseidonRO<Self::Base>;
     type ROCircuit = nova_snark::provider::poseidon::PoseidonROCircuit<Self::Base>;
     type TE = Keccak256Transcript;
     type CE = nova_snark::provider::hyperkzg::CommitmentEngine<Self>;
+    type RO2 = nova_snark::provider::poseidon::PoseidonRO<Self::Scalar>;
+    type RO2Circuit = nova_snark::provider::poseidon::PoseidonROCircuit<Self::Scalar>;
 }
 
 impl TranscriptEngineTrait<HyperKZGEngine> for Keccak256Transcript {
@@ -312,6 +327,152 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
             )
         })
     }
+}
+
+/// Reads a binary file and returns a vector of Arkworks `G1Affine` elements
+/// that are the powers of tau used to populated the `CommitmentKey`.
+/// This function is only available when the `std` feature is enabled.
+///
+/// # Arguments
+///
+/// * `path` - The path to the binary file to read.
+///
+/// # Returns
+///
+/// The powers of tau vector as Arkworks `G1Affine` elements.
+///
+/// # Panics
+///
+/// This function will panic if the file cannot be read.
+#[cfg(feature = "std")]
+pub fn read_ark_from_binary(path: &Path) -> Result<Vec<G1Affine>, Box<dyn Error>> {
+    let file = OpenOptions::new().read(true).open(path).unwrap();
+    let mut reader = BufReader::new(file);
+    Ok(Vec::<G1Affine>::deserialize_compressed(&mut reader)?)
+}
+
+/// Reads a binary file and returns a vector of Nova `Affine` elements
+/// that are the powers of tau used to populated the `CommitmentKey`.
+/// This function is only available when the `std` feature is enabled.
+///
+/// # Arguments
+///
+/// * `path` - The path to the binary file to read.
+///
+/// # Returns
+///
+/// The powers of tau vector as Nova `Affine` elements.
+///
+/// # Panics
+///
+/// This function will panic if the file cannot be read.
+#[cfg(feature = "std")]
+pub fn read_nova_from_binary(path: &Path) -> Result<Vec<NovaG1Affine>, Box<dyn Error>> {
+    let ark_ck = read_ark_from_binary(path)?;
+    let nova_ck: Vec<NovaG1Affine> = ark_ck
+        .iter()
+        .map(blitzar::compute::convert_to_halo2_bn256_g1_affine)
+        .collect();
+    Ok(nova_ck)
+}
+
+/// Generates a binary file from a `CommitmentKey` object.
+/// Saving the powers of tau to a binary file is useful for later use in the `HyperKZG` PCS.
+/// This function is only available when the `std` feature is enabled.
+///
+/// # Arguments
+///
+/// * `ptau_path` - The path to the powers of tau file.
+/// * `binary_path` - The path to the binary file to write.
+/// * `n` - The number of elements in the `CommitmentKey`.
+///
+/// # Returns
+///
+/// An empty result if the operation was successful.
+///
+/// # Panics
+///
+/// This function will panic if the file cannot be written.
+#[cfg(feature = "std")]
+pub fn generate_binary(
+    ptau_path: &Path,
+    binary_path: &Path,
+    n: usize,
+) -> Result<(), Box<dyn Error>> {
+    let setup = load_from_file(ptau_path, n)?;
+
+    println!(
+        "Writing {:?} elements to {}",
+        setup.ck().len(),
+        binary_path.display()
+    );
+    println!("setup.h() {:?}", setup.h());
+    println!("setup.tau_H() {:?}", setup.tau_H());
+
+    save_to_binary(&setup, binary_path)?;
+
+    Ok(())
+}
+
+/// Loads a `CommitmentKey` object from a binary file.
+///
+/// # Arguments
+///
+/// * `path` - The path to the binary file to read.
+/// * `n` - The number of elements in the `CommitmentKey`.
+///
+/// # Returns
+///
+/// The `CommitmentKey` object.
+///
+/// # Panics
+///
+/// This function will panic if the file cannot be read.
+#[cfg(feature = "std")]
+fn load_from_file(
+    path: &Path,
+    n: usize,
+) -> Result<CommitmentKey<HyperKZGEngine>, Box<dyn std::error::Error>> {
+    let file = OpenOptions::new().read(true).open(path).unwrap();
+    let mut reader = BufReader::new(file);
+    Ok(CommitmentEngine::load_setup(&mut reader, n)?)
+}
+
+/// Saves a `CommitmentKey` object to a binary file.
+///
+/// # Arguments
+///
+/// * `setup` - The `CommitmentKey` object to save.
+/// * `path` - The path to the binary file to write.
+///
+/// # Returns
+///
+/// An empty result if the operation was successful.
+///
+/// # Panics
+///
+/// This function will panic if the file cannot be written.
+#[cfg(feature = "std")]
+fn save_to_binary(
+    setup: &CommitmentKey<HyperKZGEngine>,
+    path: &Path,
+) -> Result<(), Box<dyn Error>> {
+    let file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(path)
+        .unwrap();
+    let mut writer = BufWriter::new(file);
+
+    let elements: Vec<G1Affine> = setup
+        .ck()
+        .iter()
+        .map(blitzar::compute::convert_to_ark_bn254_g1_affine)
+        .collect();
+    elements.serialize_compressed(&mut writer)?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -640,5 +801,124 @@ mod tests {
         let commitment: HyperKZGCommitment = (&G1Affine::generator()).into();
         let expected: HyperKZGCommitment = HyperKZGCommitment::from(&G1Affine::generator());
         assert_eq!(commitment.commitment, expected.commitment);
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn we_can_load_ptau_file() {
+        let n = 4;
+        let file_name = "/tmp/hyperkzg_test.ptau";
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", n);
+
+        // Generate the file
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(file_name)
+            .unwrap();
+        let mut writer = BufWriter::new(file);
+
+        // Use Nova's save_to implementation to write the file
+        ck.save_to(&mut writer).unwrap();
+
+        // Load the powers of tau from the file
+        let setup = load_from_file(Path::new(file_name), n).unwrap();
+
+        // Remove file from temp directory
+        std::fs::remove_file(file_name).unwrap_or_else(|err| {
+            eprintln!("Failed to delete file: {err}");
+        });
+
+        assert_eq!(ck.ck().len(), setup.ck().len());
+        assert_eq!(ck.h(), setup.h());
+        assert_eq!(ck.tau_H(), setup.tau_H());
+        for (i, (ck_elem, setup_elem)) in ck.ck().iter().zip(setup.ck().iter()).enumerate() {
+            assert_eq!(ck_elem, setup_elem, "Mismatch at index {i}");
+        }
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn we_can_generate_binary_and_load_ark_points_from_ptau_file() {
+        let n = 4;
+        let file_name = "/tmp/hyperkzg_ark_test.ptau";
+        let binary_name = "/tmp/hyperkzg_ark_test.bin";
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", n);
+
+        // Generate the file
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(file_name)
+            .unwrap();
+        let mut writer = BufWriter::new(file);
+
+        // Use Nova's save_to implementation to write the file
+        ck.save_to(&mut writer).unwrap();
+
+        // Generate the binary file
+        generate_binary(Path::new(file_name), Path::new(binary_name), n).unwrap();
+
+        // Load the powers of tau from the binary file
+        let setup_ck = read_ark_from_binary(Path::new(binary_name)).unwrap();
+
+        // Remove files from temp directory
+        std::fs::remove_file(file_name).unwrap_or_else(|err| {
+            eprintln!("Failed to delete file: {err}");
+        });
+        std::fs::remove_file(binary_name).unwrap_or_else(|err| {
+            eprintln!("Failed to delete file: {err}");
+        });
+
+        assert_eq!(ck.ck().len(), setup_ck.len());
+        for (i, (ck_elem, setup_elem)) in ck.ck().iter().zip(setup_ck.iter()).enumerate() {
+            assert_eq!(
+                *ck_elem,
+                blitzar::compute::convert_to_halo2_bn256_g1_affine(setup_elem),
+                "Mismatch at index {i}"
+            );
+        }
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn we_can_generate_binary_and_load_nova_points_from_ptau_file() {
+        let n = 4;
+        let file_name = "/tmp/hyperkzg_nova_test.ptau";
+        let binary_name = "/tmp/hyperkzg_nova_test.bin";
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", n);
+
+        // Generate the file
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(file_name)
+            .unwrap();
+        let mut writer = BufWriter::new(file);
+
+        // Use Nova's save_to implementation to write the file
+        ck.save_to(&mut writer).unwrap();
+
+        // Generate the binary file
+        generate_binary(Path::new(file_name), Path::new(binary_name), n).unwrap();
+
+        // Load the powers of tau from the binary file
+        let setup_ck = read_nova_from_binary(Path::new(binary_name)).unwrap();
+
+        // Remove files from temp directory
+        std::fs::remove_file(file_name).unwrap_or_else(|err| {
+            eprintln!("Failed to delete file: {err}");
+        });
+        std::fs::remove_file(binary_name).unwrap_or_else(|err| {
+            eprintln!("Failed to delete file: {err}");
+        });
+
+        assert_eq!(ck.ck().len(), setup_ck.len());
+        for (i, (ck_elem, setup_elem)) in ck.ck().iter().zip(setup_ck.iter()).enumerate() {
+            assert_eq!(ck_elem, setup_elem, "Mismatch at index {i}");
+        }
     }
 }

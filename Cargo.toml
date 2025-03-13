@@ -45,7 +45,8 @@ itertools = { version = "0.13.0", default-features = false, features = ["use_all
 lalrpop = { version = "0.22.0" }
 lalrpop-util = { version = "0.22.0", default-features = false }
 merlin = { version = "2" }
-nova-snark = { version = "0.40.0" }
+# nova-snark = { version = "0.40.0" }
+nova-snark = { git = "https://github.com/microsoft/Nova.git" }
 num-traits = { version = "0.2", default-features = false }
 num-bigint = { version = "0.4.4", default-features = false }
 opentelemetry = { version = "0.23.0" }
