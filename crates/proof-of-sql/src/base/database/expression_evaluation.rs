@@ -57,8 +57,8 @@ impl<S: Scalar> OwnedTable<S> {
             Literal::VarChar(s) => Ok(OwnedColumn::VarChar(vec![s.clone(); len])),
             Literal::VarBinary(bytes) => Ok(OwnedColumn::VarBinary(vec![bytes.clone(); len])),
             Literal::Timestamp(its) => Ok(OwnedColumn::TimestampTZ(
-                its.timeunit(),
-                its.timezone(),
+                its.timeunit().into(),
+                its.timezone().into(),
                 vec![its.timestamp().timestamp(); len],
             )),
         }

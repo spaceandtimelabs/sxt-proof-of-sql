@@ -1,6 +1,7 @@
 use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
     math::decimal::Precision,
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::{Scalar, ScalarExt},
     slice_ops::slice_cast_with,
 };
@@ -11,7 +12,6 @@ use core::{
     fmt::{Display, Formatter},
     mem::size_of,
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::Ident;
 

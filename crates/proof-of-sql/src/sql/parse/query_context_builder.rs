@@ -299,7 +299,10 @@ impl QueryContextBuilder<'_> {
                     })?,
                 ))
             }
-            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(its.timeunit(), its.timezone())),
+            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(
+                its.timeunit().into(),
+                its.timezone().into(),
+            )),
         }
     }
 

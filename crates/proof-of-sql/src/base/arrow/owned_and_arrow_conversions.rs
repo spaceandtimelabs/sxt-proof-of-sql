@@ -17,6 +17,7 @@ use crate::base::{
     database::{OwnedColumn, OwnedTable, OwnedTableError},
     map::IndexMap,
     math::decimal::Precision,
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
     scalar::Scalar,
 };
 use alloc::sync::Arc;
@@ -30,7 +31,6 @@ use arrow::{
     error::ArrowError,
     record_batch::RecordBatch,
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use snafu::Snafu;
 use sqlparser::ast::Ident;
 

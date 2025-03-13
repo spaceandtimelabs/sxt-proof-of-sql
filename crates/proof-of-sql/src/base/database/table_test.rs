@@ -1,10 +1,10 @@
 use crate::base::{
     database::{table_utility::*, Column, Table, TableError, TableOptions},
     map::{indexmap, IndexMap},
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::test_scalar::TestScalar,
 };
 use bumpalo::Bump;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use sqlparser::ast::Ident;
 #[test]
 fn we_can_create_a_table_with_no_columns_specifying_row_count() {

@@ -184,11 +184,13 @@ mod tests {
 
     use super::*;
     use crate::base::{
-        commitment::column_bounds::Bounds, database::OwnedColumn, math::decimal::Precision,
+        commitment::column_bounds::Bounds,
+        database::OwnedColumn,
+        math::decimal::Precision,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         scalar::test_scalar::TestScalar,
     };
     use alloc::string::String;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_construct_metadata() {
