@@ -3,7 +3,7 @@ use super::{pairings, DoryMessages, ProverState, VerifierSetup, VerifierState};
 use crate::{base::proof::Transcript, utils::log};
 
 /// This is the prover side of the Scalar-Product algorithm in section 3.1 of <https://eprint.iacr.org/2020/1274.pdf>.
-#[allow(clippy::missing_panics_doc)]
+#[expect(clippy::missing_panics_doc)]
 pub fn scalar_product_prove(
     messages: &mut DoryMessages,
     transcript: &mut impl Transcript,

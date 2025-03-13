@@ -68,7 +68,6 @@ impl GroupByExec {
 }
 
 impl ProofPlan for GroupByExec {
-    #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut impl VerificationBuilder<S>,
@@ -155,7 +154,7 @@ impl ProofPlan for GroupByExec {
         Ok(TableEvaluation::new(column_evals, output_chi_eval))
     }
 
-    #[allow(clippy::redundant_closure_for_method_calls)]
+    #[expect(clippy::redundant_closure_for_method_calls)]
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         self.group_by_exprs
             .iter()
@@ -251,7 +250,6 @@ impl ProverEvaluate for GroupByExec {
     }
 
     #[tracing::instrument(name = "GroupByExec::final_round_evaluate", level = "debug", skip_all)]
-    #[allow(unused_variables)]
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
@@ -328,7 +326,6 @@ impl ProverEvaluate for GroupByExec {
     }
 }
 
-#[allow(clippy::unnecessary_wraps)]
 fn verify_group_by<S: Scalar>(
     builder: &mut impl VerificationBuilder<S>,
     alpha: S,
@@ -374,10 +371,6 @@ fn verify_group_by<S: Scalar>(
     Ok(())
 }
 
-#[allow(
-    clippy::missing_panics_doc,
-    reason = "alpha is guaranteed to not be zero in this context"
-)]
 pub fn prove_group_by<'a, S: Scalar>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,

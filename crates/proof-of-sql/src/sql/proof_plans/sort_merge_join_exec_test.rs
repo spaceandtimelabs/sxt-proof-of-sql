@@ -132,7 +132,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_sort_m
 }
 
 #[test]
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_two_sort_merge_joins() {
     let alloc = Bump::new();
     let mut accessor = TableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
@@ -304,7 +304,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join() {
     assert_eq!(res, expected_res);
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 #[test]
 fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_or_both_tables_have_no_rows(
 ) {

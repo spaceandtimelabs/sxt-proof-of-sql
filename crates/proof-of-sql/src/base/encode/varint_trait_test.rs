@@ -315,7 +315,6 @@ fn we_can_encode_and_decode_u32_and_u64_the_same() {
 
 #[test]
 fn we_can_encode_and_decode_large_positive_u128() {
-    #[allow(clippy::unusual_byte_groupings)]
     let value: u128 =
         0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_0011100;
     let expected_result: &[u8] = &[
@@ -340,7 +339,7 @@ fn we_can_encode_and_decode_large_positive_u128() {
 
 #[test]
 fn we_can_encode_and_decode_large_positive_i128() {
-    #[allow(clippy::unusual_byte_groupings)]
+    #[expect(clippy::unusual_byte_groupings)]
     let value: i128 =
         0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_001110;
     let expected_result: &[u8] = &[
@@ -365,7 +364,7 @@ fn we_can_encode_and_decode_large_positive_i128() {
 
 #[test]
 fn we_can_encode_and_decode_large_negative_i128() {
-    #[allow(clippy::unusual_byte_groupings)]
+    #[expect(clippy::unusual_byte_groupings)]
     let value: i128 =
         -1 - 0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_001110;
     let expected_result: &[u8] = &[

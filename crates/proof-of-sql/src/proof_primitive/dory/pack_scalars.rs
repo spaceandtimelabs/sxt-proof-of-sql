@@ -173,7 +173,7 @@ fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
 /// * `offset` - The offset to the data.
 /// * `num_matrix_commitment_columns` - The number of generators used for msm.
 /// * `buffer` - Pre-allocated offset column buffer.
-#[allow(clippy::missing_panics_doc)]
+#[expect(clippy::missing_panics_doc)]
 fn offset_column(
     committable_columns: &[CommittableColumn],
     offset: usize,
@@ -468,8 +468,10 @@ pub fn bit_table_and_scalars_for_packed_msm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::math::decimal::Precision;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use crate::base::{
+        math::decimal::Precision,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    };
 
     #[test]
     fn we_can_get_a_bit_table() {

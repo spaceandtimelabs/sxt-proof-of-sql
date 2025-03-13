@@ -5,6 +5,7 @@ use crate::{
             owned_table_utility::*, table_utility::*, Column, LiteralValue, OwnedTable,
             OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
         },
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         scalar::{Scalar, ScalarExt},
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
@@ -17,7 +18,6 @@ use crate::{
 };
 use bumpalo::Bump;
 use itertools::{multizip, MultiUnzip};
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,

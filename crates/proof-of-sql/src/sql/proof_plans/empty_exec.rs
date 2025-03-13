@@ -36,7 +36,6 @@ impl EmptyExec {
 }
 
 impl ProofPlan for EmptyExec {
-    #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut impl VerificationBuilder<S>,
@@ -84,7 +83,6 @@ impl ProverEvaluate for EmptyExec {
     }
 
     #[tracing::instrument(name = "EmptyExec::final_round_evaluate", level = "debug", skip_all)]
-    #[allow(unused_variables)]
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         _builder: &mut FinalRoundBuilder<'a, S>,

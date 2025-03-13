@@ -166,7 +166,7 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     fn we_can_make_complex_sumcheck_prover_state() {
         let mle1 = &[0; 0];
         let mle2 = &[1];

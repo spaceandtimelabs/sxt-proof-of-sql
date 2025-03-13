@@ -44,7 +44,7 @@ pub trait ComparisonOp {
     /// Return an error if op is not implemented for string
     fn string_op(lhs: &[String], rhs: &[String]) -> ColumnOperationResult<Vec<bool>>;
 
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     fn owned_column_element_wise_comparison<S: Scalar>(
         lhs: &OwnedColumn<S>,
         rhs: &OwnedColumn<S>,

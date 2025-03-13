@@ -60,7 +60,6 @@ impl<H: ProverHonestyMarker> ProofPlan for OstensibleFilterExec<H>
 where
     OstensibleFilterExec<H>: ProverEvaluate,
 {
-    #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut impl VerificationBuilder<S>,
@@ -187,7 +186,6 @@ impl ProverEvaluate for FilterExec {
     }
 
     #[tracing::instrument(name = "FilterExec::final_round_evaluate", level = "debug", skip_all)]
-    #[allow(unused_variables)]
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
@@ -249,11 +247,7 @@ impl ProverEvaluate for FilterExec {
     }
 }
 
-#[allow(
-    clippy::unnecessary_wraps,
-    clippy::too_many_arguments,
-    clippy::similar_names
-)]
+#[expect(clippy::too_many_arguments, clippy::similar_names)]
 pub(super) fn verify_filter<S: Scalar>(
     builder: &mut impl VerificationBuilder<S>,
     alpha: S,
@@ -293,7 +287,7 @@ pub(super) fn verify_filter<S: Scalar>(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments, clippy::many_single_char_names)]
+#[expect(clippy::too_many_arguments, clippy::many_single_char_names)]
 pub(super) fn prove_filter<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,

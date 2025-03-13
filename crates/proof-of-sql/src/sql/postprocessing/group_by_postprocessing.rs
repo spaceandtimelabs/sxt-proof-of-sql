@@ -210,7 +210,7 @@ impl GroupByPostprocessing {
 
 impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
     /// Apply the group by transformation to the given `OwnedTable`.
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
         // First evaluate all the aggregated columns
         let alloc = Bump::new();

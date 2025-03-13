@@ -34,7 +34,7 @@ pub trait ArithmeticOp {
         T0: Copy + Debug + Into<BigInt>,
         T1: Copy + Debug + Into<BigInt>;
 
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     fn owned_column_element_wise_arithmetic<S: Scalar>(
         lhs: &OwnedColumn<S>,
         rhs: &OwnedColumn<S>,

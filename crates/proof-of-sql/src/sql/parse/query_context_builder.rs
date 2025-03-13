@@ -33,7 +33,7 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
-    #[allow(clippy::vec_box, clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn visit_table_expr(
         mut self,
         table_expr: &[Box<TableExpression>],
@@ -140,7 +140,7 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
-    #[allow(clippy::unnecessary_wraps)]
+    #[expect(clippy::unnecessary_wraps)]
     pub fn build(self) -> ConversionResult<QueryContext> {
         Ok(self.context)
     }
@@ -148,7 +148,7 @@ impl<'a> QueryContextBuilder<'a> {
 
 // Private interface
 impl QueryContextBuilder<'_> {
-    #[allow(
+    #[expect(
         clippy::missing_panics_doc,
         reason = "The assertion ensures there is at least one column, and this is a fundamental requirement for schema retrieval."
     )]
@@ -281,7 +281,7 @@ impl QueryContextBuilder<'_> {
         }
     }
 
-    #[allow(clippy::unused_self)]
+    #[expect(clippy::unused_self)]
     fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
         match literal {
             Literal::Boolean(_) => Ok(ColumnType::Boolean),
@@ -299,7 +299,10 @@ impl QueryContextBuilder<'_> {
                     })?,
                 ))
             }
-            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(its.timeunit(), its.timezone())),
+            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(
+                its.timeunit().into(),
+                its.timezone().into(),
+            )),
         }
     }
 
