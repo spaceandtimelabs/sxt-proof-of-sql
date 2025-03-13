@@ -5,7 +5,7 @@ use crate::{
         scalar::{Scalar, ScalarExt},
         slice_ops,
     },
-    sql::parse::{type_check_binary_operation, ConversionError, ConversionResult},
+    sql::{util::type_check_binary_operation, AnalyzeError, AnalyzeResult},
 };
 use alloc::string::ToString;
 use bumpalo::Bump;
@@ -25,7 +25,7 @@ pub fn scale_and_subtract_literal<S: Scalar>(
     lhs_scale: i8,
     rhs_scale: i8,
     is_equal: bool,
-) -> ConversionResult<S> {
+) -> AnalyzeResult<S> {
     let lhs_type = lhs.column_type();
     let rhs_type = rhs.column_type();
     let operator = if is_equal {
@@ -34,7 +34,7 @@ pub fn scale_and_subtract_literal<S: Scalar>(
         BinaryOperator::Lt
     };
     if !type_check_binary_operation(lhs_type, rhs_type, &operator) {
-        return Err(ConversionError::DataTypeMismatch {
+        return Err(AnalyzeError::DataTypeMismatch {
             left_type: lhs_type.to_string(),
             right_type: rhs_type.to_string(),
         });
@@ -56,7 +56,7 @@ pub fn scale_and_subtract_literal<S: Scalar>(
         );
         // Check if the precision is valid
         let _max_precision = Precision::new(max_precision_value).map_err(|_| {
-            ConversionError::DecimalConversionError {
+            AnalyzeError::DecimalConversionError {
                 source: DecimalError::InvalidPrecision {
                     error: max_precision_value.to_string(),
                 },
@@ -90,11 +90,11 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     lhs_scale: i8,
     rhs_scale: i8,
     is_equal: bool,
-) -> ConversionResult<&'a [S]> {
+) -> AnalyzeResult<&'a [S]> {
     let lhs_len = lhs.len();
     let rhs_len = rhs.len();
     if lhs_len != rhs_len {
-        return Err(ConversionError::DifferentColumnLength {
+        return Err(AnalyzeError::DifferentColumnLength {
             len_a: lhs_len,
             len_b: rhs_len,
         });
@@ -107,7 +107,7 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
         BinaryOperator::Lt
     };
     if !type_check_binary_operation(lhs_type, rhs_type, &operator) {
-        return Err(ConversionError::DataTypeMismatch {
+        return Err(AnalyzeError::DataTypeMismatch {
             left_type: lhs_type.to_string(),
             right_type: rhs_type.to_string(),
         });
@@ -129,7 +129,7 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
         );
         // Check if the precision is valid
         let _max_precision = Precision::new(max_precision_value).map_err(|_| {
-            ConversionError::DecimalConversionError {
+            AnalyzeError::DecimalConversionError {
                 source: DecimalError::InvalidPrecision {
                     error: max_precision_value.to_string(),
                 },
@@ -155,7 +155,7 @@ pub(crate) fn scale_and_subtract_columnar_value<'a, S: Scalar>(
     lhs_scale: i8,
     rhs_scale: i8,
     is_equal: bool,
-) -> ConversionResult<ColumnarValue<'a, S>> {
+) -> AnalyzeResult<ColumnarValue<'a, S>> {
     match (lhs, rhs) {
         (ColumnarValue::Column(lhs), ColumnarValue::Column(rhs)) => {
             Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(

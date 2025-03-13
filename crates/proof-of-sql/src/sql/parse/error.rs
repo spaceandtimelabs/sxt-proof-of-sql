@@ -1,6 +1,9 @@
-use crate::base::{
-    database::{ColumnOperationError, ColumnType, TableRef},
-    math::decimal::{DecimalError, IntermediateDecimalError},
+use crate::{
+    base::{
+        database::{ColumnOperationError, ColumnType, TableRef},
+        math::decimal::{DecimalError, IntermediateDecimalError},
+    },
+    sql::AnalyzeError,
 };
 use alloc::{
     boxed::Box,
@@ -159,6 +162,12 @@ pub enum ConversionError {
     IdentifierConversionError {
         /// The underlying error message
         error: String,
+    },
+    /// Errors in the native analyze process
+    #[snafu(transparent)]
+    AnalyzeError {
+        /// The underlying source error
+        source: AnalyzeError,
     },
 }
 
