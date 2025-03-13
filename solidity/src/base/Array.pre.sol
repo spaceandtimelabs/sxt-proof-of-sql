@@ -93,4 +93,52 @@ library Array {
         }
         __array = __arrayTmp;
     }
+
+    /// @notice Reads a word array from calldata
+    /// @custom:yul-function
+    /// #### Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// read_word_array(source_ptr) -> source_ptr_out, array_ptr
+    /// ```
+    /// ##### Parameters
+    /// * `source_ptr` - calldata pointer to array length followed by array elements
+    /// ##### Return Values
+    /// * `source_ptr_out` - pointer to remaining calldata after consuming the array
+    /// * `array_ptr` - pointer to the array in memory containing [length, elements...]
+    /// @dev Reads a word array by first reading length as uint64, then copying that many words.
+    /// @param __source The input source containing the array
+    /// @return __sourceOut The remaining source after consuming the array
+    /// @return __array The decoded array
+    function __readWordArray(bytes calldata __source)
+        external
+        pure
+        returns (bytes calldata __sourceOut, uint256[] memory __array)
+    {
+        uint256[] memory __arrayTmp;
+        assembly {
+            function read_word_array(source_ptr) -> source_ptr_out, array_ptr {
+                array_ptr := mload(FREE_PTR)
+
+                let length := shr(UINT64_PADDING_BITS, calldataload(source_ptr))
+                mstore(array_ptr, length)
+                source_ptr := add(source_ptr, UINT64_SIZE)
+
+                let target_ptr := add(array_ptr, WORD_SIZE)
+                let copy_size := mul(length, WORD_SIZE)
+                calldatacopy(target_ptr, source_ptr, copy_size)
+
+                mstore(FREE_PTR, add(target_ptr, copy_size))
+
+                source_ptr_out := add(source_ptr, copy_size)
+            }
+
+            let __sourceOutOffset
+            __sourceOutOffset, __arrayTmp := read_word_array(__source.offset)
+            __sourceOut.offset := __sourceOutOffset
+            // slither-disable-next-line write-after-write
+            __sourceOut.length := sub(__source.length, sub(__sourceOutOffset, __source.offset))
+        }
+        __array = __arrayTmp;
+    }
 }
