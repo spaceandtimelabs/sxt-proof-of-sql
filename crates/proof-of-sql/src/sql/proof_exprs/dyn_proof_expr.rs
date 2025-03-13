@@ -10,8 +10,9 @@ use crate::{
         scalar::Scalar,
     },
     sql::{
-        parse::{type_check_binary_operation, ConversionError, ConversionResult},
         proof::{FinalRoundBuilder, VerificationBuilder},
+        util::type_check_binary_operation,
+        AnalyzeError, AnalyzeResult,
     },
 };
 use alloc::{boxed::Box, string::ToString};
@@ -53,19 +54,19 @@ impl DynProofExpr {
         Self::Column(ColumnExpr::new(column_ref))
     }
     /// Create logical AND expression
-    pub fn try_new_and(lhs: DynProofExpr, rhs: DynProofExpr) -> ConversionResult<Self> {
+    pub fn try_new_and(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         lhs.check_data_type(ColumnType::Boolean)?;
         rhs.check_data_type(ColumnType::Boolean)?;
         Ok(Self::And(AndExpr::new(Box::new(lhs), Box::new(rhs))))
     }
     /// Create logical OR expression
-    pub fn try_new_or(lhs: DynProofExpr, rhs: DynProofExpr) -> ConversionResult<Self> {
+    pub fn try_new_or(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         lhs.check_data_type(ColumnType::Boolean)?;
         rhs.check_data_type(ColumnType::Boolean)?;
         Ok(Self::Or(OrExpr::new(Box::new(lhs), Box::new(rhs))))
     }
     /// Create logical NOT expression
-    pub fn try_new_not(expr: DynProofExpr) -> ConversionResult<Self> {
+    pub fn try_new_not(expr: DynProofExpr) -> AnalyzeResult<Self> {
         expr.check_data_type(ColumnType::Boolean)?;
         Ok(Self::Not(NotExpr::new(Box::new(expr))))
     }
@@ -75,13 +76,13 @@ impl DynProofExpr {
         Self::Literal(LiteralExpr::new(value))
     }
     /// Create a new equals expression
-    pub fn try_new_equals(lhs: DynProofExpr, rhs: DynProofExpr) -> ConversionResult<Self> {
+    pub fn try_new_equals(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Eq) {
             Ok(Self::Equals(EqualsExpr::new(Box::new(lhs), Box::new(rhs))))
         } else {
-            Err(ConversionError::DataTypeMismatch {
+            Err(AnalyzeError::DataTypeMismatch {
                 left_type: lhs_datatype.to_string(),
                 right_type: rhs_datatype.to_string(),
             })
@@ -92,7 +93,7 @@ impl DynProofExpr {
         lhs: DynProofExpr,
         rhs: DynProofExpr,
         is_lt: bool,
-    ) -> ConversionResult<Self> {
+    ) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Lt) {
@@ -102,7 +103,7 @@ impl DynProofExpr {
                 is_lt,
             )))
         } else {
-            Err(ConversionError::DataTypeMismatch {
+            Err(AnalyzeError::DataTypeMismatch {
                 left_type: lhs_datatype.to_string(),
                 right_type: rhs_datatype.to_string(),
             })
@@ -110,7 +111,7 @@ impl DynProofExpr {
     }
 
     /// Create a new add expression
-    pub fn try_new_add(lhs: DynProofExpr, rhs: DynProofExpr) -> ConversionResult<Self> {
+    pub fn try_new_add(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Plus) {
@@ -120,7 +121,7 @@ impl DynProofExpr {
                 false,
             )))
         } else {
-            Err(ConversionError::DataTypeMismatch {
+            Err(AnalyzeError::DataTypeMismatch {
                 left_type: lhs_datatype.to_string(),
                 right_type: rhs_datatype.to_string(),
             })
@@ -128,7 +129,7 @@ impl DynProofExpr {
     }
 
     /// Create a new subtract expression
-    pub fn try_new_subtract(lhs: DynProofExpr, rhs: DynProofExpr) -> ConversionResult<Self> {
+    pub fn try_new_subtract(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Minus) {
@@ -138,7 +139,7 @@ impl DynProofExpr {
                 true,
             )))
         } else {
-            Err(ConversionError::DataTypeMismatch {
+            Err(AnalyzeError::DataTypeMismatch {
                 left_type: lhs_datatype.to_string(),
                 right_type: rhs_datatype.to_string(),
             })
@@ -146,7 +147,7 @@ impl DynProofExpr {
     }
 
     /// Create a new multiply expression
-    pub fn try_new_multiply(lhs: DynProofExpr, rhs: DynProofExpr) -> ConversionResult<Self> {
+    pub fn try_new_multiply(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Multiply) {
@@ -155,7 +156,7 @@ impl DynProofExpr {
                 Box::new(rhs),
             )))
         } else {
-            Err(ConversionError::DataTypeMismatch {
+            Err(AnalyzeError::DataTypeMismatch {
                 left_type: lhs_datatype.to_string(),
                 right_type: rhs_datatype.to_string(),
             })
@@ -169,11 +170,11 @@ impl DynProofExpr {
     }
 
     /// Check that the plan has the correct data type
-    fn check_data_type(&self, data_type: ColumnType) -> ConversionResult<()> {
+    fn check_data_type(&self, data_type: ColumnType) -> AnalyzeResult<()> {
         if self.data_type() == data_type {
             Ok(())
         } else {
-            Err(ConversionError::InvalidDataType {
+            Err(AnalyzeError::InvalidDataType {
                 actual: self.data_type(),
                 expected: data_type,
             })

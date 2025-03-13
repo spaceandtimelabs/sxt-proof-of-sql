@@ -122,7 +122,6 @@ pub fn cross_join<'a, S: Scalar>(
 /// Get columns from a table with given indexes.
 ///
 /// The function returns an error if any of the indexes are out of bounds.
-#[allow(dead_code)]
 pub(crate) fn get_columns_of_table<'a, S: Scalar>(
     table: &Table<'a, S>,
     indexes: &[usize],
@@ -225,7 +224,6 @@ pub(crate) fn get_sort_merge_join_indexes<'a, S: Scalar>(
 /// 3. Other columns from the right table
 /// # Panics
 /// The function panics if we feed in incorrect data (e.g. Num of rows in `left` and some column of `left_on` being different).
-#[allow(clippy::needless_borrowed_reference)]
 pub fn apply_sort_merge_join_indexes<'a, S: Scalar>(
     left: &Table<'a, S>,
     right: &Table<'a, S>,

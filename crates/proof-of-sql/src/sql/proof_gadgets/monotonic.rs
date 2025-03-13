@@ -20,7 +20,6 @@ pub(crate) fn first_round_evaluate_monotonic<S: Scalar>(
 }
 
 /// Perform final round evaluation of monotonicity.
-#[allow(clippy::too_many_arguments)]
 pub(crate) fn final_round_evaluate_monotonic<'a, S: Scalar, const STRICT: bool, const ASC: bool>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,

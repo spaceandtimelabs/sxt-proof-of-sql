@@ -89,7 +89,7 @@ impl ProofExpr for OrExpr {
     }
 }
 
-#[allow(
+#[expect(
     clippy::missing_panics_doc,
     reason = "table_length matches lhs and rhs lengths, ensuring no panic occurs"
 )]
@@ -104,7 +104,7 @@ pub fn result_evaluate_or<'a>(
     alloc.alloc_slice_fill_with(table_length, |i| lhs[i] || rhs[i])
 }
 
-#[allow(
+#[expect(
     clippy::missing_panics_doc,
     reason = "lhs and rhs are guaranteed to have the same length, ensuring no panic occurs"
 )]

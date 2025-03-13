@@ -318,11 +318,13 @@ impl ColumnBounds {
 mod tests {
     use super::*;
     use crate::base::{
-        database::OwnedColumn, math::decimal::Precision, scalar::test_scalar::TestScalar,
+        database::OwnedColumn,
+        math::decimal::Precision,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+        scalar::test_scalar::TestScalar,
     };
     use alloc::{string::String, vec};
     use itertools::Itertools;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_construct_bounds_by_method() {

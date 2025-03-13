@@ -16,9 +16,11 @@
 //! ]);
 //! ```
 use super::{OwnedColumn, OwnedTable};
-use crate::base::{math::non_negative_i32::NonNegativeI32, scalar::Scalar};
+use crate::base::{
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    math::non_negative_i32::NonNegativeI32, scalar::Scalar
+};
 use alloc::{string::String, vec::Vec};
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use sqlparser::ast::Ident;
 
 /// Creates a `(Ident, OwnedColumn)` pair for a fixed-size binary column.
@@ -185,7 +187,6 @@ pub fn int<S: Scalar>(
 ///     bigint("a", [1, 2, 3]),
 /// ]);
 /// ```
-#[allow(clippy::missing_panics_doc)]
 pub fn bigint<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i64>>,
@@ -342,9 +343,7 @@ pub fn decimal75<S: Scalar>(
 ///
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, };
-/// use proof_of_sql_parser::{
-///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
+/// use proof_of_sql::base::{database::owned_table_utility::*, posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
 /// # use proof_of_sql::base::scalar::MontScalar;
 /// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let result = owned_table::<MyScalar>([

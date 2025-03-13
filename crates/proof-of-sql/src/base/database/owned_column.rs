@@ -11,6 +11,7 @@ use crate::base::{
         non_negative_i32::NonNegativeI32,
         permutation::{Permutation, PermutationError},
     },
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::{Scalar, ScalarExt},
     slice_ops::{inner_product_ref_cast, inner_product_with_bytes},
 };

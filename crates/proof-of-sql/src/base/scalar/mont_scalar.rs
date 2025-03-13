@@ -204,7 +204,6 @@ impl<T: MontConfig<4>> MontScalar<T> {
     }
     /// Create a `Vec<u8>` from a `MontScalar<T>`. The array will be in non-montgomery form.
     #[must_use]
-    #[allow(clippy::wrong_self_convention)]
     pub fn to_bytes_le(&self) -> Vec<u8> {
         self.0.into_bigint().to_bytes_le()
     }
@@ -403,7 +402,7 @@ where
             u64::MAX >> (T::MODULUS.0[3].leading_zeros() + 1),
         ])
     };
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     const MAX_BITS: u8 = {
         assert!(
             T::MODULUS.0[3].leading_zeros() < 64,
@@ -574,7 +573,7 @@ where
 {
     type Error = ScalarConversionError;
 
-    #[allow(clippy::cast_possible_wrap)]
+    #[expect(clippy::cast_possible_wrap)]
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
         let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
             (-1, (-value).into())

@@ -22,7 +22,7 @@ pub struct ProvableQueryResult {
 
 // TODO: Handle truncation properly. The `allow(clippy::cast_possible_truncation)` is a temporary fix and should be replaced with proper logic to manage possible truncation scenarios.
 impl ProvableQueryResult {
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     /// The number of columns in the result
     #[must_use]
     pub fn num_columns(&self) -> usize {
@@ -35,7 +35,7 @@ impl ProvableQueryResult {
         &mut self.num_columns
     }
 
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     /// The number of rows in the result
     #[must_use]
     pub fn table_length(&self) -> usize {
@@ -84,11 +84,7 @@ impl ProvableQueryResult {
         }
     }
 
-    #[allow(clippy::cast_possible_truncation)]
-    #[allow(
-        clippy::missing_panics_doc,
-        reason = "Assertions ensure preconditions are met, eliminating the possibility of panic."
-    )]
+    #[expect(clippy::cast_possible_truncation)]
     /// Given an evaluation vector, compute the evaluation of the intermediate result
     /// columns as spare multilinear extensions
     ///
@@ -154,7 +150,7 @@ impl ProvableQueryResult {
         Ok(res)
     }
 
-    #[allow(
+    #[expect(
         clippy::missing_panics_doc,
         reason = "Assertions ensure preconditions are met, eliminating the possibility of panic."
     )]

@@ -83,7 +83,7 @@ impl From<BNScalar> for NovaScalar {
 }
 impl Mul<HyperKZGCommitment> for BNScalar {
     type Output = HyperKZGCommitment;
-    #[allow(clippy::op_ref)]
+    #[expect(clippy::op_ref)]
     fn mul(self, rhs: HyperKZGCommitment) -> Self::Output {
         self * &rhs
     }
@@ -322,6 +322,8 @@ mod tests {
     use super::*;
     #[cfg(feature = "blitzar")]
     use crate::base::math::decimal::Precision;
+    #[cfg(feature = "blitzar")]
+    use crate::base::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
     use crate::base::{
         commitment::commitment_evaluation_proof_test::{
             test_commitment_evaluation_proof_with_length_1,
@@ -337,8 +339,6 @@ mod tests {
     use nova_snark::{
         provider::hyperkzg::CommitmentEngine, traits::commitment::CommitmentEngineTrait,
     };
-    #[cfg(feature = "blitzar")]
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[cfg(feature = "blitzar")]
     #[test]

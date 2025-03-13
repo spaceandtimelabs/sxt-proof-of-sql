@@ -1,5 +1,9 @@
 use crate::{
-    base::{commitment::CommittableColumn, math::decimal::Precision},
+    base::{
+        commitment::CommittableColumn,
+        math::decimal::Precision,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    },
     proof_primitive::dory::{
         compute_dory_commitments, DoryProverPublicSetup, ProverSetup, PublicParameters, F, GT,
     },
@@ -7,7 +11,6 @@ use crate::{
 use ark_ec::pairing::Pairing;
 use ark_std::test_rng;
 use num_traits::Zero;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_fixed_size_binary_values() {

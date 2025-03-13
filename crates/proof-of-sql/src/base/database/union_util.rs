@@ -20,7 +20,7 @@ fn are_schemas_compatible(left: &[ColumnField], right: &[ColumnField]) -> bool {
 ///
 /// # Panics
 /// This function should never panic as long as it is written correctly
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 pub fn column_union<'a, S: Scalar>(
     columns: &[&Column<'a, S>],
     alloc: &'a Bump,

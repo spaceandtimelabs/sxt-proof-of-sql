@@ -3,18 +3,18 @@ use datafusion::{
     common::DataFusionError,
     logical_expr::{Expr, LogicalPlan, Operator},
 };
-use proof_of_sql::{base::math::decimal::DecimalError, sql::parse::ConversionError};
+use proof_of_sql::{base::math::decimal::DecimalError, sql::AnalyzeError};
 use snafu::Snafu;
 use sqlparser::parser::ParserError;
 
 /// Proof of SQL Planner error
 #[derive(Debug, Snafu)]
 pub enum PlannerError {
-    /// Returned when a conversion fails
+    /// Returned when the internal analyze process fails
     #[snafu(transparent)]
-    ConversionError {
-        /// Underlying conversion error
-        source: ConversionError,
+    AnalyzeError {
+        /// Underlying analyze error
+        source: AnalyzeError,
     },
     /// Returned when a decimal error occurs
     #[snafu(transparent)]

@@ -245,7 +245,7 @@ mod scale_adjust_test {
         assert_eq!(limbs, -TestScalar::from(expected_limbs));
     }
 
-    #[allow(clippy::cast_possible_wrap)]
+    #[expect(clippy::cast_possible_wrap)]
     #[test]
     fn we_can_match_decimals_at_extrema() {
         // a big decimal cannot scale up past the supported precision

@@ -186,7 +186,7 @@ fn we_can_aggregate_columns_with_empty_group_by() {
     assert_eq!(aggregate_result.min_columns, expected_min_result);
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 #[test]
 fn we_can_aggregate_columns() {
     let slice_a = &[3, 3, 3, 2, 2, 1, 1, 2, 2, 3, 3, 3];

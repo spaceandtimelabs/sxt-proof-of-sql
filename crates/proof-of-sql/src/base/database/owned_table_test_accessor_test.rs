@@ -9,9 +9,10 @@ use crate::base::{
     },
     database::{owned_table_utility::*, TableRef},
     math::non_negative_i32::NonNegativeI32,
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    math::non_negative_i32::NonNegativeI32,
     scalar::test_scalar::TestScalar,
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_access_fixed_size_binary_column() {

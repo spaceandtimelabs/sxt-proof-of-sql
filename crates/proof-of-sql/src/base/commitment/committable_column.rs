@@ -1,13 +1,13 @@
 use crate::base::{
     database::{Column, ColumnType, OwnedColumn},
     math::{decimal::Precision, non_negative_i32::NonNegativeI32},
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     ref_into::RefInto,
     scalar::{Scalar, ScalarExt},
 };
 use alloc::vec::Vec;
 #[cfg(feature = "blitzar")]
 use blitzar::sequence::Sequence;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 /// Column data in "committable form".
 ///

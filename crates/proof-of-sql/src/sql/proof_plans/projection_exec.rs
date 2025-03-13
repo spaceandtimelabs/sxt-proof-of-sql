@@ -41,7 +41,6 @@ impl ProjectionExec {
 }
 
 impl ProofPlan for ProjectionExec {
-    #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut impl VerificationBuilder<S>,
@@ -153,7 +152,6 @@ impl ProverEvaluate for ProjectionExec {
         level = "debug",
         skip_all
     )]
-    #[allow(unused_variables)]
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,

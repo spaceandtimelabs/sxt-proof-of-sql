@@ -102,7 +102,7 @@ impl ProofExpr for EqualsExpr {
     }
 }
 
-#[allow(
+#[expect(
     clippy::missing_panics_doc,
     reason = "table_length is guaranteed to match lhs.len()"
 )]

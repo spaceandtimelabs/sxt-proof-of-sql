@@ -374,7 +374,7 @@ mod tests {
         }
     }
 
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     #[test]
     fn arbitrary_encoded_buffers_are_correctly_decoded() {
         let mut rng = StdRng::from_seed([0u8; 32]);

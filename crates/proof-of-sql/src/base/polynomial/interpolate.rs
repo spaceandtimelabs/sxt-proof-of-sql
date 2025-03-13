@@ -14,7 +14,8 @@ use num_traits::{Inv, One, Zero};
 /// `f(x) = sum_{i=0}^{d} (-1)^(d-i) * (f(i) / (i! * (d-i)! * (x-i))) * prod_{i=0}^{d} (x-i)`
 // Allow missing panics documentation because the function should not panic under normal conditions.
 /// unless x is one of 0,1,...,d, in which case, f(x) is already known.
-#[allow(dead_code, clippy::missing_panics_doc)]
+#[expect(clippy::missing_panics_doc)]
+#[allow(dead_code)]
 pub fn interpolate_uni_poly<F>(polynomial: &[F], x: F) -> F
 where
     F: Copy
