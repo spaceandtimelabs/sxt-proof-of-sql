@@ -15,5 +15,4 @@ mod transcript_core;
 mod transcript_core_test;
 
 mod keccak256_transcript;
-#[allow(unused_imports)]
 pub use keccak256_transcript::Keccak256Transcript;

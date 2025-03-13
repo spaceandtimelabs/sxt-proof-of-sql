@@ -52,7 +52,7 @@ impl<'a> DynProofExprBuilder<'a> {
     }
 }
 
-#[allow(clippy::match_wildcard_for_single_variants)]
+#[expect(clippy::match_wildcard_for_single_variants)]
 // Private interface
 impl DynProofExprBuilder<'_> {
     fn visit_expr(&self, expr: &Expression) -> Result<DynProofExpr, ConversionError> {
@@ -81,7 +81,7 @@ impl DynProofExprBuilder<'_> {
         )))
     }
 
-    #[allow(clippy::unused_self)]
+    #[expect(clippy::unused_self)]
     fn visit_literal(&self, lit: &Literal) -> Result<DynProofExpr, ConversionError> {
         match lit {
             Literal::Boolean(b) => Ok(DynProofExpr::new_literal(LiteralValue::Boolean(*b))),

@@ -9,7 +9,7 @@ use sqlparser::{
     parser::Parser,
 };
 
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 /// Parse a DDL file and return a map of table names to bigdecimal columns
 ///
 /// # Panics

@@ -34,7 +34,7 @@ impl TableExec {
 }
 
 impl ProofPlan for TableExec {
-    #[allow(unused_variables)]
+    #[expect(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut impl VerificationBuilder<S>,
@@ -94,7 +94,7 @@ impl ProverEvaluate for TableExec {
     }
 
     #[tracing::instrument(name = "TableExec::final_round_evaluate", level = "debug", skip_all)]
-    #[allow(unused_variables)]
+    #[expect(unused_variables)]
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,

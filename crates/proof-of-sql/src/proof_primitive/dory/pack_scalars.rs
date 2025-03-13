@@ -173,7 +173,7 @@ fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
 /// * `offset` - The offset to the data.
 /// * `num_matrix_commitment_columns` - The number of generators used for msm.
 /// * `buffer` - Pre-allocated offset column buffer.
-#[allow(clippy::missing_panics_doc)]
+#[expect(clippy::missing_panics_doc)]
 fn offset_column(
     committable_columns: &[CommittableColumn],
     offset: usize,

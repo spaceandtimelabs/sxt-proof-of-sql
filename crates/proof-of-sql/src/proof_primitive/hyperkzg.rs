@@ -83,7 +83,7 @@ impl From<BNScalar> for NovaScalar {
 }
 impl Mul<HyperKZGCommitment> for BNScalar {
     type Output = HyperKZGCommitment;
-    #[allow(clippy::op_ref)]
+    #[expect(clippy::op_ref)]
     fn mul(self, rhs: HyperKZGCommitment) -> Self::Output {
         self * &rhs
     }

@@ -3,7 +3,6 @@ use core::ops::Sub;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
-#[allow(dead_code)]
 /// This operation does `result[i] = lhs[i] - rhs[i]` for `i` in `0..lhs.len()`.
 ///
 /// # Panics

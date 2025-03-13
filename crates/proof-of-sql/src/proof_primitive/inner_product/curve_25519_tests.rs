@@ -420,7 +420,7 @@ fn strings_of_arbitrary_size_map_to_different_scalars() {
     }
 }
 
-#[allow(clippy::cast_sign_loss)]
+#[expect(clippy::cast_sign_loss)]
 #[test]
 fn byte_arrays_of_arbitrary_size_map_to_different_scalars() {
     let mut prev_scalars = IndexSet::default();

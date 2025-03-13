@@ -144,7 +144,6 @@ pub fn int<S: Scalar>(
 ///     bigint("a", [1, 2, 3]),
 /// ]);
 /// ```
-#[allow(clippy::missing_panics_doc)]
 pub fn bigint<S: Scalar>(
     name: impl Into<Ident>,
     data: impl IntoIterator<Item = impl Into<i64>>,

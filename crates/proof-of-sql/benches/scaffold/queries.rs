@@ -140,7 +140,7 @@ const COMPLEX_CONDITION_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     ("d", ColumnType::VarChar, None),
 ];
 
-#[allow(clippy::type_complexity)]
+#[expect(clippy::type_complexity)]
 pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &[
     (
         SINGLE_COLUMN_FILTER_TITLE,

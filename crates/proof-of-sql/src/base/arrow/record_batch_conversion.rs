@@ -40,7 +40,7 @@ impl<C: Commitment> TableCommitment<C> {
     /// The row offset is assumed to be the end of the [`TableCommitment`]'s current range.
     ///
     /// Will error on a variety of mismatches, or if the provided columns have mixed length.
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn try_append_record_batch(
         &mut self,
         batch: &RecordBatch,
@@ -75,7 +75,7 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a [`TableCommitment`] to the provided arrow [`RecordBatch`] with the given row offset.
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn try_from_record_batch_with_offset(
         batch: &RecordBatch,
         offset: usize,

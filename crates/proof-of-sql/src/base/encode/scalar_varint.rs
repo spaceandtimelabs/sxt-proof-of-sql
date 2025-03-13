@@ -18,7 +18,7 @@ pub fn write_scalar_varint<T: MontConfig<4>>(buf: &mut [u8], x: &MontScalar<T>) 
     write_u256_varint(buf, x.zigzag())
 }
 
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 pub fn write_u256_varint(buf: &mut [u8], mut zig_x: U256) -> usize {
     let mut pos = 0;
 

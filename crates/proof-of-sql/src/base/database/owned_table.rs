@@ -59,7 +59,7 @@ impl<S: Scalar> OwnedTable<S> {
         Self::try_new(IndexMap::from_iter(iter))
     }
 
-    #[allow(
+    #[expect(
         clippy::missing_panics_doc,
         reason = "Mapping from one table to another should not result in column mismatch"
     )]

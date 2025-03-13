@@ -11,7 +11,7 @@ pub type OptionalRandBound = Option<fn(usize) -> i64>;
 ///
 /// Will panic if:
 /// - An unsupported `ColumnType` is encountered, triggering a panic in the `todo!()` macro.
-#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+#[expect(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 pub fn generate_random_columns<'a, S: Scalar>(
     alloc: &'a Bump,
     rng: &mut impl Rng,
