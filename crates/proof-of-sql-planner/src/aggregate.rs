@@ -15,36 +15,29 @@ pub(crate) fn aggregate_function_to_proof_expr(
     function: &AggregateFunction,
     schema: &DFSchema,
 ) -> PlannerResult<DynProofExpr> {
-    if !matches!(
-        (
-            function.distinct,
-            &function.filter,
-            &function.order_by,
-            function.args.len()
-        ),
-        (false, &None, &None, 1)
-    ) {
-        return Err(PlannerError::UnsupportedAggregateFunction {
+    match function {
+        AggregateFunction {
+            distinct: false,
+            filter: None,
+            order_by: None,
+            args,
+            func_def: AggregateFunctionDefinition::BuiltIn(op),
+            ..
+        } if args.len() == 1 => {
+            let aggregation_operator = match op {
+                physical_plan::aggregates::AggregateFunction::Sum => AggregationOperator::Sum,
+                physical_plan::aggregates::AggregateFunction::Count => AggregationOperator::Count,
+                _ => Err(PlannerError::UnsupportedAggregateOperation { op: op.clone() })?,
+            };
+            Ok(DynProofExpr::new_aggregate(
+                aggregation_operator,
+                expr_to_proof_expr(&args[0], schema)?,
+            ))
+        }
+        _ => Err(PlannerError::UnsupportedAggregateFunction {
             function: function.clone(),
-        });
+        })?,
     }
-    let aggregation_operator = match function.func_def {
-        AggregateFunctionDefinition::BuiltIn(
-            physical_plan::aggregates::AggregateFunction::Count,
-        ) => AggregationOperator::Count,
-        AggregateFunctionDefinition::BuiltIn(physical_plan::aggregates::AggregateFunction::Sum) => {
-            AggregationOperator::Sum
-        }
-        _ => {
-            return Err(PlannerError::UnsupportedAggregateFunction {
-                function: function.clone(),
-            });
-        }
-    };
-    Ok(DynProofExpr::new_aggregate(
-        aggregation_operator,
-        expr_to_proof_expr(&function.args[0], schema)?,
-    ))
 }
 
 #[cfg(test)]
@@ -105,7 +98,7 @@ mod tests {
         );
         assert!(matches!(
             aggregate_function_to_proof_expr(&function, &schema),
-            Err(PlannerError::UnsupportedAggregateFunction { .. })
+            Err(PlannerError::UnsupportedAggregateOperation { .. })
         ));
     }
 

@@ -2,6 +2,7 @@ use arrow::datatypes::DataType;
 use datafusion::{
     common::DataFusionError,
     logical_expr::{expr::AggregateFunction, Expr, LogicalPlan, Operator},
+    physical_plan,
 };
 use proof_of_sql::{base::math::decimal::DecimalError, sql::AnalyzeError};
 use snafu::Snafu;
@@ -51,6 +52,12 @@ pub enum PlannerError {
     UnsupportedBinaryOperator {
         /// Unsupported binary operation
         op: Operator,
+    },
+    /// Returned when the aggregate opetation is not supported
+    #[snafu(display("Aggregate operation {op:?} is not supported"))]
+    UnsupportedAggregateOperation {
+        /// Unsupported aggregate operation
+        op: physical_plan::aggregates::AggregateFunction,
     },
     /// Returned when the `AggregateFunction` is not supported
     #[snafu(display("AggregateFunction {function:?} is not supported"))]
