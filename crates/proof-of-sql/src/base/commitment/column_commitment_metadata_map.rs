@@ -327,7 +327,7 @@ mod tests {
         ));
     }
 
-    #[allow(clippy::similar_names)]
+    #[expect(clippy::similar_names)]
     #[test]
     fn we_cannot_perform_arithmetic_on_mismatched_metadata_maps_with_same_column_counts() {
         let id_a = "column_a";

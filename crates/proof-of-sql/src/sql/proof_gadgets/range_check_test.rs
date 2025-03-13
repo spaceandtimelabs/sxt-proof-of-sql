@@ -277,7 +277,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::cast_sign_loss)]
     fn we_can_prove_a_range_check_with_range_up_to_boundary() {
         // 2^248 - 1
         let big_uint = BigUint::from(2u8).pow(248) - BigUint::from(1u8);

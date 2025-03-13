@@ -61,7 +61,7 @@ impl VMVProverState {
 
 /// A struct that holds the matrix and vectors for a vector-matrix-vector product. This is used for testing purposes.
 #[cfg(test)]
-#[allow(clippy::upper_case_acronyms)]
+#[expect(clippy::upper_case_acronyms)]
 pub(super) struct VMV {
     pub(super) M: Vec<Vec<F>>,
     pub(super) l_tensor: Vec<F>,

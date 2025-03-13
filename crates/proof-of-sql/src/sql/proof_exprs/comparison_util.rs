@@ -18,7 +18,7 @@ use sqlparser::ast::BinaryOperator;
 /// # Panics
 /// This function will panic if `lhs` and `rhs` have [`ColumnType`]s that are not comparable
 /// or if we have precision overflow issues.
-#[allow(clippy::cast_sign_loss)]
+#[expect(clippy::cast_sign_loss)]
 pub fn scale_and_subtract_literal<S: Scalar>(
     lhs: &LiteralValue,
     rhs: &LiteralValue,
@@ -76,13 +76,13 @@ pub fn scale_and_subtract_literal<S: Scalar>(
     }
 }
 
-#[allow(
+#[expect(
     clippy::missing_panics_doc,
     reason = "precision and scale are validated prior to calling this function, ensuring no panic occurs"
 )]
 /// Scale LHS and RHS to the same scale if at least one of them is decimal
 /// and take the difference. This function is used for comparisons.
-#[allow(clippy::cast_sign_loss)]
+#[expect(clippy::cast_sign_loss)]
 pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     alloc: &'a Bump,
     lhs: Column<'a, S>,
@@ -145,8 +145,7 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     Ok(result)
 }
 
-#[allow(clippy::cast_sign_loss)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 /// Scale LHS and RHS to the same scale if at least one of them is decimal
 /// and take the difference. This function is used for comparisons.
 pub(crate) fn scale_and_subtract_columnar_value<'a, S: Scalar>(

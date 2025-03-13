@@ -50,7 +50,7 @@ impl EnrichedExpr {
     /// Get the alias of the `EnrichedExpr`.
     ///
     /// Since we plan to support unaliased expressions in the future, this method returns an `Option`.
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn get_alias(&self) -> Option<Ident> {
         self.residue_expression
             .try_as_identifier()
@@ -58,7 +58,7 @@ impl EnrichedExpr {
     }
 
     /// Is the `EnrichedExpr` provable
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn is_provable(&self) -> bool {
         self.dyn_proof_expr.is_some()
     }

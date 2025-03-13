@@ -5,7 +5,6 @@ use core::hash::Hash;
 use serde::{Deserialize, Serialize};
 
 /// Represents a fully parsed timestamp with detailed time unit and timezone information
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct PoSQLTimestamp {
     /// The datetime representation in UTC.

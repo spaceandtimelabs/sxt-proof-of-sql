@@ -6,8 +6,7 @@ use crate::base::scalar::Scalar;
 use bumpalo::Bump;
 use core::iter::Iterator;
 
-#[allow(dead_code)]
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 pub trait RepetitionOp {
     fn op<T: Clone>(column: &[T], n: usize) -> impl Iterator<Item = T>;
 

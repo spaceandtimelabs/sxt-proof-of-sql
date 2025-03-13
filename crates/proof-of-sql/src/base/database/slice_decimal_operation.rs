@@ -414,7 +414,7 @@ where
 /// 4. Precision and scale follow T-SQL rules. That is,
 ///   - `new_scale = max(6, right_precision + left_scale + 1)`
 ///   - `new_precision = left_precision - left_scale + right_scale + new_scale`
-#[allow(clippy::missing_panics_doc)]
+#[expect(clippy::missing_panics_doc)]
 pub(crate) fn try_divide_decimal_columns<S, T0, T1>(
     lhs: &[T0],
     rhs: &[T1],
@@ -807,7 +807,7 @@ mod test {
         assert_eq!(expected, actual);
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     #[test]
     fn we_can_try_add_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
@@ -929,7 +929,7 @@ mod test {
         assert_eq!(expected, actual);
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     #[test]
     fn we_can_try_subtract_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
@@ -1051,7 +1051,7 @@ mod test {
         assert_eq!(expected, actual);
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     #[test]
     fn we_can_try_multiply_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
@@ -1174,7 +1174,7 @@ mod test {
         assert_eq!(expected, actual);
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     #[test]
     fn we_can_try_divide_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale

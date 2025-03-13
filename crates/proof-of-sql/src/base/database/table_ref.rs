@@ -36,7 +36,6 @@ impl TableRef {
 
     /// Returns the identifier of the schema
     /// # Panics
-    #[allow(clippy::get_first)]
     #[must_use]
     pub fn schema_id(&self) -> Option<&Ident> {
         self.schema_name.as_ref()

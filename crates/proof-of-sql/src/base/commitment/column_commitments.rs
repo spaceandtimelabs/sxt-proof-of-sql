@@ -170,7 +170,7 @@ impl<C: Commitment> ColumnCommitments<C> {
     ///
     /// Will error on a variety of mismatches.
     /// See [`ColumnCommitmentsMismatch`] for an enumeration of these errors.
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn try_append_rows_with_offset<'a, COL>(
         &mut self,
         columns: impl IntoIterator<Item = (&'a Ident, COL)>,
@@ -262,7 +262,7 @@ impl<C: Commitment> ColumnCommitments<C> {
     ///
     /// Will error on a variety of mismatches.
     /// See [`ColumnCommitmentsMismatch`] for an enumeration of these errors.
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn try_add(self, other: Self) -> Result<Self, ColumnCommitmentsMismatch>
     where
         Self: Sized,
@@ -283,7 +283,7 @@ impl<C: Commitment> ColumnCommitments<C> {
     ///
     /// Will error on a variety of mismatches.
     /// See [`ColumnCommitmentsMismatch`] for an enumeration of these errors.
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn try_sub(self, other: Self) -> Result<Self, ColumnCommitmentsMismatch>
     where
         Self: Sized,

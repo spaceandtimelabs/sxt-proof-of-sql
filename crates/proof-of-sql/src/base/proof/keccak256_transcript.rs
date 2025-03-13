@@ -2,7 +2,6 @@ use super::{transcript_core::TranscriptCore, Transcript};
 use core::mem::replace;
 use tiny_keccak::{Hasher, Keccak};
 
-#[allow(dead_code)]
 /// Public coin transcript that is easily portable to Solidity.
 ///
 /// Leverages the keccak256 hash function, which has the lowest gas costs on Solidity.

@@ -38,7 +38,7 @@ pub struct SumcheckMleEvaluations<'a, S: Scalar> {
     pub rho_256_evaluation: Option<S>,
 }
 
-#[allow(
+#[expect(
     clippy::missing_panics_doc,
     reason = "Assertions ensure preconditions are met, eliminating the possibility of panic."
 )]

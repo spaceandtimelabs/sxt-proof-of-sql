@@ -58,7 +58,6 @@ impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn subpolynomial_type(&self) -> SumcheckSubpolynomialType {
         self.subpolynomial_type
     }
@@ -74,7 +73,6 @@ impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
     ///
     /// An iterator that yields tuples containing the subpolynomial type, the
     /// multiplied coefficient, and a slice of multilinear extensions.
-    #[allow(dead_code)]
     pub(crate) fn iter_mul_by(
         &self,
         multiplier: S,

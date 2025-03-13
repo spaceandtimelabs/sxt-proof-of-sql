@@ -26,7 +26,6 @@ pub(crate) fn first_round_evaluate_shift<S: Scalar>(
 ///
 /// # Panics
 /// Panics if `column.len() != shifted_column.len() - 1` which should always hold for shifts.
-#[allow(clippy::too_many_arguments)]
 pub(crate) fn final_round_evaluate_shift<'a, S: Scalar>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
