@@ -5,8 +5,10 @@ use crate::base::{
     slice_ops,
 };
 use alloc::vec::Vec;
-#[cfg(feature = "blitzar")]
+#[cfg(any(feature = "blitzar", feature = "std"))]
 use ark_bn254::G1Affine;
+#[cfg(feature = "std")]
+use ark_serialize::CanonicalDeserialize;
 #[cfg(feature = "blitzar")]
 use blitzar;
 use core::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
@@ -26,6 +28,8 @@ use nova_snark::{
 #[cfg(not(feature = "blitzar"))]
 use nova_snark::{provider::hyperkzg::CommitmentEngine, traits::commitment::CommitmentEngineTrait};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "std")]
+use std::{error::Error, fs::OpenOptions, io::BufReader, path::Path};
 use tracing::{span, Level};
 
 /// The scalar used in the `HyperKZG` PCS. This is the BN254 scalar.
@@ -312,6 +316,28 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
             )
         })
     }
+}
+
+/// Reads a binary file and returns a vector of Arkworks `G1Affine` elements
+/// that are the powers of tau used to populated the `CommitmentKey`.
+/// This function is only available when the `std` feature is enabled.
+///
+/// # Arguments
+///
+/// * `path` - The path to the binary file to read.
+///
+/// # Returns
+///
+/// The powers of tau vector as Arkworks `G1Affine` elements.
+///
+/// # Panics
+///
+/// This function will panic if the file cannot be read.
+#[cfg(feature = "std")]
+pub fn read_ark_from_binary(path: &Path) -> Result<Vec<G1Affine>, Box<dyn Error>> {
+    let file = OpenOptions::new().read(true).open(path).unwrap();
+    let mut reader = BufReader::new(file);
+    Ok(Vec::<G1Affine>::deserialize_compressed(&mut reader)?)
 }
 
 #[cfg(test)]
