@@ -70,7 +70,7 @@ impl fmt::Display for PoSQLTimeUnit {
 // allow(deprecated) for the sole purpose of testing that
 // timestamp precision is parsed correctly.
 #[cfg(test)]
-#[expect(deprecated, clippy::missing_panics_doc)]
+#[expect(clippy::missing_panics_doc)]
 mod time_unit_tests {
     use super::*;
     use crate::base::posql_time::PoSQLTimestampError;
