@@ -47,4 +47,47 @@ contract ArrayTest is Test {
             assert(Array.__getArrayElement(array, i) == values[i]);
         }
     }
+
+    function testEmptyReadUint64Array() public pure {
+        bytes memory source = abi.encodePacked(uint64(0), hex"abcdef"); // length = 0
+
+        (bytes memory sourceOut, uint256[] memory array) = Array.__readUint64Array(source);
+
+        assert(array.length == 0);
+        assert(sourceOut.length == 3);
+        assert(sourceOut[0] == 0xab);
+        assert(sourceOut[1] == 0xcd);
+        assert(sourceOut[2] == 0xef);
+    }
+
+    function testSimpleReadUint64Array() public pure {
+        bytes memory source = abi.encodePacked(uint64(3), uint64(1), uint64(2), uint64(3), hex"abcdef");
+
+        (bytes memory sourceOut, uint256[] memory array) = Array.__readUint64Array(source);
+
+        assert(array.length == 3);
+        assert(array[0] == 1);
+        assert(array[1] == 2);
+        assert(array[2] == 3);
+        assert(sourceOut.length == 3);
+        assert(sourceOut[0] == 0xab);
+        assert(sourceOut[1] == 0xcd);
+        assert(sourceOut[2] == 0xef);
+    }
+
+    function testFuzzReadUint64Array(bytes calldata source) public pure {
+        uint256 sourceLength = source.length;
+        vm.assume(sourceLength > 7);
+        uint64 length = uint64(bytes8(source[0:8]));
+        vm.assume(sourceLength > 7 + uint256(length) * 8);
+
+        (bytes memory sourceOut, uint256[] memory array) = Array.__readUint64Array(source);
+
+        for (uint256 i = 0; i < length; ++i) {
+            assert(array[i] == uint256(uint64(bytes8(source[8 + i * 8:16 + i * 8]))));
+        }
+        for (uint256 i = 8 + length * 8; i < sourceLength; ++i) {
+            assert(sourceOut[i - 8 - length * 8] == source[i]);
+        }
+    }
 }
