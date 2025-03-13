@@ -26,6 +26,21 @@ impl From<PoSQLTimeUnit> for u64 {
     }
 }
 
+impl From<proof_of_sql_parser::posql_time::PoSQLTimeUnit> for PoSQLTimeUnit {
+    fn from(value: proof_of_sql_parser::posql_time::PoSQLTimeUnit) -> Self {
+        match value {
+            proof_of_sql_parser::posql_time::PoSQLTimeUnit::Second => PoSQLTimeUnit::Second,
+            proof_of_sql_parser::posql_time::PoSQLTimeUnit::Millisecond => {
+                PoSQLTimeUnit::Millisecond
+            }
+            proof_of_sql_parser::posql_time::PoSQLTimeUnit::Microsecond => {
+                PoSQLTimeUnit::Microsecond
+            }
+            proof_of_sql_parser::posql_time::PoSQLTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
+        }
+    }
+}
+
 impl TryFrom<&str> for PoSQLTimeUnit {
     type Error = PoSQLTimestampError;
     fn try_from(value: &str) -> Result<Self, PoSQLTimestampError> {
