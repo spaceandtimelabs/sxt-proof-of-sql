@@ -2,6 +2,7 @@ use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::base::{
     database::Column,
     math::decimal::Precision,
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
     scalar::{Scalar, ScalarExt},
 };
 use arrow::{
@@ -14,7 +15,6 @@ use arrow::{
 };
 use bumpalo::Bump;
 use core::ops::Range;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use snafu::Snafu;
 
 #[derive(Snafu, Debug, PartialEq)]

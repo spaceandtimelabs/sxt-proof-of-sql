@@ -126,8 +126,8 @@ impl DynProofExprBuilder<'_> {
                 };
 
                 Ok(DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
-                    its.timeunit(),
-                    its.timezone(),
+                    its.timeunit().into(),
+                    its.timezone().into(),
                     timestamp,
                 )))
             }

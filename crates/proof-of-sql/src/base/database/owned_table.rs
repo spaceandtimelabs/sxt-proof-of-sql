@@ -200,10 +200,10 @@ mod tests {
             TableCoercionError, TableOptions,
         },
         map::indexmap,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         scalar::test_scalar::TestScalar,
     };
     use bumpalo::Bump;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn test_conversion_from_table_to_owned_table() {
