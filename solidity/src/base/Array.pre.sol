@@ -141,4 +141,66 @@ library Array {
         }
         __array = __arrayTmp;
     }
+
+    /// @notice Reads an array of two-word elements from calldata
+    /// @custom:yul-function
+    /// #### Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// read_wordx2_array(source_ptr) -> source_ptr_out, array_ptr
+    /// ```
+    /// ##### Parameters
+    /// * `source_ptr` - calldata pointer to array length followed by array elements
+    /// ##### Return Values
+    /// * `source_ptr_out` - pointer to remaining calldata after consuming the array
+    /// * `array_ptr` - pointer to array in memory containing [length, [word0,word1],...]
+    /// @dev Reads a two-word array by first reading length as uint64, then copying that many two-word elements.
+    /// Each element takes 64 bytes (two words) and is stored as a uint256[2].
+    /// @param __source The input source containing the array
+    /// @return __sourceOut The remaining source after consuming the array
+    /// @return __array The decoded array of two-word elements
+    function __readWordx2Array(bytes calldata __source)
+        external
+        pure
+        returns (bytes calldata __sourceOut, uint256[2][] memory __array)
+    {
+        assembly {
+            function read_wordx2_array(source_ptr) -> source_ptr_out, array_ptr {
+                // Allocate space for array length
+                array_ptr := mload(FREE_PTR)
+
+                let length := shr(UINT64_PADDING_BITS, calldataload(source_ptr))
+                mstore(array_ptr, length)
+                source_ptr := add(source_ptr, UINT64_SIZE)
+
+                let target_ptr := add(array_ptr, WORD_SIZE)
+                let copy_size := mul(length, WORDX2_SIZE)
+                calldatacopy(target_ptr, source_ptr, copy_size)
+
+                mstore(FREE_PTR, add(target_ptr, copy_size))
+
+                source_ptr_out := add(source_ptr, copy_size)
+            }
+
+            let __sourceOutOffset
+            __sourceOutOffset, __array := read_wordx2_array(__source.offset)
+            __sourceOut.offset := __sourceOutOffset
+            // slither-disable-next-line write-after-write
+            __sourceOut.length := sub(__source.length, sub(__sourceOutOffset, __source.offset))
+        }
+
+        // __array is a flat array of uint256 values, so we need to convert it to an array of uint256[2],
+        // This is because uint256[2] is a reference type, so the assembly format is not a solidity type
+        uint256 arrayLength = __array.length;
+        uint256[2][] memory __arrayTmp = new uint256[2][](arrayLength);
+        for (uint256 i = 0; i < arrayLength; ++i) {
+            uint256[2] memory __arrayElement;
+            uint256 offset = (i * 2 + 1) * WORD_SIZE;
+            assembly {
+                __arrayElement := add(__array, offset)
+            }
+            __arrayTmp[i] = __arrayElement;
+        }
+        __array = __arrayTmp;
+    }
 }
