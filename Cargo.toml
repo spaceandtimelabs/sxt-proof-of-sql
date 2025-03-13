@@ -76,6 +76,7 @@ zerocopy = { version = "0.7.34" }
 
 [workspace.lints.rust]
 missing_docs = "warn"
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
 
 [workspace.lints.clippy]
 missing_errors_doc = "allow"

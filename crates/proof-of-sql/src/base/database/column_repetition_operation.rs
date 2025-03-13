@@ -201,6 +201,17 @@ mod tests {
             result,
             Column::VarChar((&doubled_strings, &doubled_scalars))
         );
+
+        let column: Column<TestScalar> = Column::Boolean(&[false, true, false]);
+        let result = ElementwiseRepeatOp::column_op::<TestScalar>(&column, &bump, 2);
+        assert_eq!(
+            result.as_boolean().unwrap(),
+            &[false, false, true, true, false, false]
+        );
+
+        let column: Column<TestScalar> = Column::Uint8(&[3u8, 5u8, 2u8]);
+        let result = ElementwiseRepeatOp::column_op::<TestScalar>(&column, &bump, 2);
+        assert_eq!(result.as_uint8().unwrap(), &[3u8, 3u8, 5u8, 5u8, 2u8, 2u8]);
     }
 
     #[test]

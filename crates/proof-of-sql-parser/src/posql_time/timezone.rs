@@ -46,6 +46,9 @@ impl TryFrom<&Option<Arc<str>>> for PoSQLTimeZone {
                         let minutes = tz[4..6]
                             .parse::<i32>()
                             .map_err(|_| PoSQLTimestampError::InvalidTimezoneOffset)?;
+                        if hours > 12 || minutes >= 60 {
+                            return Err(PoSQLTimestampError::InvalidTimezoneOffset);
+                        }
                         let total_seconds = sign * ((hours * 3600) + (minutes * 60));
                         Ok(PoSQLTimeZone::new(total_seconds))
                     }
@@ -69,6 +72,85 @@ impl fmt::Display for PoSQLTimeZone {
         } else {
             write!(f, "+{hours:02}:{minutes:02}")
         }
+    }
+}
+
+#[cfg(test)]
+mod timezone_arc_str_parsing {
+
+    use super::*;
+    use crate::posql_time::{timezone, PoSQLTimestampError::InvalidTimezoneOffset};
+    use alloc::format;
+
+    #[test]
+    fn test_parsing_from_arc_str_fixed_offset() {
+        let ss = "00:00";
+        let timezone_arc: Arc<str> = Arc::from(ss);
+        let timezone = timezone::PoSQLTimeZone::try_from(&Some(timezone_arc)).unwrap(); // +01:15
+        assert_eq!(format!("{timezone}"), "+00:00");
+    }
+
+    #[test]
+    fn test_parsing_from_arc_str_fixed_offset_positive() {
+        let input_timezone = "+01:15";
+        let timezone_arc: Arc<str> = Arc::from(input_timezone);
+        let timezone = timezone::PoSQLTimeZone::try_from(&Some(timezone_arc)).unwrap(); // +01:15
+        assert_eq!(format!("{timezone}"), "+01:15");
+    }
+
+    #[test]
+    fn test_parsing_from_arc_str_fixed_offset_negative() {
+        let input_timezone = "-01:03";
+        let timezone_arc: Arc<str> = Arc::from(input_timezone);
+        let timezone = timezone::PoSQLTimeZone::try_from(&Some(timezone_arc)).unwrap(); // +01:15
+        assert_eq!(format!("{timezone}"), "-01:03");
+    }
+
+    #[test]
+    fn check_for_invalid_timezone_hour_offset() {
+        let input_timezone = "-0A:03";
+        let timezone_arc: Arc<str> = Arc::from(input_timezone);
+        let offset_error = timezone::PoSQLTimeZone::try_from(&Some(timezone_arc)); // should be invalid time offset error
+        assert_eq!(offset_error, Err(InvalidTimezoneOffset));
+
+        let input_timezone = "-13:03";
+        let timezone_arc: Arc<str> = Arc::from(input_timezone);
+        let offset_error = timezone::PoSQLTimeZone::try_from(&Some(timezone_arc)); // should be invalid time offset error
+        assert_eq!(offset_error, Err(InvalidTimezoneOffset));
+
+        let input_timezone = "-11:60";
+        let timezone_arc: Arc<str> = Arc::from(input_timezone);
+        let offset_error = timezone::PoSQLTimeZone::try_from(&Some(timezone_arc)); // should be invalid time offset error
+        assert_eq!(offset_error, Err(InvalidTimezoneOffset));
+    }
+
+    #[test]
+    fn check_for_invalid_timezone_minute_offset() {
+        let input_timezone = "-00:B3";
+        let timezone_arc: Arc<str> = Arc::from(input_timezone);
+        let offset_error = timezone::PoSQLTimeZone::try_from(&Some(timezone_arc)); // should be invalid time offset error
+        assert_eq!(offset_error, Err(InvalidTimezoneOffset));
+        let input_timezone = "-00:83";
+        let timezone_arc: Arc<str> = Arc::from(input_timezone);
+        let offset_error = timezone::PoSQLTimeZone::try_from(&Some(timezone_arc)); // should be invalid time offset error
+        assert_eq!(offset_error, Err(InvalidTimezoneOffset));
+    }
+
+    #[test]
+    fn test_invalid_timezone() {
+        let expected = PoSQLTimestampError::InvalidTimezone {
+            timezone: "WRONG".to_string(),
+        };
+        let timezone_input = "WRONG";
+        let timezone_arc: Arc<str> = Arc::from(timezone_input);
+        let timezone_err = timezone::PoSQLTimeZone::try_from(&Some(timezone_arc)); // +01:15
+        assert_eq!(expected, timezone_err.err().unwrap());
+    }
+
+    #[test]
+    fn test_when_none() {
+        let timezone = timezone::PoSQLTimeZone::try_from(&None).unwrap(); // +01:15
+        assert_eq!(format!("{timezone}"), "+00:00");
     }
 }
 
