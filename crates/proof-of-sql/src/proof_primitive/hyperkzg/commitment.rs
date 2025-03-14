@@ -66,10 +66,14 @@ impl Sub for HyperKZGCommitment {
     }
 }
 
-#[cfg(not(feature = "blitzar"))]
-#[tracing::instrument(name = "compute_commitments_impl (cpu)", level = "debug", skip_all)]
-fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
-    setup: HyperKzgPublicSetup<'_>,
+#[cfg(any(not(feature = "blitzar"), test))]
+#[tracing::instrument(
+    name = "compute_commitment_generic_impl (cpu)",
+    level = "debug",
+    skip_all
+)]
+fn compute_commitment_generic_impl<T: Into<BNScalar> + Clone>(
+    setup: HyperKZGPublicSetup<'_>,
     offset: usize,
     scalars: &[T],
 ) -> HyperKZGCommitment {
@@ -83,6 +87,42 @@ fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
         commitment: G1Projective::from(product),
     }
 }
+
+#[cfg(any(not(feature = "blitzar"), test))]
+#[tracing::instrument(name = "compute_commitments_impl (cpu)", level = "debug", skip_all)]
+fn compute_commitments_impl(
+    committable_columns: &[crate::base::commitment::CommittableColumn],
+    offset: usize,
+    setup: &<HyperKZGCommitment as Commitment>::PublicSetup<'_>,
+) -> Vec<HyperKZGCommitment> {
+    committable_columns
+        .iter()
+        .map(|column| match column {
+            CommittableColumn::Boolean(vals) => {
+                compute_commitment_generic_impl(setup, offset, vals)
+            }
+            CommittableColumn::Uint8(vals) => compute_commitment_generic_impl(setup, offset, vals),
+            CommittableColumn::TinyInt(vals) => {
+                compute_commitment_generic_impl(setup, offset, vals)
+            }
+            CommittableColumn::SmallInt(vals) => {
+                compute_commitment_generic_impl(setup, offset, vals)
+            }
+            CommittableColumn::Int(vals) => compute_commitment_generic_impl(setup, offset, vals),
+            CommittableColumn::BigInt(vals) | CommittableColumn::TimestampTZ(_, _, vals) => {
+                compute_commitment_generic_impl(setup, offset, vals)
+            }
+            CommittableColumn::Int128(vals) => compute_commitment_generic_impl(setup, offset, vals),
+            CommittableColumn::Decimal75(_, _, vals)
+            | CommittableColumn::Scalar(vals)
+            | CommittableColumn::VarChar(vals)
+            | CommittableColumn::VarBinary(vals) => {
+                compute_commitment_generic_impl(setup, offset, vals)
+            }
+        })
+        .collect()
+}
+
 impl Commitment for HyperKZGCommitment {
     type Scalar = BNScalar;
     type PublicSetup<'a> = HyperKZGPublicSetup<'a>;
@@ -94,26 +134,7 @@ impl Commitment for HyperKZGCommitment {
         offset: usize,
         setup: &Self::PublicSetup<'_>,
     ) -> Vec<Self> {
-        committable_columns
-            .iter()
-            .map(|column| match column {
-                CommittableColumn::Boolean(vals) => compute_commitments_impl(setup, offset, vals),
-                CommittableColumn::Uint8(vals) => compute_commitments_impl(setup, offset, vals),
-                CommittableColumn::TinyInt(vals) => compute_commitments_impl(setup, offset, vals),
-                CommittableColumn::SmallInt(vals) => compute_commitments_impl(setup, offset, vals),
-                CommittableColumn::Int(vals) => compute_commitments_impl(setup, offset, vals),
-                CommittableColumn::BigInt(vals) | CommittableColumn::TimestampTZ(_, _, vals) => {
-                    compute_commitments_impl(setup, offset, vals)
-                }
-                CommittableColumn::Int128(vals) => compute_commitments_impl(setup, offset, vals),
-                CommittableColumn::Decimal75(_, _, vals)
-                | CommittableColumn::Scalar(vals)
-                | CommittableColumn::VarChar(vals)
-                | CommittableColumn::VarBinary(vals) => {
-                    compute_commitments_impl(setup, offset, vals)
-                }
-            })
-            .collect()
+        compute_commitments_impl(committable_columns, offset, setup)
     }
 
     #[cfg(feature = "blitzar")]
@@ -155,7 +176,19 @@ impl Commitment for HyperKZGCommitment {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "hyperkzg_proof")]
+    use crate::base::database::OwnedColumn;
+    #[cfg(feature = "hyperkzg_proof")]
+    use crate::proof_primitive::hyperkzg::nova_commitment_key_to_hyperkzg_public_setup;
+    #[cfg(feature = "hyperkzg_proof")]
+    use crate::proof_primitive::hyperkzg::HyperKZGEngine;
     use ark_ec::AffineRepr;
+    #[cfg(feature = "hyperkzg_proof")]
+    use nova_snark::provider::hyperkzg::{CommitmentEngine, CommitmentKey};
+    #[cfg(feature = "hyperkzg_proof")]
+    use nova_snark::traits::commitment::CommitmentEngineTrait;
+    #[cfg(feature = "hyperkzg_proof")]
+    use proptest::prelude::*;
 
     #[test]
     fn we_can_convert_default_point_to_a_hyperkzg_commitment_from_ark_bn254_g1_affine() {
@@ -168,5 +201,22 @@ mod tests {
         let commitment: HyperKZGCommitment = (&G1Affine::generator()).into();
         let expected: HyperKZGCommitment = HyperKZGCommitment::from(&G1Affine::generator());
         assert_eq!(commitment.commitment, expected.commitment);
+    }
+
+    #[cfg(feature = "hyperkzg_proof")]
+    proptest! {
+        #[test]
+        fn blitzar_and_non_blitzar_commitments_are_equal(owned_column: OwnedColumn<BNScalar>) {
+            let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", owned_column.len());
+
+            let public_setup = nova_commitment_key_to_hyperkzg_public_setup(&ck);
+
+            let committable_columns = [CommittableColumn::from(&owned_column)];
+
+            let non_blitzar_commitments = compute_commitments_impl(&committable_columns, 0, &&public_setup[..]);
+            let blitzar_commitments = HyperKZGCommitment::compute_commitments(&committable_columns, 0, &&public_setup[..]);
+
+            prop_assert_eq!(non_blitzar_commitments, blitzar_commitments);
+        }
     }
 }
