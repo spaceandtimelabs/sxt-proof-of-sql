@@ -336,10 +336,13 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
 ///
 /// This function will panic if the file cannot be read.
 #[cfg(feature = "std")]
-pub fn read_ark_from_binary(path: &Path) -> Result<Vec<G1Affine>, Box<dyn Error>> {
+pub fn read_ark_from_binary(path: &Path, n: usize) -> Result<Vec<G1Affine>, Box<dyn Error>> {
     let file = OpenOptions::new().read(true).open(path).unwrap();
     let mut reader = BufReader::new(file);
-    Ok(Vec::<G1Affine>::deserialize_compressed(&mut reader)?)
+    let ark_elements = (0..n)
+        .map(|_| G1Affine::deserialize_compressed(&mut reader).unwrap())
+        .collect();
+    Ok(ark_elements)
 }
 
 #[cfg(test)]
@@ -700,7 +703,7 @@ mod tests {
         writer.flush().unwrap();
 
         // Read the elements from the file
-        let result = read_ark_from_binary(Path::new(file_name)).unwrap();
+        let result = read_ark_from_binary(Path::new(file_name), 32).unwrap();
 
         assert_eq!(result.len(), elements.len());
         for (a, b) in result.iter().zip(elements.iter()) {
@@ -724,7 +727,7 @@ mod tests {
         println!("tau_H = {:?}", elements_from_nova.tau_H());
 
         // Load the binary file
-        let elements_from_binary: Vec<G1Affine> = read_ark_from_binary(Path::new(binary_file_name)).unwrap();
+        let elements_from_binary: Vec<G1Affine> = read_ark_from_binary(Path::new(binary_file_name), n).unwrap();
 
         assert_eq!(elements_from_nova.ck().len(), elements_from_binary.len());
         for (a, b) in elements_from_nova.ck().iter().zip(elements_from_binary.iter()) {
