@@ -6,7 +6,7 @@ use ark_std::test_rng;
 use proof_of_sql::base::commitment::InnerProductProof;
 #[cfg(feature = "hyperkzg_proof")]
 use proof_of_sql::proof_primitive::hyperkzg::{
-    nova_to_ark_setup, HyperKZGCommitmentEvaluationProof,
+    nova_commitment_key_to_hyperkzg_public_setup, HyperKZGCommitmentEvaluationProof,
 };
 use proof_of_sql::{
     base::database::{
@@ -189,7 +189,7 @@ fn we_can_prove_a_basic_equality_query_with_hyperkzg() {
     let ck: CommitmentKey<_> = CommitmentEngine::setup(b"test", 32);
     let (_, vk) = EvaluationEngine::setup(&ck);
 
-    let ark_setup = nova_to_ark_setup(&ck);
+    let ark_setup = nova_commitment_key_to_hyperkzg_public_setup(&ck);
 
     let mut accessor = OwnedTableTestAccessor::<CP>::new_empty_with_setup(&ark_setup[..]);
     accessor.add_table(

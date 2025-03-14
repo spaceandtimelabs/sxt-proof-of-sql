@@ -20,7 +20,10 @@ use proof_of_sql::proof_primitive::{
         DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
-    hyperkzg::{nova_to_ark_setup, HyperKZGCommitmentEvaluationProof, HyperKZGEngine},
+    hyperkzg::{
+        nova_commitment_key_to_hyperkzg_public_setup, HyperKZGCommitmentEvaluationProof,
+        HyperKZGEngine,
+    },
 };
 mod scaffold;
 use crate::scaffold::queries::QUERIES;
@@ -115,7 +118,7 @@ fn main() {
                         query,
                         columns,
                         SIZE,
-                        &&nova_to_ark_setup(&ck)[..],
+                        &&nova_commitment_key_to_hyperkzg_public_setup(&ck)[..],
                         &&vk,
                     );
                 }
