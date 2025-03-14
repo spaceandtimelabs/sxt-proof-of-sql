@@ -8,11 +8,13 @@ use alloc::sync::Arc;
 use arrow::{
     array::{
         ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Float32Array, Int64Array, StringArray,
+        TimestampSecondArray,
     },
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
 use proptest::prelude::*;
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 fn we_can_convert_between_owned_column_and_array_ref_impl(
     owned_column: &OwnedColumn<TestScalar>,
@@ -213,7 +215,9 @@ proptest! {
 mod tests {
     use super::*;
     use crate::base::scalar::test_scalar::TestScalar;
-    use arrow::array::{Array, ArrayRef, BooleanArray, Int32Array};
+    use arrow::array::{Array, ArrayRef, BooleanArray, Int32Array, TimestampSecondArray};
+    use arrow::datatypes::TimeUnit;
+    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_convert_owned_nullable_column_to_array_ref_no_nulls() {
@@ -333,5 +337,96 @@ mod tests {
             OwnedColumn::Int(_) => {}
             _ => panic!("Expected Int column"),
         }
+    }
+
+    #[test]
+    fn we_can_convert_timestamp_array_with_nulls() {
+        // Create a timestamp array with nulls
+        let array = TimestampSecondArray::from(vec![Some(100), None, Some(300)]);
+        let array_ref = Arc::new(array) as ArrayRef;
+        
+        // Convert to OwnedNullableColumn
+        let nullable_column = OwnedNullableColumn::<TestScalar>::try_from(&array_ref).unwrap();
+        
+        // Verify the conversion
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+        
+        // Check the values
+        match &nullable_column.values {
+            OwnedColumn::TimestampTZ(time_unit, _, values) => {
+                assert_eq!(*time_unit, PoSQLTimeUnit::Second);
+                assert_eq!(values[0], 100);
+                assert_eq!(values[1], 0); // Default value for NULL
+                assert_eq!(values[2], 300);
+            }
+            _ => panic!("Expected TimestampTZ column"),
+        }
+        
+        // Round-trip back to Arrow
+        let round_trip_array_ref: ArrayRef = nullable_column.into();
+        let round_trip_array = round_trip_array_ref.as_any().downcast_ref::<TimestampSecondArray>().unwrap();
+        
+        // Verify the round-trip
+        assert_eq!(round_trip_array.len(), 3);
+        assert_eq!(round_trip_array.null_count(), 1);
+        assert_eq!(round_trip_array.value(0), 100);
+        assert!(round_trip_array.is_null(1));
+        assert_eq!(round_trip_array.value(2), 300);
+    }
+
+    #[test]
+    fn we_can_convert_record_batch_with_nulls() {
+        // Create a schema
+        let schema = Schema::new(vec![
+            Field::new("col1", DataType::Int32, true),
+            Field::new("col2", DataType::Boolean, true),
+        ]);
+        
+        // Create arrays with nulls
+        let int_array = Int32Array::from(vec![Some(10), None, Some(30)]);
+        let bool_array = BooleanArray::from(vec![Some(true), Some(false), None]);
+        
+        // Create a record batch
+        let record_batch = RecordBatch::try_new(
+            Arc::new(schema),
+            vec![Arc::new(int_array), Arc::new(bool_array)],
+        )
+        .unwrap();
+        
+        // Convert to OwnedTable
+        let owned_table = OwnedTable::<TestScalar>::try_from(record_batch.clone()).unwrap();
+        
+        // Verify the conversion
+        assert_eq!(owned_table.num_columns(), 2);
+        assert_eq!(owned_table.num_rows(), 3);
+        
+        // Convert back to RecordBatch
+        let round_trip_batch = RecordBatch::try_from(owned_table).unwrap();
+        
+        // Verify the round-trip
+        assert_eq!(round_trip_batch.num_columns(), 2);
+        assert_eq!(round_trip_batch.num_rows(), 3);
+        
+        // Check the first column (Int32)
+        let int_col = round_trip_batch.column(0);
+        let int_array = int_col.as_any().downcast_ref::<Int32Array>().unwrap();
+        assert_eq!(int_array.len(), 3);
+        assert_eq!(int_array.null_count(), 1);
+        assert_eq!(int_array.value(0), 10);
+        assert!(int_array.is_null(1));
+        assert_eq!(int_array.value(2), 30);
+        
+        // Check the second column (Boolean)
+        let bool_col = round_trip_batch.column(1);
+        let bool_array = bool_col.as_any().downcast_ref::<BooleanArray>().unwrap();
+        assert_eq!(bool_array.len(), 3);
+        assert_eq!(bool_array.null_count(), 1);
+        assert!(bool_array.value(0));
+        assert!(!bool_array.value(1));
+        assert!(bool_array.is_null(2));
     }
 }

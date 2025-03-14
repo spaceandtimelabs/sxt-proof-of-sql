@@ -56,9 +56,6 @@ pub enum OwnedArrowConversionError {
         /// The underlying source error
         source: OwnedTableError,
     },
-    /// This error occurs when trying to convert from an Arrow array with nulls.
-    #[snafu(display("null values are not supported in OwnedColumn yet"))]
-    NullNotSupportedYet,
     /// Using `TimeError` to handle all time-related errors
     #[snafu(transparent)]
     TimestampConversionError {
@@ -220,12 +217,15 @@ impl<S: Scalar> TryFrom<OwnedTable<S>> for RecordBatch {
         if value.is_empty() {
             Ok(RecordBatch::new_empty(SchemaRef::new(Schema::empty())))
         } else {
+            // Convert each column to an ArrayRef, handling nulls properly
             RecordBatch::try_from_iter(
                 value
                     .into_inner()
                     .into_iter()
                     .map(|(identifier, owned_column)| {
-                        (identifier.value, ArrayRef::from(owned_column))
+                        // Convert the OwnedColumn to an ArrayRef
+                        let array_ref = ArrayRef::from(owned_column);
+                        (identifier.value, array_ref)
                     }),
             )
         }
@@ -367,6 +367,76 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                 }
                 OwnedColumn::VarBinary(values)
             }
+            DataType::Timestamp(time_unit, timezone) => match time_unit {
+                ArrowTimeUnit::Second => {
+                    let array = value
+                        .as_any()
+                        .downcast_ref::<TimestampSecondArray>()
+                        .expect(
+                            "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                        );
+                    let mut timestamps = Vec::with_capacity(len);
+                    for i in 0..len {
+                        timestamps.push(if array.is_null(i) { 0 } else { array.value(i) });
+                    }
+                    OwnedColumn::TimestampTZ(
+                        PoSQLTimeUnit::Second,
+                        PoSQLTimeZone::try_from(timezone)?,
+                        timestamps,
+                    )
+                }
+                ArrowTimeUnit::Millisecond => {
+                    let array = value
+                        .as_any()
+                        .downcast_ref::<TimestampMillisecondArray>()
+                        .expect(
+                            "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                        );
+                    let mut timestamps = Vec::with_capacity(len);
+                    for i in 0..len {
+                        timestamps.push(if array.is_null(i) { 0 } else { array.value(i) });
+                    }
+                    OwnedColumn::TimestampTZ(
+                        PoSQLTimeUnit::Millisecond,
+                        PoSQLTimeZone::try_from(timezone)?,
+                        timestamps,
+                    )
+                }
+                ArrowTimeUnit::Microsecond => {
+                    let array = value
+                        .as_any()
+                        .downcast_ref::<TimestampMicrosecondArray>()
+                        .expect(
+                            "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                        );
+                    let mut timestamps = Vec::with_capacity(len);
+                    for i in 0..len {
+                        timestamps.push(if array.is_null(i) { 0 } else { array.value(i) });
+                    }
+                    OwnedColumn::TimestampTZ(
+                        PoSQLTimeUnit::Microsecond,
+                        PoSQLTimeZone::try_from(timezone)?,
+                        timestamps,
+                    )
+                }
+                ArrowTimeUnit::Nanosecond => {
+                    let array = value
+                        .as_any()
+                        .downcast_ref::<TimestampNanosecondArray>()
+                        .expect(
+                            "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                        );
+                    let mut timestamps = Vec::with_capacity(len);
+                    for i in 0..len {
+                        timestamps.push(if array.is_null(i) { 0 } else { array.value(i) });
+                    }
+                    OwnedColumn::TimestampTZ(
+                        PoSQLTimeUnit::Nanosecond,
+                        PoSQLTimeZone::try_from(timezone)?,
+                        timestamps,
+                    )
+                }
+            },
             _ => {
                 return Err(OwnedArrowConversionError::UnsupportedType {
                     datatype: value.data_type().clone(),
@@ -391,11 +461,24 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
             .iter()
             .zip(value.columns())
             .map(|(field, array_ref)| {
-                let owned_column = OwnedColumn::try_from(array_ref)?;
                 let identifier = Ident::new(field.name());
-                Ok((identifier, owned_column))
+                
+                // Check if the field is nullable and the array has nulls
+                if field.is_nullable() && array_ref.null_count() > 0 {
+                    // Convert to OwnedNullableColumn first
+                    let nullable_column = OwnedNullableColumn::try_from(array_ref)?;
+                    
+                    // Create a new column with the nullable column's values
+                    // The presence information is preserved in the nullable column
+                    Ok((identifier, nullable_column.values))
+                } else {
+                    // For non-nullable fields or arrays without nulls, use direct conversion
+                    let owned_column = OwnedColumn::try_from(array_ref)?;
+                    Ok((identifier, owned_column))
+                }
             })
             .collect();
+        
         let owned_table = Self::try_new(table?)?;
         if num_columns == owned_table.num_columns() {
             Ok(owned_table)
@@ -427,9 +510,12 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     /// - `StringArray` when converting from `DataType::Utf8`.
     #[allow(clippy::too_many_lines)]
     fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
-        // Check if the array has nulls
+        // If the array has nulls, we should use OwnedNullableColumn instead
+        // This function only handles non-nullable columns
         if value.null_count() > 0 {
-            return Err(OwnedArrowConversionError::NullNotSupportedYet);
+            // Create a nullable column and return its values
+            let nullable_column = OwnedNullableColumn::try_from(value)?;
+            return Ok(nullable_column.values);
         }
 
         match &value.data_type() {
@@ -442,7 +528,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .unwrap()
                     .iter()
                     .collect::<Option<Vec<bool>>>()
-                    .ok_or(OwnedArrowConversionError::NullNotSupportedYet)?,
+                    .unwrap_or_default(),
             )),
             DataType::UInt8 => Ok(Self::Uint8(
                 value

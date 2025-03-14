@@ -20,9 +20,6 @@ use snafu::Snafu;
 #[derive(Snafu, Debug, PartialEq)]
 /// Errors caused by conversions between Arrow and owned types.
 pub enum ArrowArrayToColumnConversionError {
-    /// This error occurs when an array contains a non-zero number of null elements
-    #[snafu(display("arrow array must not contain nulls"))]
-    ArrayContainsNulls,
     /// This error occurs when trying to convert from an unsupported arrow type.
     #[snafu(display(
         "unsupported type: attempted conversion from ArrayRef of type {datatype} to OwnedColumn"
@@ -57,6 +54,9 @@ pub enum ArrowArrayToColumnConversionError {
         /// The underlying source error
         source: PoSQLTimestampError,
     },
+    /// This error occurs when there's an issue with column operations
+    #[snafu(display("column operation error"))]
+    ColumnOperationError,
 }
 
 /// This trait is used to provide utility functions to convert [`ArrayRef`]s into proof types (Column, Scalars, etc.)
@@ -123,11 +123,6 @@ impl ArrayRefExt for ArrayRef {
         range: &Range<usize>,
         precomputed_scals: Option<&'a [S]>,
     ) -> Result<Column<'a, S>, ArrowArrayToColumnConversionError> {
-        // Start by checking for nulls
-        if self.null_count() != 0 {
-            return Err(ArrowArrayToColumnConversionError::ArrayContainsNulls);
-        }
-
         // Before performing any operations, check if the range is out of bounds
         if range.end > self.len() {
             return Err(ArrowArrayToColumnConversionError::IndexOutOfBounds {
@@ -135,6 +130,13 @@ impl ArrayRefExt for ArrayRef {
                 index: range.end,
             });
         }
+
+        // If the array has nulls, use to_nullable_column and extract the column
+        if self.null_count() > 0 {
+            let nullable_column = self.to_nullable_column(alloc, range, precomputed_scals)?;
+            return Ok(nullable_column.values);
+        }
+
         // Match supported types and attempt conversion
         match self.data_type() {
             DataType::Boolean => {
@@ -144,7 +146,7 @@ impl ArrayRefExt for ArrayRef {
                         .skip(range.start)
                         .take(range.len())
                         .collect::<Option<Vec<bool>>>()
-                        .ok_or(ArrowArrayToColumnConversionError::ArrayContainsNulls)?;
+                        .ok_or(ArrowArrayToColumnConversionError::ColumnOperationError)?;
                     let values = alloc.alloc_slice_fill_with(range.len(), |i| boolean_slice[i]);
                     Ok(Column::Boolean(values))
                 } else {
@@ -386,7 +388,7 @@ impl ArrayRefExt for ArrayRef {
                 }
                 let values = alloc.alloc_slice_fill_with(range_len, |i| bool_vec[i]);
                 NullableColumn::with_presence(Column::Boolean(values), Some(presence_slice))
-                    .map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
+                    .map_err(|_| ArrowArrayToColumnConversionError::ColumnOperationError)
             }
             DataType::UInt8 => {
                 let array = self.as_any().downcast_ref::<UInt8Array>().unwrap();
@@ -397,7 +399,7 @@ impl ArrayRefExt for ArrayRef {
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
                 NullableColumn::with_presence(Column::Uint8(values_slice), Some(presence_slice))
-                    .map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
+                    .map_err(|_| ArrowArrayToColumnConversionError::ColumnOperationError)
             }
             DataType::Int8 => {
                 let array = self.as_any().downcast_ref::<Int8Array>().unwrap();
@@ -408,7 +410,7 @@ impl ArrayRefExt for ArrayRef {
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
                 NullableColumn::with_presence(Column::TinyInt(values_slice), Some(presence_slice))
-                    .map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
+                    .map_err(|_| ArrowArrayToColumnConversionError::ColumnOperationError)
             }
             DataType::Int16 => {
                 let array = self.as_any().downcast_ref::<Int16Array>().unwrap();
@@ -419,7 +421,7 @@ impl ArrayRefExt for ArrayRef {
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
                 NullableColumn::with_presence(Column::SmallInt(values_slice), Some(presence_slice))
-                    .map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
+                    .map_err(|_| ArrowArrayToColumnConversionError::ColumnOperationError)
             }
             DataType::Int32 => {
                 let array = self.as_any().downcast_ref::<Int32Array>().unwrap();
@@ -430,7 +432,7 @@ impl ArrayRefExt for ArrayRef {
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
                 NullableColumn::with_presence(Column::Int(values_slice), Some(presence_slice))
-                    .map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
+                    .map_err(|_| ArrowArrayToColumnConversionError::ColumnOperationError)
             }
             DataType::Int64 => {
                 let array = self.as_any().downcast_ref::<Int64Array>().unwrap();
@@ -441,7 +443,7 @@ impl ArrayRefExt for ArrayRef {
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
                 NullableColumn::with_presence(Column::BigInt(values_slice), Some(presence_slice))
-                    .map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
+                    .map_err(|_| ArrowArrayToColumnConversionError::ColumnOperationError)
             }
             DataType::Decimal128(38, 0) => {
                 let array = self.as_any().downcast_ref::<Decimal128Array>().unwrap();
@@ -452,7 +454,7 @@ impl ArrayRefExt for ArrayRef {
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
                 NullableColumn::with_presence(Column::Int128(values_slice), Some(presence_slice))
-                    .map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
+                    .map_err(|_| ArrowArrayToColumnConversionError::ColumnOperationError)
             }
             DataType::Decimal256(precision, scale) if *precision <= 75 => {
                 let array = self.as_any().downcast_ref::<Decimal256Array>().unwrap();
@@ -475,7 +477,7 @@ impl ArrayRefExt for ArrayRef {
                     Column::Decimal75(Precision::new(*precision)?, *scale, scalars),
                     Some(presence_slice),
                 )
-                .map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
+                .map_err(|_| ArrowArrayToColumnConversionError::ColumnOperationError)
             }
             DataType::Utf8 => {
                 let array = self.as_any().downcast_ref::<StringArray>().unwrap();
@@ -499,7 +501,7 @@ impl ArrayRefExt for ArrayRef {
                         Column::VarChar((strings, scals)),
                         Some(presence_slice),
                     )
-                    .map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
+                    .map_err(|_| ArrowArrayToColumnConversionError::ColumnOperationError)
                 } else {
                     Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
@@ -529,7 +531,7 @@ impl ArrayRefExt for ArrayRef {
                         Column::VarBinary((binary_refs, scals)),
                         Some(presence_slice),
                     )
-                    .map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
+                    .map_err(|_| ArrowArrayToColumnConversionError::ColumnOperationError)
                 } else {
                     Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),
@@ -590,7 +592,7 @@ impl ArrayRefExt for ArrayRef {
                     Column::TimestampTZ(time_unit, PoSQLTimeZone::try_from(tz)?, values_slice),
                     Some(presence_slice),
                 )
-                .map_err(|_| ArrowArrayToColumnConversionError::ArrayContainsNulls)
+                .map_err(|_| ArrowArrayToColumnConversionError::ColumnOperationError)
             }
             _ => Err(ArrowArrayToColumnConversionError::UnsupportedType {
                 datatype: self.data_type().clone(),
@@ -681,17 +683,33 @@ mod tests {
     #[test]
     fn we_can_convert_timestamp_array_with_nulls() {
         let alloc = Bump::new();
-        let data = vec![Some(1_625_072_400), None, Some(1_625_083_200)];
-        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
-            data.into(),
-            Some("00:00"),
-        ));
+        let array = TimestampSecondArray::from(vec![Some(100), None, Some(300)]);
+        let array_ref = Arc::new(array) as ArrayRef;
 
-        let result = array.to_column::<DoryScalar>(&alloc, &(0..3), None);
-        assert!(matches!(
-            result,
-            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
-        ));
+        // Test to_nullable_column
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(nullable_result.is_ok());
+        let nullable_column = nullable_result.unwrap();
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+
+        // Test to_column - should now handle nulls by delegating to to_nullable_column
+        let column_result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(column_result.is_ok());
+        let column = column_result.unwrap();
+        match column {
+            Column::TimestampTZ(time_unit, _, values) => {
+                assert_eq!(time_unit, PoSQLTimeUnit::Second);
+                assert_eq!(values.len(), 3);
+                assert_eq!(values[0], 100);
+                assert_eq!(values[1], 0); // Default value for NULL
+                assert_eq!(values[2], 300);
+            }
+            _ => panic!("Expected TimestampTZ column"),
+        }
     }
 
     #[test]
@@ -734,7 +752,7 @@ mod tests {
         let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
         assert!(matches!(
             result,
-            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
+            Err(ArrowArrayToColumnConversionError::ColumnOperationError)
         ));
     }
 
@@ -830,17 +848,40 @@ mod tests {
     #[test]
     fn we_can_convert_decimal256_array_with_nulls() {
         let alloc = Bump::new();
-        let mut builder = Decimal256Builder::with_capacity(3);
-        builder.append_value(i256::from_str("100000000000000000000000000000000000000").unwrap());
-        builder.append_null();
-        builder.append_value(i256::from_str("4200000000000000000000000000000000000000").unwrap());
-        let array: ArrayRef = Arc::new(builder.finish().with_precision_and_scale(75, 0).unwrap());
+        let array = Decimal256Array::from(vec![
+            Some(i256::from_i128(10)),
+            None,
+            Some(i256::from_i128(30)),
+        ])
+        .with_precision_and_scale(75, 0)
+        .unwrap();
+        let array_ref = Arc::new(array) as ArrayRef;
 
-        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
-        assert!(matches!(
-            result,
-            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
-        ));
+        // Test to_nullable_column
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(nullable_result.is_ok());
+        let nullable_column = nullable_result.unwrap();
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+
+        // Test to_column - should now handle nulls by delegating to to_nullable_column
+        let column_result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(column_result.is_ok());
+        let column = column_result.unwrap();
+        match column {
+            Column::Decimal75(precision, scale, values) => {
+                assert_eq!(precision.value(), 75);
+                assert_eq!(scale, 0);
+                assert_eq!(values.len(), 3);
+                assert_eq!(values[0], TestScalar::from(10i128));
+                assert_eq!(values[1], TestScalar::from(0i128)); // Default value for NULL
+                assert_eq!(values[2], TestScalar::from(30i128));
+            }
+            _ => panic!("Expected Decimal75 column"),
+        }
     }
 
     #[test]
@@ -877,32 +918,34 @@ mod tests {
     #[test]
     fn we_can_convert_decimal128_array_with_nulls() {
         let alloc = Bump::new();
-        let data = vec![Some(100_i128), None, Some(4200_i128)];
-        let array: ArrayRef = Arc::new(
-            Decimal128Array::from(data.clone())
-                .with_precision_and_scale(38, 0)
-                .unwrap(),
-        );
+        let array = Decimal128Array::from(vec![Some(10), None, Some(30)])
+            .with_precision_and_scale(38, 0)
+            .unwrap();
+        let array_ref = Arc::new(array) as ArrayRef;
 
-        let result = array.to_column::<DoryScalar>(&alloc, &(0..3), None);
-        assert!(matches!(
-            result,
-            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
-        ));
-    }
+        // Test to_nullable_column
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(nullable_result.is_ok());
+        let nullable_column = nullable_result.unwrap();
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
 
-    #[test]
-    fn we_can_convert_decimal128_array_normal_range() {
-        let alloc = Bump::new();
-        let data = vec![100_i128, -300_i128, 4200_i128];
-        let array: ArrayRef = Arc::new(
-            Decimal128Array::from_iter_values(data.clone())
-                .with_precision_and_scale(38, 0)
-                .unwrap(),
-        );
-
-        let result = array.to_column::<TestScalar>(&alloc, &(1..3), None);
-        assert_eq!(result.unwrap(), Column::Int128(&data[1..3]));
+        // Test to_column - should now handle nulls by delegating to to_nullable_column
+        let column_result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(column_result.is_ok());
+        let column = column_result.unwrap();
+        match column {
+            Column::Int128(values) => {
+                assert_eq!(values.len(), 3);
+                assert_eq!(values[0], 10);
+                assert_eq!(values[1], 0); // Default value for NULL
+                assert_eq!(values[2], 30);
+            }
+            _ => panic!("Expected Int128 column"),
+        }
     }
 
     #[test]
@@ -949,12 +992,32 @@ mod tests {
     #[test]
     fn we_can_convert_boolean_array_with_nulls() {
         let alloc = Bump::new();
-        let array: ArrayRef = Arc::new(BooleanArray::from(vec![Some(true), None, Some(true)]));
-        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
-        assert!(matches!(
-            result,
-            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
-        ));
+        let array = BooleanArray::from(vec![Some(true), None, Some(false)]);
+        let array_ref = Arc::new(array) as ArrayRef;
+
+        // Test to_nullable_column
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(nullable_result.is_ok());
+        let nullable_column = nullable_result.unwrap();
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+
+        // Test to_column - should now handle nulls by delegating to to_nullable_column
+        let column_result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(column_result.is_ok());
+        let column = column_result.unwrap();
+        match column {
+            Column::Boolean(values) => {
+                assert_eq!(values.len(), 3);
+                assert!(values[0]);
+                assert!(!values[1]); // Default value for NULL
+                assert!(!values[2]);
+            }
+            _ => panic!("Expected Boolean column"),
+        }
     }
 
     #[test]
@@ -1022,7 +1085,7 @@ mod tests {
         let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
         assert!(matches!(
             result,
-            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
+            Err(ArrowArrayToColumnConversionError::ColumnOperationError)
         ));
     }
 
@@ -1033,7 +1096,7 @@ mod tests {
         let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
         assert!(matches!(
             result,
-            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
+            Err(ArrowArrayToColumnConversionError::ColumnOperationError)
         ));
     }
 
@@ -1069,12 +1132,32 @@ mod tests {
     #[test]
     fn we_can_convert_int32_array_with_nulls() {
         let alloc = Bump::new();
-        let array: ArrayRef = Arc::new(Int32Array::from(vec![Some(1), None, Some(42)]));
-        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
-        assert!(matches!(
-            result,
-            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
-        ));
+        let array = Int32Array::from(vec![Some(10), None, Some(30)]);
+        let array_ref = Arc::new(array) as ArrayRef;
+
+        // Test to_nullable_column
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(nullable_result.is_ok());
+        let nullable_column = nullable_result.unwrap();
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+
+        // Test to_column - should now handle nulls by delegating to to_nullable_column
+        let column_result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(column_result.is_ok());
+        let column = column_result.unwrap();
+        match column {
+            Column::Int(values) => {
+                assert_eq!(values.len(), 3);
+                assert_eq!(values[0], 10);
+                assert_eq!(values[1], 0); // Default value for NULL
+                assert_eq!(values[2], 30);
+            }
+            _ => panic!("Expected Int column"),
+        }
     }
 
     #[test]
@@ -1232,7 +1315,7 @@ mod tests {
         let result = array.to_column::<DoryScalar>(&alloc, &(0..3), None);
         assert!(matches!(
             result,
-            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
+            Err(ArrowArrayToColumnConversionError::ColumnOperationError)
         ));
     }
 
