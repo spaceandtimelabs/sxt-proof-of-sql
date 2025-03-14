@@ -729,7 +729,12 @@ mod tests {
         // Load the binary file
         let elements_from_binary: Vec<G1Affine> = read_ark_from_binary(Path::new(binary_file_name), n).unwrap();
 
+        println!("elements from binary file have loaded");
+
         assert_eq!(elements_from_nova.ck().len(), elements_from_binary.len());
+
+        println!("Lengths are equal");
+        
         for (a, b) in elements_from_nova.ck().iter().zip(elements_from_binary.iter()) {
             assert_eq!(*a, blitzar::compute::convert_to_halo2_bn256_g1_affine(b));
         }
