@@ -7,7 +7,6 @@
 //!
 //! cargo run --release <`ptau_file_path`> <`binary_file_path`> <`n`>
 
-use ark_bn254::G1Affine;
 use ark_serialize::CanonicalSerialize;
 use nova_snark::{
     provider::{
@@ -110,6 +109,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ark_bn254::G1Affine;
     use ark_serialize::CanonicalDeserialize;
     use std::fs;
 
