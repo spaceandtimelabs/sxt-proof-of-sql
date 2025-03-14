@@ -20,7 +20,7 @@ use proof_of_sql::proof_primitive::{
         DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
-    hyperkzg::{HyperKZGCommitmentEvaluationProof, HyperKZGEngine},
+    hyperkzg::{nova_to_ark_setup, HyperKZGCommitmentEvaluationProof, HyperKZGEngine},
 };
 mod scaffold;
 use crate::scaffold::queries::QUERIES;
@@ -111,7 +111,12 @@ fn main() {
             for _ in 0..3 {
                 for (title, query, columns) in QUERIES {
                     jaeger_scaffold::<HyperKZGCommitmentEvaluationProof>(
-                        title, query, columns, SIZE, &&ck, &&vk,
+                        title,
+                        query,
+                        columns,
+                        SIZE,
+                        &&nova_to_ark_setup(&ck)[..],
+                        &&vk,
                     );
                 }
             }

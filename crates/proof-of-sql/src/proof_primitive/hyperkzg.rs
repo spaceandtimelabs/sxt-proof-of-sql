@@ -1,18 +1,29 @@
+#[cfg(feature = "hyperkzg_proof")]
 use crate::base::{
-    commitment::{Commitment, CommitmentEvaluationProof, CommittableColumn},
+    commitment::CommitmentEvaluationProof,
     proof::{Keccak256Transcript, Transcript},
+};
+use crate::base::{
+    commitment::{Commitment, CommittableColumn},
+    impl_serde_for_ark_serde_checked,
     scalar::{MontScalar, Scalar},
     slice_ops,
 };
 use alloc::vec::Vec;
-#[cfg(feature = "blitzar")]
-use ark_bn254::G1Affine;
-#[cfg(feature = "blitzar")]
+use ark_bn254::{G1Affine, G1Projective};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+#[cfg(feature = "hyperkzg_proof")]
 use blitzar;
-use core::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
+#[cfg(feature = "hyperkzg_proof")]
+use core::ops::Add;
+use core::ops::{AddAssign, Mul, Neg, Sub, SubAssign};
+#[cfg(feature = "hyperkzg_proof")]
 use ff::Field;
-#[cfg(not(feature = "blitzar"))]
-use itertools::Itertools;
+#[cfg(feature = "hyperkzg_proof")]
+use halo2curves::bn256::G2Affine;
+#[cfg(feature = "hyperkzg_proof")]
+use nova_snark::provider::bn256_grumpkin::bn256::Affine;
+#[cfg(feature = "hyperkzg_proof")]
 use nova_snark::{
     errors::NovaError,
     provider::{
@@ -23,9 +34,8 @@ use nova_snark::{
         evaluation::EvaluationEngineTrait, Engine, TranscriptEngineTrait, TranscriptReprTrait,
     },
 };
-#[cfg(not(feature = "blitzar"))]
-use nova_snark::{provider::hyperkzg::CommitmentEngine, traits::commitment::CommitmentEngineTrait};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "hyperkzg_proof")]
 use tracing::{span, Level};
 
 /// The scalar used in the `HyperKZG` PCS. This is the BN254 scalar.
@@ -35,16 +45,20 @@ pub type BNScalar = MontScalar<ark_bn254::FrConfig>;
 /// The `HyperKZG` engine that implements nova's `Engine` trait.
 pub struct HyperKZGEngine;
 
+#[cfg(feature = "hyperkzg_proof")]
 type NovaCommitment = nova_snark::provider::hyperkzg::Commitment<HyperKZGEngine>;
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, CanonicalSerialize, CanonicalDeserialize, Default)]
 /// A newtype wrapper of nova's hyperkzg commitment.
 /// This is the commitment type used in the hyperkzg proof system.
 pub struct HyperKZGCommitment {
     /// The underlying commitment.
-    pub commitment: NovaCommitment,
+    pub commitment: G1Projective,
 }
+impl_serde_for_ark_serde_checked!(HyperKZGCommitment);
 
 /// The evaluation proof for the `HyperKZG` PCS.
+#[cfg(feature = "hyperkzg_proof")]
 pub type HyperKZGCommitmentEvaluationProof = EvaluationArgument<HyperKZGEngine>;
 
 impl AddAssign for HyperKZGCommitment {
@@ -52,35 +66,38 @@ impl AddAssign for HyperKZGCommitment {
         self.commitment = self.commitment + rhs.commitment;
     }
 }
-#[cfg(feature = "blitzar")]
 impl From<&G1Affine> for HyperKZGCommitment {
     fn from(value: &G1Affine) -> Self {
         Self {
-            commitment: NovaCommitment::new(
-                blitzar::compute::convert_to_halo2_bn256_g1_affine(value).into(),
-            ),
+            commitment: (*value).into(),
         }
     }
 }
+
+#[cfg(feature = "hyperkzg_proof")]
 impl From<&BNScalar> for NovaScalar {
     fn from(value: &BNScalar) -> Self {
         ff::PrimeField::from_repr_vartime(bytemuck::cast::<[u64; 4], [u8; 32]>(value.into()).into())
             .unwrap()
     }
 }
+
 impl Mul<&HyperKZGCommitment> for BNScalar {
     type Output = HyperKZGCommitment;
     fn mul(self, rhs: &HyperKZGCommitment) -> Self::Output {
         Self::Output {
-            commitment: rhs.commitment * NovaScalar::from(self),
+            commitment: rhs.commitment * self.0,
         }
     }
 }
+
+#[cfg(feature = "hyperkzg_proof")]
 impl From<BNScalar> for NovaScalar {
     fn from(value: BNScalar) -> Self {
         Self::from(&value)
     }
 }
+
 impl Mul<HyperKZGCommitment> for BNScalar {
     type Output = HyperKZGCommitment;
     #[expect(clippy::op_ref)]
@@ -110,23 +127,23 @@ impl Sub for HyperKZGCommitment {
 #[cfg(not(feature = "blitzar"))]
 #[tracing::instrument(name = "compute_commitments_impl (cpu)", level = "debug", skip_all)]
 fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
-    setup: &CommitmentKey<HyperKZGEngine>,
+    setup: &[G1Affine],
     offset: usize,
     scalars: &[T],
 ) -> HyperKZGCommitment {
-    assert!(offset + scalars.len() <= setup.ck().len());
-    let product = scalars
+    assert!(offset + scalars.len() <= setup.len());
+    let product: G1Projective = scalars
         .iter()
-        .zip(&setup.ck()[offset..offset + scalars.len()])
-        .map(|(t, s)| *s * Into::<NovaScalar>::into(Into::<BNScalar>::into(t)))
+        .zip(&setup[offset..offset + scalars.len()])
+        .map(|(t, s)| *s * Into::<BNScalar>::into(t).0)
         .sum();
     HyperKZGCommitment {
-        commitment: NovaCommitment::new(product),
+        commitment: G1Projective::from(product),
     }
 }
 impl Commitment for HyperKZGCommitment {
     type Scalar = BNScalar;
-    type PublicSetup<'a> = &'a CommitmentKey<HyperKZGEngine>;
+    type PublicSetup<'a> = &'a [G1Affine];
 
     #[cfg(not(feature = "blitzar"))]
     #[tracing::instrument(name = "compute_commitments (cpu)", level = "debug", skip_all)]
@@ -180,20 +197,20 @@ impl Commitment for HyperKZGCommitment {
         blitzar::compute::compute_bn254_g1_uncompressed_commitments_with_generators(
             &mut blitzar_commitments,
             &slice_ops::slice_cast(committable_columns),
-            &slice_ops::slice_cast_with(
-                &setup.ck()[offset..offset + max_column_len],
-                blitzar::compute::convert_to_ark_bn254_g1_affine,
-            ),
+            &setup[offset..offset + max_column_len],
         );
 
         slice_ops::slice_cast(&blitzar_commitments)
     }
 
     fn to_transcript_bytes(&self) -> Vec<u8> {
-        self.commitment.to_transcript_bytes()
+        let mut writer = Vec::with_capacity(self.commitment.compressed_size());
+        self.commitment.serialize_compressed(&mut writer).unwrap();
+        writer
     }
 }
 
+#[cfg(feature = "hyperkzg_proof")]
 impl Engine for HyperKZGEngine {
     type Base = nova_snark::provider::bn256_grumpkin::bn256::Base;
     type Scalar = NovaScalar;
@@ -204,6 +221,7 @@ impl Engine for HyperKZGEngine {
     type CE = nova_snark::provider::hyperkzg::CommitmentEngine<Self>;
 }
 
+#[cfg(feature = "hyperkzg_proof")]
 impl TranscriptEngineTrait<HyperKZGEngine> for Keccak256Transcript {
     fn new(_label: &'static [u8]) -> Self {
         Transcript::new()
@@ -230,11 +248,12 @@ impl TranscriptEngineTrait<HyperKZGEngine> for Keccak256Transcript {
     fn dom_sep(&mut self, _bytes: &'static [u8]) {}
 }
 
+#[cfg(feature = "hyperkzg_proof")]
 impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
     type Scalar = BNScalar;
     type Commitment = HyperKZGCommitment;
     type Error = NovaError;
-    type ProverPublicSetup<'a> = &'a CommitmentKey<HyperKZGEngine>;
+    type ProverPublicSetup<'a> = &'a [G1Affine];
     type VerifierPublicSetup<'a> = &'a VerifierKey<HyperKZGEngine>;
 
     fn new(
@@ -255,11 +274,16 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
             NovaScalar::ZERO,
             (1 << nova_point.len()) - nova_a.len(),
         ));
+        let nova_ck: CommitmentKey<HyperKZGEngine> = CommitmentKey::new(
+            slice_ops::slice_cast_with(setup, blitzar::compute::convert_to_halo2_bn256_g1_affine),
+            Affine::default(),   // I'm pretty sure this is unused in the proof
+            G2Affine::default(), // I'm pretty sure this is unused in the proof
+        );
         transcript.wrap_transcript(|keccak_transcript| {
             let span = span!(Level::DEBUG, "EvaluationEngine::prove").entered();
             let eval_eng = EvaluationEngine::prove(
-                *setup,
-                &EvaluationEngine::setup(*setup).0, // This parameter is unused
+                &nova_ck,
+                &EvaluationEngine::setup(&nova_ck).0, // This parameter is unused
                 keccak_transcript,
                 &NovaCommitment::default(), // This parameter is unused
                 &nova_a,
@@ -286,11 +310,15 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
         if generators_offset != 0 {
             Err(NovaError::InvalidPCS)?;
         }
-        let nova_commit = commit_batch
+        let commit: G1Affine = commit_batch
             .iter()
             .zip(batching_factors)
-            .map(|(c, m)| c.commitment * NovaScalar::from(m))
-            .fold(NovaCommitment::default(), Add::add);
+            .map(|(c, m)| c.commitment * m.0)
+            .fold(G1Projective::default(), Add::add)
+            .into();
+        let nova_commit = nova_snark::provider::hyperkzg::Commitment::new(
+            blitzar::compute::convert_to_halo2_bn256_g1_affine(&commit).into(),
+        );
         let nova_eval = evaluations
             .iter()
             .zip(batching_factors)
@@ -314,24 +342,27 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
     }
 }
 
+/// Test utility for taking a nova `CommitmentKey` and converting it to `G1Affine` points.
+#[cfg(feature = "hyperkzg_proof")]
+pub fn nova_to_ark_setup(setup: &CommitmentKey<HyperKZGEngine>) -> Vec<G1Affine> {
+    slice_ops::slice_cast_with(setup.ck(), blitzar::compute::convert_to_ark_bn254_g1_affine)
+}
+
 #[cfg(test)]
+#[cfg(feature = "hyperkzg_proof")]
 mod tests {
     use super::*;
-    #[cfg(feature = "blitzar")]
-    use crate::base::math::decimal::Precision;
-    #[cfg(feature = "blitzar")]
-    use crate::base::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
     use crate::base::{
         commitment::commitment_evaluation_proof_test::{
             test_commitment_evaluation_proof_with_length_1,
             test_random_commitment_evaluation_proof, test_simple_commitment_evaluation_proof,
         },
+        math::decimal::Precision,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         scalar::test_scalar_constants,
     };
-    #[cfg(feature = "blitzar")]
     use ark_ec::AffineRepr;
     use ark_std::UniformRand;
-    #[cfg(feature = "blitzar")]
     use itertools::Itertools;
     use nova_snark::{
         provider::hyperkzg::CommitmentEngine, traits::commitment::CommitmentEngineTrait,
@@ -340,6 +371,15 @@ mod tests {
     #[test]
     fn we_have_correct_constants_for_bn_scalar() {
         test_scalar_constants::<BNScalar>();
+    }
+
+    fn ark_to_nova_commitment(commitment: HyperKZGCommitment) -> NovaCommitment {
+        NovaCommitment::new(
+            blitzar::compute::convert_to_halo2_bn256_g1_affine(&G1Affine::from(
+                commitment.commitment,
+            ))
+            .into(),
+        )
     }
 
     #[test]
@@ -386,9 +426,13 @@ mod tests {
     fn we_can_create_small_hyperkzg_evaluation_proofs() {
         let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 32);
         let (_, vk) = EvaluationEngine::setup(&ck);
-        test_simple_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(&&ck, &&vk);
+        test_simple_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
+        );
         test_commitment_evaluation_proof_with_length_1::<HyperKZGCommitmentEvaluationProof>(
-            &&ck, &&vk,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
     }
 
@@ -397,80 +441,118 @@ mod tests {
         let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 128);
         let (_, vk) = EvaluationEngine::setup(&ck);
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            2, 0, &&ck, &&vk,
+            2,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            3, 0, &&ck, &&vk,
+            3,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            4, 0, &&ck, &&vk,
+            4,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            5, 0, &&ck, &&vk,
+            5,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            8, 0, &&ck, &&vk,
+            8,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            10, 0, &&ck, &&vk,
+            10,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            16, 0, &&ck, &&vk,
+            16,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            20, 0, &&ck, &&vk,
+            20,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            32, 0, &&ck, &&vk,
+            32,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            50, 0, &&ck, &&vk,
+            50,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            64, 0, &&ck, &&vk,
+            64,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            100, 0, &&ck, &&vk,
+            100,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
-            128, 0, &&ck, &&vk,
+            128,
+            0,
+            &&nova_to_ark_setup(&ck)[..],
+            &&vk,
         );
     }
 
-    #[cfg(feature = "blitzar")]
     fn compute_commitment_with_hyperkzg_repo<T: Into<BNScalar> + Clone>(
         setup: &CommitmentKey<HyperKZGEngine>,
         offset: usize,
         scalars: &[T],
-    ) -> HyperKZGCommitment {
-        let commitment = CommitmentEngine::commit(
+    ) -> NovaCommitment {
+        CommitmentEngine::commit(
             setup,
             &itertools::repeat_n(BNScalar::ZERO, offset)
                 .chain(scalars.iter().map(Into::into))
                 .map(Into::into)
                 .collect_vec(),
             &NovaScalar::ZERO,
-        );
-        HyperKZGCommitment { commitment }
+        )
     }
 
-    #[cfg(feature = "blitzar")]
     #[test]
     fn we_can_compute_commitment_with_hyperkzg_repo_for_testing() {
         let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 6);
 
         let result = compute_commitment_with_hyperkzg_repo(&ck, 0, &[0]);
 
-        assert_eq!(result, (&G1Affine::default()).into());
+        assert_eq!(
+            result,
+            ark_to_nova_commitment((&G1Affine::default()).into())
+        );
     }
 
-    #[cfg(feature = "blitzar")]
     fn compute_expected_commitments(
         committable_columns: &[CommittableColumn],
         offset: usize,
         ck: &CommitmentKey<HyperKZGEngine>,
-    ) -> Vec<HyperKZGCommitment> {
-        let mut expected: Vec<HyperKZGCommitment> = Vec::with_capacity(committable_columns.len());
+    ) -> Vec<NovaCommitment> {
+        let mut expected: Vec<NovaCommitment> = Vec::with_capacity(committable_columns.len());
         for column in committable_columns {
             match column {
                 CommittableColumn::Boolean(vals) => {
@@ -505,7 +587,6 @@ mod tests {
         expected
     }
 
-    #[cfg(feature = "blitzar")]
     #[test]
     fn we_can_compute_expected_commitments_for_testing() {
         let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 6);
@@ -517,10 +598,12 @@ mod tests {
         let result = compute_expected_commitments(&committable_columns, offset, &ck);
 
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].commitment, NovaCommitment::default());
+        assert_eq!(
+            result[0],
+            ark_to_nova_commitment((&G1Affine::default()).into())
+        );
     }
 
-    #[cfg(feature = "blitzar")]
     #[test]
     fn we_can_compute_a_commitment_with_only_one_column() {
         let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 6);
@@ -529,13 +612,19 @@ mod tests {
 
         let offset = 0;
 
-        let res = HyperKZGCommitment::compute_commitments(&committable_columns, offset, &&ck);
+        let res = HyperKZGCommitment::compute_commitments(
+            &committable_columns,
+            offset,
+            &&nova_to_ark_setup(&ck)[..],
+        )
+        .into_iter()
+        .map(ark_to_nova_commitment)
+        .collect::<Vec<_>>();
         let expected = compute_expected_commitments(&committable_columns, offset, &ck);
 
         assert_eq!(res, expected);
     }
 
-    #[cfg(feature = "blitzar")]
     #[test]
     fn we_can_compute_commitments_with_a_single_empty_column() {
         let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 32);
@@ -543,14 +632,20 @@ mod tests {
         let committable_columns = vec![CommittableColumn::BigInt(&[0; 0])];
 
         for offset in 0..32 {
-            let res = HyperKZGCommitment::compute_commitments(&committable_columns, offset, &&ck);
+            let res = HyperKZGCommitment::compute_commitments(
+                &committable_columns,
+                offset,
+                &&nova_to_ark_setup(&ck)[..],
+            )
+            .into_iter()
+            .map(ark_to_nova_commitment)
+            .collect::<Vec<_>>();
             let expected = compute_expected_commitments(&committable_columns, offset, &ck);
 
             assert_eq!(res, expected, "Offset: {offset}");
         }
     }
 
-    #[cfg(feature = "blitzar")]
     #[test]
     fn we_can_compute_commitments_with_a_multiple_mixed_empty_columns() {
         let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 32);
@@ -565,14 +660,20 @@ mod tests {
         ];
 
         for offset in 0..32 {
-            let res = HyperKZGCommitment::compute_commitments(&committable_columns, offset, &&ck);
+            let res = HyperKZGCommitment::compute_commitments(
+                &committable_columns,
+                offset,
+                &&nova_to_ark_setup(&ck)[..],
+            )
+            .into_iter()
+            .map(ark_to_nova_commitment)
+            .collect::<Vec<_>>();
             let expected = compute_expected_commitments(&committable_columns, offset, &ck);
 
             assert_eq!(res, expected, "Offset: {offset}");
         }
     }
 
-    #[cfg(feature = "blitzar")]
     #[test]
     fn we_can_compute_a_commitment_with_mixed_columns_of_different_sizes_and_offsets() {
         let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 128);
@@ -600,14 +701,20 @@ mod tests {
         ];
 
         for offset in 0..64 {
-            let res = HyperKZGCommitment::compute_commitments(&committable_columns, offset, &&ck);
+            let res = HyperKZGCommitment::compute_commitments(
+                &committable_columns,
+                offset,
+                &&nova_to_ark_setup(&ck)[..],
+            )
+            .into_iter()
+            .map(ark_to_nova_commitment)
+            .collect::<Vec<_>>();
             let expected = compute_expected_commitments(&committable_columns, offset, &ck);
 
             assert_eq!(res, expected, "Offset: {offset}");
         }
     }
 
-    #[cfg(feature = "blitzar")]
     #[test]
     fn we_can_compute_a_commitment_with_mixed_signed_columns_of_different_sizes_and_offsets() {
         let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"test", 128);
@@ -620,21 +727,26 @@ mod tests {
         ];
 
         for offset in 0..60 {
-            let res = HyperKZGCommitment::compute_commitments(&committable_columns, offset, &&ck);
+            let res = HyperKZGCommitment::compute_commitments(
+                &committable_columns,
+                offset,
+                &&nova_to_ark_setup(&ck)[..],
+            )
+            .into_iter()
+            .map(ark_to_nova_commitment)
+            .collect::<Vec<_>>();
             let expected = compute_expected_commitments(&committable_columns, offset, &ck);
 
             assert_eq!(res, expected, "Offset: {offset}");
         }
     }
 
-    #[cfg(feature = "blitzar")]
     #[test]
     fn we_can_convert_default_point_to_a_hyperkzg_commitment_from_ark_bn254_g1_affine() {
         let commitment: HyperKZGCommitment = HyperKZGCommitment::from(&G1Affine::default());
-        assert_eq!(commitment.commitment, NovaCommitment::default());
+        assert_eq!(commitment.commitment, G1Affine::default());
     }
 
-    #[cfg(feature = "blitzar")]
     #[test]
     fn we_can_convert_generator_to_a_hyperkzg_commitment_from_ark_bn254_g1_affine() {
         let commitment: HyperKZGCommitment = (&G1Affine::generator()).into();

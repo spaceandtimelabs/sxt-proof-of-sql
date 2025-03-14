@@ -4,8 +4,10 @@
 use ark_std::test_rng;
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::commitment::InnerProductProof;
-#[cfg(feature = "hyperkzg")]
-use proof_of_sql::proof_primitive::hyperkzg::HyperKZGCommitmentEvaluationProof;
+#[cfg(feature = "hyperkzg_proof")]
+use proof_of_sql::proof_primitive::hyperkzg::{
+    nova_to_ark_setup, HyperKZGCommitmentEvaluationProof,
+};
 use proof_of_sql::{
     base::database::{
         owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
@@ -176,7 +178,7 @@ fn we_can_prove_a_basic_equality_query_with_dory() {
 }
 
 #[test]
-#[cfg(feature = "hyperkzg")]
+#[cfg(feature = "hyperkzg_proof")]
 fn we_can_prove_a_basic_equality_query_with_hyperkzg() {
     use nova_snark::{
         provider::hyperkzg::{CommitmentEngine, CommitmentKey, EvaluationEngine},
@@ -187,7 +189,9 @@ fn we_can_prove_a_basic_equality_query_with_hyperkzg() {
     let ck: CommitmentKey<_> = CommitmentEngine::setup(b"test", 32);
     let (_, vk) = EvaluationEngine::setup(&ck);
 
-    let mut accessor = OwnedTableTestAccessor::<CP>::new_empty_with_setup(&ck);
+    let ark_setup = nova_to_ark_setup(&ck);
+
+    let mut accessor = OwnedTableTestAccessor::<CP>::new_empty_with_setup(&ark_setup[..]);
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 1])]),
@@ -199,7 +203,8 @@ fn we_can_prove_a_basic_equality_query_with_hyperkzg() {
         &accessor,
     )
     .unwrap();
-    let verifiable_result = VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, &&ck);
+    let verifiable_result =
+        VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, &&ark_setup[..]);
     let owned_table_result = verifiable_result
         .verify(query.proof_expr(), &accessor, &&vk)
         .unwrap()
