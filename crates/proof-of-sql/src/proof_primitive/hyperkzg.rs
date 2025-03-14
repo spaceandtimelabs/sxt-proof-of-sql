@@ -356,12 +356,16 @@ mod tests {
     };
     #[cfg(feature = "blitzar")]
     use ark_ec::AffineRepr;
+    #[cfg(feature = "std")]
+    use ark_serialize::{CanonicalSerialize, Write};
     use ark_std::UniformRand;
     #[cfg(feature = "blitzar")]
     use itertools::Itertools;
     use nova_snark::{
         provider::hyperkzg::CommitmentEngine, traits::commitment::CommitmentEngineTrait,
     };
+    #[cfg(feature = "std")]
+    use std::{fs::OpenOptions, io::BufWriter};
 
     #[test]
     fn we_have_correct_constants_for_bn_scalar() {
@@ -666,5 +670,39 @@ mod tests {
         let commitment: HyperKZGCommitment = (&G1Affine::generator()).into();
         let expected: HyperKZGCommitment = HyperKZGCommitment::from(&G1Affine::generator());
         assert_eq!(commitment.commitment, expected.commitment);
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn we_can_read_arkworks_elements_from_a_binary_file() {
+        // Create random Arkworks elements
+        let elements: Vec<G1Affine> = (0..32)
+            .map(|_| G1Affine::rand(&mut ark_std::test_rng()))
+            .collect();
+
+        // Generate the file
+        let file_name = "/tmp/arkworks_elements_from_a_binary_file_test.bin";
+
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(file_name)
+            .unwrap();
+
+        let mut writer = BufWriter::new(file);
+
+        elements.serialize_compressed(&mut writer).unwrap();
+
+        // Ensure all data is written to the file
+        writer.flush().unwrap();
+
+        // Read the elements from the file
+        let result = read_ark_from_binary(Path::new(file_name)).unwrap();
+
+        assert_eq!(result.len(), elements.len());
+        for (a, b) in result.iter().zip(elements.iter()) {
+            assert_eq!(a, b);
+        }
     }
 }
