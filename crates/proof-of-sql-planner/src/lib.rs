@@ -16,6 +16,7 @@ pub use expr::expr_to_proof_expr;
 mod error;
 pub use error::{PlannerError, PlannerResult};
 mod plan;
+mod postprocessing;
 pub use plan::logical_plan_to_proof_plan;
 mod util;
 pub use util::column_fields_to_schema;
