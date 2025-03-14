@@ -1,7 +1,7 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::base::{
     database::Column,
-    math::{decimal::Precision, non_negative_i32::NonNegativeI32},
+    math::{decimal::Precision, fixed_size_binary_width::FixedSizeBinaryWidth},
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
     scalar::{Scalar, ScalarExt},
 };
@@ -314,14 +314,14 @@ impl ArrayRefExt for ArrayRef {
             }
             DataType::FixedSizeBinary(bw) => {
                 if let Some(array) = self.as_any().downcast_ref::<FixedSizeBinaryArray>() {
-                    let width: usize = NonNegativeI32::try_from(*bw)
+                    let width: usize = FixedSizeBinaryWidth::try_from(*bw)
                         .map_err(|_| ArrowArrayToColumnConversionError::UnsupportedType {
                             datatype: self.data_type().clone(),
                         })?
                         .into();
 
                     Ok(Column::FixedSizeBinary(
-                        NonNegativeI32::try_from(*bw).map_err(|_| {
+                        FixedSizeBinaryWidth::try_from(*bw).map_err(|_| {
                             ArrowArrayToColumnConversionError::UnsupportedType {
                                 datatype: self.data_type().clone(),
                             }

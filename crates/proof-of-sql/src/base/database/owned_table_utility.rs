@@ -17,7 +17,7 @@
 //! ```
 use super::{OwnedColumn, OwnedTable};
 use crate::base::{
-    math::non_negative_i32::NonNegativeI32,
+    math::fixed_size_binary_width::FixedSizeBinaryWidth,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::Scalar,
 };
@@ -56,7 +56,7 @@ use sqlparser::ast::Ident;
 /// ```
 pub fn fixed_size_binary<S: Scalar>(
     name: impl Into<Ident>,
-    byte_width: NonNegativeI32,
+    byte_width: FixedSizeBinaryWidth,
     data: impl Into<Vec<u8>>,
 ) -> (Ident, OwnedColumn<S>) {
     (

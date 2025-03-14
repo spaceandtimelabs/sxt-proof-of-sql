@@ -4,11 +4,11 @@
 /// This is the analog of an arrow Array.
 use super::{Column, ColumnCoercionError, ColumnType, OwnedColumnError, OwnedColumnResult};
 #[cfg(test)]
-use crate::base::math::non_negative_i32::fixed_binary_column_details;
+use crate::base::math::fixed_size_binary_width::fixed_binary_column_details;
 use crate::base::{
     math::{
         decimal::Precision,
-        non_negative_i32::NonNegativeI32,
+        fixed_size_binary_width::FixedSizeBinaryWidth,
         permutation::{Permutation, PermutationError},
     },
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
@@ -64,7 +64,7 @@ pub enum OwnedColumn<S: Scalar> {
             strategy = "fixed_binary_column_details().prop_map(|(w, d)| OwnedColumn::<S>::FixedSizeBinary(w, d))"
         )
     )]
-    FixedSizeBinary(NonNegativeI32, Vec<u8>),
+    FixedSizeBinary(FixedSizeBinaryWidth, Vec<u8>),
 }
 
 impl<S: Scalar> OwnedColumn<S> {
@@ -512,7 +512,7 @@ mod test {
 
     #[test]
     fn we_can_test_fixedsizebinary_length_and_is_empty_and_column_type() {
-        use crate::base::math::non_negative_i32::NonNegativeI32;
+        use crate::base::math::fixed_size_binary_width::FixedSizeBinaryWidth;
 
         // Test length for FixedSizeBinary
         // We'll store two rows, each 4 bytes wide
@@ -522,7 +522,7 @@ mod test {
         data.extend_from_slice(&row0);
         data.extend_from_slice(&row1);
 
-        let bw = NonNegativeI32::try_from(4).unwrap();
+        let bw = FixedSizeBinaryWidth::try_from(4).unwrap();
         let col_fixed: OwnedColumn<TestScalar> = OwnedColumn::FixedSizeBinary(bw, data);
         assert_eq!(col_fixed.len(), 2);
         assert!(!col_fixed.is_empty());
@@ -953,14 +953,14 @@ mod test {
         buffer.extend_from_slice(row3);
 
         let col = OwnedColumn::<TestScalar>::FixedSizeBinary(
-            NonNegativeI32::try_from(4).unwrap(),
+            FixedSizeBinaryWidth::try_from(4).unwrap(),
             buffer,
         );
         assert_eq!(col.slice(1, 3), {
             let mut sliced = Vec::with_capacity(2 * 4);
             sliced.extend_from_slice(row1);
             sliced.extend_from_slice(row2);
-            OwnedColumn::FixedSizeBinary(NonNegativeI32::try_from(4).unwrap(), sliced)
+            OwnedColumn::FixedSizeBinary(FixedSizeBinaryWidth::try_from(4).unwrap(), sliced)
         });
 
         let permutation = Permutation::try_new(vec![2, 0, 3, 1]).unwrap();
@@ -970,7 +970,7 @@ mod test {
             permuted.extend_from_slice(row0); // index=0
             permuted.extend_from_slice(row3); // index=3
             permuted.extend_from_slice(row1); // index=1
-            OwnedColumn::FixedSizeBinary(NonNegativeI32::try_from(4).unwrap(), permuted)
+            OwnedColumn::FixedSizeBinary(FixedSizeBinaryWidth::try_from(4).unwrap(), permuted)
         });
     }
 

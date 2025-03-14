@@ -1,6 +1,6 @@
 use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
-    math::{decimal::Precision, non_negative_i32::NonNegativeI32},
+    math::{decimal::Precision, fixed_size_binary_width::FixedSizeBinaryWidth},
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::{Scalar, ScalarExt},
     slice_ops::slice_cast_with,
@@ -56,7 +56,7 @@ pub enum Column<'a, S: Scalar> {
     VarBinary((&'a [&'a [u8]], &'a [S])),
     /// Fixed size binary columns
     /// - the i32 specifies the number of bytes per value
-    FixedSizeBinary(NonNegativeI32, &'a [u8]),
+    FixedSizeBinary(FixedSizeBinaryWidth, &'a [u8]),
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
@@ -318,7 +318,7 @@ impl<'a, S: Scalar> Column<'a, S> {
 
     /// Returns the column as a slice of u8 if it is a fixed size binary column. Otherwise, returns None.
     #[must_use]
-    pub fn as_fixed_size_binary(&self) -> Option<(NonNegativeI32, &'a [u8])> {
+    pub fn as_fixed_size_binary(&self) -> Option<(FixedSizeBinaryWidth, &'a [u8])> {
         match self {
             Column::FixedSizeBinary(width, data) => Some((*width, *data)),
             _ => None,
@@ -339,7 +339,12 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => S::from(col[index]),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
             Self::VarChar((_, scals)) | Self::VarBinary((_, scals)) => scals[index],
-            Self::FixedSizeBinary(_bw, _col) => unimplemented!("Unimplemented until needed"),
+            Self::FixedSizeBinary(bw, col) => {
+                let row_size: usize = (*bw).into();
+                let start = row_size * index;
+                let end = start + row_size;
+                S::from_fixed_size_byte_slice(&col[start..end])
+            }
         })
     }
 
@@ -360,7 +365,17 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::FixedSizeBinary(_bw, _col) => unimplemented!("Unimplemented until needed"),
+            Self::FixedSizeBinary(bw, col) => {
+                let row_size: usize = bw.into();
+                let length = col.len() * row_size;
+                let mut out = Vec::with_capacity(length);
+                for i in 0..length {
+                    let start = row_size * i;
+                    let end = start + row_size;
+                    out.push(S::from_fixed_size_byte_slice(&col[start..end]) * scale_factor);
+                }
+                out
+            }
         }
     }
 }
@@ -410,7 +425,7 @@ pub enum ColumnType {
     Scalar,
     /// Mapped to fixed size binary
     #[serde(alias = "FIXEDSIZEBINARY", alias = "fixedsizebinary")]
-    FixedSizeBinary(NonNegativeI32),
+    FixedSizeBinary(FixedSizeBinaryWidth),
     /// Mapped to [u8]
     #[serde(alias = "BINARY", alias = "BINARY")]
     VarBinary,
@@ -734,7 +749,7 @@ mod tests {
 
         // FixedSizeBinary -> precision_value() should yield None,
         // and the Display format needs coverage
-        let fsb_type = ColumnType::FixedSizeBinary(NonNegativeI32::try_from(4).unwrap());
+        let fsb_type = ColumnType::FixedSizeBinary(FixedSizeBinaryWidth::try_from(4).unwrap());
         assert_eq!(fsb_type.precision_value(), None);
         assert_eq!(fsb_type.to_string(), "FIXEDSIZEBINARY(4)");
     }
@@ -743,7 +758,7 @@ mod tests {
     fn we_can_convert_owned_fixed_size_binary() {
         let alloc = Bump::new();
         let data = vec![10u8, 20u8, 30u8, 40u8];
-        let bw = NonNegativeI32::try_from(2).unwrap();
+        let bw = FixedSizeBinaryWidth::try_from(2).unwrap();
         let owned = OwnedColumn::FixedSizeBinary(bw, data.clone());
         let col = Column::<TestScalar>::from_owned_column(&owned, &alloc);
 
@@ -758,7 +773,7 @@ mod tests {
 
     #[test]
     fn we_can_call_as_fixed_size_binary() {
-        let bw = NonNegativeI32::try_from(2).unwrap();
+        let bw = FixedSizeBinaryWidth::try_from(2).unwrap();
         let fs_col = Column::<TestScalar>::FixedSizeBinary(bw, &[1, 2, 3, 4]);
         assert_eq!(fs_col.as_fixed_size_binary(), Some((bw, &[1, 2, 3, 4][..])));
 
@@ -769,7 +784,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Unimplemented until needed")]
     fn we_cannot_scalar_at_fixed_size_binary() {
-        let bw = NonNegativeI32::try_from(2).unwrap();
+        let bw = FixedSizeBinaryWidth::try_from(2).unwrap();
         let col = Column::<TestScalar>::FixedSizeBinary(bw, &[1, 2]); // length=1 row if bw=2
         let _ = col.scalar_at(0);
     }
@@ -777,7 +792,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Unimplemented until needed")]
     fn we_cannot_call_to_scalar_with_scaling_on_fixed_size_binary() {
-        let bw = NonNegativeI32::try_from(2).unwrap();
+        let bw = FixedSizeBinaryWidth::try_from(2).unwrap();
         let col = Column::<TestScalar>::FixedSizeBinary(bw, &[10, 20, 30, 40]);
         let _ = col.to_scalar_with_scaling(1);
     }

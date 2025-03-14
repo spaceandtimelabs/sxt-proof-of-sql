@@ -31,6 +31,10 @@ pub(crate) fn type_check_binary_operation(
                 (left_dtype, right_dtype),
                 (ColumnType::VarChar, ColumnType::VarChar)
                     | (ColumnType::VarBinary, ColumnType::VarBinary)
+                    | (
+                        ColumnType::FixedSizeBinary(_),
+                        ColumnType::FixedSizeBinary(_)
+                    )
                     | (ColumnType::TimestampTZ(_, _), ColumnType::TimestampTZ(_, _))
                     | (ColumnType::Boolean, ColumnType::Boolean)
                     | (_, ColumnType::Scalar)

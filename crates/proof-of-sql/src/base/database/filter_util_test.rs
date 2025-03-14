@@ -7,12 +7,12 @@ use bumpalo::Bump;
 
 #[test]
 fn we_can_filter_columns_with_fixed_size_binary() {
-    use crate::base::math::non_negative_i32::NonNegativeI32;
+    use crate::base::math::fixed_size_binary_width::FixedSizeBinaryWidth;
 
     let selection = vec![true, false, true];
     // We have 3 rows, each 2 bytes wide => total 6 bytes
     let data = [10u8, 11u8, 12u8, 13u8, 14u8, 15u8];
-    let byte_width = NonNegativeI32::try_from(2).unwrap();
+    let byte_width = FixedSizeBinaryWidth::try_from(2).unwrap();
     let columns: Vec<Column<'_, TestScalar>> = vec![
         Column::FixedSizeBinary(byte_width, &data),
         Column::BigInt(&[100, 200, 300]),

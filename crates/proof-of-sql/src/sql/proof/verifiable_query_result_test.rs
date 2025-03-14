@@ -11,7 +11,7 @@ use crate::{
             TableEvaluation, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
-        math::non_negative_i32::NonNegativeI32,
+        math::fixed_size_binary_width::FixedSizeBinaryWidth,
         proof::ProofError,
         scalar::Scalar,
     },
@@ -82,7 +82,7 @@ impl ProofPlan for EmptyTestQueryExpr {
         fields.push(ColumnField::new("a1".into(), ColumnType::BigInt));
 
         if self.columns == 2 {
-            let width = NonNegativeI32::try_from(4).unwrap();
+            let width = FixedSizeBinaryWidth::try_from(4).unwrap();
             fields.push(ColumnField::new(
                 "a2".into(),
                 ColumnType::FixedSizeBinary(width),
@@ -107,7 +107,7 @@ fn we_can_verify_queries_on_an_empty_table_with_fixedsizebinary() {
         length: 0,
     };
 
-    let width = NonNegativeI32::try_from(4).unwrap();
+    let width = FixedSizeBinaryWidth::try_from(4).unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
         TableRef::new("sxt", "test"),
         owned_table([
@@ -136,7 +136,7 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
         ..Default::default()
     };
 
-    let width = NonNegativeI32::try_from(4).unwrap();
+    let width = FixedSizeBinaryWidth::try_from(4).unwrap();
     let data = vec![0];
 
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(

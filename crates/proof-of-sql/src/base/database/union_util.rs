@@ -270,37 +270,37 @@ mod tests {
         // col1 => 1 row  => data = [0x50, 0x60]
         // Union => 3 rows => data = [0x10,0x20,  0x30,0x40,  0x50,0x60]
 
-        use crate::base::math::non_negative_i32::NonNegativeI32;
+        use crate::base::math::fixed_size_binary_width::FixedSizeBinaryWidth;
         let alloc = bumpalo::Bump::new();
 
         let data0 = [0x10_u8, 0x20, 0x30, 0x40];
         let col0: Column<'_, TestScalar> =
-            Column::FixedSizeBinary(NonNegativeI32::try_from(2).unwrap(), &data0[..]);
+            Column::FixedSizeBinary(FixedSizeBinaryWidth::try_from(2).unwrap(), &data0[..]);
 
         let data1 = [0x50_u8, 0x60];
-        let col1 = Column::FixedSizeBinary(NonNegativeI32::try_from(2).unwrap(), &data1[..]);
+        let col1 = Column::FixedSizeBinary(FixedSizeBinaryWidth::try_from(2).unwrap(), &data1[..]);
 
         let columns = [&col0, &col1];
         let unioned = column_union(
             &columns,
             &alloc,
-            ColumnType::FixedSizeBinary(NonNegativeI32::try_from(2).unwrap()),
+            ColumnType::FixedSizeBinary(FixedSizeBinaryWidth::try_from(2).unwrap()),
         )
         .expect("fixedsizebinary union should succeed");
 
         let expected_data = [0x10, 0x20, 0x30, 0x40, 0x50, 0x60];
         assert_eq!(
             unioned,
-            Column::FixedSizeBinary(NonNegativeI32::try_from(2).unwrap(), &expected_data)
+            Column::FixedSizeBinary(FixedSizeBinaryWidth::try_from(2).unwrap(), &expected_data)
         );
     }
 
     #[test]
     fn we_can_union_tables_with_fixedsizebinary_column() {
-        use crate::base::{map::IndexMap, math::non_negative_i32::NonNegativeI32};
+        use crate::base::{map::IndexMap, math::fixed_size_binary_width::FixedSizeBinaryWidth};
 
         let alloc = Bump::new();
-        let width_2 = NonNegativeI32::try_from(2).unwrap();
+        let width_2 = FixedSizeBinaryWidth::try_from(2).unwrap();
 
         // Table #1: 2 rows
         let data0 = [0xAAu8, 0xBB, 0xCC, 0xDD];

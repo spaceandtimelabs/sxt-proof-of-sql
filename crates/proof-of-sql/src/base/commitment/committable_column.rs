@@ -1,6 +1,6 @@
 use crate::base::{
     database::{Column, ColumnType, OwnedColumn},
-    math::{decimal::Precision, non_negative_i32::NonNegativeI32},
+    math::{decimal::Precision, fixed_size_binary_width::FixedSizeBinaryWidth},
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     ref_into::RefInto,
     scalar::{Scalar, ScalarExt},
@@ -49,7 +49,7 @@ pub enum CommittableColumn<'a> {
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
     /// Borrowed `FixedSizeBinary` column, mapped to a slice of bytes.
     /// - The i32 specifies the number of bytes per value.
-    FixedSizeBinary(NonNegativeI32, &'a [u8]),
+    FixedSizeBinary(FixedSizeBinaryWidth, &'a [u8]),
 }
 
 impl CommittableColumn<'_> {
@@ -260,11 +260,11 @@ mod tests {
     #[cfg(all(test, feature = "blitzar"))]
     #[test]
     fn we_can_convert_and_commit_fixed_size_binary() {
-        use crate::base::{database::Column, math::non_negative_i32::NonNegativeI32};
+        use crate::base::{database::Column, math::fixed_size_binary_width::FixedSizeBinaryWidth};
         use blitzar::{compute::compute_curve25519_commitments, sequence::Sequence};
         use curve25519_dalek::ristretto::CompressedRistretto;
 
-        let bw = NonNegativeI32::try_from(2).unwrap();
+        let bw = FixedSizeBinaryWidth::try_from(2).unwrap();
         let bytes = [10_u8, 20_u8, 30_u8, 40_u8];
 
         let col: Column<'_, TestScalar> = Column::FixedSizeBinary(bw, &bytes);

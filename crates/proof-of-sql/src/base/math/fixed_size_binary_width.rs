@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 /// for the fixed-size binary type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-pub struct NonNegativeI32(#[cfg_attr(test, proptest(strategy = "1..31i32"))] i32);
+pub struct FixedSizeBinaryWidth(#[cfg_attr(test, proptest(strategy = "1..31i32"))] i32);
 
 /// Sepcified byte width is outside of supported range.
 #[derive(Debug)]
@@ -18,8 +18,9 @@ pub struct WidthError(i32);
 
 #[cfg(test)]
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-pub(crate) fn fixed_binary_column_details() -> impl Strategy<Value = (NonNegativeI32, Vec<u8>)> {
-    (any::<NonNegativeI32>(), 0..100usize).prop_flat_map(|(width, num_rows)| {
+pub(crate) fn fixed_binary_column_details() -> impl Strategy<Value = (FixedSizeBinaryWidth, Vec<u8>)>
+{
+    (any::<FixedSizeBinaryWidth>(), 0..100usize).prop_flat_map(|(width, num_rows)| {
         let len = width.0 as usize;
         (
             Just(width),
@@ -36,33 +37,33 @@ impl core::fmt::Display for WidthError {
     }
 }
 
-impl<'a> From<&'a NonNegativeI32> for usize {
+impl<'a> From<&'a FixedSizeBinaryWidth> for usize {
     #[allow(clippy::cast_sign_loss)]
-    fn from(val: &'a NonNegativeI32) -> Self {
+    fn from(val: &'a FixedSizeBinaryWidth) -> Self {
         val.0 as usize
     }
 }
 
-impl From<NonNegativeI32> for i32 {
-    fn from(val: NonNegativeI32) -> Self {
+impl From<FixedSizeBinaryWidth> for i32 {
+    fn from(val: FixedSizeBinaryWidth) -> Self {
         val.0
     }
 }
 
-impl From<NonNegativeI32> for usize {
+impl From<FixedSizeBinaryWidth> for usize {
     #[allow(clippy::cast_sign_loss)]
-    fn from(val: NonNegativeI32) -> Self {
+    fn from(val: FixedSizeBinaryWidth) -> Self {
         val.0 as usize
     }
 }
 
-impl Display for NonNegativeI32 {
+impl Display for FixedSizeBinaryWidth {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl TryFrom<i32> for NonNegativeI32 {
+impl TryFrom<i32> for FixedSizeBinaryWidth {
     type Error = WidthError;
 
     fn try_from(value: i32) -> Result<Self, Self::Error> {
@@ -96,13 +97,13 @@ mod precision_tests {
 
     #[test]
     fn we_can_display_nonnegativei32() {
-        let val = NonNegativeI32::try_from(5).unwrap();
+        let val = FixedSizeBinaryWidth::try_from(5).unwrap();
         assert_eq!(val.to_string(), "5");
     }
 
     #[test]
     fn we_can_convert_nonnegativei32_to_primitives() {
-        let val = NonNegativeI32::try_from(5).unwrap();
+        let val = FixedSizeBinaryWidth::try_from(5).unwrap();
         let as_i32: i32 = val.into();
         assert_eq!(as_i32, 5);
         let as_usize: usize = val.into();
@@ -117,13 +118,13 @@ mod precision_tests {
     #[test]
     fn we_cannot_construct_nonnegativei32_from_out_of_range() {
         // 32 is out of range (0..=31)
-        let res = NonNegativeI32::try_from(32);
+        let res = FixedSizeBinaryWidth::try_from(32);
         assert!(res.is_err());
         let err = res.err().unwrap();
         assert_eq!(err.to_string(), "negative width: 32");
 
         // negative number is also out of range
-        let res = NonNegativeI32::try_from(-1);
+        let res = FixedSizeBinaryWidth::try_from(-1);
         assert!(res.is_err());
         let err = res.err().unwrap();
         assert_eq!(err.to_string(), "negative width: -1");
@@ -132,11 +133,11 @@ mod precision_tests {
     #[test]
     fn we_can_construct_nonnegativei32_from_in_range() {
         // Minimum
-        let zero = NonNegativeI32::try_from(0).unwrap();
+        let zero = FixedSizeBinaryWidth::try_from(0).unwrap();
         assert_eq!(zero.to_string(), "0");
 
         // Maximum
-        let thirty_one = NonNegativeI32::try_from(31).unwrap();
+        let thirty_one = FixedSizeBinaryWidth::try_from(31).unwrap();
         assert_eq!(thirty_one.to_string(), "31");
     }
 }

@@ -8,7 +8,7 @@ use crate::base::{
         Commitment, CommittableColumn,
     },
     database::{owned_table_utility::*, TableRef},
-    math::non_negative_i32::NonNegativeI32,
+    math::fixed_size_binary_width::FixedSizeBinaryWidth,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::test_scalar::TestScalar,
 };
@@ -18,7 +18,7 @@ fn we_can_access_fixed_size_binary_column() {
     let table_ref = TableRef::new("sxt", "fixed_size_bin_test");
 
     // We'll store 2 rows, each 2 bytes wide. So the full buffer is 4 bytes.
-    let col_width = NonNegativeI32::try_from(2).unwrap();
+    let col_width = FixedSizeBinaryWidth::try_from(2).unwrap();
     let row0 = [0x01_u8, 0x02_u8];
     let row1 = [0x03_u8, 0x04_u8];
     let mut buffer = Vec::new();

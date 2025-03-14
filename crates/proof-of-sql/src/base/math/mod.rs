@@ -3,11 +3,11 @@
 pub mod decimal;
 #[cfg(test)]
 mod decimal_tests;
+/// Module containing [`NonNegativeI32`] type.
+pub mod fixed_size_binary_width;
 /// Module containing [I256] type.
 pub mod i256;
 mod log;
-/// Module containing [`NonNegativeI32`] type.
-pub mod non_negative_i32;
 pub(crate) use log::log2_up;
 /// TODO: add docs
 pub(crate) mod permutation;
