@@ -73,23 +73,26 @@ fn compute_dory_commitment_impl_fixed_size_binary_simple(
     let bw: usize = width.into();
     let num_elems = col_bytes.len() / bw;
 
-    let mut sum_g1 = G1Projective::default();
-    for i in 0..num_elems {
-        let start = i * bw;
-        let end = start + bw;
-        // Parse an arbitrary number of little-endian bytes into the field:
-        let field_elem: Fr = Fr::from_le_bytes_mod_order(&col_bytes[start..end]);
+    let gamma1 = setup
+        .prover_setup()
+        .Gamma_1
+        .last()
+        .expect("Gamma_1 cannot be empty");
+    let gamma2_0 = setup
+        .prover_setup()
+        .Gamma_2
+        .last()
+        .expect("Gamma_2 cannot be empty")[0];
 
-        let partial_commit = G1Projective::msm_unchecked(
-            &[setup.prover_setup().Gamma_1.last().unwrap()[i]],
-            &[field_elem.into_bigint().into()],
-        );
-        sum_g1 += partial_commit;
-    }
+    let scalars: Vec<_> = col_bytes
+        .chunks_exact(bw)
+        .map(Fr::from_le_bytes_mod_order)
+        .map(|f| f.into_bigint().into())
+        .collect();
 
-    let gamma2_0 = setup.prover_setup().Gamma_2.last().unwrap()[0];
-    let final_gt =
-        pairings::multi_pairing(core::iter::once(sum_g1), core::slice::from_ref(&gamma2_0));
+    let sum_g1 = G1Projective::msm_unchecked(&gamma1[..num_elems], &scalars);
+
+    let final_gt = pairings::multi_pairing([sum_g1], [gamma2_0]);
 
     DoryCommitment(final_gt)
 }

@@ -137,14 +137,16 @@ pub trait RepetitionOp {
                 let col_bytes = column.as_fixed_size_binary().expect("Column types match").1;
                 let bw: usize = width.into();
                 let num_rows = col_bytes.len() / bw;
-                let row_indices: Vec<usize> =
-                    Self::op(&(0..num_rows).collect::<Vec<_>>(), n).collect();
-                let allocated = alloc.alloc_slice_fill_with(row_indices.len() * bw, |idx| {
-                    let repeated_row_idx = idx / bw;
-                    let offset_in_row = idx % bw;
-                    let original_row_idx = row_indices[repeated_row_idx];
-                    col_bytes[original_row_idx * bw + offset_in_row]
-                });
+
+                // minor temporary Vec, acceptable in most use cases
+                let indices: Vec<_> = (0..num_rows).collect();
+
+                let new_bytes: Vec<u8> = Self::op(&indices, n)
+                    .flat_map(|row_idx| &col_bytes[row_idx * bw..(row_idx + 1) * bw])
+                    .copied()
+                    .collect();
+
+                let allocated = alloc.alloc_slice_copy(&new_bytes);
                 Column::FixedSizeBinary(width, allocated)
             }
         }

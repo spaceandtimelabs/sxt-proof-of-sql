@@ -34,12 +34,7 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
             Column::VarBinary((col, _)) => col[i].cmp(col[j]),
             Column::FixedSizeBinary(width, col) => {
                 let bw: usize = width.into();
-                let start_i = i * bw;
-                let end_i = start_i + bw;
-                let start_j = j * bw;
-                let end_j = start_j + bw;
-                // Compare the two slices lexicographically
-                col[start_i..end_i].cmp(&col[start_j..end_j])
+                col[i * bw..(i + 1) * bw].cmp(&col[j * bw..(j + 1) * bw])
             }
         })
         .find(|&ord| ord != Ordering::Equal)
@@ -148,13 +143,13 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
                 OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Uint8(col) => col[i].cmp(&col[j]),
                 OwnedColumn::FixedSizeBinary(width, col) => {
-                    // Compare the chunk of `width` bytes for row `i` vs row `j`
                     let bw: usize = width.into();
-                    let start_i = i * bw;
-                    let end_i = start_i + bw;
-                    let start_j = j * bw;
-                    let end_j = start_j + bw;
-                    col[start_i..end_i].cmp(&col[start_j..end_j])
+                    let get_row = |idx| {
+                        let start = idx * bw;
+                        &col[start..start + bw]
+                    };
+
+                    get_row(i).cmp(get_row(j))
                 }
                 OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),

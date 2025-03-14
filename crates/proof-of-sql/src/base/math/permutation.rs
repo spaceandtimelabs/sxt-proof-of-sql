@@ -109,14 +109,14 @@ impl Permutation {
             });
         }
 
-        let mut result = Vec::with_capacity(slice.len());
-        for &i in &self.permutation {
-            let start = i * chunk_size;
-            let end = start + chunk_size;
-            result.extend_from_slice(&slice[start..end]);
-        }
-
-        Ok(result)
+        Ok(self
+            .permutation
+            .iter()
+            .flat_map(|&i| {
+                let start = i * chunk_size;
+                slice[start..start + chunk_size].iter().cloned()
+            })
+            .collect())
     }
 }
 

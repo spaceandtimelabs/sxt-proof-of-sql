@@ -314,19 +314,19 @@ impl ArrayRefExt for ArrayRef {
             }
             DataType::FixedSizeBinary(bw) => {
                 if let Some(array) = self.as_any().downcast_ref::<FixedSizeBinaryArray>() {
-                    let byte_width: NonNegativeI32 = (*bw).try_into().map_err(|_| {
-                        ArrowArrayToColumnConversionError::UnsupportedType {
+                    let width: usize = NonNegativeI32::try_from(*bw)
+                        .map_err(|_| ArrowArrayToColumnConversionError::UnsupportedType {
                             datatype: self.data_type().clone(),
-                        }
-                    })?;
-
-                    let w: usize = byte_width.into();
-                    let start_byte = range.start * w;
-                    let end_byte = range.end * w;
+                        })?
+                        .into();
 
                     Ok(Column::FixedSizeBinary(
-                        byte_width,
-                        &array.value_data()[start_byte..end_byte],
+                        NonNegativeI32::try_from(*bw).map_err(|_| {
+                            ArrowArrayToColumnConversionError::UnsupportedType {
+                                datatype: self.data_type().clone(),
+                            }
+                        })?,
+                        &array.value_data()[range.start * width..range.end * width],
                     ))
                 } else {
                     Err(ArrowArrayToColumnConversionError::UnsupportedType {

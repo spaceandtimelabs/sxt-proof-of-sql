@@ -198,20 +198,21 @@ pub fn column_union<'a, S: Scalar>(
             )
         }
         ColumnType::FixedSizeBinary(width) => {
+            let chunk_size: usize = width.into();
             let mut iter = columns.iter().flat_map(|col| {
                 let (col_width, col_data) = col
                     .as_fixed_size_binary()
-                    .expect("Column should have the same type");
+                    .expect("Column types should match");
                 assert_eq!(col_width, width, "Inconsistent FixedSizeBinary width");
                 col_data.iter().copied()
             });
 
-            Column::FixedSizeBinary(width, {
-                let chunk_size: usize = width.into();
+            Column::FixedSizeBinary(
+                width,
                 alloc.alloc_slice_fill_with(len * chunk_size, |_| {
                     iter.next().expect("Iterator should have enough elements")
-                })
-            })
+                }),
+            )
         }
     })
 }

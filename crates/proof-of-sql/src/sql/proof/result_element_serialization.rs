@@ -121,40 +121,6 @@ pub fn decode_multiple_elements<'a, T: ProvableResultElement<'a>>(
     Ok((res, cnt))
 }
 
-/// Decodes a fixed-size binary column (all rows have the same fixed width in bytes).
-///
-/// This function is necessary because other decoding logic (like `ProvableResultElement`
-/// for `&[u8]`) expects variable-length data. In contrast, fixed-size binary columns
-/// do not store a length indicator for each row. Instead, each row is exactly `row_width`
-/// bytes. When `n` rows are present, the total byte length is `n * row_width`.
-///
-/// If we tried to decode it using `ProvableResultElement for &[u8]`, the generic
-/// implementation would treat each byte as an entire row, causing mismatches in row
-/// counts (e.g., 8 bytes seen as 8 rows instead of 2 rows of width 4). Hence we need
-/// this dedicated function to handle the chunking correctly:
-///
-/// 1. We compute the total number of expected bytes (`total_bytes = n * row_width`).
-/// 2. We verify that `data.len()` is at least `total_bytes`.
-/// 3. We slice out each row as `&data[start..end]` for `start = i * row_width`
-///    and `end = start + row_width`.
-///
-/// This ensures that decoding fixed-size binary data does not conflict with the
-/// variable-length approach used for other types, and allows rows to be interpreted
-/// correctly.
-pub fn decode_fixedsizebinary_elements(
-    data: &[u8],
-    n: usize,
-    row_width: usize,
-) -> Result<(Vec<u8>, usize), QueryError> {
-    let total_bytes = n.checked_mul(row_width).ok_or(QueryError::Overflow)?;
-    if data.len() < total_bytes {
-        return Err(QueryError::MiscellaneousDecodingError);
-    }
-    let mut buffer = Vec::with_capacity(total_bytes);
-    buffer.extend_from_slice(&data[..total_bytes]);
-    Ok((buffer, total_bytes))
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -165,28 +131,6 @@ mod tests {
         rngs::StdRng,
     };
     use rand_core::SeedableRng;
-
-    #[test]
-    fn we_can_decode_fixedsizebinary_elements() {
-        let data = vec![10, 20, 30, 40, 50, 60, 70, 80];
-        let (decoded, used) = decode_fixedsizebinary_elements(&data, 2, 4).unwrap();
-        assert_eq!(used, 8);
-        assert_eq!(decoded, data);
-
-        let short_data = vec![10, 20, 30, 40, 50, 60, 70];
-        assert!(
-            decode_fixedsizebinary_elements(&short_data, 2, 4).is_err(),
-            "Should fail when data is too short"
-        );
-
-        let n = (usize::MAX / 2) + 1;
-        let row_width = 2;
-        let big_data = Vec::new();
-        assert!(
-            decode_fixedsizebinary_elements(&big_data, n, row_width).is_err(),
-            "Should fail on overflow"
-        );
-    }
 
     #[test]
     fn we_can_encode_and_decode_empty_buffers() {

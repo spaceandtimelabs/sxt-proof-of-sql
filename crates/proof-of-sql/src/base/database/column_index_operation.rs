@@ -127,21 +127,26 @@ where
 
             let bw: usize = width.into();
             let num_rows = col.len() / bw;
-            let mut new_bytes = Vec::with_capacity(indexes.len() * bw);
 
-            for &i in indexes {
-                if i >= num_rows {
-                    return Err(ColumnOperationError::IndexOutOfBounds {
-                        index: i,
-                        len: num_rows,
-                    });
-                }
-                let start = i * bw;
-                let end = start + bw;
-                new_bytes.extend_from_slice(&col[start..end]);
-            }
-            let allocated = alloc.alloc_slice_copy(&new_bytes);
-            Ok(Column::FixedSizeBinary(width, allocated))
+            let new_bytes = indexes
+                .iter()
+                .map(|&i| {
+                    if i >= num_rows {
+                        return Err(ColumnOperationError::IndexOutOfBounds {
+                            index: i,
+                            len: num_rows,
+                        });
+                    }
+                    let start = i * bw;
+                    Ok(&col[start..start + bw])
+                })
+                .collect::<Result<Vec<&[u8]>, _>>()?
+                .concat();
+
+            Ok(Column::FixedSizeBinary(
+                width,
+                alloc.alloc_slice_copy(&new_bytes),
+            ))
         }
     }
 }

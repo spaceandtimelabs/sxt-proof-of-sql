@@ -138,11 +138,8 @@ fn copy_column_data_to_slice(
             scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
         }
         CommittableColumn::FixedSizeBinary(bw, items) => {
-            let width: usize = bw.into();
-            let row_start = index * width;
-            let row_end = row_start + width;
-            let row_bytes = &items[row_start..row_end];
-            scalar_row_slice[start..end].copy_from_slice(row_bytes);
+            let width = usize::from(*bw);
+            scalar_row_slice[start..end].copy_from_slice(&items[index * width..][..width]);
         }
     }
 }

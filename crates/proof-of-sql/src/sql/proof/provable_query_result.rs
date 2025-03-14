@@ -1,11 +1,8 @@
 use super::{decode_and_convert, decode_multiple_elements, ProvableResultColumn, QueryError};
-use crate::{
-    base::{
-        database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable, Table},
-        polynomial::compute_evaluation_vector,
-        scalar::{Scalar, ScalarExt},
-    },
-    sql::proof::result_element_serialization::decode_fixedsizebinary_elements,
+use crate::base::{
+    database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable, Table},
+    polynomial::compute_evaluation_vector,
+    scalar::{Scalar, ScalarExt},
 };
 use alloc::{vec, vec::Vec};
 use num_traits::Zero;
@@ -242,7 +239,7 @@ impl ProvableQueryResult {
                         let bw: usize = byte_width.into();
                         let (col_data, used_bytes) =
                             // try reusing decode multiple elements with n * bw
-                            decode_fixedsizebinary_elements(&self.data[offset..], n, bw)?;
+                            decode_multiple_elements(&self.data[offset..], n * bw)?;
                         offset += used_bytes;
                         Ok((
                             field.name(),

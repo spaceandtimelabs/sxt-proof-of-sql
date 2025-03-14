@@ -251,9 +251,8 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .as_any()
                     .downcast_ref::<FixedSizeBinaryArray>()
                     .unwrap()
-                    .iter()
-                    .flat_map(|s| s.unwrap().iter().copied())
-                    .collect::<Vec<u8>>(),
+                    .value_data()
+                    .to_vec(),
             )),
             DataType::Timestamp(time_unit, timezone) => match time_unit {
                 ArrowTimeUnit::Second => {
