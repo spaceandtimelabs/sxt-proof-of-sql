@@ -1,4 +1,4 @@
-use super::{BNScalar, HyperKZGCommitment, HyperKZGEngine};
+use super::{BNScalar, HyperKZGCommitment, HyperKZGEngine, HyperKZGPublicSetup};
 use crate::{
     base::{commitment::CommitmentEvaluationProof, slice_ops},
     proof_primitive::hyperkzg::nova_commitment::NovaCommitment,
@@ -25,7 +25,7 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
     type Scalar = BNScalar;
     type Commitment = HyperKZGCommitment;
     type Error = NovaError;
-    type ProverPublicSetup<'a> = &'a [G1Affine];
+    type ProverPublicSetup<'a> = HyperKZGPublicSetup<'a>;
     type VerifierPublicSetup<'a> = &'a VerifierKey<HyperKZGEngine>;
 
     fn new(

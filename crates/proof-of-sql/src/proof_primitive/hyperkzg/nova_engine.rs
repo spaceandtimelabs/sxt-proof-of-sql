@@ -1,9 +1,8 @@
-use super::BNScalar;
+use super::{BNScalar, HyperKZGPublicSetupOwned};
 use crate::base::{
     proof::{Keccak256Transcript, Transcript},
     slice_ops,
 };
-use ark_bn254::G1Affine;
 use nova_snark::{
     errors::NovaError,
     provider::{bn256_grumpkin::bn256::Scalar as NovaScalar, hyperkzg::CommitmentKey},
@@ -64,9 +63,9 @@ impl TranscriptEngineTrait<HyperKZGEngine> for Keccak256Transcript {
     fn dom_sep(&mut self, _bytes: &'static [u8]) {}
 }
 
-/// Utility converting a nova `CommitmentKey` to an owned hyperkzg public setup.
+/// Utility converting a nova `CommitmentKey` to a [`HyperKZGPublicSetupOwned`].
 pub fn nova_commitment_key_to_hyperkzg_public_setup(
     setup: &CommitmentKey<HyperKZGEngine>,
-) -> Vec<G1Affine> {
+) -> HyperKZGPublicSetupOwned {
     slice_ops::slice_cast_with(setup.ck(), blitzar::compute::convert_to_ark_bn254_g1_affine)
 }

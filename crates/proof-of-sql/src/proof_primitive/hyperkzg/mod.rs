@@ -9,6 +9,9 @@
 mod scalar;
 pub use scalar::BNScalar;
 
+mod public_setup;
+pub use public_setup::{HyperKZGPublicSetup, HyperKZGPublicSetupOwned};
+
 mod commitment;
 pub use commitment::HyperKZGCommitment;
 

@@ -1,4 +1,4 @@
-use super::BNScalar;
+use super::{BNScalar, HyperKZGPublicSetup};
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
     impl_serde_for_ark_serde_checked,
@@ -69,7 +69,7 @@ impl Sub for HyperKZGCommitment {
 #[cfg(not(feature = "blitzar"))]
 #[tracing::instrument(name = "compute_commitments_impl (cpu)", level = "debug", skip_all)]
 fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
-    setup: &[G1Affine],
+    setup: HyperKzgPublicSetup<'_>,
     offset: usize,
     scalars: &[T],
 ) -> HyperKZGCommitment {
@@ -85,7 +85,7 @@ fn compute_commitments_impl<T: Into<BNScalar> + Clone>(
 }
 impl Commitment for HyperKZGCommitment {
     type Scalar = BNScalar;
-    type PublicSetup<'a> = &'a [G1Affine];
+    type PublicSetup<'a> = HyperKZGPublicSetup<'a>;
 
     #[cfg(not(feature = "blitzar"))]
     #[tracing::instrument(name = "compute_commitments (cpu)", level = "debug", skip_all)]
