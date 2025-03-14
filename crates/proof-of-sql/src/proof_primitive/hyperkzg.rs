@@ -202,10 +202,12 @@ impl Engine for HyperKZGEngine {
     type Base = nova_snark::provider::bn256_grumpkin::bn256::Base;
     type Scalar = NovaScalar;
     type GE = nova_snark::provider::bn256_grumpkin::bn256::Point;
-    type RO = nova_snark::provider::poseidon::PoseidonRO<Self::Base, Self::Scalar>;
+    type RO = nova_snark::provider::poseidon::PoseidonRO<Self::Base>;
     type ROCircuit = nova_snark::provider::poseidon::PoseidonROCircuit<Self::Base>;
     type TE = Keccak256Transcript;
     type CE = nova_snark::provider::hyperkzg::CommitmentEngine<Self>;
+    type RO2 = nova_snark::provider::poseidon::PoseidonRO<Self::Scalar>;
+    type RO2Circuit = nova_snark::provider::poseidon::PoseidonROCircuit<Self::Scalar>;
 }
 
 impl TranscriptEngineTrait<HyperKZGEngine> for Keccak256Transcript {
@@ -703,6 +705,30 @@ mod tests {
         assert_eq!(result.len(), elements.len());
         for (a, b) in result.iter().zip(elements.iter()) {
             assert_eq!(a, b);
+        }
+    }
+
+    #[test]
+    fn run_big_test() {
+        // Define the parameters
+        let n = 1 << 28;
+        let file_name = "/home/jacob.trombetta/ptau/ppot_0080_final.ptau";
+        let binary_file_name = "/home/jacob.trombetta/ptau/ppot_0080_final.bin";
+
+        // Load from Nova
+        let file = OpenOptions::new().read(true).open(Path::new(file_name)).unwrap();
+        let mut reader = BufReader::new(file);
+        let elements_from_nova: CommitmentKey<HyperKZGEngine> = CommitmentEngine::load_setup(&mut reader, n).unwrap();
+
+        println!("h = {:?}", elements_from_nova.h());
+        println!("tau_H = {:?}", elements_from_nova.tau_H());
+
+        // Load the binary file
+        let elements_from_binary: Vec<G1Affine> = read_ark_from_binary(Path::new(binary_file_name)).unwrap();
+
+        assert_eq!(elements_from_nova.ck().len(), elements_from_binary.len());
+        for (a, b) in elements_from_nova.ck().iter().zip(elements_from_binary.iter()) {
+            assert_eq!(*a, blitzar::compute::convert_to_halo2_bn256_g1_affine(b));
         }
     }
 }
