@@ -1,0 +1,16 @@
+[package]
+name = "powers-of-tau-util"
+edition.workspace = true
+exclude.workspace = true
+repository.workspace = true
+version.workspace = true
+license-file.workspace = true
+
+[dependencies]
+ark-bn254 = { version = "0.5.0" }
+ark-serialize = { version = "0.5.0" }
+blitzar = { version = "4.3.0" }
+nova-snark = { git = "https://github.com/microsoft/Nova.git" }
+
+[lints]
+workspace = true
