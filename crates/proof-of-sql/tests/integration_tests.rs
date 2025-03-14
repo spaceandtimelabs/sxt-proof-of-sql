@@ -1189,11 +1189,13 @@ fn we_can_perform_equality_checks_on_rich_var_binary_data() {
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_perform_equality_checks_on_fixed_size_binary() {
-    use proof_of_sql::base::database::owned_table_utility::*;
-    use proof_of_sql::base::database::TableRef;
-    use proof_of_sql::base::math::fixed_size_binary_width::FixedSizeBinaryWidth;
-
-    use proof_of_sql::sql::{parse::QueryExpr, proof::VerifiableQueryResult};
+    use proof_of_sql::{
+        base::{
+            database::{owned_table_utility::*, TableRef},
+            math::fixed_size_binary_width::FixedSizeBinaryWidth,
+        },
+        sql::{parse::QueryExpr, proof::VerifiableQueryResult},
+    };
     use std::convert::TryFrom;
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
