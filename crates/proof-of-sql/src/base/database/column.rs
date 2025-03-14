@@ -1,6 +1,6 @@
 use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
-    math::decimal::Precision,
+    math::{decimal::Precision, fixed_size_binary_width::FixedSizeBinaryWidth},
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::{Scalar, ScalarExt},
     slice_ops::slice_cast_with,
@@ -54,6 +54,9 @@ pub enum Column<'a, S: Scalar> {
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
     /// Variable length binary columns
     VarBinary((&'a [&'a [u8]], &'a [S])),
+    /// Fixed size binary columns
+    /// - the i32 specifies the number of bytes per value
+    FixedSizeBinary(FixedSizeBinaryWidth, &'a [u8]),
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
@@ -74,9 +77,11 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::TimestampTZ(time_unit, timezone, _) => {
                 ColumnType::TimestampTZ(*time_unit, *timezone)
             }
+            Self::FixedSizeBinary(bw, _) => ColumnType::FixedSizeBinary(*bw),
             Self::VarBinary(..) => ColumnType::VarBinary,
         }
     }
+
     /// Returns the length of the column.
     /// # Panics
     /// this function requires that `col` and `scals` have the same length.
@@ -99,8 +104,13 @@ impl<'a, S: Scalar> Column<'a, S> {
             }
             Self::Int128(col) => col.len(),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col.len(),
+            Self::FixedSizeBinary(bw, col) => {
+                let chunk_size: usize = bw.into();
+                col.len() / chunk_size
+            }
         }
     }
+
     /// Returns `true` if the column has no elements.
     #[must_use]
     pub fn is_empty(&self) -> bool {
@@ -206,6 +216,7 @@ impl<'a, S: Scalar> Column<'a, S> {
                 ))
             }
             OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col.as_slice()),
+            OwnedColumn::FixedSizeBinary(bw, col) => Column::FixedSizeBinary(*bw, col.as_slice()),
         }
     }
 
@@ -305,6 +316,15 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 
+    /// Returns the column as a slice of u8 if it is a fixed size binary column. Otherwise, returns None.
+    #[must_use]
+    pub fn as_fixed_size_binary(&self) -> Option<(FixedSizeBinaryWidth, &'a [u8])> {
+        match self {
+            Column::FixedSizeBinary(width, data) => Some((*width, *data)),
+            _ => None,
+        }
+    }
+
     /// Returns element at index as scalar
     ///
     /// Note that if index is out of bounds, this function will return None
@@ -319,6 +339,12 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => S::from(col[index]),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
             Self::VarChar((_, scals)) | Self::VarBinary((_, scals)) => scals[index],
+            Self::FixedSizeBinary(bw, col) => {
+                let row_size: usize = (*bw).into();
+                let start = row_size * index;
+                let end = start + row_size;
+                S::from_fixed_size_byte_slice(&col[start..end])
+            }
         })
     }
 
@@ -339,6 +365,17 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::FixedSizeBinary(bw, col) => {
+                let row_size: usize = bw.into();
+                let length = col.len() / row_size;
+                let mut out = Vec::with_capacity(length);
+                for i in 0..length {
+                    let start = row_size * i;
+                    let end = start + row_size;
+                    out.push(S::from_fixed_size_byte_slice(&col[start..end]) * scale_factor);
+                }
+                out
+            }
         }
     }
 }
@@ -386,6 +423,9 @@ pub enum ColumnType {
     #[serde(alias = "SCALAR", alias = "scalar")]
     #[cfg_attr(test, proptest(skip))]
     Scalar,
+    /// Mapped to fixed size binary
+    #[serde(alias = "FIXEDSIZEBINARY", alias = "fixedsizebinary")]
+    FixedSizeBinary(FixedSizeBinaryWidth),
     /// Mapped to [u8]
     #[serde(alias = "BINARY", alias = "BINARY")]
     VarBinary,
@@ -503,7 +543,7 @@ impl ColumnType {
             // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
             // so that they do not cause errors when used in comparisons.
             Self::Scalar => Some(0_u8),
-            Self::Boolean | Self::VarChar | Self::VarBinary => None,
+            Self::Boolean | Self::VarChar | Self::VarBinary | Self::FixedSizeBinary(_) => None,
         }
     }
     /// Returns scale of a [`ColumnType`] if it is convertible to a decimal wrapped in `Some()`. Otherwise return None.
@@ -518,7 +558,7 @@ impl ColumnType {
             | Self::BigInt
             | Self::Int128
             | Self::Scalar => Some(0),
-            Self::Boolean | Self::VarBinary | Self::VarChar => None,
+            Self::Boolean | Self::VarChar | Self::VarBinary | Self::FixedSizeBinary(_) => None,
             Self::TimestampTZ(tu, _) => match tu {
                 PoSQLTimeUnit::Second => Some(0),
                 PoSQLTimeUnit::Millisecond => Some(3),
@@ -542,6 +582,7 @@ impl ColumnType {
             Self::Scalar | Self::Decimal75(_, _) | Self::VarBinary | Self::VarChar => {
                 size_of::<[u64; 4]>()
             }
+            Self::FixedSizeBinary(bw) => bw.into(),
         }
     }
 
@@ -564,10 +605,11 @@ impl ColumnType {
             | Self::TimestampTZ(_, _) => true,
             Self::Decimal75(_, _)
             | Self::Scalar
-            | Self::VarBinary
             | Self::VarChar
             | Self::Boolean
-            | Self::Uint8 => false,
+            | Self::Uint8
+            | Self::VarBinary
+            | Self::FixedSizeBinary(_) => false,
         }
     }
 
@@ -609,6 +651,7 @@ impl Display for ColumnType {
             ColumnType::TimestampTZ(timeunit, timezone) => {
                 write!(f, "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone})")
             }
+            ColumnType::FixedSizeBinary(bw) => write!(f, "FIXEDSIZEBINARY({bw})"),
         }
     }
 }
@@ -686,6 +729,57 @@ mod tests {
     use super::*;
     use crate::{base::scalar::test_scalar::TestScalar, proof_primitive::dory::DoryScalar};
     use alloc::{string::String, vec};
+
+    #[test]
+    fn we_can_check_precision_value_for_nonnumeric_and_display_fixedsizebinary() {
+        // Boolean -> precision_value() should yield None
+        let boolean_type = ColumnType::Boolean;
+        assert_eq!(boolean_type.precision_value(), None);
+        assert_eq!(boolean_type.to_string(), "BOOLEAN");
+
+        // VarChar -> precision_value() should yield None
+        let varchar_type = ColumnType::VarChar;
+        assert_eq!(varchar_type.precision_value(), None);
+        assert_eq!(varchar_type.to_string(), "VARCHAR");
+
+        // VarBinary -> precision_value() should yield None
+        let varbinary_type = ColumnType::VarBinary;
+        assert_eq!(varbinary_type.precision_value(), None);
+        assert_eq!(varbinary_type.to_string(), "BINARY");
+
+        // FixedSizeBinary -> precision_value() should yield None,
+        // and the Display format needs coverage
+        let fsb_type = ColumnType::FixedSizeBinary(FixedSizeBinaryWidth::try_from(4).unwrap());
+        assert_eq!(fsb_type.precision_value(), None);
+        assert_eq!(fsb_type.to_string(), "FIXEDSIZEBINARY(4)");
+    }
+
+    #[test]
+    fn we_can_convert_owned_fixed_size_binary() {
+        let alloc = Bump::new();
+        let data = vec![10u8, 20u8, 30u8, 40u8];
+        let bw = FixedSizeBinaryWidth::try_from(2).unwrap();
+        let owned = OwnedColumn::FixedSizeBinary(bw, data.clone());
+        let col = Column::<TestScalar>::from_owned_column(&owned, &alloc);
+
+        match col {
+            Column::FixedSizeBinary(width, bytes) => {
+                assert_eq!(width, bw);
+                assert_eq!(bytes, data.as_slice());
+            }
+            _ => panic!("Expected a FixedSizeBinary column"),
+        }
+    }
+
+    #[test]
+    fn we_can_call_as_fixed_size_binary() {
+        let bw = FixedSizeBinaryWidth::try_from(2).unwrap();
+        let fs_col = Column::<TestScalar>::FixedSizeBinary(bw, &[1, 2, 3, 4]);
+        assert_eq!(fs_col.as_fixed_size_binary(), Some((bw, &[1, 2, 3, 4][..])));
+
+        let big_int_col = Column::<TestScalar>::BigInt(&[100, 200]);
+        assert_eq!(big_int_col.as_fixed_size_binary(), None);
+    }
 
     #[test]
     fn column_type_serializes_to_string() {

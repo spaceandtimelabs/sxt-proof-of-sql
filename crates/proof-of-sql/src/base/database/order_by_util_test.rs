@@ -9,6 +9,147 @@ use crate::{
 use core::cmp::Ordering;
 
 #[test]
+fn we_cover_the_varbinary_path_after_equal_columns() {
+    let col_bool = Column::Boolean::<TestScalar>(&[true, true]);
+
+    let raw_bytes = [b"foo".as_ref(), b"bar".as_ref()];
+    let scalars = raw_bytes
+        .iter()
+        .map(|b| TestScalar::from_le_bytes_mod_order(b))
+        .collect::<Vec<_>>();
+    let col_varbinary = Column::VarBinary((raw_bytes.as_slice(), scalars.as_slice()));
+
+    let columns = &[col_bool, col_varbinary];
+
+    assert_eq!(
+        compare_indexes_by_columns(columns, 0, 1),
+        core::cmp::Ordering::Greater
+    );
+}
+
+#[test]
+fn we_can_compare_indexes_by_owned_columns_for_varbinary() {
+    // Example dataset
+    let data = vec![
+        b"foo".to_vec(),
+        b"bar".to_vec(),
+        b"baz".to_vec(),
+        b"baz".to_vec(),
+        b"bar".to_vec(),
+    ];
+    let column_varbinary = OwnedColumn::VarBinary(data);
+
+    // We'll just compare a few indexes to ensure the VarBinary case is hit
+    let columns: &[&OwnedColumn<TestScalar>; 1] = &[&column_varbinary];
+    // "foo" vs "bar" => "foo" > "bar"
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 0, 1),
+        core::cmp::Ordering::Greater
+    );
+    // "bar" vs "baz" => "bar" < "baz"
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 1, 2),
+        core::cmp::Ordering::Less
+    );
+    // "baz" vs "baz" => Equal
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 2, 3),
+        core::cmp::Ordering::Equal
+    );
+    // "baz" vs "bar" => "baz" > "bar"
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 3, 4),
+        core::cmp::Ordering::Greater
+    );
+    // "bar" vs "bar" => Equal
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 1, 4),
+        core::cmp::Ordering::Equal
+    );
+}
+
+#[test]
+fn we_can_compare_indexes_by_columns_for_fixedsizebinary_hex_i32_full_suite() {
+    // Each row is 4 bytes in big-endian format, representing:
+    //  row0 => 0x00 0x00 0x00 0x00  (0)
+    //  row1 => 0x00 0x00 0x00 0x01  (1)
+    //  row2 => 0x00 0x00 0x00 0x02  (2)
+    //  row3 => 0x7F 0xFF 0xFF 0xFF  (i32::MAX)
+    let slice = &[
+        0x00, 0x00, 0x00, 0x00, // row0
+        0x00, 0x00, 0x00, 0x01, // row1
+        0x00, 0x00, 0x00, 0x02, // row2
+        0x7F, 0xFF, 0xFF, 0xFF, // row3
+    ];
+
+    let width = 4.try_into().expect("must not be negative");
+    let col = Column::FixedSizeBinary(width, slice);
+
+    let columns: &[Column<TestScalar>] = &[col];
+
+    // row0 == row0
+    assert_eq!(compare_indexes_by_columns(columns, 0, 0), Ordering::Equal);
+    // row1 == row1
+    assert_eq!(compare_indexes_by_columns(columns, 1, 1), Ordering::Equal);
+    // row2 == row2
+    assert_eq!(compare_indexes_by_columns(columns, 2, 2), Ordering::Equal);
+    // row3 == row3
+    assert_eq!(compare_indexes_by_columns(columns, 3, 3), Ordering::Equal);
+
+    // row0 < row1
+    assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Less);
+    // row1 < row2
+    assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less);
+    // row2 < row3
+    assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Less);
+
+    // row1 > row0
+    assert_eq!(compare_indexes_by_columns(columns, 1, 0), Ordering::Greater);
+    // row2 > row1
+    assert_eq!(compare_indexes_by_columns(columns, 2, 1), Ordering::Greater);
+    // row3 > row2
+    assert_eq!(compare_indexes_by_columns(columns, 3, 2), Ordering::Greater);
+
+    // row0 <= row0 (Equal)
+    {
+        let ordering = compare_indexes_by_columns(columns, 0, 0);
+        assert!(matches!(ordering, Ordering::Less | Ordering::Equal));
+    }
+    // row0 <= row1 (Less)
+    {
+        let ordering = compare_indexes_by_columns(columns, 0, 1);
+        assert!(matches!(ordering, Ordering::Less | Ordering::Equal));
+    }
+
+    // row3 >= row2 (Greater)
+    {
+        let ordering = compare_indexes_by_columns(columns, 3, 2);
+        assert!(matches!(ordering, Ordering::Greater | Ordering::Equal));
+    }
+    // row3 >= row3 (Equal)
+    {
+        let ordering = compare_indexes_by_columns(columns, 3, 3);
+        assert!(matches!(ordering, Ordering::Greater | Ordering::Equal));
+    }
+
+    //
+    // A couple more quick combos:
+    //
+
+    // row1 <= row2 => True, because row1 < row2
+    {
+        let ordering = compare_indexes_by_columns(columns, 1, 2);
+        assert!(matches!(ordering, Ordering::Less | Ordering::Equal));
+    }
+
+    // row2 >= row1 => True, because row2 > row1
+    {
+        let ordering = compare_indexes_by_columns(columns, 2, 1);
+        assert!(matches!(ordering, Ordering::Greater | Ordering::Equal));
+    }
+}
+
+#[test]
 fn we_can_compare_indexes_by_columns_with_no_columns() {
     let columns: &[Column<TestScalar>; 0] = &[];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Equal);
@@ -288,6 +429,80 @@ fn we_can_compare_columns_with_direction() {
     );
 }
 
+#[test]
+fn we_can_compare_owned_columns_with_direction_fixedsizebinary_and_others() {
+    let col_small = OwnedColumn::SmallInt(vec![1, 1, 2, 1, 1]);
+
+    let col_varchar = OwnedColumn::VarChar(
+        ["b", "b", "a", "b", "a"]
+            .iter()
+            .map(ToString::to_string)
+            .collect(),
+    );
+
+    let col_decimal = OwnedColumn::Decimal75(
+        Precision::new(70).unwrap(),
+        20,
+        [-3, 2, 2, -3, 2]
+            .iter()
+            .map(|&n| TestScalar::from(n))
+            .collect(),
+    );
+
+    let fsbin_slice = vec![
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x7F, 0xFF, 0xFF,
+        0xFF, 0x00, 0x00, 0x00, 0x00,
+    ];
+    let width = 4.try_into().expect("width must be >= 0");
+    let col_fsbin = OwnedColumn::FixedSizeBinary(width, fsbin_slice);
+
+    let order_by_pairs = vec![
+        (col_small, true),
+        (col_varchar, false),
+        (col_decimal, true),
+        (col_fsbin, false),
+    ];
+
+    assert_eq!(
+        compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 0, 1),
+        Ordering::Less
+    );
+
+    assert_eq!(
+        compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 0, 2),
+        Ordering::Less
+    );
+
+    assert_eq!(
+        compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 0, 3),
+        Ordering::Greater
+    );
+
+    assert_eq!(
+        compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 1, 3),
+        Ordering::Greater
+    );
+
+    assert_eq!(
+        compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 1, 1),
+        Ordering::Equal
+    );
+
+    assert_eq!(
+        compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 2, 4),
+        Ordering::Greater
+    );
+
+    assert_eq!(
+        compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 3, 4),
+        Ordering::Less
+    );
+
+    assert_eq!(
+        compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 4, 0),
+        Ordering::Greater
+    );
+}
 #[test]
 fn we_can_compare_indexes_by_columns_for_varbinary_columns() {
     let raw_bytes = [

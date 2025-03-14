@@ -17,11 +17,53 @@
 //! ```
 use super::{OwnedColumn, OwnedTable};
 use crate::base::{
+    math::fixed_size_binary_width::FixedSizeBinaryWidth,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::Scalar,
 };
 use alloc::{string::String, vec::Vec};
 use sqlparser::ast::Ident;
+
+/// Creates a `(Ident, OwnedColumn)` pair for a fixed-size binary column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
+///
+/// # Parameters
+/// - `name`: The name of the column
+/// - `byte_width`: The number of bytes in each fixed-size value
+/// - `data`: A flat vector of all row-data bytes concatenated in row-major order
+///
+/// # Example
+/// ```
+/// use proof_of_sql::base::{
+///     database::owned_table_utility::*,
+///     math::non_negative_i32::NonNegativeI32,
+/// };
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+///
+/// // Suppose we have 2 rows, each 4 bytes wide.
+/// // So the total vector has 8 bytes: row0 followed by row1.
+/// let row0 = [0x01_u8, 0x02, 0x03, 0x04];
+/// let row1 = [0x05_u8, 0x06, 0x07, 0x08];
+/// let mut data = Vec::new();
+/// data.extend_from_slice(&row0);
+/// data.extend_from_slice(&row1);
+///
+/// // Then build an owned table containing a single fixed-size binary column:
+/// let table = owned_table::<MyScalar>([
+///     fixed_size_binary("fsb_column", NonNegativeI32::try_from(4).unwrap(), data),
+/// ]);
+/// ```
+pub fn fixed_size_binary<S: Scalar>(
+    name: impl Into<Ident>,
+    byte_width: FixedSizeBinaryWidth,
+    data: impl Into<Vec<u8>>,
+) -> (Ident, OwnedColumn<S>) {
+    (
+        name.into(),
+        OwnedColumn::FixedSizeBinary(byte_width, data.into()),
+    )
+}
 
 /// Creates an [`OwnedTable`] from a list of `(Ident, OwnedColumn)` pairs.
 /// This is a convenience wrapper around [`OwnedTable::try_from_iter`] primarily for use in tests and

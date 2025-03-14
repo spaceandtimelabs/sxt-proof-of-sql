@@ -3,6 +3,8 @@
 pub mod decimal;
 #[cfg(test)]
 mod decimal_tests;
+/// Module containing [`NonNegativeI32`] type.
+pub mod fixed_size_binary_width;
 /// Module containing [I256] type.
 pub mod i256;
 mod log;

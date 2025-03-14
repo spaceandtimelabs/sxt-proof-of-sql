@@ -242,6 +242,15 @@ pub(super) fn repeat_elementwise<S: Clone>(slice: &[S], n: usize) -> impl Iterat
         .flat_map(move |s| core::iter::repeat(s).take(n).cloned())
 }
 
+fn repeat_elementwise_fixed_size_binary(col_bytes: &[u8], width: usize, n: usize) -> Vec<u8> {
+    col_bytes
+        .chunks(width)
+        .flat_map(|chunk| core::iter::repeat(chunk).take(n))
+        .flatten()
+        .copied()
+        .collect()
+}
+
 /// Apply a slice to a slice of indexes.
 ///
 /// e.g. `apply_slice_to_indexes(&[1, 2, 3], &[0, 0, 1, 0]).unwrap()` -> `vec![1, 1, 2, 1]`
@@ -268,6 +277,36 @@ pub(crate) fn apply_slice_to_indexes<S: Clone>(
 mod test {
     use super::*;
     use core::cmp::{PartialEq, PartialOrd};
+
+    #[test]
+    fn we_can_repeat_elementwise_fixed_size_binary() {
+        // row0 = [0x01, 0x02, 0x03, 0x04]
+        // row1 = [0x05, 0x06, 0x07, 0x08]
+        // So we have 2 rows, each 4 bytes
+        let col_bytes = [0x01u8, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08];
+        let width = 4;
+        let n = 2;
+
+        // Expect row0 repeated twice, followed by row1 repeated twice
+        // => [0x01,0x02,0x03,0x04, 0x01,0x02,0x03,0x04, 0x05,0x06,0x07,0x08, 0x05,0x06,0x07,0x08]
+        let expected = vec![
+            0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x05, 0x06,
+            0x07, 0x08,
+        ];
+
+        let actual = super::repeat_elementwise_fixed_size_binary(&col_bytes, width, n);
+        assert_eq!(actual, expected);
+
+        // Try n=0 => expect empty
+        let empty_result = super::repeat_elementwise_fixed_size_binary(&col_bytes, width, 0);
+        assert!(empty_result.is_empty());
+
+        // Try empty col_bytes => also expect empty
+        let empty_data = [];
+        let empty_data_result = super::repeat_elementwise_fixed_size_binary(&empty_data, width, n);
+        assert!(empty_data_result.is_empty());
+    }
+
     // Reverse
     #[test]
     fn we_can_reverse_binary_operator() {

@@ -1,15 +1,16 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::base::{
     database::Column,
-    math::decimal::Precision,
+    math::{decimal::Precision, fixed_size_binary_width::FixedSizeBinaryWidth},
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
     scalar::{Scalar, ScalarExt},
 };
 use arrow::{
     array::{
-        Array, ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array, Int16Array,
-        Int32Array, Int64Array, Int8Array, StringArray, TimestampMicrosecondArray,
-        TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray, UInt8Array,
+        Array, ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Decimal256Array,
+        FixedSizeBinaryArray, Int16Array, Int32Array, Int64Array, Int8Array, StringArray,
+        TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
+        TimestampSecondArray, UInt8Array,
     },
     datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
 };
@@ -311,6 +312,28 @@ impl ArrayRefExt for ArrayRef {
                     })
                 }
             }
+            DataType::FixedSizeBinary(bw) => {
+                if let Some(array) = self.as_any().downcast_ref::<FixedSizeBinaryArray>() {
+                    let width: usize = FixedSizeBinaryWidth::try_from(*bw)
+                        .map_err(|_| ArrowArrayToColumnConversionError::UnsupportedType {
+                            datatype: self.data_type().clone(),
+                        })?
+                        .into();
+
+                    Ok(Column::FixedSizeBinary(
+                        FixedSizeBinaryWidth::try_from(*bw).map_err(|_| {
+                            ArrowArrayToColumnConversionError::UnsupportedType {
+                                datatype: self.data_type().clone(),
+                            }
+                        })?,
+                        &array.value_data()[range.start * width..range.end * width],
+                    ))
+                } else {
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
+                }
+            }
             data_type => Err(ArrowArrayToColumnConversionError::UnsupportedType {
                 datatype: data_type.clone(),
             }),
@@ -332,6 +355,40 @@ mod tests {
     use proptest::prelude::*;
 
     #[test]
+    fn we_can_convert_fixed_size_binary_array_normal_range() {
+        let alloc = Bump::new();
+        let data = [vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
+        let array = FixedSizeBinaryArray::try_from_iter(data.iter()).unwrap();
+        let array_ref: ArrayRef = Arc::new(array);
+
+        let result = array_ref
+            .to_column::<TestScalar>(&alloc, &(0..3), None)
+            .unwrap();
+
+        assert_eq!(
+            result,
+            Column::FixedSizeBinary(3.try_into().unwrap(), &[1, 2, 3, 4, 5, 6, 7, 8, 9])
+        );
+    }
+
+    #[test]
+    fn we_can_convert_fixed_size_binary_array_partial_range() {
+        let alloc = Bump::new();
+        let data = [vec![10, 20], vec![30, 40], vec![50, 60]];
+        let array = FixedSizeBinaryArray::try_from_iter(data.iter()).unwrap();
+        let array_ref: ArrayRef = Arc::new(array);
+
+        let result = array_ref
+            .to_column::<DoryScalar>(&alloc, &(1..3), None)
+            .unwrap();
+
+        assert_eq!(
+            result,
+            Column::FixedSizeBinary(2.try_into().unwrap(), &[30, 40, 50, 60])
+        );
+    }
+
+    #[test]
     fn we_can_convert_timestamp_array_normal_range() {
         let alloc = Bump::new();
         let data = vec![1_625_072_400, 1_625_076_000, 1_625_083_200]; // Example Unix timestamps
@@ -344,6 +401,35 @@ mod tests {
         assert_eq!(
             result.unwrap(),
             Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), &data[1..3])
+        );
+    }
+
+    #[test]
+    fn we_can_convert_fixed_size_binary_array_empty_range() {
+        let alloc = Bump::new();
+        let data = [vec![1, 2], vec![3, 4]];
+        let array = FixedSizeBinaryArray::try_from_iter(data.iter()).unwrap();
+        let array_ref: ArrayRef = Arc::new(array);
+
+        let result = array_ref
+            .to_column::<TestScalar>(&alloc, &(1..1), None)
+            .unwrap();
+
+        assert_eq!(result, Column::FixedSizeBinary(2.try_into().unwrap(), &[]));
+    }
+
+    #[test]
+    fn we_cannot_convert_fixed_size_binary_array_oob_range() {
+        let alloc = Bump::new();
+        let data = [vec![1, 2, 3], vec![4, 5, 6]];
+        let array = FixedSizeBinaryArray::try_from_iter(data.iter()).unwrap();
+        let array_ref: ArrayRef = Arc::new(array);
+
+        let result = array_ref.to_column::<TestScalar>(&alloc, &(2..4), None);
+
+        assert_eq!(
+            result,
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 4 })
         );
     }
 

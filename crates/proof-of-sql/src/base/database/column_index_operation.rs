@@ -1,5 +1,9 @@
-use super::{slice_operation::apply_slice_to_indexes, Column, ColumnOperationResult, ColumnType};
+use super::{
+    slice_operation::apply_slice_to_indexes, Column, ColumnOperationError, ColumnOperationResult,
+    ColumnType,
+};
 use crate::base::scalar::Scalar;
+use alloc::vec::Vec;
 use bumpalo::Bump;
 
 /// Apply a `Column` to a vector of indexes, returning a new `Column` with the
@@ -7,6 +11,7 @@ use bumpalo::Bump;
 ///
 /// # Panics
 /// Panics if any of the indexes are out of bounds.
+#[allow(clippy::too_many_lines)]
 pub(crate) fn apply_column_to_indexes<'a, S>(
     column: &Column<'a, S>,
     alloc: &'a Bump,
@@ -114,6 +119,35 @@ where
                 alloc.alloc_slice_copy(&raw_values) as &[_],
             ))
         }
+        ColumnType::FixedSizeBinary(width) => {
+            let col = column
+                .as_fixed_size_binary()
+                .expect("Column types should match")
+                .1;
+
+            let bw: usize = width.into();
+            let num_rows = col.len() / bw;
+
+            let new_bytes = indexes
+                .iter()
+                .map(|&i| {
+                    if i >= num_rows {
+                        return Err(ColumnOperationError::IndexOutOfBounds {
+                            index: i,
+                            len: num_rows,
+                        });
+                    }
+                    let start = i * bw;
+                    Ok(&col[start..start + bw])
+                })
+                .collect::<Result<Vec<&[u8]>, _>>()?
+                .concat();
+
+            Ok(Column::FixedSizeBinary(
+                width,
+                alloc.alloc_slice_copy(&new_bytes),
+            ))
+        }
     }
 }
 
@@ -158,6 +192,109 @@ mod tests {
         let bump = Bump::new();
         let column: Column<TestScalar> = Column::Int(&[1, 2, 3, 4, 5]);
         let indexes = [1, 3, 1, 2, 5];
+        let result = apply_column_to_indexes(&column, &bump, &indexes);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::IndexOutOfBounds { .. })
+        ));
+    }
+
+    #[test]
+    fn test_apply_index_op_fixed_size_binary_min_max() {
+        let bump = Bump::new();
+
+        let row0 = i32::MIN.to_le_bytes();
+        let row1 = 123_i32.to_le_bytes();
+        let row2 = i32::MAX.to_le_bytes();
+
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&row0);
+        bytes.extend_from_slice(&row1);
+        bytes.extend_from_slice(&row2);
+
+        let width = 4.try_into().unwrap();
+        let column: Column<TestScalar> = Column::FixedSizeBinary(width, &bytes);
+
+        let indexes = [0, 2, 1];
+        let result = apply_column_to_indexes(&column, &bump, &indexes).unwrap();
+
+        let mut expected_bytes = Vec::new();
+        expected_bytes.extend_from_slice(&row0);
+        expected_bytes.extend_from_slice(&row2);
+        expected_bytes.extend_from_slice(&row1);
+        let expected = Column::FixedSizeBinary(width, &expected_bytes);
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_apply_index_op_fixed_size_binary_out_of_bounds_min_max() {
+        let bump = Bump::new();
+
+        let row0 = i32::MIN.to_le_bytes();
+        let row1 = i32::MAX.to_le_bytes();
+
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&row0);
+        bytes.extend_from_slice(&row1);
+
+        let width = 4.try_into().unwrap();
+        let column: Column<TestScalar> = Column::FixedSizeBinary(width, &bytes);
+
+        let indexes = [0, 2];
+        let result = apply_column_to_indexes(&column, &bump, &indexes);
+
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::IndexOutOfBounds { index: 2, len: 2 })
+        ));
+    }
+
+    #[test]
+    fn test_apply_index_op_fixed_size_binary() {
+        let bump = Bump::new();
+
+        let bytes: &[u8] = &[
+            1, 0, 0, 0, // row0 => i32 = 1
+            2, 0, 0, 0, // row1 => i32 = 2
+            3, 0, 0, 0, // row2 => i32 = 3
+            4, 0, 0, 0, // row3 => i32 = 4
+            5, 0, 0, 0, // row4 => i32 = 5
+        ];
+
+        let width = 4.try_into().unwrap();
+        let column: Column<TestScalar> = Column::FixedSizeBinary(width, bytes);
+
+        // We want to select row1, row3, row0 => indexes = [1, 3, 0]
+        // That should produce a new column with bytes for rows 1,3,0 in that order.
+        // row1 => [2, 0, 0, 0]
+        // row3 => [4, 0, 0, 0]
+        // row0 => [1, 0, 0, 0]
+        let indexes = [1, 3, 0];
+        let result = apply_column_to_indexes(&column, &bump, &indexes).unwrap();
+
+        let expected_bytes: &[u8] = &[
+            2, 0, 0, 0, // from row1
+            4, 0, 0, 0, // from row3
+            1, 0, 0, 0, // from row0
+        ];
+        let expected = Column::FixedSizeBinary(width, expected_bytes);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_apply_index_op_fixed_size_binary_out_of_bounds() {
+        let bump = Bump::new();
+
+        let bytes: &[u8] = &[
+            1, 0, 0, 0, // row0 => i32=1
+            2, 0, 0, 0, // row1 => i32=2
+        ];
+        let width = 4.try_into().unwrap();
+        let column: Column<TestScalar> = Column::FixedSizeBinary(width, bytes);
+
+        // We only have 2 rows -> valid indexes are {0,1} -> index=2 is out-of-bounds
+        let indexes = [1, 2];
         let result = apply_column_to_indexes(&column, &bump, &indexes);
         assert!(matches!(
             result,

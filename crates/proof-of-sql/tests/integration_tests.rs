@@ -1185,3 +1185,67 @@ fn we_can_perform_equality_checks_on_rich_var_binary_data() {
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
+
+#[test]
+#[cfg(feature = "blitzar")]
+fn we_can_perform_equality_checks_on_fixed_size_binary() {
+    use proof_of_sql::{
+        base::{
+            database::{owned_table_utility::*, TableRef},
+            math::fixed_size_binary_width::FixedSizeBinaryWidth,
+        },
+        sql::{parse::QueryExpr, proof::VerifiableQueryResult},
+    };
+    use std::convert::TryFrom;
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([
+            fixed_size_binary(
+                "a",
+                FixedSizeBinaryWidth::try_from(4).unwrap(),
+                vec![0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4],
+            ),
+            fixed_size_binary(
+                "b",
+                FixedSizeBinaryWidth::try_from(4).unwrap(),
+                vec![0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 9],
+            ),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE a=b".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
+        query.proof_expr(),
+        &accessor,
+        &dory_prover_setup,
+    );
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        fixed_size_binary(
+            "a",
+            FixedSizeBinaryWidth::try_from(4).unwrap(),
+            vec![0, 0, 0, 0, 1, 2, 3, 4],
+        ),
+        fixed_size_binary(
+            "b",
+            FixedSizeBinaryWidth::try_from(4).unwrap(),
+            vec![0, 0, 0, 0, 1, 2, 3, 4],
+        ),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}

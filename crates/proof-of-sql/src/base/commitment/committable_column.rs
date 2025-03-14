@@ -1,6 +1,6 @@
 use crate::base::{
     database::{Column, ColumnType, OwnedColumn},
-    math::decimal::Precision,
+    math::{decimal::Precision, fixed_size_binary_width::FixedSizeBinaryWidth},
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     ref_into::RefInto,
     scalar::{Scalar, ScalarExt},
@@ -47,6 +47,9 @@ pub enum CommittableColumn<'a> {
     VarBinary(Vec<[u64; 4]>),
     /// Borrowed Timestamp column with Timezone, mapped to `i64`.
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    /// Borrowed `FixedSizeBinary` column, mapped to a slice of bytes.
+    /// - The i32 specifies the number of bytes per value.
+    FixedSizeBinary(FixedSizeBinaryWidth, &'a [u8]),
 }
 
 impl CommittableColumn<'_> {
@@ -65,6 +68,7 @@ impl CommittableColumn<'_> {
             | CommittableColumn::VarChar(col)
             | CommittableColumn::VarBinary(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
+            CommittableColumn::FixedSizeBinary(_, items) => items.len(),
         }
     }
 
@@ -98,6 +102,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             CommittableColumn::VarBinary(_) => ColumnType::VarBinary,
             CommittableColumn::Boolean(_) => ColumnType::Boolean,
             CommittableColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
+            CommittableColumn::FixedSizeBinary(size, _) => ColumnType::FixedSizeBinary(*size),
         }
     }
 }
@@ -126,6 +131,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
                 CommittableColumn::VarBinary(as_limbs)
             }
             Column::TimestampTZ(tu, tz, times) => CommittableColumn::TimestampTZ(*tu, *tz, times),
+            Column::FixedSizeBinary(bw, bytes) => CommittableColumn::FixedSizeBinary(*bw, bytes),
         }
     }
 }
@@ -172,6 +178,9 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
             ),
             OwnedColumn::TimestampTZ(tu, tz, times) => {
                 CommittableColumn::TimestampTZ(*tu, *tz, times as &[_])
+            }
+            OwnedColumn::FixedSizeBinary(bw, bytes) => {
+                CommittableColumn::FixedSizeBinary(*bw, bytes)
             }
         }
     }
@@ -236,6 +245,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             | CommittableColumn::VarBinary(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
             CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
+            CommittableColumn::FixedSizeBinary(_, items) => Sequence::from(*items),
         }
     }
 }
@@ -246,6 +256,41 @@ mod tests {
     use crate::{base::scalar::test_scalar::TestScalar, proof_primitive::dory::DoryScalar};
     use blitzar::compute::compute_curve25519_commitments;
     use curve25519_dalek::ristretto::CompressedRistretto;
+
+    #[cfg(all(test, feature = "blitzar"))]
+    #[test]
+    fn we_can_convert_and_commit_fixed_size_binary() {
+        use crate::base::{database::Column, math::fixed_size_binary_width::FixedSizeBinaryWidth};
+        use blitzar::{compute::compute_curve25519_commitments, sequence::Sequence};
+        use curve25519_dalek::ristretto::CompressedRistretto;
+
+        let bw = FixedSizeBinaryWidth::try_from(2).unwrap();
+        let bytes = [10_u8, 20_u8, 30_u8, 40_u8];
+
+        let col: Column<'_, TestScalar> = Column::FixedSizeBinary(bw, &bytes);
+        let commit_col = CommittableColumn::from(&col);
+        assert_eq!(commit_col, CommittableColumn::FixedSizeBinary(bw, &bytes));
+
+        let sequence = Sequence::from(&commit_col);
+        let sequence_check = Sequence::from(bytes.as_slice());
+        let mut commitments = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(&mut commitments, &[sequence, sequence_check], 0);
+        assert_eq!(commitments[0], commitments[1]);
+    }
+
+    #[cfg(all(test, feature = "blitzar"))]
+    #[test]
+    #[should_panic(expected = "Expected a FixedSizeBinary variant")]
+    fn we_trigger_the_non_fixed_size_binary_branch_for_coverage() {
+        let col: Column<'_, TestScalar> = Column::Int(&[1, 2, 3]);
+        let commit_col = CommittableColumn::from(&col);
+        match commit_col {
+            CommittableColumn::FixedSizeBinary(_, _) => {
+                panic!("This should never happen for an I32 column");
+            }
+            _ => panic!("Expected a FixedSizeBinary variant"),
+        }
+    }
 
     #[test]
     fn we_can_get_type_and_length_of_varbinary_column() {

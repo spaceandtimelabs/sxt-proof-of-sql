@@ -32,7 +32,8 @@ pub trait ScalarExt: Scalar {
         U256::from(Into::<[u64; 4]>::into(self))
     }
 
-    /// Converts a byte slice to a Scalar using a hash function, preventing collisions.
+    /// Converts a byte slice to a Scalar using a hash function, preventing collisions
+    /// with high probability.
     /// WARNING: Only up to 31 bytes (2^248 bits) are supported by `PoSQL` cryptographic
     /// objects. This function masks off the last byte of the hash to ensure the result
     /// fits in this range.
@@ -50,6 +51,16 @@ pub trait ScalarExt: Scalar {
             U256::from_le_slice(&hashed_bytes).expect("32 bytes => guaranteed to parse as U256");
         let masked_val = hashed_val & Self::CHALLENGE_MASK;
         Self::from_wrapping(masked_val)
+    }
+
+    /// Encodes a fixed-size binary element into a scalar object.
+    #[must_use]
+    fn from_fixed_size_byte_slice(bytes: &[u8]) -> Self {
+        debug_assert!(bytes.len() <= 31);
+        let mut buffer = [0u8; 32];
+        buffer[..bytes.len()].copy_from_slice(bytes);
+        let val = U256::from_le_slice(&buffer).expect("at most 32 bytes => valid U256");
+        Self::from_wrapping(val)
     }
 }
 

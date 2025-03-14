@@ -1,8 +1,14 @@
 use super::{pairings, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Projective};
-use crate::{base::commitment::CommittableColumn, utils::log};
+use crate::{
+    base::{commitment::CommittableColumn, math::non_negative_i32::NonNegativeI32},
+    utils::log,
+};
 use alloc::vec::Vec;
-use ark_ec::VariableBaseMSM;
+use ark_bls12_381::Bls12_381 as E;
+use ark_ec::{pairing::Pairing, VariableBaseMSM};
 use core::iter::once;
+type Fr = <E as Pairing>::ScalarField;
+use ark_ff::PrimeField;
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
 /// # Panics
@@ -59,6 +65,38 @@ where
     res
 }
 
+fn compute_dory_commitment_impl_fixed_size_binary_simple(
+    col_bytes: &[u8],
+    width: NonNegativeI32,
+    setup: &DoryProverPublicSetup,
+) -> DoryCommitment {
+    let bw: usize = width.into();
+    let num_elems = col_bytes.len() / bw;
+
+    let gamma1 = setup
+        .prover_setup()
+        .Gamma_1
+        .last()
+        .expect("Gamma_1 cannot be empty");
+    let gamma2_0 = setup
+        .prover_setup()
+        .Gamma_2
+        .last()
+        .expect("Gamma_2 cannot be empty")[0];
+
+    let scalars: Vec<_> = col_bytes
+        .chunks_exact(bw)
+        .map(Fr::from_le_bytes_mod_order)
+        .map(|f| f.into_bigint().into())
+        .collect();
+
+    let sum_g1 = G1Projective::msm_unchecked(&gamma1[..num_elems], &scalars);
+
+    let final_gt = pairings::multi_pairing([sum_g1], [gamma2_0]);
+
+    DoryCommitment(final_gt)
+}
+
 fn compute_dory_commitment(
     committable_column: &CommittableColumn,
     offset: usize,
@@ -80,6 +118,9 @@ fn compute_dory_commitment(
         CommittableColumn::Boolean(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::TimestampTZ(_, _, column) => {
             compute_dory_commitment_impl(column, offset, setup)
+        }
+        CommittableColumn::FixedSizeBinary(width, column) => {
+            compute_dory_commitment_impl_fixed_size_binary_simple(column, *width, setup)
         }
     }
 }

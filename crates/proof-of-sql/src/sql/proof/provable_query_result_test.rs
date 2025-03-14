@@ -1,13 +1,9 @@
 use super::{ProvableQueryResult, QueryError};
-use crate::base::scalar::test_scalar::TestScalar;
-use crate::{
-    base::{
-        database::{Column, ColumnField, ColumnType},
-        math::decimal::Precision,
-        polynomial::compute_evaluation_vector,
-        scalar::Scalar,
-    },
-    // proof_primitive::inner_product::TestScalar,
+use crate::base::{
+    database::{Column, ColumnField, ColumnType},
+    math::decimal::Precision,
+    polynomial::compute_evaluation_vector,
+    scalar::{test_scalar::TestScalar, Scalar},
 };
 use alloc::sync::Arc;
 use arrow::{

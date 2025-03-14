@@ -103,7 +103,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             | Column::VarChar((_, c))
             | Column::VarBinary((_, c))
             | Column::Decimal75(_, _, c) => c.inner_product(evaluation_vec),
-            Column::Uint8(c) => c.inner_product(evaluation_vec),
+            Column::Uint8(c) | Column::FixedSizeBinary(_, c) => c.inner_product(evaluation_vec),
             Column::TinyInt(c) => c.inner_product(evaluation_vec),
             Column::SmallInt(c) => c.inner_product(evaluation_vec),
             Column::Int(c) => c.inner_product(evaluation_vec),
@@ -121,7 +121,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             | Column::Decimal75(_, _, c) => {
                 c.mul_add(res, multiplier);
             }
-            Column::Uint8(c) => c.mul_add(res, multiplier),
+            Column::Uint8(c) | Column::FixedSizeBinary(_, c) => c.mul_add(res, multiplier),
             Column::TinyInt(c) => c.mul_add(res, multiplier),
             Column::SmallInt(c) => c.mul_add(res, multiplier),
             Column::Int(c) => c.mul_add(res, multiplier),
@@ -137,7 +137,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             | Column::VarChar((_, c))
             | Column::VarBinary((_, c))
             | Column::Decimal75(_, _, c) => c.to_sumcheck_term(num_vars),
-            Column::Uint8(c) => c.to_sumcheck_term(num_vars),
+            Column::Uint8(c) | Column::FixedSizeBinary(_, c) => c.to_sumcheck_term(num_vars),
             Column::TinyInt(c) => c.to_sumcheck_term(num_vars),
             Column::SmallInt(c) => c.to_sumcheck_term(num_vars),
             Column::Int(c) => c.to_sumcheck_term(num_vars),
@@ -153,7 +153,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             | Column::VarChar((_, c))
             | Column::VarBinary((_, c))
             | Column::Decimal75(_, _, c) => MultilinearExtension::<S>::id(c),
-            Column::Uint8(c) => MultilinearExtension::<S>::id(c),
+            Column::Uint8(c) | Column::FixedSizeBinary(_, c) => MultilinearExtension::<S>::id(c),
             Column::TinyInt(c) => MultilinearExtension::<S>::id(c),
             Column::SmallInt(c) => MultilinearExtension::<S>::id(c),
             Column::Int(c) => MultilinearExtension::<S>::id(c),
