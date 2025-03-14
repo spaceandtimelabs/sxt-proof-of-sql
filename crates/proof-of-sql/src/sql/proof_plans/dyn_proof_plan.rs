@@ -100,6 +100,24 @@ impl DynProofPlan {
         Self::Filter(FilterExec::new(aliased_results, input, filter_expr))
     }
 
+    /// Creates a new group by plan.
+    #[must_use]
+    pub fn new_group_by(
+        group_by_exprs: Vec<ColumnExpr>,
+        sum_expr: Vec<AliasedDynProofExpr>,
+        count_alias: Ident,
+        table: TableExpr,
+        where_clause: DynProofExpr,
+    ) -> Self {
+        Self::GroupBy(GroupByExec::new(
+            group_by_exprs,
+            sum_expr,
+            count_alias,
+            table,
+            where_clause,
+        ))
+    }
+
     /// Creates a new slice plan.
     #[must_use]
     pub fn new_slice(input: DynProofPlan, skip: usize, fetch: Option<usize>) -> Self {

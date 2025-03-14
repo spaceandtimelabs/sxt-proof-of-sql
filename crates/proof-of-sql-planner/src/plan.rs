@@ -5,12 +5,12 @@ use super::{
 use alloc::vec::Vec;
 use datafusion::{
     common::DFSchema,
-    logical_expr::{Expr, Limit, LogicalPlan, Projection, TableScan, Union},
+    logical_expr::{Aggregate, Expr, Limit, LogicalPlan, Projection, TableScan, Union},
     sql::{sqlparser::ast::Ident, TableReference},
 };
 use indexmap::IndexMap;
 use proof_of_sql::{
-    base::database::{ColumnRef, ColumnType, TableRef},
+    base::database::{ColumnRef, ColumnType, LiteralValue, TableRef},
     sql::{
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, TableExpr},
         proof_plans::DynProofPlan,
@@ -139,6 +139,76 @@ fn projection_to_proof_plan(
     Ok(DynProofPlan::new_projection(aliased_exprs, input_plan))
 }
 
+/// Convert a [`datafusion::logical_plan::LogicalPlan`] to a [`DynProofPlan`] for GROUP BYs
+///
+/// TODO: Improve how we handle GROUP BYs so that all the tech debt is resolved
+fn to_group_by_proof_plan(
+    plan: &LogicalPlan,
+    schemas: &IndexMap<TableReference, DFSchema>,
+) -> Option<DynProofPlan> {
+    match plan {
+        LogicalPlan::Projection(Projection {
+            input,
+            expr,
+            schema,
+            ..
+        }) => {
+            match input {
+                LogicalPlan::Aggregate(Aggregate {
+                    input,
+                    group_expr,
+                    aggr_expr,
+                    schema,
+                    ..
+                }) => {
+                    match input {
+                        // Only TableScan without fetch is supported
+                        LogicalPlan::TableScan(TableScan {
+                            table_name,
+                            projection: Some(projection),
+                            filters,
+                            fetch: None,
+                            ..
+                        }) => {
+                            let table_ref = table_reference_to_table_ref(table_name)?;
+                            let input_schema =
+                                schemas
+                                    .get(table_name)
+                                    .ok_or_else(|| PlannerError::TableNotFound {
+                                        table_name: table_name.to_string(),
+                                    })?;
+                            // Get aliased expressions
+                            let aliased_dyn_proof_exprs =
+                                get_aliased_dyn_proof_exprs(&table_ref, projection, input_schema, schema)?;
+                            let table_expr = TableExpr { table_ref };
+                            // Filter
+                            let consolidated_filter_proof_expr = filters
+                                .iter()
+                                .map(|f| expr_to_proof_expr(f, input_schema))
+                                .reduce(|a, b| Ok(DynProofExpr::try_new_and(a?, b?)?))
+                                .unwrap_or_else(|| {
+                                    Ok(DynProofExpr::new_literal(LiteralValue::Boolean(true)))
+                                })?;
+                            Ok(DynProofPlan::new_group_by(
+                                group_by_exprs: Vec<ColumnExpr>,
+                                sum_expr: Vec<AliasedDynProofExpr>,
+                                count_alias: Ident,
+                                table: TableExpr,
+                                where_clause: DynProofExpr,
+                            ))
+                        }
+                        _ => None,
+                    }
+                }
+                _ => None,
+            }
+            // Check that every expr is a `Column` and follows the exact ordering of
+            // group by columns, sum columns and count column
+        }
+        _ => None,
+    }
+}
+
 /// Visit a [`datafusion::logical_plan::LogicalPlan`] and return a [`DynProofPlan`]
 pub fn logical_plan_to_proof_plan(
     plan: &LogicalPlan,
@@ -164,6 +234,53 @@ pub fn logical_plan_to_proof_plan(
                 Ok(DynProofPlan::new_slice(base_plan, 0, Some(*fetch)))
             } else {
                 Ok(base_plan)
+            }
+        }
+        // Group by
+        LogicalPlan::Aggregate(Aggregate {
+            input,
+            group_expr,
+            aggr_expr,
+            schema,
+            ..
+        }) => {
+            // We only accept TableScan without fetch as input
+            if let LogicalPlan::TableScan(TableScan {
+                table_name,
+                projection: Some(projection),
+                filters,
+                fetch: None,
+                ..
+            }) = &**input
+            {
+                let table_ref = table_reference_to_table_ref(table_name)?;
+                let input_schema =
+                    schemas
+                        .get(table_name)
+                        .ok_or_else(|| PlannerError::TableNotFound {
+                            table_name: table_name.to_string(),
+                        })?;
+                // Get aliased expressions
+                let aliased_dyn_proof_exprs =
+                    get_aliased_dyn_proof_exprs(&table_ref, projection, input_schema, projected_schema)?;
+                let table_expr = TableExpr { table_ref };
+                // Filter
+                let consolidated_filter_proof_expr = filters
+                    .iter()
+                    .map(|f| expr_to_proof_expr(f, input_schema))
+                    .reduce(|a, b| Ok(DynProofExpr::try_new_and(a?, b?)?))
+                    .unwrap_or_else(|| {
+                        Ok(DynProofExpr::new_literal(LiteralValue::Boolean(true)))
+                    })?;
+                Ok(DynProofPlan::new_group_by(
+                    group_by_exprs: Vec<ColumnExpr>,
+                    sum_expr: Vec<AliasedDynProofExpr>,
+                    count_alias: Ident,
+                    table: TableExpr,
+                    where_clause: DynProofExpr,
+                ))
+            } else {
+                Err(PlannerError::UnsupportedLogicalPlan { plan: plan.clone() })
             }
         }
         // Projection
