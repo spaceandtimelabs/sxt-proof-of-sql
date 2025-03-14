@@ -1558,3 +1558,133 @@ fn verification_should_fail_with_tampered_nullable_arithmetic_query_result() {
         "Expected verification to fail with tampered data"
     );
 }
+
+#[test]
+fn we_can_prove_nullable_arithmetic_with_dory() {
+    // Setup the Dory prover and verifier
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+
+    // Create a table with nullable columns A and B, and a non-nullable column C
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([
+            nullable_column(
+                "a",
+                OwnedColumn::BigInt(vec![1, 1, 0, 0, 2, 2, 0]),
+                Some(vec![true, true, false, false, true, true, false]),
+            ),
+            nullable_column(
+                "b",
+                OwnedColumn::BigInt(vec![1, 0, 1, 0, 2, 0, 2]),
+                Some(vec![true, false, true, false, true, false, true]),
+            ),
+            bigint("c", [101, 102, 103, 104, 105, 106, 107]),
+        ]),
+        0,
+    );
+
+    // Test 1: A + B = 2 should return only the row where A=1 and B=1
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE a + b = 2".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
+        query.proof_expr(),
+        &accessor,
+        &dory_prover_setup,
+    );
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .unwrap()
+        .table;
+    
+    // Expected result: only the row where A=1, B=1, C=101
+    let expected_result = owned_table([
+        nullable_column(
+            "a",
+            OwnedColumn::BigInt(vec![1]),
+            Some(vec![true]),
+        ),
+        nullable_column(
+            "b",
+            OwnedColumn::BigInt(vec![1]),
+            Some(vec![true]),
+        ),
+        bigint("c", [101]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+
+    // Test 2: A + B = 4 should return only the row where A=2 and B=2
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE a + b = 4".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
+        query.proof_expr(),
+        &accessor,
+        &dory_prover_setup,
+    );
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .unwrap()
+        .table;
+    
+    // Expected result: only the row where A=2, B=2, C=105
+    let expected_result = owned_table([
+        nullable_column(
+            "a",
+            OwnedColumn::BigInt(vec![2]),
+            Some(vec![true]),
+        ),
+        nullable_column(
+            "b",
+            OwnedColumn::BigInt(vec![2]),
+            Some(vec![true]),
+        ),
+        bigint("c", [105]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+
+    // Test 3: A + B = 3 should return an empty result as no rows satisfy this condition
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE a + b = 3".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    )
+    .unwrap();
+    let verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
+        query.proof_expr(),
+        &accessor,
+        &dory_prover_setup,
+    );
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .unwrap()
+        .table;
+    
+    // Expected result: empty table with the same structure
+    let expected_result = owned_table([
+        nullable_column(
+            "a",
+            OwnedColumn::BigInt(vec![]),
+            Some(vec![]),
+        ),
+        nullable_column(
+            "b",
+            OwnedColumn::BigInt(vec![]),
+            Some(vec![]),
+        ),
+        bigint("c", Vec::<i64>::new()),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
