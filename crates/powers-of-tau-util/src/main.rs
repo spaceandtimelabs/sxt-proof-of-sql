@@ -68,18 +68,19 @@ fn write_commitment_key_to_binary(binary_path: &str, setup: &CommitmentKey<E>) {
     let file = OpenOptions::new()
         .write(true)
         .create(true)
-        .truncate(false)
+        .truncate(true)
         .open(binary_path)
         .unwrap();
     let mut writer = BufWriter::new(file);
 
     // Write the commitment key element to the binary file
-    let elements: Vec<G1Affine> = setup
+    for element in setup
         .ck()
         .iter()
         .map(blitzar::compute::convert_to_ark_bn254_g1_affine)
-        .collect();
-    elements.serialize_compressed(&mut writer).unwrap();
+    {
+        element.serialize_compressed(&mut writer).unwrap();
+    }
 }
 
 fn create_binary_file(args: &[String]) {
@@ -143,7 +144,9 @@ mod tests {
         // Verify the binary file
         let file = OpenOptions::new().read(true).open(binary_path).unwrap();
         let mut reader = BufReader::new(file);
-        let elements: Vec<G1Affine> = Vec::deserialize_compressed(&mut reader).unwrap();
+        let elements: Vec<G1Affine> = (0..n)
+            .map(|_| G1Affine::deserialize_compressed(&mut reader).unwrap())
+            .collect();
 
         assert_eq!(ck.ck().len(), elements.len());
         for (ck_elem, setup_elem) in ck.ck().iter().zip(elements.iter()) {
@@ -348,7 +351,9 @@ mod tests {
         // Verify the binary file
         let file = OpenOptions::new().read(true).open(binary_path).unwrap();
         let mut reader = BufReader::new(file);
-        let elements: Vec<G1Affine> = Vec::deserialize_compressed(&mut reader).unwrap();
+        let elements: Vec<G1Affine> = (0..n)
+            .map(|_| G1Affine::deserialize_compressed(&mut reader).unwrap())
+            .collect();
 
         assert_eq!(ck.ck().len(), elements.len());
         for (ck_elem, setup_elem) in ck.ck().iter().zip(elements.iter()) {
