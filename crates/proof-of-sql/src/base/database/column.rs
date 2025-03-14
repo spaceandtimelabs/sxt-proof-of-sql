@@ -367,7 +367,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::FixedSizeBinary(bw, col) => {
                 let row_size: usize = bw.into();
-                let length = col.len() * row_size;
+                let length = col.len() / row_size;
                 let mut out = Vec::with_capacity(length);
                 for i in 0..length {
                     let start = row_size * i;
@@ -779,22 +779,6 @@ mod tests {
 
         let big_int_col = Column::<TestScalar>::BigInt(&[100, 200]);
         assert_eq!(big_int_col.as_fixed_size_binary(), None);
-    }
-
-    #[test]
-    #[should_panic(expected = "Unimplemented until needed")]
-    fn we_cannot_scalar_at_fixed_size_binary() {
-        let bw = FixedSizeBinaryWidth::try_from(2).unwrap();
-        let col = Column::<TestScalar>::FixedSizeBinary(bw, &[1, 2]); // length=1 row if bw=2
-        let _ = col.scalar_at(0);
-    }
-
-    #[test]
-    #[should_panic(expected = "Unimplemented until needed")]
-    fn we_cannot_call_to_scalar_with_scaling_on_fixed_size_binary() {
-        let bw = FixedSizeBinaryWidth::try_from(2).unwrap();
-        let col = Column::<TestScalar>::FixedSizeBinary(bw, &[10, 20, 30, 40]);
-        let _ = col.to_scalar_with_scaling(1);
     }
 
     #[test]

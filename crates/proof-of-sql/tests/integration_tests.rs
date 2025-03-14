@@ -1197,7 +1197,13 @@ fn we_can_perform_equality_checks_on_fixed_size_binary() {
         sql::{parse::QueryExpr, proof::VerifiableQueryResult},
     };
     use std::convert::TryFrom;
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         TableRef::new("sxt", "table"),
         owned_table([
@@ -1220,10 +1226,13 @@ fn we_can_perform_equality_checks_on_fixed_size_binary() {
         &accessor,
     )
     .unwrap();
-    let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
+        query.proof_expr(),
+        &accessor,
+        &dory_prover_setup,
+    );
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
         .unwrap()
         .table;
     let expected_result = owned_table([
