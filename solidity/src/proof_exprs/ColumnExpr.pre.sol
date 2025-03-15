@@ -22,6 +22,9 @@ library ColumnExpr {
     /// ##### Return Values
     /// * `expr_ptr_out` - pointer to the remaining expression after consuming the column expression
     /// * `eval` - the evaluation result from looking up the column value
+    /// ##### Proof Plan Encoding
+    /// The column expression is encoded as follows:
+    /// 1. The column index (as a uint64)
     /// @dev Reads a uint64 column index from the expression and looks up its evaluation
     /// @param __expr The input column expression
     /// @param __builder The verification builder containing column evaluations
