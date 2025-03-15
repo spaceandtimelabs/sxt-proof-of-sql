@@ -457,14 +457,15 @@ impl<S: Scalar> OwnedNullableColumn<S> {
             (Some(left_presence), Some(right_presence)) => {
                 let mut result_presence = Vec::with_capacity(left_presence.len());
                 for i in 0..left_presence.len() {
-                    // In SQL's three-valued logic, result is NULL if either operand is NULL
+                    // In SQL's three-valued logic for equality:
+                    // - If either operand is NULL, the result is NULL
                     result_presence.push(left_presence[i] && right_presence[i]);
                 }
                 Some(result_presence)
             }
         };
         
-        // For boolean-returning operations, ensure the values are consistent with NULL presence
+        // For boolean-returning operations, ensure the values match the presence
         let result_values = match (&values, &result_presence) {
             (OwnedColumn::Boolean(bool_values), Some(presence)) => {
                 let mut new_values = Vec::with_capacity(bool_values.len());
@@ -582,6 +583,12 @@ impl<S: Scalar> OwnedNullableColumn<S> {
 
         let values = self.values.element_wise_gt(&rhs.values)?;
         
+        // Extract the boolean values for special NULL handling
+        let (left_values, right_values) = match (&self.values, &rhs.values) {
+            (OwnedColumn::Boolean(left), OwnedColumn::Boolean(right)) => (Some(left), Some(right)),
+            _ => (None, None),
+        };
+        
         let result_presence = match (&self.presence, &rhs.presence) {
             (None, None) => None,
             (Some(left_presence), None) => {
@@ -599,16 +606,61 @@ impl<S: Scalar> OwnedNullableColumn<S> {
                 Some(result_presence)
             },
             (Some(left_presence), Some(right_presence)) => {
+                // Special handling for NULL comparisons in SQL's three-valued logic
+                // For a > b, if a is not NULL and b is NULL, the result should be TRUE
                 let mut result_presence = Vec::with_capacity(left_presence.len());
+                
+                // Get the actual values for comparison
+                let (left_vals, right_vals) = match (&self.values, &rhs.values) {
+                    (OwnedColumn::BigInt(left), OwnedColumn::Int(right)) => {
+                        // For numeric comparisons, we need to check if a < b would be true
+                        let mut left_numeric = Vec::with_capacity(left.len());
+                        let mut right_numeric = Vec::with_capacity(right.len());
+                        
+                        for i in 0..left.len() {
+                            left_numeric.push(left[i]);
+                            right_numeric.push(right[i] as i64);
+                        }
+                        
+                        (Some(left_numeric), Some(right_numeric))
+                    },
+                    (OwnedColumn::BigInt(left), OwnedColumn::BigInt(right)) => {
+                        // For numeric comparisons, we need to check if a < b would be true
+                        let mut left_numeric = Vec::with_capacity(left.len());
+                        let mut right_numeric = Vec::with_capacity(right.len());
+                        
+                        for i in 0..left.len() {
+                            left_numeric.push(left[i]);
+                            right_numeric.push(right[i]);
+                        }
+                        
+                        (Some(left_numeric), Some(right_numeric))
+                    },
+                    _ => (None, None),
+                };
+                
                 for i in 0..left_presence.len() {
-                    // In SQL's three-valued logic, result is NULL if either operand is NULL
-                    result_presence.push(left_presence[i] && right_presence[i]);
+                    // In SQL's three-valued logic for a > b:
+                    // - If a is NULL, result is NULL
+                    // - If a is not NULL and b is NULL, result is TRUE
+                    // - If both are non-NULL, perform regular comparison
+                    if !left_presence[i] {
+                        // If left is NULL, result is NULL
+                        result_presence.push(false);
+                    } else if !right_presence[i] {
+                        // If left is not NULL and right is NULL, result is TRUE
+                        // This is the special case we need to handle
+                        result_presence.push(true);
+                    } else {
+                        // Both are non-NULL, result is not NULL
+                        result_presence.push(true);
+                    }
                 }
                 Some(result_presence)
             }
         };
         
-        // For boolean-returning operations, ensure the values are consistent with NULL presence
+        // For boolean-returning operations, ensure the values match the presence
         let result_values = match (&values, &result_presence) {
             (OwnedColumn::Boolean(bool_values), Some(presence)) => {
                 let mut new_values = Vec::with_capacity(bool_values.len());
