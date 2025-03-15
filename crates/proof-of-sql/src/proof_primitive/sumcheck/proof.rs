@@ -35,11 +35,11 @@ impl<S: Scalar> SumcheckProof<S> {
         log::log_memory_usage("Start");
 
         assert_eq!(evaluation_point.len(), state.num_vars);
-        transcript.extend_as_be([state.max_multiplicands as u64, state.num_vars as u64]);
+        transcript.extend_as_be([((state.max_multiplicands + 1) * state.num_vars) as u64]);
         // This challenge is in order to keep transcript messages grouped. (This simplifies the Solidity implementation.)
         transcript.scalar_challenge_as_be::<S>();
         let mut r = None;
-        let mut coefficients = Vec::with_capacity(state.num_vars);
+        let mut coefficients = Vec::with_capacity(state.max_multiplicands * state.num_vars);
         for scalar in evaluation_point.iter_mut().take(state.num_vars) {
             let round_evaluations = prove_round(&mut state, &r);
             let round_coefficients =
@@ -75,7 +75,7 @@ impl<S: Scalar> SumcheckProof<S> {
             });
         }
         let max_multiplicands = (coefficients_len / num_variables) - 1;
-        transcript.extend_as_be([max_multiplicands as u64, num_variables as u64]);
+        transcript.extend_as_be([coefficients_len as u64]);
         // This challenge is in order to keep transcript messages grouped. (This simplifies the Solidity implementation.)
         transcript.scalar_challenge_as_be::<S>();
         let mut evaluation_point = Vec::with_capacity(num_variables);
