@@ -87,6 +87,11 @@ pub trait DataAccessor<S: Scalar>: MetadataAccessor {
     /// Return the data span in the table (not the full-table data)
     fn get_column(&self, column: ColumnRef) -> Column<S>;
 
+    /// Return the presence information for a column, if it exists
+    fn get_column_presence(&self, column: &ColumnRef) -> Option<&[bool]> {
+        None // Default implementation returns None (no NULL values)
+    }
+
     /// Creates a new [`Table`] from a [`TableRef`] and [`ColumnRef`]s.
     ///
     /// Columns are retrieved from the [`DataAccessor`] using the provided [`TableRef`] and [`ColumnRef`]s.
@@ -101,10 +106,26 @@ pub trait DataAccessor<S: Scalar>: MetadataAccessor {
                 TableOptions::new(Some(input_length)),
             )
         } else {
-            Table::<S>::try_from_iter(column_refs.into_iter().map(|column_ref| {
+            // Get columns and presence information
+            let mut columns = IndexMap::default();
+            let mut presence_map = IndexMap::default();
+            
+            for column_ref in column_refs {
                 let column = self.get_column(column_ref.clone());
-                (column_ref.column_id(), column)
-            }))
+                columns.insert(column_ref.column_id(), column);
+                
+                // Check for presence information
+                if let Some(presence) = self.get_column_presence(column_ref) {
+                    presence_map.insert(column_ref.column_id(), presence);
+                }
+            }
+            
+            // Create table with columns and presence information
+            Table::<S>::try_new_with_presence(
+                columns,
+                presence_map,
+                TableOptions::default(),
+            )
         }
         .expect("Failed to create table from table and column references")
     }

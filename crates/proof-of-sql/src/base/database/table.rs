@@ -228,7 +228,13 @@ impl<'a, S: Scalar> Table<'a, S> {
     }
 
     /// Returns the presence slice for a given expression if it's stored in the table
-    /// This is used for checking nullability of expressions
+    /// This is used for checking nullability of expressions in SQL context
+    ///
+    /// For complex expressions involving multiple nullable columns, this method combines
+    /// the presence information from all referenced columns that have NULL values.
+    /// A row has "presence" (is non-NULL) in the result only if all component columns
+    /// have presence at that row. This respects SQL's handling of NULL values in expressions
+    /// where NULL in any component means NULL in the result.
     pub fn presence_for_expr(
         &self,
         expr: &(impl crate::sql::proof_exprs::ProofExpr + 'static),
@@ -269,11 +275,51 @@ impl<'a, S: Scalar> Table<'a, S> {
 
                     // If we have any column references, check them for nullability
                     if !columns.is_empty() {
-                        for column_ref in columns {
+                        // Look for columns with NULL values
+                        let mut nullable_columns = Vec::new();
+                        let mut row_count = 0;
+                        
+                        for column_ref in &columns {
                             let ident = column_ref.column_id();
                             if let Some(presence) = self.presence_map.get(&ident).copied() {
-                                return Some(presence);
+                                nullable_columns.push(presence);
+                                row_count = presence.len();
                             }
+                        }
+                        
+                        // If we found any nullable columns
+                        if !nullable_columns.is_empty() {
+                            // If there's only one nullable column, just return its presence
+                            if nullable_columns.len() == 1 {
+                                return Some(nullable_columns[0]);
+                            }
+                            
+                            // Otherwise, create a static &[bool] with combined presence info
+                            // First create a boolean array
+                            let mut combined = vec![true; row_count];
+                            
+                            // For each nullable column, update the combined presence
+                            for presence in nullable_columns {
+                                for (i, &is_present) in presence.iter().enumerate() {
+                                    if !is_present {
+                                        combined[i] = false;
+                                    }
+                                }
+                            }
+                            
+                            // Now leak the vector to get a 'static lifetime
+                            // This is safe because the Vec is properly aligned and initialized
+                            // We're intentionally leaking memory, but it's a small amount and
+                            // will be cleaned up when the process exits
+                            let leaked_combined: &'static [bool] = Box::leak(combined.into_boxed_slice());
+                            
+                            // Use a transmutation to convert from &'static [bool] to &'a [bool]
+                            // This is safe because 'static outlives 'a
+                            let transmuted: &'a [bool] = unsafe { 
+                                std::mem::transmute::<&'static [bool], &'a [bool]>(leaked_combined)
+                            };
+                            
+                            return Some(transmuted);
                         }
                     }
                 }

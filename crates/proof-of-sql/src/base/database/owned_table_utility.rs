@@ -21,6 +21,11 @@ use alloc::{string::String, vec::Vec};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use sqlparser::ast::Ident;
 
+// Thread-local storage to hold presence information until the OwnedTable is created
+thread_local! {
+    static NULLABLE_COLUMNS: std::cell::RefCell<std::collections::HashMap<(Ident, usize), Vec<bool>>> = std::cell::RefCell::new(std::collections::HashMap::new());
+}
+
 /// Creates an [`OwnedTable`] from a list of `(Ident, OwnedColumn)` pairs.
 /// This is a convenience wrapper around [`OwnedTable::try_from_iter`] primarily for use in tests and
 /// intended to be used along with the other methods in this module (e.g. [bigint], [boolean], etc).
@@ -46,7 +51,30 @@ use sqlparser::ast::Ident;
 pub fn owned_table<S: Scalar>(
     iter: impl IntoIterator<Item = (Ident, OwnedColumn<S>)>,
 ) -> OwnedTable<S> {
-    OwnedTable::try_from_iter(iter).unwrap()
+    // First, collect all the columns
+    let columns: Vec<_> = iter.into_iter().collect();
+    
+    // Create the table
+    let mut table = OwnedTable::try_from_iter(columns).unwrap();
+    
+    // Get all the nullable columns from thread-local storage
+    let nullable_columns = NULLABLE_COLUMNS.with(|cell| {
+        let mut map = cell.borrow_mut();
+        let result = map.clone();
+        map.clear();
+        result
+    });
+    
+    // Now add presence information for nullable columns
+    for ((name, len), presence) in nullable_columns {
+        if let Some(col) = table.inner_table().get(&name) {
+            if col.len() == len {
+                table.set_presence(name, presence);
+            }
+        }
+    }
+    
+    table
 }
 
 /// Creates a nullable column with the given name, values, and presence vector.
@@ -60,8 +88,18 @@ pub fn nullable_column<S: Scalar>(
     values: OwnedColumn<S>,
     presence: Option<Vec<bool>>,
 ) -> (Ident, OwnedColumn<S>) {
-    let nullable = OwnedNullableColumn::with_presence(values, presence).unwrap();
-    (name.into(), nullable.values)
+    let name_ident = name.into();
+    let result = (name_ident.clone(), values.clone());
+    
+    // If we have presence information, we need to add it to the OwnedTable
+    if let Some(presence_vec) = presence {
+        NULLABLE_COLUMNS.with(|cell| {
+            let mut map = cell.borrow_mut();
+            map.insert((name_ident, values.len()), presence_vec);
+        });
+    }
+    
+    result
 }
 
 /// Creates a (`Ident`, `OwnedNullableColumn`) pair for a nullable column.
