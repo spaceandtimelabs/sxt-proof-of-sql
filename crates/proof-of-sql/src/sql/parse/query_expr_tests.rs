@@ -15,7 +15,7 @@ use itertools::Itertools;
 use proof_of_sql_parser::{
     sql::SelectStatementParser,
     utility::{
-        add as padd, aliased_expr, col, count, count_all, lit, max, min, mul as pmul, sub as psub,
+        add as padd, aliased_expr, col, count, count_all, gt, lit, max, min, mul as pmul, sub as psub,
         sum,
     },
 };
@@ -2283,4 +2283,197 @@ fn we_can_order_by_nullable_columns() {
     let serialized = flexbuffers::to_vec(proof_plan).unwrap();
     let deserialized: DynProofPlan = flexbuffers::from_slice(serialized.as_slice()).unwrap();
     assert_eq!(proof_plan, &deserialized);
+}
+
+#[test]
+fn we_can_parse_complex_null_logic_in_where_clause() {
+    let t = TableRef::new("test", "nullable_table");
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        &t,
+        indexmap! {
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+            "c".into() => ColumnType::VarChar,
+            "d".into() => ColumnType::Boolean,
+        },
+    );
+    
+    // Test complex NULL logic with AND, OR, and NOT
+    // Just verify that the query parses successfully without error
+    let _ast = query_to_provable_ast(
+        &t, 
+        "select a, b from nullable_table where (a IS NULL OR b > 10) AND (c IS NOT NULL OR d = FALSE)", 
+        &accessor
+    );
+    
+    // Success is indicated by the test not panicking
+}
+
+#[test]
+fn we_can_parse_is_null_with_arithmetic_expressions() {
+    let t = TableRef::new("test", "nullable_table");
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        &t,
+        indexmap! {
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+        },
+    );
+    
+    // Test IS NULL on arithmetic expression
+    // Just verify that the query parses successfully without error
+    let _ast = query_to_provable_ast(
+        &t, 
+        "select a, b from nullable_table where (a + b) IS NULL", 
+        &accessor
+    );
+    
+    // Success is indicated by the test not panicking
+}
+
+#[test]
+fn we_can_parse_is_not_null_with_comparison_expressions() {
+    let t = TableRef::new("test", "nullable_table");
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        &t,
+        indexmap! {
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+        },
+    );
+    
+    // Test IS NOT NULL on comparison expression
+    // Just verify that the query parses successfully without error
+    let _ast = query_to_provable_ast(
+        &t, 
+        "select a, b from nullable_table where (a > b) IS NOT NULL", 
+        &accessor
+    );
+    
+    // Success is indicated by the test not panicking
+}
+
+#[test]
+fn we_can_parse_null_equality_comparisons() {
+    let t = TableRef::new("test", "nullable_table");
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        &t,
+        indexmap! {
+            "a".into() => ColumnType::BigInt,
+        },
+    );
+    
+    // In SQL, comparing with NULL using = always yields NULL (not TRUE or FALSE)
+    // So we need to use IS NULL to check for NULL values
+    // Just verify that the query parses successfully without error
+    let _ast = query_to_provable_ast(
+        &t, 
+        "select a from nullable_table where a IS NULL", 
+        &accessor
+    );
+    
+    // Success is indicated by the test not panicking
+}
+
+#[test]
+fn we_can_parse_null_in_select_expressions() {
+    let t = TableRef::new("test", "nullable_table");
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        &t,
+        indexmap! {
+            "a".into() => ColumnType::BigInt,
+        },
+    );
+    
+    // Test NULL in SELECT expressions
+    // Just verify that the query parses successfully without error
+    let _ast = query_to_provable_ast(
+        &t, 
+        "select a, a IS NULL as is_null_a, NULL as null_value from nullable_table", 
+        &accessor
+    );
+    
+    // Success is indicated by the test not panicking
+}
+
+#[test]
+fn we_can_parse_three_valued_logic_with_and_or_operators() {
+    let t = TableRef::new("test", "nullable_table");
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        &t,
+        indexmap! {
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+            "c".into() => ColumnType::Boolean,
+        },
+    );
+    
+    // Test three-valued logic with AND/OR
+    // In SQL:
+    // - NULL AND TRUE = NULL
+    // - NULL AND FALSE = FALSE
+    // - NULL OR TRUE = TRUE
+    // - NULL OR FALSE = NULL
+    
+    // This query tests NULL OR TRUE = TRUE
+    // Just verify that the query parses successfully without error
+    let _ast1 = query_to_provable_ast(
+        &t, 
+        "select a from nullable_table where a IS NULL OR c = TRUE", 
+        &accessor
+    );
+    
+    // This query tests NULL AND FALSE = FALSE
+    // Just verify that the query parses successfully without error
+    let _ast2 = query_to_provable_ast(
+        &t, 
+        "select a from nullable_table where a IS NULL AND c = FALSE", 
+        &accessor
+    );
+    
+    // Success is indicated by the test not panicking
+}
+
+#[test]
+fn we_can_parse_boolean_comparisons_with_null_values() {
+    let t = TableRef::new("test", "nullable_table");
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        &t,
+        indexmap! {
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::Boolean,
+        },
+    );
+    
+    // Test boolean comparisons with potentially NULL values
+    // Just verify that the query parses successfully without error
+    let _ast = query_to_provable_ast(
+        &t, 
+        "select a from nullable_table where b = TRUE OR b = FALSE", 
+        &accessor
+    );
+    
+    // Success is indicated by the test not panicking
+}
+
+#[test]
+fn we_can_parse_null_in_group_by_and_having() {
+    let t = TableRef::new("test", "nullable_table");
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        &t,
+        indexmap! {
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::BigInt,
+        },
+    );
+    
+    // Test NULL handling in GROUP BY and HAVING
+    // Just verify that the query parses successfully without error
+    let _ast = query_to_provable_ast(
+        &t, 
+        "select a, count(*) from nullable_table group by a having count(*) > 1 OR a IS NULL", 
+        &accessor
+    );
+    
+    // Success is indicated by the test not panicking
 }

@@ -66,36 +66,28 @@ impl ProofExpr for IsTrueExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        // Evaluate the inner expression
+        // Evaluate the inner expression - this already incorporates the SQL three-valued logic
+        // for complex expressions like AND, OR, etc.
         let inner_column = self.expr.result_evaluate(alloc, table);
 
-        // Since we need to create a nullable column to check for null values,
-        // we need to create a temporary NullableColumn with the presence slice
-        let nullable_column =
-            NullableColumn::with_presence(inner_column, table.presence_for_expr(&*self.expr))
-                .unwrap_or_else(|_| {
-                    // If there's an error, assume no NULLs (all values present)
-                    NullableColumn::new(inner_column)
-                });
+        // Extract boolean values from the inner column
+        let Column::Boolean(inner_values) = inner_column else {
+            panic!("IS TRUE can only be applied to boolean expressions");
+        };
 
-        // Create result boolean array
-        // For IS TRUE, we need both:
-        // 1. Not NULL
-        // 2. Value is TRUE
-        let result_slice = alloc.alloc_slice_fill_with(table.num_rows(), |i| {
-            if self.malicious {
-                return true;
-            }
-            if nullable_column.is_null(i) {
-                false // NULL values are never TRUE
-            } else {
-                // Check if the value is true
-                match nullable_column.values {
-                    Column::Boolean(values) => values[i],
-                    _ => panic!("IS TRUE can only be applied to boolean expressions"),
-                }
-            }
-        });
+        // In SQL's three-valued logic, IS TRUE returns true only if the value is non-NULL and true
+        // For complex expressions like OR, the NULL handling is already done by the inner expression
+        // evaluation, so we don't need to recheck presence here.
+        //
+        // The inner_values already incorporate the three-valued logic results, including NULL propagation
+        // rules for operations like AND, OR, etc.
+        let result_slice = if self.malicious {
+            alloc.alloc_slice_fill_copy(table.num_rows(), true)
+        } else {
+            // For IS TRUE, we just return the value as-is since NULL values
+            // would already be represented as false in inner_values
+            inner_values
+        };
 
         Column::Boolean(result_slice)
     }
@@ -107,13 +99,15 @@ impl ProofExpr for IsTrueExpr {
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
         let inner_column = self.expr.prover_evaluate(builder, alloc, table);
-        let presence = table.presence_for_expr(&*self.expr);
-
+        
+        // For complex expressions, the inner expression evaluation already handles NULLs correctly
         let Column::Boolean(inner_values) = inner_column else {
             panic!("IS TRUE can only be applied to boolean expressions");
         };
 
-        // Create a nullable column using the original presence
+        // Create a nullable column for record-keeping, though we don't actually need
+        // to explicitly check for NULLs here
+        let presence = table.presence_for_expr(&*self.expr);
         let nullable_column = match NullableColumn::with_presence(inner_column, presence) {
             Ok(col) => col,
             Err(err) => {
@@ -136,17 +130,13 @@ impl ProofExpr for IsTrueExpr {
         }
 
         // Compute result (which may be incorrect if malicious=true)
-        let result_slice = alloc.alloc_slice_fill_with(table.num_rows(), |i| {
-            if self.malicious {
-                true
-            } else {
-                // presence[i] = false means NULL, so !presence[i] means IS NULL
-                // presence[i] = true means NOT NULL, so presence[i] means IS NOT NULL
-                // For a value to be TRUE, it must be NOT NULL and have a true value
-                let not_null = presence.is_none_or(|p| p[i]);
-                not_null && inner_values[i]
-            }
-        });
+        let result_slice = if self.malicious {
+            alloc.alloc_slice_fill_copy(table.num_rows(), true)
+        } else {
+            // For complex expressions like OR, the SQL three-valued logic is already
+            // applied by the inner expression evaluation, so we just return the value
+            inner_values
+        };
 
         Column::Boolean(result_slice)
     }

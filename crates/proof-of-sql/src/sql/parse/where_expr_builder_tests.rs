@@ -7,6 +7,7 @@ use crate::{
     sql::{
         parse::{ConversionError, QueryExpr, WhereExprBuilder},
         proof_exprs::{ColumnExpr, DynProofExpr, LiteralExpr},
+        proof_exprs::test_utility::{multiply, subtract},
     },
 };
 use bigdecimal::BigDecimal;
@@ -398,4 +399,198 @@ fn we_can_directly_check_is_true_expression() {
         crate::sql::proof_exprs::ProofExpr::data_type(&built_expr),
         ColumnType::Boolean
     );
+}
+
+#[test]
+fn we_can_directly_check_is_null_expression() {
+    let column_mapping = get_column_mappings_for_testing();
+    
+    // Test IS NULL for different column types
+    let test_columns = [
+        "boolean_column",
+        "decimal_column",
+        "int128_column",
+        "bigint_column",
+        "varchar_column",
+        "timestamp_second_column"
+    ];
+    
+    for column_name in test_columns {
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let column_expr = col(column_name);
+        let is_null_expr = is_null(column_expr);
+        let result = builder.build(Some(is_null_expr));
+        
+        assert!(result.is_ok(), "IS NULL should work for column {}", column_name);
+        
+        let built_expr = result.unwrap().unwrap();
+        assert_eq!(
+            crate::sql::proof_exprs::ProofExpr::data_type(&built_expr),
+            ColumnType::Boolean,
+            "IS NULL expression for {} should return Boolean type",
+            column_name
+        );
+    }
+}
+
+#[test]
+fn we_can_directly_check_is_not_null_expression() {
+    let column_mapping = get_column_mappings_for_testing();
+    
+    // Test IS NOT NULL for different column types
+    let test_columns = [
+        "boolean_column",
+        "decimal_column",
+        "int128_column",
+        "bigint_column",
+        "varchar_column",
+        "timestamp_second_column"
+    ];
+    
+    for column_name in test_columns {
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let column_expr = col(column_name);
+        let is_not_null_expr = is_not_null(column_expr);
+        let result = builder.build(Some(is_not_null_expr));
+        
+        assert!(result.is_ok(), "IS NOT NULL should work for column {}", column_name);
+        
+        let built_expr = result.unwrap().unwrap();
+        assert_eq!(
+            crate::sql::proof_exprs::ProofExpr::data_type(&built_expr),
+            ColumnType::Boolean,
+            "IS NOT NULL expression for {} should return Boolean type",
+            column_name
+        );
+    }
+}
+
+#[test]
+fn we_can_combine_is_null_with_logical_operators() {
+    let column_mapping = get_column_mappings_for_testing();
+    
+    // Test IS NULL combined with AND
+    {
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr1 = and(
+            is_null(col("bigint_column")),
+            is_null(col("varchar_column"))
+        );
+        let result1 = builder.build(Some(expr1));
+        assert!(result1.is_ok(), "IS NULL with AND should work");
+    }
+    
+    // Test IS NULL combined with OR
+    {
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr2 = or(
+            is_null(col("int128_column")),
+            is_null(col("boolean_column"))
+        );
+        let result2 = builder.build(Some(expr2));
+        assert!(result2.is_ok(), "IS NULL with OR should work");
+    }
+    
+    // Test IS NULL combined with NOT
+    {
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr3 = not(is_null(col("decimal_column")));
+        let result3 = builder.build(Some(expr3));
+        assert!(result3.is_ok(), "NOT IS NULL should work");
+    }
+    
+    // Test complex combination
+    {
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr4 = or(
+            and(
+                is_null(col("bigint_column")),
+                is_not_null(col("varchar_column"))
+            ),
+            and(
+                equal(col("boolean_column"), lit(true)),
+                is_null(col("int128_column"))
+            )
+        );
+        let result4 = builder.build(Some(expr4));
+        assert!(result4.is_ok(), "Complex combination with IS NULL should work");
+    }
+}
+
+#[test]
+fn we_can_combine_is_null_with_comparison_operators() {
+    let column_mapping = get_column_mappings_for_testing();
+    
+    // Test IS NULL combined with equality
+    {
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr1 = or(
+            is_null(col("bigint_column")),
+            equal(col("bigint_column"), lit(42_i64))
+        );
+        let result1 = builder.build(Some(expr1));
+        assert!(result1.is_ok(), "IS NULL with equality should work");
+    }
+    
+    // Test IS NULL combined with inequality
+    {
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr2 = or(
+            is_null(col("int128_column")),
+            gt(col("int128_column"), lit(100_i128))
+        );
+        let result2 = builder.build(Some(expr2));
+        assert!(result2.is_ok(), "IS NULL with inequality should work");
+    }
+    
+    // Test complex combination with multiple comparisons
+    {
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr3 = or(
+            and(
+                is_null(col("bigint_column")),
+                lt(col("int128_column"), lit(50_i128))
+            ),
+            and(
+                is_not_null(col("bigint_column")),
+                ge(col("bigint_column"), lit(100_i64))
+            )
+        );
+        let result3 = builder.build(Some(expr3));
+        assert!(result3.is_ok(), "Complex combination with IS NULL and comparisons should work");
+    }
+}
+
+#[test]
+fn we_can_check_simple_is_null_on_expressions() {
+    let column_mapping = get_column_mappings_for_testing();
+    let builder = WhereExprBuilder::new(&column_mapping);
+    
+    // Test IS NULL on simple arithmetic expression
+    let expr1 = is_null(add(col("bigint_column"), lit(10_i64)));
+    let result1 = builder.build(Some(expr1));
+    assert!(result1.is_ok(), "IS NULL on simple arithmetic expression should work");
+}
+
+#[test]
+fn we_can_check_is_true_with_null_handling() {
+    let column_mapping = get_column_mappings_for_testing();
+    
+    // Test IS TRUE
+    {
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr1 = is_true(col("boolean_column"));
+        let result1 = builder.build(Some(expr1));
+        assert!(result1.is_ok(), "IS TRUE should work");
+    }
+    
+    // Test IS TRUE with simple expression
+    {
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr3 = is_true(
+            equal(col("bigint_column"), lit(42_i64))
+        );
+        let result3 = builder.build(Some(expr3));
+        assert!(result3.is_ok(), "IS TRUE with simple expression should work");
+    }
 }

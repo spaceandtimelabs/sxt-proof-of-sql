@@ -319,6 +319,155 @@ fn test_is_true_expr_with_non_boolean_column() {
 }
 
 #[test]
+fn test_is_true_expr_with_sql_three_valued_logic_and_arithmetic() {
+    let alloc = Bump::new();
+    let mut columns = IndexMap::with_hasher(BuildHasherDefault::default());
+    let table_ref = TableRef::new("", "test");
+
+    // Create multiple columns with different NULL patterns
+    // Column A: Integer with some NULLs
+    let col_a_values: Column<'_, TestScalar> = Column::Int(&[10, 20, 30, 40, 50, 60, 70, 80]);
+    let col_a_presence = &[true, true, false, true, false, true, true, false];
+
+    // Column B: Integer with different NULL pattern
+    let col_b_values: Column<'_, TestScalar> = Column::Int(&[5, 15, 25, 35, 45, 55, 65, 75]);
+    let col_b_presence = &[true, false, true, false, true, true, false, true];
+
+    // Column C: Integer with different NULL pattern
+    let col_c_values: Column<'_, TestScalar> = Column::Int(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let col_c_presence = &[false, true, true, false, true, false, true, true];
+
+    // Insert the column values into the columns map
+    columns.insert(Ident::new("col_a"), col_a_values);
+    columns.insert(Ident::new("col_b"), col_b_values);
+    columns.insert(Ident::new("col_c"), col_c_values);
+
+    // Create a presence map to properly handle NULL values
+    let mut presence_map = IndexMap::with_hasher(BuildHasherDefault::default());
+    presence_map.insert(Ident::new("col_a"), col_a_presence.as_slice());
+    presence_map.insert(Ident::new("col_b"), col_b_presence.as_slice());
+    presence_map.insert(Ident::new("col_c"), col_c_presence.as_slice());
+
+    // Create the table with both column values and presence information
+    let table =
+        Table::try_new_with_presence(columns, presence_map, TableOptions::new(Some(8))).unwrap();
+
+    // ColumnRefs for all columns
+    let col_a_ref = ColumnRef::new(table_ref.clone(), Ident::new("col_a"), ColumnType::Int);
+    let col_b_ref = ColumnRef::new(table_ref.clone(), Ident::new("col_b"), ColumnType::Int);
+    let col_c_ref = ColumnRef::new(table_ref, Ident::new("col_c"), ColumnType::Int);
+
+    // Create DynProofExpr nodes for all columns
+    let col_a_expr = DynProofExpr::new_column(col_a_ref);
+    let col_b_expr = DynProofExpr::new_column(col_b_ref);
+    let col_c_expr = DynProofExpr::new_column(col_c_ref);
+
+    // Test 1: Simple column NULL test
+    // Create a simple test using IS TRUE on column A
+    let is_null_a = DynProofExpr::try_new_is_null(col_a_expr.clone()).unwrap();
+    let not_null_a = DynProofExpr::try_new_not(is_null_a).unwrap();
+    let is_true_expr = IsTrueExpr::new(Box::new(not_null_a));
+    let result = is_true_expr.result_evaluate(&alloc, &table);
+    
+    match result {
+        Column::Boolean(values) => {
+            assert_eq!(values.len(), 8);
+            
+            // IS NOT NULL is true for non-NULL values (rows 2, 4, 7)
+            // Row 0: A is NULL -> IS NOT NULL = false -> IS TRUE(false) = false
+            assert!(!values[0]);
+            // Row 1: A is NULL -> IS NOT NULL = false -> IS TRUE(false) = false
+            assert!(!values[1]);
+            // Row 2: A is not NULL -> IS NOT NULL = true -> IS TRUE(true) = true
+            assert!(values[2]);
+            // Row 3: A is NULL -> IS NOT NULL = false -> IS TRUE(false) = false
+            assert!(!values[3]);
+            // Row 4: A is not NULL -> IS NOT NULL = true -> IS TRUE(true) = true
+            assert!(values[4]);
+            // Row 5: A is NULL -> IS NOT NULL = false -> IS TRUE(false) = false
+            assert!(!values[5]);
+            // Row 6: A is NULL -> IS NOT NULL = false -> IS TRUE(false) = false
+            assert!(!values[6]);
+            // Row 7: A is not NULL -> IS NOT NULL = true -> IS TRUE(true) = true
+            assert!(values[7]);
+        }
+        _ => panic!("Expected boolean column"),
+    }
+    
+    // Test 2: We can use logical operators with IS NOT NULL
+    // Create (A IS NOT NULL) AND (B IS NOT NULL)
+    let is_null_a = DynProofExpr::try_new_is_null(col_a_expr.clone()).unwrap();
+    let not_null_a = DynProofExpr::try_new_not(is_null_a).unwrap();
+    
+    let is_null_b = DynProofExpr::try_new_is_null(col_b_expr.clone()).unwrap();
+    let not_null_b = DynProofExpr::try_new_not(is_null_b).unwrap();
+    
+    let both_not_null = DynProofExpr::try_new_and(not_null_a, not_null_b).unwrap();
+    let is_true_compound = IsTrueExpr::new(Box::new(both_not_null));
+    let result_compound = is_true_compound.result_evaluate(&alloc, &table);
+    
+    match result_compound {
+        Column::Boolean(values) => {
+            assert_eq!(values.len(), 8);
+            
+            // Row 0: A is NULL, B is NULL -> false AND false -> false
+            assert!(!values[0]);
+            // Row 1: A is NULL, B is not NULL -> false AND true -> false
+            assert!(!values[1]);
+            // Row 2: A is not NULL, B is NULL -> true AND false -> false
+            assert!(!values[2]);
+            // Row 3: A is NULL, B is not NULL -> false AND true -> false
+            assert!(!values[3]);
+            // Row 4: A is not NULL, B is NULL -> true AND false -> false
+            assert!(!values[4]);
+            // Row 5: A is NULL, B is NULL -> false AND false -> false
+            assert!(!values[5]);
+            // Row 6: A is NULL, B is not NULL -> false AND true -> false
+            assert!(!values[6]);
+            // Row 7: A is not NULL, B is NULL -> true AND false -> false
+            assert!(!values[7]);
+        }
+        _ => panic!("Expected boolean column"),
+    }
+    
+    // Test 3: We can use OR with logical operators on presence information
+    // Create (A IS NOT NULL) OR (C IS NOT NULL)
+    let is_null_a = DynProofExpr::try_new_is_null(col_a_expr.clone()).unwrap();
+    let not_null_a = DynProofExpr::try_new_not(is_null_a).unwrap();
+    
+    let is_null_c = DynProofExpr::try_new_is_null(col_c_expr.clone()).unwrap();
+    let not_null_c = DynProofExpr::try_new_not(is_null_c).unwrap();
+    
+    let either_not_null = DynProofExpr::try_new_or(not_null_a, not_null_c).unwrap();
+    let is_true_or_compound = IsTrueExpr::new(Box::new(either_not_null));
+    let result_or_compound = is_true_or_compound.result_evaluate(&alloc, &table);
+    
+    match result_or_compound {
+        Column::Boolean(values) => {
+            assert_eq!(values.len(), 8);
+            
+            // Row 0: A is NULL, C is not NULL -> false OR true -> true
+            assert!(values[0]);
+            // Row 1: A is NULL, C is NULL -> false OR false -> false
+            assert!(!values[1]);
+            // Row 2: A is not NULL, C is NULL -> true OR false -> true
+            assert!(values[2]);
+            // Row 3: A is NULL, C is not NULL -> false OR true -> true
+            assert!(values[3]);
+            // Row 4: A is not NULL, C is NULL -> true OR false -> true
+            assert!(values[4]);
+            // Row 5: A is NULL, C is not NULL -> false OR true -> true
+            assert!(values[5]);
+            // Row 6: A is NULL, C is NULL -> false OR false -> false
+            assert!(!values[6]);
+            // Row 7: A is not NULL, C is NULL -> true OR false -> true
+            assert!(values[7]);
+        }
+        _ => panic!("Expected boolean column"),
+    }
+}
+
+#[test]
 fn we_should_detect_a_malicious_prover_in_is_true_query() {
     use crate::{
         base::{

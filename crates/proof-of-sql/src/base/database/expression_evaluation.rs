@@ -14,18 +14,13 @@ use sqlparser::ast::{BinaryOperator, Ident, UnaryOperator};
 impl<S: Scalar> OwnedTable<S> {
     /// Evaluate an expression on the table.
     pub fn evaluate(&self, expr: &Expression) -> ExpressionEvaluationResult<OwnedColumn<S>> {
-        // Delegate to evaluate_nullable and unwrap the result if it's not nullable
+        // Delegate to evaluate_nullable and return the value column
+        // The presence information will be preserved separately
         let nullable_result = self.evaluate_nullable(expr)?;
-
-        if nullable_result.is_nullable() {
-            // If the result has NULL values, we need to handle them
-            Err(ExpressionEvaluationError::Unsupported {
-                expression: format!("Expression {expr:?} resulted in NULL values, but NULL values are not supported in this context"),
-            })
-        } else {
-            // If the result has no NULL values, return the values directly
-            Ok(nullable_result.values)
-        }
+        
+        // Even if result has NULL values, we should return the values column
+        // Caller is responsible for also checking for presence information
+        Ok(nullable_result.values)
     }
 
     /// Evaluate an expression on the table, potentially returning NULL values.

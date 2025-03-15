@@ -144,6 +144,24 @@ impl<S: Scalar> OwnedTable<S> {
         self.presence.get(column_name)
     }
     
+    /// Set the presence vector for a column.
+    /// This marks which rows have non-NULL values (true) vs NULL values (false).
+    /// 
+    /// # Arguments
+    /// * `column_name` - The name of the column to set presence for
+    /// * `presence` - The presence vector, where each boolean indicates if the value is present (true) or NULL (false)
+    pub fn set_presence(&mut self, column_name: Ident, presence: Vec<bool>) {
+        // Only store presence info if the column exists
+        if self.table.contains_key(&column_name) {
+            // Make sure the presence vector has the right length
+            if let Some(column) = self.table.get(&column_name) {
+                if column.len() == presence.len() {
+                    self.presence.insert(column_name, presence);
+                }
+            }
+        }
+    }
+    
     /// Check if a column has NULL values.
     pub fn has_nulls(&self, column_name: &Ident) -> bool {
         self.presence.contains_key(column_name)
