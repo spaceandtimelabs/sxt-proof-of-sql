@@ -62,7 +62,65 @@ impl<S: Scalar> OwnedColumn<S> {
 
     /// Element-wise equality check for two columns
     pub fn element_wise_eq(&self, rhs: &Self) -> ColumnOperationResult<Self> {
-        EqualOp::owned_column_element_wise_comparison(self, rhs)
+        if self.len() != rhs.len() {
+            return Err(ColumnOperationError::DifferentColumnLength {
+                len_a: self.len(),
+                len_b: rhs.len(),
+            });
+        }
+
+        match (self, rhs) {
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => {
+                let mut result = Vec::with_capacity(lhs.len());
+                for i in 0..lhs.len() {
+                    result.push(lhs[i] == rhs[i]);
+                }
+                Ok(Self::Boolean(result))
+            },
+            (Self::TinyInt(lhs), Self::TinyInt(rhs)) => {
+                let mut result = Vec::with_capacity(lhs.len());
+                for i in 0..lhs.len() {
+                    result.push(lhs[i] == rhs[i]);
+                }
+                Ok(Self::Boolean(result))
+            },
+            (Self::SmallInt(lhs), Self::SmallInt(rhs)) => {
+                let mut result = Vec::with_capacity(lhs.len());
+                for i in 0..lhs.len() {
+                    result.push(lhs[i] == rhs[i]);
+                }
+                Ok(Self::Boolean(result))
+            },
+            (Self::Int(lhs), Self::Int(rhs)) => {
+                let mut result = Vec::with_capacity(lhs.len());
+                for i in 0..lhs.len() {
+                    result.push(lhs[i] == rhs[i]);
+                }
+                Ok(Self::Boolean(result))
+            },
+            (Self::BigInt(lhs), Self::BigInt(rhs)) => {
+                let mut result = Vec::with_capacity(lhs.len());
+                for i in 0..lhs.len() {
+                    result.push(lhs[i] == rhs[i]);
+                }
+                Ok(Self::Boolean(result))
+            },
+            (Self::Int128(lhs), Self::Int128(rhs)) => {
+                let mut result = Vec::with_capacity(lhs.len());
+                for i in 0..lhs.len() {
+                    result.push(lhs[i] == rhs[i]);
+                }
+                Ok(Self::Boolean(result))
+            },
+            (Self::VarChar(lhs), Self::VarChar(rhs)) => {
+                let mut result = Vec::with_capacity(lhs.len());
+                for i in 0..lhs.len() {
+                    result.push(lhs[i] == rhs[i]);
+                }
+                Ok(Self::Boolean(result))
+            },
+            _ => EqualOp::owned_column_element_wise_comparison(self, rhs)
+        }
     }
 
     /// Element-wise less than or equal to check for two columns
@@ -135,72 +193,105 @@ impl<S: Scalar> OwnedNullableColumn<S> {
             });
         }
 
+        // First, compute the base values
         let values = self.values.element_wise_and(&rhs.values)?;
-        match (&self.presence, &rhs.presence) {
-            (None, None) => Ok(Self {
-                values,
-                presence: None,
-            }),
-
-            (Some(left_presence), None) => {
-                let mut result_presence = left_presence.clone();
-
-                if let OwnedColumn::Boolean(right_values) = &rhs.values {
-                    for i in 0..result_presence.len() {
-                        if !left_presence[i] && !right_values[i] {
-                            result_presence[i] = true;
-                        }
-                    }
-                }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
-            }
-
-            (None, Some(right_presence)) => {
-                let mut result_presence = right_presence.clone();
-                if let OwnedColumn::Boolean(left_values) = &self.values {
-                    for i in 0..result_presence.len() {
-                        if !right_presence[i] && !left_values[i] {
-                            result_presence[i] = true;
-                        }
-                    }
-                }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
-            }
-
-            (Some(left_presence), Some(right_presence)) => {
-                let mut result_presence = Vec::with_capacity(left_presence.len());
-                if let (OwnedColumn::Boolean(left_values), OwnedColumn::Boolean(right_values)) =
-                    (&self.values, &rhs.values)
-                {
-                    for i in 0..left_presence.len() {
-                        if (!left_presence[i] && right_presence[i] && !right_values[i])
-                            || (left_presence[i] && !right_presence[i] && !left_values[i])
-                        {
-                            result_presence.push(true);
+        
+        // Initialize presence vectors based on operands
+        let (left_values, left_presence) = match (&self.values, &self.presence) {
+            (OwnedColumn::Boolean(vals), Some(pres)) => (Some(vals), Some(pres)),
+            (OwnedColumn::Boolean(vals), None) => (Some(vals), None),
+            _ => (None, None), // Not a boolean column, handle error later
+        };
+        
+        let (right_values, right_presence) = match (&rhs.values, &rhs.presence) {
+            (OwnedColumn::Boolean(vals), Some(pres)) => (Some(vals), Some(pres)),
+            (OwnedColumn::Boolean(vals), None) => (Some(vals), None),
+            _ => (None, None), // Not a boolean column, handle error later
+        };
+        
+        // Determine presence based on SQL's three-valued logic
+        let result_presence = match (left_presence, right_presence) {
+            (None, None) => None,
+            (Some(left_pres), None) => {
+                if let Some(right_vals) = right_values {
+                    let mut result_pres = Vec::with_capacity(left_pres.len());
+                    for i in 0..left_pres.len() {
+                        // If left is NULL and right is FALSE, result is FALSE (not NULL)
+                        if !left_pres[i] && !right_vals[i] {
+                            result_pres.push(true);
                         } else {
-                            result_presence.push(left_presence[i] && right_presence[i]);
+                            result_pres.push(left_pres[i]);
                         }
                     }
+                    Some(result_pres)
                 } else {
-                    for i in 0..left_presence.len() {
-                        result_presence.push(left_presence[i] && right_presence[i]);
+                    Some(left_pres.clone())
+                }
+            },
+            (None, Some(right_pres)) => {
+                if let Some(left_vals) = left_values {
+                    let mut result_pres = Vec::with_capacity(right_pres.len());
+                    for i in 0..right_pres.len() {
+                        // If right is NULL and left is FALSE, result is FALSE (not NULL)
+                        if !right_pres[i] && !left_vals[i] {
+                            result_pres.push(true);
+                        } else {
+                            result_pres.push(right_pres[i]);
+                        }
+                    }
+                    Some(result_pres)
+                } else {
+                    Some(right_pres.clone())
+                }
+            },
+            (Some(left_pres), Some(right_pres)) => {
+                if let (Some(left_vals), Some(right_vals)) = (left_values, right_values) {
+                    let mut result_pres = Vec::with_capacity(left_pres.len());
+                    for i in 0..left_pres.len() {
+                        // SQL three-valued logic for AND:
+                        // If left is NULL and right is FALSE, result is FALSE
+                        // If right is NULL and left is FALSE, result is FALSE
+                        // Otherwise if either is NULL, result is NULL
+                        if (!left_pres[i] && right_pres[i] && !right_vals[i]) ||
+                           (left_pres[i] && !right_pres[i] && !left_vals[i]) {
+                            result_pres.push(true);
+                        } else {
+                            result_pres.push(left_pres[i] && right_pres[i]);
+                        }
+                    }
+                    Some(result_pres)
+                } else {
+                    let mut result_pres = Vec::with_capacity(left_pres.len());
+                    for i in 0..left_pres.len() {
+                        result_pres.push(left_pres[i] && right_pres[i]);
+                    }
+                    Some(result_pres)
+                }
+            }
+        };
+        
+        // For boolean operations, ensure the values match the presence
+        let result_values = match (&values, &result_presence) {
+            (OwnedColumn::Boolean(bool_values), Some(presence)) => {
+                let mut new_values = Vec::with_capacity(bool_values.len());
+                for i in 0..bool_values.len() {
+                    if presence[i] {
+                        // Keep the computed value
+                        new_values.push(bool_values[i]);
+                    } else {
+                        // For NULL results, the value is irrelevant
+                        new_values.push(false);
                     }
                 }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
-            }
-        }
+                OwnedColumn::Boolean(new_values)
+            },
+            _ => values,
+        };
+        
+        Ok(Self {
+            values: result_values,
+            presence: result_presence,
+        })
     }
 
     /// Performs an element-wise logical OR operation between two nullable columns.
@@ -224,74 +315,105 @@ impl<S: Scalar> OwnedNullableColumn<S> {
             });
         }
 
+        // First, compute the base values
         let values = self.values.element_wise_or(&rhs.values)?;
-        match (&self.presence, &rhs.presence) {
-            (None, None) => Ok(Self {
-                values,
-                presence: None,
-            }),
-
-            (Some(left_presence), None) => {
-                let mut result_presence = left_presence.clone();
-
-                if let OwnedColumn::Boolean(right_values) = &rhs.values {
-                    for i in 0..result_presence.len() {
-                        if !left_presence[i] && right_values[i] {
-                            result_presence[i] = true;
-                        }
-                    }
-                }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
-            }
-
-            (None, Some(right_presence)) => {
-                let mut result_presence = right_presence.clone();
-
-                if let OwnedColumn::Boolean(left_values) = &self.values {
-                    for i in 0..result_presence.len() {
-                        if !right_presence[i] && left_values[i] {
-                            result_presence[i] = true;
-                        }
-                    }
-                }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
-            }
-
-            (Some(left_presence), Some(right_presence)) => {
-                let mut result_presence = Vec::with_capacity(left_presence.len());
-
-                if let (OwnedColumn::Boolean(left_values), OwnedColumn::Boolean(right_values)) =
-                    (&self.values, &rhs.values)
-                {
-                    for i in 0..left_presence.len() {
-                        if (!left_presence[i] && right_presence[i] && right_values[i])
-                            || (left_presence[i] && !right_presence[i] && left_values[i])
-                        {
-                            result_presence.push(true);
+        
+        // Initialize presence vectors based on operands
+        let (left_values, left_presence) = match (&self.values, &self.presence) {
+            (OwnedColumn::Boolean(vals), Some(pres)) => (Some(vals), Some(pres)),
+            (OwnedColumn::Boolean(vals), None) => (Some(vals), None),
+            _ => (None, None), // Not a boolean column, handle error later
+        };
+        
+        let (right_values, right_presence) = match (&rhs.values, &rhs.presence) {
+            (OwnedColumn::Boolean(vals), Some(pres)) => (Some(vals), Some(pres)),
+            (OwnedColumn::Boolean(vals), None) => (Some(vals), None),
+            _ => (None, None), // Not a boolean column, handle error later
+        };
+        
+        // Determine presence based on SQL's three-valued logic
+        let result_presence = match (left_presence, right_presence) {
+            (None, None) => None,
+            (Some(left_pres), None) => {
+                if let Some(right_vals) = right_values {
+                    let mut result_pres = Vec::with_capacity(left_pres.len());
+                    for i in 0..left_pres.len() {
+                        // If left is NULL and right is TRUE, result is TRUE (not NULL)
+                        if !left_pres[i] && right_vals[i] {
+                            result_pres.push(true);
                         } else {
-                            result_presence.push(left_presence[i] && right_presence[i]);
+                            result_pres.push(left_pres[i]);
                         }
                     }
+                    Some(result_pres)
                 } else {
-                    for i in 0..left_presence.len() {
-                        result_presence.push(left_presence[i] && right_presence[i]);
+                    Some(left_pres.clone())
+                }
+            },
+            (None, Some(right_pres)) => {
+                if let Some(left_vals) = left_values {
+                    let mut result_pres = Vec::with_capacity(right_pres.len());
+                    for i in 0..right_pres.len() {
+                        // If right is NULL and left is TRUE, result is TRUE (not NULL)
+                        if !right_pres[i] && left_vals[i] {
+                            result_pres.push(true);
+                        } else {
+                            result_pres.push(right_pres[i]);
+                        }
+                    }
+                    Some(result_pres)
+                } else {
+                    Some(right_pres.clone())
+                }
+            },
+            (Some(left_pres), Some(right_pres)) => {
+                if let (Some(left_vals), Some(right_vals)) = (left_values, right_values) {
+                    let mut result_pres = Vec::with_capacity(left_pres.len());
+                    for i in 0..left_pres.len() {
+                        // SQL three-valued logic for OR:
+                        // If left is NULL and right is TRUE, result is TRUE
+                        // If right is NULL and left is TRUE, result is TRUE
+                        // Otherwise if either is NULL, result is NULL
+                        if (!left_pres[i] && right_pres[i] && right_vals[i]) ||
+                           (left_pres[i] && !right_pres[i] && left_vals[i]) {
+                            result_pres.push(true);
+                        } else {
+                            result_pres.push(left_pres[i] && right_pres[i]);
+                        }
+                    }
+                    Some(result_pres)
+                } else {
+                    let mut result_pres = Vec::with_capacity(left_pres.len());
+                    for i in 0..left_pres.len() {
+                        result_pres.push(left_pres[i] && right_pres[i]);
+                    }
+                    Some(result_pres)
+                }
+            }
+        };
+        
+        // For boolean operations, ensure the values match the presence
+        let result_values = match (&values, &result_presence) {
+            (OwnedColumn::Boolean(bool_values), Some(presence)) => {
+                let mut new_values = Vec::with_capacity(bool_values.len());
+                for i in 0..bool_values.len() {
+                    if presence[i] {
+                        // Keep the computed value
+                        new_values.push(bool_values[i]);
+                    } else {
+                        // For NULL results, the value is irrelevant
+                        new_values.push(false);
                     }
                 }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
-            }
-        }
+                OwnedColumn::Boolean(new_values)
+            },
+            _ => values,
+        };
+        
+        Ok(Self {
+            values: result_values,
+            presence: result_presence,
+        })
     }
 
     /// Performs an element-wise equality comparison between two nullable columns.
@@ -315,35 +437,55 @@ impl<S: Scalar> OwnedNullableColumn<S> {
         }
 
         let values = self.values.element_wise_eq(&rhs.values)?;
-        match (&self.presence, &rhs.presence) {
-            (None, None) => Ok(Self {
-                values,
-                presence: None,
-            }),
-
-            (Some(left_presence), None) => Ok(Self {
-                values,
-                presence: Some(left_presence.clone()),
-            }),
-
-            (None, Some(right_presence)) => Ok(Self {
-                values,
-                presence: Some(right_presence.clone()),
-            }),
-
+        
+        let result_presence = match (&self.presence, &rhs.presence) {
+            (None, None) => None,
+            (Some(left_presence), None) => {
+                let mut result_presence = Vec::with_capacity(left_presence.len());
+                for i in 0..left_presence.len() {
+                    result_presence.push(left_presence[i]);
+                }
+                Some(result_presence)
+            },
+            (None, Some(right_presence)) => {
+                let mut result_presence = Vec::with_capacity(right_presence.len());
+                for i in 0..right_presence.len() {
+                    result_presence.push(right_presence[i]);
+                }
+                Some(result_presence)
+            },
             (Some(left_presence), Some(right_presence)) => {
                 let mut result_presence = Vec::with_capacity(left_presence.len());
-
                 for i in 0..left_presence.len() {
+                    // In SQL's three-valued logic, result is NULL if either operand is NULL
                     result_presence.push(left_presence[i] && right_presence[i]);
                 }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
+                Some(result_presence)
             }
-        }
+        };
+        
+        // For boolean-returning operations, ensure the values are consistent with NULL presence
+        let result_values = match (&values, &result_presence) {
+            (OwnedColumn::Boolean(bool_values), Some(presence)) => {
+                let mut new_values = Vec::with_capacity(bool_values.len());
+                for i in 0..bool_values.len() {
+                    if presence[i] {
+                        // If present, use the computed value
+                        new_values.push(bool_values[i]);
+                    } else {
+                        // If NULL, the value doesn't matter but we'll use false for clarity
+                        new_values.push(false);
+                    }
+                }
+                OwnedColumn::Boolean(new_values)
+            },
+            _ => values,
+        };
+        
+        Ok(Self {
+            values: result_values,
+            presence: result_presence,
+        })
     }
 
     /// Performs an element-wise "less than" comparison between two nullable columns.
@@ -367,35 +509,55 @@ impl<S: Scalar> OwnedNullableColumn<S> {
         }
 
         let values = self.values.element_wise_lt(&rhs.values)?;
-        match (&self.presence, &rhs.presence) {
-            (None, None) => Ok(Self {
-                values,
-                presence: None,
-            }),
-
-            (Some(left_presence), None) => Ok(Self {
-                values,
-                presence: Some(left_presence.clone()),
-            }),
-
-            (None, Some(right_presence)) => Ok(Self {
-                values,
-                presence: Some(right_presence.clone()),
-            }),
-
+        
+        let result_presence = match (&self.presence, &rhs.presence) {
+            (None, None) => None,
+            (Some(left_presence), None) => {
+                let mut result_presence = Vec::with_capacity(left_presence.len());
+                for i in 0..left_presence.len() {
+                    result_presence.push(left_presence[i]);
+                }
+                Some(result_presence)
+            },
+            (None, Some(right_presence)) => {
+                let mut result_presence = Vec::with_capacity(right_presence.len());
+                for i in 0..right_presence.len() {
+                    result_presence.push(right_presence[i]);
+                }
+                Some(result_presence)
+            },
             (Some(left_presence), Some(right_presence)) => {
                 let mut result_presence = Vec::with_capacity(left_presence.len());
-
                 for i in 0..left_presence.len() {
+                    // In SQL's three-valued logic, result is NULL if either operand is NULL
                     result_presence.push(left_presence[i] && right_presence[i]);
                 }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
+                Some(result_presence)
             }
-        }
+        };
+        
+        // For boolean-returning operations, ensure the values are consistent with NULL presence
+        let result_values = match (&values, &result_presence) {
+            (OwnedColumn::Boolean(bool_values), Some(presence)) => {
+                let mut new_values = Vec::with_capacity(bool_values.len());
+                for i in 0..bool_values.len() {
+                    if presence[i] {
+                        // If present, use the computed value
+                        new_values.push(bool_values[i]);
+                    } else {
+                        // If NULL, the value doesn't matter but we'll use false for clarity
+                        new_values.push(false);
+                    }
+                }
+                OwnedColumn::Boolean(new_values)
+            },
+            _ => values,
+        };
+        
+        Ok(Self {
+            values: result_values,
+            presence: result_presence,
+        })
     }
 
     /// Performs an element-wise "greater than" comparison between two nullable columns.
@@ -419,35 +581,55 @@ impl<S: Scalar> OwnedNullableColumn<S> {
         }
 
         let values = self.values.element_wise_gt(&rhs.values)?;
-        match (&self.presence, &rhs.presence) {
-            (None, None) => Ok(Self {
-                values,
-                presence: None,
-            }),
-
-            (Some(left_presence), None) => Ok(Self {
-                values,
-                presence: Some(left_presence.clone()),
-            }),
-
-            (None, Some(right_presence)) => Ok(Self {
-                values,
-                presence: Some(right_presence.clone()),
-            }),
-
+        
+        let result_presence = match (&self.presence, &rhs.presence) {
+            (None, None) => None,
+            (Some(left_presence), None) => {
+                let mut result_presence = Vec::with_capacity(left_presence.len());
+                for i in 0..left_presence.len() {
+                    result_presence.push(left_presence[i]);
+                }
+                Some(result_presence)
+            },
+            (None, Some(right_presence)) => {
+                let mut result_presence = Vec::with_capacity(right_presence.len());
+                for i in 0..right_presence.len() {
+                    result_presence.push(right_presence[i]);
+                }
+                Some(result_presence)
+            },
             (Some(left_presence), Some(right_presence)) => {
                 let mut result_presence = Vec::with_capacity(left_presence.len());
-
                 for i in 0..left_presence.len() {
+                    // In SQL's three-valued logic, result is NULL if either operand is NULL
                     result_presence.push(left_presence[i] && right_presence[i]);
                 }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
+                Some(result_presence)
             }
-        }
+        };
+        
+        // For boolean-returning operations, ensure the values are consistent with NULL presence
+        let result_values = match (&values, &result_presence) {
+            (OwnedColumn::Boolean(bool_values), Some(presence)) => {
+                let mut new_values = Vec::with_capacity(bool_values.len());
+                for i in 0..bool_values.len() {
+                    if presence[i] {
+                        // If present, use the computed value
+                        new_values.push(bool_values[i]);
+                    } else {
+                        // If NULL, the value doesn't matter but we'll use false for clarity
+                        new_values.push(false);
+                    }
+                }
+                OwnedColumn::Boolean(new_values)
+            },
+            _ => values,
+        };
+        
+        Ok(Self {
+            values: result_values,
+            presence: result_presence,
+        })
     }
 
     /// Performs an element-wise addition between two nullable columns.
@@ -471,35 +653,25 @@ impl<S: Scalar> OwnedNullableColumn<S> {
         }
 
         let values = self.values.element_wise_add(&rhs.values)?;
-        match (&self.presence, &rhs.presence) {
-            (None, None) => Ok(Self {
-                values,
-                presence: None,
-            }),
-
-            (Some(left_presence), None) => Ok(Self {
-                values,
-                presence: Some(left_presence.clone()),
-            }),
-
-            (None, Some(right_presence)) => Ok(Self {
-                values,
-                presence: Some(right_presence.clone()),
-            }),
-
+        
+        // Determine presence based on both columns
+        let result_presence = match (&self.presence, &rhs.presence) {
+            (None, None) => None,
+            (Some(left_presence), None) => Some(left_presence.clone()),
+            (None, Some(right_presence)) => Some(right_presence.clone()),
             (Some(left_presence), Some(right_presence)) => {
                 let mut result_presence = Vec::with_capacity(left_presence.len());
-
                 for i in 0..left_presence.len() {
                     result_presence.push(left_presence[i] && right_presence[i]);
                 }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
+                Some(result_presence)
             }
-        }
+        };
+        
+        Ok(Self {
+            values,
+            presence: result_presence,
+        })
     }
 
     /// Performs an element-wise subtraction between two nullable columns.
@@ -523,35 +695,25 @@ impl<S: Scalar> OwnedNullableColumn<S> {
         }
 
         let values = self.values.element_wise_sub(&rhs.values)?;
-        match (&self.presence, &rhs.presence) {
-            (None, None) => Ok(Self {
-                values,
-                presence: None,
-            }),
-
-            (Some(left_presence), None) => Ok(Self {
-                values,
-                presence: Some(left_presence.clone()),
-            }),
-
-            (None, Some(right_presence)) => Ok(Self {
-                values,
-                presence: Some(right_presence.clone()),
-            }),
-
+        
+        // Determine presence based on both columns
+        let result_presence = match (&self.presence, &rhs.presence) {
+            (None, None) => None,
+            (Some(left_presence), None) => Some(left_presence.clone()),
+            (None, Some(right_presence)) => Some(right_presence.clone()),
             (Some(left_presence), Some(right_presence)) => {
                 let mut result_presence = Vec::with_capacity(left_presence.len());
-
                 for i in 0..left_presence.len() {
                     result_presence.push(left_presence[i] && right_presence[i]);
                 }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
+                Some(result_presence)
             }
-        }
+        };
+        
+        Ok(Self {
+            values,
+            presence: result_presence,
+        })
     }
 
     /// Performs an element-wise multiplication between two nullable columns.
@@ -575,35 +737,25 @@ impl<S: Scalar> OwnedNullableColumn<S> {
         }
 
         let values = self.values.element_wise_mul(&rhs.values)?;
-        match (&self.presence, &rhs.presence) {
-            (None, None) => Ok(Self {
-                values,
-                presence: None,
-            }),
-
-            (Some(left_presence), None) => Ok(Self {
-                values,
-                presence: Some(left_presence.clone()),
-            }),
-
-            (None, Some(right_presence)) => Ok(Self {
-                values,
-                presence: Some(right_presence.clone()),
-            }),
-
+        
+        // Determine presence based on both columns
+        let result_presence = match (&self.presence, &rhs.presence) {
+            (None, None) => None,
+            (Some(left_presence), None) => Some(left_presence.clone()),
+            (None, Some(right_presence)) => Some(right_presence.clone()),
             (Some(left_presence), Some(right_presence)) => {
                 let mut result_presence = Vec::with_capacity(left_presence.len());
-
                 for i in 0..left_presence.len() {
                     result_presence.push(left_presence[i] && right_presence[i]);
                 }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
+                Some(result_presence)
             }
-        }
+        };
+        
+        Ok(Self {
+            values,
+            presence: result_presence,
+        })
     }
 
     /// Performs an element-wise division between two nullable columns.
@@ -628,35 +780,25 @@ impl<S: Scalar> OwnedNullableColumn<S> {
         }
 
         let values = self.values.element_wise_div(&rhs.values)?;
-        match (&self.presence, &rhs.presence) {
-            (None, None) => Ok(Self {
-                values,
-                presence: None,
-            }),
-
-            (Some(left_presence), None) => Ok(Self {
-                values,
-                presence: Some(left_presence.clone()),
-            }),
-
-            (None, Some(right_presence)) => Ok(Self {
-                values,
-                presence: Some(right_presence.clone()),
-            }),
-
+        
+        // Determine presence based on both columns
+        let result_presence = match (&self.presence, &rhs.presence) {
+            (None, None) => None,
+            (Some(left_presence), None) => Some(left_presence.clone()),
+            (None, Some(right_presence)) => Some(right_presence.clone()),
             (Some(left_presence), Some(right_presence)) => {
                 let mut result_presence = Vec::with_capacity(left_presence.len());
-
                 for i in 0..left_presence.len() {
                     result_presence.push(left_presence[i] && right_presence[i]);
                 }
-
-                Ok(Self {
-                    values,
-                    presence: Some(result_presence),
-                })
+                Some(result_presence)
             }
-        }
+        };
+        
+        Ok(Self {
+            values,
+            presence: result_presence,
+        })
     }
 }
 
@@ -1531,5 +1673,171 @@ mod test {
             OwnedColumn::<TestScalar>::Int(vec![6, 12, 18, 24])
         );
         assert_eq!(result.presence, Some(vec![false, false, false, false]));
+    }
+
+    #[test]
+    fn test_three_valued_sql_null_logic_with_arithmetic() {
+        // This test verifies that SQL's three-valued logic is correctly implemented
+        // for arithmetic operations with NULL values, similar to what happens in WHERE clauses
+        
+        // Create columns with NULL values in different patterns
+        // Row 1: A=1, B=1 (both non-NULL)
+        // Row 2: A=1, B=NULL
+        // Row 3: A=NULL, B=1
+        // Row 4: A=NULL, B=NULL
+        // Row 5: A=2, B=2 (both non-NULL)
+        // Row 6: A=2, B=NULL
+        // Row 7: A=NULL, B=2
+        let col_a = OwnedNullableColumn::<TestScalar>::with_presence(
+            OwnedColumn::<TestScalar>::Int(vec![1, 1, 1, 1, 2, 2, 2]),
+            Some(vec![true, true, false, false, true, true, false]),
+        )
+        .unwrap();
+        
+        let col_b = OwnedNullableColumn::<TestScalar>::with_presence(
+            OwnedColumn::<TestScalar>::Int(vec![1, 1, 1, 1, 2, 2, 2]),
+            Some(vec![true, false, true, false, true, false, true]),
+        )
+        .unwrap();
+        
+        // Test arithmetic operation: A + B
+        let sum_result = col_a.element_wise_add(&col_b).unwrap();
+        
+        // Verify that the result is NULL when either operand is NULL
+        assert_eq!(
+            sum_result.values,
+            OwnedColumn::<TestScalar>::Int(vec![2, 2, 2, 2, 4, 4, 4])
+        );
+        assert_eq!(
+            sum_result.presence,
+            Some(vec![true, false, false, false, true, false, false])
+        );
+        
+        // Test arithmetic operation: A * B
+        let mul_result = col_a.element_wise_mul(&col_b).unwrap();
+        
+        // Verify that the result is NULL when either operand is NULL
+        assert_eq!(
+            mul_result.values,
+            OwnedColumn::<TestScalar>::Int(vec![1, 1, 1, 1, 4, 4, 4])
+        );
+        assert_eq!(
+            mul_result.presence,
+            Some(vec![true, false, false, false, true, false, false])
+        );
+        
+        // Test arithmetic operation: A - B
+        let sub_result = col_a.element_wise_sub(&col_b).unwrap();
+        
+        // Verify that the result is NULL when either operand is NULL
+        assert_eq!(
+            sub_result.values,
+            OwnedColumn::<TestScalar>::Int(vec![0, 0, 0, 0, 0, 0, 0])
+        );
+        assert_eq!(
+            sub_result.presence,
+            Some(vec![true, false, false, false, true, false, false])
+        );
+        
+        // Test comparison after arithmetic: (A + B) = 2
+        let two = OwnedNullableColumn::<TestScalar>::new(
+            OwnedColumn::<TestScalar>::Int(vec![2, 2, 2, 2, 2, 2, 2])
+        );
+        
+        let eq_result = sum_result.element_wise_eq(&two).unwrap();
+        
+        // Verify that the comparison result is NULL when the input is NULL
+        assert_eq!(
+            eq_result.values,
+            OwnedColumn::<TestScalar>::Boolean(vec![true, false, false, false, false, false, false])
+        );
+        assert_eq!(
+            eq_result.presence,
+            Some(vec![true, false, false, false, true, false, false])
+        );
+        
+        // Test the complete WHERE clause logic: WHERE A + B = 2
+        // In SQL, only rows where the condition is TRUE (not NULL, not FALSE) are included
+        // Let's simulate this by checking which rows have eq_result both present and true
+        let where_result: Vec<bool> = eq_result.presence
+            .unwrap()
+            .iter()
+            .zip(match &eq_result.values {
+                OwnedColumn::Boolean(values) => values.iter(),
+                _ => panic!("Expected boolean column"),
+            })
+            .map(|(present, value)| *present && *value)
+            .collect();
+        
+        // Only the first row should satisfy A + B = 2
+        assert_eq!(where_result, vec![true, false, false, false, false, false, false]);
+        
+        // Test with another value: WHERE A + B = 4
+        let four = OwnedNullableColumn::<TestScalar>::new(
+            OwnedColumn::<TestScalar>::Int(vec![4, 4, 4, 4, 4, 4, 4])
+        );
+        
+        let eq_result_four = sum_result.element_wise_eq(&four).unwrap();
+        
+        let where_result_four: Vec<bool> = eq_result_four.presence
+            .unwrap()
+            .iter()
+            .zip(match &eq_result_four.values {
+                OwnedColumn::Boolean(values) => values.iter(),
+                _ => panic!("Expected boolean column"),
+            })
+            .map(|(present, value)| *present && *value)
+            .collect();
+        
+        // Only the fifth row should satisfy A + B = 4
+        assert_eq!(where_result_four, vec![false, false, false, false, true, false, false]);
+        
+        // Test complex condition: WHERE (A + B) * 2 = 4
+        
+        // IMPORTANT: We need to use a nullable column with explicit presence to ensure NULL propagation
+        let two_nullable = OwnedNullableColumn::<TestScalar>::with_presence(
+            OwnedColumn::<TestScalar>::Int(vec![2, 2, 2, 2, 2, 2, 2]),
+            // Copy the presence from sum_result to ensure NULLs are preserved
+            sum_result.presence.clone(),
+        ).unwrap();
+        
+        let double_sum = sum_result.element_wise_mul(&two_nullable).unwrap();
+        
+        // Verify that double_sum has the same NULL pattern as sum_result
+        assert_eq!(
+            double_sum.presence,
+            sum_result.presence
+        );
+        
+        let eq_result_complex = double_sum.element_wise_eq(&four).unwrap();
+        
+        let where_result_complex: Vec<bool> = eq_result_complex.presence
+            .unwrap()
+            .iter()
+            .zip(match &eq_result_complex.values {
+                OwnedColumn::Boolean(values) => values.iter(),
+                _ => panic!("Expected boolean column"),
+            })
+            .map(|(present, value)| *present && *value)
+            .collect();
+        
+        // Only the first row should satisfy (A + B) * 2 = 4
+        assert_eq!(where_result_complex, vec![true, false, false, false, false, false, false]);
+        
+        // Test complex condition with comparison: WHERE A = B
+        let eq_ab_result = col_a.element_wise_eq(&col_b).unwrap();
+        
+        let where_result_eq_ab: Vec<bool> = eq_ab_result.presence
+            .unwrap()
+            .iter()
+            .zip(match &eq_ab_result.values {
+                OwnedColumn::Boolean(values) => values.iter(),
+                _ => panic!("Expected boolean column"),
+            })
+            .map(|(present, value)| *present && *value)
+            .collect();
+        
+        // Rows 1 and 5 should satisfy A = B
+        assert_eq!(where_result_eq_ab, vec![true, false, false, false, true, false, false]);
     }
 }

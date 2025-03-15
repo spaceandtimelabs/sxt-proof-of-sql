@@ -64,9 +64,20 @@ impl<S: Scalar> OwnedTable<S> {
     ) -> ExpressionEvaluationResult<OwnedNullableColumn<S>> {
         // Get the column from the table
         let column = self.evaluate_column(identifier)?;
-
-        // Convert to a non-nullable OwnedNullableColumn
-        Ok(OwnedNullableColumn::new(column))
+        
+        // Get the presence vector if it exists
+        let presence = self.get_presence(identifier).cloned();
+        
+        // Create a nullable column with the appropriate presence information
+        if let Some(presence_vec) = presence {
+            Ok(OwnedNullableColumn::with_presence(column, Some(presence_vec))
+                .map_err(|_| ExpressionEvaluationError::Unsupported {
+                    expression: format!("Invalid presence vector for column {identifier}"),
+                })?)
+        } else {
+            // No presence information means all values are non-null
+            Ok(OwnedNullableColumn::new(column))
+        }
     }
 
     fn evaluate_literal(&self, lit: &Literal) -> ExpressionEvaluationResult<OwnedColumn<S>> {

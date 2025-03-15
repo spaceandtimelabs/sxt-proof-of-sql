@@ -414,3 +414,94 @@ fn we_can_convert_nullable_to_non_nullable() {
     assert!(all_present.is_nullable());
     assert!(with_nulls.is_nullable());
 }
+
+#[test]
+fn we_can_simulate_sql_where_clause_with_nulls() {
+    // Create columns for our test table
+    // Column A with some NULL values
+    let a_values = OwnedColumn::<TestScalar>::BigInt(vec![1, 1, 0, 0, 2, 2, 0]);
+    let a_presence = Some(vec![true, true, false, false, true, true, false]);
+    
+    // Column B with some NULL values
+    let b_values = OwnedColumn::<TestScalar>::BigInt(vec![1, 0, 1, 0, 2, 0, 2]);
+    let b_presence = Some(vec![true, false, true, false, true, false, true]);
+    
+    // Column C with no NULL values
+    let c_values = OwnedColumn::<TestScalar>::BigInt(vec![101, 102, 103, 104, 105, 106, 107]);
+    
+    // Create the table using the new owned_table_with_nulls utility function
+    let table = owned_table_with_nulls([
+        nullable_column_pair("a", a_values, a_presence.clone()),
+        nullable_column_pair("b", b_values, b_presence.clone()),
+        nullable_column_pair("c", c_values, None),
+    ]);
+    
+    // First, evaluate the arithmetic expression: A + B
+    let add_expr = add(col("a"), col("b"));
+    let sum_result = table.evaluate_nullable(&add_expr).unwrap();
+    
+    // The sum result should have NULLs where either A or B is NULL
+    assert_eq!(
+        sum_result.values, 
+        OwnedColumn::<TestScalar>::BigInt(vec![2, 1, 1, 0, 4, 2, 2])
+    );
+    
+    // The presence should be NULL (false) where either A or B is NULL
+    let expected_sum_presence = Some(vec![
+        true,  // A=1, B=1 -> 1+1=2 (not NULL)
+        false, // A=1, B=NULL -> NULL
+        false, // A=NULL, B=1 -> NULL
+        false, // A=NULL, B=NULL -> NULL
+        true,  // A=2, B=2 -> 2+2=4 (not NULL)
+        false, // A=2, B=NULL -> NULL
+        false, // A=NULL, B=2 -> NULL
+    ]);
+    assert_eq!(sum_result.presence, expected_sum_presence);
+    
+    // Now we evaluate the comparison: (A + B) = 2
+    let eq_expr = equal(add(col("a"), col("b")), lit(2));
+    let eq_result = table.evaluate_nullable(&eq_expr).unwrap();
+    
+    // For the equality result:
+    assert_eq!(
+        eq_result.values,
+        OwnedColumn::<TestScalar>::Boolean(vec![true, false, false, false, false, false, false])
+    );
+    
+    // The presence should match the sum's presence - NULL where either A or B is NULL
+    let expected_eq_presence = Some(vec![
+        true,  // A=1, B=1 -> 1+1=2 -> true (not NULL)
+        false, // A=1, B=NULL -> NULL
+        false, // A=NULL, B=1 -> NULL
+        false, // A=NULL, B=NULL -> NULL
+        true,  // A=2, B=2 -> 2+2=4 -> false (not NULL)
+        false, // A=2, B=NULL -> NULL
+        false, // A=NULL, B=2 -> NULL
+    ]);
+    assert_eq!(eq_result.presence, expected_eq_presence);
+    
+    // In SQL, the WHERE clause only includes rows where the condition is TRUE
+    // It excludes both FALSE and NULL results
+    // Let's simulate applying this filtering logic
+    
+    // Create a selection vector that represents which rows should be selected
+    // A row is selected if the condition evaluates to TRUE (not NULL and not FALSE)
+    let selection: Vec<bool> = eq_result.presence
+        .unwrap()
+        .iter()
+        .zip(match &eq_result.values {
+            OwnedColumn::Boolean(values) => values.iter(),
+            _ => panic!("Expected boolean column"),
+        })
+        .map(|(&present, &value)| present && value)
+        .collect();
+    
+    // Verify the selection vector - only the first row should be TRUE
+    assert_eq!(
+        selection,
+        vec![true, false, false, false, false, false, false]
+    );
+    
+    // This selection vector is what would be passed to filter_columns 
+    // to produce the correct filtered result
+}
