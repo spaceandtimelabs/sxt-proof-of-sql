@@ -10,7 +10,12 @@ mod scalar;
 pub use scalar::BNScalar;
 
 mod public_setup;
-pub use public_setup::{HyperKZGPublicSetup, HyperKZGPublicSetupOwned};
+#[cfg(feature = "std")]
+pub use public_setup::deserialize_flat_compressed_hyperkzg_public_setup_from_reader;
+pub use public_setup::{
+    deserialize_flat_compressed_hyperkzg_public_setup_from_slice, HyperKZGPublicSetup,
+    HyperKZGPublicSetupOwned,
+};
 
 mod commitment;
 pub use commitment::HyperKZGCommitment;
