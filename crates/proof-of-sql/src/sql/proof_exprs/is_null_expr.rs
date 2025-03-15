@@ -44,8 +44,8 @@ impl ProofExpr for IsNullExpr {
             return Column::Boolean(alloc.alloc_slice_fill_copy(table.num_rows(), false));
         }
         let presence_slice = presence.unwrap();
-        // IS NULL is true where the presence indicator is true
-        Column::Boolean(alloc.alloc_slice_fill_with(presence_slice.len(), |i| presence_slice[i]))
+        // IS NULL is true where the presence indicator is false (false means NULL)
+        Column::Boolean(alloc.alloc_slice_fill_with(presence_slice.len(), |i| !presence_slice[i]))
     }
 
     fn prover_evaluate<'a, S: Scalar>(
@@ -62,8 +62,8 @@ impl ProofExpr for IsNullExpr {
             alloc.alloc_slice_fill_copy(table.num_rows(), false)
         } else {
             let presence_slice = presence.unwrap();
-            // IS NULL is exactly the presence indicator
-            alloc.alloc_slice_fill_with(presence_slice.len(), |i| presence_slice[i])
+            // IS NULL is true where the presence indicator is false (false means NULL)
+            alloc.alloc_slice_fill_with(presence_slice.len(), |i| !presence_slice[i])
         };
         let nullable_column = match NullableColumn::with_presence(inner_column, presence) {
             Ok(col) => col,

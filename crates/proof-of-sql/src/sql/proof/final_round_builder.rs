@@ -160,9 +160,11 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
     /// Records an IS NULL check for a nullable column
     pub fn record_is_null_check(&mut self, column: &NullableColumn<'a, S>, alloc: &'a Bump) {
         if let Some(presence) = &column.presence {
-            // When presence is Some, use the presence array directly
-            let presence_column = Column::Boolean(presence);
-            self.produce_intermediate_mle(presence_column);
+            // When presence is Some, negate the presence array since presence[i]=true means NOT NULL
+            // and we want to record where values ARE NULL (i.e., where presence[i]=false)
+            let is_null = alloc.alloc_slice_fill_with(presence.len(), |i| !presence[i]);
+            let is_null_column = Column::Boolean(is_null);
+            self.produce_intermediate_mle(is_null_column);
         } else {
             // When presence is None, create a constant false MLE since no values are null
             let table_size = column.values.len();
@@ -175,9 +177,8 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
     /// Records an IS NOT NULL check for a nullable column
     pub fn record_is_not_null_check(&mut self, column: &NullableColumn<'a, S>, alloc: &'a Bump) {
         if let Some(presence) = &column.presence {
-            // When presence is Some, negate the presence array since presence[i]=true means NULL
-            let not_null = alloc.alloc_slice_fill_with(presence.len(), |i| !presence[i]);
-            let presence_column = Column::Boolean(not_null);
+            // When presence is Some, use the presence array directly since presence[i]=true means NOT NULL
+            let presence_column = Column::Boolean(presence);
             self.produce_intermediate_mle(presence_column);
         } else {
             // When presence is None, all values are non-null so return constant true
@@ -198,11 +199,11 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
             // For IS TRUE, we need to check if the value is both not null and true
             if let Some(presence) = &column.presence {
                 // Create a new array that is true only when:
-                // 1. The value is not null (presence[i] = false)
+                // 1. The value is not null (presence[i] = true)
                 // 2. The value is true (values[i] = true)
                 let mut is_true = Vec::with_capacity(values.len());
                 for i in 0..values.len() {
-                    is_true.push(!presence[i] && values[i]);
+                    is_true.push(presence[i] && values[i]);
                 }
                 // Use the allocator to ensure the vector lives for the required 'a lifetime
                 let is_true_slice = alloc.alloc_slice_copy(&is_true);
@@ -211,7 +212,7 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
 
                 // Create the sumcheck subpolynomial that verifies the IS TRUE constraint
                 let mismatch = alloc.alloc_slice_fill_with(values.len(), |i| {
-                    let expected = !presence[i] && values[i];
+                    let expected = presence[i] && values[i];
                     is_true[i] != expected
                 });
                 self.produce_sumcheck_subpolynomial(

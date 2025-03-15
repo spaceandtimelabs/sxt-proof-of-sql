@@ -140,7 +140,10 @@ impl ProofExpr for IsTrueExpr {
             if self.malicious {
                 true
             } else {
-                let not_null = presence.is_none_or(|p| !p[i]);
+                // presence[i] = false means NULL, so !presence[i] means IS NULL
+                // presence[i] = true means NOT NULL, so presence[i] means IS NOT NULL
+                // For a value to be TRUE, it must be NOT NULL and have a true value
+                let not_null = presence.is_none_or(|p| p[i]);
                 not_null && inner_values[i]
             }
         });
