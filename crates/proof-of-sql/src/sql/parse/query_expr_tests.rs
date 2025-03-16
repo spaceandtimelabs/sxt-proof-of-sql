@@ -2297,15 +2297,15 @@ fn we_can_parse_complex_null_logic_in_where_clause() {
             "d".into() => ColumnType::Boolean,
         },
     );
-    
+
     // Test complex NULL logic with AND, OR, and NOT
     // Just verify that the query parses successfully without error
     let _ast = query_to_provable_ast(
-        &t, 
+        &t,
         "select a, b from nullable_table where (a IS NULL OR b > 10) AND (c IS NOT NULL OR d = FALSE)", 
         &accessor
     );
-    
+
     // Success is indicated by the test not panicking
 }
 
@@ -2319,15 +2319,15 @@ fn we_can_parse_is_null_with_arithmetic_expressions() {
             "b".into() => ColumnType::BigInt,
         },
     );
-    
+
     // Test IS NULL on arithmetic expression
     // Just verify that the query parses successfully without error
     let _ast = query_to_provable_ast(
-        &t, 
-        "select a, b from nullable_table where (a + b) IS NULL", 
-        &accessor
+        &t,
+        "select a, b from nullable_table where (a + b) IS NULL",
+        &accessor,
     );
-    
+
     // Success is indicated by the test not panicking
 }
 
@@ -2341,15 +2341,15 @@ fn we_can_parse_is_not_null_with_comparison_expressions() {
             "b".into() => ColumnType::BigInt,
         },
     );
-    
+
     // Test IS NOT NULL on comparison expression
     // Just verify that the query parses successfully without error
     let _ast = query_to_provable_ast(
-        &t, 
-        "select a, b from nullable_table where (a > b) IS NOT NULL", 
-        &accessor
+        &t,
+        "select a, b from nullable_table where (a > b) IS NOT NULL",
+        &accessor,
     );
-    
+
     // Success is indicated by the test not panicking
 }
 
@@ -2362,16 +2362,16 @@ fn we_can_parse_null_equality_comparisons() {
             "a".into() => ColumnType::BigInt,
         },
     );
-    
+
     // In SQL, comparing with NULL using = always yields NULL (not TRUE or FALSE)
     // So we need to use IS NULL to check for NULL values
     // Just verify that the query parses successfully without error
     let _ast = query_to_provable_ast(
-        &t, 
-        "select a from nullable_table where a IS NULL", 
-        &accessor
+        &t,
+        "select a from nullable_table where a IS NULL",
+        &accessor,
     );
-    
+
     // Success is indicated by the test not panicking
 }
 
@@ -2384,15 +2384,15 @@ fn we_can_parse_null_in_select_expressions() {
             "a".into() => ColumnType::BigInt,
         },
     );
-    
+
     // Test NULL in SELECT expressions
     // Just verify that the query parses successfully without error
     let _ast = query_to_provable_ast(
-        &t, 
-        "select a, a IS NULL as is_null_a, NULL as null_value from nullable_table", 
-        &accessor
+        &t,
+        "select a, a IS NULL as is_null_a, NULL as null_value from nullable_table",
+        &accessor,
     );
-    
+
     // Success is indicated by the test not panicking
 }
 
@@ -2407,30 +2407,30 @@ fn we_can_parse_three_valued_logic_with_and_or_operators() {
             "c".into() => ColumnType::Boolean,
         },
     );
-    
+
     // Test three-valued logic with AND/OR
     // In SQL:
     // - NULL AND TRUE = NULL
     // - NULL AND FALSE = FALSE
     // - NULL OR TRUE = TRUE
     // - NULL OR FALSE = NULL
-    
+
     // This query tests NULL OR TRUE = TRUE
     // Just verify that the query parses successfully without error
     let _ast1 = query_to_provable_ast(
-        &t, 
-        "select a from nullable_table where a IS NULL OR c = TRUE", 
-        &accessor
+        &t,
+        "select a from nullable_table where a IS NULL OR c = TRUE",
+        &accessor,
     );
-    
+
     // This query tests NULL AND FALSE = FALSE
     // Just verify that the query parses successfully without error
     let _ast2 = query_to_provable_ast(
-        &t, 
-        "select a from nullable_table where a IS NULL AND c = FALSE", 
-        &accessor
+        &t,
+        "select a from nullable_table where a IS NULL AND c = FALSE",
+        &accessor,
     );
-    
+
     // Success is indicated by the test not panicking
 }
 
@@ -2444,14 +2444,14 @@ fn we_can_parse_boolean_comparisons_with_null_values() {
             "b".into() => ColumnType::Boolean,
         },
     );
-    
+
     // Test boolean comparisons with potentially NULL values
     // Just verify that the query parses successfully without error
     let _ast = query_to_provable_ast(
-        &t, 
-        "select a from nullable_table where b = TRUE OR b = FALSE", 
-        &accessor
+        &t,
+        "select a from nullable_table where b = TRUE OR b = FALSE",
+        &accessor,
     );
-    
+
     // Success is indicated by the test not panicking
 }

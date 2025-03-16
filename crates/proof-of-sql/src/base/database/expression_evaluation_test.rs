@@ -421,31 +421,31 @@ fn we_can_simulate_sql_where_clause_with_nulls() {
     // Column A with some NULL values
     let a_values = OwnedColumn::<TestScalar>::BigInt(vec![1, 1, 0, 0, 2, 2, 0]);
     let a_presence = Some(vec![true, true, false, false, true, true, false]);
-    
+
     // Column B with some NULL values
     let b_values = OwnedColumn::<TestScalar>::BigInt(vec![1, 0, 1, 0, 2, 0, 2]);
     let b_presence = Some(vec![true, false, true, false, true, false, true]);
-    
+
     // Column C with no NULL values
     let c_values = OwnedColumn::<TestScalar>::BigInt(vec![101, 102, 103, 104, 105, 106, 107]);
-    
+
     // Create the table using the new owned_table_with_nulls utility function
     let table = owned_table_with_nulls([
         nullable_column_pair("a", a_values, a_presence.clone()),
         nullable_column_pair("b", b_values, b_presence.clone()),
         nullable_column_pair("c", c_values, None),
     ]);
-    
+
     // First, evaluate the arithmetic expression: A + B
     let add_expr = add(col("a"), col("b"));
     let sum_result = table.evaluate_nullable(&add_expr).unwrap();
-    
+
     // The sum result should have NULLs where either A or B is NULL
     assert_eq!(
-        sum_result.values, 
+        sum_result.values,
         OwnedColumn::<TestScalar>::BigInt(vec![2, 1, 1, 0, 4, 2, 2])
     );
-    
+
     // The presence should be NULL (false) where either A or B is NULL
     let expected_sum_presence = Some(vec![
         true,  // A=1, B=1 -> 1+1=2 (not NULL)
@@ -457,11 +457,11 @@ fn we_can_simulate_sql_where_clause_with_nulls() {
         false, // A=NULL, B=2 -> NULL
     ]);
     assert_eq!(sum_result.presence, expected_sum_presence);
-    
+
     // Now we evaluate the comparison: (A + B) = 2
     let eq_expr = equal(add(col("a"), col("b")), lit(2));
     let eq_result = table.evaluate_nullable(&eq_expr).unwrap();
-    
+
     // First verify the presence - this is the critical part that defines NULL behavior
     let expected_eq_presence = Some(vec![
         true,  // A=1, B=1 -> 1+1=2 -> true (not NULL)
@@ -473,7 +473,7 @@ fn we_can_simulate_sql_where_clause_with_nulls() {
         false, // A=NULL, B=2 -> NULL
     ]);
     assert_eq!(eq_result.presence, expected_eq_presence);
-    
+
     // Then verify only the non-NULL values (where presence is true)
     // For NULL values (presence=false), the actual value is implementation-defined
     match &eq_result.values {
@@ -483,13 +483,13 @@ fn we_can_simulate_sql_where_clause_with_nulls() {
                 if presence[i] {
                     // Only verify values where presence is true
                     match i {
-                        0 => assert_eq!(values[i], true),  // 1+1=2 -> true
-                        4 => assert_eq!(values[i], false), // 2+2=4 -> false
-                        _ => panic!("Unexpected non-NULL value at index {}", i),
+                        0 => assert!(values[i]),  // 1+1=2 -> true
+                        4 => assert!(!values[i]), // 2+2=4 -> false
+                        _ => panic!("Unexpected non-NULL value at index {i}"),
                     }
                 }
             }
-        },
+        }
         _ => panic!("Expected boolean column"),
     }
 }

@@ -282,7 +282,8 @@ fn test_is_true_expr_with_non_boolean_column() {
     let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());
     // Make sure values match the NULL pattern - when presence[i] is false (NULL),
     // the actual value doesn't matter but we'll use false for clarity
-    let column_values: Column<'_, TestScalar> = Column::Boolean(&[true, false, false, false, false]);
+    let column_values: Column<'_, TestScalar> =
+        Column::Boolean(&[true, false, false, false, false]);
     let presence = &[true, true, false, false, true];
     let nullable_column = NullableColumn {
         values: column_values,
@@ -310,7 +311,7 @@ fn test_is_true_expr_with_non_boolean_column() {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // IS TRUE should be true only for non-NULL true values (index 0)
-            assert!(values[0]);  // true and not NULL (presence[0] = true, value = true)
+            assert!(values[0]); // true and not NULL (presence[0] = true, value = true)
             assert!(!values[1]); // false and not NULL (presence[1] = true, value = false)
             assert!(!values[2]); // NULL (presence[2] = false)
             assert!(!values[3]); // NULL (presence[3] = false)

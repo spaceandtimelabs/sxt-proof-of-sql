@@ -16,7 +16,7 @@ use super::scalar_and_i256_conversions::{convert_i256_to_scalar, convert_scalar_
 use crate::base::{
     database::{OwnedColumn, OwnedNullableColumn, OwnedTable, OwnedTableError, TableError},
     map::IndexMap,
-    math::decimal::{Precision, DecimalError},
+    math::decimal::{DecimalError, Precision},
     scalar::Scalar,
 };
 use alloc::sync::Arc;
@@ -224,16 +224,13 @@ impl<S: Scalar> TryFrom<OwnedTable<S>> for RecordBatch {
             Ok(RecordBatch::new_empty(SchemaRef::new(Schema::empty())))
         } else {
             // Convert each column to an ArrayRef, handling nulls properly
-            RecordBatch::try_from_iter(
-                value
-                    .into_inner()
-                    .into_iter()
-                    .map(|(identifier, owned_column)| {
-                        // Convert the OwnedColumn to an ArrayRef
-                        let array_ref = ArrayRef::from(owned_column);
-                        (identifier.value, array_ref)
-                    }),
-            )
+            RecordBatch::try_from_iter(value.into_inner().into_iter().map(
+                |(identifier, owned_column)| {
+                    // Convert the OwnedColumn to an ArrayRef
+                    let array_ref = ArrayRef::from(owned_column);
+                    (identifier.value, array_ref)
+                },
+            ))
         }
     }
 }
@@ -249,6 +246,7 @@ impl<S: Scalar> TryFrom<ArrayRef> for OwnedNullableColumn<S> {
 impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
     type Error = OwnedArrowConversionError;
 
+    #[allow(clippy::needless_range_loop)]
     fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
         let has_nulls = value.null_count() > 0;
         let len = value.len();
@@ -282,7 +280,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                     });
                 }
                 OwnedColumn::Boolean(values)
-            },
+            }
             DataType::UInt8 => {
                 let array = value.as_any().downcast_ref::<UInt8Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
@@ -290,7 +288,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                     values.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 OwnedColumn::Uint8(values)
-            },
+            }
             DataType::Int8 => {
                 let array = value.as_any().downcast_ref::<Int8Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
@@ -298,7 +296,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                     values.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 OwnedColumn::TinyInt(values)
-            },
+            }
             DataType::Int16 => {
                 let array = value.as_any().downcast_ref::<Int16Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
@@ -306,7 +304,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                     values.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 OwnedColumn::SmallInt(values)
-            },
+            }
             DataType::Int32 => {
                 let array = value.as_any().downcast_ref::<Int32Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
@@ -314,7 +312,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                     values.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 OwnedColumn::Int(values)
-            },
+            }
             DataType::Int64 => {
                 let array = value.as_any().downcast_ref::<Int64Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
@@ -322,7 +320,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                     values.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 OwnedColumn::BigInt(values)
-            },
+            }
             DataType::Decimal128(38, 0) => {
                 let array = value.as_any().downcast_ref::<Decimal128Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
@@ -330,7 +328,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                     values.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 OwnedColumn::Int128(values)
-            },
+            }
             DataType::Decimal256(precision, scale) if *precision <= 75 => {
                 let array = value.as_any().downcast_ref::<Decimal256Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
@@ -351,7 +349,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                     *scale,
                     values,
                 )
-            },
+            }
             DataType::Utf8 => {
                 let array = value.as_any().downcast_ref::<StringArray>().unwrap();
                 let mut values = Vec::with_capacity(len);
@@ -363,7 +361,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                     });
                 }
                 OwnedColumn::VarChar(values)
-            },
+            }
             DataType::Binary => {
                 let array = value.as_any().downcast_ref::<BinaryArray>().unwrap();
                 let mut values = Vec::with_capacity(len);
@@ -375,7 +373,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                     });
                 }
                 OwnedColumn::VarBinary(values)
-            },
+            }
             DataType::Timestamp(time_unit, timezone) => match time_unit {
                 ArrowTimeUnit::Second => {
                     let array = value
@@ -393,7 +391,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     )
-                },
+                }
                 ArrowTimeUnit::Millisecond => {
                     let array = value
                         .as_any()
@@ -410,7 +408,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     )
-                },
+                }
                 ArrowTimeUnit::Microsecond => {
                     let array = value
                         .as_any()
@@ -427,7 +425,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     )
-                },
+                }
                 ArrowTimeUnit::Nanosecond => {
                     let array = value
                         .as_any()
@@ -444,7 +442,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     )
-                },
+                }
             },
             _ => {
                 return Err(OwnedArrowConversionError::UnsupportedType {
@@ -462,14 +460,15 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
 
 impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
     type Error = OwnedArrowConversionError;
+    #[allow(clippy::too_many_lines, clippy::needless_range_loop)]
     fn try_from(value: RecordBatch) -> Result<Self, Self::Error> {
         let num_columns = value.schema().fields().len();
         if num_columns == 0 {
             return Ok(Self::try_new(IndexMap::default())?);
         }
-        
+
         let num_rows = value.num_rows();
-        
+
         // First pass: collect all NULL positions across all columns
         let mut null_rows = vec![false; num_rows];
         for array_ref in value.columns() {
@@ -479,19 +478,22 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                 }
             }
         }
-        
+
         // Create maps to store columns and presence information
         let mut columns = IndexMap::default();
         let mut presence_map = IndexMap::default();
-        
+
         // Create a single presence vector that will be used for all columns
         // If any column has NULL in a row, that row is NULL for all columns
-        let presence = null_rows.iter().map(|&is_null| !is_null).collect::<Vec<bool>>();
-        
+        let presence = null_rows
+            .iter()
+            .map(|&is_null| !is_null)
+            .collect::<Vec<bool>>();
+
         // Second pass: convert columns while zeroing out values in NULL rows
         for (field, array_ref) in value.schema().fields().iter().zip(value.columns()) {
             let identifier = Ident::new(field.name());
-            
+
             // Convert array to values, setting rows with NULLs anywhere to 0
             let column = match array_ref.data_type() {
                 DataType::Boolean => {
@@ -501,7 +503,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                         values.push(if null_rows[i] { false } else { array.value(i) });
                     }
                     OwnedColumn::Boolean(values)
-                },
+                }
                 DataType::UInt8 => {
                     let array = array_ref.as_any().downcast_ref::<UInt8Array>().unwrap();
                     let mut values = Vec::with_capacity(num_rows);
@@ -509,7 +511,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                         values.push(if null_rows[i] { 0 } else { array.value(i) });
                     }
                     OwnedColumn::Uint8(values)
-                },
+                }
                 DataType::Int8 => {
                     let array = array_ref.as_any().downcast_ref::<Int8Array>().unwrap();
                     let mut values = Vec::with_capacity(num_rows);
@@ -517,7 +519,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                         values.push(if null_rows[i] { 0 } else { array.value(i) });
                     }
                     OwnedColumn::TinyInt(values)
-                },
+                }
                 DataType::Int16 => {
                     let array = array_ref.as_any().downcast_ref::<Int16Array>().unwrap();
                     let mut values = Vec::with_capacity(num_rows);
@@ -525,7 +527,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                         values.push(if null_rows[i] { 0 } else { array.value(i) });
                     }
                     OwnedColumn::SmallInt(values)
-                },
+                }
                 DataType::Int32 => {
                     let array = array_ref.as_any().downcast_ref::<Int32Array>().unwrap();
                     let mut values = Vec::with_capacity(num_rows);
@@ -533,7 +535,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                         values.push(if null_rows[i] { 0 } else { array.value(i) });
                     }
                     OwnedColumn::Int(values)
-                },
+                }
                 DataType::Int64 => {
                     let array = array_ref.as_any().downcast_ref::<Int64Array>().unwrap();
                     let mut values = Vec::with_capacity(num_rows);
@@ -541,30 +543,37 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                         values.push(if null_rows[i] { 0 } else { array.value(i) });
                     }
                     OwnedColumn::BigInt(values)
-                },
+                }
                 DataType::Decimal128(38, 0) => {
-                    let array = array_ref.as_any().downcast_ref::<Decimal128Array>().unwrap();
+                    let array = array_ref
+                        .as_any()
+                        .downcast_ref::<Decimal128Array>()
+                        .unwrap();
                     let mut values = Vec::with_capacity(num_rows);
                     for i in 0..num_rows {
                         values.push(if null_rows[i] { 0 } else { array.value(i) });
                     }
                     OwnedColumn::Int128(values)
-                },
+                }
                 DataType::Decimal256(precision, scale) if *precision <= 75 => {
-                    let array = array_ref.as_any().downcast_ref::<Decimal256Array>().unwrap();
+                    let array = array_ref
+                        .as_any()
+                        .downcast_ref::<Decimal256Array>()
+                        .unwrap();
                     let mut values = Vec::with_capacity(num_rows);
                     for i in 0..num_rows {
                         values.push(if null_rows[i] {
                             S::zero()
                         } else {
-                            convert_i256_to_scalar(&array.value(i))
-                                .ok_or(OwnedArrowConversionError::DecimalConversionFailed {
+                            convert_i256_to_scalar(&array.value(i)).ok_or(
+                                OwnedArrowConversionError::DecimalConversionFailed {
                                     number: array.value(i),
-                                })?
+                                },
+                            )?
                         });
                     }
                     OwnedColumn::Decimal75(Precision::new(*precision)?, *scale, values)
-                },
+                }
                 // For non-numeric types, still use the null_rows information
                 _ => {
                     let array = match array_ref.data_type() {
@@ -579,7 +588,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                                 });
                             }
                             OwnedColumn::VarChar(values)
-                        },
+                        }
                         DataType::Binary => {
                             let array = array_ref.as_any().downcast_ref::<BinaryArray>().unwrap();
                             let mut values = Vec::with_capacity(num_rows);
@@ -591,41 +600,53 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                                 });
                             }
                             OwnedColumn::VarBinary(values)
-                        },
+                        }
                         DataType::Timestamp(time_unit, timezone) => {
                             let timestamps = match time_unit {
                                 ArrowTimeUnit::Second => {
-                                    let array = array_ref.as_any().downcast_ref::<TimestampSecondArray>().unwrap();
+                                    let array = array_ref
+                                        .as_any()
+                                        .downcast_ref::<TimestampSecondArray>()
+                                        .unwrap();
                                     let mut values = Vec::with_capacity(num_rows);
                                     for i in 0..num_rows {
                                         values.push(if null_rows[i] { 0 } else { array.value(i) });
                                     }
                                     values
-                                },
+                                }
                                 ArrowTimeUnit::Millisecond => {
-                                    let array = array_ref.as_any().downcast_ref::<TimestampMillisecondArray>().unwrap();
+                                    let array = array_ref
+                                        .as_any()
+                                        .downcast_ref::<TimestampMillisecondArray>()
+                                        .unwrap();
                                     let mut values = Vec::with_capacity(num_rows);
                                     for i in 0..num_rows {
                                         values.push(if null_rows[i] { 0 } else { array.value(i) });
                                     }
                                     values
-                                },
+                                }
                                 ArrowTimeUnit::Microsecond => {
-                                    let array = array_ref.as_any().downcast_ref::<TimestampMicrosecondArray>().unwrap();
+                                    let array = array_ref
+                                        .as_any()
+                                        .downcast_ref::<TimestampMicrosecondArray>()
+                                        .unwrap();
                                     let mut values = Vec::with_capacity(num_rows);
                                     for i in 0..num_rows {
                                         values.push(if null_rows[i] { 0 } else { array.value(i) });
                                     }
                                     values
-                                },
+                                }
                                 ArrowTimeUnit::Nanosecond => {
-                                    let array = array_ref.as_any().downcast_ref::<TimestampNanosecondArray>().unwrap();
+                                    let array = array_ref
+                                        .as_any()
+                                        .downcast_ref::<TimestampNanosecondArray>()
+                                        .unwrap();
                                     let mut values = Vec::with_capacity(num_rows);
                                     for i in 0..num_rows {
                                         values.push(if null_rows[i] { 0 } else { array.value(i) });
                                     }
                                     values
-                                },
+                                }
                             };
                             OwnedColumn::TimestampTZ(
                                 match time_unit {
@@ -637,28 +658,30 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                                 PoSQLTimeZone::try_from(timezone)?,
                                 timestamps,
                             )
-                        },
-                        _ => return Err(OwnedArrowConversionError::UnsupportedType {
-                            datatype: array_ref.data_type().clone(),
-                        }),
+                        }
+                        _ => {
+                            return Err(OwnedArrowConversionError::UnsupportedType {
+                                datatype: array_ref.data_type().clone(),
+                            })
+                        }
                     };
                     array
                 }
             };
-            
+
             // Store the column and use the same presence vector for all columns
             columns.insert(identifier.clone(), column);
             presence_map.insert(identifier, presence.clone());
         }
-        
+
         // Create the OwnedTable with columns and presence information
         let mut owned_table = Self::try_new(columns)?;
-        
+
         // Add presence information to the table
         for (ident, presence) in presence_map {
             owned_table.set_presence(ident, presence);
         }
-        
+
         if num_columns == owned_table.num_columns() {
             Ok(owned_table)
         } else {
@@ -803,7 +826,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))
-                },
+                }
                 ArrowTimeUnit::Millisecond => {
                     let array = value
                         .as_any()
@@ -817,7 +840,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))
-                },
+                }
                 ArrowTimeUnit::Microsecond => {
                     let array = value
                         .as_any()
@@ -831,7 +854,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))
-                },
+                }
                 ArrowTimeUnit::Nanosecond => {
                     let array = value
                         .as_any()
@@ -845,7 +868,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))
-                },
+                }
             },
             &data_type => Err(OwnedArrowConversionError::UnsupportedType {
                 datatype: data_type.clone(),

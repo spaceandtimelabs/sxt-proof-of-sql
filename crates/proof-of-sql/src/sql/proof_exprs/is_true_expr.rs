@@ -106,7 +106,7 @@ impl ProofExpr for IsTrueExpr {
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
         let inner_column = self.expr.prover_evaluate(builder, alloc, table);
-        
+
         let Column::Boolean(inner_values) = inner_column else {
             panic!("IS TRUE can only be applied to boolean expressions");
         };
@@ -177,7 +177,7 @@ impl ProofExpr for IsTrueExpr {
         // Get the claimed result - this is the evaluation of the IS TRUE expression
         // which is true only when the value is both non-NULL and TRUE
         let claimed_result = builder.try_consume_final_round_mle_evaluation()?;
-        
+
         Ok(claimed_result)
     }
 

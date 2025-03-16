@@ -49,7 +49,7 @@ impl<S: Scalar> OwnedTable<S> {
     /// Creates a new [`OwnedTable`].
     pub fn try_new(table: IndexMap<Ident, OwnedColumn<S>>) -> Result<Self, OwnedTableError> {
         if table.is_empty() {
-            return Ok(Self { 
+            return Ok(Self {
                 table,
                 presence: IndexMap::default(),
             });
@@ -58,49 +58,43 @@ impl<S: Scalar> OwnedTable<S> {
         if table.values().any(|column| column.len() != num_rows) {
             Err(OwnedTableError::ColumnLengthMismatch)
         } else {
-            Ok(Self { 
+            Ok(Self {
                 table,
-                presence: IndexMap::default(), 
+                presence: IndexMap::default(),
             })
         }
     }
-    
+
     /// Creates a new [`OwnedTable`] with the provided presence information.
     pub fn try_new_with_presence(
         table: IndexMap<Ident, OwnedColumn<S>>,
         presence: IndexMap<Ident, Vec<bool>>,
     ) -> Result<Self, OwnedTableError> {
         if table.is_empty() {
-            return Ok(Self { 
-                table,
-                presence,
-            });
+            return Ok(Self { table, presence });
         }
-        
+
         let num_rows = table[0].len();
-        
+
         // Check that all columns have the same length
         if table.values().any(|column| column.len() != num_rows) {
             return Err(OwnedTableError::ColumnLengthMismatch);
         }
-        
+
         // Check that all presence vectors have the correct length
         for (col_name, presence_vec) in &presence {
             if !table.contains_key(col_name) {
                 return Err(OwnedTableError::ColumnNotFound);
             }
-            
+
             if presence_vec.len() != num_rows {
                 return Err(OwnedTableError::ColumnLengthMismatch);
             }
         }
-        
-        Ok(Self { 
-            table,
-            presence,
-        })
+
+        Ok(Self { table, presence })
     }
-    
+
     /// Creates a new [`OwnedTable`] from `OwnedNullableColumn` instances.
     ///
     /// # Panics
@@ -109,25 +103,25 @@ impl<S: Scalar> OwnedTable<S> {
         columns: IndexMap<Ident, super::owned_column::OwnedNullableColumn<S>>,
     ) -> Result<Self, OwnedTableError> {
         if columns.is_empty() {
-            return Ok(Self { 
+            return Ok(Self {
                 table: IndexMap::default(),
                 presence: IndexMap::default(),
             });
         }
-        
+
         let num_rows = columns.values().next().unwrap().values.len();
-        
+
         // Check that all columns have the same length
         if columns.values().any(|col| col.values.len() != num_rows) {
             return Err(OwnedTableError::ColumnLengthMismatch);
         }
-        
+
         let mut table = IndexMap::default();
         let mut presence = IndexMap::default();
-        
+
         for (col_name, nullable_col) in columns {
             table.insert(col_name.clone(), nullable_col.values.clone());
-            
+
             if let Some(pres_vec) = nullable_col.presence {
                 // Only store presence vectors that contain NULL values
                 if pres_vec.iter().any(|&x| !x) {
@@ -135,22 +129,19 @@ impl<S: Scalar> OwnedTable<S> {
                 }
             }
         }
-        
-        Ok(Self { 
-            table,
-            presence,
-        })
+
+        Ok(Self { table, presence })
     }
-    
+
     /// Get the presence vector for a column, if it exists and has NULL values.
     #[must_use]
     pub fn get_presence(&self, column_name: &Ident) -> Option<&Vec<bool>> {
         self.presence.get(column_name)
     }
-    
+
     /// Set the presence vector for a column.
     /// This marks which rows have non-NULL values (true) vs NULL values (false).
-    /// 
+    ///
     /// # Arguments
     /// * `column_name` - The name of the column to set presence for
     /// * `presence` - The presence vector, where each boolean indicates if the value is present (true) or NULL (false)
@@ -165,13 +156,13 @@ impl<S: Scalar> OwnedTable<S> {
             }
         }
     }
-    
+
     /// Check if a column has NULL values.
     #[must_use]
     pub fn has_nulls(&self, column_name: &Ident) -> bool {
         self.presence.contains_key(column_name)
     }
-    
+
     /// Creates a new [`OwnedTable`].
     pub fn try_from_iter<T: IntoIterator<Item = (Ident, OwnedColumn<S>)>>(
         iter: T,

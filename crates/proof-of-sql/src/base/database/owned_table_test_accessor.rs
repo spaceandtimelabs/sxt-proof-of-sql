@@ -129,11 +129,11 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
             OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col),
         }
     }
-    
+
     fn get_column_presence(&self, column: &ColumnRef) -> Option<&[bool]> {
         // Get the owned table for this column's table reference
         let owned_table = &self.tables.get(&column.table_ref())?.0;
-        
+
         // Get the presence information for this column
         if let Some(presence) = owned_table.get_presence(&column.column_id()) {
             // Convert Vec<bool> to &[bool]
@@ -141,7 +141,7 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
             // This is safe because the OwnedTableTestAccessor is only used for testing
             // and the memory will be cleaned up when the process exits
             let leaked_presence: &'static [bool] = Box::leak(presence.clone().into_boxed_slice());
-            
+
             // Return the presence information
             Some(leaked_presence)
         } else {

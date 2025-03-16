@@ -53,10 +53,10 @@ pub fn owned_table<S: Scalar>(
 ) -> OwnedTable<S> {
     // First, collect all the columns
     let columns: Vec<_> = iter.into_iter().collect();
-    
+
     // Create the table
     let mut table = OwnedTable::try_from_iter(columns).unwrap();
-    
+
     // Get all the nullable columns from thread-local storage
     let nullable_columns = NULLABLE_COLUMNS.with(|cell| {
         let mut map = cell.borrow_mut();
@@ -64,7 +64,7 @@ pub fn owned_table<S: Scalar>(
         map.clear();
         result
     });
-    
+
     // Now add presence information for nullable columns
     for ((name, len), presence) in nullable_columns {
         if let Some(col) = table.inner_table().get(&name) {
@@ -73,7 +73,7 @@ pub fn owned_table<S: Scalar>(
             }
         }
     }
-    
+
     table
 }
 
@@ -90,7 +90,7 @@ pub fn nullable_column<S: Scalar>(
 ) -> (Ident, OwnedColumn<S>) {
     let name_ident = name.into();
     let result = (name_ident.clone(), values.clone());
-    
+
     // If we have presence information, we need to add it to the OwnedTable
     if let Some(presence_vec) = presence {
         NULLABLE_COLUMNS.with(|cell| {
@@ -98,7 +98,7 @@ pub fn nullable_column<S: Scalar>(
             map.insert((name_ident, values.len()), presence_vec);
         });
     }
-    
+
     result
 }
 
@@ -121,7 +121,8 @@ pub fn nullable_column_pair<S: Scalar>(
     presence: Option<Vec<bool>>,
 ) -> (Ident, super::owned_column::OwnedNullableColumn<S>) {
     let name = name.into();
-    let nullable = super::owned_column::OwnedNullableColumn::with_presence(values, presence).unwrap();
+    let nullable =
+        super::owned_column::OwnedNullableColumn::with_presence(values, presence).unwrap();
     (name, nullable)
 }
 
@@ -133,11 +134,11 @@ pub fn nullable_column_pair<S: Scalar>(
 /// use proof_of_sql::base::{database::owned_table_utility::*};
 /// # use proof_of_sql::base::scalar::MontScalar;
 /// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
-/// 
+///
 /// // Create presence vectors (true = value present, false = NULL)
 /// let presence_a = Some(vec![true, false, true]);
 /// let presence_b = Some(vec![false, true, false]);
-/// 
+///
 /// let result = owned_table_with_nulls::<MyScalar>([
 ///     nullable_column("a", bigint_values([1, 2, 3]), presence_a),
 ///     nullable_column("b", varchar_values(["x", "y", "z"]), presence_b),
@@ -155,9 +156,7 @@ pub fn owned_table_with_nulls<S: Scalar>(
 
 /// Helper function to create bigint values without creating a column pair
 /// Intended for use with `nullable_column` and `owned_table_with_nulls`
-pub fn bigint_values<S: Scalar>(
-    data: impl IntoIterator<Item = impl Into<i64>>,
-) -> OwnedColumn<S> {
+pub fn bigint_values<S: Scalar>(data: impl IntoIterator<Item = impl Into<i64>>) -> OwnedColumn<S> {
     OwnedColumn::BigInt(data.into_iter().map(Into::into).collect())
 }
 

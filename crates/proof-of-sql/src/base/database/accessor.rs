@@ -109,23 +109,19 @@ pub trait DataAccessor<S: Scalar>: MetadataAccessor {
             // Get columns and presence information
             let mut columns = IndexMap::default();
             let mut presence_map = IndexMap::default();
-            
+
             for column_ref in column_refs {
                 let column = self.get_column(column_ref.clone());
                 columns.insert(column_ref.column_id(), column);
-                
+
                 // Check for presence information
                 if let Some(presence) = self.get_column_presence(column_ref) {
                     presence_map.insert(column_ref.column_id(), presence);
                 }
             }
-            
+
             // Create table with columns and presence information
-            Table::<S>::try_new_with_presence(
-                columns,
-                presence_map,
-                TableOptions::default(),
-            )
+            Table::<S>::try_new_with_presence(columns, presence_map, TableOptions::default())
         }
         .expect("Failed to create table from table and column references")
     }

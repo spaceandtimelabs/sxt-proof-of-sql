@@ -48,11 +48,11 @@ fn test_is_null_expr() {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // presence[i] = true means NOT NULL, so IS NULL should return false for those values
-            assert!(!values[0]);  // presence[0] = true -> IS NULL = false
-            assert!(values[1]);   // presence[1] = false -> IS NULL = true
-            assert!(!values[2]);  // presence[2] = true -> IS NULL = false
-            assert!(values[3]);   // presence[3] = false -> IS NULL = true
-            assert!(!values[4]);  // presence[4] = true -> IS NULL = false
+            assert!(!values[0]); // presence[0] = true -> IS NULL = false
+            assert!(values[1]); // presence[1] = false -> IS NULL = true
+            assert!(!values[2]); // presence[2] = true -> IS NULL = false
+            assert!(values[3]); // presence[3] = false -> IS NULL = true
+            assert!(!values[4]); // presence[4] = true -> IS NULL = false
         }
         _ => panic!("Expected boolean column"),
     }

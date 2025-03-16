@@ -746,13 +746,14 @@ mod tests {
         // Create precomputed scalars
         let scalars = [
             TestScalar::from("hello"),
-            TestScalar::from(""),  // Default value for NULL
+            TestScalar::from(""), // Default value for NULL
             TestScalar::from("world"),
         ];
         let scalar_slice = alloc.alloc_slice_copy(&scalars);
 
         // Test to_nullable_column
-        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), Some(scalar_slice));
+        let nullable_result =
+            array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), Some(scalar_slice));
         assert!(nullable_result.is_ok());
         let nullable_column = nullable_result.unwrap();
         assert_eq!(nullable_column.len(), 3);
@@ -1370,7 +1371,7 @@ mod tests {
             Column::VarChar((&[], &[]))
         );
     }
-    
+
     #[test]
     fn we_cannot_convert_valid_string_array_refs_into_valid_columns_using_out_of_ranges_sizes() {
         let alloc = Bump::new();

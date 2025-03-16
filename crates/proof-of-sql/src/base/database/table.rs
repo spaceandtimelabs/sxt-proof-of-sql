@@ -39,7 +39,7 @@ pub enum TableError {
     /// The presence slice length doesn't match the table row count.
     #[snafu(display("Presence slice length must match table row count"))]
     PresenceLengthMismatch,
-    
+
     /// The column was not found in the table.
     #[snafu(display("Column '{column}' not found in table"))]
     ColumnNotFound {
@@ -285,7 +285,7 @@ impl<'a, S: Scalar> Table<'a, S> {
                         // Look for columns with NULL values
                         let mut nullable_columns = Vec::new();
                         let mut row_count = 0;
-                        
+
                         for column_ref in &columns {
                             let ident = column_ref.column_id();
                             if let Some(presence) = self.presence_map.get(&ident).copied() {
@@ -293,18 +293,18 @@ impl<'a, S: Scalar> Table<'a, S> {
                                 row_count = presence.len();
                             }
                         }
-                        
+
                         // If we found any nullable columns
                         if !nullable_columns.is_empty() {
                             // If there's only one nullable column, just return its presence
                             if nullable_columns.len() == 1 {
                                 return Some(nullable_columns[0]);
                             }
-                            
+
                             // Otherwise, create a static &[bool] with combined presence info
                             // First create a boolean array
                             let mut combined = vec![true; row_count];
-                            
+
                             // For each nullable column, update the combined presence
                             for presence in nullable_columns {
                                 for (i, &is_present) in presence.iter().enumerate() {
@@ -313,19 +313,20 @@ impl<'a, S: Scalar> Table<'a, S> {
                                     }
                                 }
                             }
-                            
+
                             // Now leak the vector to get a 'static lifetime
                             // This is safe because the Vec is properly aligned and initialized
                             // We're intentionally leaking memory, but it's a small amount and
                             // will be cleaned up when the process exits
-                            let leaked_combined: &'static [bool] = Box::leak(combined.into_boxed_slice());
-                            
+                            let leaked_combined: &'static [bool] =
+                                Box::leak(combined.into_boxed_slice());
+
                             // Use a transmutation to convert from &'static [bool] to &'a [bool]
                             // This is safe because 'static outlives 'a
-                            let transmuted: &'a [bool] = unsafe { 
+                            let transmuted: &'a [bool] = unsafe {
                                 std::mem::transmute::<&'static [bool], &'a [bool]>(leaked_combined)
                             };
-                            
+
                             return Some(transmuted);
                         }
                     }

@@ -17,7 +17,7 @@ impl<S: Scalar> OwnedTable<S> {
         // Delegate to evaluate_nullable and return the value column
         // The presence information will be preserved separately
         let nullable_result = self.evaluate_nullable(expr)?;
-        
+
         // Even if result has NULL values, we should return the values column
         // Caller is responsible for also checking for presence information
         Ok(nullable_result.values)
@@ -59,16 +59,19 @@ impl<S: Scalar> OwnedTable<S> {
     ) -> ExpressionEvaluationResult<OwnedNullableColumn<S>> {
         // Get the column from the table
         let column = self.evaluate_column(identifier)?;
-        
+
         // Get the presence vector if it exists
         let presence = self.get_presence(identifier).cloned();
-        
+
         // Create a nullable column with the appropriate presence information
         if let Some(presence_vec) = presence {
-            Ok(OwnedNullableColumn::with_presence(column, Some(presence_vec))
-                .map_err(|_| ExpressionEvaluationError::Unsupported {
-                    expression: format!("Invalid presence vector for column {identifier}"),
-                })?)
+            Ok(
+                OwnedNullableColumn::with_presence(column, Some(presence_vec)).map_err(|_| {
+                    ExpressionEvaluationError::Unsupported {
+                        expression: format!("Invalid presence vector for column {identifier}"),
+                    }
+                })?,
+            )
         } else {
             // No presence information means all values are non-null
             Ok(OwnedNullableColumn::new(column))

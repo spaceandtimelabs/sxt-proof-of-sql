@@ -56,8 +56,7 @@ impl ProofExpr for IsNotNullExpr {
         let presence_slice = presence.unwrap();
 
         // Create a new slice with the same values since presence[i]=true means NOT NULL
-        let result_slice =
-            alloc.alloc_slice_fill_with(presence_slice.len(), |i| presence_slice[i]);
+        let result_slice = alloc.alloc_slice_fill_with(presence_slice.len(), |i| presence_slice[i]);
 
         Column::Boolean(result_slice)
     }

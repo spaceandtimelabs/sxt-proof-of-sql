@@ -49,17 +49,18 @@ fn test_is_not_null_expr() {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // presence[i] = true means NOT NULL, so IS NOT NULL should return true for those values
-            assert!(values[0]);  // presence[0] = true -> IS NOT NULL = true
+            assert!(values[0]); // presence[0] = true -> IS NOT NULL = true
             assert!(!values[1]); // presence[1] = false -> IS NOT NULL = false
-            assert!(values[2]);  // presence[2] = true -> IS NOT NULL = true
+            assert!(values[2]); // presence[2] = true -> IS NOT NULL = true
             assert!(!values[3]); // presence[3] = false -> IS NOT NULL = false
-            assert!(values[4]);  // presence[4] = true -> IS NOT NULL = true
+            assert!(values[4]); // presence[4] = true -> IS NOT NULL = true
         }
         _ => panic!("Expected boolean column"),
     }
 }
 
 #[test]
+#[allow(clippy::similar_names)]
 fn test_is_not_null_expr_with_complex_null_logic() {
     let alloc = Bump::new();
     let mut columns = IndexMap::with_hasher(BuildHasherDefault::default());
@@ -127,11 +128,11 @@ fn test_is_not_null_expr_with_complex_null_logic() {
     // We'll simplify and just test on columns directly rather than arithmetic expressions
     let a_is_not_null = DynProofExpr::try_new_is_not_null(col_a_expr.clone()).unwrap();
     let b_is_not_null = DynProofExpr::try_new_is_not_null(col_b_expr.clone()).unwrap();
-    
+
     // Create a_is_not_null AND b_is_not_null
     let both_not_null = DynProofExpr::try_new_and(a_is_not_null, b_is_not_null).unwrap();
     let result_both_not_null = both_not_null.result_evaluate(&alloc, &table);
-    
+
     match result_both_not_null {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 8);
@@ -152,11 +153,11 @@ fn test_is_not_null_expr_with_complex_null_logic() {
     // Test 3: More complex logic (A IS NOT NULL OR C IS NOT NULL)
     let a_is_not_null = DynProofExpr::try_new_is_not_null(col_a_expr.clone()).unwrap();
     let c_is_not_null = DynProofExpr::try_new_is_not_null(col_c_expr.clone()).unwrap();
-    
+
     // Create a_is_not_null OR c_is_not_null
     let either_not_null = DynProofExpr::try_new_or(a_is_not_null, c_is_not_null).unwrap();
     let result_either_not_null = either_not_null.result_evaluate(&alloc, &table);
-    
+
     match result_either_not_null {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 8);
