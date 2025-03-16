@@ -148,8 +148,8 @@ pub fn nullable_column_pair<S: Scalar>(
 /// let presence_b = Some(vec![false, true, false]);
 ///
 /// let result = owned_table_with_nulls::<MyScalar>([
-///     nullable_column("a", bigint_values([1, 2, 3]), presence_a),
-///     nullable_column("b", varchar_values(["x", "y", "z"]), presence_b),
+///     nullable_column_pair("a", bigint_values([1, 2, 3]), presence_a),
+///     nullable_column_pair("b", varchar_values(["x", "y", "z"]), presence_b),
 /// ]);
 /// ```
 ///
