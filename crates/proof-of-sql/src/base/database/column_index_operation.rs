@@ -7,7 +7,6 @@ use bumpalo::Bump;
 ///
 /// # Panics
 /// Panics if any of the indexes are out of bounds.
-#[allow(dead_code)]
 pub(crate) fn apply_column_to_indexes<'a, S>(
     column: &Column<'a, S>,
     alloc: &'a Bump,

@@ -45,7 +45,6 @@ fn get_slice_select(num_rows: usize, skip: usize, fetch: Option<usize>) -> Vec<b
 
 impl SliceExec {
     /// Creates a new slice execution plan.
-    #[allow(dead_code)]
     pub fn new(input: Box<DynProofPlan>, skip: usize, fetch: Option<usize>) -> Self {
         Self { input, skip, fetch }
     }
@@ -55,7 +54,6 @@ impl ProofPlan for SliceExec
 where
     SliceExec: ProverEvaluate,
 {
-    #[allow(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut impl VerificationBuilder<S>,
@@ -154,7 +152,6 @@ impl ProverEvaluate for SliceExec {
     }
 
     #[tracing::instrument(name = "SliceExec::prover_evaluate", level = "debug", skip_all)]
-    #[allow(unused_variables)]
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,

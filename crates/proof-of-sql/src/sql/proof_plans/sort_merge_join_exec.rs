@@ -97,7 +97,7 @@ impl ProofPlan for SortMergeJoinExec
 where
     SortMergeJoinExec: ProverEvaluate,
 {
-    #[allow(clippy::too_many_lines, clippy::similar_names)]
+    #[expect(clippy::too_many_lines, clippy::similar_names)]
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut impl VerificationBuilder<S>,
@@ -422,7 +422,7 @@ impl ProverEvaluate for SortMergeJoinExec {
         level = "debug",
         skip_all
     )]
-    #[allow(unused_variables)]
+    #[expect(unused_variables)]
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,

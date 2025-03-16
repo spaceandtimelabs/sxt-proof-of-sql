@@ -17,6 +17,7 @@ use crate::base::{
     database::{OwnedColumn, OwnedNullableColumn, OwnedTable, OwnedTableError, TableError},
     map::IndexMap,
     math::decimal::{DecimalError, Precision},
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
     scalar::Scalar,
 };
 use alloc::sync::Arc;
@@ -31,7 +32,6 @@ use arrow::{
     error::ArrowError,
     record_batch::RecordBatch,
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use snafu::Snafu;
 use sqlparser::ast::Ident;
 
@@ -700,6 +700,7 @@ impl<S: Scalar> TryFrom<ArrayRef> for OwnedColumn<S> {
 impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     type Error = OwnedArrowConversionError;
 
+    #[allow(clippy::too_many_lines)]
     /// # Panics
     ///
     /// Will panic if downcasting fails for the following types:

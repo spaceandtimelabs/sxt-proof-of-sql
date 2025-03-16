@@ -46,8 +46,7 @@ pub(crate) fn first_round_evaluate_membership_check<'a, S: Scalar>(
 /// # Panics
 /// Panics if the number of source and candidate columns are not equal
 /// or if the number of columns is zero.
-#[allow(dead_code)]
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
@@ -126,7 +125,7 @@ pub(crate) fn final_round_evaluate_membership_check<'a, S: Scalar>(
     multiplicities
 }
 
-#[allow(dead_code, clippy::similar_names)]
+#[expect(clippy::similar_names)]
 pub(crate) fn verify_membership_check<S: Scalar>(
     builder: &mut impl VerificationBuilder<S>,
     alpha: S,

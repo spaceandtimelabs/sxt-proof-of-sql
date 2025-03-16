@@ -7,6 +7,7 @@ use crate::{
     sql::{
         parse::{ConversionError, QueryExpr, WhereExprBuilder},
         proof_exprs::{ColumnExpr, DynProofExpr, LiteralExpr},
+        AnalyzeError,
     },
 };
 use bigdecimal::BigDecimal;
@@ -69,7 +70,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
         ColumnRef::new(
             tab_ref.clone(),
             "timestamp_second_column".into(),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second.into(), PoSQLTimeZone::utc().into()),
         ),
     );
     column_mapping.insert(
@@ -77,7 +78,10 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
         ColumnRef::new(
             tab_ref.clone(),
             "timestamp_millisecond_column".into(),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::utc()),
+            ColumnType::TimestampTZ(
+                PoSQLTimeUnit::Millisecond.into(),
+                PoSQLTimeZone::utc().into(),
+            ),
         ),
     );
     column_mapping.insert(
@@ -85,7 +89,10 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
         ColumnRef::new(
             tab_ref.clone(),
             "timestamp_microsecond_column".into(),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Microsecond, PoSQLTimeZone::utc()),
+            ColumnType::TimestampTZ(
+                PoSQLTimeUnit::Microsecond.into(),
+                PoSQLTimeZone::utc().into(),
+            ),
         ),
     );
     column_mapping.insert(
@@ -93,7 +100,10 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
         ColumnRef::new(
             tab_ref.clone(),
             "timestamp_nanosecond_column".into(),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::utc()),
+            ColumnType::TimestampTZ(
+                PoSQLTimeUnit::Nanosecond.into(),
+                PoSQLTimeZone::utc().into(),
+            ),
         ),
     );
     column_mapping
@@ -327,7 +337,9 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
             t.schema_id().cloned().unwrap(),
             &accessor,
         ),
-        Err(ConversionError::DataTypeMismatch { .. })
+        Err(ConversionError::AnalyzeError {
+            source: AnalyzeError::DataTypeMismatch { .. }
+        })
     ));
 }
 
@@ -346,7 +358,9 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
             t.schema_id().cloned().unwrap(),
             &accessor,
         ),
-        Err(ConversionError::DataTypeMismatch { .. })
+        Err(ConversionError::AnalyzeError {
+            source: AnalyzeError::DataTypeMismatch { .. }
+        })
     ));
 }
 

@@ -5,7 +5,7 @@ use ark_ff::Field;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use num_traits::Zero;
 
-#[allow(clippy::struct_field_names)]
+#[expect(clippy::struct_field_names)]
 #[derive(Default, Clone, CanonicalSerialize, CanonicalDeserialize, PartialEq, Eq, Debug)]
 /// The messages sent from the prover to the verifier in the interactive protocol.
 /// This is, in essence, the proof.
@@ -53,7 +53,7 @@ impl DoryMessages {
         self.G2_messages.insert(0, message);
     }
 
-    #[allow(clippy::large_types_passed_by_value)]
+    #[expect(clippy::large_types_passed_by_value)]
     /// Pushes a GT element from the prover onto the queue, and appends it to the transcript.
     pub(super) fn prover_send_GT_message(&mut self, transcript: &mut impl Transcript, message: GT) {
         transcript.extend_canonical_serialize_as_le(&message);
@@ -106,7 +106,7 @@ impl DoryMessages {
         message
     }
 
-    #[allow(clippy::unused_self)]
+    #[expect(clippy::unused_self)]
     /// This is the F message that the verifier sends to the prover.
     /// This message is produces as a challenge from the transcript.
     ///

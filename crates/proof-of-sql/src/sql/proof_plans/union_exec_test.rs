@@ -140,7 +140,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_union_exec() {
     assert_eq!(res, expected_res);
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 #[test]
 fn we_can_prove_and_get_the_correct_result_from_a_more_complex_union_exec() {
     let alloc = Bump::new();

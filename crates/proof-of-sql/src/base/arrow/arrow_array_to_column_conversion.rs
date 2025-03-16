@@ -2,6 +2,7 @@ use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::base::{
     database::{Column, NullableColumn},
     math::decimal::Precision,
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
     scalar::{Scalar, ScalarExt},
 };
 use arrow::{
@@ -14,7 +15,6 @@ use arrow::{
 };
 use bumpalo::Bump;
 use core::ops::Range;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use snafu::Snafu;
 
 #[derive(Snafu, Debug, PartialEq)]
@@ -116,7 +116,7 @@ impl ArrayRefExt for ArrayRef {
     ///
     /// # Panics
     /// - When any range is OOB, i.e. indexing 3..6 or 5..5 on array of size 2.
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     fn to_column<'a, S: Scalar>(
         &'a self,
         alloc: &'a Bump,

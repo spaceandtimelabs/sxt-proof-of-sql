@@ -7,6 +7,7 @@ use crate::base::{
         decimal::Precision,
         permutation::{Permutation, PermutationError},
     },
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::Scalar,
     slice_ops::{inner_product_ref_cast, inner_product_with_bytes},
 };
@@ -16,6 +17,7 @@ use alloc::{
 };
 use core::fmt::Debug;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 /// A column of data, with type included. This is simply a wrapper around `Vec<T>` for enumerated `T`.

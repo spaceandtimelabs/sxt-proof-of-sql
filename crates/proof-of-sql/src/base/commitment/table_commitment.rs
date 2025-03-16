@@ -92,7 +92,7 @@ where
 
 impl<C: Commitment> TableCommitment<C> {
     /// Create a new [`TableCommitment`] for a table from a commitment accessor.
-    #[allow(
+    #[expect(
         clippy::missing_panics_doc,
         reason = "The assertion ensures that from_accessor should not create columns with a negative range"
     )]
@@ -187,7 +187,7 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a [`TableCommitment`] to the provided table with the given row offset.
-    #[allow(
+    #[expect(
         clippy::missing_panics_doc,
         reason = "since OwnedTables cannot have columns of mixed length or duplicate idents"
     )]
@@ -391,7 +391,7 @@ mod tests {
     use std::sync::Arc;
 
     #[test]
-    #[allow(clippy::reversed_empty_ranges)]
+    #[expect(clippy::reversed_empty_ranges)]
     fn we_cannot_construct_table_commitment_with_negative_range() {
         let try_new_result =
             TableCommitment::<NaiveCommitment>::try_new(ColumnCommitments::default(), 1..0);
@@ -701,7 +701,7 @@ mod tests {
         assert_eq!(table_commitment.column_commitments(), &column_commitments);
     }
 
-    #[allow(clippy::similar_names)]
+    #[expect(clippy::similar_names)]
     #[test]
     fn we_cannot_append_columns_of_mixed_length_to_table_commitment() {
         let column_id_a: Ident = "column_a".into();

@@ -9,6 +9,7 @@ use crate::{
         postprocessing::{test_utility::*, PostprocessingError},
         proof_exprs::test_utility::*,
         proof_plans::{test_utility::*, DynProofPlan},
+        AnalyzeError,
     },
 };
 use itertools::Itertools;
@@ -1655,13 +1656,12 @@ fn varchar_column_is_not_compatible_with_integer_column() {
         let result =
             QueryExpr::try_new(intermediate_ast, t.schema_id().cloned().unwrap(), &accessor);
 
-        assert_eq!(
+        assert!(matches!(
             result,
-            Err(ConversionError::DataTypeMismatch {
-                left_type: ColumnType::BigInt.to_string(),
-                right_type: ColumnType::VarChar.to_string(),
+            Err(ConversionError::AnalyzeError {
+                source: AnalyzeError::DataTypeMismatch { .. }
             })
-        );
+        ));
     }
 
     for query_text in &varchar_to_bigint_queries {
@@ -1669,13 +1669,12 @@ fn varchar_column_is_not_compatible_with_integer_column() {
         let result =
             QueryExpr::try_new(intermediate_ast, t.schema_id().cloned().unwrap(), &accessor);
 
-        assert_eq!(
+        assert!(matches!(
             result,
-            Err(ConversionError::DataTypeMismatch {
-                left_type: ColumnType::VarChar.to_string(),
-                right_type: ColumnType::BigInt.to_string(),
+            Err(ConversionError::AnalyzeError {
+                source: AnalyzeError::DataTypeMismatch { .. }
             })
-        );
+        ));
     }
 }
 
@@ -1694,13 +1693,12 @@ fn arithmetic_operations_are_not_allowed_with_varchar_column() {
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let result = QueryExpr::try_new(intermediate_ast, t.schema_id().cloned().unwrap(), &accessor);
 
-    assert_eq!(
+    assert!(matches!(
         result,
-        Err(ConversionError::DataTypeMismatch {
-            left_type: ColumnType::VarChar.to_string(),
-            right_type: ColumnType::VarChar.to_string(),
+        Err(ConversionError::AnalyzeError {
+            source: AnalyzeError::DataTypeMismatch { .. }
         })
-    );
+    ));
 }
 
 #[test]

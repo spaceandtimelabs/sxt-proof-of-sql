@@ -46,7 +46,6 @@ fn we_can_evaluate_result_columns_as_mles() {
     let evals = res
         .evaluate(&evaluation_point, 2, &column_fields[..])
         .unwrap();
-    #[allow(clippy::possible_missing_comma)]
     let expected_evals = [
         TestScalar::from(10u64) * evaluation_vec[0] - TestScalar::from(12u64) * evaluation_vec[1]
     ];
@@ -104,7 +103,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
     assert_eq!(evals, expected_evals);
 }
 
-#[allow(clippy::similar_names)]
+#[expect(clippy::similar_names)]
 #[test]
 fn we_can_evaluate_multiple_result_columns_as_mles_with_scalar_columns() {
     let col0 = [10, 12]

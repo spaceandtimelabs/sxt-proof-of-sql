@@ -34,13 +34,13 @@ pub struct QueryContext {
 }
 
 impl QueryContext {
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn set_table_ref(&mut self, table: TableRef) {
         assert!(self.table.is_none());
         self.table = Some(table);
     }
 
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn get_table_ref(&self) -> &TableRef {
         self.table
             .as_ref()
@@ -51,7 +51,7 @@ impl QueryContext {
         self.where_expr = where_expr;
     }
 
-    #[allow(clippy::ref_option)]
+    #[expect(clippy::ref_option)]
     pub fn get_where_expr(&self) -> &Option<Box<Expression>> {
         &self.where_expr
     }
@@ -68,7 +68,7 @@ impl QueryContext {
         self.in_result_scope
     }
 
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn set_in_agg_scope(&mut self, in_agg_scope: bool) -> ConversionResult<()> {
         if !in_agg_scope {
             assert!(
@@ -117,7 +117,7 @@ impl QueryContext {
         }
     }
 
-    #[allow(clippy::missing_panics_doc, clippy::unnecessary_wraps)]
+    #[expect(clippy::missing_panics_doc, clippy::unnecessary_wraps)]
     pub fn push_aliased_result_expr(&mut self, expr: AliasedResultExpr) -> ConversionResult<()> {
         assert!(&self.has_visited_group_by, "Group by must be visited first");
         self.res_aliased_exprs.push(expr);
@@ -200,7 +200,7 @@ impl QueryContext {
         &self.order_by_exprs
     }
 
-    #[allow(clippy::ref_option)]
+    #[expect(clippy::ref_option)]
     pub fn get_slice_expr(&self) -> &Option<Slice> {
         &self.slice_expr
     }

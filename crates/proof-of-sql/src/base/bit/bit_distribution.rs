@@ -116,7 +116,7 @@ impl BitDistribution {
     }
 
     /// Iterate over each varying bit
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn vary_mask_iter(&self) -> impl Iterator<Item = u8> + '_ {
         (0..4).flat_map(|i| {
             BitIter::from(self.vary_mask[i])

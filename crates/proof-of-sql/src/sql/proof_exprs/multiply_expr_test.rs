@@ -9,10 +9,10 @@ use crate::{
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
-        parse::ConversionError,
         proof::{exercise_verification, QueryError, VerifiableQueryResult},
         proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
         proof_plans::{test_utility::*, DynProofPlan},
+        AnalyzeError,
     },
 };
 use bumpalo::Bump;
@@ -81,7 +81,7 @@ fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
         OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     assert!(matches!(
         DynProofExpr::try_new_multiply(column(&t, "a", &accessor), const_bigint(1)),
-        Err(ConversionError::DataTypeMismatch { .. })
+        Err(AnalyzeError::DataTypeMismatch { .. })
     ));
 }
 

@@ -154,7 +154,7 @@ impl ProofPlan for MembershipCheckTestPlan {
     }
 
     #[doc = "Form components needed to verify and proof store into `VerificationBuilder`"]
-    #[allow(clippy::similar_names)]
+    #[expect(clippy::similar_names)]
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut impl VerificationBuilder<S>,

@@ -184,7 +184,7 @@ fn we_can_subtract_naive_commitments_with_both_empty() {
 
 // AddAssign Tests
 
-#[allow(clippy::similar_names)]
+#[expect(clippy::similar_names)]
 #[test]
 fn we_can_add_assign_naive_commitments() {
     let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
@@ -216,7 +216,7 @@ fn we_can_add_assign_naive_commitments() {
     assert_eq!(commitment_b_mutable, commitment_sum);
 }
 
-#[allow(clippy::similar_names)]
+#[expect(clippy::similar_names)]
 #[test]
 fn we_can_add_assign_naive_commitments_with_one_empty() {
     let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
@@ -283,7 +283,7 @@ fn we_can_sub_assign_naive_commitments() {
     assert_eq!(commitment_a_mutable, commitment_difference);
 }
 
-#[allow(clippy::similar_names)]
+#[expect(clippy::similar_names)]
 #[test]
 fn we_can_sub_assign_naive_commitments_with_one_empty() {
     let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]

@@ -1,20 +1,21 @@
 use arrow::datatypes::DataType;
 use datafusion::{
     common::DataFusionError,
-    logical_expr::{Expr, LogicalPlan, Operator},
+    logical_expr::{expr::AggregateFunction, Expr, LogicalPlan, Operator},
+    physical_plan,
 };
-use proof_of_sql::{base::math::decimal::DecimalError, sql::parse::ConversionError};
+use proof_of_sql::{base::math::decimal::DecimalError, sql::AnalyzeError};
 use snafu::Snafu;
 use sqlparser::parser::ParserError;
 
 /// Proof of SQL Planner error
 #[derive(Debug, Snafu)]
 pub enum PlannerError {
-    /// Returned when a conversion fails
+    /// Returned when the internal analyze process fails
     #[snafu(transparent)]
-    ConversionError {
-        /// Underlying conversion error
-        source: ConversionError,
+    AnalyzeError {
+        /// Underlying analyze error
+        source: AnalyzeError,
     },
     /// Returned when a decimal error occurs
     #[snafu(transparent)]
@@ -51,6 +52,18 @@ pub enum PlannerError {
     UnsupportedBinaryOperator {
         /// Unsupported binary operation
         op: Operator,
+    },
+    /// Returned when the aggregate opetation is not supported
+    #[snafu(display("Aggregate operation {op:?} is not supported"))]
+    UnsupportedAggregateOperation {
+        /// Unsupported aggregate operation
+        op: physical_plan::aggregates::AggregateFunction,
+    },
+    /// Returned when the `AggregateFunction` is not supported
+    #[snafu(display("AggregateFunction {function:?} is not supported"))]
+    UnsupportedAggregateFunction {
+        /// Unsupported `AggregateFunction`
+        function: AggregateFunction,
     },
     /// Returned when a logical expression is not resolved
     #[snafu(display("Logical expression {:?} is not supported", expr))]

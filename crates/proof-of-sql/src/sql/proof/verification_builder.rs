@@ -74,11 +74,6 @@ pub struct VerificationBuilderImpl<'a, S: Scalar> {
 }
 
 impl<'a, S: Scalar> VerificationBuilderImpl<'a, S> {
-    #[allow(
-        clippy::missing_panics_doc,
-        reason = "The only possible panic is from the assertion comparing lengths, which is clear from context."
-    )]
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         mle_evaluations: SumcheckMleEvaluations<'a, S>,
         bit_distributions: &'a [BitDistribution],
@@ -105,7 +100,7 @@ impl<'a, S: Scalar> VerificationBuilderImpl<'a, S> {
         }
     }
 
-    #[allow(
+    #[expect(
         clippy::missing_panics_doc,
         reason = "The panic condition is clear due to the assertion that checks if the computation is completed."
     )]

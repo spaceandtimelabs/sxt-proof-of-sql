@@ -7,7 +7,7 @@ use core::{cmp::Ordering, ops::Neg};
 use itertools::izip;
 use num_traits::{NumCast, PrimInt};
 
-#[allow(clippy::cast_sign_loss)]
+#[expect(clippy::cast_sign_loss)]
 /// Add or subtract two literals together.
 pub(crate) fn add_subtract_literals<S: Scalar>(
     lhs: &LiteralValue,
@@ -34,7 +34,7 @@ pub(crate) fn add_subtract_literals<S: Scalar>(
     }
 }
 
-#[allow(
+#[expect(
     clippy::missing_panics_doc,
     reason = "lhs and rhs are guaranteed to have the same length by design, ensuring no panic occurs"
 )]
@@ -67,7 +67,7 @@ pub(crate) fn add_subtract_columns<'a, S: Scalar>(
 }
 
 /// Add or subtract two [`ColumnarValues`] together.
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) fn add_subtract_columnar_values<'a, S: Scalar>(
     lhs: ColumnarValue<'a, S>,
     rhs: ColumnarValue<'a, S>,
@@ -134,7 +134,7 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
     })
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 /// Multiply two [`ColumnarValues`] together.
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length.
@@ -166,10 +166,6 @@ pub(crate) fn multiply_columnar_values<'a, S: Scalar>(
     }
 }
 
-#[allow(
-    clippy::missing_panics_doc,
-    reason = "scaling factor is guaranteed to not be negative based on input validation prior to calling this function"
-)]
 /// The counterpart of `add_subtract_columns` for evaluating decimal expressions.
 pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
     lhs_eval: S,
@@ -274,7 +270,7 @@ fn modulo_integer_columns<
 /// For now, only signed integer types are supported.
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length or column type division is unsupported.
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 #[cfg_attr(not(test), expect(dead_code))]
 pub(crate) fn divide_columns<'a, S: Scalar>(
     lhs: &Column<'a, S>,

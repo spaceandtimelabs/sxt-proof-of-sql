@@ -18,10 +18,12 @@
 //! ]);
 //! ```
 use super::{Column, Table, TableOptions};
-use crate::base::scalar::Scalar;
+use crate::base::{
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    scalar::Scalar,
+};
 use alloc::{string::String, vec::Vec};
 use bumpalo::Bump;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use sqlparser::ast::Ident;
 
 /// Creates an [`Table`] from a list of `(Ident, Column)` pairs.
@@ -338,11 +340,9 @@ pub fn borrowed_decimal75<S: Scalar>(
 /// # Example
 /// ```
 /// use bumpalo::Bump;
-/// use proof_of_sql::base::{database::table_utility::*};
+/// use proof_of_sql::base::{database::table_utility::*, posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
 /// # use proof_of_sql::base::scalar::MontScalar;
 /// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
-/// use proof_of_sql_parser::{
-///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
 ///
 /// let alloc = Bump::new();
 /// let result = table::<MyScalar>([

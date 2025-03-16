@@ -115,7 +115,7 @@ fn we_can_parse_strings_having_control_characters() {
     );
 }
 
-#[allow(clippy::unicode_not_nfc)]
+#[expect(clippy::unicode_not_nfc)]
 #[test]
 fn unnormalized_strings_should_differ() {
     let lhs = StringLiteralParser::new().parse("'á'").unwrap();
@@ -773,7 +773,7 @@ fn we_can_parse_multiple_order_by() {
 // TODO: we should be able to pass this test.
 // But due to some lalrpop restriction, we aren't.
 // This problem will be addressed in a future PR.
-#[allow(clippy::should_panic_without_expect)]
+#[expect(clippy::should_panic_without_expect)]
 #[test]
 #[should_panic]
 fn we_cannot_parse_order_by_referencing_reserved_keywords_yet() {

@@ -8,7 +8,7 @@ use crate::{base::proof::Transcript, utils::log};
 /// This is the prover side of the Fold-Scalars algorithm in section 4.1 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///
 /// Note: this only works for nu = 0.
-#[allow(clippy::missing_panics_doc)]
+#[expect(clippy::missing_panics_doc)]
 pub fn fold_scalars_0_prove(
     messages: &mut DoryMessages,
     transcript: &mut impl Transcript,
