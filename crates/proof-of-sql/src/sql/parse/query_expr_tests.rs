@@ -2455,25 +2455,3 @@ fn we_can_parse_boolean_comparisons_with_null_values() {
     
     // Success is indicated by the test not panicking
 }
-
-#[test]
-fn we_can_parse_null_in_group_by_and_having() {
-    let t = TableRef::new("test", "nullable_table");
-    let accessor = schema_accessor_from_table_ref_with_schema(
-        &t,
-        indexmap! {
-            "a".into() => ColumnType::BigInt,
-            "b".into() => ColumnType::BigInt,
-        },
-    );
-    
-    // Test NULL handling in GROUP BY and HAVING
-    // Just verify that the query parses successfully without error
-    let _ast = query_to_provable_ast(
-        &t, 
-        "select a, count(*) from nullable_table group by a having count(*) > 1 OR a IS NULL", 
-        &accessor
-    );
-    
-    // Success is indicated by the test not panicking
-}

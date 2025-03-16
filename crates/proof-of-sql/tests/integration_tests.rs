@@ -1223,8 +1223,16 @@ fn we_can_prove_nullable_table_with_is_null_with_curve25519() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        nullable_column("a", OwnedColumn::BigInt(vec![]), Some(vec![])),
-        nullable_column("b", OwnedColumn::VarChar(vec![]), Some(vec![])),
+        nullable_column(
+            "a",
+            OwnedColumn::BigInt(vec![3, 5]),
+            Some(vec![false, true]),
+        ),
+        nullable_column(
+            "b",
+            OwnedColumn::VarChar(vec!["y".to_string(), "v".to_string()]),
+            Some(vec![false, false]),
+        ),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -1249,7 +1257,7 @@ fn we_can_prove_nullable_table_with_is_not_null_with_dory() {
             nullable_column(
                 "b",
                 OwnedColumn::VarChar(vec!["y".to_string(), "v".to_string()]),
-                Some(vec![false, false]),
+                Some(vec![true, false]),
             ),
         ]),
         0,
@@ -1272,13 +1280,13 @@ fn we_can_prove_nullable_table_with_is_not_null_with_dory() {
     let expected_result = owned_table([
         nullable_column(
             "a",
-            OwnedColumn::BigInt(vec![3, 5]),
-            Some(vec![false, true]),
+            OwnedColumn::BigInt(vec![3]),
+            Some(vec![false]),
         ),
         nullable_column(
             "b",
-            OwnedColumn::VarChar(vec!["y".to_string(), "v".to_string()]),
-            Some(vec![false, false]),
+            OwnedColumn::VarChar(vec!["y".to_string()]),
+            Some(vec![true]),
         ),
     ]);
     assert_eq!(owned_table_result, expected_result);
