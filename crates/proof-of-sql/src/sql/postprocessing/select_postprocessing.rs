@@ -1,6 +1,6 @@
 use super::{PostprocessingResult, PostprocessingStep};
 use crate::base::{
-    database::{OwnedNullableColumn, OwnedColumn, OwnedTable},
+    database::{OwnedColumn, OwnedTable},
     map::IndexMap,
     scalar::Scalar,
 };

@@ -88,7 +88,7 @@ pub trait DataAccessor<S: Scalar>: MetadataAccessor {
     fn get_column(&self, column: ColumnRef) -> Column<S>;
 
     /// Return the presence information for a column, if it exists
-    fn get_column_presence(&self, column: &ColumnRef) -> Option<&[bool]> {
+    fn get_column_presence(&self, _column: &ColumnRef) -> Option<&[bool]> {
         None // Default implementation returns None (no NULL values)
     }
 

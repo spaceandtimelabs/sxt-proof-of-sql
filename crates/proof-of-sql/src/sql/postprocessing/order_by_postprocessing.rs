@@ -10,7 +10,6 @@ use crate::base::{
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use crate::base::map::IndexMap;
-use sqlparser::ast::Ident;
 use core::cmp::Ordering;
 
 /// A node representing a list of `OrderBy` expressions.

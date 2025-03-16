@@ -672,7 +672,7 @@ impl<S: Scalar> OwnedNullableColumn<S> {
         let values = self.values.element_wise_gt(&rhs.values)?;
         
         // Extract the boolean values for special NULL handling
-        let (left_values, right_values) = match (&self.values, &rhs.values) {
+        let (_left_values, _right_values) = match (&self.values, &rhs.values) {
             (OwnedColumn::Boolean(left), OwnedColumn::Boolean(right)) => (Some(left), Some(right)),
             _ => (None, None),
         };
@@ -699,7 +699,7 @@ impl<S: Scalar> OwnedNullableColumn<S> {
                 let mut result_presence = Vec::with_capacity(left_presence.len());
                 
                 // Get the actual values for comparison
-                let (left_vals, right_vals) = match (&self.values, &rhs.values) {
+                let (_left_vals, _right_vals) = match (&self.values, &rhs.values) {
                     (OwnedColumn::BigInt(left), OwnedColumn::Int(right)) => {
                         // For numeric comparisons, we need to check if a < b would be true
                         let mut left_numeric = Vec::with_capacity(left.len());
