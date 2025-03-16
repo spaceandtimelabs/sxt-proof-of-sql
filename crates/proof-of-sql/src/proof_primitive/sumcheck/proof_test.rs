@@ -270,13 +270,13 @@ fn we_can_generate_and_verify_a_simple_sumcheck_proof() {
         0x0123_4567_89AB_CDEF_0123_4567_89AB_CDEF_u128,
     ]);
 
-    dbg!(&proof.coefficients);
+    //dbg!(&proof.coefficients);
 
     let subclaim = proof
         .verify_without_evaluation(&mut transcript, num_vars, &BNScalar::ZERO)
         .unwrap();
     assert_eq!(subclaim.evaluation_point, evaluation_point,);
 
-    dbg!(subclaim.expected_evaluation);
-    dbg!(&evaluation_point);
+    //dbg!(subclaim.expected_evaluation);
+    //dbg!(&evaluation_point);
 }

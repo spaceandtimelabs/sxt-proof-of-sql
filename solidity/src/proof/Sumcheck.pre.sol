@@ -42,13 +42,13 @@ library Sumcheck {
                 revert(0, 0)
             }
 
-            // actual_sum = coefficient_i + sum_{i=0}^{degree} coefficient_i,
+            // actual_sum = coefficient_0 + sum_{i=0}^{degree} coefficient_i,
             //                  where coefficient_i is the coefficient of x^i
             // round_evaluation = sum_{i=0}^{degree} coefficient_i * challenge^i
             // NOTE: the coefficients are in "reverse" order, with the leading coefficient first
             //       as a result, round_evaluation is computed with Horner's method
             function process_round(proof_ptr, degree, challenge) -> proof_ptr_out, round_evaluation, actual_sum {
-                let coefficient := calldataload(proof_ptr)
+                let coefficient := mod(calldataload(proof_ptr), MODULUS)
                 proof_ptr := add(proof_ptr, WORD_SIZE)
                 round_evaluation := coefficient
                 actual_sum := coefficient
