@@ -16,8 +16,6 @@ use alloc::{
     vec::Vec,
 };
 use core::fmt::Debug;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 /// A column of data, with type included. This is simply a wrapper around `Vec<T>` for enumerated `T`.

@@ -32,7 +32,7 @@ impl ProvableQueryResult {
         &mut self.num_columns
     }
 
-    #[expect(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_possible_truncation)]
     /// The number of rows in the result
     #[must_use]
     pub fn table_length(&self) -> usize {

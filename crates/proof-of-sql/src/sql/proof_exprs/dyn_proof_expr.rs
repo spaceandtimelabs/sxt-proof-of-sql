@@ -10,6 +10,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::{
+        parse::{ConversionError, ConversionResult},
         proof::{FinalRoundBuilder, VerificationBuilder},
         util::type_check_binary_operation,
         AnalyzeError, AnalyzeResult,
