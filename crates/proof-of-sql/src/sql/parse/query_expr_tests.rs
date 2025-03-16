@@ -15,7 +15,7 @@ use itertools::Itertools;
 use proof_of_sql_parser::{
     sql::SelectStatementParser,
     utility::{
-        add as padd, aliased_expr, col, count, count_all, gt, lit, max, min, mul as pmul, sub as psub,
+        add as padd, aliased_expr, col, count, count_all, lit, max, min, mul as pmul, sub as psub,
         sum,
     },
 };

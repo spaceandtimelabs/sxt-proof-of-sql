@@ -8,13 +8,12 @@ use alloc::sync::Arc;
 use arrow::{
     array::{
         ArrayRef, BinaryArray, BooleanArray, Decimal128Array, Float32Array, Int64Array, StringArray,
-        TimestampSecondArray,
     },
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
 use proptest::prelude::*;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit};
 
 fn we_can_convert_between_owned_column_and_array_ref_impl(
     owned_column: &OwnedColumn<TestScalar>,
@@ -216,8 +215,7 @@ mod tests {
     use super::*;
     use crate::base::scalar::test_scalar::TestScalar;
     use arrow::array::{Array, ArrayRef, BooleanArray, Int32Array, TimestampSecondArray};
-    use arrow::datatypes::TimeUnit;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    
 
     #[test]
     fn we_can_convert_owned_nullable_column_to_array_ref_no_nulls() {

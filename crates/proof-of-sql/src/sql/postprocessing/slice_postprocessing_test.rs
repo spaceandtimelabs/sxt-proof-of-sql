@@ -113,10 +113,8 @@ fn we_can_slice_an_owned_table_using_both_limit_and_offset_values() {
 #[test]
 fn we_can_slice_a_table_with_null_values_following_sql_three_valued_logic() {
     use crate::base::database::{
-        OwnedNullableColumn,
         owned_table_utility::{
-            bigint_values, boolean_values, int, nullable_column_pair, owned_table_with_nulls,
-            smallint, varchar_values,
+            bigint_values, nullable_column_pair, owned_table_with_nulls, varchar_values,
         },
         OwnedColumn,
     };

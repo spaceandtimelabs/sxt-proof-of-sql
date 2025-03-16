@@ -50,9 +50,8 @@ fn we_can_do_computation_on_owned_table_columns() {
 #[test]
 fn we_can_select_with_null_values_following_sql_three_valued_logic() {
     use crate::base::database::{
-        OwnedNullableColumn,
         owned_table_utility::{
-            bigint_values, int, nullable_column_pair, owned_table_with_nulls,
+            bigint_values, nullable_column_pair, owned_table_with_nulls,
             varchar_values,
         },
         OwnedColumn,

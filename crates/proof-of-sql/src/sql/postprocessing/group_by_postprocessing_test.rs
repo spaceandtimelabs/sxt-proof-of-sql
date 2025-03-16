@@ -300,7 +300,6 @@ fn we_can_do_complex_group_bys() {
 #[test]
 fn we_can_do_group_by_with_null_values_following_sql_three_valued_logic() {
     use crate::base::database::{
-        OwnedNullableColumn,
         owned_table_utility::{bigint_values, nullable_column_pair, owned_table_with_nulls},
     };
     use proof_of_sql_parser::utility::{is_null, col, add, mul, sum, count, max, min};
@@ -344,14 +343,14 @@ fn we_can_do_group_by_with_null_values_following_sql_three_valued_logic() {
         // - NULL values for 'a' should be grouped together (rows 3, 5, 8)
         // - count(b) should count non-NULL values in 'b' per group
         // - sum(c) should sum non-NULL values in 'c' per group
-        let expected_a = bigint_values::<Curve25519Scalar>([10, 20, 30, 40, 0]);  // 0 represents NULL
-        let expected_count_b = bigint_values::<Curve25519Scalar>([2, 0, 1, 0, 2]); // 0 for the groups where all b are NULL
-        let expected_sum_c = bigint_values::<Curve25519Scalar>([0, 900, 300, 0, 800]); // 0 for groups with all NULLs in c
+        let _expected_a = bigint_values::<Curve25519Scalar>([10, 20, 30, 40, 0]);  // 0 represents NULL
+        let _expected_count_b = bigint_values::<Curve25519Scalar>([2, 0, 1, 0, 2]); // 0 for the groups where all b are NULL
+        let _expected_sum_c = bigint_values::<Curve25519Scalar>([0, 900, 300, 0, 800]); // 0 for groups with all NULLs in c
         
         // Verify column values
-        let a_col = actual_table.inner_table().get(&Ident::new("a")).unwrap();
-        let count_b_col = actual_table.inner_table().get(&Ident::new("count_b")).unwrap();
-        let sum_c_col = actual_table.inner_table().get(&Ident::new("sum_c")).unwrap();
+        let _a_col = actual_table.inner_table().get(&Ident::new("a")).unwrap();
+        let _count_b_col = actual_table.inner_table().get(&Ident::new("count_b")).unwrap();
+        let _sum_c_col = actual_table.inner_table().get(&Ident::new("sum_c")).unwrap();
         
         // Note: For the NULL group, we expect the count to include rows where b is non-NULL
         // and the sum to include rows where c is non-NULL
@@ -380,7 +379,7 @@ fn we_can_do_group_by_with_null_values_following_sql_three_valued_logic() {
     // Test 3: GROUP BY with WHERE clause filtering on NULL values
     {
         // The WHERE clause filters rows where b IS NULL
-        let b_is_null = is_null(col("b"));
+        let _b_is_null = is_null(col("b"));
         
         // We need to combine this with a postprocessing step - in real SQL this would be
         // part of the query, but for this test we'll simulate it by filtering first

@@ -61,9 +61,6 @@ fn test_is_not_null_expr() {
 
 #[test]
 fn test_is_not_null_expr_with_complex_null_logic() {
-    use crate::sql::proof_exprs::{DynProofExpr, IsNotNullExpr};
-    use sqlparser::ast::BinaryOperator;
-
     let alloc = Bump::new();
     let mut columns = IndexMap::with_hasher(BuildHasherDefault::default());
     let table_ref = TableRef::new("", "test");

@@ -7,7 +7,6 @@ use crate::{
     sql::{
         parse::{ConversionError, QueryExpr, WhereExprBuilder},
         proof_exprs::{ColumnExpr, DynProofExpr, LiteralExpr},
-        proof_exprs::test_utility::{multiply, subtract},
     },
 };
 use bigdecimal::BigDecimal;

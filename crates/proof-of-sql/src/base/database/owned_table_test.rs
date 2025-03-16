@@ -172,8 +172,7 @@ fn we_can_perform_null_operations_with_where_clause_in_three_valued_logic() {
     use crate::base::database::{
         owned_column::OwnedNullableColumn,
         owned_table_utility::{
-            bigint, bigint_values, boolean, boolean_values, int, nullable_column_pair, owned_table_with_nulls,
-            smallint, varchar_values,
+            bigint_values, boolean_values, nullable_column_pair, owned_table_with_nulls, varchar_values,
         },
     };
 
@@ -204,7 +203,7 @@ fn we_can_perform_null_operations_with_where_clause_in_three_valued_logic() {
     let f_values = bigint_values::<DoryScalar>([100, 90, 80, 70, 60, 50, 40, 30, 20, 10]);
     
     // Create the table with all these columns
-    let table = owned_table_with_nulls([
+    let _table = owned_table_with_nulls([
         nullable_column_pair("a", a_values.clone(), a_presence.clone()),
         nullable_column_pair("b", b_values.clone(), b_presence.clone()),
         nullable_column_pair("c", c_values.clone(), c_presence.clone()),
