@@ -39,6 +39,7 @@ chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true }
 enum_dispatch = { workspace = true }
 ff = { workspace = true, optional = true }
+halo2curves = { workspace = true, optional = true }
 indexmap = { workspace = true, features = ["serde"] }
 indicatif = { workspace = true, optional = true }
 itertools = { workspace = true }
@@ -86,7 +87,7 @@ default = ["arrow", "perf"]
 utils = ["dep:indicatif", "dep:rand_chacha", "dep:sha2", "dep:clap", "dep:tempfile"]
 arrow = ["dep:arrow", "std"]
 blitzar = ["dep:blitzar", "dep:merlin", "std"]
-hyperkzg = ["dep:nova-snark", "std", "dep:ff"]
+hyperkzg_proof = ["dep:nova-snark", "std", "dep:ff", "dep:halo2curves", "blitzar"]
 test = ["dep:rand", "std"]
 perf = ["blitzar", "cpu-perf"]
 cpu-perf = ["rayon", "ark-ec/parallel", "ark-poly/parallel", "ark-ff/asm"]
@@ -196,4 +197,4 @@ required-features = ["test"]
 [[bench]]
 name = "jaeger_benches"
 harness = false
-required-features = ["blitzar", "hyperkzg"]
+required-features = ["hyperkzg_proof"]
