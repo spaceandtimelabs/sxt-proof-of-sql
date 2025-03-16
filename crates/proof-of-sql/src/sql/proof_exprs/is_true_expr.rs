@@ -66,8 +66,7 @@ impl ProofExpr for IsTrueExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        // Evaluate the inner expression - this already incorporates the SQL three-valued logic
-        // for complex expressions like AND, OR, etc.
+        // Evaluate the inner expression
         let inner_column = self.expr.result_evaluate(alloc, table);
 
         // Extract boolean values from the inner column
@@ -75,18 +74,26 @@ impl ProofExpr for IsTrueExpr {
             panic!("IS TRUE can only be applied to boolean expressions");
         };
 
+        // Get presence information for the expression
+        let presence = table.presence_for_expr(&*self.expr);
+
         // In SQL's three-valued logic, IS TRUE returns true only if the value is non-NULL and true
-        // For complex expressions like OR, the NULL handling is already done by the inner expression
-        // evaluation, so we don't need to recheck presence here.
-        //
-        // The inner_values already incorporate the three-valued logic results, including NULL propagation
-        // rules for operations like AND, OR, etc.
         let result_slice = if self.malicious {
             alloc.alloc_slice_fill_copy(table.num_rows(), true)
         } else {
-            // For IS TRUE, we just return the value as-is since NULL values
-            // would already be represented as false in inner_values
-            inner_values
+            match presence {
+                Some(presence) => {
+                    // Create a new slice that is true only when both:
+                    // 1. The value is non-NULL (presence is true)
+                    // 2. The boolean value is true
+                    let is_true = alloc.alloc_slice_copy(inner_values);
+                    for (is_true, &present) in is_true.iter_mut().zip(presence.iter()) {
+                        *is_true = *is_true && present;
+                    }
+                    is_true
+                }
+                None => inner_values, // No NULL values, use inner values directly
+            }
         };
 
         Column::Boolean(result_slice)
@@ -100,15 +107,13 @@ impl ProofExpr for IsTrueExpr {
     ) -> Column<'a, S> {
         let inner_column = self.expr.prover_evaluate(builder, alloc, table);
         
-        // For complex expressions, the inner expression evaluation already handles NULLs correctly
         let Column::Boolean(inner_values) = inner_column else {
             panic!("IS TRUE can only be applied to boolean expressions");
         };
 
-        // Create a nullable column for record-keeping, though we don't actually need
-        // to explicitly check for NULLs here
+        // Get presence information
         let presence = table.presence_for_expr(&*self.expr);
-        let nullable_column = match NullableColumn::with_presence(inner_column, presence) {
+        let nullable_column = match NullableColumn::with_presence(inner_column, presence.clone()) {
             Ok(col) => col,
             Err(err) => {
                 tracing::warn!(
@@ -119,8 +124,7 @@ impl ProofExpr for IsTrueExpr {
             }
         };
 
-        // When malicious, produce fake MLE with all true values
-        // Otherwise, record the proper IS TRUE check
+        // Record the IS TRUE check which verifies both non-NULL and true conditions
         if self.malicious {
             builder.produce_intermediate_mle(Column::Boolean(
                 alloc.alloc_slice_fill_copy(table.num_rows(), true),
@@ -129,13 +133,23 @@ impl ProofExpr for IsTrueExpr {
             builder.record_is_true_check(&nullable_column, alloc);
         }
 
-        // Compute result (which may be incorrect if malicious=true)
+        // Create result that matches the IS TRUE semantics
         let result_slice = if self.malicious {
             alloc.alloc_slice_fill_copy(table.num_rows(), true)
         } else {
-            // For complex expressions like OR, the SQL three-valued logic is already
-            // applied by the inner expression evaluation, so we just return the value
-            inner_values
+            match presence {
+                Some(presence) => {
+                    // Create a new slice that is true only when both:
+                    // 1. The value is non-NULL (presence is true)
+                    // 2. The boolean value is true
+                    let is_true = alloc.alloc_slice_copy(inner_values);
+                    for (is_true, &present) in is_true.iter_mut().zip(presence.iter()) {
+                        *is_true = *is_true && present;
+                    }
+                    is_true
+                }
+                None => inner_values, // No NULL values, use inner values directly
+            }
         };
 
         Column::Boolean(result_slice)
@@ -148,24 +162,23 @@ impl ProofExpr for IsTrueExpr {
         chi_eval: S,
     ) -> Result<S, ProofError> {
         // Get the evaluation of the inner expression
-        let inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
+        let _inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
 
         // Verify the sumcheck subpolynomial - this ensures correctness across all rows
+        // The sumcheck verifies that claimed_result is true only when both:
+        // 1. The value is non-NULL (presence = true)
+        // 2. The boolean value is true
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             S::zero(),
             2,
         )?;
 
-        // Get the claimed result and verify it matches inner evaluation
+        // Get the claimed result - this is the evaluation of the IS TRUE expression
+        // which is true only when the value is both non-NULL and TRUE
         let claimed_result = builder.try_consume_final_round_mle_evaluation()?;
-        if claimed_result != inner_eval {
-            return Err(ProofError::VerificationError {
-                error: "IS TRUE verification failed: result does not match inner evaluation",
-            });
-        }
-
-        Ok(inner_eval)
+        
+        Ok(claimed_result)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

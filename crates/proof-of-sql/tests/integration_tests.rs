@@ -1335,13 +1335,13 @@ fn we_can_prove_nullable_table_with_is_true_with_dory() {
     let expected_result = owned_table([
         nullable_column(
             "a",
-            OwnedColumn::BigInt(vec![1, 3, 5]),
-            Some(vec![true, false, true]),
+            OwnedColumn::BigInt(vec![1, 3]),
+            Some(vec![true, true]),
         ),
         nullable_column(
             "b",
-            OwnedColumn::Boolean(vec![true, true, true]),
-            Some(vec![true, true, true]),
+            OwnedColumn::Boolean(vec![true, true]),
+            Some(vec![true, true]),
         ),
     ]);
     assert_eq!(owned_table_result, expected_result);
