@@ -464,7 +464,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
     type Error = OwnedArrowConversionError;
     fn try_from(value: RecordBatch) -> Result<Self, Self::Error> {
         let num_columns = value.schema().fields().len();
-        let num_rows = if value.num_rows() > 0 { value.num_rows() } else { return Ok(Self::try_new(IndexMap::default())?) };
+        if num_columns == 0 {
+            return Ok(Self::try_new(IndexMap::default())?);
+        }
+        
+        let num_rows = value.num_rows();
         
         // First pass: collect all NULL positions across all columns
         let mut null_rows = vec![false; num_rows];

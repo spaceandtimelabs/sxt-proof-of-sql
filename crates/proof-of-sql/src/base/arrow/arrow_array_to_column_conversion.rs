@@ -740,12 +740,44 @@ mod tests {
     #[test]
     fn we_can_convert_utf8_array_with_nulls() {
         let alloc = Bump::new();
-        let array: ArrayRef = Arc::new(StringArray::from(vec![Some("hello"), None, Some("test")]));
-        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
-        assert!(matches!(
-            result,
-            Err(ArrowArrayToColumnConversionError::ColumnOperationError)
-        ));
+        let array = StringArray::from(vec![Some("hello"), None, Some("world")]);
+        let array_ref = Arc::new(array) as ArrayRef;
+
+        // Create precomputed scalars
+        let scalars = [
+            TestScalar::from("hello"),
+            TestScalar::from(""),  // Default value for NULL
+            TestScalar::from("world"),
+        ];
+        let scalar_slice = alloc.alloc_slice_copy(&scalars);
+
+        // Test to_nullable_column
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), Some(scalar_slice));
+        assert!(nullable_result.is_ok());
+        let nullable_column = nullable_result.unwrap();
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+
+        // Test to_column - should now handle nulls by delegating to to_nullable_column
+        let column_result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), Some(scalar_slice));
+        assert!(column_result.is_ok());
+        let column = column_result.unwrap();
+        match column {
+            Column::VarChar((strings, scalars)) => {
+                assert_eq!(strings.len(), 3);
+                assert_eq!(strings[0], "hello");
+                assert_eq!(strings[1], ""); // Default value for NULL
+                assert_eq!(strings[2], "world");
+                // Verify scalars are computed correctly
+                assert_eq!(scalars[0], TestScalar::from("hello"));
+                assert_eq!(scalars[1], TestScalar::from("")); // Default value for NULL
+                assert_eq!(scalars[2], TestScalar::from("world"));
+            }
+            _ => panic!("Expected VarChar column"),
+        }
     }
 
     #[test]
@@ -1073,23 +1105,63 @@ mod tests {
     #[test]
     fn we_can_convert_int8_array_with_nulls() {
         let alloc = Bump::new();
-        let array: ArrayRef = Arc::new(Int8Array::from(vec![Some(1), None, Some(42)]));
-        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
-        assert!(matches!(
-            result,
-            Err(ArrowArrayToColumnConversionError::ColumnOperationError)
-        ));
+        let array = Int8Array::from(vec![Some(10), None, Some(30)]);
+        let array_ref = Arc::new(array) as ArrayRef;
+
+        // Test to_nullable_column
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(nullable_result.is_ok());
+        let nullable_column = nullable_result.unwrap();
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+
+        // Test to_column - should now handle nulls by delegating to to_nullable_column
+        let column_result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(column_result.is_ok());
+        let column = column_result.unwrap();
+        match column {
+            Column::TinyInt(values) => {
+                assert_eq!(values.len(), 3);
+                assert_eq!(values[0], 10);
+                assert_eq!(values[1], 0); // Default value for NULL
+                assert_eq!(values[2], 30);
+            }
+            _ => panic!("Expected TinyInt column"),
+        }
     }
 
     #[test]
     fn we_can_convert_int16_array_with_nulls() {
         let alloc = Bump::new();
-        let array: ArrayRef = Arc::new(Int16Array::from(vec![Some(1), None, Some(42)]));
-        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
-        assert!(matches!(
-            result,
-            Err(ArrowArrayToColumnConversionError::ColumnOperationError)
-        ));
+        let array = Int16Array::from(vec![Some(10), None, Some(30)]);
+        let array_ref = Arc::new(array) as ArrayRef;
+
+        // Test to_nullable_column
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(nullable_result.is_ok());
+        let nullable_column = nullable_result.unwrap();
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+
+        // Test to_column - should now handle nulls by delegating to to_nullable_column
+        let column_result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(column_result.is_ok());
+        let column = column_result.unwrap();
+        match column {
+            Column::SmallInt(values) => {
+                assert_eq!(values.len(), 3);
+                assert_eq!(values[0], 10);
+                assert_eq!(values[1], 0); // Default value for NULL
+                assert_eq!(values[2], 30);
+            }
+            _ => panic!("Expected SmallInt column"),
+        }
     }
 
     #[test]
@@ -1298,19 +1370,7 @@ mod tests {
             Column::VarChar((&[], &[]))
         );
     }
-
-    #[test]
-    fn we_cannot_build_a_column_from_an_array_with_nulls_utf8() {
-        let alloc = Bump::new();
-        let data = vec![Some("ab"), Some("-f34"), None];
-        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
-        let result = array.to_column::<DoryScalar>(&alloc, &(0..3), None);
-        assert!(matches!(
-            result,
-            Err(ArrowArrayToColumnConversionError::ColumnOperationError)
-        ));
-    }
-
+    
     #[test]
     fn we_cannot_convert_valid_string_array_refs_into_valid_columns_using_out_of_ranges_sizes() {
         let alloc = Bump::new();
