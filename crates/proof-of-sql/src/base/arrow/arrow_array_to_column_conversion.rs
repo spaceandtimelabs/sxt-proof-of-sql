@@ -394,7 +394,6 @@ impl ArrayRefExt for ArrayRef {
                 let array = self.as_any().downcast_ref::<UInt8Array>().unwrap();
                 let mut values_vec = Vec::with_capacity(range_len);
                 for i in range.clone() {
-                    // Use 0 as the default value for nulls
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
@@ -405,7 +404,6 @@ impl ArrayRefExt for ArrayRef {
                 let array = self.as_any().downcast_ref::<Int8Array>().unwrap();
                 let mut values_vec = Vec::with_capacity(range_len);
                 for i in range.clone() {
-                    // Use 0 as the default value for nulls
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
@@ -416,7 +414,6 @@ impl ArrayRefExt for ArrayRef {
                 let array = self.as_any().downcast_ref::<Int16Array>().unwrap();
                 let mut values_vec = Vec::with_capacity(range_len);
                 for i in range.clone() {
-                    // Use 0 as the default value for nulls
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
@@ -427,7 +424,6 @@ impl ArrayRefExt for ArrayRef {
                 let array = self.as_any().downcast_ref::<Int32Array>().unwrap();
                 let mut values_vec = Vec::with_capacity(range_len);
                 for i in range.clone() {
-                    // Use 0 as the default value for nulls
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
@@ -438,7 +434,6 @@ impl ArrayRefExt for ArrayRef {
                 let array = self.as_any().downcast_ref::<Int64Array>().unwrap();
                 let mut values_vec = Vec::with_capacity(range_len);
                 for i in range.clone() {
-                    // Use 0 as the default value for nulls
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
@@ -449,7 +444,6 @@ impl ArrayRefExt for ArrayRef {
                 let array = self.as_any().downcast_ref::<Decimal128Array>().unwrap();
                 let mut values_vec = Vec::with_capacity(range_len);
                 for i in range.clone() {
-                    // Use 0 as the default value for nulls
                     values_vec.push(if array.is_null(i) { 0 } else { array.value(i) });
                 }
                 let values_slice = alloc.alloc_slice_copy(&values_vec);
@@ -460,17 +454,15 @@ impl ArrayRefExt for ArrayRef {
                 let array = self.as_any().downcast_ref::<Decimal256Array>().unwrap();
                 let mut scalar_values = Vec::with_capacity(range_len);
                 for i in range.clone() {
-                    // Use zero scalar as the default value for nulls
-                    if array.is_null(i) {
-                        scalar_values.push(S::zero());
+                    scalar_values.push(if array.is_null(i) {
+                        S::zero()
                     } else {
-                        let val = convert_i256_to_scalar(&array.value(i)).ok_or(
+                        convert_i256_to_scalar(&array.value(i)).ok_or(
                             ArrowArrayToColumnConversionError::DecimalConversionFailed {
                                 number: array.value(i),
                             },
-                        )?;
-                        scalar_values.push(val);
-                    }
+                        )?
+                    });
                 }
                 let scalars = alloc.alloc_slice_copy(&scalar_values);
                 NullableColumn::with_presence(

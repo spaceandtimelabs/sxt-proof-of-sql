@@ -1561,52 +1561,72 @@ fn verification_should_fail_with_tampered_nullable_arithmetic_query_result() {
 
 #[test]
 fn we_can_prove_nullable_arithmetic_with_dory() {
-    // Setup the Dory prover and verifier
+    use arrow::{
+        array::{Int64Array, ArrayRef},
+        datatypes::{Schema, Field, DataType},
+        record_batch::RecordBatch,
+    };
+    use proof_of_sql::proof_primitive::dory::DoryScalar;
+    use std::sync::Arc;
+
     let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
     let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
 
-    // Create a table with nullable columns A and B, and a non-nullable column C
-    let mut accessor =
-        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    // Create Arrow arrays with NULL values
+    let a_array: ArrayRef = Arc::new(Int64Array::from(vec![
+        Some(1), Some(1), None, None, Some(2), Some(2), None
+    ]));
+    let b_array: ArrayRef = Arc::new(Int64Array::from(vec![
+        Some(1), None, Some(1), None, Some(2), None, Some(2)
+    ]));
+    let c_array: ArrayRef = Arc::new(Int64Array::from(vec![
+        101, 102, 103, 104, 105, 106, 107
+    ]));
+
+    // Create RecordBatch
+    let schema = Schema::new(vec![
+        Field::new("a", DataType::Int64, true),
+        Field::new("b", DataType::Int64, true),
+        Field::new("c", DataType::Int64, false),
+    ]);
+    let record_batch = RecordBatch::try_new(
+        Arc::new(schema),
+        vec![a_array, b_array, c_array],
+    ).unwrap();
+
+    // Convert to OwnedTable
+    let table = OwnedTable::<DoryScalar>::try_from(record_batch).unwrap();
+
+    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         TableRef::new("sxt", "table"),
-        owned_table([
-            nullable_column(
-                "a",
-                OwnedColumn::BigInt(vec![1, 1, 0, 0, 2, 2, 0]),
-                Some(vec![true, true, false, false, true, true, false]),
-            ),
-            nullable_column(
-                "b",
-                OwnedColumn::BigInt(vec![1, 0, 1, 0, 2, 0, 2]),
-                Some(vec![true, false, true, false, true, false, true]),
-            ),
-            bigint("c", [101, 102, 103, 104, 105, 106, 107]),
-        ]),
+        table,
         0,
     );
 
-    // Test 1: A + B = 2 should return only the row where A=1 and B=1
+    // Test 1: A + B = 2 should return only the row where A=1 and B=1 (first row)
     let query = QueryExpr::try_new(
         "SELECT * FROM table WHERE a + b = 2".parse().unwrap(),
         "sxt".into(),
         &accessor,
-    )
-    .unwrap();
+    ).unwrap();
+
     let verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
     );
+
     let owned_table_result = verifiable_result
         .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
         .unwrap()
         .table;
-    
-    // Expected result: only the row where A=1, B=1, C=101
+
+    // In SQL arithmetic with NULLs, if either operand is NULL, the result is NULL
+    // So we should only get the row where both a and b are non-NULL and their sum is 2
     let expected_result = owned_table([
         nullable_column(
             "a",
@@ -1627,18 +1647,22 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
         "SELECT * FROM table WHERE a + b = 4".parse().unwrap(),
         "sxt".into(),
         &accessor,
-    )
-    .unwrap();
+    ).unwrap();
+
     let verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
     );
+
     let owned_table_result = verifiable_result
         .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
         .unwrap()
         .table;
     
+    
+    // Expected result: only the row where A=2, B=2, C=105
+
     // Expected result: only the row where A=2, B=2, C=105
     let expected_result = owned_table([
         nullable_column(
@@ -1655,23 +1679,27 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
     ]);
     assert_eq!(owned_table_result, expected_result);
 
-    // Test 3: A + B = 3 should return an empty result as no rows satisfy this condition
+    // Test 3: A + B = 3 should return empty result as no rows satisfy this condition
     let query = QueryExpr::try_new(
         "SELECT * FROM table WHERE a + b = 3".parse().unwrap(),
         "sxt".into(),
         &accessor,
-    )
-    .unwrap();
+    ).unwrap();
+
     let verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
     );
+
     let owned_table_result = verifiable_result
         .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
         .unwrap()
         .table;
     
+    
+    // Expected result: empty table with the same structure
+
     // Expected result: empty table with the same structure
     let expected_result = owned_table([
         nullable_column(

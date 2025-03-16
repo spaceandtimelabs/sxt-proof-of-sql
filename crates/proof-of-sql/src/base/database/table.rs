@@ -39,6 +39,13 @@ pub enum TableError {
     /// The presence slice length doesn't match the table row count.
     #[snafu(display("Presence slice length must match table row count"))]
     PresenceLengthMismatch,
+    
+    /// The column was not found in the table.
+    #[snafu(display("Column '{column}' not found in table"))]
+    ColumnNotFound {
+        /// The name of the column that was not found
+        column: String,
+    },
 }
 
 type TableSplit<'a, S> = (IndexMap<Ident, Column<'a, S>>, IndexMap<Ident, &'a [bool]>);
