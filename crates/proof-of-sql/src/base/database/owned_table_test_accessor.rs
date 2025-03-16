@@ -7,7 +7,7 @@ use crate::base::{
     map::IndexMap,
     scalar::ScalarExt,
 };
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use bumpalo::Bump;
 use sqlparser::ast::Ident;
 /// A test accessor that uses [`OwnedTable`] as the underlying table type.

@@ -191,6 +191,7 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
                 Err(err) => {
                     // This shouldn't happen since we're using the same permutation that was used for columns
                     // But in case it does, we can just skip this presence vector
+                    #[cfg(feature = "std")]
                     eprintln!("Failed to apply permutation to presence vector: {err}");
                 }
             }

@@ -3,7 +3,9 @@
 //!
 //! NOTE: If this doesn't work because you do not have the appropriate GPU drivers installed,
 //! you can run `cargo run --release --example null_arithmetic --no-default-features --features="arrow cpu-perf"` instead. It will be slower for proof generation.
+#[cfg(feature = "arrow")]
 use arrow::datatypes::SchemaRef;
+#[cfg(feature = "arrow")]
 use arrow_csv::{infer_schema_from_files, ReaderBuilder};
 use proof_of_sql::{
     base::database::{OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor},
@@ -62,6 +64,7 @@ fn prove_and_verify_query(
     println!("{result:?}");
 }
 
+#[cfg(feature = "arrow")]
 fn main() {
     let mut rng = StdRng::from_seed(DORY_SEED);
     let public_parameters = PublicParameters::rand(DORY_SETUP_MAX_NU, &mut rng);
@@ -119,4 +122,10 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+}
+
+#[cfg(not(feature = "arrow"))]
+fn main() {
+    println!("This example requires the 'arrow' feature to be enabled.");
+    println!("Please run with: cargo run --release --example null_arithmetic --features=arrow");
 }

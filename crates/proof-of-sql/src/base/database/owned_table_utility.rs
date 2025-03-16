@@ -20,10 +20,15 @@ use crate::base::scalar::Scalar;
 use alloc::{string::String, vec::Vec};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use sqlparser::ast::Ident;
+#[cfg(feature = "std")]
+use std::cell::RefCell;
+#[cfg(feature = "std")]
+use std::collections::HashMap;
 
 // Thread-local storage to hold presence information until the OwnedTable is created
-thread_local! {
-    static NULLABLE_COLUMNS: std::cell::RefCell<std::collections::HashMap<(Ident, usize), Vec<bool>>> = std::cell::RefCell::new(std::collections::HashMap::new());
+#[cfg(feature = "std")]
+std::thread_local! {
+    static NULLABLE_COLUMNS: RefCell<HashMap<(Ident, usize), Vec<bool>>> = RefCell::new(HashMap::new());
 }
 
 /// Creates an [`OwnedTable`] from a list of `(Ident, OwnedColumn)` pairs.
@@ -38,9 +43,6 @@ thread_local! {
 /// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let result = owned_table::<MyScalar>([
 ///      bigint("a", [1, 2, 3]),
-///      boolean("b", [true, false, true]),
-///      int128("c", [1, 2, 3]),
-///      scalar("d", [1, 2, 3]),
 ///      varchar("e", ["a", "b", "c"]),
 ///      decimal75("f", 12, 1, [1, 2, 3]),
 /// ]);
@@ -57,19 +59,22 @@ pub fn owned_table<S: Scalar>(
     // Create the table
     let mut table = OwnedTable::try_from_iter(columns).unwrap();
 
-    // Get all the nullable columns from thread-local storage
-    let nullable_columns = NULLABLE_COLUMNS.with(|cell| {
-        let mut map = cell.borrow_mut();
-        let result = map.clone();
-        map.clear();
-        result
-    });
+    #[cfg(feature = "std")]
+    {
+        // Get all the nullable columns from thread-local storage
+        let nullable_columns = NULLABLE_COLUMNS.with(|cell| {
+            let mut map = cell.borrow_mut();
+            let result = map.clone();
+            map.clear();
+            result
+        });
 
-    // Now add presence information for nullable columns
-    for ((name, len), presence) in nullable_columns {
-        if let Some(col) = table.inner_table().get(&name) {
-            if col.len() == len {
-                table.set_presence(name, presence);
+        // Now add presence information for nullable columns
+        for ((name, len), presence) in nullable_columns {
+            if let Some(col) = table.inner_table().get(&name) {
+                if col.len() == len {
+                    table.set_presence(name, presence);
+                }
             }
         }
     }
@@ -92,6 +97,7 @@ pub fn nullable_column<S: Scalar>(
     let result = (name_ident.clone(), values.clone());
 
     // If we have presence information, we need to add it to the OwnedTable
+    #[cfg(feature = "std")]
     if let Some(presence_vec) = presence {
         NULLABLE_COLUMNS.with(|cell| {
             let mut map = cell.borrow_mut();

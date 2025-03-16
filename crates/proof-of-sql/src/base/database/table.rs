@@ -1,6 +1,6 @@
 use super::{Column, ColumnField, NullableColumn};
 use crate::base::{map::IndexMap, scalar::Scalar};
-use alloc::vec::Vec;
+use alloc::{boxed::Box, string::String, vec, vec::Vec};
 use bumpalo::Bump;
 use snafu::Snafu;
 use sqlparser::ast::Ident;
@@ -324,7 +324,7 @@ impl<'a, S: Scalar> Table<'a, S> {
                             // Use a transmutation to convert from &'static [bool] to &'a [bool]
                             // This is safe because 'static outlives 'a
                             let transmuted: &'a [bool] = unsafe {
-                                std::mem::transmute::<&'static [bool], &'a [bool]>(leaked_combined)
+                                core::mem::transmute::<&'static [bool], &'a [bool]>(leaked_combined)
                             };
 
                             return Some(transmuted);

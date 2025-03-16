@@ -1564,6 +1564,7 @@ fn verification_should_fail_with_tampered_nullable_arithmetic_query_result() {
 }
 
 #[test]
+#[cfg(feature = "arrow")]
 #[allow(clippy::too_many_lines)]
 fn we_can_prove_nullable_arithmetic_with_dory() {
     use arrow::{
