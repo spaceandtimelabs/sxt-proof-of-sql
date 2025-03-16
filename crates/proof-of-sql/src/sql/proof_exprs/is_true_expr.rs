@@ -113,7 +113,7 @@ impl ProofExpr for IsTrueExpr {
 
         // Get presence information
         let presence = table.presence_for_expr(&*self.expr);
-        let nullable_column = match NullableColumn::with_presence(inner_column, presence.clone()) {
+        let nullable_column = match NullableColumn::with_presence(inner_column, presence) {
             Ok(col) => col,
             Err(err) => {
                 tracing::warn!(

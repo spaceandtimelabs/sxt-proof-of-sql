@@ -30,6 +30,7 @@ impl OrderByPostprocessing {
 
 impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
     /// Apply the slice transformation to the given `OwnedTable`.
+    #[allow(clippy::too_many_lines)]
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
         let opt_max_index = self
             .index_direction_pairs
@@ -82,12 +83,10 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
             for (idx, (col, is_asc)) in column_direction_pairs.iter().enumerate() {
                 // Check if either value is NULL
                 let a_is_null = presence_for_order_by.get(&idx)
-                    .map(|presence| !presence[*a])
-                    .unwrap_or(false);
+                    .is_some_and(|presence| !presence[*a]);
                 
                 let b_is_null = presence_for_order_by.get(&idx)
-                    .map(|presence| !presence[*b])
-                    .unwrap_or(false);
+                    .is_some_and(|presence| !presence[*b]);
                 
                 match (a_is_null, b_is_null) {
                     // Both NULL - continue to next column
@@ -145,7 +144,7 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
         let mut presence_map = IndexMap::default();
         
         // Collect all presence information
-        for (ident, _) in table_map.iter() {
+        for (ident, _) in &table_map {
             if let Some(presence) = owned_table.get_presence(ident) {
                 // Clone the presence info for each column that has it
                 presence_map.insert(ident.clone(), presence.clone());
@@ -177,7 +176,7 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
                 Err(err) => {
                     // This shouldn't happen since we're using the same permutation that was used for columns
                     // But in case it does, we can just skip this presence vector
-                    eprintln!("Failed to apply permutation to presence vector: {}", err);
+                    eprintln!("Failed to apply permutation to presence vector: {err}");
                 }
             }
         }

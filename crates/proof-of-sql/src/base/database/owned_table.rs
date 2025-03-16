@@ -101,7 +101,10 @@ impl<S: Scalar> OwnedTable<S> {
         })
     }
     
-    /// Creates a new [`OwnedTable`] from OwnedNullableColumn instances.
+    /// Creates a new [`OwnedTable`] from `OwnedNullableColumn` instances.
+    ///
+    /// # Panics
+    /// Panics if `columns` is non-empty but contains no values.
     pub fn try_new_from_nullable_columns(
         columns: IndexMap<Ident, super::owned_column::OwnedNullableColumn<S>>,
     ) -> Result<Self, OwnedTableError> {
@@ -140,6 +143,7 @@ impl<S: Scalar> OwnedTable<S> {
     }
     
     /// Get the presence vector for a column, if it exists and has NULL values.
+    #[must_use]
     pub fn get_presence(&self, column_name: &Ident) -> Option<&Vec<bool>> {
         self.presence.get(column_name)
     }
@@ -163,6 +167,7 @@ impl<S: Scalar> OwnedTable<S> {
     }
     
     /// Check if a column has NULL values.
+    #[must_use]
     pub fn has_nulls(&self, column_name: &Ident) -> bool {
         self.presence.contains_key(column_name)
     }

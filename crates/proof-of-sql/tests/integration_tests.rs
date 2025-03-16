@@ -1193,18 +1193,12 @@ fn we_can_prove_nullable_table_with_is_null_with_curve25519() {
         owned_table([
             nullable_column(
                 "a",
-                OwnedColumn::BigInt(vec![1, 3, 3, 4, 5]),
+                &OwnedColumn::BigInt(vec![1, 3, 3, 4, 5]),
                 Some(vec![true, false, true, false, true]),
             ),
             nullable_column(
                 "b",
-                OwnedColumn::VarChar(vec![
-                    "x".to_string(),
-                    "y".to_string(),
-                    "z".to_string(),
-                    "w".to_string(),
-                    "v".to_string(),
-                ]),
+                &OwnedColumn::VarChar(vec!["x".to_string(), "y".to_string(), "z".to_string(), "w".to_string(), "v".to_string()]),
                 Some(vec![true, false, true, true, false]),
             ),
         ]),
@@ -1225,12 +1219,12 @@ fn we_can_prove_nullable_table_with_is_null_with_curve25519() {
     let expected_result = owned_table([
         nullable_column(
             "a",
-            OwnedColumn::BigInt(vec![3, 5]),
+            &OwnedColumn::BigInt(vec![3, 5]),
             Some(vec![false, true]),
         ),
         nullable_column(
             "b",
-            OwnedColumn::VarChar(vec!["y".to_string(), "v".to_string()]),
+            &OwnedColumn::VarChar(vec!["y".to_string(), "v".to_string()]),
             Some(vec![false, false]),
         ),
     ]);
@@ -1251,12 +1245,12 @@ fn we_can_prove_nullable_table_with_is_not_null_with_dory() {
         owned_table([
             nullable_column(
                 "a",
-                OwnedColumn::BigInt(vec![3, 5]),
+                &OwnedColumn::BigInt(vec![3, 5]),
                 Some(vec![false, true]),
             ),
             nullable_column(
                 "b",
-                OwnedColumn::VarChar(vec!["y".to_string(), "v".to_string()]),
+                &OwnedColumn::VarChar(vec!["y".to_string(), "v".to_string()]),
                 Some(vec![true, false]),
             ),
         ]),
@@ -1280,12 +1274,12 @@ fn we_can_prove_nullable_table_with_is_not_null_with_dory() {
     let expected_result = owned_table([
         nullable_column(
             "a",
-            OwnedColumn::BigInt(vec![3]),
+            &OwnedColumn::BigInt(vec![3]),
             Some(vec![false]),
         ),
         nullable_column(
             "b",
-            OwnedColumn::VarChar(vec!["y".to_string()]),
+            &OwnedColumn::VarChar(vec!["y".to_string()]),
             Some(vec![true]),
         ),
     ]);
@@ -1306,12 +1300,12 @@ fn we_can_prove_nullable_table_with_is_true_with_dory() {
         owned_table([
             nullable_column(
                 "a",
-                OwnedColumn::BigInt(vec![1, 3, 3, 4, 5]),
+                &OwnedColumn::BigInt(vec![1, 3, 3, 4, 5]),
                 Some(vec![true, false, true, false, true]),
             ),
             nullable_column(
                 "b",
-                OwnedColumn::Boolean(vec![true, false, true, false, true]),
+                &OwnedColumn::Boolean(vec![true, false, true, false, true]),
                 Some(vec![true, false, true, true, false]),
             ),
         ]),
@@ -1335,12 +1329,12 @@ fn we_can_prove_nullable_table_with_is_true_with_dory() {
     let expected_result = owned_table([
         nullable_column(
             "a",
-            OwnedColumn::BigInt(vec![1, 3]),
+            &OwnedColumn::BigInt(vec![1, 3]),
             Some(vec![true, true]),
         ),
         nullable_column(
             "b",
-            OwnedColumn::Boolean(vec![true, true]),
+            &OwnedColumn::Boolean(vec![true, true]),
             Some(vec![true, true]),
         ),
     ]);
@@ -1435,12 +1429,12 @@ fn we_can_prove_nullable_table_with_arithmetic_operations_with_dory() {
         owned_table([
             nullable_column(
                 "a",
-                OwnedColumn::BigInt(vec![1, 2, 3, 4, 5]),
+                &OwnedColumn::BigInt(vec![1, 2, 3, 4, 5]),
                 Some(vec![false, false, true, false, false]),
             ),
             nullable_column(
                 "b",
-                OwnedColumn::BigInt(vec![1, 6, 2, 2, 3]),
+                &OwnedColumn::BigInt(vec![1, 6, 2, 2, 3]),
                 Some(vec![false, true, false, false, false]),
             ),
         ]),
@@ -1462,8 +1456,8 @@ fn we_can_prove_nullable_table_with_arithmetic_operations_with_dory() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        nullable_column("a", OwnedColumn::BigInt(vec![1]), Some(vec![false])),
-        nullable_column("b", OwnedColumn::BigInt(vec![1]), Some(vec![false])),
+        nullable_column("a", &OwnedColumn::BigInt(vec![1]), Some(vec![false])),
+        nullable_column("b", &OwnedColumn::BigInt(vec![1]), Some(vec![false])),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -1486,12 +1480,12 @@ fn verification_should_fail_with_tampered_nullable_arithmetic_query_result() {
         owned_table([
             nullable_column(
                 "a",
-                OwnedColumn::BigInt(vec![1, 2, 3, 4, 5]),
+                &OwnedColumn::BigInt(vec![1, 2, 3, 4, 5]),
                 Some(vec![false, false, true, false, false]),
             ),
             nullable_column(
                 "b",
-                OwnedColumn::BigInt(vec![1, 6, 2, 2, 3]),
+                &OwnedColumn::BigInt(vec![1, 6, 2, 2, 3]),
                 Some(vec![false, true, false, false, false]),
             ),
         ]),
@@ -1522,8 +1516,8 @@ fn verification_should_fail_with_tampered_nullable_arithmetic_query_result() {
 
     // The honest result should contain only the rows where 'a + b = 2'
     let expected_result = owned_table([
-        nullable_column("a", OwnedColumn::BigInt(vec![1]), Some(vec![false])),
-        nullable_column("b", OwnedColumn::BigInt(vec![1]), Some(vec![false])),
+        nullable_column("a", &OwnedColumn::BigInt(vec![1]), Some(vec![false])),
+        nullable_column("b", &OwnedColumn::BigInt(vec![1]), Some(vec![false])),
     ]);
     assert_eq!(honest_result, expected_result);
 
@@ -1536,12 +1530,12 @@ fn verification_should_fail_with_tampered_nullable_arithmetic_query_result() {
         owned_table([
             nullable_column(
                 "a",
-                OwnedColumn::BigInt(vec![1, 0, 3, 0, 5]),
+                &OwnedColumn::BigInt(vec![1, 0, 3, 0, 5]),
                 Some(vec![false, false, true, false, false]),
             ),
             nullable_column(
                 "b",
-                OwnedColumn::BigInt(vec![1, 2, 2, 2, 3]),
+                &OwnedColumn::BigInt(vec![1, 2, 2, 2, 3]),
                 Some(vec![false, false, false, false, false]),
             ),
         ]),
@@ -1638,12 +1632,12 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
     let expected_result = owned_table([
         nullable_column(
             "a",
-            OwnedColumn::BigInt(vec![1]),
+            &OwnedColumn::BigInt(vec![1]),
             Some(vec![true]),
         ),
         nullable_column(
             "b",
-            OwnedColumn::BigInt(vec![1]),
+            &OwnedColumn::BigInt(vec![1]),
             Some(vec![true]),
         ),
         bigint("c", [101]),
@@ -1675,12 +1669,12 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
     let expected_result = owned_table([
         nullable_column(
             "a",
-            OwnedColumn::BigInt(vec![2]),
+            &OwnedColumn::BigInt(vec![2]),
             Some(vec![true]),
         ),
         nullable_column(
             "b",
-            OwnedColumn::BigInt(vec![2]),
+            &OwnedColumn::BigInt(vec![2]),
             Some(vec![true]),
         ),
         bigint("c", [105]),
@@ -1712,12 +1706,12 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
     let expected_result = owned_table([
         nullable_column(
             "a",
-            OwnedColumn::BigInt(vec![]),
+            &OwnedColumn::BigInt(vec![]),
             Some(vec![]),
         ),
         nullable_column(
             "b",
-            OwnedColumn::BigInt(vec![]),
+            &OwnedColumn::BigInt(vec![]),
             Some(vec![]),
         ),
         bigint("c", Vec::<i64>::new()),

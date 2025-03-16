@@ -85,7 +85,7 @@ pub fn owned_table<S: Scalar>(
 /// Panics if the presence vector length does not match the values length.
 pub fn nullable_column<S: Scalar>(
     name: impl Into<Ident>,
-    values: OwnedColumn<S>,
+    values: &OwnedColumn<S>,
     presence: Option<Vec<bool>>,
 ) -> (Ident, OwnedColumn<S>) {
     let name_ident = name.into();
@@ -111,7 +111,7 @@ pub fn nullable_column<S: Scalar>(
 /// * `presence` - The presence vector (true = value present, false = NULL)
 ///
 /// # Returns
-/// A tuple containing the column name and an OwnedNullableColumn
+/// A tuple containing the column name and an `OwnedNullableColumn`
 ///
 /// # Panics
 /// Panics if the presence vector length does not match the values length.
@@ -154,7 +154,7 @@ pub fn owned_table_with_nulls<S: Scalar>(
 }
 
 /// Helper function to create bigint values without creating a column pair
-/// Intended for use with nullable_column and owned_table_with_nulls
+/// Intended for use with `nullable_column` and `owned_table_with_nulls`
 pub fn bigint_values<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<i64>>,
 ) -> OwnedColumn<S> {
@@ -162,7 +162,7 @@ pub fn bigint_values<S: Scalar>(
 }
 
 /// Helper function to create varchar values without creating a column pair
-/// Intended for use with nullable_column and owned_table_with_nulls
+/// Intended for use with `nullable_column` and `owned_table_with_nulls`
 pub fn varchar_values<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<String>>,
 ) -> OwnedColumn<S> {
@@ -170,7 +170,7 @@ pub fn varchar_values<S: Scalar>(
 }
 
 /// Helper function to create boolean values without creating a column pair
-/// Intended for use with nullable_column and owned_table_with_nulls
+/// Intended for use with `nullable_column` and `owned_table_with_nulls`
 pub fn boolean_values<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<bool>>,
 ) -> OwnedColumn<S> {

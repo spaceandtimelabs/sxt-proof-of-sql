@@ -43,10 +43,7 @@ impl<S: Scalar> PostprocessingStep<S> for SelectPostprocessing {
             let mut values = nullable_result.values;
             
             // Check if this is a simple column reference or an expression
-            let is_simple_column_ref = match &*aliased_expr.expr {
-                proof_of_sql_parser::intermediate_ast::Expression::Column(_) => true,
-                _ => false,
-            };
+            let is_simple_column_ref = matches!(&*aliased_expr.expr, proof_of_sql_parser::intermediate_ast::Expression::Column(_));
             
             // For arithmetic expressions, zero out NULL values
             // For direct column references, preserve original values
@@ -75,14 +72,7 @@ impl<S: Scalar> PostprocessingStep<S> for SelectPostprocessing {
                                 }
                             }
                         },
-                        OwnedColumn::Decimal75(_, _, vals) => {
-                            for (i, present) in presence_vec.iter().enumerate() {
-                                if !present {
-                                    vals[i] = S::ZERO;
-                                }
-                            }
-                        },
-                        OwnedColumn::Scalar(vals) => {
+                        OwnedColumn::Decimal75(_, _, vals) | OwnedColumn::Scalar(vals) => {
                             for (i, present) in presence_vec.iter().enumerate() {
                                 if !present {
                                     vals[i] = S::ZERO;
