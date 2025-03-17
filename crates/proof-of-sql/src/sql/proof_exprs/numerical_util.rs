@@ -240,20 +240,19 @@ fn modulo_integer_columns<
     'a,
     L: NumCast + Copy + PrimInt + Neg<Output = L>,
     R: NumCast + Copy + PrimInt + Neg<Output = R>,
-    O: NumCast + PrimInt,
 >(
     lhs: &[L],
     rhs: &[R],
     alloc: &'a Bump,
     is_right_bigger_int_type: bool,
-) -> &'a [O] {
-    let remainder = alloc.alloc_slice_fill_with(lhs.len(), |_| O::zero());
+) -> &'a [L] {
+    let remainder = alloc.alloc_slice_fill_with(lhs.len(), |_| L::zero());
     remainder
         .iter_mut()
         .zip(lhs.iter().copied().zip(rhs.iter().copied()))
         .for_each(|(m, (l, r))| {
             *m = if l == L::min_value() && r == -R::one() {
-                O::zero()
+                L::zero()
             } else if r == R::zero() {
                 NumCast::from(l).unwrap()
             } else if is_right_bigger_int_type {
@@ -425,7 +424,7 @@ pub(crate) fn modulo_columns<'a, S: Scalar>(
             Column::Int128(modulo_integer_columns(left, right, alloc, false))
         }
         (Column::BigInt(left), Column::Int128(right)) => {
-            Column::Int128(modulo_integer_columns(left, right, alloc, true))
+            Column::BigInt(modulo_integer_columns(left, right, alloc, true))
         }
         (Column::BigInt(left), Column::BigInt(right)) => {
             Column::BigInt(modulo_integer_columns(left, right, alloc, false))
@@ -440,10 +439,10 @@ pub(crate) fn modulo_columns<'a, S: Scalar>(
             Column::BigInt(modulo_integer_columns(left, right, alloc, false))
         }
         (Column::Int(left), Column::Int128(right)) => {
-            Column::Int128(modulo_integer_columns(left, right, alloc, true))
+            Column::Int(modulo_integer_columns(left, right, alloc, true))
         }
         (Column::Int(left), Column::BigInt(right)) => {
-            Column::BigInt(modulo_integer_columns(left, right, alloc, true))
+            Column::Int(modulo_integer_columns(left, right, alloc, true))
         }
         (Column::Int(left), Column::Int(right)) => {
             Column::Int(modulo_integer_columns(left, right, alloc, false))
@@ -455,13 +454,13 @@ pub(crate) fn modulo_columns<'a, S: Scalar>(
             Column::Int(modulo_integer_columns(left, right, alloc, false))
         }
         (Column::SmallInt(left), Column::Int128(right)) => {
-            Column::Int128(modulo_integer_columns(left, right, alloc, true))
+            Column::SmallInt(modulo_integer_columns(left, right, alloc, true))
         }
         (Column::SmallInt(left), Column::BigInt(right)) => {
-            Column::BigInt(modulo_integer_columns(left, right, alloc, true))
+            Column::SmallInt(modulo_integer_columns(left, right, alloc, true))
         }
         (Column::SmallInt(left), Column::Int(right)) => {
-            Column::Int(modulo_integer_columns(left, right, alloc, true))
+            Column::SmallInt(modulo_integer_columns(left, right, alloc, true))
         }
         (Column::SmallInt(left), Column::SmallInt(right)) => {
             Column::SmallInt(modulo_integer_columns(left, right, alloc, false))
@@ -470,16 +469,16 @@ pub(crate) fn modulo_columns<'a, S: Scalar>(
             Column::SmallInt(modulo_integer_columns(left, right, alloc, false))
         }
         (Column::TinyInt(left), Column::Int128(right)) => {
-            Column::Int128(modulo_integer_columns(left, right, alloc, true))
+            Column::TinyInt(modulo_integer_columns(left, right, alloc, true))
         }
         (Column::TinyInt(left), Column::BigInt(right)) => {
-            Column::BigInt(modulo_integer_columns(left, right, alloc, true))
+            Column::TinyInt(modulo_integer_columns(left, right, alloc, true))
         }
         (Column::TinyInt(left), Column::Int(right)) => {
-            Column::Int(modulo_integer_columns(left, right, alloc, true))
+            Column::TinyInt(modulo_integer_columns(left, right, alloc, true))
         }
         (Column::TinyInt(left), Column::SmallInt(right)) => {
-            Column::SmallInt(modulo_integer_columns(left, right, alloc, true))
+            Column::TinyInt(modulo_integer_columns(left, right, alloc, true))
         }
         (Column::TinyInt(left), Column::TinyInt(right)) => {
             Column::TinyInt(modulo_integer_columns(left, right, alloc, false))
@@ -529,9 +528,9 @@ mod tests {
         let a: &[i8] = &[2i8, 7, 0, 54];
         let b: &[i128] = &[-1i128, 300, 6, 0];
         let quotient_ab = divide_integer_columns::<_, _, TestScalar>(a, b, &alloc, true);
-        let remainder_ab: &[i128] = modulo_integer_columns(a, b, &alloc, true);
+        let remainder_ab: &[i8] = modulo_integer_columns(a, b, &alloc, true);
         assert_eq!(quotient_ab.0, &[-2i8, 0, 0, 0]);
-        assert_eq!(remainder_ab, &[0i128, 7, 0, 54]);
+        assert_eq!(remainder_ab, &[0i8, 7, 0, 54]);
         let quotient_ba = divide_integer_columns::<_, _, TestScalar>(b, a, &alloc, false);
         let remainder_ba: &[i128] = modulo_integer_columns(b, a, &alloc, false);
         assert_eq!(quotient_ba.0, &[0i128, 42, 0, 0]);
@@ -650,11 +649,9 @@ mod tests {
             big_int_column,
             int128_column,
         ];
-        let columns = columns.iter().enumerate();
-        for ((ni, numerator), (di, denominator)) in iproduct!(columns.clone(), columns) {
-            let remainder = modulo_columns(numerator, denominator, &alloc);
-            let expected_remainder = if di > ni { denominator } else { numerator };
-            assert_eq!(remainder, *expected_remainder);
+        for (numerator, denominator) in iproduct!(columns, columns) {
+            let remainder = modulo_columns(&numerator, &denominator, &alloc);
+            assert_eq!(remainder, numerator);
         }
     }
 

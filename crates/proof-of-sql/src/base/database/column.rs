@@ -560,6 +560,23 @@ impl ColumnType {
         )
     }
 
+    /// Returns the floor of the sqrt of the negative min integer.
+    /// Returns `None` if the type is not a signed integer.
+    /// `sqrt_negative_min(NumericalType) = floor(sqrt(-NumericalType::MIN))`
+    #[must_use]
+    #[cfg_attr(not(test), expect(dead_code))]
+    #[expect(clippy::trivially_copy_pass_by_ref)]
+    fn sqrt_negative_min(&self) -> Option<u64> {
+        match self {
+            ColumnType::TinyInt => Some(11),
+            ColumnType::SmallInt => Some(181),
+            ColumnType::Int => Some(46_340),
+            ColumnType::BigInt => Some(3_037_000_499),
+            ColumnType::Int128 => Some(13_043_817_825_332_782_212),
+            _ => None,
+        }
+    }
+
     /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
     fn to_integer_bits(self) -> Option<usize> {
         match self {
