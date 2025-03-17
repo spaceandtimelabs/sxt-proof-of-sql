@@ -112,6 +112,25 @@ pub fn try_multiply_column_types(
     }
 }
 
+/// Determine the output type of a divide/modulo operation if it is possible
+/// to divide and modulo the two input types. If the types are not compatible, return
+/// an error.
+#[cfg_attr(not(test), expect(dead_code))]
+fn try_divide_modulo_column_types(
+    lhs: ColumnType,
+    rhs: ColumnType,
+) -> ColumnOperationResult<(ColumnType, ColumnType)> {
+    if lhs.is_integer() && lhs.is_signed() && rhs.is_integer() && rhs.is_signed() {
+        Ok((lhs, lhs))
+    } else {
+        Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+            operator: "/%".to_string(),
+            left_type: lhs,
+            right_type: rhs,
+        })
+    }
+}
+
 /// Determine the output type of a division operation if it is possible
 /// to divide the two input types. If the types are not compatible, return
 /// an error.
@@ -172,6 +191,8 @@ pub fn try_divide_column_types(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::base::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use itertools::iproduct;
 
     #[test]
     fn we_can_add_numeric_types() {
@@ -749,5 +770,42 @@ mod test {
                 source: DecimalError::InvalidScale { .. }
             })
         ));
+    }
+
+    #[test]
+    fn we_can_get_correct_column_types_for_divide_and_modulo() {
+        let eligible_columns = [
+            ColumnType::TinyInt,
+            ColumnType::SmallInt,
+            ColumnType::Int,
+            ColumnType::BigInt,
+            ColumnType::Int128,
+        ];
+        for (numerator, denominator) in iproduct!(eligible_columns, eligible_columns) {
+            let remainder = try_divide_modulo_column_types(numerator, denominator).unwrap();
+            assert_eq!(remainder, (numerator, numerator));
+        }
+        let ineligible_columns = [
+            ColumnType::Uint8,
+            ColumnType::Scalar,
+            ColumnType::Boolean,
+            ColumnType::VarBinary,
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::new(1)),
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 1),
+            ColumnType::VarChar,
+        ];
+        for (left_type, right_type) in iproduct!(eligible_columns, ineligible_columns)
+            .chain(iproduct!(ineligible_columns, eligible_columns))
+        {
+            let err = try_divide_modulo_column_types(left_type, right_type).unwrap_err();
+            assert!(matches!(
+                err,
+                ColumnOperationError::BinaryOperationInvalidColumnType {
+                    operator: _,
+                    left_type: _,
+                    right_type: _
+                }
+            ));
+        }
     }
 }
