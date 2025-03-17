@@ -47,7 +47,7 @@ impl ProofPlan for UnionExec
 where
     UnionExec: ProverEvaluate,
 {
-    #[allow(unused_variables)]
+    #[expect(unused_variables)]
     fn verifier_evaluate<S: Scalar>(
         &self,
         builder: &mut impl VerificationBuilder<S>,
@@ -125,7 +125,6 @@ impl ProverEvaluate for UnionExec {
     }
 
     #[tracing::instrument(name = "UnionExec::prover_evaluate", level = "debug", skip_all)]
-    #[allow(unused_variables)]
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
@@ -169,7 +168,6 @@ impl ProverEvaluate for UnionExec {
 ///
 /// # Panics
 /// Should never panic if the code is correct.
-#[allow(clippy::too_many_arguments)]
 fn verify_union<S: Scalar>(
     builder: &mut impl VerificationBuilder<S>,
     gamma: S,
@@ -223,7 +221,7 @@ fn verify_union<S: Scalar>(
 ///
 /// # Panics
 /// Should never panic if the code is correct.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn prove_union<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,

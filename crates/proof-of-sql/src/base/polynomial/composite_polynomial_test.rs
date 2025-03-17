@@ -39,7 +39,7 @@ fn test_composite_polynomial_evaluation() {
     assert_eq!(prod11, calc11);
 }
 
-#[allow(clippy::identity_op)]
+#[expect(clippy::identity_op)]
 #[test]
 fn test_composite_polynomial_hypercube_sum() {
     let a: Vec<TestScalar> = vec![

@@ -1,6 +1,7 @@
 use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
     math::decimal::Precision,
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::{Scalar, ScalarExt},
     slice_ops::slice_cast_with,
 };
@@ -11,7 +12,6 @@ use core::{
     fmt::{Display, Formatter},
     mem::size_of,
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::Ident;
 
@@ -323,7 +323,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     }
 
     /// Convert a column to a vector of Scalar values with scaling
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub(crate) fn to_scalar_with_scaling(self, scale: i8) -> Vec<S> {
         let scale_factor = S::pow10(u8::try_from(scale).expect("Upscale factor is nonnegative"));
         match self {
@@ -545,7 +545,7 @@ impl ColumnType {
         }
     }
 
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     /// Returns the bit size of the column type.
     #[must_use]
     pub fn bit_size(&self) -> u32 {

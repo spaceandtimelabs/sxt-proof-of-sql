@@ -69,7 +69,6 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
     }
 
     /// Append the length to the list of rho evaluation lengths.
-    #[allow(dead_code)]
     pub(crate) fn produce_rho_evaluation_length(&mut self, length: usize) {
         self.rho_evaluation_lengths.push(length);
     }

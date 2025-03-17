@@ -111,7 +111,7 @@ pub struct ExtendedVerifierState {
 
 impl ExtendedVerifierState {
     /// Create a new `ExtendedVerifierState` from the commitment to the witness.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn new_tensor(
         E_1: DeferredG1,
         E_2: DeferredG2,

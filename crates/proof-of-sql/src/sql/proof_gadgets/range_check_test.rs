@@ -183,13 +183,13 @@ mod tests {
         base::{
             database::{owned_table_utility::*, ColumnRef, ColumnType, OwnedTableTestAccessor},
             math::decimal::Precision,
+            posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         },
         proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
         sql::proof::VerifiableQueryResult,
     };
     use blitzar::proof::InnerProductProof;
     use num_bigint::BigUint;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     fn check_range(
         table_name: TableRef,
@@ -277,7 +277,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::cast_sign_loss)]
     fn we_can_prove_a_range_check_with_range_up_to_boundary() {
         // 2^248 - 1
         let big_uint = BigUint::from(2u8).pow(248) - BigUint::from(1u8);

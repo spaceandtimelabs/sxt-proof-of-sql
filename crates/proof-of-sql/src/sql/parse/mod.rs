@@ -21,7 +21,7 @@ pub(crate) mod query_context;
 pub(crate) use query_context::QueryContext;
 
 mod query_context_builder;
-pub(crate) use query_context_builder::{type_check_binary_operation, QueryContextBuilder};
+pub(crate) use query_context_builder::QueryContextBuilder;
 
 mod dyn_proof_expr_builder;
 pub(crate) use dyn_proof_expr_builder::DynProofExprBuilder;

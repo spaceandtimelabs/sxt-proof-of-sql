@@ -14,8 +14,6 @@ use num_traits::{One, Zero};
 /// # Panics
 /// Panics if the number of source and candidate columns are not equal
 /// or if the number of columns is zero.
-#[allow(dead_code)]
-#[allow(clippy::too_many_arguments)]
 pub(crate) fn final_round_evaluate_permutation_check<'a, S: Scalar>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
@@ -87,7 +85,6 @@ pub(crate) fn final_round_evaluate_permutation_check<'a, S: Scalar>(
     );
 }
 
-#[allow(dead_code)]
 pub(crate) fn verify_permutation_check<S: Scalar>(
     builder: &mut impl VerificationBuilder<S>,
     alpha: S,

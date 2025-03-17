@@ -6,7 +6,7 @@ mod composite_polynomial_test;
 mod interpolate;
 #[cfg(test)]
 mod interpolate_test;
-#[allow(unused_imports)]
+#[expect(unused_imports)]
 pub use interpolate::{interpolate_evaluations_to_reverse_coefficients, interpolate_uni_poly};
 
 mod evaluation_vector;

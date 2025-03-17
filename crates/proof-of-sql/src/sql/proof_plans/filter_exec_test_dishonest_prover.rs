@@ -82,7 +82,6 @@ impl ProverEvaluate for DishonestFilterExec {
         level = "debug",
         skip_all
     )]
-    #[allow(unused_variables)]
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,

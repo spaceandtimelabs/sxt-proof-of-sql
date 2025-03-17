@@ -19,7 +19,7 @@ use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterato
 /// - `setup.Gamma_1.last()` returns `None`, indicating that `Gamma_1` is empty.
 /// - `setup.Gamma_2.last()` returns `None`, indicating that `Gamma_2` is empty.
 /// - The indexing for `Gamma_2` with `first_row..=last_row` goes out of bounds.
-#[allow(clippy::range_plus_one)]
+#[expect(clippy::range_plus_one)]
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,

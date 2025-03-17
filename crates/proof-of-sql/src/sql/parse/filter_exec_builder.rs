@@ -76,7 +76,7 @@ impl FilterExecBuilder {
         self
     }
 
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn build(self) -> FilterExec {
         FilterExec::new(
             self.filter_result_expr_list,

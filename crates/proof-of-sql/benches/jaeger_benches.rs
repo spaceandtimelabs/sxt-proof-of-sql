@@ -20,7 +20,10 @@ use proof_of_sql::proof_primitive::{
         DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
-    hyperkzg::{HyperKZGCommitmentEvaluationProof, HyperKZGEngine},
+    hyperkzg::{
+        nova_commitment_key_to_hyperkzg_public_setup, HyperKZGCommitmentEvaluationProof,
+        HyperKZGEngine,
+    },
 };
 mod scaffold;
 use crate::scaffold::queries::QUERIES;
@@ -29,7 +32,7 @@ use std::env;
 
 const SIZE: usize = 1_000_000;
 
-#[allow(clippy::items_after_statements)]
+#[expect(clippy::items_after_statements)]
 fn main() {
     init_backend();
 
@@ -111,7 +114,12 @@ fn main() {
             for _ in 0..3 {
                 for (title, query, columns) in QUERIES {
                     jaeger_scaffold::<HyperKZGCommitmentEvaluationProof>(
-                        title, query, columns, SIZE, &&ck, &&vk,
+                        title,
+                        query,
+                        columns,
+                        SIZE,
+                        &&nova_commitment_key_to_hyperkzg_public_setup(&ck)[..],
+                        &&vk,
                     );
                 }
             }

@@ -60,7 +60,7 @@ fn we_can_make_group_by_postprocessing() {
     );
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 #[test]
 fn we_can_do_simple_group_bys() {
     // SELECT 1 as cons FROM tab
@@ -200,7 +200,6 @@ fn we_can_do_simple_group_bys() {
     assert_eq!(actual_table, expected_table);
 }
 
-#[allow(clippy::too_many_lines)]
 #[test]
 fn we_can_do_complex_group_bys() {
     // SELECT 2 * MAX(2 * a + 1) as max_a, MIN(b + 4) - 2.4 as min_b, SUM(c * 1.4) as sum_c, COUNT(d) + 3 as count_d FROM tab

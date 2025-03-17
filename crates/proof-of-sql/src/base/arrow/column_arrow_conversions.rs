@@ -1,10 +1,10 @@
 use crate::base::{
     database::{ColumnField, ColumnType},
     math::decimal::Precision,
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
 };
 use alloc::sync::Arc;
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 /// Convert [`ColumnType`] values to some arrow [`DataType`]
 impl From<&ColumnType> for DataType {
