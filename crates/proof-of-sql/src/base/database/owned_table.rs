@@ -4,10 +4,20 @@ use crate::base::{
     scalar::Scalar,
 };
 use alloc::{vec, vec::Vec};
+use core::fmt;
 use itertools::{EitherOrBoth, Itertools};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use sqlparser::ast::Ident;
+
+// Constants for NULL placeholders - these match what's in owned_and_arrow_conversions.rs
+const NULL_I8: i8 = -99; 
+const NULL_I16: i16 = -9999;
+const NULL_I32: i32 = -999_999_999;
+const NULL_I64: i64 = -999_999_999_999;
+const NULL_I128: i128 = -999_999_999_999_999_999;
+const NULL_TIMESTAMP: i64 = -888_888_888_888;
+const NULL_U8: u8 = 123;
 
 /// An error that occurs when working with tables.
 #[derive(Snafu, Debug, PartialEq, Eq)]
@@ -38,13 +48,237 @@ pub(crate) enum TableCoercionError {
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow [`RecordBatch`](arrow::record_batch::RecordBatch).
-#[derive(Debug, Clone, Eq, Serialize, Deserialize)]
+#[derive(Clone, Eq, Serialize, Deserialize)]
 pub struct OwnedTable<S: Scalar> {
     table: IndexMap<Ident, OwnedColumn<S>>,
     // Map from column name to presence vector (true = present, false = NULL)
     // Only stored for columns that actually have NULL values
     presence: IndexMap<Ident, Vec<bool>>,
 }
+
+/// Helper functions to check if a value is NULL
+fn is_null_i8(value: i8) -> bool {
+    value == NULL_I8
+}
+
+fn is_null_i16(value: i16) -> bool {
+    value == NULL_I16
+}
+
+fn is_null_i32(value: i32) -> bool {
+    value == NULL_I32
+}
+
+fn is_null_i64(value: i64) -> bool {
+    value == NULL_I64
+}
+
+fn is_null_i128(value: i128) -> bool {
+    value == NULL_I128
+}
+
+fn is_null_timestamp(value: i64) -> bool {
+    value == NULL_TIMESTAMP
+}
+
+fn is_null_u8(value: u8) -> bool {
+    value == NULL_U8
+}
+
+/// Custom Debug implementation for OwnedTable that shows NULL values as "NaN"
+impl<S: Scalar> fmt::Debug for OwnedTable<S> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("OwnedTable { table: {")?;
+        
+        let mut first_column = true;
+        for (column_name, column) in &self.table {
+            if !first_column {
+                f.write_str(", ")?;
+            }
+            first_column = false;
+            
+            write!(f, "{:?}: ", column_name)?;
+            
+            // Get presence vector if it exists
+            let has_presence = self.presence.contains_key(column_name);
+            let presence = self.presence.get(column_name);
+            
+            match column {
+                OwnedColumn::Boolean(values) => {
+                    f.write_str("Boolean([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::Uint8(values) => {
+                    f.write_str("Uint8([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_u8(value) {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::TinyInt(values) => {
+                    f.write_str("TinyInt([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_i8(value) {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::SmallInt(values) => {
+                    f.write_str("SmallInt([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_i16(value) {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::Int(values) => {
+                    f.write_str("Int([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_i32(value) {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::BigInt(values) => {
+                    f.write_str("BigInt([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_i64(value) {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::VarChar(values) => {
+                    f.write_str("VarChar([")?;
+                    for (i, value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("\"NaN\"")?;
+                        } else {
+                            write!(f, "{:?}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::VarBinary(values) => {
+                    f.write_str("VarBinary([")?;
+                    for (i, value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{:?}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::Int128(values) => {
+                    f.write_str("Int128([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_i128(value) {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::Decimal75(precision, scale, values) => {
+                    write!(f, "Decimal75({:?}, {}, [", precision, scale)?;
+                    for (i, value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::Scalar(values) => {
+                    f.write_str("Scalar([")?;
+                    for (i, value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::TimestampTZ(time_unit, time_zone, values) => {
+                    write!(f, "TimestampTZ({:?}, {:?}, [", time_unit, time_zone)?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_timestamp(value) {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{}", value)?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+            }
+        }
+        
+        write!(f, "}}, presence: {:?} }}", self.presence)
+    }
+}
+
 impl<S: Scalar> OwnedTable<S> {
     /// Creates a new [`OwnedTable`].
     pub fn try_new(table: IndexMap<Ident, OwnedColumn<S>>) -> Result<Self, OwnedTableError> {
