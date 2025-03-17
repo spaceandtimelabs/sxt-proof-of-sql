@@ -238,8 +238,8 @@ jobs:
           cd solidity
           solhint '**/*.sol' -w 0
           cd ..
-      # - name: Run slither (Needs to be fixed)
-      #   uses: crytic/slither-action@v0.4.0
-      #   with:
-      #     target: solidity
-      #     slither-config: solidity/slither.config.json
+      - name: Run slither
+        uses: crytic/slither-action@d86660fe7e45835a0ec7b7aeb768d271fb421ea0
+        with:
+          target: solidity
+          slither-config: solidity/slither.config.json
