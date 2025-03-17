@@ -483,7 +483,7 @@ impl DivideAndModuloExpr {
             });
         }
 
-        Ok((quotient, remainder))
+        Ok((quotient_wrapped, remainder))
     }
 
     #[expect(dead_code)]
