@@ -378,6 +378,28 @@ library VerificationBuilder {
         }
     }
 
+    /// @notice Gets the aggregate evaluation from the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_aggregate_evaluation(builder_ptr) -> value
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// ##### Return Values
+    /// * `value` - the aggregate evaluation value
+    /// @param __builder The builder struct
+    /// @return __value The aggregate evaluation value
+    function __getAggregateEvaluation(Builder memory __builder) internal pure returns (uint256 __value) {
+        assembly {
+            function builder_get_aggregate_evaluation(builder_ptr) -> value {
+                value := mload(add(builder_ptr, BUILDER_AGGREGATE_EVALUATION_OFFSET))
+            }
+            __value := builder_get_aggregate_evaluation(__builder)
+        }
+    }
+
     /// @notice Sets the row multipliers evaluation in the verification builder
     /// @custom:as-yul-wrapper
     /// #### Wrapped Yul Function

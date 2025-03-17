@@ -22,6 +22,8 @@ uint32 constant ERR_HYPER_KZG_EMPTY_POINT = 0xf1c6069e;
 uint32 constant ERR_HYPER_KZG_PAIRING_CHECK_FAILED = 0xa41148a3;
 /// @dev Error code for when the produces constraint degree is higher than the provided proof.
 uint32 constant ERR_CONSTRAINT_DEGREE_TOO_HIGH = 0x8568ae69;
+/// @dev Error code for when the aggregate evaluation does not match the expected value.
+uint32 constant ERR_AGGREGATE_EVALUATION_MISMATCH = 0xf5c6cb38;
 /// @dev Error code for when the case literal in a switch statement is incorrect.
 uint32 constant ERR_INCORRECT_CASE_CONST = 0x9324fb03;
 /// @dev Error code for when a literal variant is unsupported.
@@ -52,6 +54,8 @@ library Errors {
     error HyperKZGPairingCheckFailed();
     /// @notice Error thrown when the produces constraint degree is higher than the provided proof.
     error ConstraintDegreeTooHigh();
+    /// @notice Error thrown when the aggregate evaluation does not match the expected value.
+    error AggregateEvaluationMismatch();
     /// @notice Error thrown when the case literal in a switch statement is incorrect.
     error IncorrectCaseConst();
     /// @notice Error thrown when a literal variant is unsupported.

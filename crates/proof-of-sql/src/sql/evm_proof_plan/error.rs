@@ -2,7 +2,7 @@ use snafu::Snafu;
 
 /// Represents errors that can occur in the EVM proof plan module.
 #[derive(Snafu, Debug, PartialEq)]
-pub(super) enum Error {
+pub enum Error {
     /// Error indicating that the plan is not supported.
     #[snafu(display("plan not yet supported"))]
     NotSupported,

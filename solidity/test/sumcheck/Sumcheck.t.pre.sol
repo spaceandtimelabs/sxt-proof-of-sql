@@ -5,7 +5,7 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
 import "../../src/base/Errors.sol";
-import {Sumcheck} from "../../src/proof/Sumcheck.pre.sol";
+import {Sumcheck} from "../../src/sumcheck/Sumcheck.pre.sol";
 import {F, FF} from "../base/FieldUtil.sol";
 
 contract SumcheckTest is Test {

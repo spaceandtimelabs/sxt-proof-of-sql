@@ -82,7 +82,7 @@ pub struct QueryProofPCSProofEvaluations<S> {
 /// cannot maintain any invariant on its data members; hence, they are
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Clone, Serialize, Deserialize)]
-pub(super) struct QueryProof<CP: CommitmentEvaluationProof> {
+pub(crate) struct QueryProof<CP: CommitmentEvaluationProof> {
     pub first_round_message: FirstRoundMessage<CP::Commitment>,
     pub final_round_message: FinalRoundMessage<CP::Commitment>,
     /// Sumcheck Proof
@@ -140,8 +140,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript = Transcript::new();
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(expr);
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(&owned_table_result);
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(&min_row_num);
         transcript.challenge_as_le();
 
@@ -308,8 +311,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript = Transcript::new();
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(expr);
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(&result);
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(&min_row_num);
         transcript.challenge_as_le();
 

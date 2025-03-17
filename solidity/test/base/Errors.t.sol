@@ -77,6 +77,13 @@ contract ErrorsTest is Test {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorAggregateEvaluationMismatch() public {
+        assert(Errors.AggregateEvaluationMismatch.selector == bytes4(ERR_AGGREGATE_EVALUATION_MISMATCH));
+        vm.expectRevert(Errors.AggregateEvaluationMismatch.selector);
+        Errors.__err(ERR_AGGREGATE_EVALUATION_MISMATCH);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorIncorrectCaseConst() public {
         assert(Errors.IncorrectCaseConst.selector == bytes4(ERR_INCORRECT_CASE_CONST));
         vm.expectRevert(Errors.IncorrectCaseConst.selector);

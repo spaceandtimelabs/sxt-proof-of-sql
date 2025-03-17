@@ -5,8 +5,8 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
 import {Errors} from "../../src/base/Errors.sol";
+import {VerificationBuilder} from "../../src/builder/VerificationBuilder.pre.sol";
 import {ColumnExpr} from "../../src/proof_exprs/ColumnExpr.pre.sol";
-import {VerificationBuilder} from "../../src/proof/VerificationBuilder.pre.sol";
 
 contract ColumnExprTest is Test {
     function testColumnExpr() public pure {
