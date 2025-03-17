@@ -98,6 +98,10 @@ library FilterExec {
             function builder_get_table_chi_evaluation(builder_ptr, table_num) -> value {
                 revert(0, 0)
             }
+            // IMPORT-YUL ../proof_exprs/EqualsExpr.pre.sol
+            function equals_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
+                revert(0, 0)
+            }
 
             function compute_folds(plan_ptr, builder_ptr, input_chi_eval) ->
                 plan_ptr_out,
