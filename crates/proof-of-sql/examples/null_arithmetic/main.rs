@@ -12,9 +12,7 @@ use proof_of_sql::{
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
-    sql::{
-        parse::QueryExpr, proof::VerifiableQueryResult,
-    },
+    sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
 use rand::{rngs::StdRng, SeedableRng};
 use std::{fs::File, time::Instant};

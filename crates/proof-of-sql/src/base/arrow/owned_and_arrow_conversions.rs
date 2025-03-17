@@ -285,7 +285,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                 let array = value.as_any().downcast_ref::<UInt8Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
                 for i in 0..len {
-                    values.push(if array.is_null(i) { 123 } else { array.value(i) });
+                    values.push(if array.is_null(i) {
+                        123
+                    } else {
+                        array.value(i)
+                    });
                 }
                 OwnedColumn::Uint8(values)
             }
@@ -293,7 +297,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                 let array = value.as_any().downcast_ref::<Int8Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
                 for i in 0..len {
-                    values.push(if array.is_null(i) { -99 } else { array.value(i) });
+                    values.push(if array.is_null(i) {
+                        -99
+                    } else {
+                        array.value(i)
+                    });
                 }
                 OwnedColumn::TinyInt(values)
             }
@@ -301,7 +309,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                 let array = value.as_any().downcast_ref::<Int16Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
                 for i in 0..len {
-                    values.push(if array.is_null(i) { -9999 } else { array.value(i) });
+                    values.push(if array.is_null(i) {
+                        -9999
+                    } else {
+                        array.value(i)
+                    });
                 }
                 OwnedColumn::SmallInt(values)
             }
@@ -309,7 +321,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                 let array = value.as_any().downcast_ref::<Int32Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
                 for i in 0..len {
-                    values.push(if array.is_null(i) { -999_999_999 } else { array.value(i) });
+                    values.push(if array.is_null(i) {
+                        -999_999_999
+                    } else {
+                        array.value(i)
+                    });
                 }
                 OwnedColumn::Int(values)
             }
@@ -317,7 +333,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                 let array = value.as_any().downcast_ref::<Int64Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
                 for i in 0..len {
-                    values.push(if array.is_null(i) { -999_999_999_999 } else { array.value(i) });
+                    values.push(if array.is_null(i) {
+                        -999_999_999_999
+                    } else {
+                        array.value(i)
+                    });
                 }
                 OwnedColumn::BigInt(values)
             }
@@ -325,7 +345,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                 let array = value.as_any().downcast_ref::<Decimal128Array>().unwrap();
                 let mut values = Vec::with_capacity(len);
                 for i in 0..len {
-                    values.push(if array.is_null(i) { -999_999_999_999_999_999 } else { array.value(i) });
+                    values.push(if array.is_null(i) {
+                        -999_999_999_999_999_999
+                    } else {
+                        array.value(i)
+                    });
                 }
                 OwnedColumn::Int128(values)
             }
@@ -384,7 +408,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                         );
                     let mut timestamps = Vec::with_capacity(len);
                     for i in 0..len {
-                        timestamps.push(if array.is_null(i) { -888_888_888_888 } else { array.value(i) });
+                        timestamps.push(if array.is_null(i) {
+                            -888_888_888_888
+                        } else {
+                            array.value(i)
+                        });
                     }
                     OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Second,
@@ -401,7 +429,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                         );
                     let mut timestamps = Vec::with_capacity(len);
                     for i in 0..len {
-                        timestamps.push(if array.is_null(i) { -888_888_888_888 } else { array.value(i) });
+                        timestamps.push(if array.is_null(i) {
+                            -888_888_888_888
+                        } else {
+                            array.value(i)
+                        });
                     }
                     OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Millisecond,
@@ -418,7 +450,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                         );
                     let mut timestamps = Vec::with_capacity(len);
                     for i in 0..len {
-                        timestamps.push(if array.is_null(i) { -888_888_888_888 } else { array.value(i) });
+                        timestamps.push(if array.is_null(i) {
+                            -888_888_888_888
+                        } else {
+                            array.value(i)
+                        });
                     }
                     OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Microsecond,
@@ -435,7 +471,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedNullableColumn<S> {
                         );
                     let mut timestamps = Vec::with_capacity(len);
                     for i in 0..len {
-                        timestamps.push(if array.is_null(i) { -888_888_888_888 } else { array.value(i) });
+                        timestamps.push(if array.is_null(i) {
+                            -888_888_888_888
+                        } else {
+                            array.value(i)
+                        });
                     }
                     OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Nanosecond,
@@ -480,7 +520,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
             // Create a presence vector specific to this column
             let has_nulls = array_ref.null_count() > 0;
             let mut presence = vec![true; num_rows];
-            
+
             if has_nulls {
                 // Mark NULL values in the presence vector for this column
                 for i in 0..num_rows {
@@ -496,7 +536,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                     let array = array_ref.as_any().downcast_ref::<BooleanArray>().unwrap();
                     let mut values = Vec::with_capacity(num_rows);
                     for i in 0..num_rows {
-                        values.push(if array.is_null(i) { false } else { array.value(i) });
+                        values.push(if array.is_null(i) {
+                            false
+                        } else {
+                            array.value(i)
+                        });
                     }
                     OwnedColumn::Boolean(values)
                 }
@@ -504,7 +548,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                     let array = array_ref.as_any().downcast_ref::<UInt8Array>().unwrap();
                     let mut values = Vec::with_capacity(num_rows);
                     for i in 0..num_rows {
-                        values.push(if array.is_null(i) { 123 } else { array.value(i) });
+                        values.push(if array.is_null(i) {
+                            123
+                        } else {
+                            array.value(i)
+                        });
                     }
                     OwnedColumn::Uint8(values)
                 }
@@ -512,7 +560,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                     let array = array_ref.as_any().downcast_ref::<Int8Array>().unwrap();
                     let mut values = Vec::with_capacity(num_rows);
                     for i in 0..num_rows {
-                        values.push(if array.is_null(i) { -99 } else { array.value(i) });
+                        values.push(if array.is_null(i) {
+                            -99
+                        } else {
+                            array.value(i)
+                        });
                     }
                     OwnedColumn::TinyInt(values)
                 }
@@ -520,7 +572,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                     let array = array_ref.as_any().downcast_ref::<Int16Array>().unwrap();
                     let mut values = Vec::with_capacity(num_rows);
                     for i in 0..num_rows {
-                        values.push(if array.is_null(i) { -9999 } else { array.value(i) });
+                        values.push(if array.is_null(i) {
+                            -9999
+                        } else {
+                            array.value(i)
+                        });
                     }
                     OwnedColumn::SmallInt(values)
                 }
@@ -528,7 +584,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                     let array = array_ref.as_any().downcast_ref::<Int32Array>().unwrap();
                     let mut values = Vec::with_capacity(num_rows);
                     for i in 0..num_rows {
-                        values.push(if array.is_null(i) { -999_999_999 } else { array.value(i) });
+                        values.push(if array.is_null(i) {
+                            -999_999_999
+                        } else {
+                            array.value(i)
+                        });
                     }
                     OwnedColumn::Int(values)
                 }
@@ -536,7 +596,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                     let array = array_ref.as_any().downcast_ref::<Int64Array>().unwrap();
                     let mut values = Vec::with_capacity(num_rows);
                     for i in 0..num_rows {
-                        values.push(if array.is_null(i) { -999_999_999_999 } else { array.value(i) });
+                        values.push(if array.is_null(i) {
+                            -999_999_999_999
+                        } else {
+                            array.value(i)
+                        });
                     }
                     OwnedColumn::BigInt(values)
                 }
@@ -547,7 +611,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                         .unwrap();
                     let mut values = Vec::with_capacity(num_rows);
                     for i in 0..num_rows {
-                        values.push(if array.is_null(i) { -999_999_999_999_999_999 } else { array.value(i) });
+                        values.push(if array.is_null(i) {
+                            -999_999_999_999_999_999
+                        } else {
+                            array.value(i)
+                        });
                     }
                     OwnedColumn::Int128(values)
                 }
@@ -602,7 +670,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                             .unwrap();
                         let mut values = Vec::with_capacity(num_rows);
                         for i in 0..num_rows {
-                            values.push(if array.is_null(i) { -888_888_888_888 } else { array.value(i) });
+                            values.push(if array.is_null(i) {
+                                -888_888_888_888
+                            } else {
+                                array.value(i)
+                            });
                         }
                         OwnedColumn::TimestampTZ(
                             PoSQLTimeUnit::Second,
@@ -617,7 +689,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                             .unwrap();
                         let mut values = Vec::with_capacity(num_rows);
                         for i in 0..num_rows {
-                            values.push(if array.is_null(i) { -888_888_888_888 } else { array.value(i) });
+                            values.push(if array.is_null(i) {
+                                -888_888_888_888
+                            } else {
+                                array.value(i)
+                            });
                         }
                         OwnedColumn::TimestampTZ(
                             PoSQLTimeUnit::Millisecond,
@@ -632,7 +708,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                             .unwrap();
                         let mut values = Vec::with_capacity(num_rows);
                         for i in 0..num_rows {
-                            values.push(if array.is_null(i) { -888_888_888_888 } else { array.value(i) });
+                            values.push(if array.is_null(i) {
+                                -888_888_888_888
+                            } else {
+                                array.value(i)
+                            });
                         }
                         OwnedColumn::TimestampTZ(
                             PoSQLTimeUnit::Microsecond,
@@ -647,7 +727,11 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                             .unwrap();
                         let mut values = Vec::with_capacity(num_rows);
                         for i in 0..num_rows {
-                            values.push(if array.is_null(i) { -888_888_888_888 } else { array.value(i) });
+                            values.push(if array.is_null(i) {
+                                -888_888_888_888
+                            } else {
+                                array.value(i)
+                            });
                         }
                         OwnedColumn::TimestampTZ(
                             PoSQLTimeUnit::Nanosecond,
@@ -665,7 +749,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
 
             // Store the column with its specific presence vector
             columns.insert(identifier.clone(), column);
-            
+
             // Only add presence information if there are nulls in this column
             if has_nulls {
                 presence_map.insert(identifier, presence);
