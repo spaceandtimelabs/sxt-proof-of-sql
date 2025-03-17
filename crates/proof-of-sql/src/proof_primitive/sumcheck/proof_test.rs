@@ -236,7 +236,6 @@ fn we_can_verify_many_random_test_cases() {
     }
 }
 
-#[cfg(feature = "hyperkzg")]
 #[test]
 fn we_can_generate_and_verify_a_simple_sumcheck_proof() {
     use crate::{base::proof::Keccak256Transcript, proof_primitive::hyperkzg::BNScalar};
