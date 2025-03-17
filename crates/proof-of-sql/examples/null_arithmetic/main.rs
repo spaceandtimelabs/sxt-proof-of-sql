@@ -13,7 +13,7 @@ use proof_of_sql::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
     },
     sql::{
-        parse::QueryExpr, postprocessing::apply_postprocessing_steps, proof::VerifiableQueryResult,
+        parse::QueryExpr, proof::VerifiableQueryResult,
     },
 };
 use rand::{rngs::StdRng, SeedableRng};
@@ -117,7 +117,7 @@ fn main() {
 
     // Query 4: Test A + B = 10 (should return empty result)
     prove_and_verify_query(
-        "SELECT * FROM tab WHERE A + B = 10",
+        "SELECT * FROM tab WHERE A + B = 0",
         &accessor,
         &prover_setup,
         &verifier_setup,
