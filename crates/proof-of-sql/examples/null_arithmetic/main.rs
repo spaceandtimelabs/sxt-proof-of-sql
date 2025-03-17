@@ -56,7 +56,7 @@ fn prove_and_verify_query(
     let result = verifiable_result
         .verify(query_plan.proof_expr(), accessor, &verifier_setup)
         .unwrap();
-    let result = apply_postprocessing_steps(result.table, query_plan.postprocessing());
+    let result = result.table;
     println!("Verified in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
     // Display the result
