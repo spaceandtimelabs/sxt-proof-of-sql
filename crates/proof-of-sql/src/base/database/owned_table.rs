@@ -85,7 +85,8 @@ fn is_null_u8(value: u8) -> bool {
     value == NULL_U8
 }
 
-/// Custom Debug implementation for OwnedTable that shows NULL values as "NaN"
+/// Custom Debug implementation for `OwnedTable` that shows NULL values as "`NaN`"
+#[allow(clippy::too_many_lines)]
 impl<S: Scalar> fmt::Debug for OwnedTable<S> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("OwnedTable { table: {")?;
@@ -97,7 +98,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
             }
             first_column = false;
             
-            write!(f, "{:?}: ", column_name)?;
+            write!(f, "{column_name:?}: ")?;
             
             // Get presence vector if it exists
             let has_presence = self.presence.contains_key(column_name);
@@ -113,7 +114,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
                             f.write_str("NaN")?;
                         } else {
-                            write!(f, "{}", value)?;
+                            write!(f, "{value}")?;
                         }
                     }
                     f.write_str("])")?;
@@ -127,7 +128,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_u8(value) {
                             f.write_str("NaN")?;
                         } else {
-                            write!(f, "{}", value)?;
+                            write!(f, "{value}")?;
                         }
                     }
                     f.write_str("])")?;
@@ -141,7 +142,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_i8(value) {
                             f.write_str("NaN")?;
                         } else {
-                            write!(f, "{}", value)?;
+                            write!(f, "{value}")?;
                         }
                     }
                     f.write_str("])")?;
@@ -155,7 +156,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_i16(value) {
                             f.write_str("NaN")?;
                         } else {
-                            write!(f, "{}", value)?;
+                            write!(f, "{value}")?;
                         }
                     }
                     f.write_str("])")?;
@@ -169,7 +170,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_i32(value) {
                             f.write_str("NaN")?;
                         } else {
-                            write!(f, "{}", value)?;
+                            write!(f, "{value}")?;
                         }
                     }
                     f.write_str("])")?;
@@ -183,7 +184,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_i64(value) {
                             f.write_str("NaN")?;
                         } else {
-                            write!(f, "{}", value)?;
+                            write!(f, "{value}")?;
                         }
                     }
                     f.write_str("])")?;
@@ -197,7 +198,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
                             f.write_str("\"NaN\"")?;
                         } else {
-                            write!(f, "{:?}", value)?;
+                            write!(f, "{value:?}")?;
                         }
                     }
                     f.write_str("])")?;
@@ -211,7 +212,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
                             f.write_str("NaN")?;
                         } else {
-                            write!(f, "{:?}", value)?;
+                            write!(f, "{value:?}")?;
                         }
                     }
                     f.write_str("])")?;
@@ -225,13 +226,13 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_i128(value) {
                             f.write_str("NaN")?;
                         } else {
-                            write!(f, "{}", value)?;
+                            write!(f, "{value}")?;
                         }
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::Decimal75(precision, scale, values) => {
-                    write!(f, "Decimal75({:?}, {}, [", precision, scale)?;
+                    write!(f, "Decimal75({precision:?}, {scale}, [")?;
                     for (i, value) in values.iter().enumerate() {
                         if i > 0 {
                             f.write_str(", ")?;
@@ -239,7 +240,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
                             f.write_str("NaN")?;
                         } else {
-                            write!(f, "{}", value)?;
+                            write!(f, "{value}")?;
                         }
                     }
                     f.write_str("])")?;
@@ -253,13 +254,13 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
                             f.write_str("NaN")?;
                         } else {
-                            write!(f, "{}", value)?;
+                            write!(f, "{value}")?;
                         }
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::TimestampTZ(time_unit, time_zone, values) => {
-                    write!(f, "TimestampTZ({:?}, {:?}, [", time_unit, time_zone)?;
+                    write!(f, "TimestampTZ({time_unit:?}, {time_zone:?}, [")?;
                     for (i, &value) in values.iter().enumerate() {
                         if i > 0 {
                             f.write_str(", ")?;
@@ -267,7 +268,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i]) || is_null_timestamp(value) {
                             f.write_str("NaN")?;
                         } else {
-                            write!(f, "{}", value)?;
+                            write!(f, "{value}")?;
                         }
                     }
                     f.write_str("])")?;
@@ -275,7 +276,7 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
             }
         }
         
-        write!(f, "}}, presence: {:?} }}", self.presence)
+        write!(f, "}}, presence: {0:?} }}", self.presence)
     }
 }
 
