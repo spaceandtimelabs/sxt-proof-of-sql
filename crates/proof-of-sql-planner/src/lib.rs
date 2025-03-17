@@ -16,7 +16,8 @@ pub use expr::expr_to_proof_expr;
 mod error;
 pub use error::{PlannerError, PlannerResult};
 mod plan;
-mod postprocessing;
+/// Proof of SQL Postprocessing. Used when the last step of the logical plan is an unprovable projection.
+pub mod postprocessing;
 pub use plan::logical_plan_to_proof_plan;
 mod util;
 pub use util::column_fields_to_schema;
