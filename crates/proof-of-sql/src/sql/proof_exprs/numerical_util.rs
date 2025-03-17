@@ -143,7 +143,6 @@ pub(crate) fn columns_to_scalar_slice<'a, S: Scalar>(
     alloc.alloc_slice_fill_with(column.len(), |i| column.scalar_at(i).unwrap())
 }
 
-
 #[expect(dead_code)]
 /// Multiply two [`ColumnarValues`] together.
 /// # Panics

@@ -426,9 +426,7 @@ impl ColumnType {
     /// Returns `None` if the type is not a signed integer.
     /// `sqrt_negative_min(NumericalType) = floor(sqrt(-NumericalType::MIN))`
     #[must_use]
-    #[cfg_attr(not(test), expect(dead_code))]
-    #[expect(clippy::trivially_copy_pass_by_ref)]
-    fn sqrt_negative_min(&self) -> Option<u64> {
+    pub(crate) fn sqrt_negative_min(self) -> Option<u64> {
         match self {
             ColumnType::TinyInt => Some(11),
             ColumnType::SmallInt => Some(181),
