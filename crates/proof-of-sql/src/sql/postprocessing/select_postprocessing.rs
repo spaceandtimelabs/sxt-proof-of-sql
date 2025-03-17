@@ -40,53 +40,7 @@ impl<S: Scalar> PostprocessingStep<S> for SelectPostprocessing {
             let alias: Ident = aliased_expr.alias.into();
 
             // Get the values and presence information
-            let mut values = nullable_result.values;
-
-            // Check if this is a simple column reference or an expression
-            let is_simple_column_ref = matches!(
-                &*aliased_expr.expr,
-                proof_of_sql_parser::intermediate_ast::Expression::Column(_)
-            );
-
-            // For arithmetic expressions, zero out NULL values
-            // For direct column references, preserve original values
-            if !is_simple_column_ref && nullable_result.presence.is_some() {
-                if let Some(presence_vec) = nullable_result.presence.clone() {
-                    // Zero out values where NULL is present (presence = false) for numeric columns in expressions
-                    match &mut values {
-                        OwnedColumn::BigInt(vals) => {
-                            for (i, present) in presence_vec.iter().enumerate() {
-                                if !present {
-                                    vals[i] = 0;
-                                }
-                            }
-                        }
-                        OwnedColumn::Int(vals) => {
-                            for (i, present) in presence_vec.iter().enumerate() {
-                                if !present {
-                                    vals[i] = 0;
-                                }
-                            }
-                        }
-                        OwnedColumn::Int128(vals) => {
-                            for (i, present) in presence_vec.iter().enumerate() {
-                                if !present {
-                                    vals[i] = 0;
-                                }
-                            }
-                        }
-                        OwnedColumn::Decimal75(_, _, vals) | OwnedColumn::Scalar(vals) => {
-                            for (i, present) in presence_vec.iter().enumerate() {
-                                if !present {
-                                    vals[i] = S::ZERO;
-                                }
-                            }
-                        }
-                        // Don't modify non-numeric columns
-                        _ => {}
-                    }
-                }
-            }
+            let values = nullable_result.values;
 
             // Store the column values
             cols.insert(alias.clone(), values);
