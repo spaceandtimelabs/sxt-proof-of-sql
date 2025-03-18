@@ -8,6 +8,8 @@ uint32 constant ERR_INVALID_EC_ADD_INPUTS = 0x765bcba0;
 uint32 constant ERR_INVALID_EC_MUL_INPUTS = 0xe32c7472;
 /// @dev Error code for when ECPAIRING inputs are invalid.
 uint32 constant ERR_INVALID_EC_PAIRING_INPUTS = 0x4385b511;
+/// @dev Error code for when the size of a sumcheck proof is incorrect.
+uint32 constant ERR_INVALID_SUMCHECK_PROOF_SIZE = 0x3f889a17;
 /// @dev Error code for when the evaluation of a round in a sumcheck proof does not match the expected value.
 uint32 constant ERR_ROUND_EVALUATION_MISMATCH = 0x741f5c3f;
 /// @dev Error code for when a dequeue attempt was made on an empty queue.
@@ -36,6 +38,8 @@ library Errors {
     error InvalidECMulInputs();
     /// @notice Error thrown when the inputs to the ECPAIRING precompile are invalid.
     error InvalidECPairingInputs();
+    /// @notice Error thrown when the size of a sumcheck proof is incorrect.
+    error InvalidSumcheckProofSize();
     /// @notice Error thrown when the evaluation of a round in a sumcheck proof does not match the expected value.
     error RoundEvaluationMismatch();
     /// @notice Error thrown when a dequeue attempt was made on an empty queue.
