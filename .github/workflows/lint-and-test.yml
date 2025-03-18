@@ -69,6 +69,11 @@ jobs:
           rustup target add thumbv7em-none-eabi
           cargo check -p proof-of-sql-parser --target thumbv7em-none-eabi --no-default-features
           cargo check -p proof-of-sql --target thumbv7em-none-eabi --no-default-features
+      - name: Check that we can compile `proof-of-sql-planner` to WebAssembly
+        working-directory: ./crates/proof-of-sql-planner
+        run: |
+          cargo install wasm-pack
+          wasm-pack build --target deno
 
   test:
     name: Test Suite
