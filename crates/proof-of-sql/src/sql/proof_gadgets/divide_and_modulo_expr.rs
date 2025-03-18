@@ -7,7 +7,9 @@ use crate::{
     },
     sql::{
         proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
-        proof_exprs::{divide_columns, modulo_columns, DynProofExpr, ProofExpr},
+        proof_exprs::{
+            add_subtract_columns, divide_columns, modulo_columns, DynProofExpr, ProofExpr,
+        },
     },
     utils::log,
 };
@@ -98,6 +100,40 @@ impl DivideAndModuloExpr {
             ],
         );
 
+        // (r - b) * (r + b) * t' - b = 0, where t' = b / ((r - b) * (r + b)) when |r| is not |b|
+        // This confirms |r| = |b| only if b = 0.
+        let remainder_minus_rhs = add_subtract_columns(remainder, rhs_column, 0, 0, alloc, true);
+        let remainder_plus_rhs = add_subtract_columns(remainder, rhs_column, 0, 0, alloc, false);
+        let rhs_as_scalars = rhs_column.to_scalar_with_scaling(0);
+        let rhs_div_remainder_rhs_difference_of_squares =
+            alloc.alloc_slice_fill_with(rhs_column.len(), |_i| S::ZERO);
+        for (res, ((diff, add), b)) in rhs_div_remainder_rhs_difference_of_squares.iter_mut().zip(
+            remainder_minus_rhs
+                .iter()
+                .copied()
+                .zip(remainder_plus_rhs.iter().copied())
+                .zip(rhs_as_scalars.clone()),
+        ) {
+            *res = (diff * add).inv().unwrap_or(S::ONE) * b;
+        }
+        let t = Column::Scalar(rhs_div_remainder_rhs_difference_of_squares);
+        builder.produce_intermediate_mle(t);
+
+        builder.produce_sumcheck_subpolynomial(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    S::one(),
+                    vec![
+                        Box::new(remainder_minus_rhs),
+                        Box::new(remainder_plus_rhs),
+                        Box::new(t),
+                    ],
+                ),
+                (-S::one(), vec![Box::new(rhs_column)]),
+            ],
+        );
+
         (quotient_wrapped, remainder)
     }
 
@@ -138,6 +174,14 @@ impl DivideAndModuloExpr {
             SumcheckSubpolynomialType::Identity,
             quotient * rhs - lhs + remainder,
             2,
+        )?;
+
+        // (r - b) * (r + b) * t' - b = 0
+        let t = builder.try_consume_final_round_mle_evaluation()?;
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
+            SumcheckSubpolynomialType::Identity,
+            (remainder - rhs) * (remainder + rhs) * t - rhs,
+            3,
         )?;
 
         Ok((quotient_wrapped, remainder))
@@ -244,16 +288,23 @@ mod tests {
     enum TestableConstraints {
         /// q * b + r - a = 0
         DivisionAlgorithm,
+        /// (r - b) * (r + b) * t' - b = 0
+        DenominatorZeroIfRemainderAndDenominatorMagnitudeEqual,
     }
 
     fn get_failing_constraints(row: &[bool]) -> Vec<TestableConstraints> {
-        assert_eq!(row.len(), 1);
+        assert_eq!(row.len(), 2);
         row.iter()
-            .filter_map(|include| {
+            .enumerate()
+            .filter_map(|(i, include)| {
                 if *include {
                     None
                 } else {
-                    Some(TestableConstraints::DivisionAlgorithm)
+                    Some(if i == 0 {
+                        TestableConstraints::DivisionAlgorithm
+                    } else {
+                        TestableConstraints::DenominatorZeroIfRemainderAndDenominatorMagnitudeEqual
+                    })
                 }
             })
             .collect()
@@ -379,6 +430,23 @@ mod tests {
             &[8i128, -12, 8, -8],
             &[3i128, 7, -3, -3],
             &[TestableConstraints::DivisionAlgorithm],
+        );
+    }
+
+    /// When the remainder is 0, shifting the remainder to have the same magnitude as the denominator can trick the
+    /// division algorithm. However, this should result in the failure of
+    /// `TestableConstraints::DenominatorZeroIfRemainderAndDenominatorMagnitudeEqual`
+    #[test]
+    fn we_can_reject_if_nonzero_remainder_magnitude_equals_denominator_magnitude() {
+        check_constraints(
+            Some((
+                [1, -1].map(TestScalar::from).to_vec(),
+                [1, -1].map(TestScalar::from).to_vec(),
+            )),
+            Some(vec![-4i128, -6]),
+            &[-8i128, -12],
+            &[-4i128, 6],
+            &[TestableConstraints::DenominatorZeroIfRemainderAndDenominatorMagnitudeEqual],
         );
     }
 
