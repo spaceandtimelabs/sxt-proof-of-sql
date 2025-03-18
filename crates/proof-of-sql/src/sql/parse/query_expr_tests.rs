@@ -7,7 +7,7 @@ use crate::{
     sql::{
         parse::QueryExpr,
         postprocessing::{test_utility::*, PostprocessingError},
-        proof_exprs::test_utility::*,
+        proof_exprs::{test_utility::*, DynProofExpr, IsTrueExpr},
         proof_plans::{test_utility::*, DynProofPlan},
         AnalyzeError,
     },
