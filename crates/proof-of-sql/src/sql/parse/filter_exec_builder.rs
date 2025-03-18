@@ -79,18 +79,18 @@ impl FilterExecBuilder {
     #[expect(clippy::missing_panics_doc)]
     pub fn build(self) -> FilterExec {
         // Wrap the WHERE clause in an IsTrueExpr to correctly handle NULL values
-        // In SQL's three-valued logic, a row is only included if the WHERE condition 
+        // In SQL's three-valued logic, a row is only included if the WHERE condition
         // evaluates to TRUE (not NULL and not FALSE)
-        let where_clause = self.where_expr.unwrap_or_else(|| 
-            DynProofExpr::new_literal(LiteralValue::Boolean(true))
-        );
+        let where_clause = self
+            .where_expr
+            .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
 
         // Ensure the WHERE clause is wrapped in IsTrueExpr for proper NULL handling
         let where_clause = if where_clause.data_type() == ColumnType::Boolean {
             // Only wrap if it's a boolean expression and not already an IS TRUE expression
             match &where_clause {
                 DynProofExpr::IsTrue(_) => where_clause, // Already wrapped
-                _ => DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(where_clause)))
+                _ => DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(where_clause))),
             }
         } else {
             // Non-boolean expressions should have been caught earlier
