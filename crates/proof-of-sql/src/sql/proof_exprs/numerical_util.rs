@@ -391,10 +391,10 @@ pub(crate) fn divide_columns<'a, S: Scalar>(
     }
 }
 
-#[cfg_attr(not(test), expect(dead_code))]
 /// Take the modulo of one column against another.
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length.
+#[cfg_attr(not(test), expect(dead_code))]
 pub(crate) fn modulo_columns<'a, S: Scalar>(
     lhs: &Column<'a, S>,
     rhs: &Column<'a, S>,

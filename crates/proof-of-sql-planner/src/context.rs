@@ -152,7 +152,7 @@ mod tests {
     use indexmap::indexmap;
     use proof_of_sql::{
         base::database::{table_utility::*, ColumnType},
-        proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
+        proof_primitive::dory::DoryScalar,
     };
 
     // PoSqlTableSource
@@ -189,7 +189,7 @@ mod tests {
     #[test]
     fn we_can_create_a_posql_context_provider() {
         // Empty
-        let context_provider = PoSqlContextProvider::<Curve25519Scalar>::default();
+        let context_provider = PoSqlContextProvider::<DoryScalar>::default();
         assert_eq!(context_provider.tables, IndexMap::new());
         assert_eq!(
             context_provider.try_get_df_schemas().unwrap(),
@@ -225,7 +225,7 @@ mod tests {
                     ]
                 )
         };
-        let context_provider = PoSqlContextProvider::<Curve25519Scalar>::new(tables.clone());
+        let context_provider = PoSqlContextProvider::<DoryScalar>::new(tables.clone());
         let schema_a = Schema::new(vec![
             Field::new("a", DataType::Int16, false),
             Field::new("b", DataType::Utf8, false),
@@ -263,7 +263,7 @@ mod tests {
 
     #[test]
     fn we_cannot_create_a_posql_context_provider_if_catalog_provided() {
-        let context_provider = PoSqlContextProvider::<Curve25519Scalar>::new(IndexMap::new());
+        let context_provider = PoSqlContextProvider::<DoryScalar>::new(IndexMap::new());
         assert!(matches!(
             context_provider.get_table_source(TableReference::from("catalog.namespace.table")),
             Err(DataFusionError::External(_))
