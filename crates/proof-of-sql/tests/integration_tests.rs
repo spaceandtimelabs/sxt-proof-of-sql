@@ -1466,8 +1466,8 @@ fn we_can_prove_nullable_table_with_arithmetic_operations_with_dory() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        nullable_column("a", &OwnedColumn::BigInt(vec![1]), Some(vec![false])),
-        nullable_column("b", &OwnedColumn::BigInt(vec![1]), Some(vec![false])),
+        nullable_column("a", &OwnedColumn::BigInt(vec![]), Some(vec![])),
+        nullable_column("b", &OwnedColumn::BigInt(vec![]), Some(vec![])),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -1525,9 +1525,11 @@ fn verification_should_fail_with_tampered_nullable_arithmetic_query_result() {
         .table;
 
     // The honest result should contain only the rows where 'a + b = 2'
+    // When either operand is NULL, the result of a + b is NULL, which fails the equality check
+    // Since both values are marked as NULL (Some(vec![false])), this row should not be in the result
     let expected_result = owned_table([
-        nullable_column("a", &OwnedColumn::BigInt(vec![1]), Some(vec![false])),
-        nullable_column("b", &OwnedColumn::BigInt(vec![1]), Some(vec![false])),
+        nullable_column("a", &OwnedColumn::BigInt(vec![]), Some(vec![])),
+        nullable_column("b", &OwnedColumn::BigInt(vec![]), Some(vec![])),
     ]);
     assert_eq!(honest_result, expected_result);
 
