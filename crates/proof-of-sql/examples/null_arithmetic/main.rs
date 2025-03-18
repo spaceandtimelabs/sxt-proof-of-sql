@@ -136,6 +136,14 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+    // Query 7: Test OR condition with A = 1 OR B = 1
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A = 1 OR B = 1",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
 
 #[cfg(not(feature = "arrow"))]

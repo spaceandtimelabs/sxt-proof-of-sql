@@ -381,9 +381,15 @@ impl<S: Scalar> OwnedNullableColumn<S> {
                         // Otherwise if either is NULL, result is NULL
                         if (!left_pres[i] && right_pres[i] && right_vals[i])
                             || (left_pres[i] && !right_pres[i] && left_vals[i])
+                            || (left_pres[i] && left_vals[i] && right_pres[i])
+                            || (right_pres[i] && right_vals[i] && left_pres[i])
                         {
+                            // If either side is TRUE, result is TRUE and not NULL
                             result_pres.push(true);
                         } else {
+                            // If neither side is TRUE, then:
+                            // - If both sides are present (not NULL), result is present
+                            // - If either side is NULL, result is NULL
                             result_pres.push(left_pres[i] && right_pres[i]);
                         }
                     }

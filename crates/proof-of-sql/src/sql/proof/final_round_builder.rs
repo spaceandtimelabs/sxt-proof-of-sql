@@ -191,19 +191,37 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
 
     /// Records an IS TRUE check for a nullable column
     ///
+    /// # Arguments
+    /// * `column` - The nullable column to check
+    /// * `alloc` - The allocator to use for temporary storage
+    /// * `is_or_expr` - Whether this is from an OR expression, which requires special NULL handling
+    ///
     /// # Panics
     /// Panics if the provided column is not a boolean column (i.e., if `column.values` is not `Column::Boolean`)
-    pub fn record_is_true_check(&mut self, column: &NullableColumn<'a, S>, alloc: &'a Bump) {
+    pub fn record_is_true_check(
+        &mut self,
+        column: &NullableColumn<'a, S>,
+        alloc: &'a Bump,
+        is_or_expr: bool,
+    ) {
         // Verify that we're working with a boolean column
         if let Column::Boolean(values) = column.values {
             // For IS TRUE, we need to check if the value is both not null and true
             if let Some(presence) = &column.presence {
                 // Create a new array that is true only when:
-                // 1. The value is not null (presence[i] = true)
-                // 2. The value is true (values[i] = true)
+                // 1. The value is not null (presence[i] = true) AND the value is true (values[i] = true)
+                // OR (for OR expressions only)
+                // 2. Special handling for OR: The value is true (values[i] = true)
+                // This implements TRUE OR NULL = TRUE in SQL's three-valued logic
                 let mut is_true = Vec::with_capacity(values.len());
                 for i in 0..values.len() {
-                    is_true.push(presence[i] && values[i]);
+                    if is_or_expr && values[i] {
+                        // For OR expressions, if the value is TRUE, keep it TRUE regardless of NULL status
+                        is_true.push(true);
+                    } else {
+                        // For all other cases, apply standard IS TRUE check
+                        is_true.push(presence[i] && values[i]);
+                    }
                 }
                 // Use the allocator to ensure the vector lives for the required 'a lifetime
                 let is_true_slice = alloc.alloc_slice_copy(&is_true);
@@ -212,7 +230,11 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
 
                 // Create the sumcheck subpolynomial that verifies the IS TRUE constraint
                 let mismatch = alloc.alloc_slice_fill_with(values.len(), |i| {
-                    let expected = presence[i] && values[i];
+                    let expected = if is_or_expr && values[i] {
+                        true
+                    } else {
+                        presence[i] && values[i]
+                    };
                     is_true[i] != expected
                 });
                 self.produce_sumcheck_subpolynomial(

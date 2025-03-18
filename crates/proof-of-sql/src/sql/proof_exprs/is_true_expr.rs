@@ -54,6 +54,11 @@ impl IsTrueExpr {
             malicious: false,
         })
     }
+
+    // Helper function to check if the inner expression is an OR operation
+    fn is_inner_expr_or(&self) -> bool {
+        matches!(*self.expr, DynProofExpr::Or(_))
+    }
 }
 
 impl ProofExpr for IsTrueExpr {
@@ -83,13 +88,21 @@ impl ProofExpr for IsTrueExpr {
         } else {
             match presence {
                 Some(presence) => {
-                    // Create a new slice that is true only when both:
-                    // 1. The value is non-NULL (presence is true)
-                    // 2. The boolean value is true
-                    let is_true = alloc.alloc_slice_copy(inner_values);
-                    for (is_true, &present) in is_true.iter_mut().zip(presence.iter()) {
-                        *is_true = *is_true && present;
-                    }
+                    // Check if we're dealing with an OR expression (special NULL handling)
+                    let is_or_expr = self.is_inner_expr_or();
+
+                    // Create a new slice for the result
+                    let is_true = alloc.alloc_slice_fill_with(inner_values.len(), |i| {
+                        if is_or_expr && inner_values[i] {
+                            // For OR expressions, if the result is TRUE, keep it TRUE
+                            // regardless of NULL status (implementing TRUE OR NULL = TRUE)
+                            true
+                        } else {
+                            // For all other expressions or FALSE results,
+                            // result is TRUE only if the value is TRUE and NOT NULL
+                            inner_values[i] && presence[i]
+                        }
+                    });
                     is_true
                 }
                 None => inner_values, // No NULL values, use inner values directly
@@ -130,7 +143,7 @@ impl ProofExpr for IsTrueExpr {
                 alloc.alloc_slice_fill_copy(table.num_rows(), true),
             ));
         } else {
-            builder.record_is_true_check(&nullable_column, alloc);
+            builder.record_is_true_check(&nullable_column, alloc, self.is_inner_expr_or());
         }
 
         // Create result that matches the IS TRUE semantics
@@ -139,13 +152,21 @@ impl ProofExpr for IsTrueExpr {
         } else {
             match presence {
                 Some(presence) => {
-                    // Create a new slice that is true only when both:
-                    // 1. The value is non-NULL (presence is true)
-                    // 2. The boolean value is true
-                    let is_true = alloc.alloc_slice_copy(inner_values);
-                    for (is_true, &present) in is_true.iter_mut().zip(presence.iter()) {
-                        *is_true = *is_true && present;
-                    }
+                    // Check if we're dealing with an OR expression (special NULL handling)
+                    let is_or_expr = self.is_inner_expr_or();
+
+                    // Create a new slice for the result
+                    let is_true = alloc.alloc_slice_fill_with(inner_values.len(), |i| {
+                        if is_or_expr && inner_values[i] {
+                            // For OR expressions, if the result is TRUE, keep it TRUE
+                            // regardless of NULL status (implementing TRUE OR NULL = TRUE)
+                            true
+                        } else {
+                            // For all other expressions or FALSE results,
+                            // result is TRUE only if the value is TRUE and NOT NULL
+                            inner_values[i] && presence[i]
+                        }
+                    });
                     is_true
                 }
                 None => inner_values, // No NULL values, use inner values directly

@@ -138,7 +138,7 @@ fn test_record_is_true_check_with_nulls() {
     assert_eq!(builder.pcs_proof_mles().len(), 0);
 
     // Record the IS TRUE check
-    builder.record_is_true_check(&nullable_column, &alloc);
+    builder.record_is_true_check(&nullable_column, &alloc, false);
 
     // After the operation, there should be one intermediate MLE (the presence column)
     assert_eq!(builder.pcs_proof_mles().len(), 1);
@@ -165,7 +165,7 @@ fn test_record_is_true_check_without_nulls() {
     assert_eq!(builder.pcs_proof_mles().len(), 0);
 
     // Record the IS TRUE check
-    builder.record_is_true_check(&nullable_column, &alloc);
+    builder.record_is_true_check(&nullable_column, &alloc, false);
 
     // After the operation, there should be one intermediate MLE (the presence column)
     assert_eq!(builder.pcs_proof_mles().len(), 1);
@@ -190,5 +190,5 @@ fn test_record_is_true_check_with_non_boolean_column() {
     let mut builder = FinalRoundBuilder::<TestScalar>::new(0, VecDeque::new());
 
     // This should panic because IS TRUE can only be applied to boolean expressions
-    builder.record_is_true_check(&nullable_column, &alloc);
+    builder.record_is_true_check(&nullable_column, &alloc, false);
 }
