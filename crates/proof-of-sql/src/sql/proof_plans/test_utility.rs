@@ -4,7 +4,9 @@ use super::{
 };
 use crate::{
     base::database::{ColumnField, ColumnType, TableRef},
-    sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, IsTrueExpr, ProofExpr, TableExpr},
+    sql::proof_exprs::{
+        AliasedDynProofExpr, ColumnExpr, DynProofExpr, IsTrueExpr, ProofExpr, TableExpr,
+    },
 };
 use sqlparser::ast::Ident;
 
