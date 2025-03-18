@@ -62,6 +62,7 @@ fn prove_and_verify_query(
     println!("{result:?}");
 }
 
+#[allow(clippy::too_many_lines)]
 #[cfg(feature = "arrow")]
 fn main() {
     let mut rng = StdRng::from_seed(DORY_SEED);
@@ -140,6 +141,110 @@ fn main() {
     // Query 7: Test OR condition with A = 1 OR B = 1
     prove_and_verify_query(
         "SELECT * FROM tab WHERE A = 1 OR B = 1",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 8: Test IS NULL on column A
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A IS NULL",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 9: Test IS NOT NULL on column A
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A IS NOT NULL",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 10: Test IS NULL on column B
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE B IS NULL",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 11: Test IS NOT NULL on column B
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE B IS NOT NULL",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 12: Test combining IS NULL with other conditions
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A IS NULL AND B = 1",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 13: Test combining IS NOT NULL with other conditions
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A IS NOT NULL AND B IS NULL",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 14: Test greater than (>)
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A > 1",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 15: Test less than (<)
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A < 1",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 16: Test greater than or equal to (>=)
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A >= 1",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 17: Test less than or equal to (<=)
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A <= 1",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 18: Combine comparison with NULL check
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A > 0 AND B IS NOT NULL",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 19: Test B greater than A
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE B > A",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 20: Test with expression in comparison
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A + B > 2",
         &accessor,
         &prover_setup,
         &verifier_setup,

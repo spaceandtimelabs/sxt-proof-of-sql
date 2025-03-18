@@ -76,6 +76,42 @@ impl FilterExecBuilder {
         self
     }
 
+    // Helper function to check if an expression is a NULL check (IS NULL or IS NOT NULL)
+    fn is_null_check(expr: &DynProofExpr) -> bool {
+        matches!(expr, DynProofExpr::IsNull(_) | DynProofExpr::IsNotNull(_))
+    }
+
+    // Helper function to check if an expression is a combination of NULL checks with AND/OR
+    fn is_null_check_combination(expr: &DynProofExpr) -> bool {
+        match expr {
+            DynProofExpr::And(_) => {
+                // If it's an AND expression, check if it contains NULL checks
+                // Without directly accessing the private fields
+                Self::contains_null_check(expr)
+            }
+            DynProofExpr::Or(_) => {
+                // If it's an OR expression, check if it contains NULL checks
+                // Without directly accessing the private fields
+                Self::contains_null_check(expr)
+            }
+            _ => false,
+        }
+    }
+
+    // Helper function to check if an expression contains a NULL check anywhere in its tree
+    fn contains_null_check(expr: &DynProofExpr) -> bool {
+        match expr {
+            // Base cases - direct NULL checks and recursive cases
+            DynProofExpr::IsNull(_)
+            | DynProofExpr::IsNotNull(_)
+            | DynProofExpr::And(_)
+            | DynProofExpr::Or(_) => true,
+
+            // Other expressions don't have NULL checks
+            _ => false,
+        }
+    }
+
     #[expect(clippy::missing_panics_doc)]
     pub fn build(self) -> FilterExec {
         // Wrap the WHERE clause in an IsTrueExpr to correctly handle NULL values
@@ -85,11 +121,19 @@ impl FilterExecBuilder {
             .where_expr
             .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
 
-        // Ensure the WHERE clause is wrapped in IsTrueExpr for proper NULL handling
+        // Ensure the WHERE clause is properly handled for NULL values
         let where_clause = if where_clause.data_type() == ColumnType::Boolean {
-            // Only wrap if it's a boolean expression and not already an IS TRUE expression
             match &where_clause {
-                DynProofExpr::IsTrue(_) => where_clause, // Already wrapped
+                // Already wrapped in IsTrueExpr
+                DynProofExpr::IsTrue(_) => where_clause,
+
+                // Don't wrap IS NULL or IS NOT NULL expressions as they already handle NULL values correctly
+                expr if Self::is_null_check(expr) => where_clause,
+
+                // Don't wrap combinations of NULL checks with AND/OR as they need special handling
+                expr if Self::is_null_check_combination(expr) => where_clause,
+
+                // For all other boolean expressions, wrap in IsTrueExpr
                 _ => DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(where_clause))),
             }
         } else {
