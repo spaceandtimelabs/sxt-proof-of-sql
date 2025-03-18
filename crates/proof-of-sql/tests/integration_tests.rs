@@ -1239,12 +1239,12 @@ fn we_can_perform_equality_checks_on_fixed_size_binary() {
         fixed_size_binary(
             "a",
             FixedSizeBinaryWidth::try_from(4).unwrap(),
-            vec![0, 0, 0, 0, 1, 2, 3, 4],
+            vec![0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8],
         ),
         fixed_size_binary(
             "b",
             FixedSizeBinaryWidth::try_from(4).unwrap(),
-            vec![0, 0, 0, 0, 1, 2, 3, 4],
+            vec![0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8],
         ),
     ]);
     assert_eq!(owned_table_result, expected_result);

@@ -12,8 +12,6 @@ where
     T: Send + Sync + Mul<Output = T> + AddAssign + Copy,
     S: Into<T> + Sync + Copy,
 {
-    dbg!(result.len());
-    dbg!(to_mul_add.len());
     assert!(result.len() >= to_mul_add.len(), "The length of result must be greater than or equal to the length of the vector of values to be multiplied and added");
     if_rayon!(
         result.par_iter_mut().with_min_len(super::MIN_RAYON_LEN),

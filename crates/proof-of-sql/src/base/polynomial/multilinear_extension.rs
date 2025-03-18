@@ -1,4 +1,9 @@
-use crate::base::{database::Column, if_rayon, scalar::Scalar, slice_ops};
+use crate::base::{
+    database::Column,
+    if_rayon,
+    scalar::{Scalar, ScalarExt},
+    slice_ops,
+};
 use alloc::vec::Vec;
 use core::{ffi::c_void, fmt::Debug};
 use num_traits::Zero;
@@ -103,12 +108,22 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             | Column::VarChar((_, c))
             | Column::VarBinary((_, c))
             | Column::Decimal75(_, _, c) => c.inner_product(evaluation_vec),
-            Column::Uint8(c) | Column::FixedSizeBinary(_, c) => c.inner_product(evaluation_vec),
+            Column::Uint8(c) => c.inner_product(evaluation_vec),
             Column::TinyInt(c) => c.inner_product(evaluation_vec),
             Column::SmallInt(c) => c.inner_product(evaluation_vec),
             Column::Int(c) => c.inner_product(evaluation_vec),
             Column::BigInt(c) | Column::TimestampTZ(_, _, c) => c.inner_product(evaluation_vec),
             Column::Int128(c) => c.inner_product(evaluation_vec),
+            Column::FixedSizeBinary(bw, bytes) => {
+                let row_width: usize = bw.into();
+                let row_count = bytes.len() / row_width;
+                let fixed_size_scalars: Vec<S> = (0..row_count)
+                    .map(|i| {
+                        S::from_fixed_size_byte_slice(&bytes[i * row_width..(i + 1) * row_width])
+                    })
+                    .collect();
+                fixed_size_scalars.as_slice().inner_product(evaluation_vec)
+            }
         }
     }
 
@@ -117,16 +132,26 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             Column::Boolean(c) => c.mul_add(res, multiplier),
             Column::Scalar(c)
             | Column::VarChar((_, c))
-            | Column::VarBinary((_, c))
-            | Column::Decimal75(_, _, c) => {
+            | Column::Decimal75(_, _, c)
+            | Column::VarBinary((_, c)) => {
                 c.mul_add(res, multiplier);
             }
-            Column::Uint8(c) | Column::FixedSizeBinary(_, c) => c.mul_add(res, multiplier),
+            Column::Uint8(c) => c.mul_add(res, multiplier),
             Column::TinyInt(c) => c.mul_add(res, multiplier),
             Column::SmallInt(c) => c.mul_add(res, multiplier),
             Column::Int(c) => c.mul_add(res, multiplier),
             Column::BigInt(c) | Column::TimestampTZ(_, _, c) => c.mul_add(res, multiplier),
             Column::Int128(c) => c.mul_add(res, multiplier),
+            Column::FixedSizeBinary(bw, bytes) => {
+                let row_width: usize = bw.into();
+                let row_count = bytes.len() / row_width;
+                let fixed_size_scalars: Vec<S> = (0..row_count)
+                    .map(|i| {
+                        S::from_fixed_size_byte_slice(&bytes[i * row_width..(i + 1) * row_width])
+                    })
+                    .collect();
+                fixed_size_scalars.as_slice().mul_add(res, multiplier);
+            }
         }
     }
 
@@ -137,12 +162,22 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             | Column::VarChar((_, c))
             | Column::VarBinary((_, c))
             | Column::Decimal75(_, _, c) => c.to_sumcheck_term(num_vars),
-            Column::Uint8(c) | Column::FixedSizeBinary(_, c) => c.to_sumcheck_term(num_vars),
+            Column::Uint8(c) => c.to_sumcheck_term(num_vars),
             Column::TinyInt(c) => c.to_sumcheck_term(num_vars),
             Column::SmallInt(c) => c.to_sumcheck_term(num_vars),
             Column::Int(c) => c.to_sumcheck_term(num_vars),
             Column::BigInt(c) | Column::TimestampTZ(_, _, c) => c.to_sumcheck_term(num_vars),
             Column::Int128(c) => c.to_sumcheck_term(num_vars),
+            Column::FixedSizeBinary(bw, bytes) => {
+                let row_width: usize = bw.into();
+                let row_count = bytes.len() / row_width;
+                let fixed_size_scalars: Vec<S> = (0..row_count)
+                    .map(|i| {
+                        S::from_fixed_size_byte_slice(&bytes[i * row_width..(i + 1) * row_width])
+                    })
+                    .collect();
+                fixed_size_scalars.as_slice().to_sumcheck_term(num_vars)
+            }
         }
     }
 
@@ -153,12 +188,17 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             | Column::VarChar((_, c))
             | Column::VarBinary((_, c))
             | Column::Decimal75(_, _, c) => MultilinearExtension::<S>::id(c),
-            Column::Uint8(c) | Column::FixedSizeBinary(_, c) => MultilinearExtension::<S>::id(c),
+            Column::Uint8(c) => MultilinearExtension::<S>::id(c),
             Column::TinyInt(c) => MultilinearExtension::<S>::id(c),
             Column::SmallInt(c) => MultilinearExtension::<S>::id(c),
             Column::Int(c) => MultilinearExtension::<S>::id(c),
             Column::BigInt(c) | Column::TimestampTZ(_, _, c) => MultilinearExtension::<S>::id(c),
             Column::Int128(c) => MultilinearExtension::<S>::id(c),
+            Column::FixedSizeBinary(bw, bytes) => {
+                let row_width: usize = bw.into();
+                let row_count = bytes.len() / row_width;
+                (bytes.as_ptr().cast(), row_count)
+            }
         }
     }
 }

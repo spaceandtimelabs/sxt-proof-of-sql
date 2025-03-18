@@ -1,6 +1,48 @@
 use super::MultilinearExtension;
-use crate::base::{database::Column, scalar::test_scalar::TestScalar};
+use crate::base::{
+    database::Column,
+    math::fixed_size_binary_width::FixedSizeBinaryWidth,
+    scalar::{test_scalar::TestScalar, Scalar, ScalarExt},
+};
 use bumpalo::Bump;
+
+#[test]
+fn we_can_use_multilinear_extension_methods_for_fixed_size_binary_column() {
+    let data = [1, 2, 3, 4, 5, 6, 7, 8];
+    let col = Column::FixedSizeBinary(FixedSizeBinaryWidth::try_from(4).unwrap(), &data);
+
+    let evaluation_vec = vec![101.into(), 102.into()];
+
+    let row0_scalar = TestScalar::from_fixed_size_byte_slice(&data[0..4]);
+    let row1_scalar = TestScalar::from_fixed_size_byte_slice(&data[4..8]);
+
+    let expected_inner_product =
+        row0_scalar * TestScalar::from(101) + row1_scalar * TestScalar::from(102);
+    assert_eq!(col.inner_product(&evaluation_vec), expected_inner_product);
+
+    let mut res = evaluation_vec.clone();
+    let multiplier = TestScalar::from(10);
+
+    col.mul_add(&mut res, &multiplier);
+    assert_eq!(
+        res,
+        vec![
+            TestScalar::from(101) + multiplier * row0_scalar,
+            TestScalar::from(102) + multiplier * row1_scalar,
+        ]
+    );
+
+    let sumcheck = col.to_sumcheck_term(2);
+    assert_eq!(sumcheck.len(), 4);
+    assert_eq!(sumcheck[0], row0_scalar);
+    assert_eq!(sumcheck[1], row1_scalar);
+    assert_eq!(sumcheck[2], TestScalar::ZERO);
+    assert_eq!(sumcheck[3], TestScalar::ZERO);
+
+    let (ptr, len) = col.id();
+    assert_eq!(len, 2);
+    assert_eq!(ptr, data.as_ptr().cast());
+}
 
 #[test]
 fn allocated_slices_must_have_different_ids_even_when_one_is_empty() {

@@ -76,7 +76,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::FixedSizeBinary(width, col_bytes) => inner_product_ref_cast(
                 &col_bytes
                     .chunks_exact(width.into())
-                    .map(|chunk| S::from_byte_slice_via_hash(chunk))
+                    .map(|chunk| S::from_fixed_size_byte_slice(chunk))
                     .collect::<Vec<S>>(),
                 vec,
             ),
