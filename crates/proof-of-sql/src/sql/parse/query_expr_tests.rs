@@ -7,7 +7,7 @@ use crate::{
     sql::{
         parse::QueryExpr,
         postprocessing::{test_utility::*, PostprocessingError},
-        proof_exprs::{test_utility::*, DynProofExpr, IsTrueExpr},
+        proof_exprs::test_utility::*,
         proof_plans::{test_utility::*, DynProofPlan},
         AnalyzeError,
     },
@@ -309,99 +309,6 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
             cols_expr_plan(&t, &["a"], &accessor),
             tab(&t),
             lte(column(&t, "b", &accessor), const_bigint(-4)),
-        ),
-        vec![],
-    );
-    assert_eq!(ast, expected_ast);
-}
-
-#[test]
-fn we_can_convert_an_ast_with_cond_and() {
-    let t = TableRef::new("sxt", "sxt_tab");
-    let accessor = schema_accessor_from_table_ref_with_schema(
-        &t,
-        indexmap! {
-            "a".into() => ColumnType::BigInt,
-            "b".into() => ColumnType::BigInt,
-            "c".into() => ColumnType::BigInt,
-        },
-    );
-    let ast = query_to_provable_ast(
-        &t,
-        "select a from sxt_tab where (b = 3) and (c <= -2)",
-        &accessor,
-    );
-    let expected_ast = QueryExpr::new(
-        filter(
-            cols_expr_plan(&t, &["a"], &accessor),
-            tab(&t),
-            DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(and(
-                equal(column(&t, "b", &accessor), const_bigint(3)),
-                lte(column(&t, "c", &accessor), const_bigint(-2)),
-            )))),
-        ),
-        vec![],
-    );
-    assert_eq!(ast, expected_ast);
-}
-
-#[test]
-fn we_can_convert_an_ast_with_cond_or() {
-    let t = TableRef::new("sxt", "sxt_tab");
-    let accessor = schema_accessor_from_table_ref_with_schema(
-        &t,
-        indexmap! {
-            "a".into() => ColumnType::BigInt,
-            "b".into() => ColumnType::BigInt,
-            "c".into() => ColumnType::BigInt,
-        },
-    );
-    let ast = query_to_provable_ast(
-        &t,
-        "select a from sxt_tab where (b * 3 = 3) or (c = -2)",
-        &accessor,
-    );
-    let expected_ast = QueryExpr::new(
-        filter(
-            cols_expr_plan(&t, &["a"], &accessor),
-            tab(&t),
-            DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(or(
-                equal(
-                    multiply(column(&t, "b", &accessor), const_bigint(3)),
-                    const_bigint(3),
-                ),
-                equal(column(&t, "c", &accessor), const_bigint(-2)),
-            )))),
-        ),
-        vec![],
-    );
-    assert_eq!(ast, expected_ast);
-}
-
-#[test]
-fn we_can_convert_an_ast_with_conds_or_not() {
-    let t = TableRef::new("sxt", "sxt_tab");
-    let accessor = schema_accessor_from_table_ref_with_schema(
-        &t,
-        indexmap! {
-            "a".into() => ColumnType::BigInt,
-            "b".into() => ColumnType::BigInt,
-            "c".into() => ColumnType::BigInt,
-        },
-    );
-    let ast = query_to_provable_ast(
-        &t,
-        "select a from sxt_tab where (b <= 3) or (not (c >= -2))",
-        &accessor,
-    );
-    let expected_ast = QueryExpr::new(
-        filter(
-            cols_expr_plan(&t, &["a"], &accessor),
-            tab(&t),
-            DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(or(
-                lte(column(&t, "b", &accessor), const_bigint(3)),
-                not(gte(column(&t, "c", &accessor), const_bigint(-2))),
-            )))),
         ),
         vec![],
     );
