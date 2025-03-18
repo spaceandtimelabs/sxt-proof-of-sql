@@ -1,11 +1,11 @@
 use super::{where_expr_builder::WhereExprBuilder, ConversionError, EnrichedExpr};
 use crate::{
     base::{
-        database::{ColumnRef, LiteralValue, TableRef},
+        database::{ColumnRef, ColumnType, LiteralValue, TableRef},
         map::IndexMap,
     },
     sql::{
-        proof_exprs::{AliasedDynProofExpr, DynProofExpr, TableExpr},
+        proof_exprs::{AliasedDynProofExpr, DynProofExpr, IsTrueExpr, ProofExpr, TableExpr},
         proof_plans::FilterExec,
     },
 };
@@ -78,11 +78,29 @@ impl FilterExecBuilder {
 
     #[expect(clippy::missing_panics_doc)]
     pub fn build(self) -> FilterExec {
+        // Wrap the WHERE clause in an IsTrueExpr to correctly handle NULL values
+        // In SQL's three-valued logic, a row is only included if the WHERE condition 
+        // evaluates to TRUE (not NULL and not FALSE)
+        let where_clause = self.where_expr.unwrap_or_else(|| 
+            DynProofExpr::new_literal(LiteralValue::Boolean(true))
+        );
+
+        // Ensure the WHERE clause is wrapped in IsTrueExpr for proper NULL handling
+        let where_clause = if where_clause.data_type() == ColumnType::Boolean {
+            // Only wrap if it's a boolean expression and not already an IS TRUE expression
+            match &where_clause {
+                DynProofExpr::IsTrue(_) => where_clause, // Already wrapped
+                _ => DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(where_clause)))
+            }
+        } else {
+            // Non-boolean expressions should have been caught earlier
+            where_clause
+        };
+
         FilterExec::new(
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),
-            self.where_expr
-                .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true))),
+            where_clause,
         )
     }
 }
