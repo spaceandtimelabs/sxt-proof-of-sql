@@ -56,7 +56,7 @@ pub(crate) use numerical_util::{
     add_subtract_columns, multiply_columns, scale_and_add_subtract_eval,
 };
 #[cfg(test)]
-pub(crate) use numerical_util::{divide_columns, modulo_columns};
+pub(crate) use numerical_util::{columns_to_scalar_slice, divide_columns, modulo_columns};
 
 mod equals_expr;
 pub(crate) use equals_expr::EqualsExpr;
