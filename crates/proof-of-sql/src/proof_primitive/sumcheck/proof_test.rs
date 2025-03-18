@@ -235,3 +235,47 @@ fn we_can_verify_many_random_test_cases() {
         );
     }
 }
+
+#[test]
+fn we_can_generate_and_verify_a_simple_sumcheck_proof() {
+    use crate::{base::proof::Keccak256Transcript, proof_primitive::hyperkzg::BNScalar};
+
+    let num_vars = 3;
+    let degree = 2;
+    let state = ProverState::new(
+        vec![(1.into(), vec![0, 1]), (-BNScalar::ONE, vec![2])],
+        vec![
+            (101..=108).map(Into::into).collect(),
+            (201..=208).map(Into::into).collect(),
+            (101..=108)
+                .zip(201..=208)
+                .map(|(a, b)| a * b)
+                .map(Into::into)
+                .collect(),
+        ],
+        num_vars,
+        degree,
+    );
+    let mut transcript = Keccak256Transcript::new();
+    transcript.extend_as_be([
+        0x0123_4567_89AB_CDEF_0123_4567_89AB_CDEF_u128,
+        0x0123_4567_89AB_CDEF_0123_4567_89AB_CDEF_u128,
+    ]);
+    let mut evaluation_point = vec![MontScalar::default(); num_vars];
+    let proof = SumcheckProof::<BNScalar>::create(&mut transcript, &mut evaluation_point, state);
+    let mut transcript = Keccak256Transcript::new();
+    transcript.extend_as_be([
+        0x0123_4567_89AB_CDEF_0123_4567_89AB_CDEF_u128,
+        0x0123_4567_89AB_CDEF_0123_4567_89AB_CDEF_u128,
+    ]);
+
+    //dbg!(&proof.coefficients);
+
+    let subclaim = proof
+        .verify_without_evaluation(&mut transcript, num_vars, &BNScalar::ZERO)
+        .unwrap();
+    assert_eq!(subclaim.evaluation_point, evaluation_point,);
+
+    //dbg!(subclaim.expected_evaluation);
+    //dbg!(&evaluation_point);
+}
