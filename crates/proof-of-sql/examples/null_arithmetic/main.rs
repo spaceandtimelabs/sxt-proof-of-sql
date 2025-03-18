@@ -120,6 +120,22 @@ fn main() {
         &prover_setup,
         &verifier_setup,
     );
+
+    // Query 5: Test A - B = 0 (should only return rows where A and B are non-NULL and equal)
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A - B = 0",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
+
+    // Query 6: Test with a large negative number
+    prove_and_verify_query(
+        "SELECT * FROM tab WHERE A + B = -999999999998",
+        &accessor,
+        &prover_setup,
+        &verifier_setup,
+    );
 }
 
 #[cfg(not(feature = "arrow"))]
