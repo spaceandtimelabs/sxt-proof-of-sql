@@ -1,5 +1,4 @@
 //! This module contains shared proof logic for multiple `ProofExpr` / `ProofPlan` implementations.
-#[cfg(test)]
 mod divide_and_modulo_expr;
 mod membership_check;
 mod monotonic;
