@@ -1,4 +1,4 @@
-use super::{fold_columns, fold_vals};
+use super::{fold_columns, fold_vals, DynProofPlan};
 use crate::{
     base::{
         database::{
@@ -17,7 +17,7 @@ use crate::{
             FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
             SumcheckSubpolynomialType, VerificationBuilder,
         },
-        proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
+        proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr},
     },
     utils::log,
 };
@@ -33,7 +33,7 @@ use sqlparser::ast::Ident;
 ///     SELECT <group_by_expr1>, ..., <group_by_exprM>,
 ///         SUM(<sum_expr1>.expr) as <sum_expr1>.alias, ..., SUM(<sum_exprN>.expr) as <sum_exprN>.alias,
 ///         COUNT(*) as count_alias
-///     FROM <table>
+///     FROM <input>
 ///     WHERE <where_clause>
 ///     GROUP BY <group_by_expr1>, ..., <group_by_exprM>
 /// ```
@@ -44,7 +44,7 @@ pub struct GroupByExec {
     pub(super) group_by_exprs: Vec<ColumnExpr>,
     pub(super) sum_expr: Vec<AliasedDynProofExpr>,
     pub(super) count_alias: Ident,
-    pub(super) table: TableExpr,
+    pub(super) input: Box<DynProofPlan>,
     pub(super) where_clause: DynProofExpr,
 }
 
@@ -54,14 +54,14 @@ impl GroupByExec {
         group_by_exprs: Vec<ColumnExpr>,
         sum_expr: Vec<AliasedDynProofExpr>,
         count_alias: Ident,
-        table: TableExpr,
+        input: Box<DynProofPlan>,
         where_clause: DynProofExpr,
     ) -> Self {
         Self {
             group_by_exprs,
             sum_expr,
             count_alias,
-            table,
+            input,
             where_clause,
         }
     }
@@ -75,9 +75,40 @@ impl ProofPlan for GroupByExec {
         result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
     ) -> Result<TableEvaluation<S>, ProofError> {
-        let input_chi_eval = *chi_eval_map
-            .get(&self.table.table_ref)
-            .expect("Chi eval not found");
+        let input_eval = self
+            .input
+            .verifier_evaluate(builder, accessor, None, chi_eval_map)?;
+        let input_chi_eval = input_eval.chi_eval();
+        // Build new accessors
+        // TODO: Make this work with inputs with multiple tables such as join
+        // and union results
+        let input_schema = self.input.get_column_result_fields();
+        let input_table_refs = self.input.get_table_references();
+        if input_table_refs.len() > 1 {
+            return Err(ProofError::UnsupportedQueryPlan {
+                error: "Projections with multiple tables are not supported yet",
+            });
+        }
+        // Covers the case of tablelessness
+        let input_table_ref = if let Some(table_ref) = input_table_refs.first() {
+            table_ref.clone()
+        } else {
+            TableRef::from_names(None, "empty")
+        };
+        let current_accessor = input_schema
+            .iter()
+            .zip(input_eval.column_evals())
+            .map(|(field, eval)| {
+                (
+                    ColumnRef::new(
+                        input_table_ref.clone(),
+                        field.name().clone(),
+                        field.data_type(),
+                    ),
+                    *eval,
+                )
+            })
+            .collect::<IndexMap<_, _>>();
         // 1. selection
         let where_eval = self
             .where_clause
@@ -170,7 +201,7 @@ impl ProofPlan for GroupByExec {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        let mut columns = IndexSet::default();
+        let mut columns = self.input.get_column_references();
 
         for col in &self.group_by_exprs {
             columns.insert(col.get_column_reference());
@@ -185,7 +216,7 @@ impl ProofPlan for GroupByExec {
     }
 
     fn get_table_references(&self) -> IndexSet<TableRef> {
-        IndexSet::from_iter([self.table.table_ref.clone()])
+        self.input.get_table_references()
     }
 }
 
@@ -199,11 +230,9 @@ impl ProverEvaluate for GroupByExec {
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
-        let table = table_map
-            .get(&self.table.table_ref)
-            .expect("Table not found");
+        let input = self.input.first_round_evaluate(builder, alloc, table_map);
         // 1. selection
-        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, table);
+        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, &input);
 
         let selection = selection_column
             .as_boolean()
@@ -213,12 +242,12 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.result_evaluate(alloc, table))
+            .map(|expr| expr.result_evaluate(alloc, &input))
             .collect::<Vec<_>>();
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table))
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, &input))
             .collect::<Vec<_>>();
         // Compute filtered_columns
         let AggregatedColumns {
@@ -258,12 +287,10 @@ impl ProverEvaluate for GroupByExec {
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
-        let table = table_map
-            .get(&self.table.table_ref)
-            .expect("Table not found");
+        let input = self.input.final_round_evaluate(builder, alloc, table_map);
         // 1. selection
         let selection_column: Column<'a, S> =
-            self.where_clause.prover_evaluate(builder, alloc, table);
+            self.where_clause.prover_evaluate(builder, alloc, &input);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -272,12 +299,12 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.prover_evaluate(builder, alloc, table))
+            .map(|expr| expr.prover_evaluate(builder, alloc, &input))
             .collect::<Vec<_>>();
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, table))
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, &input))
             .collect::<Vec<_>>();
         // 3. Compute filtered_columns
         let AggregatedColumns {
@@ -317,7 +344,7 @@ impl ProverEvaluate for GroupByExec {
             beta,
             (&group_by_columns, &sum_columns, selection),
             (&group_by_result_columns, &sum_result_columns, count_column),
-            table.num_rows(),
+            input.num_rows(),
         );
 
         log::log_memory_usage("End");
