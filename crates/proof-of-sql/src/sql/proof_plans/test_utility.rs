@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     base::database::{ColumnField, ColumnType, TableRef},
-    sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
+    sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, IsTrueExpr, TableExpr},
 };
 use sqlparser::ast::Ident;
 
@@ -29,7 +29,19 @@ pub fn filter(
     table: TableExpr,
     where_clause: DynProofExpr,
 ) -> DynProofPlan {
-    DynProofPlan::Filter(FilterExec::new(results, table, where_clause))
+    // Ensure the WHERE clause is wrapped in IsTrueExpr for proper NULL handling
+    let wrapped_where_clause = if where_clause.data_type() == ColumnType::Boolean {
+        // Only wrap if it's a boolean expression and not already an IS TRUE expression
+        match &where_clause {
+            DynProofExpr::IsTrue(_) => where_clause, // Already wrapped
+            _ => DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(where_clause))),
+        }
+    } else {
+        // Non-boolean expressions should have been caught earlier
+        where_clause
+    };
+
+    DynProofPlan::Filter(FilterExec::new(results, table, wrapped_where_clause))
 }
 
 /// # Panics

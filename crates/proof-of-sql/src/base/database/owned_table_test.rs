@@ -360,13 +360,13 @@ fn we_can_perform_null_operations_with_where_clause_in_three_valued_logic() {
         .map(|(present, value)| *present && *value)
         .collect();
 
-    // Rows 1, 4, 7, 10 should match ((a > b OR c < 5) AND e IS NOT NULL)
+    // Rows 1, 4 should match ((a > b OR c < 5) AND e IS NOT NULL)
     // Row 1: a=10, b=5, c=NULL, e=true -> true OR NULL AND true -> true
     // Row 4: a=40, b=NULL, c=4, e=false -> NULL OR true AND true -> true
-    // Row 7: a=70, b=NULL, c=7, e=true -> NULL OR false AND true -> true (a > b is true when b is NULL)
-    // Row 10: a=100, b=NULL, c=10, e=false -> NULL OR false AND true -> true (a > b is true when b is NULL)
+    // Row 7: a=70, b=NULL, c=7, e=true -> NULL OR false AND true -> false (a > b is NULL when b is NULL, not true)
+    // Row 10: a=100, b=NULL, c=10, e=false -> NULL OR false AND true -> false (a > b is NULL when b is NULL, not true)
     assert_eq!(
         where_result_4,
-        vec![true, false, false, true, false, false, true, false, false, true]
+        vec![true, false, false, true, false, false, false, false, false, false]
     );
 }
