@@ -335,10 +335,10 @@ fn we_can_convert_an_ast_with_cond_and() {
         filter(
             cols_expr_plan(&t, &["a"], &accessor),
             tab(&t),
-            and(
+            DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(and(
                 equal(column(&t, "b", &accessor), const_bigint(3)),
                 lte(column(&t, "c", &accessor), const_bigint(-2)),
-            ),
+            )))),
         ),
         vec![],
     );
@@ -365,13 +365,13 @@ fn we_can_convert_an_ast_with_cond_or() {
         filter(
             cols_expr_plan(&t, &["a"], &accessor),
             tab(&t),
-            or(
+            DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(or(
                 equal(
                     multiply(column(&t, "b", &accessor), const_bigint(3)),
                     const_bigint(3),
                 ),
                 equal(column(&t, "c", &accessor), const_bigint(-2)),
-            ),
+            )))),
         ),
         vec![],
     );
@@ -398,10 +398,10 @@ fn we_can_convert_an_ast_with_conds_or_not() {
         filter(
             cols_expr_plan(&t, &["a"], &accessor),
             tab(&t),
-            or(
+            DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(or(
                 lte(column(&t, "b", &accessor), const_bigint(3)),
                 not(gte(column(&t, "c", &accessor), const_bigint(-2))),
-            ),
+            )))),
         ),
         vec![],
     );
