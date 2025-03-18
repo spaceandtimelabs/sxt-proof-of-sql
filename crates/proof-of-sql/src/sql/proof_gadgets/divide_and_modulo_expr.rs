@@ -226,6 +226,20 @@ mod tests {
         )
     }
 
+    fn default_modulo_columns(lhs: &[i128], rhs: &[i128]) -> Vec<i128> {
+        let alloc = Bump::new();
+        let standard_utilities = StandardDivideAndModuloExprUtilities;
+        standard_utilities
+            .modulo_columns(
+                &Column::Int128::<TestScalar>(lhs),
+                &Column::Int128(rhs),
+                &alloc,
+            )
+            .as_int128()
+            .unwrap()
+            .to_vec()
+    }
+
     #[derive(PartialEq, Debug)]
     enum TestableConstraints {
         /// q * b + r - a = 0
@@ -254,8 +268,10 @@ mod tests {
     ) {
         let alloc = Bump::new();
         let mut mock_functionality = MockMockableDivideAndModuloExprFunctionality::new();
-        if let Some(_quotient) = divide_columns_return {
-            unimplemented!("This branch of code will be implemented in a subsequent PR.")
+        if let Some(quotient) = divide_columns_return {
+            mock_functionality
+                .expect_divide_columns()
+                .return_const(quotient);
         } else {
             mock_functionality
                 .expect_divide_columns()
@@ -266,7 +282,9 @@ mod tests {
                 .expect_modulo_columns()
                 .return_const(remainder);
         } else {
-            unimplemented!("This branch of code will be implemented in a subsequent PR.")
+            mock_functionality
+                .expect_modulo_columns()
+                .returning(default_modulo_columns);
         }
         let mock_utilities = MockDivideAndModuloExprUtilities {
             functions: mock_functionality,
