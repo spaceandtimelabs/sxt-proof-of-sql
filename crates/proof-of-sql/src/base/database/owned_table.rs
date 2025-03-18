@@ -85,7 +85,7 @@ fn is_null_u8(value: u8) -> bool {
     value == NULL_U8
 }
 
-/// Custom Debug implementation for `OwnedTable` that omits NULL values
+/// Custom Debug implementation for `OwnedTable` that shows NULL values as "`NaN`"
 #[allow(clippy::too_many_lines)]
 impl<S: Scalar> fmt::Debug for OwnedTable<S> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -107,207 +107,183 @@ impl<S: Scalar> fmt::Debug for OwnedTable<S> {
             match column {
                 OwnedColumn::Boolean(values) => {
                     f.write_str("Boolean([")?;
-                    let mut first = true;
                     for (i, &value) in values.iter().enumerate() {
-                        // Skip NULL values
-                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
-                            continue;
-                        }
-                        if !first {
+                        if i > 0 {
                             f.write_str(", ")?;
                         }
-                        first = false;
-                        write!(f, "{value}")?;
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::Uint8(values) => {
                     f.write_str("Uint8([")?;
-                    let mut first = true;
                     for (i, &value) in values.iter().enumerate() {
-                        // Skip NULL values
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
                             || is_null_u8(value)
                         {
-                            continue;
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
                         }
-                        if !first {
-                            f.write_str(", ")?;
-                        }
-                        first = false;
-                        write!(f, "{value}")?;
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::TinyInt(values) => {
                     f.write_str("TinyInt([")?;
-                    let mut first = true;
                     for (i, &value) in values.iter().enumerate() {
-                        // Skip NULL values
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
                             || is_null_i8(value)
                         {
-                            continue;
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
                         }
-                        if !first {
-                            f.write_str(", ")?;
-                        }
-                        first = false;
-                        write!(f, "{value}")?;
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::SmallInt(values) => {
                     f.write_str("SmallInt([")?;
-                    let mut first = true;
                     for (i, &value) in values.iter().enumerate() {
-                        // Skip NULL values
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
                             || is_null_i16(value)
                         {
-                            continue;
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
                         }
-                        if !first {
-                            f.write_str(", ")?;
-                        }
-                        first = false;
-                        write!(f, "{value}")?;
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::Int(values) => {
                     f.write_str("Int([")?;
-                    let mut first = true;
                     for (i, &value) in values.iter().enumerate() {
-                        // Skip NULL values
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
                             || is_null_i32(value)
                         {
-                            continue;
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
                         }
-                        if !first {
-                            f.write_str(", ")?;
-                        }
-                        first = false;
-                        write!(f, "{value}")?;
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::BigInt(values) => {
                     f.write_str("BigInt([")?;
-                    let mut first = true;
                     for (i, &value) in values.iter().enumerate() {
-                        // Skip NULL values
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
                             || is_null_i64(value)
                         {
-                            continue;
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
                         }
-                        if !first {
-                            f.write_str(", ")?;
-                        }
-                        first = false;
-                        write!(f, "{value}")?;
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::VarChar(values) => {
                     f.write_str("VarChar([")?;
-                    let mut first = true;
                     for (i, value) in values.iter().enumerate() {
-                        // Skip NULL values
-                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
-                            continue;
-                        }
-                        if !first {
+                        if i > 0 {
                             f.write_str(", ")?;
                         }
-                        first = false;
-                        write!(f, "{value:?}")?;
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("\"NaN\"")?;
+                        } else {
+                            write!(f, "{value:?}")?;
+                        }
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::VarBinary(values) => {
                     f.write_str("VarBinary([")?;
-                    let mut first = true;
                     for (i, value) in values.iter().enumerate() {
-                        // Skip NULL values
-                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
-                            continue;
-                        }
-                        if !first {
+                        if i > 0 {
                             f.write_str(", ")?;
                         }
-                        first = false;
-                        write!(f, "{value:?}")?;
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value:?}")?;
+                        }
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::Int128(values) => {
                     f.write_str("Int128([")?;
-                    let mut first = true;
                     for (i, &value) in values.iter().enumerate() {
-                        // Skip NULL values
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
                             || is_null_i128(value)
                         {
-                            continue;
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
                         }
-                        if !first {
-                            f.write_str(", ")?;
-                        }
-                        first = false;
-                        write!(f, "{value}")?;
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::Decimal75(precision, scale, values) => {
                     write!(f, "Decimal75({precision:?}, {scale}, [")?;
-                    let mut first = true;
                     for (i, value) in values.iter().enumerate() {
-                        // Skip NULL values
-                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
-                            continue;
-                        }
-                        if !first {
+                        if i > 0 {
                             f.write_str(", ")?;
                         }
-                        first = false;
-                        write!(f, "{value}")?;
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::Scalar(values) => {
                     f.write_str("Scalar([")?;
-                    let mut first = true;
                     for (i, value) in values.iter().enumerate() {
-                        // Skip NULL values
-                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
-                            continue;
-                        }
-                        if !first {
+                        if i > 0 {
                             f.write_str(", ")?;
                         }
-                        first = false;
-                        write!(f, "{value}")?;
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
                     }
                     f.write_str("])")?;
                 }
                 OwnedColumn::TimestampTZ(time_unit, time_zone, values) => {
                     write!(f, "TimestampTZ({time_unit:?}, {time_zone:?}, [")?;
-                    let mut first = true;
                     for (i, &value) in values.iter().enumerate() {
-                        // Skip NULL values
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
                         if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
                             || is_null_timestamp(value)
                         {
-                            continue;
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
                         }
-                        if !first {
-                            f.write_str(", ")?;
-                        }
-                        first = false;
-                        write!(f, "{value}")?;
                     }
                     f.write_str("])")?;
                 }
