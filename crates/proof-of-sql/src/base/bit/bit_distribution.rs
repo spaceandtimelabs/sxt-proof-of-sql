@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// Describe the distribution of bit values in a table column
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct BitDistribution {
-    /// Identifies all columns that are identical to the leading column (the sign column). The lead bit indicates if the sign column is constant
+    /// Identifies all columns that are not either identical to or the inverse of the leading column (the sign column). The lead bit indicates if the sign column is constant
     pub(crate) vary_mask: [u64; 4],
     /// Identifies all columns that are the identical to the lead column. The lead bit indicates the sign of the last row of data (only relevant if the sign is constant)
     pub(crate) leading_bit_mask: [u64; 4],
