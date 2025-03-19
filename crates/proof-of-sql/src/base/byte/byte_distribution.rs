@@ -1,4 +1,6 @@
 use crate::base::{bit::bit_mask_utils::make_bit_mask, scalar::Scalar};
+use ark_std::iterable::Iterable;
+use bit_iter::BitIter;
 use bnum::types::U256;
 use core::{convert::Into, ops::Shl};
 use serde::{Deserialize, Serialize};
@@ -52,6 +54,11 @@ impl ByteDistribution {
             vary_mask,
             leading_bit_shadow_mask: leading_bit_shadow_mask.into(),
         }
+    }
+
+
+    pub fn varying_byte_indices(&self) -> impl Iterator<Item = u8> + '_{
+        BitIter::from(self.vary_mask).iter().map(|u| (u * 8) as u8)
     }
 }
 

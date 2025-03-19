@@ -21,16 +21,16 @@
 //! * Batch Inversion: Inversions of large vectors are computationally expensive
 //! * Parallelization: Single-threaded execution of these operations is a performance bottleneck
 use crate::{
-    base::{proof::ProofSizeMismatch, scalar::Scalar, slice_ops},
+    base::{byte::ByteDistribution, proof::ProofSizeMismatch, scalar::Scalar, slice_ops},
     sql::proof::{
         FinalRoundBuilder, FirstRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
 use alloc::{boxed::Box, vec, vec::Vec};
+use bnum::types::U256;
 use bumpalo::Bump;
-use bytemuck::cast_slice;
-use core::iter::repeat_with;
 use tracing::{span, Level};
+use core::ops::Shl;
 
 #[tracing::instrument(name = "range check first round evaluate", level = "debug", skip_all)]
 pub(crate) fn first_round_evaluate_range_check<'a, S>(
@@ -70,26 +70,13 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     column_data: &[impl Copy + Into<S>],
     alloc: &'a Bump,
 ) {
-    // Create 31 columns, each will collect the corresponding word from all scalars.
-    // 31 because a scalar will only ever have 248 bits of data set.
-    let mut word_columns: Vec<&mut [u8]> =
-        repeat_with(|| alloc.alloc_slice_fill_copy(column_data.len(), 0))
-            .take(31)
-            .collect();
-
-    // Allocate space for the eventual inverted word columns by copying word_columns and converting to the required type.
-    let mut inverted_word_columns: Vec<&mut [S]> = word_columns
-        .iter_mut()
-        .map(|column| alloc.alloc_slice_fill_with(column.len(), |_| S::ZERO))
-        .collect();
-
-    // Initialize a vector to count occurrences of each byte (0-255).
-    // The vector has 256 elements padded with zeros to match the length of the word columns
-    // The size is the larger of 256 or the number of scalars.
-    let word_counts: &mut [i64] = alloc.alloc_slice_fill_with(256, |_| 0);
+    let word_byte_distribution = ByteDistribution::new(column_data);
+    let 
 
     let span = span!(Level::DEBUG, "decompose scalars in final round").entered();
-    decompose_scalars_to_words(column_data, &mut word_columns);
+    let varying_columns = word_byte_distribution.varying_byte_indices().map(|start_index|{
+        
+    });
     span.exit();
 
     let word_columns_immut: Vec<&[u8]> = word_columns
@@ -149,40 +136,6 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
         &inverted_word_columns,
         inv_word_vals_plus_alpha_table,
     );
-}
-
-/// Decomposes a scalar to requisite words, additionally tracks the total
-/// number of occurrences of each word for later use in the argument.
-///
-/// ```text
-/// | Column 0   | Column 1   | Column 2   | ... | Column 31   |
-/// |------------|------------|------------|-----|-------------|
-/// |  w₀,₀      |  w₀,₁      |  w₀,₂      | ... |  w₀,₃₁      |
-/// |  w₁,₀      |  w₁,₁      |  w₁,₂      | ... |  w₁,₃₁      |
-/// |  w₂,₀      |  w₂,₁      |  w₂,₂      | ... |  w₂,₃₁      |
-/// ------------------------------------------------------------
-/// ```
-#[tracing::instrument(
-    name = "range check decompose_scalars_to_words",
-    level = "debug",
-    skip_all
-)]
-fn decompose_scalars_to_words<'a, T, S: Scalar + 'a>(
-    column_data: &[T],
-    word_columns: &mut [&mut [u8]],
-) where
-    T: Copy + Into<S>,
-{
-    for (i, scalar) in column_data.iter().enumerate() {
-        let scalar_array: [u64; 4] = (*scalar).into().into();
-        // Convert the [u64; 4] into a slice of bytes
-        let scalar_bytes = &cast_slice::<u64, u8>(&scalar_array)[..31];
-
-        // Zip the "columns" and the scalar bytes so we can write them directly
-        for (column, &byte) in word_columns[..31].iter_mut().zip(scalar_bytes) {
-            column[i] = byte;
-        }
-    }
 }
 
 // Count the individual word occurrences in the decomposed columns.
