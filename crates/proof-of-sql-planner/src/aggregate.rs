@@ -6,7 +6,15 @@ use datafusion::{
     physical_plan,
 };
 use proof_of_sql::sql::proof_exprs::DynProofExpr;
-use proof_of_sql_parser::intermediate_ast::AggregationOperator;
+
+/// An aggregate function we support
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AggregateFunc {
+    /// Sum
+    Sum,
+    /// Count
+    Count,
+}
 
 /// Convert an [`AggregateFunction`] to a [`DynProofExpr`]
 ///
@@ -14,7 +22,7 @@ use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 pub(crate) fn aggregate_function_to_proof_expr(
     function: &AggregateFunction,
     schema: &DFSchema,
-) -> PlannerResult<DynProofExpr> {
+) -> PlannerResult<(AggregateFunc, DynProofExpr)> {
     match function {
         AggregateFunction {
             distinct: false,
@@ -24,15 +32,12 @@ pub(crate) fn aggregate_function_to_proof_expr(
             func_def: AggregateFunctionDefinition::BuiltIn(op),
             ..
         } if args.len() == 1 => {
-            let aggregation_operator = match op {
-                physical_plan::aggregates::AggregateFunction::Sum => AggregationOperator::Sum,
-                physical_plan::aggregates::AggregateFunction::Count => AggregationOperator::Count,
+            let aggregate_function = match op {
+                physical_plan::aggregates::AggregateFunction::Sum => AggregateFunc::Sum,
+                physical_plan::aggregates::AggregateFunction::Count => AggregateFunc::Count,
                 _ => Err(PlannerError::UnsupportedAggregateOperation { op: op.clone() })?,
             };
-            Ok(DynProofExpr::new_aggregate(
-                aggregation_operator,
-                expr_to_proof_expr(&args[0], schema)?,
-            ))
+            Ok((aggregate_function, expr_to_proof_expr(&args[0], schema)?))
         }
         _ => Err(PlannerError::UnsupportedAggregateFunction {
             function: function.clone(),
@@ -55,11 +60,11 @@ mod tests {
         for (function, operator) in &[
             (
                 physical_plan::aggregates::AggregateFunction::Sum,
-                AggregationOperator::Sum,
+                AggregateFunc::Sum,
             ),
             (
                 physical_plan::aggregates::AggregateFunction::Count,
-                AggregationOperator::Count,
+                AggregateFunc::Count,
             ),
         ] {
             let function = AggregateFunction::new(
@@ -72,7 +77,7 @@ mod tests {
             );
             assert_eq!(
                 aggregate_function_to_proof_expr(&function, &schema).unwrap(),
-                DynProofExpr::new_aggregate(
+                (
                     *operator,
                     DynProofExpr::new_column(ColumnRef::new(
                         TableRef::from_names(None, "table"),
