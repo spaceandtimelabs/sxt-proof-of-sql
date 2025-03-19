@@ -15,6 +15,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
         mle_evaluations,
         &[][..],
         &[][..],
+        &[][..],
         VecDeque::new(),
         Vec::new(),
         Vec::new(),
@@ -34,6 +35,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
     ];
     let mut builder = VerificationBuilderImpl::new(
         mle_evaluations,
+        &[][..],
         &[][..],
         &subpolynomial_multipliers,
         VecDeque::new(),
@@ -64,6 +66,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
 fn we_can_consume_post_result_challenges_in_verification_builder() {
     let mut builder = VerificationBuilderImpl::new(
         SumcheckMleEvaluations::default(),
+        &[][..],
         &[][..],
         &[][..],
         [

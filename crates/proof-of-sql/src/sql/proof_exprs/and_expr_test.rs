@@ -256,7 +256,8 @@ fn we_can_reject_a_simple_tampered_proof() {
         .clone()
         .map(|_| zero_vec.clone())
         .collect();
-    let mut verification_builder = MockVerificationBuilder::new(Vec::new(), 3, final_round_mles);
+    let mut verification_builder =
+        MockVerificationBuilder::new(Vec::new(), Vec::new(), 3, final_round_mles);
 
     for evaluation_point in evaluation_points {
         let chi_eval = (&[1, 1, 1, 1]).inner_product(evaluation_point);

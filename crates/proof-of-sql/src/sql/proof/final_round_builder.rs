@@ -2,6 +2,7 @@ use super::{SumcheckSubpolynomial, SumcheckSubpolynomialTerm, SumcheckSubpolynom
 use crate::{
     base::{
         bit::BitDistribution,
+        byte::ByteDistribution,
         commitment::{Commitment, CommittableColumn, VecCommitmentExt},
         polynomial::MultilinearExtension,
         scalar::Scalar,
@@ -14,6 +15,7 @@ use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
 pub struct FinalRoundBuilder<'a, S: Scalar> {
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
+    byte_distributions: Vec<ByteDistribution>,
     commitment_descriptor: Vec<CommittableColumn<'a>>,
     pcs_proof_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
     sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a, S>>,
@@ -32,6 +34,7 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
         Self {
             num_sumcheck_variables,
             bit_distributions: Vec::new(),
+            byte_distributions: Vec::new(),
             commitment_descriptor: Vec::new(),
             pcs_proof_mles: Vec::new(),
             sumcheck_subpolynomials: Vec::new(),
@@ -55,6 +58,12 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
     /// and which bits varying in a column of data
     pub fn produce_bit_distribution(&mut self, dist: BitDistribution) {
         self.bit_distributions.push(dist);
+    }
+
+    /// Produce a byte distribution that describes which bytes are constant
+    /// and which bytes vary in a column of data
+    pub fn produce_byte_distribution(&mut self, dist: ByteDistribution) {
+        self.byte_distributions.push(dist);
     }
 
     /// Produce an anchored MLE that we can reference in sumcheck.
@@ -139,6 +148,10 @@ impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
 
     pub fn bit_distributions(&self) -> &[BitDistribution] {
         &self.bit_distributions
+    }
+
+    pub fn byte_distributions(&self) -> &[ByteDistribution] {
+        &self.byte_distributions
     }
 
     /// Pops a challenge off the stack of post-result challenges.

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 /// Describe the distribution of byte values in a table column
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-struct ByteDistribution {
+pub struct ByteDistribution {
     /// Identifies any non-lead byte columns that do not satisify the following conditions:
     /// 1. The set of all bytes in the column is contained by a set of two bytes which are inverses of each other.
     /// 2. The byte for each row is determined by the lead bit. In other words, the byte column and leading bit column are perfectly correlated.
@@ -19,8 +19,7 @@ struct ByteDistribution {
 }
 
 impl ByteDistribution {
-    #[cfg_attr(not(test), expect(dead_code))]
-    fn new<S: Scalar, T: Into<S> + Clone>(data: &[T]) -> Self {
+    pub fn new<S: Scalar, T: Into<S> + Clone>(data: &[T]) -> Self {
         let bit_masks = data.iter().cloned().map(Into::<S>::into).map(make_bit_mask);
         let leading_bit_column = bit_masks.clone().map(|u| u >= U256::ONE << 255);
         let (vary_mask, leading_bit_shadow_mask) = (0u8..32)

@@ -6,6 +6,7 @@ use super::{
 use crate::{
     base::{
         bit::BitDistribution,
+        byte::ByteDistribution,
         commitment::CommitmentEvaluationProof,
         database::{
             ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTable, Table,
@@ -65,6 +66,8 @@ pub struct FinalRoundMessage<C> {
     pub round_commitments: Vec<C>,
     /// Bit distributions
     pub bit_distributions: Vec<BitDistribution>,
+    /// Byte distributions
+    pub byte_distributions: Vec<ByteDistribution>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 pub struct QueryProofPCSProofEvaluations<S> {
@@ -179,6 +182,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             subpolynomial_constraint_count: final_round_builder.num_sumcheck_subpolynomials(),
             round_commitments: final_round_commitments,
             bit_distributions: final_round_builder.bit_distributions().to_vec(),
+            byte_distributions: final_round_builder.byte_distributions().to_vec(),
         };
 
         // add the commitments, bit distributions and chi evaluation lengths to the proof
@@ -395,6 +399,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let mut builder = VerificationBuilderImpl::new(
             sumcheck_evaluations,
             &self.final_round_message.bit_distributions,
+            &self.final_round_message.byte_distributions,
             sumcheck_random_scalars.subpolynomial_multipliers,
             post_result_challenges,
             self.first_round_message.chi_evaluation_lengths.clone(),
