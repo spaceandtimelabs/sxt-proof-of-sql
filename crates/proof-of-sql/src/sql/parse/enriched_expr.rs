@@ -25,10 +25,7 @@ impl EnrichedExpr {
     /// Otherwise the `dyn_proof_expr` will contain the provable expression plan
     /// and the `residue_expression` will contain the remaining expression.
     pub fn new(expression: AliasedResultExpr, column_mapping: &IndexMap<Ident, ColumnRef>) -> Self {
-        // TODO: Using new_agg (ironically) disables aggregations in `QueryExpr` for now.
-        // Re-enable aggregations when we add `GroupByExec` generalizations.
-        let res_dyn_proof_expr =
-            DynProofExprBuilder::new_agg(column_mapping).build(&expression.expr);
+        let res_dyn_proof_expr = DynProofExprBuilder::new(column_mapping).build(&expression.expr);
         match res_dyn_proof_expr {
             Ok(dyn_proof_expr) => {
                 let alias = expression.alias;

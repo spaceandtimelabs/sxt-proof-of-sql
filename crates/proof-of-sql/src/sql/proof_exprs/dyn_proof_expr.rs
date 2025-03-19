@@ -1,6 +1,6 @@
 use super::{
-    AddSubtractExpr, AggregateExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr,
-    MultiplyExpr, NotExpr, OrExpr, ProofExpr,
+    AddSubtractExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr, MultiplyExpr,
+    NotExpr, OrExpr, ProofExpr,
 };
 use crate::{
     base::{
@@ -18,7 +18,6 @@ use crate::{
 use alloc::{boxed::Box, string::ToString};
 use bumpalo::Bump;
 use core::fmt::Debug;
-use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::BinaryOperator;
 
@@ -44,8 +43,6 @@ pub enum DynProofExpr {
     AddSubtract(AddSubtractExpr),
     /// Provable numeric `*` expression
     Multiply(MultiplyExpr),
-    /// Provable aggregate expression
-    Aggregate(AggregateExpr),
 }
 impl DynProofExpr {
     /// Create column expression
@@ -161,12 +158,6 @@ impl DynProofExpr {
                 right_type: rhs_datatype.to_string(),
             })
         }
-    }
-
-    /// Create a new aggregate expression
-    #[must_use]
-    pub fn new_aggregate(op: AggregationOperator, expr: DynProofExpr) -> Self {
-        Self::Aggregate(AggregateExpr::new(op, Box::new(expr)))
     }
 
     /// Check that the plan has the correct data type
