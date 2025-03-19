@@ -16,7 +16,6 @@ datafusion = { version = '38.0.0', default-features = false }
 getrandom = { version = "0.2.15", features = ["js"] }
 indexmap = { workspace = true }
 proof-of-sql = { path = "../proof-of-sql", default-features = false, features = ["arrow"] }
-proof-of-sql-parser = { path = "../proof-of-sql-parser" }
 snafu = { workspace = true }
 sqlparser = { workspace = true }
 uuid = { version = "1.15.1", default-features = false, features = ["js"] }
