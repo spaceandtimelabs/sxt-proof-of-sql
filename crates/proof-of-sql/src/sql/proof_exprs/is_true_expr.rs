@@ -174,6 +174,15 @@ impl ProofExpr for IsTrueExpr {
             builder.produce_intermediate_mle(Column::Boolean(
                 alloc.alloc_slice_fill_copy(table.num_rows(), true),
             ));
+            builder.produce_sumcheck_subpolynomial(
+                SumcheckSubpolynomialType::Identity,
+                vec![(
+                    S::one(),
+                    vec![Box::new(
+                        alloc.alloc_slice_fill_copy(table.num_rows(), false) as &[_],
+                    )],
+                )],
+            );
         } else {
             builder.record_is_true_check(&nullable_column, alloc, self.is_inner_expr_or());
         }
