@@ -3,6 +3,7 @@
 #![cfg_attr(test, expect(clippy::missing_panics_doc))]
 extern crate alloc;
 mod aggregate;
+pub(crate) use aggregate::{aggregate_function_to_proof_expr, AggregateFunc};
 mod context;
 pub use context::PoSqlContextProvider;
 #[cfg(test)]

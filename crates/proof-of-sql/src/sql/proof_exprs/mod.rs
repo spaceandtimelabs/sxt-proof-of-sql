@@ -67,6 +67,6 @@ pub use table_expr::TableExpr;
 pub(crate) mod test_utility;
 
 mod column_expr;
-pub(crate) use column_expr::ColumnExpr;
+pub use column_expr::ColumnExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod column_expr_test;
