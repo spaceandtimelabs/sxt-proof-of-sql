@@ -19,7 +19,6 @@ use crate::{
 use alloc::{boxed::Box, string::ToString};
 use bumpalo::Bump;
 use core::fmt::Debug;
-use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::BinaryOperator;
 

@@ -282,22 +282,21 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
         let sum_expr = sum_expr_columns
             .iter()
             .map(|res| {
-                if let Expression::Aggregation {
+                let Expression::Aggregation {
                     op: AggregationOperator::Sum,
-                    ..
-                } = (*res.expr).clone()
-                {
-                    let res_dyn_proof_expr =
-                        DynProofExprBuilder::new(&value.column_mapping).build(&res.expr);
-                    res_dyn_proof_expr
-                        .ok()
-                        .map(|dyn_proof_expr| AliasedDynProofExpr {
-                            alias: res.alias.into(),
-                            expr: dyn_proof_expr,
-                        })
-                } else {
-                    None
-                }
+                    expr: inner_expr,
+                } = *res.expr.clone()
+                else {
+                    return None;
+                };
+                let res_dyn_proof_expr =
+                    DynProofExprBuilder::new(&value.column_mapping).build(&inner_expr);
+                res_dyn_proof_expr
+                    .ok()
+                    .map(|dyn_proof_expr| AliasedDynProofExpr {
+                        alias: res.alias.into(),
+                        expr: dyn_proof_expr,
+                    })
             })
             .collect::<Option<Vec<AliasedDynProofExpr>>>();
 
