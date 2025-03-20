@@ -1353,15 +1353,12 @@ fn we_can_prove_nullable_table_with_is_true_with_dory() {
 
 #[test]
 fn verification_should_fail_with_tampered_is_true_query_result() {
-    // This test demonstrates that the system detects tampering with query results
-    // when using IS TRUE in a WHERE clause
     let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
     let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
 
-    // Create a test table with a boolean column 'a'
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
@@ -1370,7 +1367,6 @@ fn verification_should_fail_with_tampered_is_true_query_result() {
         0,
     );
 
-    // Create a query that uses IS TRUE in the WHERE clause
     let query = QueryExpr::try_new(
         "SELECT * FROM table WHERE a IS TRUE".parse().unwrap(),
         "sxt".into(),
@@ -1378,47 +1374,38 @@ fn verification_should_fail_with_tampered_is_true_query_result() {
     )
     .unwrap();
 
-    // Create a verifiable result with the honest data
     let honest_verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
     );
 
-    // Verify the honest result
     let honest_result = honest_verifiable_result
         .clone()
         .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
         .unwrap()
         .table;
 
-    // The honest result should contain only the rows where 'a' IS TRUE
     let expected_result = owned_table([boolean("a", [true, true])]);
     assert_eq!(honest_result, expected_result);
 
-    // Now create a malicious scenario by creating a table with incorrect data
-    // We'll create a table where all values are true, which would give an incorrect result
     let mut malicious_accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     malicious_accessor.add_table(
         TableRef::new("sxt", "table"),
-        owned_table([boolean("a", [true, true, true])]), // All values are true, which is incorrect
+        owned_table([boolean("a", [true, true, true])]),
         0,
     );
 
-    // Create a malicious verifiable result
     let malicious_verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
         query.proof_expr(),
         &malicious_accessor,
         &dory_prover_setup,
     );
 
-    // Now try to verify the malicious result with the honest verifier setup and accessor
-    // This simulates a situation where the prover is trying to claim all rows satisfy the condition
     let verification_result =
         malicious_verifiable_result.verify(query.proof_expr(), &accessor, &dory_verifier_setup);
 
-    // The verification should fail because the proof was created with tampered data
     assert!(
         verification_result.is_err(),
         "Expected verification to fail with tampered data"
@@ -1474,15 +1461,12 @@ fn we_can_prove_nullable_table_with_arithmetic_operations_with_dory() {
 
 #[test]
 fn verification_should_fail_with_tampered_nullable_arithmetic_query_result() {
-    // This test demonstrates that the system detects tampering with query results
-    // when using nullable columns with arithmetic operations in a WHERE clause
     let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
     let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
 
-    // Create an honest test table with nullable columns 'a' and 'b'
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
@@ -1502,7 +1486,6 @@ fn verification_should_fail_with_tampered_nullable_arithmetic_query_result() {
         0,
     );
 
-    // Create a query that uses arithmetic operations on nullable columns in the WHERE clause
     let query = QueryExpr::try_new(
         "SELECT * FROM table WHERE a + b = 2".parse().unwrap(),
         "sxt".into(),
@@ -1510,31 +1493,24 @@ fn verification_should_fail_with_tampered_nullable_arithmetic_query_result() {
     )
     .unwrap();
 
-    // Create a verifiable result with the honest data
     let honest_verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
     );
 
-    // Verify the honest result
     let honest_result = honest_verifiable_result
         .clone()
         .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
         .unwrap()
         .table;
 
-    // The honest result should contain only the rows where 'a + b = 2'
-    // When either operand is NULL, the result of a + b is NULL, which fails the equality check
-    // Since both values are marked as NULL (Some(vec![false])), this row should not be in the result
     let expected_result = owned_table([
         nullable_column("a", &OwnedColumn::BigInt(vec![]), Some(vec![])),
         nullable_column("b", &OwnedColumn::BigInt(vec![]), Some(vec![])),
     ]);
     assert_eq!(honest_result, expected_result);
 
-    // Now create a malicious scenario by creating a table with incorrect data
-    // We'll create a table where more rows would satisfy 'a + b = 2'
     let mut malicious_accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     malicious_accessor.add_table(
@@ -1554,19 +1530,15 @@ fn verification_should_fail_with_tampered_nullable_arithmetic_query_result() {
         0,
     );
 
-    // Create a malicious verifiable result
     let malicious_verifiable_result = VerifiableQueryResult::<DoryEvaluationProof>::new(
         query.proof_expr(),
         &malicious_accessor,
         &dory_prover_setup,
     );
 
-    // Now try to verify the malicious result with the honest verifier setup and accessor
-    // This simulates a situation where the prover is trying to claim more rows satisfy the condition
     let verification_result =
         malicious_verifiable_result.verify(query.proof_expr(), &accessor, &dory_verifier_setup);
 
-    // The verification should fail because the proof was created with tampered data
     assert!(
         verification_result.is_err(),
         "Expected verification to fail with tampered data"
@@ -1590,8 +1562,6 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
     let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
-
-    // Create Arrow arrays with NULL values
     let a_array: ArrayRef = Arc::new(Int64Array::from(vec![
         Some(1),
         Some(1),
@@ -1611,8 +1581,6 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
         Some(2),
     ]));
     let c_array: ArrayRef = Arc::new(Int64Array::from(vec![101, 102, 103, 104, 105, 106, 107]));
-
-    // Create RecordBatch
     let schema = Schema::new(vec![
         Field::new("a", DataType::Int64, true),
         Field::new("b", DataType::Int64, true),
@@ -1621,14 +1589,12 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
     let record_batch =
         RecordBatch::try_new(Arc::new(schema), vec![a_array, b_array, c_array]).unwrap();
 
-    // Convert to OwnedTable
     let table = OwnedTable::<DoryScalar>::try_from(record_batch).unwrap();
 
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(TableRef::new("sxt", "table"), table, 0);
 
-    // Test 1: A + B = 2 should return only the row where A=1 and B=1 (first row)
     let query = QueryExpr::try_new(
         "SELECT * FROM table WHERE a + b = 2".parse().unwrap(),
         "sxt".into(),
@@ -1647,8 +1613,6 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
         .unwrap()
         .table;
 
-    // In SQL arithmetic with NULLs, if either operand is NULL, the result is NULL
-    // So we should only get the row where both a and b are non-NULL and their sum is 2
     let expected_result = owned_table([
         nullable_column("a", &OwnedColumn::BigInt(vec![1]), Some(vec![true])),
         nullable_column("b", &OwnedColumn::BigInt(vec![1]), Some(vec![true])),
@@ -1656,7 +1620,6 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
     ]);
     assert_eq!(owned_table_result, expected_result);
 
-    // Test 2: A + B = 4 should return only the row where A=2 and B=2
     let query = QueryExpr::try_new(
         "SELECT * FROM table WHERE a + b = 4".parse().unwrap(),
         "sxt".into(),
@@ -1675,9 +1638,6 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
         .unwrap()
         .table;
 
-    // Expected result: only the row where A=2, B=2, C=105
-
-    // Expected result: only the row where A=2, B=2, C=105
     let expected_result = owned_table([
         nullable_column("a", &OwnedColumn::BigInt(vec![2]), Some(vec![true])),
         nullable_column("b", &OwnedColumn::BigInt(vec![2]), Some(vec![true])),
@@ -1685,7 +1645,6 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
     ]);
     assert_eq!(owned_table_result, expected_result);
 
-    // Test 3: A + B = 3 should return empty result as no rows satisfy this condition
     let query = QueryExpr::try_new(
         "SELECT * FROM table WHERE a + b = 3".parse().unwrap(),
         "sxt".into(),
@@ -1704,13 +1663,47 @@ fn we_can_prove_nullable_arithmetic_with_dory() {
         .unwrap()
         .table;
 
-    // Expected result: empty table with the same structure
-
-    // Expected result: empty table with the same structure
     let expected_result = owned_table([
         nullable_column("a", &OwnedColumn::BigInt(vec![]), Some(vec![])),
         nullable_column("b", &OwnedColumn::BigInt(vec![]), Some(vec![])),
         bigint("c", Vec::<i64>::new()),
     ]);
     assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+fn is_true_requires_boolean_type() {
+    use ark_std::test_rng;
+    use proof_of_sql::{
+        base::database::ColumnType,
+        proof_primitive::dory::{DoryProverPublicSetup, ProverSetup, PublicParameters},
+    };
+
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    accessor.add_table(
+        TableRef::new("sxt", "table"),
+        owned_table([bigint("a", [1, 2, 3])]),
+        0,
+    );
+
+    let query_result = QueryExpr::try_new(
+        "SELECT * FROM table WHERE a IS TRUE".parse().unwrap(),
+        "sxt".into(),
+        &accessor,
+    );
+
+    assert!(query_result.is_err());
+    match query_result {
+        Err(ConversionError::InvalidDataType { expected, actual }) => {
+            assert_eq!(expected, ColumnType::Boolean);
+            assert_eq!(actual, ColumnType::BigInt);
+        }
+        Err(e) => panic!("Expected InvalidDataType error, got: {e:?}"),
+        _ => panic!("Expected an error"),
+    }
 }

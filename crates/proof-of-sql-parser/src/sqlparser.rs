@@ -320,4 +320,54 @@ mod test {
             "select cat as cat, sum(a) as s, count(*) as rows from tab where d = 'Space and Time' group by cat;",
         );
     }
+
+    #[test]
+    fn test_varbinary_conversion() {
+        use crate::intermediate_ast::Literal;
+        use sqlparser::ast::{Expr, Value};
+
+        let binary_data = vec![0x01, 0x02, 0x03, 0xAB, 0xCD, 0xEF];
+        let var_binary_literal = Literal::VarBinary(binary_data.clone());
+        let expr: Expr = var_binary_literal.into();
+
+        match expr {
+            Expr::Value(Value::HexStringLiteral(hex_string)) => {
+                let expected = binary_data.iter().fold(
+                    String::with_capacity(binary_data.len() * 2),
+                    |mut acc, byte| {
+                        acc.push_str(&format!("{byte:02x}"));
+                        acc
+                    },
+                );
+
+                assert_eq!(
+                    hex_string, expected,
+                    "Hex string did not match expected value"
+                );
+            }
+            _ => panic!("VarBinary was not converted to HexStringLiteral"),
+        }
+    }
+
+    #[test]
+    fn test_function_arg_expr_conversion() {
+        use crate::intermediate_ast::Expression;
+        use sqlparser::ast::FunctionArgExpr;
+
+        let wildcard_expr = Expression::Wildcard;
+        let function_arg: FunctionArgExpr = wildcard_expr.into();
+
+        match function_arg {
+            FunctionArgExpr::Wildcard => {}
+            _ => panic!("Expression::Wildcard was not converted to FunctionArgExpr::Wildcard"),
+        }
+
+        let regular_expr = Expression::Column(crate::Identifier::new("column_name"));
+        let function_arg: FunctionArgExpr = regular_expr.into();
+
+        match function_arg {
+            FunctionArgExpr::Expr(_) => {}
+            _ => panic!("Expression::Column was not converted to FunctionArgExpr::Expr"),
+        }
+    }
 }

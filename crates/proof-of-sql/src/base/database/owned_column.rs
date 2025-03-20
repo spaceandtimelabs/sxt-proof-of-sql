@@ -1467,4 +1467,215 @@ mod test {
         assert_eq!(nullable_column.scalar_at(1), Some(None));
         assert_eq!(nullable_column.scalar_at(2), Some(Some(30i32.into())));
     }
+
+    #[test]
+    fn we_can_convert_uint8_scalars_to_owned_columns() {
+        let scalars = [
+            TestScalar::from(1u8),
+            TestScalar::from(2u8),
+            TestScalar::from(3u8),
+        ];
+        let col = OwnedColumn::<TestScalar>::try_from_scalars(&scalars, ColumnType::Uint8).unwrap();
+        assert_eq!(col, OwnedColumn::Uint8(vec![1, 2, 3]));
+    }
+
+    #[test]
+    fn we_can_convert_tinyint_scalars_to_owned_columns() {
+        let scalars = [
+            TestScalar::from(1i8),
+            TestScalar::from(2i8),
+            TestScalar::from(3i8),
+        ];
+        let col =
+            OwnedColumn::<TestScalar>::try_from_scalars(&scalars, ColumnType::TinyInt).unwrap();
+        assert_eq!(col, OwnedColumn::TinyInt(vec![1, 2, 3]));
+    }
+
+    #[test]
+    fn we_can_coerce_scalar_to_uint8() {
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Scalar(vec![
+            TestScalar::from(1u8),
+            TestScalar::from(2u8),
+            TestScalar::from(3u8),
+        ]);
+        let result = col.try_coerce_scalar_to_numeric(ColumnType::Uint8).unwrap();
+        assert_eq!(result, OwnedColumn::Uint8(vec![1, 2, 3]));
+    }
+
+    #[test]
+    fn we_can_get_column_type_for_nullable_column() {
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
+        let nullable_col = OwnedNullableColumn::new(col);
+        assert_eq!(nullable_col.column_type(), ColumnType::Int128);
+    }
+
+    #[test]
+    fn we_can_check_if_value_is_null() {
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
+        let presence = Some(vec![true, false, true, true, false]);
+        let nullable_col = OwnedNullableColumn::with_presence(col, presence).unwrap();
+
+        assert!(!nullable_col.is_null(0));
+        assert!(nullable_col.is_null(1));
+        assert!(!nullable_col.is_null(2));
+    }
+
+    #[test]
+    fn we_can_permute_owned_nullable_column_with_null_values() {
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
+        let presence = Some(vec![true, false, true, true, false]);
+        let nullable_col = OwnedNullableColumn::with_presence(col, presence).unwrap();
+
+        let permutation = Permutation::try_new(vec![1, 3, 4, 0, 2]).unwrap();
+        let permuted_col = nullable_col.try_permute(&permutation).unwrap();
+
+        assert_eq!(
+            permuted_col.presence,
+            Some(vec![false, true, false, true, true])
+        );
+
+        match permuted_col.values {
+            OwnedColumn::Int128(values) => {
+                assert_eq!(values, vec![2, 4, 5, 1, 3]);
+            }
+            _ => panic!("Expected Int128 column"),
+        }
+    }
+
+    #[test]
+    fn we_can_handle_numeric_types_in_get_scalar_at() {
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Uint8(vec![1, 2, 3]);
+        let nullable_col = OwnedNullableColumn::new(col);
+        assert_eq!(
+            nullable_col.get_scalar_at(0),
+            Some(Some(TestScalar::from(1u8)))
+        );
+        assert_eq!(nullable_col.get_scalar_at(5), None);
+
+        let col: OwnedColumn<TestScalar> = OwnedColumn::TinyInt(vec![1, 2, 3]);
+        let nullable_col = OwnedNullableColumn::new(col);
+        assert_eq!(
+            nullable_col.get_scalar_at(0),
+            Some(Some(TestScalar::from(1i8)))
+        );
+
+        let col: OwnedColumn<TestScalar> = OwnedColumn::SmallInt(vec![1, 2, 3]);
+        let nullable_col = OwnedNullableColumn::new(col);
+        assert_eq!(
+            nullable_col.get_scalar_at(0),
+            Some(Some(TestScalar::from(1i16)))
+        );
+
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Int(vec![1, 2, 3]);
+        let nullable_col = OwnedNullableColumn::new(col);
+        assert_eq!(
+            nullable_col.get_scalar_at(0),
+            Some(Some(TestScalar::from(1i32)))
+        );
+
+        let col: OwnedColumn<TestScalar> = OwnedColumn::BigInt(vec![1, 2, 3]);
+        let nullable_col = OwnedNullableColumn::new(col);
+        assert_eq!(
+            nullable_col.get_scalar_at(0),
+            Some(Some(TestScalar::from(1i64)))
+        );
+
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Int128(vec![1, 2, 3]);
+        let nullable_col = OwnedNullableColumn::new(col);
+        assert_eq!(
+            nullable_col.get_scalar_at(0),
+            Some(Some(TestScalar::from(1i128)))
+        );
+
+        let col: OwnedColumn<TestScalar> =
+            OwnedColumn::Decimal75(Precision::new(10).unwrap(), 2, vec![TestScalar::from(100)]);
+        let nullable_col = OwnedNullableColumn::new(col);
+        assert_eq!(
+            nullable_col.get_scalar_at(0),
+            Some(Some(TestScalar::from(100)))
+        );
+
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Scalar(vec![TestScalar::from(100)]);
+        let nullable_col = OwnedNullableColumn::new(col);
+        assert_eq!(
+            nullable_col.get_scalar_at(0),
+            Some(Some(TestScalar::from(100)))
+        );
+
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Int(vec![1, 2, 3]);
+        let presence = Some(vec![true, false, true]);
+        let nullable_col = OwnedNullableColumn::with_presence(col, presence).unwrap();
+        assert_eq!(
+            nullable_col.get_scalar_at(0),
+            Some(Some(TestScalar::from(1i32)))
+        );
+        assert_eq!(nullable_col.get_scalar_at(1), Some(None));
+    }
+
+    #[test]
+    fn we_can_handle_empty_iterator_in_try_collect_option_scalars() {
+        let iter = core::iter::empty::<Option<TestScalar>>();
+        let result =
+            OwnedNullableColumn::<TestScalar>::try_collect_option_scalars(iter, ColumnType::Int)
+                .unwrap();
+
+        assert!(result.is_empty());
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn we_can_handle_errors_from_owned_nullable_column_creation() {
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Int(vec![1, 2, 3]);
+        let presence = Some(vec![true, false]);
+        let result = OwnedNullableColumn::with_presence(col, presence);
+        assert!(result.is_err());
+
+        let option_scalars = [
+            Some(TestScalar::from(u8::MAX)),
+            Some(TestScalar::from(-1i8)),
+        ];
+        let result = OwnedNullableColumn::<TestScalar>::try_from_option_scalars(
+            &option_scalars,
+            ColumnType::Uint8,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn we_can_test_from_nullable_column_conversion() {
+        let _bump = Bump::new();
+        let vec = vec![1, 2, 3, 4, 5];
+        let column = Column::<TestScalar>::Int128(&vec);
+        let nullable_column = NullableColumn {
+            values: column,
+            presence: None,
+        };
+
+        let owned_nullable_column = OwnedNullableColumn::<TestScalar>::from(&nullable_column);
+
+        match owned_nullable_column.values {
+            OwnedColumn::Int128(values) => {
+                assert_eq!(values, vec);
+            }
+            _ => panic!("Expected Int128 column"),
+        }
+        assert_eq!(owned_nullable_column.presence, None);
+
+        let presence = vec![true, false, true, true, false];
+        let column = Column::<TestScalar>::Int128(&vec);
+        let nullable_column = NullableColumn {
+            values: column,
+            presence: Some(&presence),
+        };
+
+        let owned_nullable_column = OwnedNullableColumn::<TestScalar>::from(&nullable_column);
+
+        match owned_nullable_column.values {
+            OwnedColumn::Int128(values) => {
+                assert_eq!(values, vec);
+            }
+            _ => panic!("Expected Int128 column"),
+        }
+        assert_eq!(owned_nullable_column.presence, Some(presence));
+    }
 }

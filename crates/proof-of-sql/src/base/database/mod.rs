@@ -65,6 +65,8 @@ pub use owned_column_error::{OwnedColumnError, OwnedColumnResult};
 
 /// TODO: add docs
 pub(crate) mod owned_column_operation;
+#[cfg(test)]
+mod owned_column_operation_test;
 
 mod owned_table;
 pub use owned_table::OwnedTable;

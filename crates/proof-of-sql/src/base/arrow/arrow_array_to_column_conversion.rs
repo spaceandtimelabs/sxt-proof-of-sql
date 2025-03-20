@@ -1803,6 +1803,32 @@ mod tests {
         }
     }
 
+    #[test]
+    fn to_nullable_column_correctly_handles_array_with_no_nulls() {
+        let alloc = Bump::new();
+        let array = Int64Array::from(vec![10, 20, 30]);
+        let array_ref = Arc::new(array) as ArrayRef;
+        assert_eq!(array_ref.null_count(), 0);
+
+        let range = 0..3;
+        let nullable_column = array_ref
+            .to_nullable_column::<TestScalar>(&alloc, &range, None)
+            .unwrap();
+
+        assert!(!nullable_column.is_nullable());
+        assert_eq!(nullable_column.len(), 3);
+
+        match nullable_column.values {
+            Column::BigInt(values) => {
+                assert_eq!(values.len(), 3);
+                assert_eq!(values[0], 10);
+                assert_eq!(values[1], 20);
+                assert_eq!(values[2], 30);
+            }
+            _ => panic!("Expected BigInt column"),
+        }
+    }
+
     proptest! {
         #[test]
         fn we_can_roundtrip_arbitrary_column(owned_column: OwnedColumn<TestScalar>) {
@@ -1812,6 +1838,348 @@ mod tests {
             let actual = OwnedColumn::from(&column);
 
             prop_assert_eq!(actual, owned_column);
+        }
+    }
+
+    #[test]
+    fn we_can_convert_uint8_array_normal_range() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(UInt8Array::from(vec![1, 3, 42]));
+        let result = array.to_column::<DoryScalar>(&alloc, &(1..3), None);
+        assert_eq!(result.unwrap(), Column::Uint8(&[3, 42]));
+    }
+
+    #[test]
+    fn we_can_convert_uint8_array_empty_range() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(UInt8Array::from(vec![1, 3, 42]));
+        let result = array.to_column::<DoryScalar>(&alloc, &(2..2), None);
+        assert_eq!(result.unwrap(), Column::Uint8(&[]));
+    }
+
+    #[test]
+    fn we_cannot_convert_uint8_array_oob_range() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(UInt8Array::from(vec![1, 3, 42]));
+        let result = array.to_column::<DoryScalar>(&alloc, &(2..4), None);
+        assert_eq!(
+            result,
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 4 })
+        );
+    }
+
+    #[test]
+    fn we_can_convert_uint8_array_with_nulls() {
+        let alloc = Bump::new();
+        let array = UInt8Array::from(vec![Some(10), None, Some(30)]);
+        let array_ref = Arc::new(array) as ArrayRef;
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(nullable_result.is_ok());
+        let nullable_column = nullable_result.unwrap();
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+
+        let column_result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(column_result.is_ok());
+        let column = column_result.unwrap();
+        match column {
+            Column::Uint8(values) => {
+                assert_eq!(values.len(), 3);
+                assert_eq!(values[0], 10);
+                assert_eq!(values[1], 0); // Default value for NULL
+                assert_eq!(values[2], 30);
+            }
+            _ => panic!("Expected Uint8 column"),
+        }
+    }
+
+    #[test]
+    fn binary_array_with_nulls_without_precomputed_scalars_returns_error() {
+        let alloc = Bump::new();
+        let array = BinaryArray::from(vec![
+            Some(b"hello".as_slice()),
+            None,
+            Some(b"world".as_slice()),
+        ]);
+        let array_ref = Arc::new(array) as ArrayRef;
+
+        let range = 0..3;
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &range, None);
+
+        assert!(matches!(
+            nullable_result,
+            Err(ArrowArrayToColumnConversionError::UnsupportedType { datatype })
+            if datatype == DataType::Binary
+        ));
+    }
+
+    #[test]
+    fn binary_array_with_nulls_to_column_returns_error_without_precomputed_scalars() {
+        let alloc = Bump::new();
+        let array = BinaryArray::from(vec![
+            Some(b"hello".as_slice()),
+            None,
+            Some(b"world".as_slice()),
+        ]);
+        let array_ref = Arc::new(array) as ArrayRef;
+        let result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), None);
+
+        assert!(matches!(
+            result,
+            Err(ArrowArrayToColumnConversionError::UnsupportedType { datatype })
+            if datatype == DataType::Binary
+        ));
+    }
+
+    #[test]
+    fn we_can_convert_binary_array_with_nulls_to_nullable_column() {
+        let alloc = Bump::new();
+        let array = BinaryArray::from(vec![
+            Some(b"hello".as_slice()),
+            None,
+            Some(b"world".as_slice()),
+        ]);
+        let array_ref = Arc::new(array) as ArrayRef;
+        let scalars = [
+            TestScalar::from_byte_slice_via_hash(b"hello"),
+            TestScalar::from_byte_slice_via_hash(b""), // Default value for NULL
+            TestScalar::from_byte_slice_via_hash(b"world"),
+        ];
+        let scalar_slice = alloc.alloc_slice_copy(&scalars);
+        let nullable_result =
+            array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), Some(scalar_slice));
+        assert!(nullable_result.is_ok());
+
+        let nullable_column = nullable_result.unwrap();
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0));
+        assert!(nullable_column.is_null(1));
+        assert!(!nullable_column.is_null(2));
+
+        match &nullable_column.values {
+            Column::VarBinary((binary_data, _scalars)) => {
+                assert_eq!(binary_data[0], b"hello");
+                assert_eq!(binary_data[1], b""); // Default value for NULL
+                assert_eq!(binary_data[2], b"world");
+            }
+            _ => panic!("Expected VarBinary column"),
+        }
+    }
+
+    #[test]
+    fn we_can_convert_binary_array_with_nulls_using_to_column() {
+        let alloc = Bump::new();
+        let array = BinaryArray::from(vec![
+            Some(b"hello".as_slice()),
+            None,
+            Some(b"world".as_slice()),
+        ]);
+        let array_ref = Arc::new(array) as ArrayRef;
+        let scalars = [
+            TestScalar::from_byte_slice_via_hash(b"hello"),
+            TestScalar::from_byte_slice_via_hash(b""), // Default value for NULL
+            TestScalar::from_byte_slice_via_hash(b"world"),
+        ];
+        let scalar_slice = alloc.alloc_slice_copy(&scalars);
+        let column_result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), Some(scalar_slice));
+        assert!(column_result.is_ok());
+
+        let column = column_result.unwrap();
+        match column {
+            Column::VarBinary((binary_data, scalars)) => {
+                assert_eq!(binary_data.len(), 3);
+                assert_eq!(binary_data[0], b"hello");
+                assert_eq!(binary_data[1], b""); // Default value for NULL
+                assert_eq!(binary_data[2], b"world");
+                assert_eq!(scalars[0], TestScalar::from_byte_slice_via_hash(b"hello"));
+                assert_eq!(scalars[1], TestScalar::from_byte_slice_via_hash(b""));
+                assert_eq!(scalars[2], TestScalar::from_byte_slice_via_hash(b"world"));
+            }
+            _ => panic!("Expected VarBinary column"),
+        }
+    }
+
+    #[test]
+    fn we_can_convert_subset_of_binary_array_with_nulls() {
+        let alloc = Bump::new();
+        let array = BinaryArray::from(vec![
+            Some(b"first".as_slice()),
+            Some(b"second".as_slice()),
+            None,
+            Some(b"fourth".as_slice()),
+            None,
+        ]);
+        let array_ref = Arc::new(array) as ArrayRef;
+        let scalars = [
+            TestScalar::from_byte_slice_via_hash(b"first"),
+            TestScalar::from_byte_slice_via_hash(b"second"),
+            TestScalar::from_byte_slice_via_hash(b""), // Default for NULL
+            TestScalar::from_byte_slice_via_hash(b"fourth"),
+            TestScalar::from_byte_slice_via_hash(b""), // Default for NULL
+        ];
+
+        let range = 1..4;
+        let scalar_slice = alloc.alloc_slice_copy(&scalars[range.clone()]);
+
+        let nullable_result =
+            array_ref.to_nullable_column::<TestScalar>(&alloc, &range, Some(scalar_slice));
+        assert!(nullable_result.is_ok());
+
+        let nullable_column = nullable_result.unwrap();
+        assert_eq!(nullable_column.len(), 3);
+        assert!(nullable_column.is_nullable());
+        assert!(!nullable_column.is_null(0)); // "second" at index 1 in original array
+        assert!(nullable_column.is_null(1)); // NULL at index 2 in original array
+        assert!(!nullable_column.is_null(2)); // "fourth" at index 3 in original array
+
+        match &nullable_column.values {
+            Column::VarBinary((binary_data, slice_scalars)) => {
+                assert_eq!(binary_data[0], b"second");
+                assert_eq!(binary_data[1], b""); // Default for NULL
+                assert_eq!(binary_data[2], b"fourth");
+                assert_eq!(slice_scalars.len(), 3);
+                assert_eq!(
+                    slice_scalars[0],
+                    TestScalar::from_byte_slice_via_hash(b"second")
+                );
+                assert_eq!(slice_scalars[1], TestScalar::from_byte_slice_via_hash(b""));
+                assert_eq!(
+                    slice_scalars[2],
+                    TestScalar::from_byte_slice_via_hash(b"fourth")
+                );
+            }
+            _ => panic!("Expected VarBinary column"),
+        }
+    }
+
+    #[test]
+    fn string_array_with_nulls_without_precomputed_scalars_returns_error() {
+        let alloc = Bump::new();
+        let array = StringArray::from(vec![Some("hello"), None, Some("world")]);
+        let array_ref = Arc::new(array) as ArrayRef;
+        let range = 0..3;
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &range, None);
+        assert!(matches!(
+            nullable_result,
+            Err(ArrowArrayToColumnConversionError::UnsupportedType { datatype })
+            if datatype == DataType::Utf8
+        ));
+    }
+
+    #[test]
+    fn string_array_with_nulls_to_column_returns_error_without_precomputed_scalars() {
+        let alloc = Bump::new();
+        let array = StringArray::from(vec![Some("hello"), None, Some("world")]);
+        let array_ref = Arc::new(array) as ArrayRef;
+        let result = array_ref.to_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(matches!(
+            result,
+            Err(ArrowArrayToColumnConversionError::UnsupportedType { datatype })
+            if datatype == DataType::Utf8
+        ));
+    }
+
+    #[test]
+    fn we_can_convert_binary_array_without_precomputed_scalars() {
+        let alloc = Bump::new();
+        let data = vec![
+            b"test1".as_slice(),
+            b"test2".as_slice(),
+            b"test3".as_slice(),
+        ];
+        let array: ArrayRef = Arc::new(BinaryArray::from(data.clone()));
+        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(result.is_ok());
+
+        let column = result.unwrap();
+        match column {
+            Column::VarBinary((binary_data, scalars)) => {
+                assert_eq!(binary_data.len(), 3);
+                assert_eq!(binary_data[0], b"test1");
+                assert_eq!(binary_data[1], b"test2");
+                assert_eq!(binary_data[2], b"test3");
+                assert_eq!(scalars.len(), 3);
+                assert_eq!(scalars[0], TestScalar::from_byte_slice_via_hash(b"test1"));
+                assert_eq!(scalars[1], TestScalar::from_byte_slice_via_hash(b"test2"));
+                assert_eq!(scalars[2], TestScalar::from_byte_slice_via_hash(b"test3"));
+            }
+            _ => panic!("Expected VarBinary column"),
+        }
+    }
+
+    #[test]
+    fn we_can_convert_string_array_without_precomputed_scalars() {
+        let alloc = Bump::new();
+        let data = vec!["test1", "test2", "test3"];
+        let array: ArrayRef = Arc::new(StringArray::from(data.clone()));
+        let result = array.to_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(result.is_ok());
+
+        let column = result.unwrap();
+        match column {
+            Column::VarChar((strings, scalars)) => {
+                assert_eq!(strings.len(), 3);
+                assert_eq!(strings[0], "test1");
+                assert_eq!(strings[1], "test2");
+                assert_eq!(strings[2], "test3");
+                assert_eq!(scalars.len(), 3);
+                assert_eq!(scalars[0], TestScalar::from("test1"));
+                assert_eq!(scalars[1], TestScalar::from("test2"));
+                assert_eq!(scalars[2], TestScalar::from("test3"));
+            }
+            _ => panic!("Expected VarChar column"),
+        }
+    }
+
+    #[test]
+    fn we_can_convert_timestamp_array_with_timezone_to_nullable_column() {
+        let alloc = Bump::new();
+        let timezone = Some("+02:00".to_string());
+        let array = TimestampSecondArray::from(vec![100, 200, 300]);
+        let array_with_tz = array.with_timezone_opt(timezone);
+        let array_ref = Arc::new(array_with_tz) as ArrayRef;
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), None);
+        assert!(nullable_result.is_ok());
+        let nullable_column = nullable_result.unwrap();
+
+        match &nullable_column.values {
+            Column::TimestampTZ(time_unit, tz, values) => {
+                assert_eq!(*time_unit, PoSQLTimeUnit::Second);
+                assert_eq!(tz.offset(), 7200); // +02:00 = 2 hours = 7200 seconds
+                assert_eq!(values.len(), 3);
+                assert_eq!(values[0], 100);
+                assert_eq!(values[1], 200);
+                assert_eq!(values[2], 300);
+            }
+            _ => panic!("Expected TimestampTZ column"),
+        }
+    }
+
+    #[test]
+    fn timestamp_array_with_invalid_timezone_returns_error() {
+        let alloc = Bump::new();
+        let invalid_timezone = Some("INVALID_TZ".to_string());
+        let array = TimestampSecondArray::from(vec![100, 200, 300]);
+        let array_with_tz = array.with_timezone_opt(invalid_timezone);
+        let array_ref = Arc::new(array_with_tz) as ArrayRef;
+        let nullable_result = array_ref.to_nullable_column::<TestScalar>(&alloc, &(0..3), None);
+
+        assert!(matches!(
+            nullable_result,
+            Err(ArrowArrayToColumnConversionError::TimestampConversionError { .. })
+        ));
+
+        if let Err(ArrowArrayToColumnConversionError::TimestampConversionError { source }) =
+            nullable_result
+        {
+            assert!(matches!(
+                source,
+                PoSQLTimestampError::InvalidTimezone { .. }
+            ));
         }
     }
 }

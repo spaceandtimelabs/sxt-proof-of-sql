@@ -553,17 +553,18 @@ impl<'a, S: Scalar> From<Table<'a, S>> for OwnedTable<S> {
 
 #[cfg(test)]
 mod tests {
-    use super::OwnedTable;
+    use super::*;
     use crate::base::{
         database::{
-            owned_table_utility::*, table_utility::*, ColumnCoercionError, Table,
-            TableCoercionError, TableOptions,
+            owned_column::OwnedNullableColumn, owned_table_utility::*, table_utility::*,
+            ColumnCoercionError, Table, TableCoercionError, TableOptions,
         },
         map::indexmap,
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         scalar::test_scalar::TestScalar,
     };
     use bumpalo::Bump;
+    use sqlparser::ast::Ident;
 
     #[test]
     fn test_conversion_from_table_to_owned_table() {
@@ -738,5 +739,194 @@ mod tests {
                 source: ColumnCoercionError::Overflow
             })
         ));
+    }
+
+    #[test]
+    fn test_is_null_functions() {
+        assert!(is_null_i8(NULL_I8));
+        assert!(!is_null_i8(0));
+        assert!(is_null_i16(NULL_I16));
+        assert!(!is_null_i16(0));
+        assert!(is_null_i32(NULL_I32));
+        assert!(!is_null_i32(0));
+        assert!(is_null_i64(NULL_I64));
+        assert!(!is_null_i64(0));
+        assert!(is_null_i128(NULL_I128));
+        assert!(!is_null_i128(0));
+        assert!(is_null_timestamp(NULL_TIMESTAMP));
+        assert!(!is_null_timestamp(0));
+        assert!(is_null_u8(NULL_U8));
+        assert!(!is_null_u8(0));
+    }
+
+    #[test]
+    fn test_debug_implementation() {
+        let table: OwnedTable<TestScalar> = owned_table([
+            bigint("bigint", [0, 1, NULL_I64]),
+            int("int", [0, 1, NULL_I32]),
+            smallint("smallint", [0, 1, NULL_I16]),
+            tinyint("tinyint", [0, 1, NULL_I8]),
+            uint8("uint8", [0, 1, NULL_U8]),
+            varchar("varchar", ["a", "b", "c"]),
+            varbinary("varbinary", [vec![0, 1], vec![2, 3], vec![4, 5]]),
+            int128("int128", [0, 1, NULL_I128]),
+            decimal75("decimal75", 10, 2, [123, 456, 789]),
+            boolean("boolean", [true, false, true]),
+            timestamptz(
+                "timestamptz",
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::utc(),
+                [0, 1, NULL_TIMESTAMP],
+            ),
+            scalar("scalar", [0, 1, 2]),
+        ]);
+
+        let mut presence = IndexMap::default();
+        presence.insert(Ident::new("varchar"), vec![true, false, true]);
+        presence.insert(Ident::new("varbinary"), vec![true, false, true]);
+        presence.insert(Ident::new("boolean"), vec![true, false, true]);
+        presence.insert(Ident::new("scalar"), vec![true, false, true]);
+        presence.insert(Ident::new("decimal75"), vec![true, false, true]);
+
+        let table_with_presence =
+            OwnedTable::<TestScalar>::try_new_with_presence(table.into_inner(), presence).unwrap();
+
+        let debug_str = format!("{table_with_presence:?}");
+
+        assert!(debug_str.contains("NaN"));
+        assert!(debug_str.contains("bigint"));
+        assert!(debug_str.contains("varchar"));
+        assert!(debug_str.contains("boolean"));
+    }
+
+    #[test]
+    fn test_try_new_with_presence() {
+        let table = IndexMap::default();
+        let presence = IndexMap::default();
+
+        let result =
+            OwnedTable::<TestScalar>::try_new_with_presence(table.clone(), presence.clone());
+        assert!(result.is_ok());
+
+        let mut table = IndexMap::default();
+        table.insert(Ident::new("col1"), OwnedColumn::BigInt(vec![1, 2, 3]));
+
+        let mut presence = IndexMap::default();
+        presence.insert(Ident::new("col2"), vec![true, true, true]);
+
+        let result = OwnedTable::<TestScalar>::try_new_with_presence(table.clone(), presence);
+        assert!(matches!(result, Err(OwnedTableError::ColumnNotFound)));
+
+        let mut presence = IndexMap::default();
+        presence.insert(Ident::new("col1"), vec![true, true]);
+
+        let result = OwnedTable::<TestScalar>::try_new_with_presence(table.clone(), presence);
+        assert!(matches!(result, Err(OwnedTableError::ColumnLengthMismatch)));
+
+        let mut presence = IndexMap::default();
+        presence.insert(Ident::new("col1"), vec![true, false, true]);
+
+        let result = OwnedTable::<TestScalar>::try_new_with_presence(table, presence);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_try_new_from_nullable_columns() {
+        let col1 = OwnedNullableColumn::with_presence(
+            OwnedColumn::BigInt(vec![1, 2, 3]),
+            Some(vec![true, false, true]),
+        )
+        .unwrap();
+
+        let col2 = OwnedNullableColumn::with_presence(
+            OwnedColumn::Int(vec![4, 5, 6]),
+            Some(vec![false, true, false]),
+        )
+        .unwrap();
+
+        let col3 = OwnedNullableColumn::new(OwnedColumn::VarChar(vec![
+            "a".to_string(),
+            "b".to_string(),
+            "c".to_string(),
+        ]));
+
+        let mut columns = IndexMap::default();
+        columns.insert(Ident::new("col1"), col1);
+        columns.insert(Ident::new("col2"), col2);
+        columns.insert(Ident::new("col3"), col3);
+
+        let result = OwnedTable::<TestScalar>::try_new_from_nullable_columns(columns);
+        assert!(result.is_ok());
+
+        let table = result.unwrap();
+
+        assert!(table.has_nulls(&Ident::new("col1")));
+        assert!(table.has_nulls(&Ident::new("col2")));
+        assert!(!table.has_nulls(&Ident::new("col3")));
+        assert!(table.get_presence(&Ident::new("col1")).is_some());
+        assert!(table.get_presence(&Ident::new("col2")).is_some());
+        assert!(table.get_presence(&Ident::new("col3")).is_none());
+    }
+
+    #[test]
+    fn test_presence_operations() {
+        let mut table = IndexMap::default();
+        table.insert(Ident::new("col1"), OwnedColumn::BigInt(vec![1, 2, 3]));
+
+        let mut owned_table = OwnedTable::<TestScalar>::try_new(table).unwrap();
+
+        let presence = vec![true, false, true];
+        owned_table.set_presence(Ident::new("col1"), presence.clone());
+
+        assert_eq!(
+            owned_table.get_presence(&Ident::new("col1")).unwrap(),
+            &presence
+        );
+        assert!(owned_table.has_nulls(&Ident::new("col1")));
+        assert!(!owned_table.has_nulls(&Ident::new("nonexistent")));
+    }
+
+    #[test]
+    fn test_mle_evaluations() {
+        let table = owned_table::<TestScalar>([
+            bigint("bigint", [10, 20, 30]),
+            int("int", [1, 2, 3]),
+            scalar("scalar", [5, 6, 7]),
+        ]);
+
+        let evaluation_point = [
+            TestScalar::from(2),
+            TestScalar::from(3),
+            TestScalar::from(4),
+        ];
+
+        let evaluations = table.mle_evaluations(&evaluation_point);
+
+        assert!(!evaluations.is_empty());
+    }
+
+    #[test]
+    fn test_column_operations() {
+        let table = owned_table::<TestScalar>([
+            bigint("a", [1, 2, 3]),
+            int("b", [4, 5, 6]),
+            varchar("c", ["x", "y", "z"]),
+        ]);
+
+        assert_eq!(table.num_columns(), 3);
+        assert_eq!(table.num_rows(), 3);
+        assert!(!table.is_empty());
+        assert!(owned_table::<TestScalar>([]).is_empty());
+        assert_eq!(table.inner_table().len(), 3);
+
+        let names: Vec<_> = table.column_names().collect();
+        assert_eq!(names.len(), 3);
+        assert!(names.contains(&&Ident::new("a")));
+        assert!(names.contains(&&Ident::new("b")));
+        assert!(names.contains(&&Ident::new("c")));
+        assert!(table.column_by_index(0).is_some());
+        assert!(table.column_by_index(3).is_none());
+        let col = &table["a"];
+        assert!(matches!(col, OwnedColumn::BigInt(_)));
     }
 }

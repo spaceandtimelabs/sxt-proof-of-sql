@@ -370,3 +370,82 @@ fn we_can_perform_null_operations_with_where_clause_in_three_valued_logic() {
         vec![true, false, false, true, false, false, false, false, false, false]
     );
 }
+#[test]
+fn test_nullable_column_map_operations() {
+    use crate::{
+        base::database::owned_column::OwnedNullableColumn, proof_primitive::dory::DoryScalar,
+    };
+
+    let values = OwnedColumn::<DoryScalar>::Boolean(vec![true, false, true, false]);
+    let presence = Some(vec![true, true, false, true]);
+
+    let nullable_column = OwnedNullableColumn::with_presence(values, presence).unwrap();
+    let result: Vec<bool> = nullable_column
+        .presence
+        .unwrap()
+        .iter()
+        .zip(match &nullable_column.values {
+            OwnedColumn::Boolean(values) => values.iter(),
+            _ => panic!("Expected boolean column"),
+        })
+        .map(|(present, value)| *present && *value)
+        .collect();
+
+    assert_eq!(result, vec![true, false, false, false]);
+
+    let values2 = OwnedColumn::<DoryScalar>::Boolean(vec![true, true, false, true]);
+    let presence2 = Some(vec![false, true, true, true]);
+
+    let nullable_column2 = OwnedNullableColumn::with_presence(values2, presence2).unwrap();
+
+    let result2: Vec<bool> = nullable_column2
+        .presence
+        .unwrap()
+        .iter()
+        .zip(match &nullable_column2.values {
+            OwnedColumn::Boolean(values) => values.iter(),
+            _ => panic!("Expected boolean column"),
+        })
+        .map(|(present, value)| *present && *value)
+        .collect();
+
+    assert_eq!(result2, vec![false, true, false, true]);
+}
+#[test]
+fn presence_information_is_only_set_when_column_lengths_match() {
+    let mut table = owned_table::<TestScalar>([bigint("col1", [1, 2, 3])]);
+
+    assert!(!table.has_nulls(&Ident::new("col1")));
+
+    let matching_presence = vec![true, false, true];
+    table.set_presence(Ident::new("col1"), matching_presence.clone());
+
+    assert!(table.has_nulls(&Ident::new("col1")));
+    assert_eq!(
+        table.get_presence(&Ident::new("col1")),
+        Some(&matching_presence)
+    );
+
+    let mismatched_presence = vec![true, false];
+    let mut table2 = owned_table::<TestScalar>([bigint("col1", [1, 2, 3])]);
+
+    table2.set_presence(Ident::new("col1"), mismatched_presence.clone());
+
+    assert!(!table2.has_nulls(&Ident::new("col1")));
+    assert_eq!(table2.get_presence(&Ident::new("col1")), None);
+
+    let col1 = OwnedColumn::<TestScalar>::BigInt(vec![1, 2, 3]);
+    let col2 = OwnedColumn::<TestScalar>::BigInt(vec![4, 5, 6]);
+    let _ = nullable_column::<TestScalar>("col1", &col1, Some(vec![true, false, true]));
+    let _ = nullable_column::<TestScalar>("col2", &col2, Some(vec![false, true]));
+
+    let table3 = owned_table::<TestScalar>([bigint("col1", [1, 2, 3]), bigint("col2", [4, 5, 6])]);
+
+    assert!(table3.has_nulls(&Ident::new("col1")));
+    assert!(!table3.has_nulls(&Ident::new("col2")));
+    assert_eq!(
+        table3.get_presence(&Ident::new("col1")),
+        Some(&vec![true, false, true])
+    );
+    assert_eq!(table3.get_presence(&Ident::new("col2")), None);
+}

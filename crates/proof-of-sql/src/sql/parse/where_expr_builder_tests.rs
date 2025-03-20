@@ -445,6 +445,16 @@ fn we_can_directly_check_is_null_expression() {
             ColumnType::Boolean,
             "IS NULL expression for {column_name} should return Boolean type"
         );
+
+        // Additional verification to ensure we actually cover line 439
+        match built_expr {
+            DynProofExpr::IsNull(_) => {
+                // Successfully verified it's an IsNull expression
+            }
+            _ => {
+                panic!("Expected IsNull expression type, got {built_expr:?}");
+            }
+        }
     }
 }
 
@@ -479,6 +489,16 @@ fn we_can_directly_check_is_not_null_expression() {
             ColumnType::Boolean,
             "IS NOT NULL expression for {column_name} should return Boolean type"
         );
+
+        // Additional verification to ensure we actually cover line 473
+        match built_expr {
+            DynProofExpr::IsNotNull(_) => {
+                // Successfully verified it's an IsNotNull expression
+            }
+            _ => {
+                panic!("Expected IsNotNull expression type, got {built_expr:?}");
+            }
+        }
     }
 }
 
@@ -549,7 +569,21 @@ fn we_can_combine_is_null_with_comparison_operators() {
             equal(col("bigint_column"), lit(42_i64)),
         );
         let result1 = builder.build(Some(expr1));
-        assert!(result1.is_ok(), "IS NULL with equality should work");
+        assert!(
+            result1.is_ok(),
+            "IS NULL combined with equality should work"
+        );
+
+        // Verify that the built expression is of Or type
+        let built_expr = result1.unwrap().unwrap();
+        match built_expr {
+            DynProofExpr::Or(_) => {
+                // Successfully verified it's an Or expression
+            }
+            _ => {
+                panic!("Expected Or expression type, got {built_expr:?}");
+            }
+        }
     }
 
     // Test IS NULL combined with inequality
@@ -563,7 +597,7 @@ fn we_can_combine_is_null_with_comparison_operators() {
         assert!(result2.is_ok(), "IS NULL with inequality should work");
     }
 
-    // Test complex combination with multiple comparisons
+    // Test IS NULL combined with complex comparisons
     {
         let builder = WhereExprBuilder::new(&column_mapping);
         let expr3 = or(
@@ -581,6 +615,17 @@ fn we_can_combine_is_null_with_comparison_operators() {
             result3.is_ok(),
             "Complex combination with IS NULL and comparisons should work"
         );
+
+        // Verify the structure of the built expression for line 535
+        let built_expr = result3.unwrap().unwrap();
+        match built_expr {
+            DynProofExpr::Or(_) => {
+                // Successfully verified it's an Or expression
+            }
+            _ => {
+                panic!("Expected Or expression type, got {built_expr:?}");
+            }
+        }
     }
 }
 
@@ -596,6 +641,17 @@ fn we_can_check_simple_is_null_on_expressions() {
         result1.is_ok(),
         "IS NULL on simple arithmetic expression should work"
     );
+
+    // Verify structure of the built expression for line 582
+    let built_expr = result1.unwrap().unwrap();
+    match built_expr {
+        DynProofExpr::IsNull(_) => {
+            // Successfully verified it's an IsNull expression
+        }
+        _ => {
+            panic!("Expected IsNull expression type, got {built_expr:?}");
+        }
+    }
 }
 
 #[test]
@@ -608,6 +664,17 @@ fn we_can_check_is_true_with_null_handling() {
         let expr1 = is_true(col("boolean_column"));
         let result1 = builder.build(Some(expr1));
         assert!(result1.is_ok(), "IS TRUE should work");
+
+        // Verify structure of the built expression for line 597
+        let built_expr = result1.unwrap().unwrap();
+        match built_expr {
+            DynProofExpr::IsTrue(_) => {
+                // Successfully verified it's an IsTrue expression
+            }
+            _ => {
+                panic!("Expected IsTrue expression type, got {built_expr:?}");
+            }
+        }
     }
 
     // Test IS TRUE with simple expression
@@ -619,5 +686,16 @@ fn we_can_check_is_true_with_null_handling() {
             result3.is_ok(),
             "IS TRUE with simple expression should work"
         );
+
+        // Verify structure of the built expression for line 620
+        let built_expr = result3.unwrap().unwrap();
+        match built_expr {
+            DynProofExpr::IsTrue(_) => {
+                // Successfully verified it's an IsTrue expression
+            }
+            _ => {
+                panic!("Expected IsTrue expression type, got {built_expr:?}");
+            }
+        }
     }
 }

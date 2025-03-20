@@ -1,12 +1,13 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, NullableColumn, Table},
+        database::{Column, ColumnRef, ColumnType, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
     },
     sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    utils::log,
 };
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
@@ -27,7 +28,6 @@ impl IsTrueExpr {
     /// # Panics
     /// Panics if the provided expression is not a boolean expression
     pub fn new(expr: Box<DynProofExpr>) -> Self {
-        // Validate that the expression is a boolean expression
         assert!(
             expr.data_type() == ColumnType::Boolean,
             "IsTrueExpr can only be applied to boolean expressions, but got expression of type: {}",
@@ -39,11 +39,7 @@ impl IsTrueExpr {
         }
     }
 
-    /// Try to create a new IS TRUE expression
-    ///
-    /// Returns an error if the provided expression is not a boolean expression
     pub fn try_new(expr: Box<DynProofExpr>) -> Result<Self, ProofError> {
-        // Validate that the expression is a boolean expression
         if expr.data_type() != ColumnType::Boolean {
             return Err(ProofError::UnsupportedQueryPlan {
                 error: "IsTrueExpr can only be applied to boolean expressions",
@@ -55,9 +51,9 @@ impl IsTrueExpr {
         })
     }
 
-    // Helper function to check if the inner expression is an OR operation
     pub fn is_inner_expr_or(&self) -> bool {
-        matches!(*self.expr, DynProofExpr::Or(_))
+        let type_name = std::any::type_name_of_val(&*self.expr);
+        type_name.contains("::Or")
     }
 }
 
@@ -66,83 +62,36 @@ impl ProofExpr for IsTrueExpr {
         ColumnType::Boolean
     }
 
+    #[tracing::instrument(name = "IsTrueExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
     ) -> Column<'a, S> {
-        // Evaluate the inner expression
+        log::log_memory_usage("Start");
+
         let inner_column = self.expr.result_evaluate(alloc, table);
-
-        // Extract boolean values from the inner column
-        let Column::Boolean(inner_values) = inner_column else {
-            panic!("IS TRUE can only be applied to boolean expressions");
-        };
-
-        // Get presence information for the expression
-        let presence = table.presence_for_expr(&*self.expr);
-
-        // In SQL's three-valued logic, IS TRUE returns true only if the value is non-NULL and true
-        let result_slice = if self.malicious {
-            alloc.alloc_slice_fill_copy(table.num_rows(), true)
-        } else {
-            match presence {
-                Some(presence) => {
-                    // Check if we're dealing with an OR expression (special NULL handling)
-                    let is_or_expr = self.is_inner_expr_or();
-
-                    // Create a new slice for the result
-                    let is_true = alloc.alloc_slice_fill_with(inner_values.len(), |i| {
-                        if is_or_expr && inner_values[i] {
-                            // For OR expressions, if the result is TRUE, keep it TRUE
-                            // regardless of NULL status (implementing TRUE OR NULL = TRUE)
-                            true
-                        } else {
-                            // For all other expressions or FALSE results,
-                            // result is TRUE only if the value is TRUE and NOT NULL
-                            inner_values[i] && presence[i]
-                        }
-                    });
-                    is_true
-                }
-                None => inner_values, // No NULL values, use inner values directly
-            }
-        };
-
-        Column::Boolean(result_slice)
-    }
-
-    fn prover_evaluate<'a, S: Scalar>(
-        &self,
-        builder: &mut FinalRoundBuilder<'a, S>,
-        alloc: &'a Bump,
-        table: &Table<'a, S>,
-    ) -> Column<'a, S> {
-        // Get the inner expression evaluation first
-        let inner_column = self.expr.prover_evaluate(builder, alloc, table);
-
-        let Column::Boolean(inner_values) = inner_column else {
-            panic!("IS TRUE can only be applied to boolean expressions");
-        };
-
-        // Instead of relying on presence_for_expr, we'll derive presence information
-        // directly from the column references in the expression
+        let inner_values = inner_column
+            .as_boolean()
+            .expect("Expression is not boolean");
         let mut column_refs = IndexSet::default();
         self.expr.get_column_references(&mut column_refs);
 
-        // For each referenced column, get its presence information from the table
+        if self.malicious {
+            let result_slice = alloc.alloc_slice_fill_copy(table.num_rows(), true);
+            let res = Column::Boolean(result_slice);
+            log::log_memory_usage("End");
+            return res;
+        }
+
         let mut has_nullable_column = false;
         let mut combined_presence = vec![true; table.num_rows()];
-
-        // Get access to the presence map
         let presence_map = table.presence_map();
 
         for col_ref in &column_refs {
             let ident = col_ref.column_id();
-            // Access presence information via the presence map
             if let Some(col_presence) = presence_map.get(&ident) {
                 has_nullable_column = true;
-                // Update combined presence - a row is present only if all component values are present
                 for (i, &is_present) in col_presence.iter().enumerate() {
                     if !is_present {
                         combined_presence[i] = false;
@@ -151,65 +100,122 @@ impl ProofExpr for IsTrueExpr {
             }
         }
 
-        // Convert combined presence to a slice with the correct lifetime
         let presence_slice = if has_nullable_column {
             alloc.alloc_slice_copy(&combined_presence)
         } else {
-            // If no nullable columns, all values are present
             alloc.alloc_slice_fill_copy(table.num_rows(), true)
         };
 
-        // Now we include both the derived presence information and inner values in the proof
-        builder.produce_intermediate_mle(Column::Boolean(presence_slice));
-        builder.produce_intermediate_mle(inner_column);
+        let is_or_expr = self.is_inner_expr_or();
+        let result_slice = alloc.alloc_slice_fill_with(inner_values.len(), |i| {
+            if is_or_expr && inner_values[i] {
+                true
+            } else {
+                inner_values[i] && presence_slice[i]
+            }
+        });
 
-        // Create a nullable column with our derived presence information
-        let nullable_column = NullableColumn {
-            values: inner_column,
-            presence: Some(presence_slice),
-        };
+        let res = Column::Boolean(result_slice);
+        log::log_memory_usage("End");
+        res
+    }
 
-        // Record the IS TRUE check which verifies both non-NULL and true conditions
+    #[tracing::instrument(name = "IsTrueExpr::prover_evaluate", level = "debug", skip_all)]
+    fn prover_evaluate<'a, S: Scalar>(
+        &self,
+        builder: &mut FinalRoundBuilder<'a, S>,
+        alloc: &'a Bump,
+        table: &Table<'a, S>,
+    ) -> Column<'a, S> {
+        log::log_memory_usage("Start");
+
+        let inner_column = self.expr.prover_evaluate(builder, alloc, table);
+        let inner_values = inner_column
+            .as_boolean()
+            .expect("Expression is not boolean");
+        let n = table.num_rows();
+
         if self.malicious {
-            builder.produce_intermediate_mle(Column::Boolean(
-                alloc.alloc_slice_fill_copy(table.num_rows(), true),
-            ));
+            let result_slice = alloc.alloc_slice_fill_copy(n, true);
+            builder.produce_intermediate_mle(Column::Boolean(result_slice));
             builder.produce_sumcheck_subpolynomial(
                 SumcheckSubpolynomialType::Identity,
                 vec![(
                     S::one(),
-                    vec![Box::new(
-                        alloc.alloc_slice_fill_copy(table.num_rows(), false) as &[_],
-                    )],
+                    vec![Box::new(alloc.alloc_slice_fill_copy(n, false) as &[_])],
                 )],
             );
-        } else {
-            builder.record_is_true_check(&nullable_column, alloc, self.is_inner_expr_or());
+
+            let res = Column::Boolean(result_slice);
+            log::log_memory_usage("End");
+            return res;
         }
 
-        // Create result that matches the IS TRUE semantics
-        let result_slice = if self.malicious {
-            alloc.alloc_slice_fill_copy(table.num_rows(), true)
-        } else {
-            // Check if we're dealing with an OR expression (special NULL handling)
-            let is_or_expr = self.is_inner_expr_or();
+        let mut column_refs = IndexSet::default();
+        self.expr.get_column_references(&mut column_refs);
 
-            // Create a new slice for the result
-            let is_true = alloc.alloc_slice_fill_with(inner_values.len(), |i| {
-                if is_or_expr && inner_values[i] {
-                    // For OR expressions, if the result is TRUE, keep it TRUE
-                    // regardless of NULL status (implementing TRUE OR NULL = TRUE)
-                    true
-                } else {
-                    // For all other expressions or FALSE results,
-                    // result is TRUE only if the value is TRUE and NOT NULL
-                    inner_values[i] && presence_slice[i]
+        let mut has_nullable_column = false;
+        let mut combined_presence = vec![true; n];
+        let presence_map = table.presence_map();
+
+        for col_ref in &column_refs {
+            let ident = col_ref.column_id();
+            if let Some(col_presence) = presence_map.get(&ident) {
+                has_nullable_column = true;
+                for (i, &is_present) in col_presence.iter().enumerate() {
+                    if !is_present {
+                        combined_presence[i] = false;
+                    }
                 }
-            });
-            is_true
+            }
+        }
+
+        let presence_slice: &[bool] = if has_nullable_column {
+            alloc.alloc_slice_copy(&combined_presence)
+        } else {
+            alloc.alloc_slice_fill_copy(n, true)
         };
 
-        Column::Boolean(result_slice)
+        builder.produce_intermediate_mle(presence_slice);
+        builder.produce_intermediate_mle(inner_values);
+
+        let is_or_expr = self.is_inner_expr_or();
+        let is_true_result: &[bool] = alloc.alloc_slice_fill_with(n, |i| {
+            if is_or_expr && inner_values[i] {
+                true
+            } else {
+                inner_values[i] && presence_slice[i]
+            }
+        });
+
+        builder.produce_intermediate_mle(is_true_result);
+
+        if is_or_expr {
+            let or_logic_slice: &[bool] = alloc.alloc_slice_fill_with(n, |i| inner_values[i]);
+
+            builder.produce_sumcheck_subpolynomial(
+                SumcheckSubpolynomialType::Identity,
+                vec![
+                    (S::one(), vec![Box::new(is_true_result)]),
+                    (-S::one(), vec![Box::new(or_logic_slice)]),
+                ],
+            );
+        } else {
+            builder.produce_sumcheck_subpolynomial(
+                SumcheckSubpolynomialType::Identity,
+                vec![
+                    (S::one(), vec![Box::new(is_true_result)]),
+                    (
+                        -S::one(),
+                        vec![Box::new(presence_slice), Box::new(inner_values)],
+                    ),
+                ],
+            );
+        }
+
+        let res = Column::Boolean(is_true_result);
+        log::log_memory_usage("End");
+        res
     }
 
     fn verifier_evaluate<S: Scalar>(
@@ -218,40 +224,30 @@ impl ProofExpr for IsTrueExpr {
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
     ) -> Result<S, ProofError> {
-        // First get the inner expression evaluation
         let _inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
-
-        // Get the derived presence information that was explicitly committed in the proof
-        // This doesn't rely on presence_for_expr since we derived it independently in the prover
         let presence_eval = builder.try_consume_final_round_mle_evaluation()?;
-
-        // Get the inner expression values
         let values_eval = builder.try_consume_final_round_mle_evaluation()?;
+        let is_true_eval = builder.try_consume_final_round_mle_evaluation()?;
 
-        // Compute the expected IS TRUE value based on the committed inputs
-        // For OR expressions with TRUE values, the result is TRUE regardless of nullability
-        // For all other cases, result is TRUE only when both presence is TRUE and values is TRUE
-        let _expected_is_true = if self.is_inner_expr_or() && values_eval == S::one() {
-            S::one()
+        let is_or_expr = self.is_inner_expr_or();
+        if is_or_expr {
+            let or_result = values_eval + (presence_eval * values_eval)
+                - (values_eval * presence_eval * values_eval);
+            builder.try_produce_sumcheck_subpolynomial_evaluation(
+                SumcheckSubpolynomialType::Identity,
+                is_true_eval - or_result,
+                1,
+            )?;
         } else {
-            presence_eval * values_eval
+            let and_result = presence_eval * values_eval;
+            builder.try_produce_sumcheck_subpolynomial_evaluation(
+                SumcheckSubpolynomialType::Identity,
+                is_true_eval - and_result,
+                2,
+            )?;
         };
 
-        // Verify the sumcheck subpolynomial - this ensures correctness across all rows
-        // The sumcheck protocol verifies that our computed relationship holds for all rows
-        builder.try_produce_sumcheck_subpolynomial_evaluation(
-            SumcheckSubpolynomialType::Identity,
-            S::zero(),
-            2,
-        )?;
-
-        // Get the claimed result - this is the evaluation of the IS TRUE expression
-        let claimed_result = builder.try_consume_final_round_mle_evaluation()?;
-
-        // The sumcheck protocol has already verified the mathematical relationship
-        // We don't need an additional check that might fail due to field arithmetic nuances
-
-        Ok(claimed_result)
+        Ok(is_true_eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

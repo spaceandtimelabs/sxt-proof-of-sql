@@ -493,3 +493,98 @@ fn we_can_simulate_sql_where_clause_with_nulls() {
         _ => panic!("Expected boolean column"),
     }
 }
+
+#[test]
+fn we_can_evaluate_null_literal() {
+    let table: OwnedTable<TestScalar> = owned_table([
+        int("a", [1, 2, 3, 4, 5]),
+        varchar("b", ["x", "y", "z", "w", "v"]),
+    ]);
+
+    let expr = lit(Literal::Null);
+    let result = table.evaluate(&expr).unwrap();
+
+    assert_eq!(result, OwnedColumn::<TestScalar>::Boolean(vec![false; 5]));
+}
+
+#[test]
+fn we_can_evaluate_nullable_null_literal() {
+    let table: OwnedTable<TestScalar> = owned_table([
+        int("a", [1, 2, 3, 4, 5]),
+        varchar("b", ["x", "y", "z", "w", "v"]),
+    ]);
+
+    let expr = lit(Literal::Null);
+    let result = table.evaluate_nullable(&expr).unwrap();
+
+    assert_eq!(
+        result.values,
+        OwnedColumn::<TestScalar>::Boolean(vec![false; 5])
+    );
+    assert_eq!(result.presence, Some(vec![false; 5]));
+}
+
+#[test]
+#[should_panic(expected = "Unexpected non-NULL value at index 1")]
+fn test_unexpected_non_null_value_index() {
+    let a_values = OwnedColumn::<TestScalar>::BigInt(vec![1, 1, 0, 0, 2]);
+    let a_presence = Some(vec![true, true, false, false, true]);
+
+    let b_values = OwnedColumn::<TestScalar>::BigInt(vec![1, 1, 1, 0, 2]);
+    let b_presence = Some(vec![true, true, true, false, true]);
+
+    let _table = owned_table_with_nulls([
+        nullable_column_pair("a", a_values, a_presence),
+        nullable_column_pair("b", b_values, b_presence),
+    ]);
+
+    let result_values = OwnedColumn::<TestScalar>::Boolean(vec![true, true, false, false, false]);
+    let result_presence = Some(vec![true, true, false, false, true]);
+
+    let eq_result =
+        OwnedNullableColumn::<TestScalar>::with_presence(result_values, result_presence).unwrap();
+
+    match &eq_result.values {
+        OwnedColumn::Boolean(values) => {
+            let presence = eq_result.presence.as_ref().unwrap();
+            for i in 0..values.len() {
+                if presence[i] {
+                    match i {
+                        0 => assert!(values[i]),
+                        4 => assert!(!values[i]),
+                        _ => panic!("Unexpected non-NULL value at index {i}"),
+                    }
+                }
+            }
+        }
+        _ => panic!("Expected boolean column"),
+    }
+}
+
+#[test]
+#[should_panic(expected = "Expected boolean column")]
+fn test_non_boolean_column_result() {
+    let _table: OwnedTable<TestScalar> = owned_table([int("a", [1, 2, 3, 4, 5])]);
+
+    let result_values = OwnedColumn::<TestScalar>::Int(vec![10, 20, 30, 40, 50]);
+    let result_presence = Some(vec![true, true, false, false, true]);
+
+    let eq_result =
+        OwnedNullableColumn::<TestScalar>::with_presence(result_values, result_presence).unwrap();
+
+    match &eq_result.values {
+        OwnedColumn::Boolean(values) => {
+            let presence = eq_result.presence.as_ref().unwrap();
+            for i in 0..values.len() {
+                if presence[i] {
+                    match i {
+                        0 => assert!(values[i]),
+                        4 => assert!(!values[i]),
+                        _ => panic!("Unexpected non-NULL value at index {i}"),
+                    }
+                }
+            }
+        }
+        _ => panic!("Expected boolean column"),
+    }
+}

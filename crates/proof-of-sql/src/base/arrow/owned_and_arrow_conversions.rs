@@ -121,11 +121,27 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
             OwnedColumn::VarBinary(col) => {
                 Arc::new(BinaryArray::from_iter_values(col.iter().map(Vec::as_slice)))
             }
-            OwnedColumn::TimestampTZ(time_unit, _, col) => match time_unit {
-                PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(col)),
-                PoSQLTimeUnit::Millisecond => Arc::new(TimestampMillisecondArray::from(col)),
-                PoSQLTimeUnit::Microsecond => Arc::new(TimestampMicrosecondArray::from(col)),
-                PoSQLTimeUnit::Nanosecond => Arc::new(TimestampNanosecondArray::from(col)),
+            OwnedColumn::TimestampTZ(time_unit, timezone, col) => match time_unit {
+                PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::with_timezone_opt(
+                    col.into(),
+                    Some(timezone.to_string()),
+                )),
+                PoSQLTimeUnit::Millisecond => {
+                    Arc::new(TimestampMillisecondArray::with_timezone_opt(
+                        col.into(),
+                        Some(timezone.to_string()),
+                    ))
+                }
+                PoSQLTimeUnit::Microsecond => {
+                    Arc::new(TimestampMicrosecondArray::with_timezone_opt(
+                        col.into(),
+                        Some(timezone.to_string()),
+                    ))
+                }
+                PoSQLTimeUnit::Nanosecond => Arc::new(TimestampNanosecondArray::with_timezone_opt(
+                    col.into(),
+                    Some(timezone.to_string()),
+                )),
             },
         }
     }
@@ -196,20 +212,38 @@ impl<S: Scalar> From<OwnedNullableColumn<S>> for ArrayRef {
                 }
                 Arc::new(builder.finish())
             }
-            OwnedColumn::TimestampTZ(time_unit, _, col) => match time_unit {
+            OwnedColumn::TimestampTZ(time_unit, timezone, col) => match time_unit {
                 PoSQLTimeUnit::Second => {
-                    Arc::new(TimestampSecondArray::new(col.into(), Some(null_buffer)))
+                    let array = TimestampSecondArray::new(col.into(), Some(null_buffer));
+                    Arc::new(if timezone.offset() != 0 {
+                        array.with_timezone(timezone.to_string())
+                    } else {
+                        array
+                    })
                 }
-                PoSQLTimeUnit::Millisecond => Arc::new(TimestampMillisecondArray::new(
-                    col.into(),
-                    Some(null_buffer),
-                )),
-                PoSQLTimeUnit::Microsecond => Arc::new(TimestampMicrosecondArray::new(
-                    col.into(),
-                    Some(null_buffer),
-                )),
+                PoSQLTimeUnit::Millisecond => {
+                    let array = TimestampMillisecondArray::new(col.into(), Some(null_buffer));
+                    Arc::new(if timezone.offset() != 0 {
+                        array.with_timezone(timezone.to_string())
+                    } else {
+                        array
+                    })
+                }
+                PoSQLTimeUnit::Microsecond => {
+                    let array = TimestampMicrosecondArray::new(col.into(), Some(null_buffer));
+                    Arc::new(if timezone.offset() != 0 {
+                        array.with_timezone(timezone.to_string())
+                    } else {
+                        array
+                    })
+                }
                 PoSQLTimeUnit::Nanosecond => {
-                    Arc::new(TimestampNanosecondArray::new(col.into(), Some(null_buffer)))
+                    let array = TimestampNanosecondArray::new(col.into(), Some(null_buffer));
+                    Arc::new(if timezone.offset() != 0 {
+                        array.with_timezone(timezone.to_string())
+                    } else {
+                        array
+                    })
                 }
             },
         }
@@ -667,7 +701,9 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                         let array = array_ref
                             .as_any()
                             .downcast_ref::<TimestampSecondArray>()
-                            .unwrap();
+                            .expect(
+                            "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                        );
                         let mut values = Vec::with_capacity(num_rows);
                         for i in 0..num_rows {
                             values.push(if array.is_null(i) {
@@ -686,7 +722,9 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                         let array = array_ref
                             .as_any()
                             .downcast_ref::<TimestampMillisecondArray>()
-                            .unwrap();
+                            .expect(
+                                "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                            );
                         let mut values = Vec::with_capacity(num_rows);
                         for i in 0..num_rows {
                             values.push(if array.is_null(i) {
@@ -705,7 +743,9 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                         let array = array_ref
                             .as_any()
                             .downcast_ref::<TimestampMicrosecondArray>()
-                            .unwrap();
+                            .expect(
+                                "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                            );
                         let mut values = Vec::with_capacity(num_rows);
                         for i in 0..num_rows {
                             values.push(if array.is_null(i) {
@@ -724,7 +764,9 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
                         let array = array_ref
                             .as_any()
                             .downcast_ref::<TimestampNanosecondArray>()
-                            .unwrap();
+                            .expect(
+                                "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                            );
                         let mut values = Vec::with_capacity(num_rows);
                         for i in 0..num_rows {
                             values.push(if array.is_null(i) {
@@ -873,9 +915,14 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .unwrap()
                     .values()
                     .iter()
-                    .map(convert_i256_to_scalar)
-                    .map(Option::unwrap)
-                    .collect(),
+                    .map(|i256_val| {
+                        convert_i256_to_scalar(i256_val).ok_or(
+                            OwnedArrowConversionError::DecimalConversionFailed {
+                                number: *i256_val,
+                            },
+                        )
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
             )),
             DataType::Utf8 => Ok(Self::VarChar(
                 value
