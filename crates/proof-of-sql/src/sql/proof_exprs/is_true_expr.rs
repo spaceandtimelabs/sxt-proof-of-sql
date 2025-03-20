@@ -11,6 +11,7 @@ use crate::{
 };
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
+use core::any;
 use serde::{Deserialize, Serialize};
 
 /// Provable IS TRUE expression, evaluates to TRUE if the expression is both not NULL and TRUE
@@ -52,7 +53,7 @@ impl IsTrueExpr {
     }
 
     pub fn is_inner_expr_or(&self) -> bool {
-        let type_name = std::any::type_name_of_val(&*self.expr);
+        let type_name = any::type_name_of_val(&*self.expr);
         type_name.contains("::Or")
     }
 }
