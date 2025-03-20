@@ -6,11 +6,12 @@ use core::{
     str::FromStr,
 };
 use indexmap::Equivalent;
-use proof_of_sql_parser::{impl_serde_from_str, ResourceId};
+use proof_of_sql_parser::ResourceId;
+use serde::{Deserialize, Serialize};
 use sqlparser::ast::Ident;
 
 /// Expression for an SQL table
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TableRef {
     schema_name: Option<Ident>,
     table_name: Ident,
@@ -134,5 +135,3 @@ impl Display for TableRef {
         }
     }
 }
-
-impl_serde_from_str!(TableRef);
