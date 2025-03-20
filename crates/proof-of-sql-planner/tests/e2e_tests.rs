@@ -205,3 +205,45 @@ fn test_slicing_limit() {
         &verifier_setup,
     );
 }
+
+/// Test simple GROUP BY queries
+#[test]
+fn test_group_by() {
+    let alloc = Bump::new();
+    let sql = "select human, count(1) as num_cats from cats group by human;
+    select human, sum(weight) as total_weight, count(1) as num_cats from cats group by human;";
+    let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {
+        TableRef::from_names(None, "cats") => table(
+            vec![
+                borrowed_int("id", [1, 2, 3, 4, 5], &alloc),
+                borrowed_varchar("name", ["Chloe", "Margaret", "Katy", "Lucy", "Prudence"], &alloc),
+                borrowed_varchar("human", ["Cassia", "Cassia", "Cassia", "Gretta", "Gretta"], &alloc),
+                borrowed_decimal75("weight", 3, 1, [145, 75, 20, 45, 55], &alloc),
+            ]
+        )
+    };
+    let expected_results: Vec<OwnedTable<DoryScalar>> = vec![
+        owned_table([
+            varchar("human", ["Cassia", "Gretta"]),
+            bigint("num_cats", [3_i64, 2]),
+        ]),
+        owned_table([
+            varchar("human", ["Cassia", "Gretta"]),
+            decimal75("total_weight", 3, 1, [240, 100]),
+            bigint("num_cats", [3_i64, 2]),
+        ]),
+    ];
+
+    // Create public parameters for DynamicDoryEvaluationProof
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+
+    posql_end_to_end_test::<DynamicDoryEvaluationProof>(
+        sql,
+        tables,
+        &expected_results,
+        &prover_setup,
+        &verifier_setup,
+    );
+}
