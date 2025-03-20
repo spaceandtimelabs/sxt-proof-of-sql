@@ -107,14 +107,8 @@ impl ProofExpr for IsTrueExpr {
             alloc.alloc_slice_fill_copy(table.num_rows(), true)
         };
 
-        let is_or_expr = self.is_inner_expr_or();
-        let result_slice = alloc.alloc_slice_fill_with(inner_values.len(), |i| {
-            if is_or_expr && inner_values[i] {
-                true
-            } else {
-                inner_values[i] && presence_slice[i]
-            }
-        });
+        let result_slice = alloc
+            .alloc_slice_fill_with(inner_values.len(), |i| inner_values[i] && presence_slice[i]);
 
         let res = Column::Boolean(result_slice);
         log::log_memory_usage("End");
@@ -180,39 +174,21 @@ impl ProofExpr for IsTrueExpr {
         builder.produce_intermediate_mle(presence_slice);
         builder.produce_intermediate_mle(inner_values);
 
-        let is_or_expr = self.is_inner_expr_or();
-        let is_true_result: &[bool] = alloc.alloc_slice_fill_with(n, |i| {
-            if is_or_expr && inner_values[i] {
-                true
-            } else {
-                inner_values[i] && presence_slice[i]
-            }
-        });
+        let is_true_result: &[bool] =
+            alloc.alloc_slice_fill_with(n, |i| inner_values[i] && presence_slice[i]);
 
         builder.produce_intermediate_mle(is_true_result);
 
-        if is_or_expr {
-            let or_logic_slice: &[bool] = alloc.alloc_slice_fill_with(n, |i| inner_values[i]);
-
-            builder.produce_sumcheck_subpolynomial(
-                SumcheckSubpolynomialType::Identity,
-                vec![
-                    (S::one(), vec![Box::new(is_true_result)]),
-                    (-S::one(), vec![Box::new(or_logic_slice)]),
-                ],
-            );
-        } else {
-            builder.produce_sumcheck_subpolynomial(
-                SumcheckSubpolynomialType::Identity,
-                vec![
-                    (S::one(), vec![Box::new(is_true_result)]),
-                    (
-                        -S::one(),
-                        vec![Box::new(presence_slice), Box::new(inner_values)],
-                    ),
-                ],
-            );
-        }
+        builder.produce_sumcheck_subpolynomial(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (S::one(), vec![Box::new(is_true_result)]),
+                (
+                    -S::one(),
+                    vec![Box::new(presence_slice), Box::new(inner_values)],
+                ),
+            ],
+        );
 
         let res = Column::Boolean(is_true_result);
         log::log_memory_usage("End");
@@ -225,29 +201,15 @@ impl ProofExpr for IsTrueExpr {
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
     ) -> Result<S, ProofError> {
-        let _inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
+        let inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
         let presence_eval = builder.try_consume_final_round_mle_evaluation()?;
-        let values_eval = builder.try_consume_final_round_mle_evaluation()?;
+        builder.try_consume_final_round_mle_evaluation()?;
         let is_true_eval = builder.try_consume_final_round_mle_evaluation()?;
-
-        let is_or_expr = self.is_inner_expr_or();
-        if is_or_expr {
-            let or_result = values_eval + (presence_eval * values_eval)
-                - (values_eval * presence_eval * values_eval);
-            builder.try_produce_sumcheck_subpolynomial_evaluation(
-                SumcheckSubpolynomialType::Identity,
-                is_true_eval - or_result,
-                1,
-            )?;
-        } else {
-            let and_result = presence_eval * values_eval;
-            builder.try_produce_sumcheck_subpolynomial_evaluation(
-                SumcheckSubpolynomialType::Identity,
-                is_true_eval - and_result,
-                2,
-            )?;
-        };
-
+        builder.try_produce_sumcheck_subpolynomial_evaluation(
+            SumcheckSubpolynomialType::Identity,
+            is_true_eval - (inner_eval * presence_eval),
+            2,
+        )?;
         Ok(is_true_eval)
     }
 
