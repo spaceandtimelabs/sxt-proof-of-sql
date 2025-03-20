@@ -431,3 +431,37 @@ fn we_should_detect_a_malicious_prover_in_is_true_query() {
         );
     }
 }
+
+#[test]
+fn test_try_new_success_and_error_cases() {
+    let column_ref = ColumnRef::new(
+        TableRef::new("", "test"),
+        Ident::new("boolean_column"),
+        ColumnType::Boolean,
+    );
+    let boolean_expr = DynProofExpr::new_column(column_ref);
+    let result = IsTrueExpr::try_new(Box::new(boolean_expr));
+    assert!(
+        result.is_ok(),
+        "try_new should succeed with boolean expression"
+    );
+
+    let column_ref = ColumnRef::new(
+        TableRef::new("", "test"),
+        Ident::new("int_column"),
+        ColumnType::Int,
+    );
+    let int_expr = DynProofExpr::new_column(column_ref);
+    let result = IsTrueExpr::try_new(Box::new(int_expr));
+    assert!(
+        result.is_err(),
+        "try_new should fail with non-boolean expression"
+    );
+
+    if let Err(err) = result {
+        assert!(
+            matches!(err, ProofError::UnsupportedQueryPlan { .. }),
+            "Expected UnsupportedQueryPlan error, got: {err:?}"
+        );
+    }
+}

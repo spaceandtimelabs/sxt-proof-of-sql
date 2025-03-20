@@ -175,3 +175,195 @@ fn test_is_not_null_expr_with_complex_null_logic() {
         _ => panic!("Expected boolean column"),
     }
 }
+
+#[test]
+fn test_is_not_null_expr_no_nullable_columns() {
+    let alloc = Bump::new();
+    let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());
+
+    let column_values1: Column<'_, TestScalar> = Column::Int(&[10, 20, 30, 40, 50]);
+    let column_values2: Column<'_, TestScalar> = Column::Int(&[1, 2, 3, 4, 5]);
+    table_map.insert(Ident::new("non_nullable_column1"), column_values1);
+    table_map.insert(Ident::new("non_nullable_column2"), column_values2);
+
+    let table = Table::try_new(table_map).unwrap();
+
+    let column_ref = ColumnRef::new(
+        TableRef::new("", "test"),
+        Ident::new("non_nullable_column1"),
+        ColumnType::Int,
+    );
+
+    let column_expr = DynProofExpr::new_column(column_ref);
+    let is_not_null_expr = IsNotNullExpr::new(Box::new(column_expr));
+
+    let result = is_not_null_expr.result_evaluate(&alloc, &table);
+
+    match result {
+        Column::Boolean(values) => {
+            assert_eq!(values.len(), 5);
+            for &value in values {
+                assert!(value, "All values should be true for non-nullable columns");
+            }
+        }
+        _ => panic!("Expected boolean column"),
+    }
+}
+
+#[test]
+fn test_is_not_null_expr_prover_evaluate_no_nullable_columns() {
+    use crate::sql::proof::FinalRoundBuilder;
+    use alloc::collections::VecDeque;
+
+    let alloc = Bump::new();
+    let mut table_map = IndexMap::with_hasher(BuildHasherDefault::default());
+
+    let column_values: Column<'_, TestScalar> = Column::Int(&[1, 2, 3, 4, 5]);
+    table_map.insert(Ident::new("test_column"), column_values);
+
+    let table = Table::try_new(table_map).unwrap();
+    let mut final_round_builder = FinalRoundBuilder::new(5, VecDeque::new());
+
+    let column_ref = ColumnRef::new(
+        TableRef::new("", "test"),
+        Ident::new("test_column"),
+        ColumnType::Int,
+    );
+
+    let column_expr = DynProofExpr::new_column(column_ref);
+    let is_not_null_expr = IsNotNullExpr::new(Box::new(column_expr));
+
+    let result = is_not_null_expr.prover_evaluate(&mut final_round_builder, &alloc, &table);
+
+    match result {
+        Column::Boolean(values) => {
+            assert_eq!(values.len(), 5);
+            for &value in values {
+                assert!(value, "All values should be true for non-nullable columns");
+            }
+        }
+        _ => panic!("Expected boolean column"),
+    }
+}
+
+#[test]
+fn test_is_not_null_expr_verifier_evaluate() {
+    use crate::{
+        base::{bit::BitDistribution, proof::ProofSizeMismatch},
+        sql::proof::{SumcheckSubpolynomialType, VerificationBuilder},
+    };
+
+    struct MockVerificationBuilder {
+        mle_evaluations: Vec<TestScalar>,
+        current_index: usize,
+        produced_sumcheck: bool,
+    }
+
+    impl MockVerificationBuilder {
+        fn new() -> Self {
+            Self {
+                mle_evaluations: Vec::new(),
+                current_index: 0,
+                produced_sumcheck: false,
+            }
+        }
+
+        fn add_mle_evaluation(&mut self, eval: TestScalar) {
+            self.mle_evaluations.push(eval);
+        }
+    }
+
+    impl VerificationBuilder<TestScalar> for MockVerificationBuilder {
+        fn try_consume_chi_evaluation(&mut self) -> Result<TestScalar, ProofSizeMismatch> {
+            unimplemented!("Not needed for this test")
+        }
+
+        fn try_consume_rho_evaluation(&mut self) -> Result<TestScalar, ProofSizeMismatch> {
+            unimplemented!("Not needed for this test")
+        }
+
+        fn try_consume_first_round_mle_evaluation(
+            &mut self,
+        ) -> Result<TestScalar, ProofSizeMismatch> {
+            unimplemented!("Not needed for this test")
+        }
+
+        fn try_consume_final_round_mle_evaluation(
+            &mut self,
+        ) -> Result<TestScalar, ProofSizeMismatch> {
+            if self.current_index < self.mle_evaluations.len() {
+                let result = self.mle_evaluations[self.current_index];
+                self.current_index += 1;
+                Ok(result)
+            } else {
+                Err(ProofSizeMismatch::TooFewMLEEvaluations)
+            }
+        }
+
+        fn try_consume_final_round_mle_evaluations(
+            &mut self,
+            count: usize,
+        ) -> Result<Vec<TestScalar>, ProofSizeMismatch> {
+            let mut result = Vec::with_capacity(count);
+            for _ in 0..count {
+                result.push(self.try_consume_final_round_mle_evaluation()?);
+            }
+            Ok(result)
+        }
+
+        fn try_consume_bit_distribution(&mut self) -> Result<BitDistribution, ProofSizeMismatch> {
+            unimplemented!("Not needed for this test")
+        }
+
+        fn try_produce_sumcheck_subpolynomial_evaluation(
+            &mut self,
+            _typ: SumcheckSubpolynomialType,
+            _eval: TestScalar,
+            _degree: usize,
+        ) -> Result<(), ProofSizeMismatch> {
+            self.produced_sumcheck = true;
+            Ok(())
+        }
+
+        fn try_consume_post_result_challenge(&mut self) -> Result<TestScalar, ProofSizeMismatch> {
+            unimplemented!("Not needed for this test")
+        }
+
+        fn singleton_chi_evaluation(&self) -> TestScalar {
+            unimplemented!("Not needed for this test")
+        }
+
+        fn rho_256_evaluation(&self) -> Option<TestScalar> {
+            unimplemented!("Not needed for this test")
+        }
+    }
+
+    let mut mock_builder = MockVerificationBuilder::new();
+    let column_ref = ColumnRef::new(
+        TableRef::new("", "test"),
+        Ident::new("test_column"),
+        ColumnType::Boolean,
+    );
+
+    let mut accessor = IndexMap::with_hasher(BuildHasherDefault::default());
+    accessor.insert(column_ref.clone(), TestScalar::from(0));
+
+    let column_expr = DynProofExpr::new_column(column_ref);
+    let is_not_null_expr = IsNotNullExpr::new(Box::new(column_expr));
+
+    mock_builder.add_mle_evaluation(TestScalar::from(1));
+    mock_builder.add_mle_evaluation(TestScalar::from(0));
+    mock_builder.add_mle_evaluation(TestScalar::from(1));
+
+    let chi_eval = TestScalar::from(2);
+    let result = is_not_null_expr.verifier_evaluate(&mut mock_builder, &accessor, chi_eval);
+    match &result {
+        Ok(value) => {
+            assert_eq!(*value, TestScalar::from(1));
+            assert!(mock_builder.produced_sumcheck);
+        }
+        Err(err) => {
+            panic!("Test failed with error: {err:?}");
+        }
+    }
+}
