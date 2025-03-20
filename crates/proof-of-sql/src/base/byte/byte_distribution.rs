@@ -1,55 +1,45 @@
 use crate::base::{bit::bit_mask_utils::make_bit_mask, scalar::Scalar};
 use bnum::types::U256;
-use core::{
-    convert::Into,
-    ops::{Shl, Shr},
-};
-use itertools::Itertools;
+use core::{convert::Into, ops::Shl};
 use serde::{Deserialize, Serialize};
 
 /// Describe the distribution of byte values in a table column
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 struct ByteDistribution {
-    /// Identifies any byte columns that do not satisify the following conditions:
+    /// Identifies any non-lead byte columns that do not satisify the following conditions:
     /// 1. The set of all bytes in the column is contained by a set of two bytes which are inverses of each other.
     /// 2. The byte for each row is determined by the lead bit. In other words, the byte column and leading bit column are perfectly correlated.
+    ///
+    /// The lead byte is considered to be varying if the column is not completely constant.
     vary_mask: u32,
-    /// The only relevant bits in this mask are the ones that belong to a varying byte (one that is not identified by the `vary_mask`).
-    /// Each relevant byte is the one that shadows a lead bit of 1. The inverse of each relevant byte shadows a lead bit of 0.
-    /// The lead bit of this mask is only relevant if `is_leading_bit_constant` is true. In that case, it indicates the value of the lead bit.
+    /// The only relevant bits in this mask are the ones that belong to a constant byte (one that is not identified by the `vary_mask`).
+    /// Each relevant non-lead byte is the one that shadows a lead bit of 1. The inverse of each relevant non-lead byte shadows a lead bit of 0.
+    /// If the lead byte is constant, the lead byte in this mask is the constanr value.
     leading_bit_shadow_mask: [u64; 4],
-    /// Indicates if the lead bit is constant
-    is_leading_bit_constant: bool,
 }
 
 impl ByteDistribution {
     #[cfg_attr(not(test), expect(dead_code))]
     fn new<S: Scalar, T: Into<S> + Clone>(data: &[T]) -> Self {
         let bit_masks = data.iter().cloned().map(Into::<S>::into).map(make_bit_mask);
-        let mut leading_bit_column = bit_masks.clone().map(|u| u >= U256::ONE << 255);
+        let leading_bit_column = bit_masks.clone().map(|u| u >= U256::ONE << 255);
         let (vary_mask, leading_bit_shadow_mask) = (0u8..32)
-            .map(|u| (u, U256::from(255u8) << (u * 8)))
-            .map(|(u, shifted_max_byte)| {
+            .map(|u| {
+                let shifted_max_byte = U256::from(255u8).shl(u * 8);
                 let mut one_shadow_shifted_byte_column = bit_masks
                     .clone()
                     .map(|bit_mask| bit_mask & shifted_max_byte)
                     .zip(leading_bit_column.clone())
                     .map(|(shifted_byte, leading_bit)| {
-                        if leading_bit {
+                        if leading_bit || u == 31 {
                             shifted_byte
-                        } else if u == 31 {
-                            shifted_byte ^ (shifted_max_byte ^ U256::ONE.shl(255))
                         } else {
                             shifted_byte ^ shifted_max_byte
                         }
                     });
                 let (is_const, shifted_byte) = match one_shadow_shifted_byte_column.next() {
                     None => (true, U256::ZERO),
-                    Some(a) => (
-                        one_shadow_shifted_byte_column
-                            .all(|x| a & U256::MAX.shr(1) == x & U256::MAX.shr(1)),
-                        a,
-                    ),
+                    Some(a) => (one_shadow_shifted_byte_column.all(|x| a == x), a),
                 };
                 (if is_const { 0u32 } else { 1u32 << u }, shifted_byte)
             })
@@ -62,7 +52,6 @@ impl ByteDistribution {
         Self {
             vary_mask,
             leading_bit_shadow_mask: leading_bit_shadow_mask.into(),
-            is_leading_bit_constant: leading_bit_column.all_equal(),
         }
     }
 }
@@ -83,7 +72,6 @@ mod tests {
             U256::from(byte_distribution.leading_bit_shadow_mask),
             U256::ZERO
         );
-        assert!(byte_distribution.is_leading_bit_constant);
     }
 
     #[test]
@@ -96,7 +84,6 @@ mod tests {
             U256::from(byte_distribution.leading_bit_shadow_mask),
             value | U256::ONE.shl(255)
         );
-        assert!(byte_distribution.is_leading_bit_constant);
     }
 
     #[test]
@@ -108,9 +95,8 @@ mod tests {
         assert_eq!(byte_distribution.vary_mask, 0);
         assert_eq!(
             U256::from(byte_distribution.leading_bit_shadow_mask),
-            (U256::ONE.shl(255) - value) ^ U256::MAX.shr(1)
+            ((U256::ONE.shl(255) - value) ^ U256::MAX.shr(8)) | U256::from(127u8).shl(248)
         );
-        assert!(byte_distribution.is_leading_bit_constant);
     }
 
     #[test]
@@ -123,7 +109,6 @@ mod tests {
             U256::from(byte_distribution.leading_bit_shadow_mask),
             value | U256::ONE.shl(255)
         );
-        assert!(byte_distribution.is_leading_bit_constant);
     }
 
     #[test]
@@ -135,9 +120,8 @@ mod tests {
         assert_eq!(byte_distribution.vary_mask, 0);
         assert_eq!(
             U256::from(byte_distribution.leading_bit_shadow_mask),
-            (U256::ONE.shl(255) - value) ^ U256::MAX.shr(1)
+            ((U256::ONE.shl(255) - value) ^ U256::MAX.shr(8)) | U256::from(127u8).shl(248)
         );
-        assert!(byte_distribution.is_leading_bit_constant);
     }
 
     #[test]
@@ -148,12 +132,11 @@ mod tests {
         let positive_scalar = TestScalar::from_wrapping(value);
         let column = [positive_scalar, negative_scalar];
         let byte_distribution = ByteDistribution::new::<TestScalar, _>(&column);
-        assert_eq!(byte_distribution.vary_mask, 0);
+        assert_eq!(byte_distribution.vary_mask, 1u32.shl(31));
         assert_eq!(
             U256::from(byte_distribution.leading_bit_shadow_mask) & U256::MAX.shr(1),
             value
         );
-        assert!(!byte_distribution.is_leading_bit_constant);
     }
 
     #[test]
@@ -174,12 +157,11 @@ mod tests {
                 & (U256::from(255u8).shl(8) | U256::ONE.shl(255)),
             leading_bit_shadow_mask
         );
-        assert!(byte_distribution.is_leading_bit_constant);
     }
 
     #[test]
     fn we_can_get_byte_distribution_from_variable_negative_column() {
-        let leading_bit_shadow_mask = U256::from(149u8).shl(8);
+        let leading_bit_shadow_mask = U256::from(149u8).shl(8) | U256::from(127u8).shl(248);
         let column = [
             1_974_179_073u32,
             2_518_259_061,
@@ -193,10 +175,9 @@ mod tests {
         assert_eq!(byte_distribution.vary_mask, 13);
         assert_eq!(
             U256::from(byte_distribution.leading_bit_shadow_mask)
-                & (U256::from(255u8).shl(8) | U256::ONE.shl(255)),
+                & (U256::from(255u8).shl(8) | U256::from(127u8).shl(248)),
             leading_bit_shadow_mask
         );
-        assert!(byte_distribution.is_leading_bit_constant);
     }
 
     #[test]
@@ -225,56 +206,10 @@ mod tests {
                 .chain(positive_column.iter())
                 .collect_vec(),
         );
-        assert_eq!(byte_distribution.vary_mask, 13);
+        assert_eq!(byte_distribution.vary_mask, 13u32 + 1u32.shl(31));
         assert_eq!(
             U256::from(byte_distribution.leading_bit_shadow_mask) & (U256::from(255u8).shl(8)),
             leading_bit_shadow_mask
         );
-        assert!(!byte_distribution.is_leading_bit_constant);
-    }
-
-    #[test]
-    fn we_can_get_byte_distribution_from_variable_lead_byte_in_positive_column() {
-        let leading_bit_shadow_mask = U256::ONE.shl(255);
-        let column = [U256::ZERO, U256::ONE.shl(250)].map(TestScalar::from_wrapping);
-        let byte_distribution = ByteDistribution::new::<TestScalar, _>(&column);
-        assert_eq!(U256::from(byte_distribution.vary_mask), U256::ONE.shl(31));
-        assert_eq!(
-            U256::from(byte_distribution.leading_bit_shadow_mask)
-                & (U256::MAX.shr(8) | U256::ONE.shl(255)),
-            leading_bit_shadow_mask
-        );
-        assert!(byte_distribution.is_leading_bit_constant);
-    }
-
-    #[test]
-    fn we_can_get_byte_distribution_from_variable_lead_byte_in_negative_column() {
-        let leading_bit_shadow_mask = U256::ZERO;
-        let column = [U256::ONE, U256::ONE.shl(250) + U256::ONE]
-            .map(TestScalar::from_wrapping)
-            .map(Neg::neg);
-        let byte_distribution = ByteDistribution::new::<TestScalar, _>(&column);
-        assert_eq!(U256::from(byte_distribution.vary_mask), U256::ONE.shl(31));
-        assert_eq!(
-            U256::from(byte_distribution.leading_bit_shadow_mask)
-                & (U256::MAX.shr(8) | U256::ONE.shl(255)),
-            leading_bit_shadow_mask
-        );
-        assert!(byte_distribution.is_leading_bit_constant);
-    }
-
-    #[test]
-    fn we_can_get_byte_distribution_from_variable_lead_byte_in_column() {
-        let leading_bit_shadow_mask = U256::ZERO;
-        let column = [U256::ZERO, U256::ONE.shl(250) + U256::ONE]
-            .map(TestScalar::from_wrapping)
-            .map(Neg::neg);
-        let byte_distribution = ByteDistribution::new::<TestScalar, _>(&column);
-        assert_eq!(U256::from(byte_distribution.vary_mask), U256::ONE.shl(31));
-        assert_eq!(
-            U256::from(byte_distribution.leading_bit_shadow_mask) & U256::MAX.shr(8),
-            leading_bit_shadow_mask
-        );
-        assert!(!byte_distribution.is_leading_bit_constant);
     }
 }
