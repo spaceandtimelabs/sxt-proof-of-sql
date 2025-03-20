@@ -1,6 +1,6 @@
 use super::{
-    AddSubtractExpr, AggregateExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, IsNotNullExpr,
-    IsNullExpr, IsTrueExpr, LiteralExpr, MultiplyExpr, NotExpr, OrExpr, ProofExpr,
+    AddSubtractExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, IsNotNullExpr, IsNullExpr,
+    IsTrueExpr, LiteralExpr, MultiplyExpr, NotExpr, OrExpr, ProofExpr,
 };
 use crate::{
     base::{
@@ -44,8 +44,6 @@ pub enum DynProofExpr {
     AddSubtract(AddSubtractExpr),
     /// Provable numeric `*` expression
     Multiply(MultiplyExpr),
-    /// Provable aggregate expression
-    Aggregate(AggregateExpr),
     /// Provable IS NULL expression
     IsNull(IsNullExpr),
     /// Provable IS NOT NULL expression
@@ -167,12 +165,6 @@ impl DynProofExpr {
                 right_type: rhs_datatype.to_string(),
             })
         }
-    }
-
-    /// Create a new aggregate expression
-    #[must_use]
-    pub fn new_aggregate(op: AggregationOperator, expr: DynProofExpr) -> Self {
-        Self::Aggregate(AggregateExpr::new(op, Box::new(expr)))
     }
 
     /// Create a new IS NULL expression

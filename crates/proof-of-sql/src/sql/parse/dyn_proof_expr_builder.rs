@@ -51,7 +51,6 @@ impl DynProofExprBuilder<'_> {
                 self.visit_binary_expr(&(*op).into(), left, right)
             }
             Expression::Unary { op, expr } => self.visit_unary_expr((*op).into(), expr),
-            Expression::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
             Expression::IsNull(expr) => {
                 let inner_expr = self.visit_expr(expr)?;
                 Ok(DynProofExpr::IsNull(IsNullExpr::new(Box::new(inner_expr))))
@@ -72,7 +71,10 @@ impl DynProofExprBuilder<'_> {
                 }
                 Ok(DynProofExpr::IsTrue(IsTrueExpr::new(Box::new(inner_expr))))
             }
-            _ => Err(ConversionError::Unprovable {
+            Expression::Aggregation { .. } => Err(ConversionError::UnsupportedOperation {
+                message: "Aggregations are not supported".to_string(),
+            }),
+            Expression::Wildcard => Err(ConversionError::Unprovable {
                 error: format!("Expression {expr:?} is not supported yet"),
             }),
         }
