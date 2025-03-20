@@ -71,7 +71,6 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     alloc: &'a Bump,
 ) {
     let word_byte_distribution = ByteDistribution::new(column_data);
-    let 
 
     let span = span!(Level::DEBUG, "decompose scalars in final round").entered();
     let varying_columns = word_byte_distribution.varying_byte_indices().map(|start_index|{
