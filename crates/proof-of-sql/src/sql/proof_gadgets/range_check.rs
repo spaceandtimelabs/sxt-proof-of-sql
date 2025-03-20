@@ -29,8 +29,8 @@ use crate::{
 use alloc::{boxed::Box, vec, vec::Vec};
 use bnum::types::U256;
 use bumpalo::Bump;
-use tracing::{span, Level};
 use core::ops::Shl;
+use tracing::{span, Level};
 
 #[tracing::instrument(name = "range check first round evaluate", level = "debug", skip_all)]
 pub(crate) fn first_round_evaluate_range_check<'a, S>(
@@ -73,9 +73,9 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     let word_byte_distribution = ByteDistribution::new(column_data);
 
     let span = span!(Level::DEBUG, "decompose scalars in final round").entered();
-    let varying_columns = word_byte_distribution.varying_byte_indices().map(|start_index|{
-        
-    });
+    let varying_columns = word_byte_distribution
+        .varying_byte_indices()
+        .map(|start_index| {});
     span.exit();
 
     let word_columns_immut: Vec<&[u8]> = word_columns

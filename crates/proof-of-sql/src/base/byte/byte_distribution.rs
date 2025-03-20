@@ -56,8 +56,7 @@ impl ByteDistribution {
         }
     }
 
-
-    pub fn varying_byte_indices(&self) -> impl Iterator<Item = u8> + '_{
+    pub fn varying_byte_indices(&self) -> impl Iterator<Item = u8> + '_ {
         BitIter::from(self.vary_mask).iter().map(|u| (u * 8) as u8)
     }
 }
