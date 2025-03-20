@@ -19,7 +19,7 @@ use crate::{
 };
 use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
 use proof_of_sql_parser::{
-    intermediate_ast::{AggregationOperator, Expression, Literal},
+    intermediate_ast::{Expression, Literal},
     posql_time::{PoSQLTimeUnit, PoSQLTimestampError},
 };
 use sqlparser::ast::{BinaryOperator, Ident, UnaryOperator};
@@ -28,23 +28,12 @@ use sqlparser::ast::{BinaryOperator, Ident, UnaryOperator};
 /// a `proof_of_sql_parser::intermediate_ast::Expression`.
 pub struct DynProofExprBuilder<'a> {
     column_mapping: &'a IndexMap<Ident, ColumnRef>,
-    in_agg_scope: bool,
 }
 
 impl<'a> DynProofExprBuilder<'a> {
     /// Creates a new `DynProofExprBuilder` with the given column mapping.
     pub fn new(column_mapping: &'a IndexMap<Ident, ColumnRef>) -> Self {
-        Self {
-            column_mapping,
-            in_agg_scope: false,
-        }
-    }
-    /// Creates a new `DynProofExprBuilder` with the given column mapping and within aggregation scope.
-    pub(crate) fn new_agg(column_mapping: &'a IndexMap<Ident, ColumnRef>) -> Self {
-        Self {
-            column_mapping,
-            in_agg_scope: true,
-        }
+        Self { column_mapping }
     }
     /// Builds a `proofs::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression`
     pub fn build(&self, expr: &Expression) -> Result<DynProofExpr, ConversionError> {
@@ -52,7 +41,6 @@ impl<'a> DynProofExprBuilder<'a> {
     }
 }
 
-#[expect(clippy::match_wildcard_for_single_variants)]
 // Private interface
 impl DynProofExprBuilder<'_> {
     fn visit_expr(&self, expr: &Expression) -> Result<DynProofExpr, ConversionError> {
@@ -226,32 +214,6 @@ impl DynProofExprBuilder<'_> {
                     message: format!("{op:?}"),
                 })
             }
-        }
-    }
-
-    fn visit_aggregate_expr(
-        &self,
-        op: AggregationOperator,
-        expr: &Expression,
-    ) -> Result<DynProofExpr, ConversionError> {
-        if self.in_agg_scope {
-            return Err(ConversionError::InvalidExpression {
-                expression: "nested aggregations are invalid".to_string(),
-            });
-        }
-        let expr = DynProofExprBuilder::new_agg(self.column_mapping).visit_expr(expr)?;
-        match (op, expr.data_type().is_numeric()) {
-            (AggregationOperator::Count, _) | (AggregationOperator::Sum, true) => {
-                Ok(DynProofExpr::new_aggregate(op, expr))
-            }
-            (AggregationOperator::Sum, false) => Err(ConversionError::InvalidExpression {
-                expression: format!(
-                    "Aggregation operator {op:?} doesn't work with non-numeric types"
-                ),
-            }),
-            _ => Err(ConversionError::Unprovable {
-                error: format!("Aggregation operator {op:?} is not supported at this location"),
-            }),
         }
     }
 }
