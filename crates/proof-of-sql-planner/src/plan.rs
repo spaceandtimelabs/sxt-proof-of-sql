@@ -198,7 +198,7 @@ fn aggregate_to_proof_plan(
             }
             let agg_aliased_proof_exprs: Vec<((AggregateFunc, DynProofExpr), Ident)> = aggr_expr
                 .iter()
-                .map(|e| match e {
+                .map(|e| match e.clone().unalias() {
                     Expr::AggregateFunction(agg) => {
                         let name_string = e.display_name()?;
                         let name = name_string.as_str();
@@ -208,7 +208,7 @@ fn aggregate_to_proof_plan(
                             }
                         })?;
                         Ok((
-                            aggregate_function_to_proof_expr(agg, input_schema)?,
+                            aggregate_function_to_proof_expr(&agg, input_schema)?,
                             (*alias).into(),
                         ))
                     }
@@ -289,6 +289,30 @@ pub fn logical_plan_to_proof_plan(
             } else {
                 Ok(base_plan)
             }
+        }
+        // Aggregation
+        LogicalPlan::Aggregate(Aggregate {
+            input,
+            group_expr,
+            aggr_expr,
+            schema,
+            ..
+        }) => {
+            let name_strings = group_expr
+                .iter()
+                .chain(aggr_expr.iter())
+                .map(Expr::display_name)
+                .collect::<Result<Vec<_>, _>>()?;
+            let alias_map = name_strings
+                .iter()
+                .zip(schema.fields().iter())
+                .map(|(name_string, field)| {
+                    let name = name_string.as_str();
+                    let alias = field.name().as_str();
+                    Ok((name, alias))
+                })
+                .collect::<PlannerResult<IndexMap<_, _>>>()?;
+            aggregate_to_proof_plan(input, group_expr, aggr_expr, schemas, &alias_map)
         }
         // Projection
         LogicalPlan::Projection(Projection {
@@ -481,7 +505,7 @@ mod tests {
     fn COUNT_1() -> Expr {
         Expr::AggregateFunction(AggregateFunction {
             func_def: COUNT,
-            args: vec![Expr::Literal(ScalarValue::Int8(Some(1)))],
+            args: vec![Expr::Literal(ScalarValue::Int64(Some(1)))],
             distinct: false,
             filter: None,
             order_by: None,
@@ -615,7 +639,7 @@ mod tests {
         let alias_map = indexmap! {
             "a" => "a",
             "SUM(table.b)" => "sum_b",
-            "COUNT(Int8(1))" => "count_1",
+            "COUNT(Int64(1))" => "count_1",
         };
 
         // Test the function
@@ -678,7 +702,7 @@ mod tests {
         let alias_map = indexmap! {
             "a" => "a",
             "SUM(table.b)" => "sum_b",
-            "COUNT(Int8(1))" => "count_1",
+            "COUNT(Int64(1))" => "count_1",
         };
 
         // Test the function
@@ -741,7 +765,7 @@ mod tests {
             "a" => "a",
             "c" => "c",
             "SUM(table.b)" => "sum_b",
-            "COUNT(Int8(1))" => "count_1",
+            "COUNT(Int64(1))" => "count_1",
         };
 
         // Test the function
@@ -808,7 +832,7 @@ mod tests {
             "a" => "a",
             "SUM(table.b)" => "sum_b",
             "SUM(table.d)" => "sum_d",
-            "COUNT(Int8(1))" => "count_1",
+            "COUNT(Int64(1))" => "count_1",
         };
 
         // Test the function
@@ -874,7 +898,7 @@ mod tests {
         );
         let alias_map = indexmap! {
             "a" => "a",
-            "COUNT(Int8(1))" => "count_1",
+            "COUNT(Int64(1))" => "count_1",
         };
 
         // Test the function
@@ -933,7 +957,7 @@ mod tests {
         );
         let alias_map = indexmap! {
             "a+b" => "res",
-            "COUNT(Int8(1))" => "count_1",
+            "COUNT(Int64(1))" => "count_1",
         };
 
         // Test the function - should return an error
@@ -1032,20 +1056,15 @@ mod tests {
             )
             .unwrap(),
         );
-        let aliased_map = indexmap! {
+        let alias_map = indexmap! {
             "a" => "a",
             "AVG(table.b)" => "avg_b",
-            "COUNT(Int8(1))" => "count_1",
+            "COUNT(Int64(1))" => "count_1",
         };
 
         // Test the function - should return an error
-        let result = aggregate_to_proof_plan(
-            &input_plan,
-            &group_expr,
-            &aggr_expr,
-            &SCHEMAS(),
-            &aliased_map,
-        );
+        let result =
+            aggregate_to_proof_plan(&input_plan, &group_expr, &aggr_expr, &SCHEMAS(), &alias_map);
         assert!(matches!(
             result,
             Err(PlannerError::UnsupportedLogicalPlan { .. })
@@ -1144,7 +1163,7 @@ mod tests {
         );
         let alias_map = indexmap! {
             "a" => "a",
-            "COUNT(Int8(1))" => "count_1",
+            "COUNT(Int64(1))" => "count_1",
         };
 
         // Test the function - should return an error because fetch limit is not supported
@@ -1173,7 +1192,7 @@ mod tests {
         });
         let alias_map = indexmap! {
             "a" => "a",
-            "COUNT(Int8(1))" => "count_1",
+            "COUNT(Int64(1))" => "count_1",
         };
 
         // Test the function - should return an error
@@ -1701,6 +1720,72 @@ mod tests {
 
     // Aggregate
     #[test]
+    fn we_can_convert_supported_simple_agg_plan_to_proof_plan() {
+        // Setup group expression
+        let group_expr = vec![df_column("table", "a")];
+
+        // Create the aggregate expressions
+        let aggr_expr = vec![
+            SUM_B(),   // SUM
+            COUNT_1(), // COUNT
+        ];
+
+        // Create filters
+        let filter_exprs = vec![
+            df_column("table", "d"), // Boolean column as filter
+        ];
+
+        // Create the input plan with filters
+        let input_plan = LogicalPlan::TableScan(
+            TableScan::try_new(
+                "table",
+                TABLE_SOURCE(),
+                Some(vec![0, 1, 2, 3]),
+                filter_exprs,
+                None,
+            )
+            .unwrap(),
+        );
+
+        let agg_plan = LogicalPlan::Aggregate(
+            Aggregate::try_new(Arc::new(input_plan), group_expr.clone(), aggr_expr.clone())
+                .unwrap(),
+        );
+
+        // Test the function
+        let result = logical_plan_to_proof_plan(&agg_plan, &SCHEMAS()).unwrap();
+
+        // Expected result
+        let expected = DynProofPlan::new_group_by(
+            vec![ColumnExpr::new(ColumnRef::new(
+                TABLE_REF_TABLE(),
+                "a".into(),
+                ColumnType::BigInt,
+            ))],
+            vec![AliasedDynProofExpr {
+                expr: DynProofExpr::new_column(ColumnRef::new(
+                    TABLE_REF_TABLE(),
+                    "b".into(),
+                    ColumnType::Int,
+                )),
+                alias: "SUM(table.b)".into(),
+            }],
+            "COUNT(Int64(1))".into(),
+            TableExpr {
+                table_ref: TABLE_REF_TABLE(),
+            },
+            DynProofExpr::new_column(ColumnRef::new(
+                TABLE_REF_TABLE(),
+                "d".into(),
+                ColumnType::Boolean,
+            )),
+        );
+
+        assert_eq!(result, expected);
+    }
+
+    // Aggregate + Projection
+    #[test]
     fn we_can_convert_supported_agg_plan_to_proof_plan() {
         // Setup group expression
         let group_expr = vec![df_column("table", "a")];
@@ -1744,7 +1829,7 @@ mod tests {
                     .alias("sum_b"),
                     Expr::Column(Column::new(
                         None::<TableReference>,
-                        "COUNT(Int8(1))".to_string(),
+                        "COUNT(Int64(1))".to_string(),
                     ))
                     .alias("count_1"),
                 ],
