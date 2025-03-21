@@ -7,10 +7,10 @@ use crate::{
     sql::proof_plans::{self, DynProofPlan},
 };
 use alloc::vec::Vec;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Represents a plan that can be serialized for EVM.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) enum Plan {
     Filter(FilterExec),
 }
@@ -33,7 +33,7 @@ impl Plan {
 }
 
 /// Represents a filter execution plan.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) struct FilterExec {
     table_number: usize,
     where_clause: Expr,

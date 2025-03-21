@@ -7,10 +7,10 @@ use crate::{
     sql::proof_exprs::{self, DynProofExpr},
 };
 use alloc::boxed::Box;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Represents an expression that can be serialized for EVM.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) enum Expr {
     Column(ColumnExpr),
     Equals(EqualsExpr),
@@ -38,7 +38,7 @@ impl Expr {
 }
 
 /// Represents a column expression.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) struct ColumnExpr {
     column_number: usize,
 }
@@ -57,7 +57,7 @@ impl ColumnExpr {
 }
 
 /// Represents a literal expression.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) enum LiteralExpr {
     BigInt(i64),
 }
@@ -72,7 +72,7 @@ impl LiteralExpr {
 }
 
 /// Represents an equals expression.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) struct EqualsExpr {
     lhs: Box<Expr>,
     rhs: Box<Expr>,

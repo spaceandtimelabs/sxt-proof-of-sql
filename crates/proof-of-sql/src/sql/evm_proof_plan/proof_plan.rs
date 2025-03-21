@@ -19,7 +19,7 @@ use alloc::{
 };
 use bumpalo::Bump;
 use itertools::Itertools;
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 
 #[derive(Debug)]
 /// An implementation of `ProofPlan` that allows for EVM compatible serialization.
@@ -48,15 +48,15 @@ impl EVMProofPlan {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+struct CompactPlan {
+    tables: Vec<String>,
+    columns: Vec<(usize, String)>,
+    plan: Plan,
+}
+
 impl Serialize for EVMProofPlan {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        #[derive(Serialize)]
-        struct CompactPlan {
-            tables: Vec<String>,
-            columns: Vec<(usize, String)>,
-            plan: Plan,
-        }
-
         let table_refs = self.get_table_references();
         let column_refs = self.get_column_references();
 
