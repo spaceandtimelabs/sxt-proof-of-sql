@@ -5,6 +5,7 @@ pub(crate) type IndexSet<T> = indexmap::IndexSet<T, core::hash::BuildHasherDefau
 // Adapted from `indexmap`.
 
 /// Create an [`IndexMap`][self::IndexMap] from a list of key-value pairs
+#[cfg(test)]
 macro_rules! indexmap_macro {
     ($($key:expr => $value:expr,)+) => { $crate::base::map::indexmap!($($key => $value),+) };
     ($($key:expr => $value:expr),*) => {
@@ -38,5 +39,6 @@ macro_rules! indexset_macro {
     };
 }
 
+#[cfg(test)]
 pub(crate) use indexmap_macro as indexmap;
 pub(crate) use indexset_macro as indexset;
