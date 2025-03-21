@@ -89,6 +89,11 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
         self.pcs_proof_mles.push(Box::new(data));
     }
 
+    /// Produce a byte distribution that describes which bytes are constant and which bytes vary in a column of data
+    pub fn produce_byte_distribution(&mut self, dist: ByteDistribution) {
+        self.byte_distributions.push(dist);
+    }
+
     /// Compute commitments of all the interemdiate MLEs used in sumcheck
     #[tracing::instrument(
         name = "FirstRoundBuilder::commit_intermediate_mles",

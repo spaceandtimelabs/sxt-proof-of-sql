@@ -42,9 +42,10 @@ pub(crate) fn first_round_evaluate_range_check<'a, S>(
 
     // Create 31 columns, each will collect the corresponding byte from all scalars.
     // 31 because a scalar will only ever have 248 bits set.
-    let word_columns: Vec<&mut [u8]> = (0..31)
-        .map(|_| alloc.alloc_slice_fill_copy(column_data.len(), 0))
-        .collect();
+    // get the varying words in the byte decomposition data
+    let word_byte_distribution = ByteDistribution::new(column_data);
+    builder.produce_byte_distribution(word_byte_distribution.clone());
+    let varying_columns = compute_varying_byte_matrix(column_data, &word_byte_distribution);
 
     // Decompose scalars to bytes
     let span = span!(Level::DEBUG, "decompose scalars in first round").entered();
@@ -52,9 +53,9 @@ pub(crate) fn first_round_evaluate_range_check<'a, S>(
 
     // For each column, allocate `words` using the lookup table
     let span = span!(Level::DEBUG, "compute intermediate MLE over word column").entered();
-    for byte_column in word_columns {
+    for byte_column in varying_columns {
         // Finally, commit an MLE over these word values
-        builder.produce_intermediate_mle(byte_column as &[_]);
+        builder.produce_intermediate_mle(&*alloc.alloc_slice_fill_iter(byte_column.into_iter()));
     }
     span.exit();
 }
@@ -204,6 +205,10 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
         // Collect the inverse factor for the final ZeroSum argument
         w_plus_alpha_inv_evals.push(words_inv);
     }
+
+    let word_byte_distribution = builder.consume()
+
+    sum += by
 
     // Ensure the sum of the scalars (interpreted in base 256) matches
     // the claimed input_column_eval. If not, the column is out of range.

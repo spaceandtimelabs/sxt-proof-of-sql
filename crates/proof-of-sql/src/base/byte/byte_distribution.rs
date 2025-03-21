@@ -54,6 +54,10 @@ impl ByteDistribution {
     pub fn varying_byte_indices(&self) -> impl Iterator<Item = u8> + '_ {
         BitIter::from(self.vary_mask).iter().map(|u| (u * 8) as u8)
     }
+
+    pub fn constant_mask(&self) -> U256{
+        U256::from(self.leading_bit_shadow_mask)
+    }
 }
 
 #[cfg(test)]
