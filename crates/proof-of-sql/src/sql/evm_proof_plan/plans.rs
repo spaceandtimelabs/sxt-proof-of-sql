@@ -4,7 +4,10 @@ use crate::{
         database::{ColumnRef, TableRef},
         map::IndexSet,
     },
-    sql::proof_plans::{self, DynProofPlan},
+    sql::{
+        proof_exprs::{AliasedDynProofExpr, TableExpr},
+        proof_plans::{self, DynProofPlan},
+    },
 };
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -29,6 +32,18 @@ impl Plan {
                     .map(Self::Filter)
             }
             _ => Err(Error::NotSupported),
+        }
+    }
+
+    pub(super) fn try_into_proof_plan(
+        &self,
+        table_refs: &IndexSet<TableRef>,
+        column_refs: &IndexSet<ColumnRef>,
+    ) -> Result<DynProofPlan, Error> {
+        match self {
+            Plan::Filter(filter_exec) => Ok(DynProofPlan::Filter(
+                filter_exec.try_into_proof_plan(table_refs, column_refs)?,
+            )),
         }
     }
 }
@@ -62,5 +77,28 @@ impl FilterExec {
                 .collect::<Result<_, _>>()?,
             where_clause: Expr::try_from_proof_expr(&plan.where_clause, column_refs)?,
         })
+    }
+
+    fn try_into_proof_plan(
+        &self,
+        table_refs: &IndexSet<TableRef>,
+        column_refs: &IndexSet<ColumnRef>,
+    ) -> Result<proof_plans::FilterExec, Error> {
+        Ok(proof_plans::FilterExec::new(
+            self.results
+                .iter()
+                .map(|expr| AliasedDynProofExpr {
+                    expr: expr.0.try_into_proof_expr(column_refs),
+                    alias: expr.1.clone(),
+                })
+                .collect(),
+            TableExpr {
+                table_ref: table_refs
+                    .get_index(self.table_number)
+                    .cloned()
+                    .ok_or(Error::TableNotFound)?,
+            },
+            self.where_clause.try_into_proof_expr(column_refs),
+        ))
     }
 }

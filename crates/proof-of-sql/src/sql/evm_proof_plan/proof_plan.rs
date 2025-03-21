@@ -20,8 +20,10 @@ use alloc::{
     vec::Vec,
 };
 use bumpalo::Bump;
+use core::str::FromStr;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize, Serializer};
+use sqlparser::ast::Ident;
 
 #[derive(Debug)]
 /// An implementation of `ProofPlan` that allows for EVM compatible serialization.
@@ -86,6 +88,41 @@ impl Serialize for EVMProofPlan {
             plan,
         }
         .serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for EVMProofPlan {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let compact_plan = CompactPlan::deserialize(deserializer)?;
+
+        let table_refs: IndexSet<TableRef> = compact_plan
+            .tables
+            .iter()
+            .map(|table| TableRef::from_str(table).map_err(|_| Error::ParsingUnsuccessful))
+            .try_collect()
+            .map_err(serde::de::Error::custom::<Error>)?;
+        let table_refs_clone = table_refs.clone();
+        let column_refs: IndexSet<ColumnRef> = compact_plan
+            .columns
+            .iter()
+            .map(|(i, ident, column_type)| {
+                let table_ref = table_refs_clone
+                    .get_index(*i)
+                    .cloned()
+                    .ok_or(Error::TableNotFound)?;
+                Ok(ColumnRef::new(table_ref, Ident::new(ident), *column_type))
+            })
+            .try_collect()
+            .map_err(serde::de::Error::custom::<Error>)?;
+        Ok(Self {
+            inner: compact_plan
+                .plan
+                .try_into_proof_plan(&table_refs, &column_refs)
+                .map_err(serde::de::Error::custom::<Error>)?,
+        })
     }
 }
 

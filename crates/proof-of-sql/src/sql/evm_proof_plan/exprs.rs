@@ -35,6 +35,20 @@ impl Expr {
             _ => Err(Error::NotSupported),
         }
     }
+
+    pub(super) fn try_into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> DynProofExpr {
+        match self {
+            Expr::Column(column_expr) => {
+                DynProofExpr::Column(column_expr.try_into_proof_expr(column_refs))
+            }
+            Expr::Equals(equals_expr) => {
+                DynProofExpr::Equals(equals_expr.try_into_proof_expr(column_refs))
+            }
+            Expr::Literal(literal_expr) => {
+                DynProofExpr::Literal(literal_expr.try_into_proof_expr())
+            }
+        }
+    }
 }
 
 /// Represents a column expression.
@@ -54,6 +68,10 @@ impl ColumnExpr {
                 .ok_or(Error::ColumnNotFound)?,
         })
     }
+
+    fn try_into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> proof_exprs::ColumnExpr {
+        proof_exprs::ColumnExpr::new(column_refs[self.column_number].clone())
+    }
 }
 
 /// Represents a literal expression.
@@ -67,6 +85,14 @@ impl LiteralExpr {
         match expr.value {
             LiteralValue::BigInt(value) => Ok(LiteralExpr::BigInt(value)),
             _ => Err(Error::NotSupported),
+        }
+    }
+
+    fn try_into_proof_expr(&self) -> proof_exprs::LiteralExpr {
+        match self {
+            LiteralExpr::BigInt(value) => {
+                proof_exprs::LiteralExpr::new(LiteralValue::BigInt(*value))
+            }
         }
     }
 }
@@ -87,5 +113,12 @@ impl EqualsExpr {
             lhs: Box::new(Expr::try_from_proof_expr(&expr.lhs, column_refs)?),
             rhs: Box::new(Expr::try_from_proof_expr(&expr.rhs, column_refs)?),
         })
+    }
+
+    fn try_into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> proof_exprs::EqualsExpr {
+        proof_exprs::EqualsExpr {
+            lhs: Box::new(self.lhs.try_into_proof_expr(column_refs)),
+            rhs: Box::new(self.rhs.try_into_proof_expr(column_refs)),
+        }
     }
 }
