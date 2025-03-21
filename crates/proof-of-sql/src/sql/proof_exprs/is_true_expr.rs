@@ -56,22 +56,6 @@ impl IsTrueExpr {
         let type_name = any::type_name_of_val(&*self.expr);
         type_name.contains("::Or")
     }
-
-    /// Helper method to get inner and presence evaluations from inner expr
-    fn get_inner_and_presence_eval<S: Scalar>(
-        &self,
-        builder: &mut impl VerificationBuilder<S>,
-        accessor: &IndexMap<ColumnRef, S>,
-        chi_eval: S,
-    ) -> Result<(S, S), ProofError> {
-        // Get inner evaluation from the expression
-        let inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
-
-        // Get presence evaluation, which is now returned by the inner expression
-        let presence_eval = builder.try_consume_final_round_mle_evaluation()?;
-
-        Ok((inner_eval, presence_eval))
-    }
 }
 
 impl ProofExpr for IsTrueExpr {
@@ -217,8 +201,8 @@ impl ProofExpr for IsTrueExpr {
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
     ) -> Result<S, ProofError> {
-        let (inner_eval, presence_eval) =
-            self.get_inner_and_presence_eval(builder, accessor, chi_eval)?;
+        let inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
+        let presence_eval = builder.try_consume_final_round_mle_evaluation()?;
         builder.try_consume_final_round_mle_evaluation()?;
         let is_true_eval = builder.try_consume_final_round_mle_evaluation()?;
         builder.try_produce_sumcheck_subpolynomial_evaluation(
@@ -226,7 +210,6 @@ impl ProofExpr for IsTrueExpr {
             is_true_eval - (inner_eval * presence_eval),
             2,
         )?;
-
         Ok(is_true_eval)
     }
 
