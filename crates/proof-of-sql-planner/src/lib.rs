@@ -8,7 +8,7 @@ pub use context::PoSqlContextProvider;
 #[cfg(test)]
 pub(crate) use context::PoSqlTableSource;
 mod conversion;
-pub use conversion::sql_to_proof_plans;
+pub use conversion::{sql_to_proof_plans, sql_to_proof_plans_with_postprocessing};
 #[cfg(test)]
 mod df_util;
 mod expr;
@@ -19,6 +19,10 @@ mod plan;
 /// Proof of SQL Postprocessing. Used when the last step of the logical plan is an unprovable projection.
 pub mod postprocessing;
 pub use plan::logical_plan_to_proof_plan;
+mod proof_plan_with_postprocessing;
+pub use proof_plan_with_postprocessing::{
+    logical_plan_to_proof_plan_with_postprocessing, ProofPlanWithPostprocessing,
+};
 mod util;
 pub use util::column_fields_to_schema;
 pub(crate) use util::{
