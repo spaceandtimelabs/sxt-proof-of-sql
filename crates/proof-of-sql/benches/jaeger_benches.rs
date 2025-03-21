@@ -1,11 +1,11 @@
 //! Benchmarking/Tracing using Jaeger.
 //! To run, execute the following commands:
 //! ```bash
-//! docker run --rm -d --name jaeger -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one:1.62.0
+//! docker run --rm -d --name jaeger -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one
 //! cargo bench -p proof-of-sql --bench jaeger_benches InnerProductProof
 //! cargo bench -p proof-of-sql --bench jaeger_benches Dory
 //! cargo bench -p proof-of-sql --bench jaeger_benches DynamicDory
-//! cargo bench -p proof-of-sql --bench jaeger_benches HyperKZG --features="hyperkzg"
+//! cargo bench -p proof-of-sql --bench jaeger_benches HyperKZG --features="hyperkzg_proof"
 //! ```
 //! Then, navigate to <http://localhost:16686> to view the traces.
 
@@ -25,107 +25,124 @@ use proof_of_sql::proof_primitive::{
         HyperKZGEngine,
     },
 };
+mod jaeger_setup;
+use jaeger_setup::{setup_jaeger_tracing, stop_jaeger_tracing};
 mod scaffold;
-use crate::scaffold::queries::QUERIES;
+use crate::scaffold::queries::{get_query, QueryEntry, QUERIES};
 use scaffold::jaeger_scaffold;
 use std::env;
 
-const SIZE: usize = 1_000_000;
+fn bench_inner_product_proof(iterations: usize, queries: &[QueryEntry], table_size: usize) {
+    for (title, query, columns) in queries {
+        for _ in 0..iterations {
+            jaeger_scaffold::<InnerProductProof>(title, query, columns, table_size, &(), &());
+        }
+    }
+}
 
-#[expect(clippy::items_after_statements)]
+fn bench_dory(iterations: usize, queries: &[QueryEntry], table_size: usize) {
+    let pp = PublicParameters::test_rand(10, &mut test_rng());
+    let ps = ProverSetup::from(&pp);
+    let prover_setup = DoryProverPublicSetup::new(&ps, 10);
+    let vs = VerifierSetup::from(&pp);
+    let verifier_setup = DoryVerifierPublicSetup::new(&vs, 10);
+
+    for (title, query, columns) in queries {
+        for _ in 0..iterations {
+            jaeger_scaffold::<DoryEvaluationProof>(
+                title,
+                query,
+                columns,
+                table_size,
+                &prover_setup,
+                &verifier_setup,
+            );
+        }
+    }
+}
+
+fn bench_dynamic_dory(iterations: usize, queries: &[QueryEntry], table_size: usize) {
+    let public_parameters = PublicParameters::test_rand(11, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+
+    for (title, query, columns) in queries {
+        for _ in 0..iterations {
+            jaeger_scaffold::<DynamicDoryEvaluationProof>(
+                title,
+                query,
+                columns,
+                table_size,
+                &&prover_setup,
+                &&verifier_setup,
+            );
+        }
+    }
+}
+
+fn bench_hyperkzg(iterations: usize, queries: &[QueryEntry], table_size: usize) {
+    let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"bench", table_size);
+    let (_, vk) = EvaluationEngine::setup(&ck);
+    for (title, query, columns) in queries {
+        for _ in 0..iterations {
+            jaeger_scaffold::<HyperKZGCommitmentEvaluationProof>(
+                title,
+                query,
+                columns,
+                table_size,
+                &&nova_commitment_key_to_hyperkzg_public_setup(&ck)[..],
+                &&vk,
+            );
+        }
+    }
+}
+
 fn main() {
     init_backend();
 
-    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-
-    let tracer = opentelemetry_jaeger::new_agent_pipeline()
-        .with_service_name("benches")
-        .install_simple()
-        .unwrap();
-
-    let opentelemetry = tracing_opentelemetry::layer().with_tracer(tracer);
-
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("DEBUG"));
-
-    tracing_subscriber::registry()
-        .with(opentelemetry)
-        .with(filter)
-        .try_init()
-        .unwrap();
+    setup_jaeger_tracing().expect("Failed to setup Jaeger tracing.");
 
     // Check for command-line arguments to select the benchmark type.
     let args: Vec<String> = env::args().collect();
-    let benchmark_type = args
-        .get(1)
-        .expect("Please specify the benchmark type: InnerProductProof or Dory");
+
+    let benchmark_type = args.get(1).expect("Please specify the benchmark type");
+
+    let num_iterations: usize = args
+        .get(2)
+        .expect("Please specify the number of iterations")
+        .parse()
+        .expect("Failed to parse the number of iterations as a number");
+
+    let table_size: usize = args
+        .get(3)
+        .expect("Please specify the table size")
+        .parse()
+        .expect("Failed to parse the table size as a number");
+
+    let query = args.get(4).expect("Please specify the query type");
+
+    let queries = if query == "all" {
+        QUERIES
+    } else {
+        let query = get_query(query).expect("Invalid query type specified.");
+        &[query]
+    };
 
     match benchmark_type.as_str() {
         "InnerProductProof" => {
-            // Run 3 times to ensure that warm-up of the GPU has occurred.
-            for _ in 0..3 {
-                for (title, query, columns) in QUERIES {
-                    jaeger_scaffold::<InnerProductProof>(title, query, columns, SIZE, &(), &());
-                }
-            }
+            bench_inner_product_proof(num_iterations, queries, table_size);
         }
         "Dory" => {
-            // Run 3 times to ensure that warm-up of the GPU has occurred.
-            let pp = PublicParameters::test_rand(10, &mut test_rng());
-            let ps = ProverSetup::from(&pp);
-            let prover_setup = DoryProverPublicSetup::new(&ps, 10);
-            let vs = VerifierSetup::from(&pp);
-            let verifier_setup = DoryVerifierPublicSetup::new(&vs, 10);
-
-            for _ in 0..3 {
-                for (title, query, columns) in QUERIES {
-                    jaeger_scaffold::<DoryEvaluationProof>(
-                        title,
-                        query,
-                        columns,
-                        SIZE,
-                        &prover_setup,
-                        &verifier_setup,
-                    );
-                }
-            }
+            bench_dory(num_iterations, queries, table_size);
         }
         "DynamicDory" => {
-            // Run 3 times to ensure that warm-up of the GPU has occurred.
-            let public_parameters = PublicParameters::test_rand(11, &mut test_rng());
-            let prover_setup = ProverSetup::from(&public_parameters);
-            let verifier_setup = VerifierSetup::from(&public_parameters);
-
-            for _ in 0..3 {
-                for (title, query, columns) in QUERIES {
-                    jaeger_scaffold::<DynamicDoryEvaluationProof>(
-                        title,
-                        query,
-                        columns,
-                        SIZE,
-                        &&prover_setup,
-                        &&verifier_setup,
-                    );
-                }
-            }
+            bench_dynamic_dory(num_iterations, queries, table_size);
         }
         "HyperKZG" => {
-            let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"bench", SIZE);
-            let (_, vk) = EvaluationEngine::setup(&ck);
-            for _ in 0..3 {
-                for (title, query, columns) in QUERIES {
-                    jaeger_scaffold::<HyperKZGCommitmentEvaluationProof>(
-                        title,
-                        query,
-                        columns,
-                        SIZE,
-                        &&nova_commitment_key_to_hyperkzg_public_setup(&ck)[..],
-                        &&vk,
-                    );
-                }
-            }
+            bench_hyperkzg(num_iterations, queries, table_size);
         }
         _ => panic!("Invalid benchmark type specified."),
     }
 
-    opentelemetry::global::shutdown_tracer_provider();
+    stop_jaeger_tracing();
 }
