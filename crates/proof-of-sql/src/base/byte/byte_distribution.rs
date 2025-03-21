@@ -4,7 +4,7 @@ use bit_iter::BitIter;
 use bnum::types::U256;
 use core::{
     convert::Into,
-    ops::{Shl, Shr},
+    ops::Shl,
     u32,
 };
 use serde::{Deserialize, Serialize};
@@ -53,14 +53,6 @@ impl ByteDistribution {
 
     pub fn varying_byte_indices(&self) -> impl Iterator<Item = u8> + '_ {
         BitIter::from(self.vary_mask).iter().map(|u| (u * 8) as u8)
-    }
-
-    fn constant_byte_mask(&self) -> U256{
-        U256::from(self.leading_bit_shadow_mask)
-    }
-
-    pub fn constant_bytes(&self) -> impl Iterator<Item = u8> + '_{
-        BitIter::from(!self.vary_mask).iter().map(|u| u8::try_from(self.constant_byte_mask().shr(u * 8) & U256::from(255u8)).unwrap())
     }
 }
 

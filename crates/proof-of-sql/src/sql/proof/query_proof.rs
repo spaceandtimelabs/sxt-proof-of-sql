@@ -57,6 +57,8 @@ pub struct FirstRoundMessage<C> {
     pub rho_evaluation_lengths: Vec<usize>,
     /// First Round Commitments
     pub round_commitments: Vec<C>,
+    /// First Round byte distribution
+    pub round_byte_distributions: Vec<ByteDistribution>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -66,8 +68,6 @@ pub struct FinalRoundMessage<C> {
     pub round_commitments: Vec<C>,
     /// Bit distributions
     pub bit_distributions: Vec<BitDistribution>,
-    /// Byte distributions
-    pub byte_distributions: Vec<ByteDistribution>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 pub struct QueryProofPCSProofEvaluations<S> {
@@ -154,6 +154,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             rho_evaluation_lengths: rho_evaluation_lengths.to_vec(),
             post_result_challenge_count,
             round_commitments: first_round_commitments,
+            round_byte_distributions: first_round_builder.byte_distributions().to_vec()
         };
         transcript.extend_serialize_as_le(&first_round_message);
 
@@ -182,7 +183,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             subpolynomial_constraint_count: final_round_builder.num_sumcheck_subpolynomials(),
             round_commitments: final_round_commitments,
             bit_distributions: final_round_builder.bit_distributions().to_vec(),
-            byte_distributions: final_round_builder.byte_distributions().to_vec(),
         };
 
         // add the commitments, bit distributions and chi evaluation lengths to the proof
@@ -399,7 +399,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let mut builder = VerificationBuilderImpl::new(
             sumcheck_evaluations,
             &self.final_round_message.bit_distributions,
-            &self.final_round_message.byte_distributions,
+            &self.first_round_message.round_byte_distributions,
             sumcheck_random_scalars.subpolynomial_multipliers,
             post_result_challenges,
             self.first_round_message.chi_evaluation_lengths.clone(),

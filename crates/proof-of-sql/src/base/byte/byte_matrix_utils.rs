@@ -1,6 +1,5 @@
 use super::ByteDistribution;
 use crate::base::{bit::bit_mask_utils::make_bit_mask, scalar::Scalar};
-use bnum::types::U256;
 use core::ops::Shr;
 use itertools::Itertools;
 
@@ -11,13 +10,14 @@ use itertools::Itertools;
 /// `compute_varying_bit_matrix` returns the matrix M where
 ///   `M_ij = abs(xi) & (1 << bj) == 1`
 /// The last column of M corresponds to the sign bit if it varies.
-pub fn compute_varying_byte_matrix(
-    bit_masks: impl Iterator<Item = U256> + Clone,
+pub fn compute_varying_byte_matrix<S:Scalar>(
+    column_data: &[impl Copy + Into<S>],
     dist: &ByteDistribution,
-) -> Vec<Vec<u8>> {
+) -> impl Iterator<Item = Vec<u8>> + Clone {
     dist.varying_byte_indices()
         .map(|start_index| {
-            bit_masks.clone().map(move |bit_mask| {
+            column_data.iter().map(move |row| {
+                let bit_mask = make_bit_mask((*row).into());
                 let shifted_byte: u8 = bit_mask.shr(start_index).try_into().unwrap();
                 shifted_byte
             })
@@ -30,5 +30,5 @@ pub fn compute_varying_byte_matrix(
                     .map(|(v, b)| v.into_iter().chain([b].into_iter()).collect_vec())
                     .collect_vec()
             },
-        )
+        ).into_iter()
 }

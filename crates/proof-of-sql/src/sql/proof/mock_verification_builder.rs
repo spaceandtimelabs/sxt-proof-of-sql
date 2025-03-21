@@ -1,4 +1,4 @@
-use super::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder};
+use super::{FinalRoundBuilder, FirstRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder};
 use crate::base::{
     bit::BitDistribution,
     byte::ByteDistribution,
@@ -191,6 +191,7 @@ impl<S: Scalar> MockVerificationBuilder<S> {
 /// The return vector indicates the results of each constraint for the entire column
 pub fn run_verify_for_each_row(
     table_length: usize,
+    first_round_builder: &FirstRoundBuilder<'_, TestScalar>,
     final_round_builder: &FinalRoundBuilder<'_, TestScalar>,
     subpolynomial_max_multiplicands: usize,
     row_verification: impl Fn(&mut MockVerificationBuilder<TestScalar>, TestScalar, &[TestScalar]),
@@ -214,7 +215,7 @@ pub fn run_verify_for_each_row(
         .collect();
     let mut verification_builder = MockVerificationBuilder::new(
         final_round_builder.bit_distributions().to_vec(),
-        final_round_builder.byte_distributions().to_vec(),
+        first_round_builder.byte_distributions().to_vec(),
         subpolynomial_max_multiplicands,
         final_round_mles,
     );

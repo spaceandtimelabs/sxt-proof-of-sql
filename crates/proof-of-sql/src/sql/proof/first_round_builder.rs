@@ -1,8 +1,6 @@
 use crate::{
     base::{
-        commitment::{Commitment, CommittableColumn, VecCommitmentExt},
-        polynomial::MultilinearExtension,
-        scalar::Scalar,
+        byte::ByteDistribution, commitment::{Commitment, CommittableColumn, VecCommitmentExt}, polynomial::MultilinearExtension, scalar::Scalar
     },
     utils::log,
 };
@@ -11,6 +9,7 @@ use alloc::{boxed::Box, vec::Vec};
 pub struct FirstRoundBuilder<'a, S> {
     commitment_descriptor: Vec<CommittableColumn<'a>>,
     pcs_proof_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
+    byte_distributions: Vec<ByteDistribution>,
     /// The number of challenges used in the proof.
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
@@ -29,6 +28,7 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
         Self {
             commitment_descriptor: Vec::new(),
             pcs_proof_mles: Vec::new(),
+            byte_distributions: Vec::new(),
             num_post_result_challenges: 0,
             chi_evaluation_lengths: Vec::new(),
             rho_evaluation_lengths: Vec::new(),
@@ -50,6 +50,10 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
 
     pub fn pcs_proof_mles(&self) -> &[Box<dyn MultilinearExtension<S> + 'a>] {
         &self.pcs_proof_mles
+    }
+
+    pub fn byte_distributions(&self) -> &[ByteDistribution] {
+        &self.byte_distributions
     }
 
     /// Get the chi evaluation lengths used in the proof.
