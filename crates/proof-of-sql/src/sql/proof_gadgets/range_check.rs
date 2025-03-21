@@ -71,6 +71,74 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     column_data: &[impl Copy + Into<S>],
     alloc: &'a Bump,
 ) {
+    // get alpha
+    let alpha = builder.consume_post_result_challenge();
+
+    // get chi
+    let chi = alloc.alloc_slice_fill_copy(256, true);
+
+    // get rho
+    let rho = alloc.alloc_slice_fill_with(256, |i| i as u8);
+
+    // get the varying words in the byte decomposition data
+    let word_byte_distribution = ByteDistribution::new(column_data);
+    let bit_masks = column_data
+        .iter()
+        .copied()
+        .map(Into::into)
+        .map(make_bit_mask);
+    let varying_columns = compute_varying_byte_matrix(bit_masks, &word_byte_distribution);
+
+    // get the constant words in the byte decomposition data
+    let constant_bytes = word_byte_distribution.constant_bytes();
+
+    // get the inverses of the varying columns plus alpha and commit to them
+    let varying_inverse_columns = varying_columns.iter().map(|column| {
+        let mut inverse_column = alloc.alloc_slice_fill_iter(column.iter().map(S::from));
+        slice_ops::add_const::<S, S>(inverse_column, alpha);
+        slice_ops::batch_inversion(inverse_column);
+        let inverse_column = &*inverse_column;
+        builder.produce_intermediate_mle(inverse_column);
+        // (wordᵢ + α) * (wordᵢ + α)⁻¹ - 1 = 0
+        builder.produce_sumcheck_subpolynomial(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (alpha, vec![Box::new(inverse_column)]),
+                (
+                    S::one(),
+                    vec![Box::new(column), Box::new(inverse_column as &[_])],
+                ),
+                (-S::one(), vec![Box::new(&*chi)]),
+            ],
+        );
+        inverse_column
+    });
+
+    // get the inverses of all the constant columns plus alpha
+
+    let inverse_constant_bytes = alloc.alloc_slice_fill_iter(constant_bytes.map(S::from).collect::<Vec<_>>().into_iter());
+    slice_ops::add_const::<S, S>(inverse_constant_bytes, alpha);
+    slice_ops::batch_inversion(inverse_constant_bytes);
+
+    // commit the varying byte inverses
+
+    // calculate the inverses of all 256 words plus alpha
+
+    // commit these inverses
+
+    // (rhoᵢ + α) * (rhoᵢ + α)⁻¹ - 1 = 0
+
+    // get the counts of all bytes in the data
+
+    // commit the counts
+
+    // get the sum of each row's inverse bytes
+
+    // ∑ (rho + α)⁻¹ * count - ∑∑ (word + α)⁻¹ = 0
+
+
+
+
     let word_byte_distribution = ByteDistribution::new(column_data);
     // Create 31 columns, each will collect the corresponding word from all scalars.
     // 31 because a scalar will only ever have 248 bits of data set.
