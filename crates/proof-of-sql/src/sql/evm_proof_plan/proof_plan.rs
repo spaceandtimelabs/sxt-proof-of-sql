@@ -1,7 +1,9 @@
 use super::{error::Error, plans::Plan};
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
+        database::{
+            ColumnField, ColumnRef, ColumnType, OwnedTable, Table, TableEvaluation, TableRef,
+        },
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -18,8 +20,10 @@ use alloc::{
     vec::Vec,
 };
 use bumpalo::Bump;
+use core::str::FromStr;
 use itertools::Itertools;
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
+use sqlparser::ast::Ident;
 
 #[derive(Debug)]
 /// An implementation of `ProofPlan` that allows for EVM compatible serialization.
@@ -48,15 +52,15 @@ impl EVMProofPlan {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+struct CompactPlan {
+    tables: Vec<String>,
+    columns: Vec<(usize, String, ColumnType)>,
+    plan: Plan,
+}
+
 impl Serialize for EVMProofPlan {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        #[derive(Serialize)]
-        struct CompactPlan {
-            tables: Vec<String>,
-            columns: Vec<(usize, String)>,
-            plan: Plan,
-        }
-
         let table_refs = self.get_table_references();
         let column_refs = self.get_column_references();
 
@@ -68,7 +72,11 @@ impl Serialize for EVMProofPlan {
                 let table_index = table_refs
                     .get_index_of(&column_ref.table_ref())
                     .ok_or(Error::TableNotFound)?;
-                Ok((table_index, column_ref.column_id().to_string()))
+                Ok((
+                    table_index,
+                    column_ref.column_id().to_string(),
+                    *column_ref.column_type(),
+                ))
             })
             .try_collect()
             .map_err(serde::ser::Error::custom::<Error>)?;
@@ -80,6 +88,41 @@ impl Serialize for EVMProofPlan {
             plan,
         }
         .serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for EVMProofPlan {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let compact_plan = CompactPlan::deserialize(deserializer)?;
+
+        let table_refs: IndexSet<TableRef> = compact_plan
+            .tables
+            .iter()
+            .map(|table| TableRef::from_str(table).map_err(|_| Error::ParsingUnsuccessful))
+            .try_collect()
+            .map_err(serde::de::Error::custom::<Error>)?;
+        let table_refs_clone = table_refs.clone();
+        let column_refs: IndexSet<ColumnRef> = compact_plan
+            .columns
+            .iter()
+            .map(|(i, ident, column_type)| {
+                let table_ref = table_refs_clone
+                    .get_index(*i)
+                    .cloned()
+                    .ok_or(Error::TableNotFound)?;
+                Ok(ColumnRef::new(table_ref, Ident::new(ident), *column_type))
+            })
+            .try_collect()
+            .map_err(serde::de::Error::custom::<Error>)?;
+        Ok(Self {
+            inner: compact_plan
+                .plan
+                .try_into_proof_plan(&table_refs, &column_refs)
+                .map_err(serde::de::Error::custom::<Error>)?,
+        })
     }
 }
 

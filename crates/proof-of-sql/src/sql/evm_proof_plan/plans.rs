@@ -4,13 +4,17 @@ use crate::{
         database::{ColumnRef, TableRef},
         map::IndexSet,
     },
-    sql::proof_plans::{self, DynProofPlan},
+    sql::{
+        proof_exprs::{AliasedDynProofExpr, TableExpr},
+        proof_plans::{self, DynProofPlan},
+    },
 };
 use alloc::vec::Vec;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 /// Represents a plan that can be serialized for EVM.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) enum Plan {
     Filter(FilterExec),
 }
@@ -30,14 +34,26 @@ impl Plan {
             _ => Err(Error::NotSupported),
         }
     }
+
+    pub(super) fn try_into_proof_plan(
+        &self,
+        table_refs: &IndexSet<TableRef>,
+        column_refs: &IndexSet<ColumnRef>,
+    ) -> Result<DynProofPlan, Error> {
+        match self {
+            Plan::Filter(filter_exec) => Ok(DynProofPlan::Filter(
+                filter_exec.try_into_proof_plan(table_refs, column_refs)?,
+            )),
+        }
+    }
 }
 
 /// Represents a filter execution plan.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) struct FilterExec {
     table_number: usize,
     where_clause: Expr,
-    results: Vec<Expr>,
+    results: Vec<(Expr, Ident)>,
 }
 
 impl FilterExec {
@@ -54,9 +70,35 @@ impl FilterExec {
             results: plan
                 .aliased_results
                 .iter()
-                .map(|result| Expr::try_from_proof_expr(&result.expr, column_refs))
+                .map(|result| {
+                    Expr::try_from_proof_expr(&result.expr, column_refs)
+                        .map(|expr| (expr, result.alias.clone()))
+                })
                 .collect::<Result<_, _>>()?,
             where_clause: Expr::try_from_proof_expr(&plan.where_clause, column_refs)?,
         })
+    }
+
+    fn try_into_proof_plan(
+        &self,
+        table_refs: &IndexSet<TableRef>,
+        column_refs: &IndexSet<ColumnRef>,
+    ) -> Result<proof_plans::FilterExec, Error> {
+        Ok(proof_plans::FilterExec::new(
+            self.results
+                .iter()
+                .map(|expr| AliasedDynProofExpr {
+                    expr: expr.0.into_proof_expr(column_refs),
+                    alias: expr.1.clone(),
+                })
+                .collect(),
+            TableExpr {
+                table_ref: table_refs
+                    .get_index(self.table_number)
+                    .cloned()
+                    .ok_or(Error::TableNotFound)?,
+            },
+            self.where_clause.into_proof_expr(column_refs),
+        ))
     }
 }

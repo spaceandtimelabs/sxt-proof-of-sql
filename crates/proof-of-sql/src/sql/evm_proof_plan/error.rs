@@ -12,4 +12,7 @@ pub(super) enum Error {
     /// Error indicating that the table was not found.
     #[snafu(display("table not found"))]
     TableNotFound,
+    /// Error indicating that parsing was unsuccessful.
+    #[snafu(display("parsing unsuccessful"))]
+    ParsingUnsuccessful,
 }

@@ -7,10 +7,10 @@ use crate::{
     sql::proof_exprs::{self, DynProofExpr},
 };
 use alloc::boxed::Box;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Represents an expression that can be serialized for EVM.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) enum Expr {
     Column(ColumnExpr),
     Equals(EqualsExpr),
@@ -35,10 +35,24 @@ impl Expr {
             _ => Err(Error::NotSupported),
         }
     }
+
+    pub(super) fn into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> DynProofExpr {
+        match self {
+            Expr::Column(column_expr) => {
+                DynProofExpr::Column(column_expr.into_proof_expr(column_refs))
+            }
+            Expr::Equals(equals_expr) => {
+                DynProofExpr::Equals(equals_expr.into_proof_expr(column_refs))
+            }
+            Expr::Literal(literal_expr) => {
+                DynProofExpr::Literal(literal_expr.into_proof_expr())
+            }
+        }
+    }
 }
 
 /// Represents a column expression.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) struct ColumnExpr {
     column_number: usize,
 }
@@ -54,10 +68,14 @@ impl ColumnExpr {
                 .ok_or(Error::ColumnNotFound)?,
         })
     }
+
+    fn into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> proof_exprs::ColumnExpr {
+        proof_exprs::ColumnExpr::new(column_refs[self.column_number].clone())
+    }
 }
 
 /// Represents a literal expression.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) enum LiteralExpr {
     BigInt(i64),
 }
@@ -69,10 +87,18 @@ impl LiteralExpr {
             _ => Err(Error::NotSupported),
         }
     }
+
+    fn into_proof_expr(&self) -> proof_exprs::LiteralExpr {
+        match self {
+            LiteralExpr::BigInt(value) => {
+                proof_exprs::LiteralExpr::new(LiteralValue::BigInt(*value))
+            }
+        }
+    }
 }
 
 /// Represents an equals expression.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) struct EqualsExpr {
     lhs: Box<Expr>,
     rhs: Box<Expr>,
@@ -87,5 +113,12 @@ impl EqualsExpr {
             lhs: Box::new(Expr::try_from_proof_expr(&expr.lhs, column_refs)?),
             rhs: Box::new(Expr::try_from_proof_expr(&expr.rhs, column_refs)?),
         })
+    }
+
+    fn into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> proof_exprs::EqualsExpr {
+        proof_exprs::EqualsExpr {
+            lhs: Box::new(self.lhs.into_proof_expr(column_refs)),
+            rhs: Box::new(self.rhs.into_proof_expr(column_refs)),
+        }
     }
 }
