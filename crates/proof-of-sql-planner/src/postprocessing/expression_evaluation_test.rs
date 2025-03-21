@@ -180,6 +180,11 @@ fn we_can_evaluate_a_column() {
             .collect(),
     );
     assert_eq!(actual_column, expected_column);
+
+    // Try aliasing
+    let alias = expr.alias("juan");
+    let actual_column = evaluate_expr(&table, &alias).unwrap();
+    assert_eq!(actual_column, expected_column);
 }
 
 #[test]
@@ -208,7 +213,9 @@ fn we_can_evaluate_a_logical_expression() {
     ]);
 
     // Find words that are not proper nouns
-    let expr = df_column("namespace.table_name", "is_proper_noun").not();
+    let expr = df_column("namespace.table_name", "is_proper_noun")
+        .not()
+        .alias("not_proper_noun");
     let actual_column = evaluate_expr(&table, &expr).unwrap();
     let expected_column = OwnedColumn::Boolean(vec![false, false, true, true, false]);
     assert_eq!(actual_column, expected_column);
@@ -223,7 +230,8 @@ fn we_can_evaluate_a_logical_expression() {
     // Find words shared among Slovak, Croatian and Slovenian
     let expr = (df_column("namespace.table_name", "sk")
         .eq(df_column("namespace.table_name", "hr")))
-    .and(df_column("namespace.table_name", "hr").eq(df_column("namespace.table_name", "sl")));
+    .and(df_column("namespace.table_name", "hr").eq(df_column("namespace.table_name", "sl")))
+    .alias("shared_sl_hr_sk");
     let actual_column = evaluate_expr(&table, &expr).unwrap();
     let expected_column: OwnedColumn<DoryScalar> =
         OwnedColumn::Boolean(vec![false, false, true, false, false]);
