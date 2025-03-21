@@ -49,6 +49,15 @@ pub struct AliasedResultExpr {
     pub alias: Identifier,
 }
 
+impl From<AliasedResultExpr> for SelectResultExpr {
+    fn from(value: AliasedResultExpr) -> Self {
+        SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
+            expr: value.expr,
+            alias: value.alias,
+        })
+    }
+}
+
 impl AliasedResultExpr {
     /// Create a new `AliasedResultExpr`
     #[must_use]
@@ -225,6 +234,7 @@ impl Expression {
     }
 
     /// Create a new `FIRST()`
+    #[cfg_attr(coverage_nightly, coverage(off))]
     #[must_use]
     pub fn first(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
