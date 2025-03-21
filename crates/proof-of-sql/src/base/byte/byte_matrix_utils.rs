@@ -11,20 +11,14 @@ use itertools::Itertools;
 /// `compute_varying_bit_matrix` returns the matrix M where
 ///   `M_ij = abs(xi) & (1 << bj) == 1`
 /// The last column of M corresponds to the sign bit if it varies.
-pub fn compute_varying_bit_matrix<S: Scalar>(vals: &[S], dist: &ByteDistribution) -> Vec<Vec<u8>> {
-    let number_of_scalars = vals.len();
-    let bit_masks = vals.iter().copied().map(make_bit_mask);
+pub fn compute_varying_byte_matrix(
+    bit_masks: impl Iterator<Item = U256> + Clone,
+    dist: &ByteDistribution,
+) -> Vec<Vec<u8>> {
     dist.varying_byte_indices()
         .map(|start_index| {
-            bit_masks.clone().map(|bit_mask| {
-                let shifted_bit_mask = bit_mask.shr(start_index);
-                let shifted_byte: u8 = if start_index == 248 {
-                    shifted_bit_mask & U256::from(127u8)
-                } else {
-                    shifted_bit_mask
-                }
-                .try_into()
-                .unwrap();
+            bit_masks.clone().map(move |bit_mask| {
+                let shifted_byte: u8 = bit_mask.shr(start_index).try_into().unwrap();
                 shifted_byte
             })
         })

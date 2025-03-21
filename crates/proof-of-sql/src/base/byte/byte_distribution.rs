@@ -2,7 +2,11 @@ use crate::base::{bit::bit_mask_utils::make_bit_mask, scalar::Scalar};
 use ark_std::iterable::Iterable;
 use bit_iter::BitIter;
 use bnum::types::U256;
-use core::{convert::Into, ops::Shl};
+use core::{
+    convert::Into,
+    ops::{Shl, Shr},
+    u32,
+};
 use serde::{Deserialize, Serialize};
 
 /// Describe the distribution of byte values in a table column
@@ -23,26 +27,17 @@ pub struct ByteDistribution {
 impl ByteDistribution {
     pub fn new<S: Scalar, T: Into<S> + Clone>(data: &[T]) -> Self {
         let bit_masks = data.iter().cloned().map(Into::<S>::into).map(make_bit_mask);
-        let leading_bit_column = bit_masks.clone().map(|u| u >= U256::ONE << 255);
         let (vary_mask, leading_bit_shadow_mask) = (0u8..32)
             .map(|u| {
                 let shifted_max_byte = U256::from(255u8).shl(u * 8);
                 let mut one_shadow_shifted_byte_column = bit_masks
                     .clone()
-                    .map(|bit_mask| bit_mask & shifted_max_byte)
-                    .zip(leading_bit_column.clone())
-                    .map(|(shifted_byte, leading_bit)| {
-                        if leading_bit || u == 31 {
-                            shifted_byte
-                        } else {
-                            shifted_byte ^ shifted_max_byte
-                        }
-                    });
+                    .map(|bit_mask| bit_mask & shifted_max_byte);
                 let (is_const, shifted_byte) = match one_shadow_shifted_byte_column.next() {
                     None => (true, U256::ZERO),
                     Some(a) => (one_shadow_shifted_byte_column.all(|x| a == x), a),
                 };
-                (if is_const { 0u32 } else { 1u32 << u }, shifted_byte)
+                if is_const { (0u32, shifted_byte) } else { (1u32 << u, U256::ZERO) }
             })
             .fold(
                 (0u32, U256::ZERO),
@@ -58,6 +53,14 @@ impl ByteDistribution {
 
     pub fn varying_byte_indices(&self) -> impl Iterator<Item = u8> + '_ {
         BitIter::from(self.vary_mask).iter().map(|u| (u * 8) as u8)
+    }
+
+    fn constant_byte_mask(&self) -> U256{
+        U256::from(self.leading_bit_shadow_mask)
+    }
+
+    pub fn constant_bytes(&self) -> impl Iterator<Item = u8> + '_{
+        BitIter::from(!self.vary_mask).iter().map(|u| u8::try_from(self.constant_byte_mask().shr(u * 8) & U256::from(255u8)).unwrap())
     }
 }
 
