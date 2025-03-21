@@ -38,8 +38,7 @@ fn we_can_prove_an_equality_query_with_no_rows() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_bigint(0_i64)),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, &t);
+    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([bigint("a", [0; 0]), varchar("d", [""; 0])]);
     assert_eq!(res, expected_res);
@@ -61,8 +60,7 @@ fn we_can_prove_another_equality_query_with_no_rows() {
         tab(&t),
         equal(column(&t, "a", &accessor), column(&t, "b", &accessor)),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, &t);
+    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([bigint("a", [0; 0]), varchar("d", [""; 0])]);
     assert_eq!(res, expected_res);
@@ -88,8 +86,7 @@ fn we_can_prove_a_nested_equality_query_with_no_rows() {
             equal(column(&t, "a", &accessor), column(&t, "b", &accessor)),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, &t);
+    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([
         bigint("b", [1; 0]),

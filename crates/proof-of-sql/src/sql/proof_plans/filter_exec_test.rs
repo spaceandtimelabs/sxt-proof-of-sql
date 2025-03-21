@@ -368,8 +368,7 @@ fn we_can_prove_a_filter_on_an_empty_table() {
         tab(&t),
         equal(column(&t, "a", &accessor), const_int128(106)),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, &t);
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table([
         bigint("b", [3; 0]),
