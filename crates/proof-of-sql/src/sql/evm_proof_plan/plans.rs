@@ -88,7 +88,7 @@ impl FilterExec {
             self.results
                 .iter()
                 .map(|expr| AliasedDynProofExpr {
-                    expr: expr.0.try_into_proof_expr(column_refs),
+                    expr: expr.0.into_proof_expr(column_refs),
                     alias: expr.1.clone(),
                 })
                 .collect(),
@@ -98,7 +98,7 @@ impl FilterExec {
                     .cloned()
                     .ok_or(Error::TableNotFound)?,
             },
-            self.where_clause.try_into_proof_expr(column_refs),
+            self.where_clause.into_proof_expr(column_refs),
         ))
     }
 }

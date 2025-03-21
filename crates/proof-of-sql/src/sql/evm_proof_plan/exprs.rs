@@ -36,16 +36,16 @@ impl Expr {
         }
     }
 
-    pub(super) fn try_into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> DynProofExpr {
+    pub(super) fn into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> DynProofExpr {
         match self {
             Expr::Column(column_expr) => {
-                DynProofExpr::Column(column_expr.try_into_proof_expr(column_refs))
+                DynProofExpr::Column(column_expr.into_proof_expr(column_refs))
             }
             Expr::Equals(equals_expr) => {
-                DynProofExpr::Equals(equals_expr.try_into_proof_expr(column_refs))
+                DynProofExpr::Equals(equals_expr.into_proof_expr(column_refs))
             }
             Expr::Literal(literal_expr) => {
-                DynProofExpr::Literal(literal_expr.try_into_proof_expr())
+                DynProofExpr::Literal(literal_expr.into_proof_expr())
             }
         }
     }
@@ -69,7 +69,7 @@ impl ColumnExpr {
         })
     }
 
-    fn try_into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> proof_exprs::ColumnExpr {
+    fn into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> proof_exprs::ColumnExpr {
         proof_exprs::ColumnExpr::new(column_refs[self.column_number].clone())
     }
 }
@@ -88,7 +88,7 @@ impl LiteralExpr {
         }
     }
 
-    fn try_into_proof_expr(&self) -> proof_exprs::LiteralExpr {
+    fn into_proof_expr(&self) -> proof_exprs::LiteralExpr {
         match self {
             LiteralExpr::BigInt(value) => {
                 proof_exprs::LiteralExpr::new(LiteralValue::BigInt(*value))
@@ -115,10 +115,10 @@ impl EqualsExpr {
         })
     }
 
-    fn try_into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> proof_exprs::EqualsExpr {
+    fn into_proof_expr(&self, column_refs: &IndexSet<ColumnRef>) -> proof_exprs::EqualsExpr {
         proof_exprs::EqualsExpr {
-            lhs: Box::new(self.lhs.try_into_proof_expr(column_refs)),
-            rhs: Box::new(self.rhs.try_into_proof_expr(column_refs)),
+            lhs: Box::new(self.lhs.into_proof_expr(column_refs)),
+            rhs: Box::new(self.rhs.into_proof_expr(column_refs)),
         }
     }
 }
