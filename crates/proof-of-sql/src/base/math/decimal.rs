@@ -1,10 +1,6 @@
 //! Module for parsing an `IntermediateDecimal` into a `Decimal75`.
-use crate::base::{
-    math::BigDecimalExt,
-    scalar::{Scalar, ScalarConversionError},
-};
 use alloc::string::{String, ToString};
-use bigdecimal::{BigDecimal, ParseBigDecimalError};
+use bigdecimal::ParseBigDecimalError;
 use serde::{Deserialize, Deserializer, Serialize};
 use snafu::Snafu;
 
@@ -138,41 +134,44 @@ impl<'de> Deserialize<'de> for Precision {
     }
 }
 
-/// Fallibly attempts to convert an `IntermediateDecimal` into the
-/// native proof-of-sql [Scalar] backing store. This function adjusts
-/// the decimal to the specified `target_precision` and `target_scale`,
-/// and validates that the adjusted decimal does not exceed the specified precision.
-/// If the conversion is successful, it returns the `Scalar` representation;
-/// otherwise, it returns a `DecimalError` indicating the type of failure
-/// (e.g., exceeding precision limits).
-///
-/// ## Arguments
-/// * `d` - The `IntermediateDecimal` to convert.
-/// * `target_precision` - The maximum number of digits the scalar can represent.
-/// * `target_scale` - The scale (number of decimal places) to use in the scalar.
-///
-/// ## Errors
-/// Returns `DecimalError::InvalidPrecision` error if the number of digits in
-/// the decimal exceeds the `target_precision` before or after adjusting for
-/// `target_scale`, or if the target precision is zero.
-pub(crate) fn try_convert_intermediate_decimal_to_scalar<S: Scalar>(
-    d: &BigDecimal,
-    target_precision: Precision,
-    target_scale: i8,
-) -> DecimalResult<S> {
-    d.try_into_bigint_with_precision_and_scale(target_precision.value(), target_scale)?
-        .try_into()
-        .map_err(|e: ScalarConversionError| DecimalError::InvalidDecimal {
-            error: e.to_string(),
-        })
-}
-
 #[cfg(test)]
 mod scale_adjust_test {
-
     use super::*;
-    use crate::base::scalar::test_scalar::TestScalar;
+    use crate::base::{
+        math::BigDecimalExt,
+        scalar::{test_scalar::TestScalar, Scalar, ScalarConversionError},
+    };
+    use bigdecimal::BigDecimal;
     use num_bigint::BigInt;
+
+    /// Fallibly attempts to convert an `IntermediateDecimal` into the
+    /// native proof-of-sql [Scalar] backing store. This function adjusts
+    /// the decimal to the specified `target_precision` and `target_scale`,
+    /// and validates that the adjusted decimal does not exceed the specified precision.
+    /// If the conversion is successful, it returns the `Scalar` representation;
+    /// otherwise, it returns a `DecimalError` indicating the type of failure
+    /// (e.g., exceeding precision limits).
+    ///
+    /// ## Arguments
+    /// * `d` - The `IntermediateDecimal` to convert.
+    /// * `target_precision` - The maximum number of digits the scalar can represent.
+    /// * `target_scale` - The scale (number of decimal places) to use in the scalar.
+    ///
+    /// ## Errors
+    /// Returns `DecimalError::InvalidPrecision` error if the number of digits in
+    /// the decimal exceeds the `target_precision` before or after adjusting for
+    /// `target_scale`, or if the target precision is zero.
+    fn try_convert_intermediate_decimal_to_scalar<S: Scalar>(
+        d: &BigDecimal,
+        target_precision: Precision,
+        target_scale: i8,
+    ) -> DecimalResult<S> {
+        d.try_into_bigint_with_precision_and_scale(target_precision.value(), target_scale)?
+            .try_into()
+            .map_err(|e: ScalarConversionError| DecimalError::InvalidDecimal {
+                error: e.to_string(),
+            })
+    }
 
     #[test]
     fn we_cannot_scale_past_max_precision() {

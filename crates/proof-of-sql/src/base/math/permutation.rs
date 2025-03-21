@@ -1,9 +1,4 @@
-use crate::base::if_rayon;
 use alloc::{format, string::String, vec::Vec};
-use core::cmp::Ordering;
-use itertools::Itertools;
-#[cfg(feature = "rayon")]
-use rayon::prelude::ParallelSliceMut;
 use snafu::Snafu;
 
 /// An error that occurs when working with permutations
@@ -28,21 +23,6 @@ pub struct Permutation {
 }
 
 impl Permutation {
-    /// Create a new permutation from a comparison function with the given length
-    pub(crate) fn unchecked_new_from_cmp<F>(length: usize, cmp: F) -> Self
-    where
-        F: Fn(&usize, &usize) -> Ordering + Sync,
-    {
-        let mut indexes = (0..length).collect_vec();
-        if_rayon!(
-            indexes.par_sort_unstable_by(cmp),
-            indexes.sort_unstable_by(cmp)
-        );
-        Self {
-            permutation: indexes,
-        }
-    }
-
     /// Create a new permutation. If the permutation is invalid, return an error.
     pub fn try_new(permutation: Vec<usize>) -> Result<Self, PermutationError> {
         let length = permutation.len();

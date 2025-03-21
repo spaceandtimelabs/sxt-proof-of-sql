@@ -10,5 +10,7 @@ pub(crate) use log::log2_up;
 /// TODO: add docs
 pub(crate) mod permutation;
 
+#[cfg(test)]
 mod big_decimal_ext;
+#[cfg(test)]
 pub(crate) use big_decimal_ext::BigDecimalExt;
