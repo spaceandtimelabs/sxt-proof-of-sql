@@ -134,6 +134,15 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
     })
 }
 
+/// Convert column to scalar slice.
+#[expect(clippy::missing_panics_doc)]
+pub(crate) fn columns_to_scalar_slice<'a, S: Scalar>(
+    column: &Column<'a, S>,
+    alloc: &'a Bump,
+) -> &'a [S] {
+    alloc.alloc_slice_fill_with(column.len(), |i| column.scalar_at(i).unwrap())
+}
+
 #[expect(dead_code)]
 /// Multiply two [`ColumnarValues`] together.
 /// # Panics
@@ -270,7 +279,6 @@ fn modulo_integer_columns<
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length or column type division is unsupported.
 #[expect(clippy::too_many_lines)]
-#[cfg_attr(not(test), expect(dead_code))]
 pub(crate) fn divide_columns<'a, S: Scalar>(
     lhs: &Column<'a, S>,
     rhs: &Column<'a, S>,
@@ -394,7 +402,6 @@ pub(crate) fn divide_columns<'a, S: Scalar>(
 /// Take the modulo of one column against another.
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length.
-#[cfg_attr(not(test), expect(dead_code))]
 pub(crate) fn modulo_columns<'a, S: Scalar>(
     lhs: &Column<'a, S>,
     rhs: &Column<'a, S>,

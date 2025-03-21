@@ -115,8 +115,7 @@ pub fn try_multiply_column_types(
 /// Determine the output type of a divide/modulo operation if it is possible
 /// to divide and modulo the two input types. If the types are not compatible, return
 /// an error.
-#[cfg_attr(not(test), expect(dead_code))]
-fn try_divide_modulo_column_types(
+pub fn try_divide_modulo_column_types(
     lhs: ColumnType,
     rhs: ColumnType,
 ) -> ColumnOperationResult<(ColumnType, ColumnType)> {
