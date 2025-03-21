@@ -4,6 +4,7 @@
 pub mod arrow;
 
 pub(crate) mod bit;
+mod byte;
 pub mod commitment;
 pub mod database;
 /// TODO: add docs
