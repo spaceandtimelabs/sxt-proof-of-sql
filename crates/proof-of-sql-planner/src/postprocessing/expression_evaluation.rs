@@ -19,6 +19,7 @@ pub fn evaluate_expr<S: Scalar>(
     expr: &Expr,
 ) -> ExpressionEvaluationResult<OwnedColumn<S>> {
     match expr {
+        Expr::Alias(alias) => evaluate_expr(table, &alias.expr),
         Expr::Column(column) => {
             let ident = Ident::new(column.name.as_str());
             evaluate_column(&ident, table)

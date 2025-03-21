@@ -4,7 +4,7 @@ use proof_of_sql::base::{database::ColumnOperationError, math::decimal::DecimalE
 use snafu::Snafu;
 
 /// Errors from evaluation of `Expression`s.
-#[derive(Snafu, Debug, PartialEq, Eq)]
+#[derive(Snafu, Debug)]
 pub enum ExpressionEvaluationError {
     /// Column not found
     #[snafu(display("Column not found: {error}"))]

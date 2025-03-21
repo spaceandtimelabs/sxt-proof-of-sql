@@ -1,6 +1,6 @@
 use super::PostprocessingResult;
-use proof_of_sql::base::{database::OwnedTable, scalar::Scalar};
 use core::fmt::Debug;
+use proof_of_sql::base::{database::OwnedTable, scalar::Scalar};
 
 /// A trait for postprocessing steps that can be applied to an `OwnedTable`.
 pub trait PostprocessingStep<S: Scalar>: Debug + Send + Sync {
