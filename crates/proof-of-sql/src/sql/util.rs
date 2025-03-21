@@ -1,6 +1,4 @@
-use super::{AnalyzeError, AnalyzeResult};
 use crate::base::database::{try_add_subtract_column_types, try_multiply_column_types, ColumnType};
-use alloc::string::ToString;
 use sqlparser::ast::BinaryOperator;
 
 /// Checks if the binary operation between the left and right data types is valid.

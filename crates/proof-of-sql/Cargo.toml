@@ -50,7 +50,6 @@ num-bigint = { workspace = true, default-features = false }
 opentelemetry = { workspace = true, optional = true  }
 opentelemetry-jaeger = { workspace = true, optional = true }
 postcard = { workspace = true, features = ["alloc"] }
-proof-of-sql-parser = { workspace = true }
 rand = { workspace = true, default-features = false, optional = true }
 rand_chacha = { workspace = true, optional = true }
 rayon = { workspace = true, optional = true }
