@@ -8,6 +8,7 @@ use crate::{
 };
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 /// Represents a plan that can be serialized for EVM.
 #[derive(Serialize, Deserialize)]
@@ -37,7 +38,7 @@ impl Plan {
 pub(super) struct FilterExec {
     table_number: usize,
     where_clause: Expr,
-    results: Vec<Expr>,
+    results: Vec<(Expr, Ident)>,
 }
 
 impl FilterExec {
@@ -54,7 +55,10 @@ impl FilterExec {
             results: plan
                 .aliased_results
                 .iter()
-                .map(|result| Expr::try_from_proof_expr(&result.expr, column_refs))
+                .map(|result| {
+                    Expr::try_from_proof_expr(&result.expr, column_refs)
+                        .map(|expr| (expr, result.alias.clone()))
+                })
                 .collect::<Result<_, _>>()?,
             where_clause: Expr::try_from_proof_expr(&plan.where_clause, column_refs)?,
         })

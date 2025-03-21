@@ -1,7 +1,9 @@
 use super::{error::Error, plans::Plan};
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
+        database::{
+            ColumnField, ColumnRef, ColumnType, OwnedTable, Table, TableEvaluation, TableRef,
+        },
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -51,7 +53,7 @@ impl EVMProofPlan {
 #[derive(Serialize, Deserialize)]
 struct CompactPlan {
     tables: Vec<String>,
-    columns: Vec<(usize, String)>,
+    columns: Vec<(usize, String, ColumnType)>,
     plan: Plan,
 }
 
@@ -68,7 +70,11 @@ impl Serialize for EVMProofPlan {
                 let table_index = table_refs
                     .get_index_of(&column_ref.table_ref())
                     .ok_or(Error::TableNotFound)?;
-                Ok((table_index, column_ref.column_id().to_string()))
+                Ok((
+                    table_index,
+                    column_ref.column_id().to_string(),
+                    *column_ref.column_type(),
+                ))
             })
             .try_collect()
             .map_err(serde::ser::Error::custom::<Error>)?;
