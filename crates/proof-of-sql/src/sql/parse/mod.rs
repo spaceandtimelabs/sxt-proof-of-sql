@@ -15,6 +15,8 @@ pub use query_expr::QueryExpr;
 
 mod filter_exec_builder;
 pub(crate) use filter_exec_builder::FilterExecBuilder;
+#[cfg(test)]
+mod filter_exec_builder_test;
 
 /// TODO: add docs
 pub(crate) mod query_context;
@@ -22,6 +24,8 @@ pub(crate) use query_context::QueryContext;
 
 mod query_context_builder;
 pub(crate) use query_context_builder::QueryContextBuilder;
+#[cfg(test)]
+mod query_context_builder_test;
 
 mod dyn_proof_expr_builder;
 pub(crate) use dyn_proof_expr_builder::DynProofExprBuilder;

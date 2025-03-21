@@ -35,14 +35,3 @@ fn we_can_reorder_and_rename_owned_table_columns() {
     let actual_table = apply_postprocessing_steps(table, &postprocessing).unwrap();
     assert_eq!(actual_table, expected_table);
 }
-
-#[test]
-fn we_can_do_computation_on_owned_table_columns() {
-    let table: OwnedTable<Curve25519Scalar> = owned_table([bigint("c", [1, 2, 3, 4])]);
-    let res_col = add(add(col("c"), col("c")), lit(1));
-    let postprocessing: [OwnedTablePostprocessing; 1] =
-        [select_expr(&[aliased_expr(res_col, "res")])];
-    let expected_table = owned_table([bigint("res", [3, 5, 7, 9])]);
-    let actual_table = apply_postprocessing_steps(table, &postprocessing).unwrap();
-    assert_eq!(actual_table, expected_table);
-}

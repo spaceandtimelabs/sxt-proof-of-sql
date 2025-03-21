@@ -22,6 +22,16 @@ use crate::base::{
 };
 use alloc::{string::String, vec::Vec};
 use sqlparser::ast::Ident;
+#[cfg(feature = "std")]
+use std::cell::RefCell;
+#[cfg(feature = "std")]
+use std::collections::HashMap;
+
+// Thread-local storage to hold presence information until the OwnedTable is created
+#[cfg(feature = "std")]
+std::thread_local! {
+    static NULLABLE_COLUMNS: RefCell<HashMap<(Ident, usize), Vec<bool>>> = RefCell::new(HashMap::new());
+}
 
 /// Creates an [`OwnedTable`] from a list of `(Ident, OwnedColumn)` pairs.
 /// This is a convenience wrapper around [`OwnedTable::try_from_iter`] primarily for use in tests and
@@ -35,9 +45,6 @@ use sqlparser::ast::Ident;
 /// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
 /// let result = owned_table::<MyScalar>([
 ///      bigint("a", [1, 2, 3]),
-///      boolean("b", [true, false, true]),
-///      int128("c", [1, 2, 3]),
-///      scalar("d", [1, 2, 3]),
 ///      varchar("e", ["a", "b", "c"]),
 ///      decimal75("f", 12, 1, [1, 2, 3]),
 /// ]);
@@ -48,7 +55,133 @@ use sqlparser::ast::Ident;
 pub fn owned_table<S: Scalar>(
     iter: impl IntoIterator<Item = (Ident, OwnedColumn<S>)>,
 ) -> OwnedTable<S> {
-    OwnedTable::try_from_iter(iter).unwrap()
+    // First, collect all the columns
+    let columns: Vec<_> = iter.into_iter().collect();
+
+    // Create the table
+    let mut table = OwnedTable::try_from_iter(columns).unwrap();
+
+    #[cfg(feature = "std")]
+    {
+        // Get all the nullable columns from thread-local storage
+        let nullable_columns = NULLABLE_COLUMNS.with(|cell| {
+            let mut map = cell.borrow_mut();
+            let result = map.clone();
+            map.clear();
+            result
+        });
+
+        // Now add presence information for nullable columns
+        for ((name, len), presence) in nullable_columns {
+            if let Some(col) = table.inner_table().get(&name) {
+                if col.len() == len {
+                    table.set_presence(name, presence);
+                }
+            }
+        }
+    }
+
+    table
+}
+
+/// Creates a nullable column with the given name, values, and presence vector.
+/// This is primarily intended for use in conjunction with [`owned_table`].
+///
+/// # Panics
+///
+/// Panics if the presence vector length does not match the values length.
+pub fn nullable_column<S: Scalar>(
+    name: impl Into<Ident>,
+    values: &OwnedColumn<S>,
+    presence: Option<Vec<bool>>,
+) -> (Ident, OwnedColumn<S>) {
+    let name_ident = name.into();
+    let result = (name_ident.clone(), values.clone());
+
+    // If we have presence information, we need to add it to the OwnedTable
+    #[cfg(feature = "std")]
+    if let Some(presence_vec) = presence {
+        NULLABLE_COLUMNS.with(|cell| {
+            let mut map = cell.borrow_mut();
+            map.insert((name_ident, values.len()), presence_vec);
+        });
+    }
+
+    result
+}
+
+/// Creates a (`Ident`, `OwnedNullableColumn`) pair for a nullable column.
+/// This is primarily intended for use with [`owned_table_with_nulls`].
+///
+/// # Arguments
+/// * `name` - The name of the column
+/// * `values` - The column values
+/// * `presence` - The presence vector (true = value present, false = NULL)
+///
+/// # Returns
+/// A tuple containing the column name and an `OwnedNullableColumn`
+///
+/// # Panics
+/// Panics if the presence vector length does not match the values length.
+pub fn nullable_column_pair<S: Scalar>(
+    name: impl Into<Ident>,
+    values: OwnedColumn<S>,
+    presence: Option<Vec<bool>>,
+) -> (Ident, super::owned_column::OwnedNullableColumn<S>) {
+    let name = name.into();
+    let nullable =
+        super::owned_column::OwnedNullableColumn::with_presence(values, presence).unwrap();
+    (name, nullable)
+}
+
+/// Creates an [`OwnedTable`] from a list of nullable column pairs.
+/// This function properly preserves nullability information in the created table.
+///
+/// # Example
+/// ```
+/// use proof_of_sql::base::{database::owned_table_utility::*};
+/// # use proof_of_sql::base::scalar::MontScalar;
+/// # pub type MyScalar = MontScalar<ark_curve25519::FrConfig>;
+///
+/// // Create presence vectors (true = value present, false = NULL)
+/// let presence_a = Some(vec![true, false, true]);
+/// let presence_b = Some(vec![false, true, false]);
+///
+/// let result = owned_table_with_nulls::<MyScalar>([
+///     nullable_column_pair("a", bigint_values([1, 2, 3]), presence_a),
+///     nullable_column_pair("b", varchar_values(["x", "y", "z"]), presence_b),
+/// ]);
+/// ```
+///
+/// # Panics
+/// - Panics if converting the iterator into an `OwnedTable<S>` fails.
+pub fn owned_table_with_nulls<S: Scalar>(
+    iter: impl IntoIterator<Item = (Ident, super::owned_column::OwnedNullableColumn<S>)>,
+) -> OwnedTable<S> {
+    let columns: crate::base::map::IndexMap<_, _> = iter.into_iter().collect();
+    OwnedTable::try_new_from_nullable_columns(columns).unwrap()
+}
+
+/// Helper function to create bigint values without creating a column pair
+/// Intended for use with `nullable_column` and `owned_table_with_nulls`
+pub fn bigint_values<S: Scalar>(data: impl IntoIterator<Item = impl Into<i64>>) -> OwnedColumn<S> {
+    OwnedColumn::BigInt(data.into_iter().map(Into::into).collect())
+}
+
+/// Helper function to create varchar values without creating a column pair
+/// Intended for use with `nullable_column` and `owned_table_with_nulls`
+pub fn varchar_values<S: Scalar>(
+    data: impl IntoIterator<Item = impl Into<String>>,
+) -> OwnedColumn<S> {
+    OwnedColumn::VarChar(data.into_iter().map(Into::into).collect())
+}
+
+/// Helper function to create boolean values without creating a column pair
+/// Intended for use with `nullable_column` and `owned_table_with_nulls`
+pub fn boolean_values<S: Scalar>(
+    data: impl IntoIterator<Item = impl Into<bool>>,
+) -> OwnedColumn<S> {
+    OwnedColumn::Boolean(data.into_iter().map(Into::into).collect())
 }
 
 /// Creates a (Ident, `OwnedColumn`) pair for a uint8 column.

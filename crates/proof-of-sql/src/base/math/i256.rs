@@ -251,11 +251,13 @@ mod tests {
 
         let mut rng = thread_rng();
         for _ in 0..10 {
-            let x =
+            let x: BigInt =
                 (BigInt::from(rng.gen::<i128>().abs()) << 128) + BigInt::from(rng.gen::<u128>());
-            let y = &x + (BigInt::from(rng.gen::<u128>()) << 255);
+            let mut y = x.clone();
+            let shift_val: BigInt = BigInt::from(rng.gen::<u128>()) << 255;
+            y += shift_val;
             assert_eq!(I256::from_num_bigint(&y), I256::from_num_bigint(&x));
-            assert_eq!(I256::from_num_bigint(&-&y), I256::from_num_bigint(&-x));
+            assert_eq!(I256::from_num_bigint(&-&y), I256::from_num_bigint(&-&x));
             assert_eq!(I256::from_num_bigint(&y), I256::from_num_bigint(&-y).neg());
         }
     }

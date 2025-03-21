@@ -4,10 +4,20 @@ use crate::base::{
     scalar::Scalar,
 };
 use alloc::{vec, vec::Vec};
+use core::fmt;
 use itertools::{EitherOrBoth, Itertools};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use sqlparser::ast::Ident;
+
+// Constants for NULL placeholders - these match what's in owned_and_arrow_conversions.rs
+const NULL_I8: i8 = -99;
+const NULL_I16: i16 = -9999;
+const NULL_I32: i32 = -999_999_999;
+const NULL_I64: i64 = -999_999_999_999;
+const NULL_I128: i128 = -999_999_999_999_999_999;
+const NULL_TIMESTAMP: i64 = -888_888_888_888;
+const NULL_U8: u8 = 123;
 
 /// An error that occurs when working with tables.
 #[derive(Snafu, Debug, PartialEq, Eq)]
@@ -15,6 +25,9 @@ pub enum OwnedTableError {
     /// The columns have different lengths.
     #[snafu(display("Columns have different lengths"))]
     ColumnLengthMismatch,
+    /// The column was not found in the presence map.
+    #[snafu(display("Column not found in presence map"))]
+    ColumnNotFound,
 }
 
 /// Errors that can occur when coercing a table.
@@ -35,23 +48,370 @@ pub(crate) enum TableCoercionError {
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow [`RecordBatch`](arrow::record_batch::RecordBatch).
-#[derive(Debug, Clone, Eq, Serialize, Deserialize)]
+#[derive(Clone, Eq, Serialize, Deserialize)]
 pub struct OwnedTable<S: Scalar> {
     table: IndexMap<Ident, OwnedColumn<S>>,
+    // Map from column name to presence vector (true = present, false = NULL)
+    // Only stored for columns that actually have NULL values
+    presence: IndexMap<Ident, Vec<bool>>,
 }
+
+/// Helper functions to check if a value is NULL
+fn is_null_i8(value: i8) -> bool {
+    value == NULL_I8
+}
+
+fn is_null_i16(value: i16) -> bool {
+    value == NULL_I16
+}
+
+fn is_null_i32(value: i32) -> bool {
+    value == NULL_I32
+}
+
+fn is_null_i64(value: i64) -> bool {
+    value == NULL_I64
+}
+
+fn is_null_i128(value: i128) -> bool {
+    value == NULL_I128
+}
+
+fn is_null_timestamp(value: i64) -> bool {
+    value == NULL_TIMESTAMP
+}
+
+fn is_null_u8(value: u8) -> bool {
+    value == NULL_U8
+}
+
+/// Custom Debug implementation for `OwnedTable` that shows NULL values as "`NaN`"
+#[allow(clippy::too_many_lines)]
+impl<S: Scalar> fmt::Debug for OwnedTable<S> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("OwnedTable { table: {")?;
+
+        let mut first_column = true;
+        for (column_name, column) in &self.table {
+            if !first_column {
+                f.write_str(", ")?;
+            }
+            first_column = false;
+
+            write!(f, "{column_name:?}: ")?;
+
+            // Get presence vector if it exists
+            let has_presence = self.presence.contains_key(column_name);
+            let presence = self.presence.get(column_name);
+
+            match column {
+                OwnedColumn::Boolean(values) => {
+                    f.write_str("Boolean([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::Uint8(values) => {
+                    f.write_str("Uint8([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
+                            || is_null_u8(value)
+                        {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::TinyInt(values) => {
+                    f.write_str("TinyInt([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
+                            || is_null_i8(value)
+                        {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::SmallInt(values) => {
+                    f.write_str("SmallInt([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
+                            || is_null_i16(value)
+                        {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::Int(values) => {
+                    f.write_str("Int([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
+                            || is_null_i32(value)
+                        {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::BigInt(values) => {
+                    f.write_str("BigInt([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
+                            || is_null_i64(value)
+                        {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::VarChar(values) => {
+                    f.write_str("VarChar([")?;
+                    for (i, value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("\"NaN\"")?;
+                        } else {
+                            write!(f, "{value:?}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::VarBinary(values) => {
+                    f.write_str("VarBinary([")?;
+                    for (i, value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value:?}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::Int128(values) => {
+                    f.write_str("Int128([")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
+                            || is_null_i128(value)
+                        {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::Decimal75(precision, scale, values) => {
+                    write!(f, "Decimal75({precision:?}, {scale}, [")?;
+                    for (i, value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::Scalar(values) => {
+                    f.write_str("Scalar([")?;
+                    for (i, value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if has_presence && presence.unwrap().len() > i && !presence.unwrap()[i] {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+                OwnedColumn::TimestampTZ(time_unit, time_zone, values) => {
+                    write!(f, "TimestampTZ({time_unit:?}, {time_zone:?}, [")?;
+                    for (i, &value) in values.iter().enumerate() {
+                        if i > 0 {
+                            f.write_str(", ")?;
+                        }
+                        if (has_presence && presence.unwrap().len() > i && !presence.unwrap()[i])
+                            || is_null_timestamp(value)
+                        {
+                            f.write_str("NaN")?;
+                        } else {
+                            write!(f, "{value}")?;
+                        }
+                    }
+                    f.write_str("])")?;
+                }
+            }
+        }
+
+        write!(f, "}}, presence: {0:?} }}", self.presence)
+    }
+}
+
 impl<S: Scalar> OwnedTable<S> {
     /// Creates a new [`OwnedTable`].
     pub fn try_new(table: IndexMap<Ident, OwnedColumn<S>>) -> Result<Self, OwnedTableError> {
         if table.is_empty() {
-            return Ok(Self { table });
+            return Ok(Self {
+                table,
+                presence: IndexMap::default(),
+            });
         }
         let num_rows = table[0].len();
         if table.values().any(|column| column.len() != num_rows) {
             Err(OwnedTableError::ColumnLengthMismatch)
         } else {
-            Ok(Self { table })
+            Ok(Self {
+                table,
+                presence: IndexMap::default(),
+            })
         }
     }
+
+    /// Creates a new [`OwnedTable`] with the provided presence information.
+    pub fn try_new_with_presence(
+        table: IndexMap<Ident, OwnedColumn<S>>,
+        presence: IndexMap<Ident, Vec<bool>>,
+    ) -> Result<Self, OwnedTableError> {
+        if table.is_empty() {
+            return Ok(Self { table, presence });
+        }
+
+        let num_rows = table[0].len();
+
+        // Check that all columns have the same length
+        if table.values().any(|column| column.len() != num_rows) {
+            return Err(OwnedTableError::ColumnLengthMismatch);
+        }
+
+        // Check that all presence vectors have the correct length
+        for (col_name, presence_vec) in &presence {
+            if !table.contains_key(col_name) {
+                return Err(OwnedTableError::ColumnNotFound);
+            }
+
+            if presence_vec.len() != num_rows {
+                return Err(OwnedTableError::ColumnLengthMismatch);
+            }
+        }
+
+        Ok(Self { table, presence })
+    }
+
+    /// Creates a new [`OwnedTable`] from `OwnedNullableColumn` instances.
+    ///
+    /// # Panics
+    /// Panics if `columns` is non-empty but contains no values.
+    pub fn try_new_from_nullable_columns(
+        columns: IndexMap<Ident, super::owned_column::OwnedNullableColumn<S>>,
+    ) -> Result<Self, OwnedTableError> {
+        if columns.is_empty() {
+            return Ok(Self {
+                table: IndexMap::default(),
+                presence: IndexMap::default(),
+            });
+        }
+
+        let num_rows = columns.values().next().unwrap().values.len();
+
+        // Check that all columns have the same length
+        if columns.values().any(|col| col.values.len() != num_rows) {
+            return Err(OwnedTableError::ColumnLengthMismatch);
+        }
+
+        let mut table = IndexMap::default();
+        let mut presence = IndexMap::default();
+
+        for (col_name, nullable_col) in columns {
+            table.insert(col_name.clone(), nullable_col.values.clone());
+
+            if let Some(pres_vec) = nullable_col.presence {
+                // Only store presence vectors that contain NULL values
+                if pres_vec.iter().any(|&x| !x) {
+                    presence.insert(col_name, pres_vec);
+                }
+            }
+        }
+
+        Ok(Self { table, presence })
+    }
+
+    /// Get the presence vector for a column, if it exists and has NULL values.
+    #[must_use]
+    pub fn get_presence(&self, column_name: &Ident) -> Option<&Vec<bool>> {
+        self.presence.get(column_name)
+    }
+
+    /// Set the presence vector for a column.
+    /// This marks which rows have non-NULL values (true) vs NULL values (false).
+    ///
+    /// # Arguments
+    /// * `column_name` - The name of the column to set presence for
+    /// * `presence` - The presence vector, where each boolean indicates if the value is present (true) or NULL (false)
+    pub fn set_presence(&mut self, column_name: Ident, presence: Vec<bool>) {
+        // Only store presence info if the column exists
+        if self.table.contains_key(&column_name) {
+            // Make sure the presence vector has the right length
+            if let Some(column) = self.table.get(&column_name) {
+                if column.len() == presence.len() {
+                    self.presence.insert(column_name, presence);
+                }
+            }
+        }
+    }
+
+    /// Check if a column has NULL values.
+    #[must_use]
+    pub fn has_nulls(&self, column_name: &Ident) -> bool {
+        self.presence.contains_key(column_name)
+    }
+
     /// Creates a new [`OwnedTable`].
     pub fn try_from_iter<T: IntoIterator<Item = (Ident, OwnedColumn<S>)>>(
         iter: T,
@@ -181,9 +541,9 @@ impl<'a, S: Scalar> From<&Table<'a, S>> for OwnedTable<S> {
 
 impl<'a, S: Scalar> From<Table<'a, S>> for OwnedTable<S> {
     fn from(value: Table<'a, S>) -> Self {
+        let table_map = value.into_inner();
         OwnedTable::try_from_iter(
-            value
-                .into_inner()
+            table_map
                 .into_iter()
                 .map(|(name, column)| (name, OwnedColumn::from(&column))),
         )
@@ -193,17 +553,18 @@ impl<'a, S: Scalar> From<Table<'a, S>> for OwnedTable<S> {
 
 #[cfg(test)]
 mod tests {
-    use super::OwnedTable;
+    use super::*;
     use crate::base::{
         database::{
-            owned_table_utility::*, table_utility::*, ColumnCoercionError, Table,
-            TableCoercionError, TableOptions,
+            owned_column::OwnedNullableColumn, owned_table_utility::*, table_utility::*,
+            ColumnCoercionError, Table, TableCoercionError, TableOptions,
         },
         map::indexmap,
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         scalar::test_scalar::TestScalar,
     };
     use bumpalo::Bump;
+    use sqlparser::ast::Ident;
 
     #[test]
     fn test_conversion_from_table_to_owned_table() {
@@ -378,5 +739,194 @@ mod tests {
                 source: ColumnCoercionError::Overflow
             })
         ));
+    }
+
+    #[test]
+    fn test_is_null_functions() {
+        assert!(is_null_i8(NULL_I8));
+        assert!(!is_null_i8(0));
+        assert!(is_null_i16(NULL_I16));
+        assert!(!is_null_i16(0));
+        assert!(is_null_i32(NULL_I32));
+        assert!(!is_null_i32(0));
+        assert!(is_null_i64(NULL_I64));
+        assert!(!is_null_i64(0));
+        assert!(is_null_i128(NULL_I128));
+        assert!(!is_null_i128(0));
+        assert!(is_null_timestamp(NULL_TIMESTAMP));
+        assert!(!is_null_timestamp(0));
+        assert!(is_null_u8(NULL_U8));
+        assert!(!is_null_u8(0));
+    }
+
+    #[test]
+    fn test_debug_implementation() {
+        let table: OwnedTable<TestScalar> = owned_table([
+            bigint("bigint", [0, 1, NULL_I64]),
+            int("int", [0, 1, NULL_I32]),
+            smallint("smallint", [0, 1, NULL_I16]),
+            tinyint("tinyint", [0, 1, NULL_I8]),
+            uint8("uint8", [0, 1, NULL_U8]),
+            varchar("varchar", ["a", "b", "c"]),
+            varbinary("varbinary", [vec![0, 1], vec![2, 3], vec![4, 5]]),
+            int128("int128", [0, 1, NULL_I128]),
+            decimal75("decimal75", 10, 2, [123, 456, 789]),
+            boolean("boolean", [true, false, true]),
+            timestamptz(
+                "timestamptz",
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::utc(),
+                [0, 1, NULL_TIMESTAMP],
+            ),
+            scalar("scalar", [0, 1, 2]),
+        ]);
+
+        let mut presence = IndexMap::default();
+        presence.insert(Ident::new("varchar"), vec![true, false, true]);
+        presence.insert(Ident::new("varbinary"), vec![true, false, true]);
+        presence.insert(Ident::new("boolean"), vec![true, false, true]);
+        presence.insert(Ident::new("scalar"), vec![true, false, true]);
+        presence.insert(Ident::new("decimal75"), vec![true, false, true]);
+
+        let table_with_presence =
+            OwnedTable::<TestScalar>::try_new_with_presence(table.into_inner(), presence).unwrap();
+
+        let debug_str = format!("{table_with_presence:?}");
+
+        assert!(debug_str.contains("NaN"));
+        assert!(debug_str.contains("bigint"));
+        assert!(debug_str.contains("varchar"));
+        assert!(debug_str.contains("boolean"));
+    }
+
+    #[test]
+    fn test_try_new_with_presence() {
+        let table = IndexMap::default();
+        let presence = IndexMap::default();
+
+        let result =
+            OwnedTable::<TestScalar>::try_new_with_presence(table.clone(), presence.clone());
+        assert!(result.is_ok());
+
+        let mut table = IndexMap::default();
+        table.insert(Ident::new("col1"), OwnedColumn::BigInt(vec![1, 2, 3]));
+
+        let mut presence = IndexMap::default();
+        presence.insert(Ident::new("col2"), vec![true, true, true]);
+
+        let result = OwnedTable::<TestScalar>::try_new_with_presence(table.clone(), presence);
+        assert!(matches!(result, Err(OwnedTableError::ColumnNotFound)));
+
+        let mut presence = IndexMap::default();
+        presence.insert(Ident::new("col1"), vec![true, true]);
+
+        let result = OwnedTable::<TestScalar>::try_new_with_presence(table.clone(), presence);
+        assert!(matches!(result, Err(OwnedTableError::ColumnLengthMismatch)));
+
+        let mut presence = IndexMap::default();
+        presence.insert(Ident::new("col1"), vec![true, false, true]);
+
+        let result = OwnedTable::<TestScalar>::try_new_with_presence(table, presence);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_try_new_from_nullable_columns() {
+        let col1 = OwnedNullableColumn::with_presence(
+            OwnedColumn::BigInt(vec![1, 2, 3]),
+            Some(vec![true, false, true]),
+        )
+        .unwrap();
+
+        let col2 = OwnedNullableColumn::with_presence(
+            OwnedColumn::Int(vec![4, 5, 6]),
+            Some(vec![false, true, false]),
+        )
+        .unwrap();
+
+        let col3 = OwnedNullableColumn::new(OwnedColumn::VarChar(vec![
+            "a".to_string(),
+            "b".to_string(),
+            "c".to_string(),
+        ]));
+
+        let mut columns = IndexMap::default();
+        columns.insert(Ident::new("col1"), col1);
+        columns.insert(Ident::new("col2"), col2);
+        columns.insert(Ident::new("col3"), col3);
+
+        let result = OwnedTable::<TestScalar>::try_new_from_nullable_columns(columns);
+        assert!(result.is_ok());
+
+        let table = result.unwrap();
+
+        assert!(table.has_nulls(&Ident::new("col1")));
+        assert!(table.has_nulls(&Ident::new("col2")));
+        assert!(!table.has_nulls(&Ident::new("col3")));
+        assert!(table.get_presence(&Ident::new("col1")).is_some());
+        assert!(table.get_presence(&Ident::new("col2")).is_some());
+        assert!(table.get_presence(&Ident::new("col3")).is_none());
+    }
+
+    #[test]
+    fn test_presence_operations() {
+        let mut table = IndexMap::default();
+        table.insert(Ident::new("col1"), OwnedColumn::BigInt(vec![1, 2, 3]));
+
+        let mut owned_table = OwnedTable::<TestScalar>::try_new(table).unwrap();
+
+        let presence = vec![true, false, true];
+        owned_table.set_presence(Ident::new("col1"), presence.clone());
+
+        assert_eq!(
+            owned_table.get_presence(&Ident::new("col1")).unwrap(),
+            &presence
+        );
+        assert!(owned_table.has_nulls(&Ident::new("col1")));
+        assert!(!owned_table.has_nulls(&Ident::new("nonexistent")));
+    }
+
+    #[test]
+    fn test_mle_evaluations() {
+        let table = owned_table::<TestScalar>([
+            bigint("bigint", [10, 20, 30]),
+            int("int", [1, 2, 3]),
+            scalar("scalar", [5, 6, 7]),
+        ]);
+
+        let evaluation_point = [
+            TestScalar::from(2),
+            TestScalar::from(3),
+            TestScalar::from(4),
+        ];
+
+        let evaluations = table.mle_evaluations(&evaluation_point);
+
+        assert!(!evaluations.is_empty());
+    }
+
+    #[test]
+    fn test_column_operations() {
+        let table = owned_table::<TestScalar>([
+            bigint("a", [1, 2, 3]),
+            int("b", [4, 5, 6]),
+            varchar("c", ["x", "y", "z"]),
+        ]);
+
+        assert_eq!(table.num_columns(), 3);
+        assert_eq!(table.num_rows(), 3);
+        assert!(!table.is_empty());
+        assert!(owned_table::<TestScalar>([]).is_empty());
+        assert_eq!(table.inner_table().len(), 3);
+
+        let names: Vec<_> = table.column_names().collect();
+        assert_eq!(names.len(), 3);
+        assert!(names.contains(&&Ident::new("a")));
+        assert!(names.contains(&&Ident::new("b")));
+        assert!(names.contains(&&Ident::new("c")));
+        assert!(table.column_by_index(0).is_some());
+        assert!(table.column_by_index(3).is_none());
+        let col = &table["a"];
+        assert!(matches!(col, OwnedColumn::BigInt(_)));
     }
 }

@@ -1,6 +1,6 @@
 use super::{
-    AddSubtractExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr, MultiplyExpr,
-    NotExpr, OrExpr, ProofExpr,
+    AddSubtractExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, IsNotNullExpr, IsNullExpr,
+    IsTrueExpr, LiteralExpr, MultiplyExpr, NotExpr, OrExpr, ProofExpr,
 };
 use crate::{
     base::{
@@ -10,6 +10,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::{
+        parse::{ConversionError, ConversionResult},
         proof::{FinalRoundBuilder, VerificationBuilder},
         util::type_check_binary_operation,
         AnalyzeError, AnalyzeResult,
@@ -43,6 +44,12 @@ pub enum DynProofExpr {
     AddSubtract(AddSubtractExpr),
     /// Provable numeric `*` expression
     Multiply(MultiplyExpr),
+    /// Provable IS NULL expression
+    IsNull(IsNullExpr),
+    /// Provable IS NOT NULL expression
+    IsNotNull(IsNotNullExpr),
+    /// Provable IS TRUE expression
+    IsTrue(IsTrueExpr),
 }
 impl DynProofExpr {
     /// Create column expression
@@ -158,6 +165,28 @@ impl DynProofExpr {
                 right_type: rhs_datatype.to_string(),
             })
         }
+    }
+
+    /// Create a new IS NULL expression
+    pub fn try_new_is_null(expr: DynProofExpr) -> ConversionResult<Self> {
+        Ok(Self::IsNull(IsNullExpr::new(Box::new(expr))))
+    }
+
+    /// Create a new IS NOT NULL expression
+    pub fn try_new_is_not_null(expr: DynProofExpr) -> ConversionResult<Self> {
+        Ok(Self::IsNotNull(IsNotNullExpr::new(Box::new(expr))))
+    }
+
+    /// Create a new IS TRUE expression
+    pub fn try_new_is_true(expr: DynProofExpr) -> ConversionResult<Self> {
+        let data_type = expr.data_type();
+        if data_type != ColumnType::Boolean {
+            return Err(ConversionError::InvalidDataType {
+                expected: ColumnType::Boolean,
+                actual: data_type,
+            });
+        }
+        Ok(Self::IsTrue(IsTrueExpr::new(Box::new(expr))))
     }
 
     /// Check that the plan has the correct data type

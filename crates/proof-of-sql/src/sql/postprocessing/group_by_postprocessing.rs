@@ -40,6 +40,9 @@ fn contains_nested_aggregation(expr: &Expression, is_agg: bool) -> bool {
             contains_nested_aggregation(left, is_agg) || contains_nested_aggregation(right, is_agg)
         }
         Expression::Unary { expr, .. } => contains_nested_aggregation(expr, is_agg),
+        Expression::IsNull(expr) | Expression::IsNotNull(expr) | Expression::IsTrue(expr) => {
+            contains_nested_aggregation(expr, is_agg)
+        }
     }
 }
 
@@ -57,6 +60,9 @@ fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Ident> {
             left_identifiers
         }
         Expression::Unary { expr, .. } => get_free_identifiers_from_expr(expr),
+        Expression::IsNull(expr) | Expression::IsNotNull(expr) | Expression::IsTrue(expr) => {
+            get_free_identifiers_from_expr(expr)
+        }
     }
 }
 
@@ -117,6 +123,21 @@ fn get_aggregate_and_remainder_expressions(
                 op,
                 expr: Box::new(remainder?),
             })
+        }
+        Expression::IsNull(expr) => {
+            let inner_remainder =
+                get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
+            Ok(Expression::IsNull(Box::new(inner_remainder?)))
+        }
+        Expression::IsNotNull(expr) => {
+            let inner_remainder =
+                get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
+            Ok(Expression::IsNotNull(Box::new(inner_remainder?)))
+        }
+        Expression::IsTrue(expr) => {
+            let inner_remainder =
+                get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
+            Ok(Expression::IsTrue(Box::new(inner_remainder?)))
         }
     }
 }
@@ -501,5 +522,130 @@ mod tests {
             ))
         );
         assert_eq!(aggregation_expr_map.len(), 5);
+    }
+
+    #[test]
+    fn we_can_detect_nested_aggregation_with_is_null_expressions() {
+        let expr = is_null(sum(col("a")));
+
+        assert!(!contains_nested_aggregation(&expr, false));
+        assert!(contains_nested_aggregation(&expr, true));
+
+        let expr = is_null(col("a"));
+        assert!(!contains_nested_aggregation(&expr, false));
+        assert!(!contains_nested_aggregation(&expr, true));
+
+        let expr = is_null(sum(max(col("a"))));
+        assert!(contains_nested_aggregation(&expr, false));
+        assert!(contains_nested_aggregation(&expr, true));
+    }
+
+    #[test]
+    fn we_can_detect_nested_aggregation_with_is_not_null_expressions() {
+        let expr = is_not_null(sum(col("a")));
+
+        assert!(!contains_nested_aggregation(&expr, false));
+        assert!(contains_nested_aggregation(&expr, true));
+
+        let expr = is_not_null(col("a"));
+        assert!(!contains_nested_aggregation(&expr, false));
+        assert!(!contains_nested_aggregation(&expr, true));
+
+        let expr = is_not_null(count(sum(col("a"))));
+        assert!(contains_nested_aggregation(&expr, false));
+        assert!(contains_nested_aggregation(&expr, true));
+    }
+
+    #[test]
+    fn we_can_detect_nested_aggregation_with_is_true_expressions() {
+        let expr = is_true(gt(sum(col("a")), lit(0)));
+
+        assert!(!contains_nested_aggregation(&expr, false));
+        assert!(contains_nested_aggregation(&expr, true));
+
+        let expr = is_true(gt(col("a"), col("b")));
+        assert!(!contains_nested_aggregation(&expr, false));
+        assert!(!contains_nested_aggregation(&expr, true));
+
+        let expr = is_true(gt(min(max(col("a"))), lit(0)));
+        assert!(contains_nested_aggregation(&expr, false));
+        assert!(contains_nested_aggregation(&expr, true));
+    }
+
+    #[test]
+    fn we_can_get_free_identifiers_from_is_null_expressions() {
+        let expr = is_null(col("a"));
+        let expected: IndexSet<Ident> = ["a".into()].into_iter().collect();
+        let actual = get_free_identifiers_from_expr(&expr);
+        assert_eq!(actual, expected);
+
+        let expr = is_null(sum(col("a")));
+        let expected: IndexSet<Ident> = IndexSet::default();
+        let actual = get_free_identifiers_from_expr(&expr);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn we_can_get_free_identifiers_from_is_not_null_expressions() {
+        let expr = is_not_null(col("c"));
+        let expected: IndexSet<Ident> = ["c".into()].into_iter().collect();
+        let actual = get_free_identifiers_from_expr(&expr);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn we_can_get_free_identifiers_from_is_true_expressions() {
+        let expr = is_true(gt(col("e"), col("f")));
+        let expected: IndexSet<Ident> = ["e".into(), "f".into()].into_iter().collect();
+        let actual = get_free_identifiers_from_expr(&expr);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn we_can_get_aggregate_and_remainder_with_is_null_expressions() {
+        let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Ident> =
+            IndexMap::default();
+
+        let expr = is_null(sum(col("a")));
+        let remainder_expr =
+            get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
+        assert_eq!(
+            aggregation_expr_map[&(AggregationOperator::Sum, *col("a"))],
+            "__col_agg_0".into()
+        );
+        assert_eq!(remainder_expr, Ok(*is_null(col("__col_agg_0"))));
+        assert_eq!(aggregation_expr_map.len(), 1);
+    }
+
+    #[test]
+    fn we_can_get_aggregate_and_remainder_with_is_not_null_expressions() {
+        let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Ident> =
+            IndexMap::default();
+
+        let expr = is_not_null(max(col("c")));
+        let remainder_expr =
+            get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
+        assert_eq!(
+            aggregation_expr_map[&(AggregationOperator::Max, *col("c"))],
+            "__col_agg_0".into()
+        );
+        assert_eq!(remainder_expr, Ok(*is_not_null(col("__col_agg_0"))));
+        assert_eq!(aggregation_expr_map.len(), 1);
+    }
+
+    #[test]
+    fn we_can_get_aggregate_and_remainder_with_is_true_expressions() {
+        let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Ident> =
+            IndexMap::default();
+
+        let expr = is_true(gt(min(col("e")), lit(0)));
+        let remainder_expr =
+            get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
+        assert_eq!(
+            aggregation_expr_map[&(AggregationOperator::Min, *col("e"))],
+            "__col_agg_0".into()
+        );
+        assert_eq!(remainder_expr, Ok(*is_true(gt(col("__col_agg_0"), lit(0)))));
+        assert_eq!(aggregation_expr_map.len(), 1);
     }
 }

@@ -353,3 +353,217 @@ fn we_can_add_rho_column() {
     ]);
     assert_eq!(enhanced_table, expected_table);
 }
+
+#[test]
+fn we_can_get_table_with_presence_information() {
+    let alloc = Bump::new();
+    let mut table = table::<TestScalar>([
+        borrowed_bigint("a", [0, 1, 2], &alloc),
+        borrowed_int128("b", [0, 1, 2], &alloc),
+    ]);
+
+    let presence_a = &[true, false, true];
+    let presence_slice = alloc.alloc_slice_copy(presence_a);
+    table.set_column_presence("a", presence_slice).unwrap();
+
+    let (columns, presence_map) = table.into_inner_with_presence();
+    assert_eq!(columns.len(), 2);
+    assert_eq!(presence_map.len(), 1);
+    assert!(presence_map.contains_key(&Ident::new("a")));
+}
+
+#[test]
+fn we_can_add_rho_column_when_it_already_exists() {
+    let alloc = Bump::new();
+    let original_table = table::<TestScalar>([
+        borrowed_bigint("a", [0, 1], &alloc),
+        borrowed_int128("rho", [10, 20], &alloc),
+    ]);
+
+    let enhanced_table = original_table.add_rho_column(&alloc);
+    let expected_table = table::<TestScalar>([
+        borrowed_bigint("a", [0, 1], &alloc),
+        borrowed_int128("rho", [10, 20], &alloc),
+    ]);
+
+    assert_eq!(enhanced_table, expected_table);
+}
+
+#[test]
+fn we_can_create_table_with_all_present() {
+    let alloc = Bump::new();
+    let mut table = table::<TestScalar>([
+        borrowed_bigint("a", [0, 1, 2], &alloc),
+        borrowed_int128("b", [0, 1, 2], &alloc),
+    ]);
+
+    let presence_a = &[true, false, true];
+    let presence_slice = alloc.alloc_slice_copy(presence_a);
+    table.set_column_presence("a", presence_slice).unwrap();
+    let all_present_table = table.with_all_present();
+    assert_eq!(all_present_table.presence_map().len(), 0);
+    assert_eq!(all_present_table.inner_table().len(), 2);
+}
+
+#[test]
+fn we_can_create_table_with_presence_from_another_table() {
+    let alloc = Bump::new();
+    let mut source_table = table::<TestScalar>([
+        borrowed_bigint("a", [0, 1, 2], &alloc),
+        borrowed_int128("b", [0, 1, 2], &alloc),
+        borrowed_varchar("c", ["0", "1", "2"], &alloc),
+    ]);
+
+    let presence_a = &[true, false, true];
+    let presence_b = &[false, true, false];
+    let presence_slice_a = alloc.alloc_slice_copy(presence_a);
+    let presence_slice_b = alloc.alloc_slice_copy(presence_b);
+    source_table
+        .set_column_presence("a", presence_slice_a)
+        .unwrap();
+    source_table
+        .set_column_presence("b", presence_slice_b)
+        .unwrap();
+
+    let target_table = table::<TestScalar>([
+        borrowed_bigint("a", [5, 6, 7], &alloc),
+        borrowed_varchar("c", ["5", "6", "7"], &alloc),
+        borrowed_boolean("d", [true, false, true], &alloc),
+    ]);
+
+    let result_table = target_table.with_presence_from(&source_table);
+
+    assert_eq!(result_table.presence_map().len(), 1);
+    assert!(result_table.presence_map().contains_key(&Ident::new("a")));
+    assert!(!result_table.presence_map().contains_key(&Ident::new("c")));
+}
+
+#[test]
+fn we_can_set_column_presence() {
+    let alloc = Bump::new();
+    let mut table = table::<TestScalar>([
+        borrowed_bigint("a", [0, 1, 2], &alloc),
+        borrowed_int128("b", [0, 1, 2], &alloc),
+    ]);
+
+    let presence_a = &[true, false, true];
+    let presence_slice = alloc.alloc_slice_copy(presence_a);
+    let result = table.set_column_presence("a", presence_slice);
+
+    assert!(result.is_ok());
+    assert!(table.presence_map().contains_key(&Ident::new("a")));
+
+    let wrong_length_presence = &[true, false];
+    let wrong_presence_slice = alloc.alloc_slice_copy(wrong_length_presence);
+    let result = table.set_column_presence("b", wrong_presence_slice);
+    assert!(matches!(result, Err(TableError::PresenceLengthMismatch)));
+
+    let presence_x = &[true, false, true];
+    let presence_x_slice = alloc.alloc_slice_copy(presence_x);
+    let result = table.set_column_presence("x", presence_x_slice);
+
+    assert!(result.is_ok());
+    assert_eq!(table.presence_map().len(), 1);
+}
+
+#[test]
+fn we_can_get_nullable_column() {
+    let alloc = Bump::new();
+    let mut table = table::<TestScalar>([
+        borrowed_bigint("a", [0, 1, 2], &alloc),
+        borrowed_int128("b", [0, 1, 2], &alloc),
+    ]);
+
+    let presence_a = &[true, false, true];
+    let presence_slice = alloc.alloc_slice_copy(presence_a);
+    table.set_column_presence("a", presence_slice).unwrap();
+
+    let nullable_a = table.nullable_column("a");
+    assert!(nullable_a.is_some());
+    let nullable_a = nullable_a.unwrap();
+    assert!(nullable_a.presence.is_some());
+
+    let nullable_b = table.nullable_column("b");
+    assert!(nullable_b.is_some());
+    let nullable_b = nullable_b.unwrap();
+    assert_eq!(nullable_b.presence, None);
+
+    let nullable_c = table.nullable_column("c");
+    assert!(nullable_c.is_none());
+}
+
+#[test]
+fn we_can_get_column_presence() {
+    let alloc = Bump::new();
+    let mut table = table::<TestScalar>([
+        borrowed_bigint("a", [0, 1, 2], &alloc),
+        borrowed_int128("b", [0, 1, 2], &alloc),
+    ]);
+
+    let presence_a = &[true, false, true];
+    let presence_slice = alloc.alloc_slice_copy(presence_a);
+    table.set_column_presence("a", presence_slice).unwrap();
+
+    let result = table.column_presence("a");
+    assert!(result.is_some());
+
+    let result = table.column_presence("b");
+    assert_eq!(result, None);
+
+    let result = table.column_presence("c");
+    assert_eq!(result, None);
+}
+
+#[test]
+fn we_can_create_table_with_presence() {
+    let alloc = Bump::new();
+    let mut table = table::<TestScalar>([
+        borrowed_bigint("a", [0, 1, 2], &alloc),
+        borrowed_int128("b", [0, 1, 2], &alloc),
+    ]);
+
+    let presence_data = &[true, false, true];
+    let presence_slice = alloc.alloc_slice_copy(presence_data);
+    table.set_column_presence("a", presence_slice).unwrap();
+
+    let (columns, presence_map) = table.into_inner_with_presence();
+    let result =
+        Table::<TestScalar>::try_new_with_presence(columns, presence_map, TableOptions::default());
+
+    assert!(result.is_ok());
+    let new_table = result.unwrap();
+
+    assert!(new_table.presence_map().contains_key(&Ident::new("a")));
+    assert_eq!(new_table.presence_map().len(), 1);
+
+    let alloc2 = Bump::new();
+    let column_a = Column::BigInt(alloc2.alloc_slice_copy(&[0, 1, 2]));
+    let column_b = Column::Int128(alloc2.alloc_slice_copy(&[0, 1, 2]));
+
+    let mut column_map = IndexMap::default();
+    column_map.insert(Ident::new("a"), column_a);
+    column_map.insert(Ident::new("b"), column_b);
+
+    let _orig_table = Table::<TestScalar>::try_new(column_map.clone()).unwrap();
+    let mut wrong_table =
+        crate::base::database::table_utility::table::<TestScalar>([borrowed_bigint(
+            "a",
+            [0, 1],
+            &alloc2,
+        )]);
+
+    let wrong_presence = &[true, false];
+    let wrong_presence_slice = alloc2.alloc_slice_copy(wrong_presence);
+    wrong_table
+        .set_column_presence("a", wrong_presence_slice)
+        .unwrap();
+
+    let (_, wrong_presence_map) = wrong_table.into_inner_with_presence();
+    let result = Table::<TestScalar>::try_new_with_presence(
+        column_map,
+        wrong_presence_map,
+        TableOptions::default(),
+    );
+
+    assert!(matches!(result, Err(TableError::PresenceLengthMismatch)));
+}

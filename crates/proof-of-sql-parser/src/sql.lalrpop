@@ -309,6 +309,13 @@ Expression: Box<intermediate_ast::Expression> = {
             left,
             right, 
         }),
+
+    #[precedence(level="4")] #[assoc(side="left")]
+    <expr: Expression> "is" "null" => expr.is_null(),
+    
+    <expr: Expression> "is" "not" "null" => expr.is_not_null(),
+    
+    <expr: Expression> "is" "true" => expr.is_true(),
 };
 
 AggregationExpression: (intermediate_ast::AggregationOperator, Box<intermediate_ast::Expression>) = {
@@ -348,6 +355,8 @@ LiteralValue: Box<intermediate_ast::Literal> = {
     <value: TimestampLiteral> => Box::new(intermediate_ast::Literal::Timestamp(value)),
 
     <value: UnixTimestampLiteral> => Box::new(intermediate_ast::Literal::Timestamp(value)),
+    
+    "null" => Box::new(intermediate_ast::Literal::Null),
 };
 
 Int128UnaryNumericLiteral: i128 = {
@@ -441,7 +450,9 @@ match {
     r"[aA][sS]" => "as",
     r"[aA][nN][dD]" => "and",
     r"[fF][rR][oO][mM]" => "from",
+    r"[iI][sS]" => "is",
     r"[nN][oO][tT]" => "not",
+    r"[nN][uU][lL][lL]" => "null",
     r"[oO][rR]" => "or",
     r"[sS][eE][lL][eE][cC][tT]" => "select",
     r"[wW][hH][eE][rR][eE]" => "where",
