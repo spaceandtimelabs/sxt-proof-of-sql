@@ -2,11 +2,7 @@ use crate::base::{bit::bit_mask_utils::make_bit_mask, scalar::Scalar};
 use ark_std::iterable::Iterable;
 use bit_iter::BitIter;
 use bnum::types::U256;
-use core::{
-    convert::Into,
-    ops::Shl,
-    u32,
-};
+use core::{convert::Into, ops::Shl};
 use serde::{Deserialize, Serialize};
 
 /// Describe the distribution of byte values in a table column
@@ -37,7 +33,11 @@ impl ByteDistribution {
                     None => (true, U256::ZERO),
                     Some(a) => (one_shadow_shifted_byte_column.all(|x| a == x), a),
                 };
-                if is_const { (0u32, shifted_byte) } else { (1u32 << u, U256::ZERO) }
+                if is_const {
+                    (0u32, shifted_byte)
+                } else {
+                    (1u32 << u, U256::ZERO)
+                }
             })
             .fold(
                 (0u32, U256::ZERO),
@@ -51,11 +51,14 @@ impl ByteDistribution {
         }
     }
 
+    #[expect(clippy::missing_panics_doc)]
     pub fn varying_byte_indices(&self) -> impl Iterator<Item = u8> + '_ {
-        BitIter::from(self.vary_mask).iter().map(|u| (u * 8) as u8)
+        BitIter::from(self.vary_mask)
+            .iter()
+            .map(|u| u8::try_from(u).unwrap())
     }
 
-    pub fn constant_mask(&self) -> U256{
+    pub fn constant_mask(&self) -> U256 {
         U256::from(self.leading_bit_shadow_mask)
     }
 }

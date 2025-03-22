@@ -154,7 +154,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             rho_evaluation_lengths: rho_evaluation_lengths.to_vec(),
             post_result_challenge_count,
             round_commitments: first_round_commitments,
-            round_byte_distributions: first_round_builder.byte_distributions().to_vec()
+            round_byte_distributions: first_round_builder.byte_distributions().to_vec(),
         };
         transcript.extend_serialize_as_le(&first_round_message);
 

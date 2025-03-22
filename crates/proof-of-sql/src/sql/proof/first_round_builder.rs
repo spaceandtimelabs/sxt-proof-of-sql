@@ -1,6 +1,9 @@
 use crate::{
     base::{
-        byte::ByteDistribution, commitment::{Commitment, CommittableColumn, VecCommitmentExt}, polynomial::MultilinearExtension, scalar::Scalar
+        byte::ByteDistribution,
+        commitment::{Commitment, CommittableColumn, VecCommitmentExt},
+        polynomial::MultilinearExtension,
+        scalar::Scalar,
     },
     utils::log,
 };

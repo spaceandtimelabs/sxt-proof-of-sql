@@ -21,15 +21,18 @@
 //! * Batch Inversion: Inversions of large vectors are computationally expensive
 //! * Parallelization: Single-threaded execution of these operations is a performance bottleneck
 use crate::{
-    base::{byte::{byte_matrix_utils::compute_varying_byte_matrix, ByteDistribution}, proof::ProofSizeMismatch, scalar::Scalar, slice_ops},
+    base::{
+        byte::{byte_matrix_utils::compute_varying_byte_matrix, ByteDistribution},
+        proof::ProofSizeMismatch,
+        scalar::{Scalar, ScalarExt},
+        slice_ops,
+    },
     sql::proof::{
         FinalRoundBuilder, FirstRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
-use crate::base::scalar::ScalarExt;
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
-use tracing::{span, Level};
 
 #[tracing::instrument(name = "range check first round evaluate", level = "debug", skip_all)]
 pub(crate) fn first_round_evaluate_range_check<'a, S>(
@@ -39,26 +42,22 @@ pub(crate) fn first_round_evaluate_range_check<'a, S>(
 ) where
     S: Scalar + 'a,
 {
+    // One of the commitments is column of all possible words, of which there are 256.
     builder.update_range_length(256);
 
-    // Create 31 columns, each will collect the corresponding byte from all scalars.
-    // 31 because a scalar will only ever have 248 bits set.
-    // get the varying words in the byte decomposition data
+    // find the byte columns that are constant
     let word_byte_distribution = ByteDistribution::new(column_data);
-    builder.produce_byte_distribution(word_byte_distribution.clone());
+
+    // find the byte columns that vary
     let varying_columns = compute_varying_byte_matrix(column_data, &word_byte_distribution);
 
-    // Decompose scalars to bytes
-    let span = span!(Level::DEBUG, "decompose scalars in first round").entered();
-    span.exit();
+    // commit to the constant byte columns
+    builder.produce_byte_distribution(word_byte_distribution);
 
-    // For each column, allocate `words` using the lookup table
-    let span = span!(Level::DEBUG, "compute intermediate MLE over word column").entered();
     for byte_column in varying_columns {
-        // Finally, commit an MLE over these word values
+        // commit to each varying column
         builder.produce_intermediate_mle(&*alloc.alloc_slice_fill_iter(byte_column.into_iter()));
     }
-    span.exit();
 }
 
 /// Prove that a word-wise decomposition of a collection of scalars
@@ -69,16 +68,19 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     column_data: &[impl Copy + Into<S>],
     alloc: &'a Bump,
 ) {
-    // get chi
-    let chi = alloc.alloc_slice_fill_copy(256, 1u8);
+    // get chi_256
+    let chi_256 = alloc.alloc_slice_fill_copy(256, 1u8);
+
+    // get chi_n
+    let chi_n = alloc.alloc_slice_fill_copy(column_data.len(), 1u8);
 
     // get row
-    let rho = alloc.alloc_slice_fill_with(256, |i| i as u8);
+    let rho_256 = alloc.alloc_slice_fill_with(256, |i| u8::try_from(i).unwrap());
 
     // get alpha
     let alpha = builder.consume_post_result_challenge();
 
-    // get the varying words in the byte decomposition data
+    // get the varying byte columns
     let word_byte_distribution = ByteDistribution::new(column_data);
     let varying_columns = compute_varying_byte_matrix(column_data, &word_byte_distribution);
 
@@ -89,7 +91,7 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
         slice_ops::batch_inversion(inverse_column);
         &*inverse_column
     });
-    for (column, inverse_column) in varying_columns.clone().zip(varying_inverse_columns.clone()){
+    for (column, inverse_column) in varying_columns.clone().zip(varying_inverse_columns.clone()) {
         builder.produce_intermediate_mle(inverse_column);
         // (wordᵢ + α) * (wordᵢ + α)⁻¹ - 1 = 0
         builder.produce_sumcheck_subpolynomial(
@@ -98,15 +100,18 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
                 (alpha, vec![Box::new(inverse_column)]),
                 (
                     S::one(),
-                    vec![Box::new(&*alloc.alloc_slice_fill_iter(column.into_iter())), Box::new(inverse_column as &[_])],
+                    vec![
+                        Box::new(&*alloc.alloc_slice_fill_iter(column.into_iter())),
+                        Box::new(inverse_column as &[_]),
+                    ],
                 ),
-                (-S::one(), vec![Box::new(&*chi)]),
+                (-S::one(), vec![Box::new(&*chi_n)]),
             ],
         );
     }
 
     // calculate the inverses of all 256 words plus alpha
-    let rho_inverse = alloc.alloc_slice_fill_with(256, |i| S::from(i as u8));
+    let rho_inverse = alloc.alloc_slice_fill_with(256, |i| S::from(u8::try_from(i).unwrap()));
     slice_ops::add_const::<S, S>(rho_inverse, alpha);
     slice_ops::batch_inversion(rho_inverse);
 
@@ -120,15 +125,15 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
             (alpha, vec![Box::new(&*rho_inverse)]),
             (
                 S::one(),
-                vec![Box::new(&*rho), Box::new(rho_inverse as &[_])],
+                vec![Box::new(&*rho_256), Box::new(rho_inverse as &[_])],
             ),
-            (-S::one(), vec![Box::new(&*chi)]),
+            (-S::one(), vec![Box::new(&*chi_256)]),
         ],
     );
 
-    // get the counts of all bytes in the data
+    // get the counts of all bytes that belong to varying columns in the data
     let word_counts = alloc.alloc_slice_fill_copy(256, 0i64);
-    for byte in varying_columns.into_iter().flat_map(|column| column) {
+    for byte in varying_columns.into_iter().flatten() {
         word_counts[byte as usize] += 1;
     }
 
@@ -137,8 +142,8 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
 
     // get the sum of each row's inverse bytes
     let varying_column_sum = alloc.alloc_slice_fill_copy(column_data.len(), S::ZERO);
-    for varying_inverse_column in varying_inverse_columns{
-        for (row_sum, byte) in varying_column_sum.iter_mut().zip(varying_inverse_column){
+    for varying_inverse_column in varying_inverse_columns {
+        for (row_sum, byte) in varying_column_sum.iter_mut().zip(varying_inverse_column) {
             *row_sum += *byte;
         }
     }
@@ -147,7 +152,10 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::ZeroSum,
         vec![
-            (S::one(), vec![Box::new(rho_inverse as &[_]), Box::new(word_counts as &[_])]),
+            (
+                S::one(),
+                vec![Box::new(rho_inverse as &[_]), Box::new(word_counts as &[_])],
+            ),
             (-S::one(), vec![Box::new(varying_column_sum as &[_])]),
         ],
     );

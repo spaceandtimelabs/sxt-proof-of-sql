@@ -137,7 +137,10 @@ mod tests {
             scalar::test_scalar::TestScalar,
         },
         sql::{
-            proof::{mock_verification_builder::run_verify_for_each_row, FinalRoundBuilder, FirstRoundBuilder},
+            proof::{
+                mock_verification_builder::run_verify_for_each_row, FinalRoundBuilder,
+                FirstRoundBuilder,
+            },
             proof_exprs::{ColumnExpr, DynProofExpr},
         },
     };

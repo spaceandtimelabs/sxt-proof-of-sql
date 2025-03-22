@@ -137,7 +137,10 @@ mod tests {
             polynomial::MultilinearExtension,
             scalar::{test_scalar::TestScalar, Scalar},
         },
-        sql::proof::{mock_verification_builder::run_verify_for_each_row, FinalRoundBuilder, FirstRoundBuilder},
+        sql::proof::{
+            mock_verification_builder::run_verify_for_each_row, FinalRoundBuilder,
+            FirstRoundBuilder,
+        },
     };
     use bumpalo::Bump;
     use std::collections::VecDeque;
