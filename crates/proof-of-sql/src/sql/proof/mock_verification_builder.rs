@@ -9,6 +9,7 @@ use crate::base::{
 use alloc::vec::Vec;
 use core::iter;
 use itertools::Itertools;
+use std::collections::VecDeque;
 
 /// Track components used to verify a query's proof
 pub struct MockVerificationBuilder<S: Scalar> {
@@ -16,11 +17,14 @@ pub struct MockVerificationBuilder<S: Scalar> {
     byte_distributions: Vec<ByteDistribution>,
     bit_distribution_offset: usize,
     byte_distribution_offset: usize,
+    consumed_first_round_pcs_proof_mles: usize,
     consumed_final_round_pcs_proof_mles: usize,
     subpolynomial_max_multiplicands: usize,
 
     evaluation_row_index: usize,
+    first_round_mles: Vec<Vec<S>>,
     final_round_mles: Vec<Vec<S>>,
+    post_result_challenges: VecDeque<S>,
     pub(crate) identity_subpolynomial_evaluations: Vec<Vec<S>>,
     pub(crate) zerosum_subpolynomial_evaluations: Vec<Vec<S>>,
 }
@@ -82,7 +86,15 @@ impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
     }
 
     fn try_consume_first_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
-        unimplemented!("No tests currently use this function")
+        let index = self.consumed_first_round_pcs_proof_mles;
+        self.consumed_first_round_pcs_proof_mles += 1;
+        Ok(*self
+            .first_round_mles
+            .get(self.evaluation_row_index)
+            .cloned()
+            .ok_or(ProofSizeMismatch::TooFewMLEEvaluations)?
+            .get(index)
+            .unwrap_or(&S::ZERO))
     }
 
     fn try_consume_final_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
@@ -106,7 +118,9 @@ impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
     }
 
     fn try_consume_post_result_challenge(&mut self) -> Result<S, ProofSizeMismatch> {
-        unimplemented!("No tests currently use this function")
+        self.post_result_challenges
+            .pop_front()
+            .ok_or(ProofSizeMismatch::PostResultCountMismatch)
     }
 
     fn try_consume_final_round_mle_evaluations(
@@ -124,17 +138,22 @@ impl<S: Scalar> MockVerificationBuilder<S> {
         bit_distributions: Vec<BitDistribution>,
         byte_distributions: Vec<ByteDistribution>,
         subpolynomial_max_multiplicands: usize,
+        first_round_mles: Vec<Vec<S>>,
         final_round_mles: Vec<Vec<S>>,
+        post_result_challenges: VecDeque<S>,
     ) -> Self {
         Self {
             bit_distributions,
             bit_distribution_offset: 0,
             byte_distributions,
             byte_distribution_offset: 0,
+            consumed_first_round_pcs_proof_mles: 0,
             consumed_final_round_pcs_proof_mles: 0,
             subpolynomial_max_multiplicands,
             evaluation_row_index: 0,
+            first_round_mles,
             final_round_mles,
+            post_result_challenges,
             identity_subpolynomial_evaluations: Vec::new(),
             zerosum_subpolynomial_evaluations: Vec::new(),
         }
@@ -192,6 +211,7 @@ impl<S: Scalar> MockVerificationBuilder<S> {
 pub fn run_verify_for_each_row(
     table_length: usize,
     first_round_builder: &FirstRoundBuilder<'_, TestScalar>,
+    post_result_challenges: VecDeque<TestScalar>,
     final_round_builder: &FinalRoundBuilder<'_, TestScalar>,
     subpolynomial_max_multiplicands: usize,
     row_verification: impl Fn(&mut MockVerificationBuilder<TestScalar>, TestScalar, &[TestScalar]),
@@ -209,6 +229,10 @@ pub fn run_verify_for_each_row(
                 .collect()
         })
         .collect();
+    let first_round_mles: Vec<_> = evaluation_points
+        .iter()
+        .map(|evaluation_point| first_round_builder.evaluate_pcs_proof_mles(evaluation_point))
+        .collect();
     let final_round_mles: Vec<_> = evaluation_points
         .iter()
         .map(|evaluation_point| final_round_builder.evaluate_pcs_proof_mles(evaluation_point))
@@ -217,7 +241,9 @@ pub fn run_verify_for_each_row(
         final_round_builder.bit_distributions().to_vec(),
         first_round_builder.byte_distributions().to_vec(),
         subpolynomial_max_multiplicands,
+        first_round_mles,
         final_round_mles,
+        post_result_challenges,
     );
 
     for evaluation_point in evaluation_points {
@@ -241,12 +267,20 @@ mod tests {
         },
         sql::proof::{SumcheckSubpolynomialType, VerificationBuilder},
     };
+    use std::collections::VecDeque;
 
     #[should_panic(expected = "No tests currently use this function")]
     #[test]
     fn we_can_get_unimplemented_error_for_try_consume_rho_evaluation() {
         let mut verification_builder: MockVerificationBuilder<TestScalar> =
-            MockVerificationBuilder::new(Vec::new(), Vec::new(), 2, Vec::new());
+            MockVerificationBuilder::new(
+                Vec::new(),
+                Vec::new(),
+                2,
+                Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
+            );
         verification_builder.try_consume_rho_evaluation().unwrap();
     }
 
@@ -254,7 +288,14 @@ mod tests {
     #[test]
     fn we_can_get_unimplemented_error_for_try_consume_first_round_mle_evaluation() {
         let mut verification_builder: MockVerificationBuilder<TestScalar> =
-            MockVerificationBuilder::new(Vec::new(), Vec::new(), 2, Vec::new());
+            MockVerificationBuilder::new(
+                Vec::new(),
+                Vec::new(),
+                2,
+                Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
+            );
         verification_builder
             .try_consume_first_round_mle_evaluation()
             .unwrap();
@@ -264,7 +305,14 @@ mod tests {
     #[test]
     fn we_can_get_unimplemented_error_for_singleton_chi_evaluation() {
         let verification_builder: MockVerificationBuilder<TestScalar> =
-            MockVerificationBuilder::new(Vec::new(), Vec::new(), 2, Vec::new());
+            MockVerificationBuilder::new(
+                Vec::new(),
+                Vec::new(),
+                2,
+                Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
+            );
         verification_builder.singleton_chi_evaluation();
     }
 
@@ -272,7 +320,14 @@ mod tests {
     #[test]
     fn we_can_get_unimplemented_error_for_try_consume_chi_evaluation() {
         let mut verification_builder: MockVerificationBuilder<TestScalar> =
-            MockVerificationBuilder::new(Vec::new(), Vec::new(), 2, Vec::new());
+            MockVerificationBuilder::new(
+                Vec::new(),
+                Vec::new(),
+                2,
+                Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
+            );
         verification_builder.try_consume_chi_evaluation().unwrap();
     }
 
@@ -280,7 +335,14 @@ mod tests {
     #[test]
     fn we_can_get_unimplemented_error_for_rho_256_evaluation() {
         let verification_builder: MockVerificationBuilder<TestScalar> =
-            MockVerificationBuilder::new(Vec::new(), Vec::new(), 2, Vec::new());
+            MockVerificationBuilder::new(
+                Vec::new(),
+                Vec::new(),
+                2,
+                Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
+            );
         verification_builder.rho_256_evaluation().unwrap();
     }
 
@@ -288,7 +350,14 @@ mod tests {
     #[test]
     fn we_can_get_unimplemented_error_for_try_consume_post_result_challenge() {
         let mut verification_builder: MockVerificationBuilder<TestScalar> =
-            MockVerificationBuilder::new(Vec::new(), Vec::new(), 2, Vec::new());
+            MockVerificationBuilder::new(
+                Vec::new(),
+                Vec::new(),
+                2,
+                Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
+            );
         verification_builder
             .try_consume_post_result_challenge()
             .unwrap();
@@ -297,7 +366,14 @@ mod tests {
     #[test]
     fn we_can_get_sumcheck_proof_too_small_for_identity() {
         let mut verification_builder: MockVerificationBuilder<TestScalar> =
-            MockVerificationBuilder::new(Vec::new(), Vec::new(), 2, Vec::new());
+            MockVerificationBuilder::new(
+                Vec::new(),
+                Vec::new(),
+                2,
+                Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
+            );
         let error = verification_builder
             .try_produce_sumcheck_subpolynomial_evaluation(
                 SumcheckSubpolynomialType::Identity,
@@ -311,7 +387,14 @@ mod tests {
     #[test]
     fn we_can_get_sumcheck_proof_too_small_for_zero_sum() {
         let mut verification_builder: MockVerificationBuilder<TestScalar> =
-            MockVerificationBuilder::new(Vec::new(), Vec::new(), 2, Vec::new());
+            MockVerificationBuilder::new(
+                Vec::new(),
+                Vec::new(),
+                2,
+                Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
+            );
         let error = verification_builder
             .try_produce_sumcheck_subpolynomial_evaluation(
                 SumcheckSubpolynomialType::ZeroSum,
@@ -329,10 +412,12 @@ mod tests {
                 Vec::new(),
                 Vec::new(),
                 2,
+                Vec::new(),
                 vec![
                     vec![TestScalar::ONE, TestScalar::TWO],
                     vec![-TestScalar::ONE, -TestScalar::TWO],
                 ],
+                VecDeque::new(),
             );
         let result = verification_builder
             .try_consume_final_round_mle_evaluations(2)
@@ -343,7 +428,14 @@ mod tests {
     #[test]
     fn we_can_get_error_when_not_enough_evaluations() {
         let mut verification_builder: MockVerificationBuilder<TestScalar> =
-            MockVerificationBuilder::new(Vec::new(), Vec::new(), 2, Vec::new());
+            MockVerificationBuilder::new(
+                Vec::new(),
+                Vec::new(),
+                2,
+                Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
+            );
         let error = verification_builder
             .try_consume_final_round_mle_evaluations(2)
             .unwrap_err();
@@ -360,6 +452,8 @@ mod tests {
                 Vec::new(),
                 2,
                 Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
             );
         let result = verification_builder.try_consume_bit_distribution().unwrap();
         assert_eq!(
@@ -371,7 +465,14 @@ mod tests {
     #[test]
     fn we_can_get_error_when_not_enough_bit_distributions() {
         let mut verification_builder: MockVerificationBuilder<TestScalar> =
-            MockVerificationBuilder::new(Vec::new(), Vec::new(), 2, Vec::new());
+            MockVerificationBuilder::new(
+                Vec::new(),
+                Vec::new(),
+                2,
+                Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
+            );
         let error = verification_builder
             .try_consume_bit_distribution()
             .unwrap_err();
@@ -388,6 +489,8 @@ mod tests {
                 ])],
                 2,
                 Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
             );
         let result = verification_builder
             .try_consume_byte_distribution()
@@ -401,7 +504,14 @@ mod tests {
     #[test]
     fn we_can_get_error_when_not_enough_byte_distributions() {
         let mut verification_builder: MockVerificationBuilder<TestScalar> =
-            MockVerificationBuilder::new(Vec::new(), Vec::new(), 2, Vec::new());
+            MockVerificationBuilder::new(
+                Vec::new(),
+                Vec::new(),
+                2,
+                Vec::new(),
+                Vec::new(),
+                VecDeque::new(),
+            );
         let error = verification_builder
             .try_consume_byte_distribution()
             .unwrap_err();

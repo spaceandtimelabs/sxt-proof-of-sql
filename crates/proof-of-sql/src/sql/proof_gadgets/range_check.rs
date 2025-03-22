@@ -268,6 +268,57 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
 
 #[cfg(test)]
 mod tests {
+    use super::{
+        final_round_evaluate_range_check, first_round_evaluate_range_check,
+        verifier_evaluate_range_check,
+    };
+    use crate::{
+        base::{
+            polynomial::MultilinearExtension,
+            scalar::{test_scalar::TestScalar, Scalar},
+        },
+        sql::proof::{
+            mock_verification_builder::run_verify_for_each_row, FinalRoundBuilder,
+            FirstRoundBuilder,
+        },
+    };
+    use bumpalo::Bump;
+    use std::collections::VecDeque;
+
+    #[test]
+    fn we_can_verify_simple_range_check() {
+        // First round
+        let alloc = Bump::new();
+        let column_data = &[-12i64, 5, 3, 270, -300];
+        let mut first_round_builder: FirstRoundBuilder<'_, TestScalar> = FirstRoundBuilder::new(5);
+        first_round_evaluate_range_check(&mut first_round_builder, column_data, &alloc);
+
+        // Final Round
+        let mut final_round_builder: FinalRoundBuilder<'_, TestScalar> =
+            FinalRoundBuilder::new(5, VecDeque::from([TestScalar::TEN]));
+        final_round_evaluate_range_check(&mut final_round_builder, column_data, &alloc);
+
+        // Verification
+        let mock_verification_builder = run_verify_for_each_row(
+            5,
+            &first_round_builder,
+            VecDeque::from([TestScalar::TEN]),
+            &final_round_builder,
+            3,
+            |verification_builder, chi_eval, evaluation_point| {
+                verifier_evaluate_range_check(
+                    verification_builder,
+                    column_data.inner_product(evaluation_point),
+                    chi_eval,
+                )
+                .unwrap();
+            },
+        );
+
+        dbg!(&mock_verification_builder.get_identity_results());
+        dbg!(&mock_verification_builder.get_zero_sum_results());
+    }
+
     // use super::*;
     // use crate::{
     //     base::scalar::Scalar,
