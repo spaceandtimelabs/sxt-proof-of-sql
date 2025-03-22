@@ -1,0 +1,61 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{todonotes}
+\DeclareMathOperator{\nonneg}{nonneg}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\title{Divide and Modulo}
+\author{Space and Time Inc}
+\date{March 2025}
+
+\begin{document}
+\maketitle
+
+\noindent Let $A=(a_{i})$ and $B=(b_{i})$ be columns of signed integers. We need to prove that $Q=(q'_{i})$ is the quotient of $N$ and $D$ and $R=(r_{i})$ is the remainder of $N$ and $D$. \\
+There are a couple abnormalities to our definitions of quotient and remainder:
+\begin{itemize}
+    \item For division by 0, the quotient is defined as 0, and the remainder is defined to be the numerator.
+    \item If the numerator is the minimum value for the unsigned int type and the denominator is $-1$, the quotient is defined to be the minimum value for the unsigned int type and the remainder is $0$.
+    \item The remainder is not necessarily positive. It will match the sign of the numerator, unless the remainder is $0$.
+\end{itemize}
+
+\section{Summary}
+\begin{itemize}
+    \item Plan values: None
+    \item Inputs: $N$, $D$
+    \item Outputs: $Q$, $R$
+    \item Hints: $s$, $t$, $u$, $v$.
+\end{itemize}
+
+\section{Details}
+
+The $6$ constraints are:
+
+\begin{align*}
+    q\cdot b + r &\equiv a\tag{1}\\
+    r\cdot \nonneg(r)&\equiv r\cdot \nonneg(a)\tag{2}\\
+    \nonneg(r-b)\cdot b + \nonneg(r+b)\cdot b &\equiv b \tag{3.1}\\
+    (r-b)\cdot (r+b)\cdot t + b&\equiv 0\tag{3.2}\\
+    (s-q)(s-b)&\equiv 0\tag{4.1}\\
+    [-\sqrt{-MIN},-\sqrt{MIN}]&\supset s\tag{4.2}\\
+    [-MIN,MAX]&\supset q'\tag{4.3}\\
+    b \cdot u &= q\\
+    (q'-q)\cdot (q+MIN)&\equiv 0\tag{6.1}\\
+    (q+MIN)\cdot v-(q'-MIN)&\equiv 0\tag{6.2}\\
+\end{align*}
+\end{document}
