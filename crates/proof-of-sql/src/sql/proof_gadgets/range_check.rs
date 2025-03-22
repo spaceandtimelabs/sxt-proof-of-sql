@@ -26,6 +26,7 @@ use crate::{
         FinalRoundBuilder, FirstRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
+use crate::base::scalar::ScalarExt;
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use tracing::{span, Level};
@@ -206,9 +207,9 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
         w_plus_alpha_inv_evals.push(words_inv);
     }
 
-    let word_byte_distribution = builder.consume()
+    let word_byte_distribution = builder.try_consume_byte_distribution()?;
 
-    sum += by
+    sum += S::from_wrapping(word_byte_distribution.constant_mask()) * chi_n_eval;
 
     // Ensure the sum of the scalars (interpreted in base 256) matches
     // the claimed input_column_eval. If not, the column is out of range.
