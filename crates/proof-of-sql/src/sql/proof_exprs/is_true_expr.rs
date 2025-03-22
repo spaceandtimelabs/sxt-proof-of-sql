@@ -200,7 +200,7 @@ impl ProofExpr for IsTrueExpr {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
-    ) -> Result<(S, Option<S>), ProofError> {
+    ) -> Result<S, ProofError> {
         let inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
         let presence_eval = builder.try_consume_final_round_mle_evaluation()?;
         builder.try_consume_final_round_mle_evaluation()?;
