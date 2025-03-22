@@ -6,11 +6,6 @@ use crate::base::{
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 
-/// A list of pairs of column indexes to order by and their respective order by directions.
-///
-/// The direction is `true` for ascending and `false` for descending.
-pub type OrderIndexDirectionPairs = Vec<(usize, bool)>;
-
 /// Compares the tuples `(order_by[0][i], order_by[1][i], ...)` and
 /// `(order_by[0][j], order_by[1][j], ...)` in lexicographic order.
 pub(crate) fn compare_indexes_by_columns<S: Scalar>(

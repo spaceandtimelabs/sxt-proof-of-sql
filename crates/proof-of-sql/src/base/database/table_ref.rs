@@ -6,11 +6,11 @@ use core::{
     str::FromStr,
 };
 use indexmap::Equivalent;
-use proof_of_sql_parser::{impl_serde_from_str, ResourceId};
+use serde::{Deserialize, Serialize};
 use sqlparser::ast::Ident;
 
 /// Expression for an SQL table
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TableRef {
     schema_name: Option<Ident>,
     table_name: Ident,
@@ -101,16 +101,6 @@ impl TryFrom<&str> for TableRef {
     }
 }
 
-/// Note: We just need this conversion trait until `SelectStatement` refactor is done
-impl From<ResourceId> for TableRef {
-    fn from(id: ResourceId) -> Self {
-        TableRef {
-            schema_name: Some(Ident::from(id.schema())),
-            table_name: Ident::from(id.object_name()),
-        }
-    }
-}
-
 impl FromStr for TableRef {
     type Err = ParseError;
 
@@ -134,5 +124,3 @@ impl Display for TableRef {
         }
     }
 }
-
-impl_serde_from_str!(TableRef);
