@@ -82,14 +82,14 @@ pub struct QueryProofPCSProofEvaluations<S> {
 /// cannot maintain any invariant on its data members; hence, they are
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Clone, Serialize, Deserialize)]
-pub(super) struct QueryProof<CP: CommitmentEvaluationProof> {
-    pub first_round_message: FirstRoundMessage<CP::Commitment>,
-    pub final_round_message: FinalRoundMessage<CP::Commitment>,
+pub struct QueryProof<CP: CommitmentEvaluationProof> {
+    pub(super) first_round_message: FirstRoundMessage<CP::Commitment>,
+    pub(super) final_round_message: FinalRoundMessage<CP::Commitment>,
     /// Sumcheck Proof
-    pub sumcheck_proof: SumcheckProof<CP::Scalar>,
-    pub pcs_proof_evaluations: QueryProofPCSProofEvaluations<CP::Scalar>,
+    pub(super) sumcheck_proof: SumcheckProof<CP::Scalar>,
+    pub(super) pcs_proof_evaluations: QueryProofPCSProofEvaluations<CP::Scalar>,
     /// Inner product proof of the MLEs' evaluations
-    pub evaluation_proof: CP,
+    pub(super) evaluation_proof: CP,
 }
 
 impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
