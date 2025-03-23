@@ -111,22 +111,3 @@ fn we_can_verify_queries_on_an_empty_table() {
     let expected_res = owned_table([bigint("a1", [0; 0])]);
     assert_eq!(table, expected_res);
 }
-
-#[test]
-fn empty_verification_fails_if_the_result_contains_non_null_members() {
-    let expr = EmptyTestQueryExpr {
-        columns: 1,
-        ..Default::default()
-    };
-    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
-        TableRef::new("sxt", "test"),
-        owned_table([bigint("a1", [0_i64; 0])]),
-        0,
-        (),
-    );
-    let res = VerifiableQueryResult::<InnerProductProof> {
-        result: Some(owned_table([])),
-        proof: None,
-    };
-    assert!(res.verify(&expr, &accessor, &()).is_err());
-}

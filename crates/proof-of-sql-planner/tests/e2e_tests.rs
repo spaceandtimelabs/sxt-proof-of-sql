@@ -206,12 +206,17 @@ fn test_slicing_limit() {
     );
 }
 
-/// Test simple GROUP BY queries
+/// Test GROUP BY queries
 #[test]
 fn test_group_by() {
     let alloc = Bump::new();
-    let sql = "select human, count(1) as num_cats from cats group by human;
-    select human, sum(weight) as total_weight, count(1) as num_cats from cats group by human;";
+    let sql = "select human, count(1) from cats group by human;
+    select human, count(1) as num_cats from cats group by human;
+    select human, sum(weight), count(1) from cats group by human;
+    select human, sum(weight), count(1) as num_cats from cats group by human;
+    select human, sum(weight) as total_weight, count(1) as num_cats from cats group by human;
+    select human, sum(2 * weight), count(1) from cats group by human;
+    select human, sum(2 * weight + 1) as total_transformed_weight, count(1) from cats group by human;";
     let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {
         TableRef::from_names(None, "cats") => table(
             vec![
@@ -225,12 +230,36 @@ fn test_group_by() {
     let expected_results: Vec<OwnedTable<DoryScalar>> = vec![
         owned_table([
             varchar("human", ["Cassia", "Gretta"]),
+            bigint("COUNT(Int64(1))", [3_i64, 2]),
+        ]),
+        owned_table([
+            varchar("human", ["Cassia", "Gretta"]),
+            bigint("num_cats", [3_i64, 2]),
+        ]),
+        owned_table([
+            varchar("human", ["Cassia", "Gretta"]),
+            decimal75("SUM(cats.weight)", 3, 1, [240, 100]),
+            bigint("COUNT(Int64(1))", [3_i64, 2]),
+        ]),
+        owned_table([
+            varchar("human", ["Cassia", "Gretta"]),
+            decimal75("SUM(cats.weight)", 3, 1, [240, 100]),
             bigint("num_cats", [3_i64, 2]),
         ]),
         owned_table([
             varchar("human", ["Cassia", "Gretta"]),
             decimal75("total_weight", 3, 1, [240, 100]),
             bigint("num_cats", [3_i64, 2]),
+        ]),
+        owned_table([
+            varchar("human", ["Cassia", "Gretta"]),
+            decimal75("SUM(Int64(2) * cats.weight)", 24, 1, [480, 200]),
+            bigint("COUNT(Int64(1))", [3_i64, 2]),
+        ]),
+        owned_table([
+            varchar("human", ["Cassia", "Gretta"]),
+            decimal75("total_transformed_weight", 25, 1, [510, 220]),
+            bigint("COUNT(Int64(1))", [3_i64, 2]),
         ]),
     ];
 

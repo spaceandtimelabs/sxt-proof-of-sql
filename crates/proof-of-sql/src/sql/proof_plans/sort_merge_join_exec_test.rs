@@ -436,7 +436,6 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
         VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, &table_left);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([
         bigint("id", [0_i64; 0]),

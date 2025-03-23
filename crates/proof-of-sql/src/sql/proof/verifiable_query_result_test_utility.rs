@@ -21,8 +21,6 @@ use serde::Serialize;
 ///
 /// Will panic if:
 /// - The verification of `res` does not succeed, causing the assertion `assert!(res.verify(...).is_ok())` to fail.
-/// - `res.proof` is `None`, causing `res.proof.as_ref().unwrap()` to panic.
-/// - Attempting to modify `final_round_pcs_proof_evaluations` or `commitments` if `res_p.proof` is `None`, leading to a panic on `unwrap()`.
 /// - `fake_accessor.update_offset` fails, causing a panic if it is designed to do so in the implementation.
 pub fn exercise_verification(
     res: &VerifiableQueryResult<InnerProductProof>,
@@ -34,26 +32,15 @@ pub fn exercise_verification(
         .verify(expr, accessor, &())
         .expect("Verification failed");
 
-    let (result, proof) = match (&res.result, &res.proof) {
-        (Some(result), Some(proof)) => (result, proof),
-        (None, None) => return,
-        _ => panic!("verification did not catch a proof/result mismatch"),
-    };
-
     // try changing the result
     let mut res_p = res.clone();
-    res_p.result = Some(tampered_table(result));
+    res_p.result = tampered_table(&res.result);
     assert!(res_p.verify(expr, accessor, &()).is_err());
 
     // try changing MLE evaluations
-    for i in 0..proof.pcs_proof_evaluations.final_round.len() {
+    for i in 0..res.proof.pcs_proof_evaluations.final_round.len() {
         let mut res_p = res.clone();
-        res_p
-            .proof
-            .as_mut()
-            .unwrap()
-            .pcs_proof_evaluations
-            .final_round[i] += Curve25519Scalar::one();
+        res_p.proof.pcs_proof_evaluations.final_round[i] += Curve25519Scalar::one();
         assert!(res_p.verify(expr, accessor, &()).is_err());
     }
 
@@ -67,14 +54,9 @@ pub fn exercise_verification(
         &(),
     )[0];
 
-    for i in 0..proof.final_round_message.round_commitments.len() {
+    for i in 0..res.proof.final_round_message.round_commitments.len() {
         let mut res_p = res.clone();
-        res_p
-            .proof
-            .as_mut()
-            .unwrap()
-            .final_round_message
-            .round_commitments[i] = commit_p;
+        res_p.proof.final_round_message.round_commitments[i] = commit_p;
         assert!(res_p.verify(expr, accessor, &()).is_err());
     }
 
@@ -84,7 +66,8 @@ pub fn exercise_verification(
     // the inner product proof isn't dependent on the generators since it simply sends the input
     // vector; hence, changing the offset would have no effect.
     if accessor.get_length(table_ref) > 1
-        || proof
+        || res
+            .proof
             .final_round_message
             .round_commitments
             .iter()
