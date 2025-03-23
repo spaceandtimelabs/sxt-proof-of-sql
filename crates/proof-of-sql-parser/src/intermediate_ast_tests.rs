@@ -2,6 +2,7 @@ use crate::{
     intermediate_ast::{
         Literal,
         OrderByDirection::{Asc, Desc},
+        SelectResultExpr,
     },
     sql::*,
     utility::*,
