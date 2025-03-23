@@ -12,4 +12,7 @@ pub(super) enum Error {
     /// Error indicating that the table was not found.
     #[snafu(display("table not found"))]
     TableNotFound,
+    /// Error indicating that table name can not be parsed into `TableRef`.
+    #[snafu(display("table name can not be parsed into TableRef"))]
+    InvalidTableName,
 }
