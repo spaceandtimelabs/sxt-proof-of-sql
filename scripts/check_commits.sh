@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 CONVENTIONAL_REGEX="^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\(.+\))?: .+$"
-COMMITS=$(git log origin/main..HEAD --pretty=format:"%s")
+while IFS= read -r COMMIT_MSG; do
+done < <(git log origin/main..HEAD --pretty=format:"%s")
 
 count=0
 failed=0
