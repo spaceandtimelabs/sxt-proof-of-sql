@@ -1523,6 +1523,14 @@ fn we_can_parse_a_query_comparing_with_null() {
             tab(None, "tab"),
             equal(col("a"), lit(Literal::Null)),
             vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
 fn we_can_count_by_a_simple_group_by() {
     let ast = "select count(a) as counted from tab group by a"
         .parse::<SelectStatement>()
@@ -1558,6 +1566,9 @@ fn we_can_parse_a_query_with_complex_null_expressions() {
         None,
     );
     assert_eq!(ast, expected_ast);
+}
+
+#[test]
 fn we_can_alias_an_expression() {
     let a1 = col("a").alias("col_a");
     let b1 = col("b").alias("col_b");
