@@ -34,15 +34,19 @@ library Transcript {
     function __drawChallenges(uint256[1] memory __transcript, uint256 __count)
         internal
         pure
-        returns (uint256 __resultPtr)
+        returns (uint256[] memory __resultPtr)
     {
         assembly {
             function draw_challenges(transcript_ptr, count) -> result_ptr {
                 // allocate `count` words
                 let free_ptr := mload(FREE_PTR)
-                mstore(FREE_PTR, add(free_ptr, mul(count, WORD_SIZE)))
+                mstore(FREE_PTR, add(free_ptr, mul(add(count, 1), WORD_SIZE)))
                 // result is the pointer to the first word
                 result_ptr := free_ptr
+                // store count in the first word
+                mstore(result_ptr, count)
+                // increment to next word
+                free_ptr := add(free_ptr, WORD_SIZE)
                 // first challenge is the current transcript state
                 let challenge := mload(transcript_ptr)
                 for {} count {} {
