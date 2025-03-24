@@ -90,6 +90,10 @@ library FilterExec {
             function literal_expr_evaluate(expr_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
+            // IMPORT-YUL ../proof_exprs/EqualsExpr.pre.sol
+            function equals_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
+                revert(0, 0)
+            }
             // IMPORT-YUL ../proof_exprs/ProofExpr.pre.sol
             function proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
