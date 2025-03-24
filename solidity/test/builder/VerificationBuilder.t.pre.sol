@@ -143,6 +143,31 @@ contract VerificationBuilderTest is Test {
         }
     }
 
+    function testGetFirstRoundMLEs() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        uint256[] memory values = new uint256[](3);
+        values[0] = 0x12345678;
+        values[1] = 0x23456789;
+        values[2] = 0x3456789A;
+        builder.firstRoundMLEs = values;
+        uint256[] memory result = VerificationBuilder.__getFirstRoundMLEs(builder);
+        assert(result.length == 3);
+        assert(result[0] == 0x12345678);
+        assert(result[1] == 0x23456789);
+        assert(result[2] == 0x3456789A);
+    }
+
+    function testFuzzGetFirstRoundMLEs(uint256[] memory values) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.firstRoundMLEs = values;
+        uint256[] memory result = VerificationBuilder.__getFirstRoundMLEs(builder);
+        assert(result.length == values.length);
+        uint256 valuesLength = values.length;
+        for (uint256 i = 0; i < valuesLength; ++i) {
+            assert(result[i] == values[i]);
+        }
+    }
+
     /// forge-config: default.allow_internal_expect_revert = true
     function testConsumeZeroFirstRoundMLEs() public {
         VerificationBuilder.Builder memory builder;
@@ -207,6 +232,31 @@ contract VerificationBuilderTest is Test {
         uint256 valuesLength = values.length;
         for (uint256 i = 0; i < valuesLength; ++i) {
             assert(builder.finalRoundMLEs[i] == values[i]);
+        }
+    }
+
+    function testGetFinalRoundMLEs() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        uint256[] memory values = new uint256[](3);
+        values[0] = 0x12345678;
+        values[1] = 0x23456789;
+        values[2] = 0x3456789A;
+        builder.finalRoundMLEs = values;
+        uint256[] memory result = VerificationBuilder.__getFinalRoundMLEs(builder);
+        assert(result.length == 3);
+        assert(result[0] == 0x12345678);
+        assert(result[1] == 0x23456789);
+        assert(result[2] == 0x3456789A);
+    }
+
+    function testFuzzGetFinalRoundMLEs(uint256[] memory values) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.finalRoundMLEs = values;
+        uint256[] memory result = VerificationBuilder.__getFinalRoundMLEs(builder);
+        assert(result.length == values.length);
+        uint256 valuesLength = values.length;
+        for (uint256 i = 0; i < valuesLength; ++i) {
+            assert(result[i] == values[i]);
         }
     }
 
@@ -435,6 +485,18 @@ contract VerificationBuilderTest is Test {
         assert(builder.aggregateEvaluation == value);
     }
 
+    function testGetAggregateEvaluation() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.aggregateEvaluation = 42;
+        assert(VerificationBuilder.__getAggregateEvaluation(builder) == 42);
+    }
+
+    function testFuzzGetAggregateEvaluation(uint256 value) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.aggregateEvaluation = value;
+        assert(VerificationBuilder.__getAggregateEvaluation(builder) == value);
+    }
+
     function testSetRowMultipliersEvaluation() public pure {
         VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
         VerificationBuilder.__setRowMultipliersEvaluation(builder, 42);
@@ -623,6 +685,31 @@ contract VerificationBuilderTest is Test {
         }
     }
 
+    function testGetColumnEvaluations() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        uint256[] memory values = new uint256[](3);
+        values[0] = 0x12345678;
+        values[1] = 0x23456789;
+        values[2] = 0x3456789A;
+        builder.columnEvaluations = values;
+        uint256[] memory result = VerificationBuilder.__getColumnEvaluations(builder);
+        assert(result.length == 3);
+        assert(result[0] == 0x12345678);
+        assert(result[1] == 0x23456789);
+        assert(result[2] == 0x3456789A);
+    }
+
+    function testFuzzGetColumnEvaluations(uint256[] memory values) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.columnEvaluations = values;
+        uint256[] memory result = VerificationBuilder.__getColumnEvaluations(builder);
+        assert(result.length == values.length);
+        uint256 valuesLength = values.length;
+        for (uint256 i = 0; i < valuesLength; ++i) {
+            assert(result[i] == values[i]);
+        }
+    }
+
     /// forge-config: default.allow_internal_expect_revert = true
     function testGetColumnEvaluationInvalidIndex() public {
         VerificationBuilder.Builder memory builder;
@@ -711,6 +798,127 @@ contract VerificationBuilderTest is Test {
         uint256 valuesLength = values.length;
         for (uint256 i = 0; i < valuesLength; ++i) {
             assert(VerificationBuilder.__getTableChiEvaluation(builder, i) == values[i]);
+        }
+    }
+
+    function testSetFirstRoundCommitments() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        uint256 valuesPtr = 0x123456;
+        VerificationBuilder.__setFirstRoundCommitments(builder, valuesPtr);
+        assert(builder.firstRoundCommitmentsPtr == valuesPtr);
+    }
+
+    function testFuzzSetFirstRoundCommitments(uint256 valuesPtr) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        VerificationBuilder.__setFirstRoundCommitments(builder, valuesPtr);
+        assert(builder.firstRoundCommitmentsPtr == valuesPtr);
+    }
+
+    function testGetFirstRoundCommitments() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.firstRoundCommitmentsPtr = 0x123456;
+        assert(VerificationBuilder.__getFirstRoundCommitments(builder) == 0x123456);
+    }
+
+    function testFuzzGetFirstRoundCommitments(uint256 valuesPtr) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.firstRoundCommitmentsPtr = valuesPtr;
+        assert(VerificationBuilder.__getFirstRoundCommitments(builder) == valuesPtr);
+    }
+
+    function testSetFinalRoundCommitments() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        uint256 valuesPtr = 0x123456;
+        VerificationBuilder.__setFinalRoundCommitments(builder, valuesPtr);
+        assert(builder.finalRoundCommitmentsPtr == valuesPtr);
+    }
+
+    function testFuzzSetFinalRoundCommitments(uint256 valuesPtr) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        VerificationBuilder.__setFinalRoundCommitments(builder, valuesPtr);
+        assert(builder.finalRoundCommitmentsPtr == valuesPtr);
+    }
+
+    function testGetFinalRoundCommitments() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.finalRoundCommitmentsPtr = 0x123456;
+        assert(VerificationBuilder.__getFinalRoundCommitments(builder) == 0x123456);
+    }
+
+    function testFuzzGetFinalRoundCommitments(uint256 valuesPtr) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.finalRoundCommitmentsPtr = valuesPtr;
+        assert(VerificationBuilder.__getFinalRoundCommitments(builder) == valuesPtr);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testSetBitDistributions() public {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        uint256[] memory emptyValues = new uint256[](0);
+        // Empty array should not revert
+        VerificationBuilder.__setBitDistributions(builder, emptyValues);
+
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0x12345678;
+        vm.expectRevert(Errors.UnsupportedProof.selector);
+        VerificationBuilder.__setBitDistributions(builder, values);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testFuzzSetBitDistributions(uint256[] memory values) public {
+        vm.assume(values.length > 0);
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        vm.expectRevert(Errors.UnsupportedProof.selector);
+        VerificationBuilder.__setBitDistributions(builder, values);
+    }
+
+    function testGetChiEvaluations() public pure {
+        VerificationBuilder.Builder memory builder;
+        uint256[] memory values = new uint256[](3);
+        values[0] = 0x12345678;
+        values[1] = 0x23456789;
+        values[2] = 0x3456789A;
+        builder.chiEvaluations = values;
+        uint256[] memory result = VerificationBuilder.__getChiEvaluations(builder);
+        assert(result.length == 3);
+        assert(result[0] == 0x12345678);
+        assert(result[1] == 0x23456789);
+        assert(result[2] == 0x3456789A);
+    }
+
+    function testFuzzGetChiEvaluations(uint256[] memory values) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.chiEvaluations = values;
+        uint256[] memory result = VerificationBuilder.__getChiEvaluations(builder);
+        assert(result.length == values.length);
+        uint256 valuesLength = values.length;
+        for (uint256 i = 0; i < valuesLength; ++i) {
+            assert(result[i] == values[i]);
+        }
+    }
+
+    function testGetTableChiEvaluations() public pure {
+        VerificationBuilder.Builder memory builder;
+        uint256[] memory values = new uint256[](3);
+        values[0] = 0x12345678;
+        values[1] = 0x23456789;
+        values[2] = 0x3456789A;
+        builder.tableChiEvaluations = values;
+        uint256[] memory result = VerificationBuilder.__getTableChiEvaluations(builder);
+        assert(result.length == 3);
+        assert(result[0] == 0x12345678);
+        assert(result[1] == 0x23456789);
+        assert(result[2] == 0x3456789A);
+    }
+
+    function testFuzzGetTableChiEvaluations(uint256[] memory values) public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.tableChiEvaluations = values;
+        uint256[] memory result = VerificationBuilder.__getTableChiEvaluations(builder);
+        assert(result.length == values.length);
+        uint256 valuesLength = values.length;
+        for (uint256 i = 0; i < valuesLength; ++i) {
+            assert(result[i] == values[i]);
         }
     }
 }
