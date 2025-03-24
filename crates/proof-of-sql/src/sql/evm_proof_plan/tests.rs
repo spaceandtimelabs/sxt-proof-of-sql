@@ -16,7 +16,7 @@ fn we_cannot_generate_serialized_proof_plan_for_unsupported_plan() {
 
     bincode::serde::encode_to_vec(
         EVMProofPlan::new(plan),
-        bincode::config::legacy()
+        bincode::config::standard()
             .with_fixed_int_encoding()
             .with_big_endian(),
     )
@@ -49,7 +49,7 @@ fn we_can_generate_serialized_proof_plan_for_simple_filter() {
 
     let bytes = bincode::serde::encode_to_vec(
         EVMProofPlan::new(plan),
-        bincode::config::legacy()
+        bincode::config::standard()
             .with_fixed_int_encoding()
             .with_big_endian(),
     )
@@ -67,17 +67,17 @@ fn we_can_generate_serialized_proof_plan_for_simple_filter() {
         .chain(&1_usize.to_be_bytes())
         .chain("a".as_bytes())
         .chain([])
-        .chain(&0_u32.to_be_bytes()) //   FilterExec
+        .chain(&0_u32.to_be_bytes()) //   TableExec
         .chain(&0_usize.to_be_bytes()) //   table_number
+        .chain(&1_usize.to_be_bytes()) //   results.len()
+        .chain(&0_u32.to_be_bytes()) //     results[0] - ColumnExpr
+        .chain(&0_usize.to_be_bytes()) //     column_number
         .chain(&1_u32.to_be_bytes()) //     where_clause - EqualsExpr
         .chain(&0_u32.to_be_bytes()) //       lhs - ColumnExpr
         .chain(&1_usize.to_be_bytes()) //       column_number
         .chain(&2_u32.to_be_bytes()) //       rhs - LiteralExpr
         .chain(&0_u32.to_be_bytes()) //         type
         .chain(&5_i64.to_be_bytes()) //         value
-        .chain(&1_usize.to_be_bytes()) //   results.len()
-        .chain(&0_u32.to_be_bytes()) //     results[0] - ColumnExpr
-        .chain(&0_usize.to_be_bytes()) //     column_number
         .copied()
         .collect();
     assert_eq!(bytes, expected_bytes);

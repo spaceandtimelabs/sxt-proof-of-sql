@@ -4,7 +4,7 @@ out = "out"
 solc = "0.8.28"
 libs = ["dependencies"]
 no-match-path = "**/*.pre.sol"
-no-match-coverage = "pre.sol"
+no-match-coverage = "(pre.sol|Verifier)"
 
 [doc]
 ignore = ["**/*.pre.sol"]
