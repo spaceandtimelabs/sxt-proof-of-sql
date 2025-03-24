@@ -1,8 +1,8 @@
 //! This crate converts a `DataFusion` `LogicalPlan` to a `ProofPlan` and `Postprocessing`
-#![cfg_attr(not(test), expect(dead_code))] // TODO: remove this when initial development work is done
 #![cfg_attr(test, expect(clippy::missing_panics_doc))]
 extern crate alloc;
 mod aggregate;
+pub(crate) use aggregate::{aggregate_function_to_proof_expr, AggregateFunc};
 mod context;
 pub use context::PoSqlContextProvider;
 #[cfg(test)]
@@ -16,6 +16,8 @@ pub use expr::expr_to_proof_expr;
 mod error;
 pub use error::{PlannerError, PlannerResult};
 mod plan;
+/// Proof of SQL Postprocessing. Used when the last step of the logical plan is an unprovable projection.
+pub mod postprocessing;
 pub use plan::logical_plan_to_proof_plan;
 mod util;
 pub use util::column_fields_to_schema;

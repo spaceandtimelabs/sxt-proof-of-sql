@@ -1,5 +1,8 @@
 use crate::{
-    intermediate_ast::OrderByDirection::{Asc, Desc},
+    intermediate_ast::{
+        OrderByDirection::{Asc, Desc},
+        SelectResultExpr,
+    },
     sql::*,
     utility::*,
     SelectStatement,
@@ -1438,4 +1441,33 @@ fn we_can_use_aggregation_inside_another_aggregation() {
         None,
     );
     assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_count_by_a_simple_group_by() {
+    let ast = "select count(a) as counted from tab group by a"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(
+            vec![col_res(col("a").count(), "counted")],
+            tab(None, "tab"),
+            group_by(&["a"]),
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_alias_an_expression() {
+    let a1 = col("a").alias("col_a");
+    let b1 = col("b").alias("col_b");
+    let cols: alloc::vec::Vec<SelectResultExpr> = vec![a1.into(), b1.into()];
+    let ast = select(query_all(cols, tab(None, "tab"), vec![]), vec![], None);
+    let expected = "select a as col_a, b as col_b from tab"
+        .parse::<SelectStatement>()
+        .unwrap();
+    assert_eq!(ast, expected);
 }

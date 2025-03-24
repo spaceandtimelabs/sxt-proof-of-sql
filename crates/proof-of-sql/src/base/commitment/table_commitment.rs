@@ -86,8 +86,8 @@ pub struct TableCommitment<C>
 where
     C: Commitment,
 {
-    column_commitments: ColumnCommitments<C>,
     range: Range<usize>,
+    column_commitments: ColumnCommitments<C>,
 }
 
 impl<C: Commitment> TableCommitment<C> {
@@ -124,8 +124,8 @@ impl<C: Commitment> TableCommitment<C> {
     ) -> Result<Self, NegativeRange> {
         if range.start <= range.end {
             Ok(TableCommitment {
-                column_commitments,
                 range,
+                column_commitments,
             })
         } else {
             Err(NegativeRange)
@@ -316,8 +316,8 @@ impl<C: Commitment> TableCommitment<C> {
         let column_commitments = self.column_commitments.try_add(other.column_commitments)?;
 
         Ok(TableCommitment {
-            column_commitments,
             range,
+            column_commitments,
         })
     }
 
@@ -350,8 +350,8 @@ impl<C: Commitment> TableCommitment<C> {
         let column_commitments = self.column_commitments.try_sub(other.column_commitments)?;
 
         Ok(TableCommitment {
-            column_commitments,
             range,
+            column_commitments,
         })
     }
 }

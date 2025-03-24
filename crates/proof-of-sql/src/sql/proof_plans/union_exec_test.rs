@@ -82,8 +82,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_union_exec() {
         ],
         vec![column_field("a", ColumnType::BigInt)],
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&verifiable_res, &ast, &accessor, &t0);
+    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([bigint("a", [0_i64; 0])]);
     assert_eq!(res, expected_res);

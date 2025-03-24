@@ -13,12 +13,13 @@ use crate::{
         proof::{
             FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
         },
-        proof_exprs::{AliasedDynProofExpr, DynProofExpr, TableExpr},
+        proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
     },
 };
 use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 /// The query plan for proving a query
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -98,6 +99,24 @@ impl DynProofPlan {
         filter_expr: DynProofExpr,
     ) -> Self {
         Self::Filter(FilterExec::new(aliased_results, input, filter_expr))
+    }
+
+    /// Creates a new group by plan.
+    #[must_use]
+    pub fn new_group_by(
+        group_by_exprs: Vec<ColumnExpr>,
+        sum_expr: Vec<AliasedDynProofExpr>,
+        count_alias: Ident,
+        table: TableExpr,
+        where_clause: DynProofExpr,
+    ) -> Self {
+        Self::GroupBy(GroupByExec::new(
+            group_by_exprs,
+            sum_expr,
+            count_alias,
+            table,
+            where_clause,
+        ))
     }
 
     /// Creates a new slice plan.

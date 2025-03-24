@@ -2,15 +2,10 @@ use super::{ProofPlan, QueryData, QueryProof, QueryResult};
 use crate::{
     base::{
         commitment::CommitmentEvaluationProof,
-        database::{
-            ColumnField, ColumnType, CommitmentAccessor, DataAccessor, OwnedColumn, OwnedTable,
-        },
-        proof::ProofError,
-        scalar::Scalar,
+        database::{CommitmentAccessor, DataAccessor, OwnedTable},
     },
     utils::log,
 };
-use alloc::vec;
 use serde::{Deserialize, Serialize};
 
 /// The result of an sql query along with a proof that the query is valid. The
@@ -69,12 +64,12 @@ use serde::{Deserialize, Serialize};
 /// Note: Because the class is deserialized from untrusted data, it
 /// cannot maintain any invariant on its data members; hence, they are
 /// all public so as to allow for easy manipulation for testing.
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct VerifiableQueryResult<CP: CommitmentEvaluationProof> {
     /// The result of the query in intermediate form.
-    pub(super) result: Option<OwnedTable<CP::Scalar>>,
+    pub result: OwnedTable<CP::Scalar>,
     /// The proof that the query result is valid.
-    pub(super) proof: Option<QueryProof<CP>>,
+    pub proof: QueryProof<CP>,
 }
 
 impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
@@ -89,30 +84,9 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         setup: &CP::ProverPublicSetup<'_>,
     ) -> Self {
         log::log_memory_usage("Start");
-
-        // a query must have at least one result column; if not, it should
-        // have been rejected at the parsing stage.
-
-        // handle the empty case
-        let table_refs = expr.get_table_references();
-        if table_refs
-            .into_iter()
-            .all(|table_ref| accessor.get_length(&table_ref) == 0)
-        {
-            return VerifiableQueryResult {
-                result: None,
-                proof: None,
-            };
-        }
-
         let (proof, res) = QueryProof::new(expr, accessor, setup);
-
         log::log_memory_usage("End");
-
-        Self {
-            result: Some(res),
-            proof: Some(proof),
-        }
+        Self { result: res, proof }
     }
 
     /// Verify a `VerifiableQueryResult`. Upon success, this function returns the finalized form of
@@ -130,63 +104,13 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
         log::log_memory_usage("Start");
-
-        match (self.result, self.proof) {
-            (Some(result), Some(proof)) => {
-                let QueryData {
-                    table,
-                    verification_hash,
-                } = proof.verify(expr, accessor, result, setup)?;
-                Ok(QueryData {
-                    table: table.try_coerce_with_fields(expr.get_column_result_fields())?,
-                    verification_hash,
-                })
-            }
-            (None, None)
-                if expr
-                    .get_table_references()
-                    .into_iter()
-                    .all(|table_ref| accessor.get_length(&table_ref) == 0) =>
-            {
-                let result_fields = expr.get_column_result_fields();
-                make_empty_query_result(&result_fields)
-            }
-            _ => Err(ProofError::VerificationError {
-                error: "Proof does not match result: at least one is missing",
-            })?,
-        }
+        let QueryData {
+            table,
+            verification_hash,
+        } = self.proof.verify(expr, accessor, self.result, setup)?;
+        Ok(QueryData {
+            table: table.try_coerce_with_fields(expr.get_column_result_fields())?,
+            verification_hash,
+        })
     }
-}
-
-fn make_empty_query_result<S: Scalar>(result_fields: &[ColumnField]) -> QueryResult<S> {
-    let table = OwnedTable::try_new(
-        result_fields
-            .iter()
-            .map(|field| {
-                (
-                    field.name(),
-                    match field.data_type() {
-                        ColumnType::Boolean => OwnedColumn::Boolean(vec![]),
-                        ColumnType::Uint8 => OwnedColumn::Uint8(vec![]),
-                        ColumnType::TinyInt => OwnedColumn::TinyInt(vec![]),
-                        ColumnType::SmallInt => OwnedColumn::SmallInt(vec![]),
-                        ColumnType::Int => OwnedColumn::Int(vec![]),
-                        ColumnType::BigInt => OwnedColumn::BigInt(vec![]),
-                        ColumnType::Int128 => OwnedColumn::Int128(vec![]),
-                        ColumnType::Decimal75(precision, scale) => {
-                            OwnedColumn::Decimal75(precision, scale, vec![])
-                        }
-                        ColumnType::Scalar => OwnedColumn::Scalar(vec![]),
-                        ColumnType::VarChar => OwnedColumn::VarChar(vec![]),
-                        ColumnType::VarBinary => OwnedColumn::VarBinary(vec![]),
-                        ColumnType::TimestampTZ(tu, tz) => OwnedColumn::TimestampTZ(tu, tz, vec![]),
-                    },
-                )
-            })
-            .collect(),
-    )?;
-    Ok(QueryData {
-        table,
-        verification_hash: Default::default(),
-    })
 }

@@ -422,6 +422,23 @@ impl ColumnType {
         )
     }
 
+    /// Returns the floor of the sqrt of the negative min integer.
+    /// Returns `None` if the type is not a signed integer.
+    /// `sqrt_negative_min(NumericalType) = floor(sqrt(-NumericalType::MIN))`
+    #[must_use]
+    #[cfg_attr(not(test), expect(dead_code))]
+    #[expect(clippy::trivially_copy_pass_by_ref)]
+    fn sqrt_negative_min(&self) -> Option<u64> {
+        match self {
+            ColumnType::TinyInt => Some(11),
+            ColumnType::SmallInt => Some(181),
+            ColumnType::Int => Some(46_340),
+            ColumnType::BigInt => Some(3_037_000_499),
+            ColumnType::Int128 => Some(13_043_817_825_332_782_212),
+            _ => None,
+        }
+    }
+
     /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
     fn to_integer_bits(self) -> Option<usize> {
         match self {
@@ -1265,5 +1282,35 @@ mod tests {
             None
         );
         assert_eq!(ColumnType::VarChar.min_scalar::<TestScalar>(), None);
+    }
+
+    #[test]
+    fn we_can_get_sqrt_negative_min() {
+        for column_type in [
+            ColumnType::TinyInt,
+            ColumnType::SmallInt,
+            ColumnType::Int,
+            ColumnType::BigInt,
+            ColumnType::Int128,
+        ] {
+            let floor = TestScalar::from(column_type.sqrt_negative_min().unwrap());
+            let ceiling = floor + TestScalar::ONE;
+            let floor_squared = floor * floor;
+            let ceiling_squared = ceiling * ceiling;
+            let negative_min_scalar = -column_type.min_scalar::<TestScalar>().unwrap();
+            assert!(floor_squared <= negative_min_scalar);
+            assert!(negative_min_scalar < ceiling_squared);
+        }
+        for column_type in [
+            ColumnType::Uint8,
+            ColumnType::Scalar,
+            ColumnType::Boolean,
+            ColumnType::VarBinary,
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::new(1)),
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 1),
+            ColumnType::VarChar,
+        ] {
+            assert_eq!(column_type.sqrt_negative_min(), None);
+        }
     }
 }

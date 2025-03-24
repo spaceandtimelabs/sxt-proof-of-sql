@@ -419,9 +419,9 @@ mod tests {
             VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
     }
 
-    // This one doesn't panic since it is an empty query
     #[test]
-    fn we_can_do_membership_check_if_there_are_neither_rows_nor_columns_in_the_tables() {
+    #[should_panic(expected = "The number of source columns should be greater than 0")]
+    fn we_cannot_do_membership_check_if_there_are_neither_rows_nor_columns_in_the_tables() {
         let source_table = Table::<'_, Curve25519Scalar>::try_new_with_options(
             IndexMap::default(),
             TableOptions { row_count: Some(0) },
@@ -447,10 +447,8 @@ mod tests {
             source_columns: vec![],
             candidate_columns: vec![],
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let actual = verifiable_res.verify(&plan, &accessor, &()).unwrap().table;
-        let expected = owned_table([int128("multiplicities", [0_i128; 0])]);
-        assert_eq!(actual, expected);
+        let _verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
     }
 
     #[test]

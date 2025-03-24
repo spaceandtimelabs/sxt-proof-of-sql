@@ -12,9 +12,6 @@ pub(crate) use add_subtract_expr::AddSubtractExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod add_subtract_expr_test;
 
-mod aggregate_expr;
-pub(crate) use aggregate_expr::AggregateExpr;
-
 mod multiply_expr;
 use multiply_expr::MultiplyExpr;
 #[cfg(all(test, feature = "blitzar"))]
@@ -55,6 +52,8 @@ mod numerical_util;
 pub(crate) use numerical_util::{
     add_subtract_columns, multiply_columns, scale_and_add_subtract_eval,
 };
+#[cfg(test)]
+pub(crate) use numerical_util::{divide_columns, modulo_columns};
 
 mod equals_expr;
 pub(crate) use equals_expr::EqualsExpr;
@@ -68,6 +67,6 @@ pub use table_expr::TableExpr;
 pub(crate) mod test_utility;
 
 mod column_expr;
-pub(crate) use column_expr::ColumnExpr;
+pub use column_expr::ColumnExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod column_expr_test;

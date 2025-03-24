@@ -82,14 +82,14 @@ pub struct QueryProofPCSProofEvaluations<S> {
 /// cannot maintain any invariant on its data members; hence, they are
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Clone, Serialize, Deserialize)]
-pub(super) struct QueryProof<CP: CommitmentEvaluationProof> {
-    pub first_round_message: FirstRoundMessage<CP::Commitment>,
-    pub final_round_message: FinalRoundMessage<CP::Commitment>,
+pub struct QueryProof<CP: CommitmentEvaluationProof> {
+    pub(super) first_round_message: FirstRoundMessage<CP::Commitment>,
+    pub(super) final_round_message: FinalRoundMessage<CP::Commitment>,
     /// Sumcheck Proof
-    pub sumcheck_proof: SumcheckProof<CP::Scalar>,
-    pub pcs_proof_evaluations: QueryProofPCSProofEvaluations<CP::Scalar>,
+    pub(super) sumcheck_proof: SumcheckProof<CP::Scalar>,
+    pub(super) pcs_proof_evaluations: QueryProofPCSProofEvaluations<CP::Scalar>,
     /// Inner product proof of the MLEs' evaluations
-    pub evaluation_proof: CP,
+    pub(super) evaluation_proof: CP,
 }
 
 impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
@@ -103,7 +103,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         log::log_memory_usage("Start");
 
         let (min_row_num, max_row_num) = get_index_range(accessor, &expr.get_table_references());
-        let initial_range_length = max_row_num - min_row_num;
+        let initial_range_length = (max_row_num - min_row_num).max(1);
         let alloc = Bump::new();
 
         let total_col_refs = expr.get_column_references();
@@ -129,7 +129,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let rho_evaluation_lengths = first_round_builder.rho_evaluation_lengths();
 
         let range_length = first_round_builder.range_length();
-
         let num_sumcheck_variables = cmp::max(log2_up(range_length), 1);
         assert!(num_sumcheck_variables > 0);
         let post_result_challenge_count = first_round_builder.num_post_result_challenges();

@@ -21,21 +21,25 @@ pub struct ColumnExpr {
 
 impl ColumnExpr {
     /// Create a new column expression
+    #[must_use]
     pub fn new(column_ref: ColumnRef) -> Self {
         Self { column_ref }
     }
 
     /// Return the column referenced by this [`ColumnExpr`]
+    #[must_use]
     pub fn get_column_reference(&self) -> ColumnRef {
         self.column_ref.clone()
     }
 
     /// Wrap the column output name and its type within the [`ColumnField`]
+    #[must_use]
     pub fn get_column_field(&self) -> ColumnField {
         ColumnField::new(self.column_ref.column_id(), *self.column_ref.column_type())
     }
 
     /// Get the column identifier
+    #[must_use]
     pub fn column_id(&self) -> Ident {
         self.column_ref.column_id()
     }
@@ -45,6 +49,7 @@ impl ColumnExpr {
     ///
     /// Will panic if the column is not found. Shouldn't happen in practice since
     /// code in `sql/parse` should have already checked that the column exists.
+    #[must_use]
     pub fn fetch_column<'a, S: Scalar>(&self, table: &Table<'a, S>) -> Column<'a, S> {
         *table
             .inner_table()

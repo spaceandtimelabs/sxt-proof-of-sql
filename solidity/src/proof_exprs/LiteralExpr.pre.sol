@@ -25,6 +25,12 @@ library LiteralExpr {
     /// ##### Return Values
     /// * `expr_ptr_out` - the pointer to the remaining expression after consuming the literal expression
     /// * `eval` - the evaluated result
+    /// ##### Proof Plan Encoding
+    /// The literal expression is encoded as follows:
+    /// 1. The literal variant (as a uint32)
+    /// 2. The literal value, which is variant-specific
+    ///     a. BigInt: The literal value as a signed int64
+    ///     b. Other variants are unsupported at this time
     /// @dev This function evaluates a literal expression by multiplying the literal value by chi_eval.
     /// This is because `chi_eval` is the evaluation of a column of ones of the appropriate length.
     /// @param __expr The literal expression data
