@@ -90,4 +90,27 @@ library Transcript {
         }
         __resultTranscript = __transcript;
     }
+
+    /// @notice Append an array to the transcript, and update the state of the transcript.
+    /// @dev This is achieved by hashing the current transcript state with the array data.
+    /// The operation is done in place by temporarily swapping the array length with the transcript state.
+    /// @param __transcript The current state of the transcript
+    /// @param __data The array to append
+    /// @return __resultTranscript The updated state of the transcript
+    function __appendArray(uint256[1] memory __transcript, uint256[] memory __data)
+        internal
+        pure
+        returns (uint256[1] memory __resultTranscript)
+    {
+        assembly {
+            function append_array(transcript_ptr, array_ptr) {
+                let array_len := mload(array_ptr)
+                mstore(array_ptr, mload(transcript_ptr))
+                mstore(transcript_ptr, keccak256(array_ptr, mul(add(array_len, 1), WORD_SIZE)))
+                mstore(array_ptr, array_len)
+            }
+            append_array(__transcript, __data)
+        }
+        __resultTranscript = __transcript;
+    }
 }

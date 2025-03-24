@@ -116,4 +116,39 @@ library TranscriptTest {
         uint256 expectedState = uint256(keccak256(abi.encodePacked(start, data)));
         assert(state[0] == expectedState);
     }
+
+    function testAppendArray() public pure {
+        uint256[1] memory transcript = [uint256(0x123)];
+        uint256[] memory data = new uint256[](3);
+        data[0] = 0xabc;
+        data[1] = 0xdef;
+        data[2] = 0x789;
+        uint256 expectedState = uint256(keccak256(abi.encodePacked(transcript, data)));
+
+        transcript = Transcript.__appendArray(transcript, data);
+
+        // Verify data is preserved
+        assert(data.length == 3);
+        assert(data[0] == 0xabc);
+        assert(data[1] == 0xdef);
+        assert(data[2] == 0x789);
+
+        // Verify state changed
+        assert(transcript[0] == expectedState);
+    }
+
+    function testFuzzAppendArray(uint256[1] memory transcript, uint256[] memory array) public pure {
+        uint256 len = array.length;
+        uint256[] memory originalArray = array;
+
+        uint256 expectedState = uint256(keccak256(abi.encodePacked(transcript, array)));
+        transcript = Transcript.__appendArray(transcript, array);
+
+        // Verify data preserved
+        assert(array.length == len);
+        for (uint256 i = 0; i < len; ++i) {
+            assert(array[i] == originalArray[i]);
+        }
+        assert(transcript[0] == expectedState);
+    }
 }
