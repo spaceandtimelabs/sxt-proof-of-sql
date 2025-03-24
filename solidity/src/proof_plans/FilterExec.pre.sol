@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 
 import "../base/Constants.sol";
 import "../base/Errors.sol";
-import {VerificationBuilder} from "../proof/VerificationBuilder.pre.sol";
+import {VerificationBuilder} from "../builder/VerificationBuilder.pre.sol";
 
 /// @title FilterExec
 /// @dev Library for handling filter execution plans
@@ -50,23 +50,23 @@ library FilterExec {
             function dequeue(queue_ptr) -> value {
                 revert(0, 0)
             }
-            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_consume_challenge(builder_ptr) -> value {
                 revert(0, 0)
             }
-            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_consume_final_round_mle(builder_ptr) -> value {
                 revert(0, 0)
             }
-            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_consume_chi_evaluation(builder_ptr) -> value {
                 revert(0, 0)
             }
-            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_produce_zerosum_constraint(builder_ptr, evaluation, degree) {
                 revert(0, 0)
             }
-            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_produce_identity_constraint(builder_ptr, evaluation, degree) {
                 revert(0, 0)
             }
@@ -78,7 +78,7 @@ library FilterExec {
             function get_array_element(arr_ptr, index) -> value {
                 revert(0, 0)
             }
-            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_get_column_evaluation(builder_ptr, column_num) -> value {
                 revert(0, 0)
             }
@@ -98,7 +98,7 @@ library FilterExec {
             function proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
-            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_get_table_chi_evaluation(builder_ptr, table_num) -> value {
                 revert(0, 0)
             }
