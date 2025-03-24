@@ -31,7 +31,6 @@ library Sumcheck {
             uint256 __degree
         )
     {
-        __evaluationPoint = new uint256[](__numVars);
         assembly {
             // IMPORT-YUL ../base/Errors.sol
             function err(code) {
@@ -79,8 +78,10 @@ library Sumcheck {
 
                 expected_evaluation := 0
                 evaluation_point_ptr := mload(FREE_PTR)
-                mstore(FREE_PTR, add(evaluation_point_ptr, mul(WORD_SIZE, num_vars)))
+                mstore(FREE_PTR, add(evaluation_point_ptr, mul(WORD_SIZE, add(num_vars, 1))))
                 let evaluation_ptr := evaluation_point_ptr
+                mstore(evaluation_ptr, num_vars)
+                evaluation_ptr := add(evaluation_ptr, WORD_SIZE)
                 for {} num_vars { num_vars := sub(num_vars, 1) } {
                     append_calldata(transcript_ptr, proof_ptr, mul(WORD_SIZE, add(degree, 1)))
                     let challenge := and(mload(transcript_ptr), MODULUS_MASK)
@@ -94,13 +95,11 @@ library Sumcheck {
                 proof_ptr_out := proof_ptr
             }
             let __proofOutOffset
-            let __evaluationPointDataPtr
-            __proofOutOffset, __evaluationPointDataPtr, __expectedEvaluation, __degree :=
+            __proofOutOffset, __evaluationPoint, __expectedEvaluation, __degree :=
                 verify_sumcheck_proof(__transcript, __proof.offset, __numVars)
             __proofOut.offset := __proofOutOffset
             // slither-disable-next-line write-after-write
             __proofOut.length := sub(__proof.length, sub(__proofOutOffset, __proof.offset))
-            mcopy(add(__evaluationPoint, WORD_SIZE), __evaluationPointDataPtr, mul(WORD_SIZE, __numVars))
         }
     }
 }
