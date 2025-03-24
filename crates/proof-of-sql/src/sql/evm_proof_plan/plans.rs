@@ -4,13 +4,17 @@ use crate::{
         database::{ColumnRef, TableRef},
         map::IndexSet,
     },
-    sql::proof_plans::{self, DynProofPlan},
+    sql::{
+        proof_exprs::{AliasedDynProofExpr, TableExpr},
+        proof_plans::{self, DynProofPlan},
+    },
 };
-use alloc::vec::Vec;
-use serde::Serialize;
+use alloc::{string::String, vec::Vec};
+use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 /// Represents a plan that can be serialized for EVM.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) enum Plan {
     Filter(FilterExec),
 }
@@ -30,10 +34,23 @@ impl Plan {
             _ => Err(Error::NotSupported),
         }
     }
+
+    pub(super) fn try_into_proof_plan(
+        &self,
+        table_refs: &IndexSet<TableRef>,
+        column_refs: &IndexSet<ColumnRef>,
+        output_column_names: &IndexSet<String>,
+    ) -> Result<DynProofPlan, Error> {
+        match self {
+            Plan::Filter(filter_exec) => Ok(DynProofPlan::Filter(
+                filter_exec.try_into_proof_plan(table_refs, column_refs, output_column_names)?,
+            )),
+        }
+    }
 }
 
 /// Represents a filter execution plan.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) struct FilterExec {
     table_number: usize,
     where_clause: Expr,
@@ -58,5 +75,32 @@ impl FilterExec {
                 .collect::<Result<_, _>>()?,
             where_clause: Expr::try_from_proof_expr(&plan.where_clause, column_refs)?,
         })
+    }
+
+    fn try_into_proof_plan(
+        &self,
+        table_refs: &IndexSet<TableRef>,
+        column_refs: &IndexSet<ColumnRef>,
+        output_column_names: &IndexSet<String>,
+    ) -> Result<proof_plans::FilterExec, Error> {
+        Ok(proof_plans::FilterExec::new(
+            self.results
+                .iter()
+                .zip(output_column_names.iter())
+                .map(|(expr, name)| {
+                    Ok(AliasedDynProofExpr {
+                        expr: expr.try_into_proof_expr(column_refs)?,
+                        alias: Ident::new(name),
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+            TableExpr {
+                table_ref: table_refs
+                    .get_index(self.table_number)
+                    .cloned()
+                    .ok_or(Error::TableNotFound)?,
+            },
+            self.where_clause.try_into_proof_expr(column_refs)?,
+        ))
     }
 }

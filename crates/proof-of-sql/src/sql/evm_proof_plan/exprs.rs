@@ -7,10 +7,10 @@ use crate::{
     sql::proof_exprs::{self, DynProofExpr},
 };
 use alloc::boxed::Box;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Represents an expression that can be serialized for EVM.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) enum Expr {
     Column(ColumnExpr),
     Equals(EqualsExpr),
@@ -35,10 +35,25 @@ impl Expr {
             _ => Err(Error::NotSupported),
         }
     }
+
+    pub(super) fn try_into_proof_expr(
+        &self,
+        column_refs: &IndexSet<ColumnRef>,
+    ) -> Result<DynProofExpr, Error> {
+        match self {
+            Expr::Column(column_expr) => Ok(DynProofExpr::Column(
+                column_expr.try_into_proof_expr(column_refs)?,
+            )),
+            Expr::Equals(equals_expr) => Ok(DynProofExpr::Equals(
+                equals_expr.try_into_proof_expr(column_refs)?,
+            )),
+            Expr::Literal(literal_expr) => Ok(DynProofExpr::Literal(literal_expr.to_proof_expr())),
+        }
+    }
 }
 
 /// Represents a column expression.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) struct ColumnExpr {
     column_number: usize,
 }
@@ -54,10 +69,22 @@ impl ColumnExpr {
                 .ok_or(Error::ColumnNotFound)?,
         })
     }
+
+    fn try_into_proof_expr(
+        &self,
+        column_refs: &IndexSet<ColumnRef>,
+    ) -> Result<proof_exprs::ColumnExpr, Error> {
+        Ok(proof_exprs::ColumnExpr::new(
+            column_refs
+                .get_index(self.column_number)
+                .ok_or(Error::ColumnNotFound)?
+                .clone(),
+        ))
+    }
 }
 
 /// Represents a literal expression.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) enum LiteralExpr {
     BigInt(i64),
 }
@@ -69,10 +96,18 @@ impl LiteralExpr {
             _ => Err(Error::NotSupported),
         }
     }
+
+    fn to_proof_expr(&self) -> proof_exprs::LiteralExpr {
+        match self {
+            LiteralExpr::BigInt(value) => {
+                proof_exprs::LiteralExpr::new(LiteralValue::BigInt(*value))
+            }
+        }
+    }
 }
 
 /// Represents an equals expression.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub(super) struct EqualsExpr {
     lhs: Box<Expr>,
     rhs: Box<Expr>,
@@ -86,6 +121,16 @@ impl EqualsExpr {
         Ok(EqualsExpr {
             lhs: Box::new(Expr::try_from_proof_expr(&expr.lhs, column_refs)?),
             rhs: Box::new(Expr::try_from_proof_expr(&expr.rhs, column_refs)?),
+        })
+    }
+
+    fn try_into_proof_expr(
+        &self,
+        column_refs: &IndexSet<ColumnRef>,
+    ) -> Result<proof_exprs::EqualsExpr, Error> {
+        Ok(proof_exprs::EqualsExpr {
+            lhs: Box::new(self.lhs.try_into_proof_expr(column_refs)?),
+            rhs: Box::new(self.rhs.try_into_proof_expr(column_refs)?),
         })
     }
 }

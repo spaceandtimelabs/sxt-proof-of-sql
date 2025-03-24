@@ -1,7 +1,9 @@
 use super::{error::Error, plans::Plan};
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
+        database::{
+            ColumnField, ColumnRef, ColumnType, OwnedTable, Table, TableEvaluation, TableRef,
+        },
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -18,8 +20,10 @@ use alloc::{
     vec::Vec,
 };
 use bumpalo::Bump;
+use core::str::FromStr;
 use itertools::Itertools;
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
+use sqlparser::ast::Ident;
 
 #[derive(Debug)]
 /// An implementation of `ProofPlan` that allows for EVM compatible serialization.
@@ -48,38 +52,99 @@ impl EVMProofPlan {
     }
 }
 
-impl Serialize for EVMProofPlan {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        #[derive(Serialize)]
-        struct CompactPlan {
-            tables: Vec<String>,
-            columns: Vec<(usize, String)>,
-            plan: Plan,
-        }
+#[derive(Serialize, Deserialize)]
+struct CompactPlan {
+    tables: Vec<String>,
+    columns: Vec<(usize, String, ColumnType)>,
+    output_column_names: Vec<String>,
+    plan: Plan,
+}
 
-        let table_refs = self.get_table_references();
-        let column_refs = self.get_column_references();
+impl TryFrom<&EVMProofPlan> for CompactPlan {
+    type Error = Error;
 
-        let plan = Plan::try_from_proof_plan(self.inner(), &table_refs, &column_refs)
-            .map_err(serde::ser::Error::custom)?;
+    fn try_from(value: &EVMProofPlan) -> Result<Self, Self::Error> {
+        let table_refs = value.get_table_references();
+        let column_refs = value.get_column_references();
+        let output_column_names = value
+            .get_column_result_fields()
+            .iter()
+            .map(|field| field.name().to_string())
+            .collect();
+
+        let plan = Plan::try_from_proof_plan(value.inner(), &table_refs, &column_refs)?;
         let columns = column_refs
             .into_iter()
             .map(|column_ref| {
                 let table_index = table_refs
                     .get_index_of(&column_ref.table_ref())
                     .ok_or(Error::TableNotFound)?;
-                Ok((table_index, column_ref.column_id().to_string()))
+                Ok((
+                    table_index,
+                    column_ref.column_id().to_string(),
+                    *column_ref.column_type(),
+                ))
             })
-            .try_collect()
-            .map_err(serde::ser::Error::custom::<Error>)?;
+            .try_collect()?;
         let tables = table_refs.iter().map(ToString::to_string).collect();
 
-        CompactPlan {
+        Ok(Self {
             tables,
             columns,
+            output_column_names,
             plan,
-        }
-        .serialize(serializer)
+        })
+    }
+}
+
+impl TryFrom<CompactPlan> for EVMProofPlan {
+    type Error = Error;
+
+    fn try_from(value: CompactPlan) -> Result<Self, Self::Error> {
+        let table_refs: IndexSet<TableRef> = value
+            .tables
+            .iter()
+            .map(|table| TableRef::from_str(table).map_err(|_| Error::InvalidTableName))
+            .try_collect()?;
+        let table_refs_clone = table_refs.clone();
+        let column_refs: IndexSet<ColumnRef> = value
+            .columns
+            .iter()
+            .map(|(i, ident, column_type)| {
+                let table_ref = table_refs_clone
+                    .get_index(*i)
+                    .cloned()
+                    .ok_or(Error::TableNotFound)?;
+                Ok(ColumnRef::new(table_ref, Ident::new(ident), *column_type))
+            })
+            .try_collect()?;
+        let output_column_names: IndexSet<String> = value.output_column_names.into_iter().collect();
+        Ok(Self {
+            inner: value.plan.try_into_proof_plan(
+                &table_refs,
+                &column_refs,
+                &output_column_names,
+            )?,
+        })
+    }
+}
+
+impl Serialize for EVMProofPlan {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        CompactPlan::try_from(self)
+            .map_err(serde::ser::Error::custom)?
+            .serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for EVMProofPlan {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        CompactPlan::deserialize(deserializer)?
+            .try_into()
+            .map_err(serde::de::Error::custom)
     }
 }
 
