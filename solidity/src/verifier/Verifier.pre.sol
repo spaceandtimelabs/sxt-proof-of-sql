@@ -297,6 +297,7 @@ library Verifier {
                 revert(0, 0)
             }
 
+            // TODO: move this to another file and add unit tests
             function proof_plan_evaluate(plan_ptr, builder_ptr) -> plan_ptr_out, evaluations_ptr {
                 let proof_plan_variant := shr(UINT32_PADDING_BITS, calldataload(plan_ptr))
                 plan_ptr := add(plan_ptr, UINT32_SIZE)
@@ -385,12 +386,14 @@ library Verifier {
                 append_calldata(transcript_ptr, proof_ptr_init, sub(proof_ptr, proof_ptr_init))
             }
             function verifier_evaluate_proof_plan(plan_ptr, builder_ptr) -> evaluations_ptr {
+                // skip over the table names
                 let num_tables := shr(UINT64_PADDING_BITS, calldataload(plan_ptr))
                 plan_ptr := add(plan_ptr, UINT64_SIZE)
                 for {} num_tables { num_tables := sub(num_tables, 1) } {
                     let name_len := shr(UINT64_PADDING_BITS, calldataload(plan_ptr))
                     plan_ptr := add(plan_ptr, add(UINT64_SIZE, name_len))
                 }
+                // skip over the column names
                 let num_columns := shr(UINT64_PADDING_BITS, calldataload(plan_ptr))
                 plan_ptr := add(plan_ptr, UINT64_SIZE)
                 for {} num_columns { num_columns := sub(num_columns, 1) } {
@@ -404,6 +407,7 @@ library Verifier {
                 if builder_get_aggregate_evaluation(builder_ptr) { err(ERR_AGGREGATE_EVALUATION_MISMATCH) }
             }
 
+            // TODO: move this to another file and add unit tests
             function batch_pcs(args_ptr, transcript_ptr, commitments_ptr, evaluations_ptr, batch_eval) -> batch_eval_out
             {
                 let num_commitments := mload(commitments_ptr)
@@ -423,6 +427,7 @@ library Verifier {
                 batch_eval_out := batch_eval
             }
 
+            // TODO: possibly move this to another file and add unit tests
             function verify_pcs_evaluations(
                 proof_ptr, commitments_ptr, transcript_ptr, builder_ptr, evaluation_point_ptr
             ) {
@@ -459,6 +464,7 @@ library Verifier {
                 verify_hyperkzg(proof_ptr, transcript_ptr, batch_commitment_ptr, evaluation_point_ptr, batch_eval)
             }
 
+            // TODO: move this to another file and add unit tests
             function compute_evaluation_vec(length, evaluation_point_ptr) -> evaluations_ptr {
                 evaluations_ptr := mload(FREE_PTR)
                 mstore(FREE_PTR, add(evaluations_ptr, mul(length, WORD_SIZE)))
@@ -480,6 +486,7 @@ library Verifier {
                 }
             }
 
+            // TODO: move this to another file and add unit tests
             function verify_result_evaluations(result_ptr, evaluation_point_ptr, evaluations_ptr) {
                 let num_columns := shr(UINT64_PADDING_BITS, calldataload(result_ptr))
                 result_ptr := add(result_ptr, UINT64_SIZE)
