@@ -34,12 +34,9 @@ library TranscriptTest {
         uint256 challengeA3 = Transcript.__drawChallenge(transcriptAPtr);
         uint256 challengeA4 = Transcript.__drawChallenge(transcriptAPtr);
 
-        uint256 resultBPtr = Transcript.__drawChallenges(transcriptBPtr, 4);
-        uint256[4] memory resultB;
-        assembly {
-            resultB := resultBPtr
-        }
+        uint256[] memory resultB = Transcript.__drawChallenges(transcriptBPtr, 4);
 
+        assert(resultB.length == 4);
         assert(challengeA1 == resultB[0]);
         assert(challengeA2 == resultB[1]);
         assert(challengeA3 == resultB[2]);
@@ -89,20 +86,15 @@ library TranscriptTest {
         assembly {
             freePtrBefore := mload(FREE_PTR)
         }
-        uint256 challengePtr = Transcript.__drawChallenges(transcriptA, count);
+        uint256[] memory challenges = Transcript.__drawChallenges(transcriptA, count);
         uint256 freePtrAfter;
         assembly {
             freePtrAfter := mload(FREE_PTR)
         }
-        assert(freePtrBefore + count * WORD_SIZE == freePtrAfter);
+        assert(freePtrBefore + (uint256(count) + 1) * WORD_SIZE == freePtrAfter);
         for (uint256 i = 0; i < count; ++i) {
             uint256 challenge = Transcript.__drawChallenge(transcriptB);
-            uint256 result;
-            assembly {
-                result := mload(challengePtr)
-            }
-            challengePtr += WORD_SIZE;
-            assert(challenge == result);
+            assert(challenge == challenges[i]);
             assert(challenge < MODULUS);
         }
     }
