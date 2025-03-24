@@ -14,23 +14,12 @@ use tiny_keccak::{Hasher, Keccak};
 /// ```pseudo-code
 /// challenge_(i+1) = keccak256(challenge_i, message_(i+1))
 /// ```
-pub struct Keccak256Transcript(pub Keccak);
-
-fn hex(data: &[u8]) -> String {
-    use std::fmt::Write;
-    data.iter()
-        .fold(String::with_capacity(data.len() * 2), |mut s, c| {
-            write!(s, "{c:02x}").unwrap();
-            s
-        })
-}
-
+pub struct Keccak256Transcript(Keccak);
 impl TranscriptCore for Keccak256Transcript {
     fn new() -> Self {
         Self(Keccak::v256())
     }
     fn raw_append(&mut self, message: &[u8]) {
-        //dbg!(hex(message));
         self.0.update(message);
     }
     fn raw_challenge(&mut self) -> [u8; 32] {
@@ -42,8 +31,6 @@ impl TranscriptCore for Keccak256Transcript {
 
         // Add this challenge to the new Hasher for the next round of messages:
         self.raw_append(&result);
-
-        //dbg!(hex(&result));
 
         result
     }
