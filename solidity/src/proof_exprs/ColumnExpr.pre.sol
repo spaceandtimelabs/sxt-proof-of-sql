@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 
 import "../base/Constants.sol";
 import "../base/Errors.sol";
-import {VerificationBuilder} from "../proof/VerificationBuilder.pre.sol";
+import {VerificationBuilder} from "../builder/VerificationBuilder.pre.sol";
 
 /// @title ColumnExpr
 /// @dev Library for handling column expressions
@@ -46,7 +46,7 @@ library ColumnExpr {
             function get_array_element(arr_ptr, index) -> value {
                 revert(0, 0)
             }
-            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_get_column_evaluation(builder_ptr, column_num) -> eval {
                 revert(0, 0)
             }
