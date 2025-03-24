@@ -303,7 +303,7 @@ library Verifier {
 
                 switch proof_plan_variant
                 case 0 { plan_ptr_out, evaluations_ptr := filter_exec_evaluate(plan_ptr, builder_ptr) }
-                default { err(0) }
+                default { err(ERR_UNSUPPORTED_PROOF_PLAN_VARIANT) }
             }
 
             function read_first_round_message(proof_ptr_init, transcript_ptr, builder_ptr) ->
@@ -410,7 +410,7 @@ library Verifier {
                 commitments_ptr := add(commitments_ptr, WORD_SIZE)
                 let num_evaluations := mload(evaluations_ptr)
                 evaluations_ptr := add(evaluations_ptr, WORD_SIZE)
-                if sub(num_commitments, num_evaluations) { err(0) }
+                if sub(num_commitments, num_evaluations) { err(ERR_PCS_BATCH_LENGTH_MISMATCH) }
                 for {} num_commitments { num_commitments := sub(num_commitments, 1) } {
                     let challenge := draw_challenge(transcript_ptr)
                     constant_ec_mul_add_assign(
@@ -483,7 +483,7 @@ library Verifier {
             function verify_result_evaluations(result_ptr, evaluation_point_ptr, evaluations_ptr) {
                 let num_columns := shr(UINT64_PADDING_BITS, calldataload(result_ptr))
                 result_ptr := add(result_ptr, UINT64_SIZE)
-                if sub(num_columns, mload(evaluations_ptr)) { err(0) }
+                if sub(num_columns, mload(evaluations_ptr)) { err(ERR_RESULT_COLUMN_COUNT_MISMATCH) }
                 evaluations_ptr := add(evaluations_ptr, WORD_SIZE)
 
                 let first := 1
@@ -492,7 +492,7 @@ library Verifier {
                 for {} num_columns { num_columns := sub(num_columns, 1) } {
                     let name_length := shr(UINT64_PADDING_BITS, calldataload(result_ptr))
                     result_ptr := add(result_ptr, add(UINT64_SIZE, name_length))
-                    if shr(255, calldataload(result_ptr)) { err(0) }
+                    if shr(255, calldataload(result_ptr)) { err(ERR_INVALID_RESULT_COLUMN_NAME) }
                     result_ptr := add(result_ptr, 1)
 
                     let value := mload(evaluations_ptr)
@@ -508,7 +508,7 @@ library Verifier {
                         table_len := column_length
                         eval_vec := compute_evaluation_vec(table_len, evaluation_point_ptr)
                     }
-                    if sub(table_len, column_length) { err(0) }
+                    if sub(table_len, column_length) { err(ERR_INCONSISTENT_RESULT_COLUMN_LENGTHS) }
 
                     value := mulmod(MODULUS_MINUS_ONE, value, MODULUS)
                     for { let i := 0 } sub(table_len, i) { i := add(i, 1) } {
@@ -522,7 +522,7 @@ library Verifier {
                         default { err(ERR_UNSUPPORTED_LITERAL_VARIANT) }
                         value := addmod(value, mulmod(entry, mload(add(eval_vec, mul(i, WORD_SIZE))), MODULUS), MODULUS)
                     }
-                    if value { err(0) }
+                    if value { err(ERR_INCORRECT_RESULT) }
                 }
             }
 
