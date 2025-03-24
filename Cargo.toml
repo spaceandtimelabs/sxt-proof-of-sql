@@ -46,7 +46,7 @@ itertools = { version = "0.13.0", default-features = false, features = ["use_all
 lalrpop = { version = "0.22.0" }
 lalrpop-util = { version = "0.22.0", default-features = false }
 merlin = { version = "2" }
-nova-snark = { path = "../Nova" }
+nova-snark = { version = "0.40.0" }
 num-traits = { version = "0.2", default-features = false }
 num-bigint = { version = "0.4.4", default-features = false }
 opentelemetry = { version = "0.23.0" }
@@ -86,3 +86,5 @@ pedantic = { level = "warn", priority = -1 }
 # patch for sqlparser no_std compatibility with the serde feature enabled.
 # required until sqlparser releases a similar update and proof-of-sql upgrades to it.
 sqlparser = { git = "https://github.com/tlovell-sxt/datafusion-sqlparser-rs.git", rev = "a828cbea22cf19bb6b4596f902bdd6f4d14a00b8" }
+# patch for nova-snark that enables more compact proofs via a transcript change
+nova-snark = { git = "https://github.com/JayWhite2357/Nova.git", rev = "b3cb99e04115e49b65b3ffda99146391e636e315" }
