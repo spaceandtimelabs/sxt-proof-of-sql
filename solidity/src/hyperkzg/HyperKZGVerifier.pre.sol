@@ -205,16 +205,23 @@ library HyperKZGVerifier {
 
             function verify_hyperkzg(proof_ptr, transcript_ptr, commitment_ptr, x, y) {
                 function v_ptr(ptr, l) -> result {
-                    result := add(ptr, sub(mul(WORDX2_SIZE, l), WORDX2_SIZE))
+                    result := add(ptr, add(UINT64_SIZE, sub(mul(WORDX2_SIZE, l), WORDX2_SIZE)))
                 }
                 function w_ptr(ptr, l) -> result {
-                    result := add(ptr, sub(mul(WORDX5_SIZE, l), WORDX2_SIZE))
+                    result := add(ptr, add(UINT64_SIZE, sub(mul(WORDX5_SIZE, l), WORDX2_SIZE)))
                 }
 
                 let ell := mload(x)
 
                 // if ell == 0, then error
                 if iszero(ell) { err(ERR_HYPER_KZG_EMPTY_POINT) }
+                {
+                    let com_len := shr(UINT64_PADDING_BITS, calldataload(proof_ptr))
+                    if sub(com_len, sub(ell, 1)) { err(ERR_HYPER_KZG_PROOF_SIZE_MISMATCH) }
+                    proof_ptr := add(proof_ptr, UINT64_SIZE)
+                    let v_len := shr(UINT64_PADDING_BITS, calldataload(add(proof_ptr, mul(WORDX2_SIZE, sub(ell, 1)))))
+                    if sub(v_len, ell) { err(ERR_HYPER_KZG_PROOF_SIZE_MISMATCH) }
+                }
 
                 // Step 1: Run the transcript
                 // WARNING: The public inputs (x, y, the commitments, digest of the KZG SRS, degree bound, etc) are

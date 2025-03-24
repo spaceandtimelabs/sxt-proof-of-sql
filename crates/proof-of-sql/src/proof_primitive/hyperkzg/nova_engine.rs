@@ -31,8 +31,10 @@ impl Engine for HyperKZGEngine {
     type Base = nova_snark::provider::bn256_grumpkin::bn256::Base;
     type Scalar = NovaScalar;
     type GE = nova_snark::provider::bn256_grumpkin::bn256::Point;
-    type RO = nova_snark::provider::poseidon::PoseidonRO<Self::Base, Self::Scalar>;
+    type RO = nova_snark::provider::poseidon::PoseidonRO<Self::Base>;
     type ROCircuit = nova_snark::provider::poseidon::PoseidonROCircuit<Self::Base>;
+    type RO2 = nova_snark::provider::poseidon::PoseidonRO<Self::Scalar>;
+    type RO2Circuit = nova_snark::provider::poseidon::PoseidonROCircuit<Self::Scalar>;
     type TE = Keccak256Transcript;
     type CE = nova_snark::provider::hyperkzg::CommitmentEngine<Self>;
 }
@@ -43,7 +45,9 @@ impl TranscriptEngineTrait<HyperKZGEngine> for Keccak256Transcript {
     }
 
     fn squeeze(&mut self, _label: &'static [u8]) -> Result<NovaScalar, NovaError> {
-        Ok(Transcript::scalar_challenge_as_be::<BNScalar>(self).into())
+        let res = Ok(Transcript::scalar_challenge_as_be::<BNScalar>(self).into());
+        Transcript::challenge_as_le(self);
+        res
     }
 
     fn absorb<T: TranscriptReprTrait<<HyperKZGEngine as Engine>::GE>>(
@@ -51,13 +55,7 @@ impl TranscriptEngineTrait<HyperKZGEngine> for Keccak256Transcript {
         _label: &'static [u8],
         o: &T,
     ) {
-        Transcript::extend_as_le_from_refs(
-            self,
-            o.to_transcript_bytes()
-                .chunks(32)
-                // Reverse the bytes in each 32 byte chunk, making them effectivelly big-endian
-                .flat_map(|chunk| chunk.iter().rev()),
-        );
+        Transcript::extend_as_le_from_refs(self, &o.to_transcript_bytes());
     }
 
     fn dom_sep(&mut self, _bytes: &'static [u8]) {}
