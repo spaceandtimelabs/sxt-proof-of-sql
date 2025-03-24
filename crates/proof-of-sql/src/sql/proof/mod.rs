@@ -36,7 +36,7 @@ pub use proof_plan::ProofPlan;
 pub(crate) use proof_plan::{HonestProver, ProverEvaluate, ProverHonestyMarker};
 
 mod query_proof;
-pub use query_proof::QueryProof;
+use query_proof::QueryProof;
 #[cfg(all(test, feature = "blitzar"))]
 mod query_proof_test;
 

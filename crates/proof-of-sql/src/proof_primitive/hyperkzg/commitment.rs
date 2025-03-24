@@ -16,7 +16,32 @@ pub struct HyperKZGCommitment {
     /// The underlying commitment.
     pub commitment: G1Projective,
 }
-impl_serde_for_ark_serde_checked!(HyperKZGCommitment);
+impl serde::Serialize for HyperKZGCommitment {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let affine = G1Affine::from(self.commitment);
+        let mut bytes = Vec::with_capacity(ark_serialize::CanonicalSerialize::uncompressed_size(
+            &affine,
+        ));
+        ark_serialize::CanonicalSerialize::serialize_uncompressed(&affine, &mut bytes)
+            .map_err(serde::ser::Error::custom)?;
+        bytes.reverse();
+        let mut fixed_size_bytes1: [u8; 32] = bytes[..32].try_into().unwrap();
+        let fixed_size_bytes0: [u8; 32] = bytes[32..].try_into().unwrap();
+        fixed_size_bytes1[0] &= 0b0111_1111;
+        (fixed_size_bytes0, fixed_size_bytes1).serialize(serializer)
+    }
+}
+impl<'de> serde::Deserialize<'de> for HyperKZGCommitment {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let fixed_size_bytes: ([u8; 32], [u8; 32]) = <_>::deserialize(deserializer)?;
+        let mut bytes = Vec::with_capacity(64);
+        bytes.extend_from_slice(&fixed_size_bytes.1);
+        bytes.extend_from_slice(&fixed_size_bytes.0);
+        bytes.reverse();
+        ark_serialize::CanonicalDeserialize::deserialize_uncompressed(bytes.as_slice())
+            .map_err(serde::de::Error::custom)
+    }
+}
 
 impl AddAssign for HyperKZGCommitment {
     fn add_assign(&mut self, rhs: Self) {

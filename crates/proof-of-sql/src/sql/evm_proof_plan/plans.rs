@@ -11,13 +11,13 @@ use serde::Serialize;
 
 /// Represents a plan that can be serialized for EVM.
 #[derive(Serialize)]
-pub(super) enum Plan {
+pub enum Plan {
     Filter(FilterExec),
 }
 
 impl Plan {
     /// Try to create a `Plan` from a `DynProofPlan`.
-    pub(super) fn try_from_proof_plan(
+    pub fn try_from_proof_plan(
         plan: &DynProofPlan,
         table_refs: &IndexSet<TableRef>,
         column_refs: &IndexSet<ColumnRef>,
@@ -34,7 +34,7 @@ impl Plan {
 
 /// Represents a filter execution plan.
 #[derive(Serialize)]
-pub(super) struct FilterExec {
+pub struct FilterExec {
     table_number: usize,
     where_clause: Expr,
     results: Vec<Expr>,

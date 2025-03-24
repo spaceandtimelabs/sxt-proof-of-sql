@@ -6,7 +6,7 @@ use super::{
 use crate::{
     base::{
         bit::BitDistribution,
-        commitment::CommitmentEvaluationProof,
+        commitment::{Commitment, CommitmentEvaluationProof, CommittableColumn},
         database::{
             ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTable, Table,
             TableRef,
@@ -22,6 +22,7 @@ use crate::{
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use core::cmp;
+use itertools::Itertools;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
@@ -82,14 +83,14 @@ pub struct QueryProofPCSProofEvaluations<S> {
 /// cannot maintain any invariant on its data members; hence, they are
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Clone, Serialize, Deserialize)]
-pub struct QueryProof<CP: CommitmentEvaluationProof> {
-    pub(super) first_round_message: FirstRoundMessage<CP::Commitment>,
-    pub(super) final_round_message: FinalRoundMessage<CP::Commitment>,
+pub(crate) struct QueryProof<CP: CommitmentEvaluationProof> {
+    pub first_round_message: FirstRoundMessage<CP::Commitment>,
+    pub final_round_message: FinalRoundMessage<CP::Commitment>,
     /// Sumcheck Proof
-    pub(super) sumcheck_proof: SumcheckProof<CP::Scalar>,
-    pub(super) pcs_proof_evaluations: QueryProofPCSProofEvaluations<CP::Scalar>,
+    pub sumcheck_proof: SumcheckProof<CP::Scalar>,
+    pub pcs_proof_evaluations: QueryProofPCSProofEvaluations<CP::Scalar>,
     /// Inner product proof of the MLEs' evaluations
-    pub(super) evaluation_proof: CP,
+    pub evaluation_proof: CP,
 }
 
 impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
@@ -139,8 +140,31 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript = Transcript::new();
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(expr);
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(&owned_table_result);
+        transcript.challenge_as_le();
+
+        for table in expr.get_table_references() {
+            let length = accessor.get_length(&table);
+            transcript.extend_serialize_as_le(&[0, 0, 0, length]);
+        }
+        transcript.challenge_as_le();
+
+        for commitment in CP::Commitment::compute_commitments(
+            &expr
+                .get_column_references()
+                .into_iter()
+                .map(|col| CommittableColumn::from(accessor.get_column(col)))
+                .collect_vec(),
+            0,
+            setup,
+        ) {
+            transcript.extend_serialize_as_le(&commitment);
+        }
+        transcript.challenge_as_le();
+
         transcript.extend_serialize_as_le(&min_row_num);
         transcript.challenge_as_le();
 
@@ -307,8 +331,27 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript = Transcript::new();
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(expr);
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(&result);
+        transcript.challenge_as_le();
+
+        for table in expr.get_table_references() {
+            let length = accessor.get_length(&table);
+            transcript.extend_serialize_as_le(&[0, 0, 0, length]);
+        }
+        transcript.challenge_as_le();
+
+        for commitment in expr
+            .get_column_references()
+            .into_iter()
+            .map(|col| accessor.get_commitment(col))
+        {
+            transcript.extend_serialize_as_le(&commitment);
+        }
+        transcript.challenge_as_le();
+
         transcript.extend_serialize_as_le(&min_row_num);
         transcript.challenge_as_le();
 

@@ -30,6 +30,26 @@ uint32 constant ERR_UNSUPPORTED_LITERAL_VARIANT = 0xed9d5b00;
 uint32 constant ERR_INVALID_INDEX = 0x63df8171;
 /// @dev Error code for when a proof expression variant is unsupported.
 uint32 constant ERR_UNSUPPORTED_PROOF_EXPR_VARIANT = 0xb8a26620;
+/// @dev Error code for when PCS batch lengths don't match.
+uint32 constant ERR_PCS_BATCH_LENGTH_MISMATCH = 0x5a64ac85;
+/// @dev Error code for when result column counts don't match.
+uint32 constant ERR_RESULT_COLUMN_COUNT_MISMATCH = 0x4b08a100;
+/// @dev Error code for when a result column name is invalid.
+uint32 constant ERR_INVALID_RESULT_COLUMN_NAME = 0xc5a456b6;
+/// @dev Error code for when result column lengths are inconsistent.
+uint32 constant ERR_INCONSISTENT_RESULT_COLUMN_LENGTHS = 0x68c99843;
+/// @dev Error code for when the result is incorrect.
+uint32 constant ERR_INCORRECT_RESULT = 0x3ad072a3;
+/// @dev Error code for when HyperKZG proof size doesn't match.
+uint32 constant ERR_HYPER_KZG_PROOF_SIZE_MISMATCH = 0xbe285ccd;
+/// @dev Error code for when aggregate evaluation doesn't match.
+uint32 constant ERR_AGGREGATE_EVALUATION_MISMATCH = 0xf5c6cb38;
+/// @dev Error code for when proof type is unsupported.
+uint32 constant ERR_UNSUPPORTED_PROOF = 0x6f1c50d9;
+/// @dev Error code for when a proof plan variant is unsupported.
+uint32 constant ERR_UNSUPPORTED_PROOF_PLAN_VARIANT = 0xe5503cfa;
+/// @dev Error code for when a data type variant is unsupported.
+uint32 constant ERR_UNSUPPORTED_DATA_TYPE_VARIANT = 0xbd12560e;
 
 library Errors {
     /// @notice Error thrown when the inputs to the ECADD precompile are invalid.
@@ -60,6 +80,26 @@ library Errors {
     error InvalidIndex();
     /// @notice Error thrown when a proof expression variant is unsupported.
     error UnsupportedProofExprVariant();
+    /// @notice Error thrown when PCS batch lengths don't match.
+    error PCSBatchLengthMismatch();
+    /// @notice Error thrown when result column counts don't match.
+    error ResultColumnCountMismatch();
+    /// @notice Error thrown when a result column name is invalid.
+    error InvalidResultColumnName();
+    /// @notice Error thrown when result column lengths are inconsistent.
+    error InconsistentResultColumnLengths();
+    /// @notice Error thrown when the result is incorrect.
+    error IncorrectResult();
+    /// @notice Error thrown when HyperKZG proof size doesn't match.
+    error HyperKZGProofSizeMismatch();
+    /// @notice Error thrown when aggregate evaluation doesn't match.
+    error AggregateEvaluationMismatch();
+    /// @notice Error thrown when proof type is unsupported.
+    error UnsupportedProof();
+    /// @notice Error thrown when a proof plan variant is unsupported.
+    error UnsupportedProofPlanVariant();
+    /// @notice Error thrown when a data type variant is unsupported.
+    error UnsupportedDataTypeVariant();
 
     function __err(uint32 __code) internal pure {
         assembly {

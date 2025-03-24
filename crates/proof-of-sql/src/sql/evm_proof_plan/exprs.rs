@@ -11,14 +11,14 @@ use serde::Serialize;
 
 /// Represents an expression that can be serialized for EVM.
 #[derive(Serialize)]
-pub(super) enum Expr {
+pub enum Expr {
     Column(ColumnExpr),
-    Equals(EqualsExpr),
     Literal(LiteralExpr),
+    Equals(EqualsExpr),
 }
 impl Expr {
     /// Try to create an `Expr` from a `DynProofExpr`.
-    pub(super) fn try_from_proof_expr(
+    pub fn try_from_proof_expr(
         expr: &DynProofExpr,
         column_refs: &IndexSet<ColumnRef>,
     ) -> Result<Self, Error> {
@@ -39,7 +39,7 @@ impl Expr {
 
 /// Represents a column expression.
 #[derive(Serialize)]
-pub(super) struct ColumnExpr {
+pub struct ColumnExpr {
     column_number: usize,
 }
 impl ColumnExpr {
@@ -58,7 +58,7 @@ impl ColumnExpr {
 
 /// Represents a literal expression.
 #[derive(Serialize)]
-pub(super) enum LiteralExpr {
+pub enum LiteralExpr {
     BigInt(i64),
 }
 impl LiteralExpr {
@@ -73,7 +73,7 @@ impl LiteralExpr {
 
 /// Represents an equals expression.
 #[derive(Serialize)]
-pub(super) struct EqualsExpr {
+pub struct EqualsExpr {
     lhs: Box<Expr>,
     rhs: Box<Expr>,
 }

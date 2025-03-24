@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 
 import "../base/Constants.sol";
 import "../base/Errors.sol";
-import {VerificationBuilder} from "../proof/VerificationBuilder.pre.sol";
+import {VerificationBuilder} from "../builder/VerificationBuilder.pre.sol";
 
 /// @title ProofExpr
 /// @dev Library for handling proof expressions which can be either column or literal expressions
@@ -62,7 +62,7 @@ library ProofExpr {
             function case_const(lhs, rhs) {
                 revert(0, 0)
             }
-            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_get_column_evaluation(builder_ptr, column_num) -> eval {
                 revert(0, 0)
             }
@@ -78,11 +78,11 @@ library ProofExpr {
             function literal_expr_evaluate(expr_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
-            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_consume_final_round_mle(builder_ptr) -> value {
                 revert(0, 0)
             }
-            // IMPORT-YUL ../proof/VerificationBuilder.pre.sol
+            // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_produce_identity_constraint(builder_ptr, evaluation, degree) {
                 revert(0, 0)
             }

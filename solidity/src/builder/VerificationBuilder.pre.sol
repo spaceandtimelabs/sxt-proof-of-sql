@@ -21,6 +21,8 @@ library VerificationBuilder {
         uint256 rowMultipliersEvaluation;
         uint256[] columnEvaluations;
         uint256[] tableChiEvaluations;
+        uint256 firstRoundCommitmentsPtr;
+        uint256 finalRoundCommitmentsPtr;
     }
 
     /// @notice Allocates and reserves a block of memory for a verification builder
@@ -125,6 +127,28 @@ library VerificationBuilder {
         }
     }
 
+    /// @notice Gets the first round MLE values from the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_first_round_mles(builder_ptr) -> values_ptr
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// ##### Return Values
+    /// * `values_ptr` - pointer to the array in memory
+    /// @param __builder The builder struct
+    /// @return __values The first round MLE values array
+    function __getFirstRoundMLEs(Builder memory __builder) internal pure returns (uint256[] memory __values) {
+        assembly {
+            function builder_get_first_round_mles(builder_ptr) -> values_ptr {
+                values_ptr := mload(add(builder_ptr, BUILDER_FIRST_ROUND_MLES_OFFSET))
+            }
+            __values := builder_get_first_round_mles(__builder)
+        }
+    }
+
     /// @notice Consumes a first round MLE evaluation from the verification builder
     /// @custom:as-yul-wrapper
     /// #### Wrapped Yul Function
@@ -178,6 +202,28 @@ library VerificationBuilder {
                 mstore(add(builder_ptr, BUILDER_FINAL_ROUND_MLES_OFFSET), values_ptr)
             }
             builder_set_final_round_mles(__builder, __values)
+        }
+    }
+
+    /// @notice Gets the final round MLE values from the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_final_round_mles(builder_ptr) -> values_ptr
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// ##### Return Values
+    /// * `values_ptr` - pointer to the array in memory
+    /// @param __builder The builder struct
+    /// @return __values The final round MLE values array
+    function __getFinalRoundMLEs(Builder memory __builder) internal pure returns (uint256[] memory __values) {
+        assembly {
+            function builder_get_final_round_mles(builder_ptr) -> values_ptr {
+                values_ptr := mload(add(builder_ptr, BUILDER_FINAL_ROUND_MLES_OFFSET))
+            }
+            __values := builder_get_final_round_mles(__builder)
         }
     }
 
@@ -378,6 +424,28 @@ library VerificationBuilder {
         }
     }
 
+    /// @notice Gets the aggregate evaluation from the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_aggregate_evaluation(builder_ptr) -> value
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// ##### Return Values
+    /// * `value` - the aggregate evaluation value
+    /// @param __builder The builder struct
+    /// @return __value The aggregate evaluation value
+    function __getAggregateEvaluation(Builder memory __builder) internal pure returns (uint256 __value) {
+        assembly {
+            function builder_get_aggregate_evaluation(builder_ptr) -> value {
+                value := mload(add(builder_ptr, BUILDER_AGGREGATE_EVALUATION_OFFSET))
+            }
+            __value := builder_get_aggregate_evaluation(__builder)
+        }
+    }
+
     /// @notice Sets the row multipliers evaluation in the verification builder
     /// @custom:as-yul-wrapper
     /// #### Wrapped Yul Function
@@ -488,6 +556,28 @@ library VerificationBuilder {
         }
     }
 
+    /// @notice Gets the column evaluations array from the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_column_evaluations(builder_ptr) -> values_ptr
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// ##### Return Values
+    /// * `values_ptr` - pointer to the array in memory
+    /// @param __builder The builder struct
+    /// @return __values The column evaluation values array
+    function __getColumnEvaluations(Builder memory __builder) internal pure returns (uint256[] memory __values) {
+        assembly {
+            function builder_get_column_evaluations(builder_ptr) -> values_ptr {
+                values_ptr := mload(add(builder_ptr, BUILDER_COLUMN_EVALUATIONS_OFFSET))
+            }
+            __values := builder_get_column_evaluations(__builder)
+        }
+    }
+
     /// @notice Gets a column evaluation by column number
     /// @custom:as-yul-wrapper
     /// #### Wrapped Yul Function
@@ -578,6 +668,162 @@ library VerificationBuilder {
                 value := get_array_element(add(builder_ptr, BUILDER_TABLE_CHI_EVALUATIONS_OFFSET), table_num)
             }
             __value := builder_get_table_chi_evaluation(__builder, __tableNum)
+        }
+    }
+
+    /// @notice Sets the first round commitments in the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_set_first_round_commitments(builder_ptr, values_ptr)
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// * `values_ptr` - memory pointer to the first round commitments array
+    /// @param __builder The builder struct
+    /// @param __valuesPtr Memory pointer to first round commitments array
+    function __setFirstRoundCommitments(Builder memory __builder, uint256 __valuesPtr) internal pure {
+        assembly {
+            function builder_set_first_round_commitments(builder_ptr, values_ptr) {
+                mstore(add(builder_ptr, BUILDER_FIRST_ROUND_COMMITMENTS_OFFSET), values_ptr)
+            }
+            builder_set_first_round_commitments(__builder, __valuesPtr)
+        }
+    }
+
+    /// @notice Gets the first round commitments pointer from the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_first_round_commitments(builder_ptr) -> values_ptr
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// ##### Return Values
+    /// * `values_ptr` - memory pointer to the first round commitments array
+    /// @param __builder The builder struct
+    /// @return __valuesPtr Memory pointer to first round commitments array
+    function __getFirstRoundCommitments(Builder memory __builder) internal pure returns (uint256 __valuesPtr) {
+        assembly {
+            function builder_get_first_round_commitments(builder_ptr) -> values_ptr {
+                values_ptr := mload(add(builder_ptr, BUILDER_FIRST_ROUND_COMMITMENTS_OFFSET))
+            }
+            __valuesPtr := builder_get_first_round_commitments(__builder)
+        }
+    }
+
+    /// @notice Sets the final round commitments in the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_set_final_round_commitments(builder_ptr, values_ptr)
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// * `values_ptr` - memory pointer to the final round commitments array
+    /// @param __builder The builder struct
+    /// @param __valuesPtr Memory pointer to final round commitments array
+    function __setFinalRoundCommitments(Builder memory __builder, uint256 __valuesPtr) internal pure {
+        assembly {
+            function builder_set_final_round_commitments(builder_ptr, values_ptr) {
+                mstore(add(builder_ptr, BUILDER_FINAL_ROUND_COMMITMENTS_OFFSET), values_ptr)
+            }
+            builder_set_final_round_commitments(__builder, __valuesPtr)
+        }
+    }
+
+    /// @notice Gets the final round commitments pointer from the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_final_round_commitments(builder_ptr) -> values_ptr
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// ##### Return Values
+    /// * `values_ptr` - memory pointer to the final round commitments array
+    /// @param __builder The builder struct
+    /// @return __valuesPtr Memory pointer to final round commitments array
+    function __getFinalRoundCommitments(Builder memory __builder) internal pure returns (uint256 __valuesPtr) {
+        assembly {
+            function builder_get_final_round_commitments(builder_ptr) -> values_ptr {
+                values_ptr := mload(add(builder_ptr, BUILDER_FINAL_ROUND_COMMITMENTS_OFFSET))
+            }
+            __valuesPtr := builder_get_final_round_commitments(__builder)
+        }
+    }
+
+    /// @notice Sets the bit distributions in the verification builder. Errors if the length is non-zero.
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_set_bit_distributions(builder_ptr, values_ptr)
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// * `values_ptr` - pointer to the array in memory
+    /// @dev Always reverts with Errors.UnsupportedProof if length is non-zero
+    /// @param __builder The builder struct
+    /// @param __values The bit distributions array
+    function __setBitDistributions(Builder memory __builder, uint256[] memory __values) internal pure {
+        assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
+            function builder_set_bit_distributions(builder_ptr, values_ptr) {
+                if mload(values_ptr) { err(ERR_UNSUPPORTED_PROOF) }
+            }
+            builder_set_bit_distributions(__builder, __values)
+        }
+    }
+
+    /// @notice Gets the chi column evaluations array from the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_chi_evaluations(builder_ptr) -> values_ptr
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// ##### Return Values
+    /// * `values_ptr` - pointer to the array in memory
+    /// @param __builder The builder struct
+    /// @return __values The chi evaluations array
+    function __getChiEvaluations(Builder memory __builder) internal pure returns (uint256[] memory __values) {
+        assembly {
+            function builder_get_chi_evaluations(builder_ptr) -> values_ptr {
+                values_ptr := mload(add(builder_ptr, BUILDER_CHI_EVALUATIONS_OFFSET))
+            }
+            __values := builder_get_chi_evaluations(__builder)
+        }
+    }
+
+    /// @notice Gets the table chi evaluations array from the verification builder
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_get_table_chi_evaluations(builder_ptr) -> values_ptr
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// ##### Return Values
+    /// * `values_ptr` - pointer to the array in memory
+    /// @param __builder The builder struct
+    /// @return __values The table chi evaluations array
+    function __getTableChiEvaluations(Builder memory __builder) internal pure returns (uint256[] memory __values) {
+        assembly {
+            function builder_get_table_chi_evaluations(builder_ptr) -> values_ptr {
+                values_ptr := mload(add(builder_ptr, BUILDER_TABLE_CHI_EVALUATIONS_OFFSET))
+            }
+            __values := builder_get_table_chi_evaluations(__builder)
         }
     }
 }

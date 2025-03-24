@@ -10,7 +10,8 @@ pub struct SumcheckRandomScalars<'a, S: Scalar> {
 
 impl<'a, S: Scalar> SumcheckRandomScalars<'a, S> {
     pub fn new(scalars: &'a [S], table_length: usize, num_sumcheck_variables: usize) -> Self {
-        let (entrywise_point, subpolynomial_multipliers) = scalars.split_at(num_sumcheck_variables);
+        let (subpolynomial_multipliers, entrywise_point) =
+            scalars.split_at(scalars.len() - num_sumcheck_variables);
         Self {
             entrywise_point,
             subpolynomial_multipliers,
