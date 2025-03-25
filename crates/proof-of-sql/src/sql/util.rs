@@ -1,6 +1,4 @@
-use super::{AnalyzeError, AnalyzeResult};
 use crate::base::database::{try_add_subtract_column_types, try_multiply_column_types, ColumnType};
-use alloc::string::ToString;
 use sqlparser::ast::BinaryOperator;
 
 /// Checks if the binary operation between the left and right data types is valid.
@@ -68,20 +66,5 @@ pub(crate) fn type_check_binary_operation(
             // Handle unsupported binary operations
             false
         }
-    }
-}
-
-pub(crate) fn check_dtypes(
-    left_dtype: ColumnType,
-    right_dtype: ColumnType,
-    binary_operator: &BinaryOperator,
-) -> AnalyzeResult<()> {
-    if type_check_binary_operation(left_dtype, right_dtype, binary_operator) {
-        Ok(())
-    } else {
-        Err(AnalyzeError::DataTypeMismatch {
-            left_type: left_dtype.to_string(),
-            right_type: right_dtype.to_string(),
-        })
     }
 }

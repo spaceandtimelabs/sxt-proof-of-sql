@@ -27,12 +27,6 @@ impl PoSQLTimeZone {
     }
 }
 
-impl From<proof_of_sql_parser::posql_time::PoSQLTimeZone> for PoSQLTimeZone {
-    fn from(value: proof_of_sql_parser::posql_time::PoSQLTimeZone) -> Self {
-        PoSQLTimeZone::new(value.offset())
-    }
-}
-
 impl TryFrom<&Option<Arc<str>>> for PoSQLTimeZone {
     type Error = PoSQLTimestampError;
 
