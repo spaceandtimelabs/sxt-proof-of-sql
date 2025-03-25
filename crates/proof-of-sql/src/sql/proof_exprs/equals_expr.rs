@@ -1,7 +1,7 @@
 use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, Table},
+        database::{Column, ColumnRef, ColumnType, NullableColumn, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -38,11 +38,11 @@ impl ProofExpr for EqualsExpr {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
+    ) -> NullableColumn<'a, S> {
         log::log_memory_usage("Start");
 
-        let lhs_column = self.lhs.result_evaluate(alloc, table);
-        let rhs_column = self.rhs.result_evaluate(alloc, table);
+        let lhs_column = self.lhs.result_evaluate(alloc, table).values;
+        let rhs_column = self.rhs.result_evaluate(alloc, table).values;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
@@ -51,7 +51,7 @@ impl ProofExpr for EqualsExpr {
 
         log::log_memory_usage("End");
 
-        res
+        NullableColumn::new(res)
     }
 
     #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
@@ -60,11 +60,11 @@ impl ProofExpr for EqualsExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
+    ) -> NullableColumn<'a, S> {
         log::log_memory_usage("Start");
 
-        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table);
-        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table);
+        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table).values;
+        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table).values;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let scale_and_subtract_res =
@@ -79,7 +79,7 @@ impl ProofExpr for EqualsExpr {
 
         log::log_memory_usage("End");
 
-        res
+        NullableColumn::new(res)
     }
 
     fn verifier_evaluate<S: Scalar>(
@@ -87,13 +87,13 @@ impl ProofExpr for EqualsExpr {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
-    ) -> Result<S, ProofError> {
-        let lhs_eval = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
-        let rhs_eval = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
+    ) -> Result<(S, Option<S>), ProofError> {
+        let (lhs_eval, _) = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
+        let (rhs_eval, _) = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, true);
-        verifier_evaluate_equals_zero(builder, res, chi_eval)
+        verifier_evaluate_equals_zero(builder, res, chi_eval).map(|val| (val, None))
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

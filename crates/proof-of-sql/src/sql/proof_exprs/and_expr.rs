@@ -1,7 +1,7 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, Table},
+        database::{Column, ColumnRef, ColumnType, NullableColumn, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -37,11 +37,11 @@ impl ProofExpr for AndExpr {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
+    ) -> NullableColumn<'a, S> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table);
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table);
+        let lhs_column = self.lhs.result_evaluate(alloc, table).values;
+        let rhs_column = self.rhs.result_evaluate(alloc, table).values;
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         let res =
@@ -49,7 +49,7 @@ impl ProofExpr for AndExpr {
 
         log::log_memory_usage("End");
 
-        res
+        NullableColumn::new(res)
     }
 
     #[tracing::instrument(name = "AndExpr::prover_evaluate", level = "debug", skip_all)]
@@ -58,11 +58,11 @@ impl ProofExpr for AndExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
+    ) -> NullableColumn<'a, S> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
+        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table).values;
+        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table).values;
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         let n = lhs.len();
@@ -84,7 +84,7 @@ impl ProofExpr for AndExpr {
 
         log::log_memory_usage("End");
 
-        res
+        NullableColumn::new(res)
     }
 
     fn verifier_evaluate<S: Scalar>(
@@ -92,9 +92,9 @@ impl ProofExpr for AndExpr {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
-    ) -> Result<S, ProofError> {
-        let lhs = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
-        let rhs = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
+    ) -> Result<(S, Option<S>), ProofError> {
+        let (lhs, _) = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
+        let (rhs, _) = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
 
         // lhs_and_rhs
         let lhs_and_rhs = builder.try_consume_final_round_mle_evaluation()?;
@@ -107,7 +107,7 @@ impl ProofExpr for AndExpr {
         )?;
 
         // selection
-        Ok(lhs_and_rhs)
+        Ok((lhs_and_rhs, None))
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

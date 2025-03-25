@@ -1,7 +1,7 @@
 use super::ProofExpr;
 use crate::{
     base::{
-        database::{Column, ColumnField, ColumnRef, ColumnType, Table},
+        database::{Column, ColumnField, ColumnRef, ColumnType, NullableColumn, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -70,8 +70,8 @@ impl ProofExpr for ColumnExpr {
         &self,
         _alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
-        self.fetch_column(table)
+    ) -> NullableColumn<'a, S> {
+        NullableColumn::new(self.fetch_column(table))
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the column expression and
@@ -81,8 +81,8 @@ impl ProofExpr for ColumnExpr {
         _builder: &mut FinalRoundBuilder<'a, S>,
         _alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
-        self.fetch_column(table)
+    ) -> NullableColumn<'a, S> {
+        NullableColumn::new(self.fetch_column(table))
     }
 
     /// Evaluate the column expression at the sumcheck's random point,
@@ -92,12 +92,12 @@ impl ProofExpr for ColumnExpr {
         _builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _chi_eval: S,
-    ) -> Result<S, ProofError> {
-        Ok(*accessor
+    ) -> Result<(S, Option<S>), ProofError> {
+        Ok((*accessor
             .get(&self.column_ref)
             .ok_or(ProofError::VerificationError {
                 error: "Column Not Found",
-            })?)
+            })?, None))
     }
 
     /// Insert in the [`IndexSet`] `columns` all the column

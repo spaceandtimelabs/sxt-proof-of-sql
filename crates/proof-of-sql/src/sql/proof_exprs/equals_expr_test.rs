@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, OwnedTable, OwnedTableTestAccessor,
+            owned_table_utility::*, table_utility::*, Column, NullableColumn, OwnedTable, OwnedTableTestAccessor,
             Table, TableRef, TableTestAccessor,
         },
         scalar::Scalar,
@@ -425,7 +425,7 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
         const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ZERO),
     );
     let res = equals_expr.result_evaluate(&alloc, &data);
-    let expected_res = Column::Boolean(&[true, false, true, false]);
+    let expected_res = NullableColumn::new(Column::Boolean(&[true, false, true, false]));
     assert_eq!(res, expected_res);
 }
 

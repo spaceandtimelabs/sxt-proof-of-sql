@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, Table},
+        database::{ColumnRef, ColumnType, NullableColumn, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -23,7 +23,7 @@ pub trait ProofExpr: Debug + Send + Sync {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S>;
+    ) -> NullableColumn<'a, S>;
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
     /// of values
@@ -32,7 +32,7 @@ pub trait ProofExpr: Debug + Send + Sync {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S>;
+    ) -> NullableColumn<'a, S>;
 
     /// Compute the evaluation of a multilinear extension from this expression
     /// at the random sumcheck point and adds components needed to verify the expression to
@@ -42,7 +42,7 @@ pub trait ProofExpr: Debug + Send + Sync {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
-    ) -> Result<S, ProofError>;
+    ) -> Result<(S, Option<S>), ProofError>;
 
     /// Insert in the [`IndexSet`] `columns` all the column
     /// references in the `BoolExpr` or forwards the call to some

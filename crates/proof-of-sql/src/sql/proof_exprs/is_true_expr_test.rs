@@ -107,7 +107,7 @@ fn test_is_true_expr() {
     let is_true_expr = IsTrueExpr::new(Box::new(column_expr));
     let result = is_true_expr.result_evaluate(&alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // IS TRUE should be true only for non-NULL true values (index 0 and 2)
@@ -154,7 +154,7 @@ fn we_should_obtain_a_verification_error_if_a_malicious_prover_returns_the_wrong
     let correct_result = is_true_expr.result_evaluate(&alloc, &table);
 
     // Extract the correct boolean values
-    let Column::Boolean(correct_values) = correct_result else {
+    let Column::Boolean(correct_values) = correct_result.values else {
         panic!("Expected boolean column")
     };
 
@@ -220,7 +220,7 @@ fn test_is_true_expr_with_false_values() {
     let is_true_expr = IsTrueExpr::new(Box::new(column_expr));
     let result = is_true_expr.result_evaluate(&alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // IS TRUE should be true only for non-NULL true values (index 0 and 2)
@@ -262,7 +262,7 @@ fn test_is_true_expr_with_boolean_column() {
     let is_true_expr = IsTrueExpr::new(Box::new(column_expr));
     let result = is_true_expr.result_evaluate(&alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // IS TRUE should be true only for non-NULL true values (index 0 and 2)
@@ -307,7 +307,7 @@ fn test_is_true_expr_with_non_boolean_column() {
     let is_true_expr = IsTrueExpr::new(Box::new(column_expr));
     let result = is_true_expr.result_evaluate(&alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // IS TRUE should be true only for non-NULL true values (index 0)
@@ -388,7 +388,7 @@ fn we_should_detect_a_malicious_prover_in_is_true_query() {
     let correct_result = is_true_expr.result_evaluate(&alloc, &table);
 
     // Extract the correct boolean values
-    let Column::Boolean(correct_values) = correct_result else {
+    let Column::Boolean(correct_values) = correct_result.values else {
         panic!("Expected boolean column")
     };
 

@@ -78,8 +78,8 @@ impl DivideAndModuloExpr {
         table: &Table<'a, S>,
         utilities: &U,
     ) -> (Column<'a, S>, Column<'a, S>) {
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table).values;
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table).values;
 
         let (quotient_wrapped, _quotient) =
             utilities.divide_columns(&lhs_column, &rhs_column, alloc);

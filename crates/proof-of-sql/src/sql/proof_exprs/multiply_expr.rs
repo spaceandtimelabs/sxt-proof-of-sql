@@ -1,7 +1,7 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{try_multiply_column_types, Column, ColumnRef, ColumnType, Table},
+        database::{try_multiply_column_types, Column, ColumnRef, ColumnType, NullableColumn, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -40,11 +40,12 @@ impl ProofExpr for MultiplyExpr {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table);
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table);
+    ) -> NullableColumn<'a, S> {
+        let lhs_column = self.lhs.result_evaluate(alloc, table).values;
+        let rhs_column = self.rhs.result_evaluate(alloc, table).values;
         let scalars = multiply_columns(&lhs_column, &rhs_column, alloc);
-        Column::Scalar(scalars)
+        let res = Column::Scalar(scalars);
+        NullableColumn::new(res)
     }
 
     #[tracing::instrument(
@@ -57,11 +58,11 @@ impl ProofExpr for MultiplyExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
+    ) -> NullableColumn<'a, S> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
+        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table).values;
+        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table).values;
 
         // lhs_times_rhs
         let lhs_times_rhs: &'a [S] = multiply_columns(&lhs_column, &rhs_column, alloc);
@@ -79,7 +80,7 @@ impl ProofExpr for MultiplyExpr {
 
         log::log_memory_usage("End");
 
-        res
+        NullableColumn::new(res)
     }
 
     fn verifier_evaluate<S: Scalar>(
@@ -87,9 +88,9 @@ impl ProofExpr for MultiplyExpr {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
-    ) -> Result<S, ProofError> {
-        let lhs = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
-        let rhs = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
+    ) -> Result<(S, Option<S>), ProofError> {
+        let (lhs, _) = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
+        let (rhs, _) = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
 
         // lhs_times_rhs
         let lhs_times_rhs = builder.try_consume_final_round_mle_evaluation()?;
@@ -102,7 +103,7 @@ impl ProofExpr for MultiplyExpr {
         )?;
 
         // selection
-        Ok(lhs_times_rhs)
+        Ok((lhs_times_rhs, None))
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

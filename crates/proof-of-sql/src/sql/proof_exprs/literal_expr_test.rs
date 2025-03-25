@@ -3,7 +3,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor, Table,
+            owned_table_utility::*, table_utility::*, Column, NullableColumn, OwnedTableTestAccessor, Table,
             TableRef,
         },
     },
@@ -129,6 +129,6 @@ fn we_can_compute_the_correct_output_of_a_literal_expr_using_result_evaluate() {
         table([borrowed_bigint("a", [123_i64, 456, 789, 1011], &alloc)]);
     let literal_expr: DynProofExpr = const_bool(true);
     let res = literal_expr.result_evaluate(&alloc, &data);
-    let expected_res = Column::Boolean(&[true, true, true, true]);
+    let expected_res = NullableColumn::new(Column::Boolean(&[true, true, true, true]));
     assert_eq!(res, expected_res);
 }

@@ -91,6 +91,7 @@ impl ProofPlan for ProjectionExec {
                 aliased_expr
                     .expr
                     .verifier_evaluate(builder, &current_accessor, chi_eval)
+                    .map(|(val, _)| val)
             })
             .collect::<Result<Vec<_>, _>>()?;
         Ok(TableEvaluation::new(output_column_evals, chi_eval))
@@ -135,7 +136,7 @@ impl ProverEvaluate for ProjectionExec {
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias.clone(),
-                    aliased_expr.expr.result_evaluate(alloc, &input),
+                    aliased_expr.expr.result_evaluate(alloc, &input).values,
                 )
             }),
             TableOptions::new(Some(input.num_rows())),
@@ -166,7 +167,7 @@ impl ProverEvaluate for ProjectionExec {
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias.clone(),
-                    aliased_expr.expr.prover_evaluate(builder, alloc, &input),
+                    aliased_expr.expr.prover_evaluate(builder, alloc, &input).values,
                 )
             }),
             TableOptions::new(Some(input.num_rows())),

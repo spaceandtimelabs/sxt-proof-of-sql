@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor, TableRef,
+            owned_table_utility::*, table_utility::*, Column, NullableColumn, OwnedTableTestAccessor, TableRef,
             TableTestAccessor,
         },
         scalar::test_scalar::TestScalar,
@@ -362,6 +362,6 @@ fn we_can_compute_the_correct_output_of_a_multiply_expr_using_result_evaluate() 
         .iter()
         .map(|v| Curve25519Scalar::from(*v))
         .collect::<Vec<_>>();
-    let expected_res = Column::Scalar(&expected_res_scalar);
+    let expected_res = NullableColumn::new(Column::Scalar(&expected_res_scalar));
     assert_eq!(res, expected_res);
 }

@@ -1,7 +1,7 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, Table},
+        database::{Column, ColumnRef, ColumnType, NullableColumn, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -68,11 +68,11 @@ impl ProofExpr for IsTrueExpr {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
+    ) -> NullableColumn<'a, S> {
         log::log_memory_usage("Start");
 
         let inner_column = self.expr.result_evaluate(alloc, table);
-        let inner_values = inner_column
+        let inner_values = inner_column.values
             .as_boolean()
             .expect("Expression is not boolean");
         let mut column_refs = IndexSet::default();
@@ -82,7 +82,7 @@ impl ProofExpr for IsTrueExpr {
             let result_slice = alloc.alloc_slice_fill_copy(table.num_rows(), true);
             let res = Column::Boolean(result_slice);
             log::log_memory_usage("End");
-            return res;
+            return NullableColumn::new(res);
         }
 
         let mut has_nullable_column = false;
@@ -112,7 +112,7 @@ impl ProofExpr for IsTrueExpr {
 
         let res = Column::Boolean(result_slice);
         log::log_memory_usage("End");
-        res
+        NullableColumn::new(res)
     }
 
     #[tracing::instrument(name = "IsTrueExpr::prover_evaluate", level = "debug", skip_all)]
@@ -121,11 +121,11 @@ impl ProofExpr for IsTrueExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
+    ) -> NullableColumn<'a, S> {
         log::log_memory_usage("Start");
 
         let inner_column = self.expr.prover_evaluate(builder, alloc, table);
-        let inner_values = inner_column
+        let inner_values = inner_column.values
             .as_boolean()
             .expect("Expression is not boolean");
         let n = table.num_rows();
@@ -143,7 +143,7 @@ impl ProofExpr for IsTrueExpr {
 
             let res = Column::Boolean(result_slice);
             log::log_memory_usage("End");
-            return res;
+            return NullableColumn::new(res);
         }
 
         let mut column_refs = IndexSet::default();
@@ -192,7 +192,7 @@ impl ProofExpr for IsTrueExpr {
 
         let res = Column::Boolean(is_true_result);
         log::log_memory_usage("End");
-        res
+        NullableColumn::new(res)
     }
 
     fn verifier_evaluate<S: Scalar>(
@@ -200,8 +200,8 @@ impl ProofExpr for IsTrueExpr {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
-    ) -> Result<S, ProofError> {
-        let inner_eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
+    ) -> Result<(S, Option<S>), ProofError> {
+        let (inner_eval, _) = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
         let presence_eval = builder.try_consume_final_round_mle_evaluation()?;
         builder.try_consume_final_round_mle_evaluation()?;
         let is_true_eval = builder.try_consume_final_round_mle_evaluation()?;
@@ -210,7 +210,7 @@ impl ProofExpr for IsTrueExpr {
             is_true_eval - (inner_eval * presence_eval),
             2,
         )?;
-        Ok(is_true_eval)
+        Ok((is_true_eval, None))
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, LiteralValue, OwnedTable,
+            owned_table_utility::*, table_utility::*, Column, LiteralValue, NullableColumn, OwnedTable,
             OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
         },
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
@@ -588,7 +588,7 @@ fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evalu
     let rhs_expr = column(&t, "b", &accessor);
     let lte_expr = lte(lhs_expr, rhs_expr);
     let res = lte_expr.result_evaluate(&alloc, &data);
-    let expected_res = Column::Boolean(&[true, false, true]);
+    let expected_res = NullableColumn::new(Column::Boolean(&[true, false, true]));
     assert_eq!(res, expected_res);
 }
 
@@ -606,6 +606,6 @@ fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evalu
     let lit_expr = const_bigint(1);
     let gte_expr = gte(col_expr, lit_expr);
     let res = gte_expr.result_evaluate(&alloc, &data);
-    let expected_res = Column::Boolean(&[false, true, true]);
+    let expected_res = NullableColumn::new(Column::Boolean(&[false, true, true]));
     assert_eq!(res, expected_res);
 }

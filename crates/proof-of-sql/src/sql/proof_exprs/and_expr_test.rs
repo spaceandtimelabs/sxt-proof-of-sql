@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, ColumnRef, ColumnType,
+            owned_table_utility::*, table_utility::*, Column, ColumnRef, ColumnType, NullableColumn,
             OwnedTableTestAccessor, Table, TableRef, TableTestAccessor,
         },
         map::indexmap,
@@ -181,7 +181,7 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
         equal(column(&t, "d", &accessor), const_varchar("t")),
     );
     let res = and_expr.result_evaluate(&alloc, &data);
-    let expected_res = Column::Boolean(&[false, true, false, false]);
+    let expected_res = NullableColumn::new(Column::Boolean(&[false, true, false, false]));
     assert_eq!(res, expected_res);
 }
 

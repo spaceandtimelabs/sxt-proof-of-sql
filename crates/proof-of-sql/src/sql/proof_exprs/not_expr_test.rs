@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor, TableRef,
+            owned_table_utility::*, table_utility::*, Column, NullableColumn, OwnedTableTestAccessor, TableRef,
             TableTestAccessor, TestAccessor,
         },
         scalar::test_scalar::TestScalar,
@@ -124,6 +124,6 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
     accessor.add_table(t.clone(), data.clone(), 0);
     let not_expr: DynProofExpr = not(equal(column(&t, "b", &accessor), const_int128(1)));
     let res = not_expr.result_evaluate(&alloc, &data);
-    let expected_res = Column::Boolean(&[true, false]);
+    let expected_res = NullableColumn::new(Column::Boolean(&[true, false]));
     assert_eq!(res, expected_res);
 }

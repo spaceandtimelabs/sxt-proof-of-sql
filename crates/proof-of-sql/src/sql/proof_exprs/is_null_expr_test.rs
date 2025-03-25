@@ -49,7 +49,7 @@ fn test_is_null_expr() {
     let is_null_expr = IsNullExpr::new(Box::new(column_expr));
     let result = is_null_expr.result_evaluate(&alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // presence[i] = true means NOT NULL, so IS NULL should return false for those values
@@ -81,7 +81,7 @@ fn test_is_null_expr_non_nullable() {
     let is_null_expr = IsNullExpr::new(Box::new(column_expr));
     let result = is_null_expr.result_evaluate(&alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             for &value in values {
@@ -111,7 +111,7 @@ fn test_is_null_expr_prover_evaluate() {
     let is_null_expr = IsNullExpr::new(Box::new(column_expr));
     let result = is_null_expr.prover_evaluate(&mut final_round_builder, &alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             for &value in values {
@@ -145,7 +145,7 @@ fn test_is_null_expr_verifier_evaluate() {
     let result = is_null_expr.verifier_evaluate(&mut mock_builder, &accessor, chi_eval);
     match &result {
         Ok(value) => {
-            assert_eq!(*value, TestScalar::from(1));
+            assert_eq!((*value).0, TestScalar::from(1));
             assert!(mock_builder.produced_sumcheck);
         }
         Err(err) => {
@@ -190,7 +190,7 @@ fn test_is_null_expr_with_mixed_columns() {
     // This will exercise line 64 as has_nullable_column will be true
     let result = is_null_expr.result_evaluate(&alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             assert!(!values[0]);
@@ -229,7 +229,7 @@ fn test_is_null_expr_prover_evaluate_with_nullable_column() {
     let is_null_expr = IsNullExpr::new(Box::new(column_expr));
     let result = is_null_expr.prover_evaluate(&mut final_round_builder, &alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             assert!(!values[0]);
@@ -266,7 +266,7 @@ fn test_is_null_expr_verifier_evaluate_non_boolean() {
 
     match &result {
         Ok(value) => {
-            assert_eq!(*value, TestScalar::from(1));
+            assert_eq!((*value).0, TestScalar::from(1));
             assert!(!mock_builder.produced_sumcheck);
         }
         Err(err) => {
@@ -296,7 +296,7 @@ fn test_is_null_expr_no_nullable_columns() {
 
     let result = is_null_expr.result_evaluate(&alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             for &value in values {
@@ -329,7 +329,7 @@ fn test_is_null_expr_prover_evaluate_no_nullable_columns() {
 
     let result = is_null_expr.prover_evaluate(&mut final_round_builder, &alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             for &value in values {

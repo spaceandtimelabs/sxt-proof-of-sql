@@ -1,7 +1,7 @@
 use super::{test_utility::*, DynProofExpr, ProofExpr};
 use crate::base::{
     commitment::InnerProductProof,
-    database::{table_utility::*, Column, TableRef, TableTestAccessor, TestAccessor},
+    database::{table_utility::*, Column, NullableColumn, TableRef, TableTestAccessor, TestAccessor},
 };
 use bumpalo::Bump;
 
@@ -42,9 +42,9 @@ fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluat
         not(equal(column(&t, "c", &accessor), const_int128(3))),
     );
     let res = bool_expr.result_evaluate(&alloc, &data);
-    let expected_res = Column::Boolean(&[
+    let expected_res = NullableColumn::new(Column::Boolean(&[
         false, true, false, true, false, true, false, true, false, true, false, true, false, true,
         false, false, false,
-    ]);
+    ]));
     assert_eq!(res, expected_res);
 }

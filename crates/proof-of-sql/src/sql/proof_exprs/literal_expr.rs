@@ -1,7 +1,7 @@
 use super::ProofExpr;
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{Column, ColumnRef, ColumnType, LiteralValue, NullableColumn, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -45,14 +45,14 @@ impl ProofExpr for LiteralExpr {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
+    ) -> NullableColumn<'a, S> {
         log::log_memory_usage("Start");
 
         let res = Column::from_literal_with_length(&self.value, table.num_rows(), alloc);
 
         log::log_memory_usage("End");
 
-        res
+        NullableColumn::new(res)
     }
 
     #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]
@@ -61,7 +61,7 @@ impl ProofExpr for LiteralExpr {
         _builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
+    ) -> NullableColumn<'a, S> {
         log::log_memory_usage("Start");
 
         let table_length = table.num_rows();
@@ -69,7 +69,7 @@ impl ProofExpr for LiteralExpr {
 
         log::log_memory_usage("End");
 
-        res
+        NullableColumn::new(res)
     }
 
     fn verifier_evaluate<S: Scalar>(
@@ -77,8 +77,8 @@ impl ProofExpr for LiteralExpr {
         _builder: &mut impl VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
-    ) -> Result<S, ProofError> {
-        Ok(chi_eval * self.value.to_scalar())
+    ) -> Result<(S, Option<S>), ProofError> {
+        Ok((chi_eval * self.value.to_scalar(), None))
     }
 
     fn get_column_references(&self, _columns: &mut IndexSet<ColumnRef>) {}

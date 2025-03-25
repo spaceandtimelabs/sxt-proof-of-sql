@@ -71,7 +71,7 @@ where
             .get(&self.table.table_ref)
             .expect("Chi eval not found");
         // 1. selection
-        let selection_eval =
+        let (selection_eval, _) =
             self.where_clause
                 .verifier_evaluate(builder, accessor, input_chi_eval)?;
         // 2. columns
@@ -82,6 +82,7 @@ where
                     aliased_expr
                         .expr
                         .verifier_evaluate(builder, accessor, input_chi_eval)
+                        .map(|(val, _)| val)
                 })
                 .collect::<Result<Vec<_>, _>>()?,
         );
@@ -154,8 +155,8 @@ impl ProverEvaluate for FilterExec {
             .get(&self.table.table_ref)
             .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, table);
-        let selection = selection_column
+        let selection_column = self.where_clause.result_evaluate(alloc, table);
+        let selection = selection_column.values
             .as_boolean()
             .expect("selection is not boolean");
         let output_length = selection.iter().filter(|b| **b).count();
@@ -164,7 +165,7 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table))
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table).values)
             .collect();
 
         // Compute filtered_columns and indexes
@@ -198,9 +199,9 @@ impl ProverEvaluate for FilterExec {
             .get(&self.table.table_ref)
             .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, S> =
+        let selection_column =
             self.where_clause.prover_evaluate(builder, alloc, table);
-        let selection = selection_column
+        let selection = selection_column.values
             .as_boolean()
             .expect("selection is not boolean");
         let output_length = selection.iter().filter(|b| **b).count();
@@ -209,7 +210,7 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, table))
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, table).values)
             .collect();
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);

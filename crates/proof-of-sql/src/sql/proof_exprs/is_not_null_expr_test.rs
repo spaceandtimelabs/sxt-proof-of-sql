@@ -45,7 +45,7 @@ fn test_is_not_null_expr() {
     // Evaluate the expression
     let result = is_not_null_expr.result_evaluate(&alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             // presence[i] = true means NOT NULL, so IS NOT NULL should return true for those values
@@ -108,7 +108,7 @@ fn test_is_not_null_expr_with_complex_null_logic() {
     let is_not_null_a = IsNotNullExpr::new(Box::new(col_a_expr.clone()));
     let result_a = is_not_null_a.result_evaluate(&alloc, &table);
 
-    match result_a {
+    match result_a.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 8);
             // IS NOT NULL is true for non-NULL values, false for NULL values
@@ -133,7 +133,7 @@ fn test_is_not_null_expr_with_complex_null_logic() {
     let both_not_null = DynProofExpr::try_new_and(a_is_not_null, b_is_not_null).unwrap();
     let result_both_not_null = both_not_null.result_evaluate(&alloc, &table);
 
-    match result_both_not_null {
+    match result_both_not_null.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 8);
             // AND is true only when both operands are true
@@ -158,7 +158,7 @@ fn test_is_not_null_expr_with_complex_null_logic() {
     let either_not_null = DynProofExpr::try_new_or(a_is_not_null, c_is_not_null).unwrap();
     let result_either_not_null = either_not_null.result_evaluate(&alloc, &table);
 
-    match result_either_not_null {
+    match result_either_not_null.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 8);
             // OR is true when either operand is true
@@ -199,7 +199,7 @@ fn test_is_not_null_expr_no_nullable_columns() {
 
     let result = is_not_null_expr.result_evaluate(&alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             for &value in values {
@@ -235,7 +235,7 @@ fn test_is_not_null_expr_prover_evaluate_no_nullable_columns() {
 
     let result = is_not_null_expr.prover_evaluate(&mut final_round_builder, &alloc, &table);
 
-    match result {
+    match result.values {
         Column::Boolean(values) => {
             assert_eq!(values.len(), 5);
             for &value in values {
@@ -359,7 +359,7 @@ fn test_is_not_null_expr_verifier_evaluate() {
     let result = is_not_null_expr.verifier_evaluate(&mut mock_builder, &accessor, chi_eval);
     match &result {
         Ok(value) => {
-            assert_eq!(*value, TestScalar::from(1));
+            assert_eq!((*value).0, TestScalar::from(1));
             assert!(mock_builder.produced_sumcheck);
         }
         Err(err) => {

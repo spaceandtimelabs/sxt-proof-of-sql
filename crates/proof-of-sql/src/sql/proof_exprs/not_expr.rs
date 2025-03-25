@@ -1,7 +1,7 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, Table},
+        database::{Column, ColumnRef, ColumnType, NullableColumn, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -36,16 +36,16 @@ impl ProofExpr for NotExpr {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
+    ) -> NullableColumn<'a, S> {
         log::log_memory_usage("Start");
 
-        let expr_column: Column<'a, S> = self.expr.result_evaluate(alloc, table);
+        let expr_column = self.expr.result_evaluate(alloc, table).values;
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         let res = Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]));
 
         log::log_memory_usage("End");
 
-        res
+        NullableColumn::new(res)
     }
 
     #[tracing::instrument(name = "NotExpr::prover_evaluate", level = "debug", skip_all)]
@@ -54,16 +54,16 @@ impl ProofExpr for NotExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
-    ) -> Column<'a, S> {
+    ) -> NullableColumn<'a, S> {
         log::log_memory_usage("Start");
 
-        let expr_column: Column<'a, S> = self.expr.prover_evaluate(builder, alloc, table);
+        let expr_column = self.expr.prover_evaluate(builder, alloc, table).values;
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         let res = Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]));
 
         log::log_memory_usage("End");
 
-        res
+        NullableColumn::new(res)
     }
 
     fn verifier_evaluate<S: Scalar>(
@@ -71,9 +71,9 @@ impl ProofExpr for NotExpr {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
-    ) -> Result<S, ProofError> {
-        let eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
-        Ok(chi_eval - eval)
+    ) -> Result<(S, Option<S>), ProofError> {
+        let (eval, _) = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
+        Ok((chi_eval - eval, None))
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
