@@ -212,6 +212,7 @@ fn we_can_verify_a_simple_proof() {
     let verification_builder = run_verify_for_each_row(
         4,
         &first_round_builder,
+        Vec::new(),
         &final_round_builder,
         3,
         |verification_builder, chi_eval, evaluation_point| {
@@ -260,9 +261,11 @@ fn we_can_reject_a_simple_tampered_proof() {
         .collect();
     let mut verification_builder = MockVerificationBuilder::new(
         Vec::new(),
+        Vec::new(),
         3,
         Vec::new(),
         final_round_mles,
+        Vec::new(),
         Vec::new(),
         Vec::new(),
     );

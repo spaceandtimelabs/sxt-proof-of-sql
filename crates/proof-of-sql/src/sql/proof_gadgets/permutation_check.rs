@@ -165,6 +165,7 @@ mod tests {
         let verification_builder = run_verify_for_each_row(
             3,
             &first_round_builder,
+            Vec::new(),
             &final_round_builder,
             3,
             |verification_builder, chi_eval, evaluation_point| {

@@ -173,6 +173,7 @@ mod tests {
         let mock_verification_builder = run_verify_for_each_row(
             lhs.len(),
             &first_round_builder,
+            Vec::new(),
             &final_round_builder,
             4,
             |verification_builder, chi_eval, evaluation_point| {
