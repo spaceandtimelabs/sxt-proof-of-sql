@@ -137,7 +137,10 @@ mod tests {
             scalar::test_scalar::TestScalar,
         },
         sql::{
-            proof::{mock_verification_builder::run_verify_for_each_row, FinalRoundBuilder},
+            proof::{
+                mock_verification_builder::run_verify_for_each_row, FinalRoundBuilder,
+                FirstRoundBuilder,
+            },
             proof_exprs::{ColumnExpr, DynProofExpr},
         },
     };
@@ -159,6 +162,7 @@ mod tests {
         );
         let lhs = &[i128::MAX, i128::MIN, 2];
         let rhs = &[3i128, 3, -4];
+        let first_round_builder: FirstRoundBuilder<'_, _> = FirstRoundBuilder::new(lhs.len());
         let mut final_round_builder = FinalRoundBuilder::new(lhs.len(), VecDeque::new());
         let table = Table::try_new(indexmap! {
             lhs_ident => Column::Int128::<TestScalar>(lhs),
@@ -168,6 +172,7 @@ mod tests {
         divide_and_modulo_expr.prover_evaluate(&mut final_round_builder, &alloc, &table);
         let mock_verification_builder = run_verify_for_each_row(
             lhs.len(),
+            &first_round_builder,
             &final_round_builder,
             4,
             |verification_builder, chi_eval, evaluation_point| {
