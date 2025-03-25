@@ -18,7 +18,8 @@ use proof_of_sql::{
     sql::proof::VerifiableQueryResult,
 };
 use proof_of_sql_planner::{
-    column_fields_to_schema, sql_to_proof_plans, PlannerResult, PoSqlContextProvider,
+    column_fields_to_schema, postprocessing::PostprocessingStep, sql_to_proof_plans,
+    sql_to_proof_plans_with_postprocessing, PlannerResult, PoSqlContextProvider,
 };
 
 /// Get a new `TableTestAccessor` with the provided tables
@@ -73,6 +74,40 @@ fn posql_end_to_end_test<'a, CP: CommitmentEvaluationProof>(
         let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup);
         let res = res.verify(plan, &accessor, &verifier_setup).unwrap().table;
         assert_eq!(res, expected.clone());
+    }
+}
+
+/// # Panics
+/// This function will panic if anything goes wrong
+fn posql_end_to_end_test_with_postprocessing<'a, CP: CommitmentEvaluationProof>(
+    sql: &str,
+    tables: IndexMap<TableRef, Table<'a, CP::Scalar>>,
+    expected_results: &[OwnedTable<CP::Scalar>],
+    prover_setup: CP::ProverPublicSetup<'a>,
+    verifier_setup: CP::VerifierPublicSetup<'_>,
+) {
+    // Get accessor
+    let accessor: TableTestAccessor<'a, CP> = new_test_accessor(&tables, prover_setup);
+    let schemas = get_schemas::<CP>(&tables).unwrap();
+    let context_provider = PoSqlContextProvider::new(tables);
+    let config = ConfigOptions::default();
+    let plan_with_postprocessings =
+        sql_to_proof_plans_with_postprocessing(sql, &context_provider, &schemas, &config).unwrap();
+    for (plan_with_postprocessing, expected) in plan_with_postprocessings
+        .iter()
+        .zip(expected_results.iter())
+    {
+        // Prove and verify the plans
+        let plan = plan_with_postprocessing.plan();
+        let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup);
+        let raw_table = res.verify(plan, &accessor, &verifier_setup).unwrap().table;
+        // Apply postprocessing
+        let transformed_table = plan_with_postprocessing
+            .postprocessing()
+            .map_or(raw_table.clone(), |postproc| {
+                postproc.apply(raw_table).unwrap()
+            });
+        assert_eq!(transformed_table, expected.clone());
     }
 }
 
@@ -269,6 +304,46 @@ fn test_group_by() {
     let verifier_setup = VerifierSetup::from(&public_parameters);
 
     posql_end_to_end_test::<DynamicDoryEvaluationProof>(
+        sql,
+        tables,
+        &expected_results,
+        &prover_setup,
+        &verifier_setup,
+    );
+}
+
+// Test GROUP BY queries with postprocessing
+#[test]
+fn test_group_by_with_postprocessing() {
+    let alloc = Bump::new();
+    let sql = "select human, 2*count(1) as double_cat_count from cats group by human;
+    select human, 2*count(1) from cats group by human;";
+    let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {
+        TableRef::from_names(None, "cats") => table(
+            vec![
+                borrowed_int("id", [1, 2, 3, 4, 5], &alloc),
+                borrowed_varchar("name", ["Chloe", "Margaret", "Katy", "Lucy", "Prudence"], &alloc),
+                borrowed_varchar("human", ["Cassia", "Cassia", "Cassia", "Gretta", "Gretta"], &alloc),
+                borrowed_decimal75("weight", 3, 1, [145, 75, 20, 45, 55], &alloc),
+            ]
+        )
+    };
+    let expected_results: Vec<OwnedTable<DoryScalar>> = vec![
+        owned_table([
+            varchar("cats.human", ["Cassia", "Gretta"]),
+            bigint("double_cat_count", [6_i64, 4]),
+        ]),
+        owned_table([
+            varchar("cats.human", ["Cassia", "Gretta"]),
+            bigint("Int64(2) * COUNT(Int64(1))", [6_i64, 4]),
+        ]),
+    ];
+    // Create public parameters for DynamicDoryEvaluationProof
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+
+    posql_end_to_end_test_with_postprocessing::<DynamicDoryEvaluationProof>(
         sql,
         tables,
         &expected_results,

@@ -83,6 +83,12 @@ pub enum PlannerError {
     /// Returned when catalog is provided since it is not supported
     #[snafu(display("Catalog is not supported"))]
     CatalogNotSupported,
+    /// Returned when error occurs in postprocessing
+    #[snafu(transparent)]
+    PostprocessingError {
+        /// Underlying postprocessing error
+        source: super::postprocessing::PostprocessingError,
+    },
 }
 
 /// Proof of SQL Planner result
