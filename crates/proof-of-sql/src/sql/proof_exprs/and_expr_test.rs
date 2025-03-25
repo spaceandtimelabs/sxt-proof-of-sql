@@ -13,7 +13,7 @@ use crate::{
         proof::{
             exercise_verification,
             mock_verification_builder::{run_verify_for_each_row, MockVerificationBuilder},
-            FinalRoundBuilder, VerifiableQueryResult,
+            FinalRoundBuilder, FirstRoundBuilder, VerifiableQueryResult,
         },
         proof_exprs::{test_utility::*, AndExpr, ColumnExpr, DynProofExpr, ProofExpr},
         proof_plans::test_utility::*,
@@ -203,6 +203,7 @@ fn we_can_verify_a_simple_proof() {
         Box::new(DynProofExpr::Column(ColumnExpr::new(b.clone()))),
     );
 
+    let first_round_builder: FirstRoundBuilder<'_, _> = FirstRoundBuilder::new(4);
     let mut final_round_builder: FinalRoundBuilder<'_, TestScalar> =
         FinalRoundBuilder::new(4, VecDeque::new());
 
@@ -210,6 +211,7 @@ fn we_can_verify_a_simple_proof() {
 
     let verification_builder = run_verify_for_each_row(
         4,
+        &first_round_builder,
         &final_round_builder,
         3,
         |verification_builder, chi_eval, evaluation_point| {
@@ -256,7 +258,14 @@ fn we_can_reject_a_simple_tampered_proof() {
         .clone()
         .map(|_| zero_vec.clone())
         .collect();
-    let mut verification_builder = MockVerificationBuilder::new(Vec::new(), 3, final_round_mles);
+    let mut verification_builder = MockVerificationBuilder::new(
+        Vec::new(),
+        3,
+        Vec::new(),
+        final_round_mles,
+        Vec::new(),
+        Vec::new(),
+    );
 
     for evaluation_point in evaluation_points {
         let chi_eval = (&[1, 1, 1, 1]).inner_product(evaluation_point);

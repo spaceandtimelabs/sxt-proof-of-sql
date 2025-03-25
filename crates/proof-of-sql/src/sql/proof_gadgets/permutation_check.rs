@@ -137,7 +137,10 @@ mod tests {
             polynomial::MultilinearExtension,
             scalar::{test_scalar::TestScalar, Scalar},
         },
-        sql::proof::{mock_verification_builder::run_verify_for_each_row, FinalRoundBuilder},
+        sql::proof::{
+            mock_verification_builder::run_verify_for_each_row, FinalRoundBuilder,
+            FirstRoundBuilder,
+        },
     };
     use bumpalo::Bump;
     use std::collections::VecDeque;
@@ -147,6 +150,7 @@ mod tests {
         let alloc = Bump::new();
         let column = borrowed_bigint::<TestScalar>("a", [1, 2, 3], &alloc).1;
         let candidate_table = borrowed_bigint::<TestScalar>("c", [2, 3, 1], &alloc).1;
+        let first_round_builder: FirstRoundBuilder<'_, _> = FirstRoundBuilder::new(3);
         let mut final_round_builder: FinalRoundBuilder<TestScalar> =
             FinalRoundBuilder::new(3, VecDeque::new());
         final_round_evaluate_permutation_check(
@@ -160,6 +164,7 @@ mod tests {
         );
         let verification_builder = run_verify_for_each_row(
             3,
+            &first_round_builder,
             &final_round_builder,
             3,
             |verification_builder, chi_eval, evaluation_point| {
