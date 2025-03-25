@@ -64,6 +64,12 @@ impl<S: Scalar> VerificationBuilder<S> for MockVerificationBuilder<S> {
         Ok(res)
     }
 
+    fn try_consume_byte_distribution(
+        &mut self,
+    ) -> Result<crate::base::byte::ByteDistribution, ProofSizeMismatch> {
+        unimplemented!("No tests currently use this function")
+    }
+
     fn try_consume_rho_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
         unimplemented!("No tests currently use this function")
     }
@@ -229,6 +235,16 @@ mod tests {
         let mut verification_builder: MockVerificationBuilder<TestScalar> =
             MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
         verification_builder.try_consume_rho_evaluation().unwrap();
+    }
+
+    #[should_panic(expected = "No tests currently use this function")]
+    #[test]
+    fn we_can_get_unimplemented_error_for_try_consume_byte_distribution() {
+        let mut verification_builder: MockVerificationBuilder<TestScalar> =
+            MockVerificationBuilder::new(Vec::new(), 2, Vec::new());
+        verification_builder
+            .try_consume_byte_distribution()
+            .unwrap();
     }
 
     #[should_panic(expected = "No tests currently use this function")]

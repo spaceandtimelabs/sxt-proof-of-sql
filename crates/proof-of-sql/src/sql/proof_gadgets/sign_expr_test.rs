@@ -60,6 +60,7 @@ fn we_can_verify_a_constant_decomposition() {
         sumcheck_evaluations,
         &dists,
         &[],
+        &[],
         VecDeque::new(),
         Vec::new(),
         Vec::new(),
@@ -93,6 +94,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     let mut builder = VerificationBuilderImpl::new(
         sumcheck_evaluations,
         &dists,
+        &[],
         &[],
         VecDeque::new(),
         Vec::new(),

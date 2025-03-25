@@ -2,6 +2,7 @@ use super::{FinalRoundBuilder, ProofPlan, ProverEvaluate, QueryProof, Verificati
 use crate::{
     base::{
         bit::BitDistribution,
+        byte::ByteDistribution,
         commitment::InnerProductProof,
         database::{
             owned_table_utility::{bigint, owned_table},
@@ -11,7 +12,7 @@ use crate::{
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
-        scalar::Scalar,
+        scalar::{test_scalar::TestScalar, Scalar},
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::proof::{FirstRoundBuilder, QueryData, SumcheckSubpolynomialType},
@@ -30,6 +31,7 @@ struct TrivialTestProofPlan {
     evaluation: i64,
     produce_length: bool,
     bit_distribution: Option<BitDistribution>,
+    byte_distribution: Option<ByteDistribution>,
 }
 impl Default for TrivialTestProofPlan {
     fn default() -> Self {
@@ -43,6 +45,7 @@ impl Default for TrivialTestProofPlan {
                 leading_bit_mask: [0; 4],
                 vary_mask: [0; 4],
             }),
+            byte_distribution: Some(ByteDistribution::new::<TestScalar, TestScalar>(&[])),
         }
     }
 }

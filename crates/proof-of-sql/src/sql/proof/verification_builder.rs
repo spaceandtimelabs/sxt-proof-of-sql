@@ -1,5 +1,7 @@
 use super::{SumcheckMleEvaluations, SumcheckSubpolynomialType};
-use crate::base::{bit::BitDistribution, proof::ProofSizeMismatch, scalar::Scalar};
+use crate::base::{
+    bit::BitDistribution, byte::ByteDistribution, proof::ProofSizeMismatch, scalar::Scalar,
+};
 use alloc::{collections::VecDeque, vec::Vec};
 use core::iter;
 
@@ -25,6 +27,10 @@ pub trait VerificationBuilder<S: Scalar> {
     /// Consume a bit distribution that describes which bits are constant
     /// and which bits varying in a column of data
     fn try_consume_bit_distribution(&mut self) -> Result<BitDistribution, ProofSizeMismatch>;
+
+    /// Consume a byte distribution that describes which bytes are constant
+    /// and which bytes varying in a column of data
+    fn try_consume_byte_distribution(&mut self) -> Result<ByteDistribution, ProofSizeMismatch>;
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
     fn try_produce_sumcheck_subpolynomial_evaluation(
@@ -55,6 +61,7 @@ pub struct VerificationBuilderImpl<'a, S: Scalar> {
     subpolynomial_multipliers: &'a [S],
     sumcheck_evaluation: S,
     bit_distributions: &'a [BitDistribution],
+    byte_distributions: &'a [ByteDistribution],
     consumed_chi_evaluations: usize,
     consumed_rho_evaluations: usize,
     consumed_first_round_pcs_proof_mles: usize,
@@ -74,9 +81,11 @@ pub struct VerificationBuilderImpl<'a, S: Scalar> {
 }
 
 impl<'a, S: Scalar> VerificationBuilderImpl<'a, S> {
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
         mle_evaluations: SumcheckMleEvaluations<'a, S>,
         bit_distributions: &'a [BitDistribution],
+        byte_distributions: &'a [ByteDistribution],
         subpolynomial_multipliers: &'a [S],
         post_result_challenges: VecDeque<S>,
         chi_evaluation_length_queue: Vec<usize>,
@@ -86,6 +95,7 @@ impl<'a, S: Scalar> VerificationBuilderImpl<'a, S> {
         Self {
             mle_evaluations,
             bit_distributions,
+            byte_distributions,
             subpolynomial_multipliers,
             sumcheck_evaluation: S::zero(),
             consumed_chi_evaluations: 0,
@@ -189,6 +199,16 @@ impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
             .cloned()
             .ok_or(ProofSizeMismatch::TooFewBitDistributions)?;
         self.bit_distributions = &self.bit_distributions[1..];
+        Ok(res)
+    }
+
+    fn try_consume_byte_distribution(&mut self) -> Result<ByteDistribution, ProofSizeMismatch> {
+        let res = self
+            .byte_distributions
+            .first()
+            .cloned()
+            .ok_or(ProofSizeMismatch::TooFewByteDistributions)?;
+        self.byte_distributions = &self.byte_distributions[1..];
         Ok(res)
     }
 

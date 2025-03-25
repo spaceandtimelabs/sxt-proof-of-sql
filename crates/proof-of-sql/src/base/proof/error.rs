@@ -40,6 +40,9 @@ pub enum ProofSizeMismatch {
     /// This error occurs when the proof has too few bit distributions.
     #[snafu(display("Proof has too few bit distributions"))]
     TooFewBitDistributions,
+    /// This error occurs when the proof has too few byte distributions.
+    #[snafu(display("Proof has too few byte distributions"))]
+    TooFewByteDistributions,
     /// This error occurs when the proof has too few one lengths.
     #[snafu(display("Proof has too few one lengths"))]
     TooFewChiLengths,

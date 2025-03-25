@@ -1,5 +1,6 @@
 use crate::{
     base::{
+        byte::ByteDistribution,
         commitment::{Commitment, CommittableColumn, VecCommitmentExt},
         polynomial::MultilinearExtension,
         scalar::Scalar,
@@ -11,6 +12,7 @@ use alloc::{boxed::Box, vec::Vec};
 pub struct FirstRoundBuilder<'a, S> {
     commitment_descriptor: Vec<CommittableColumn<'a>>,
     pcs_proof_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
+    byte_distributions: Vec<ByteDistribution>,
     /// The number of challenges used in the proof.
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
@@ -29,6 +31,7 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
         Self {
             commitment_descriptor: Vec::new(),
             pcs_proof_mles: Vec::new(),
+            byte_distributions: Vec::new(),
             num_post_result_challenges: 0,
             chi_evaluation_lengths: Vec::new(),
             rho_evaluation_lengths: Vec::new(),
@@ -50,6 +53,10 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
 
     pub fn pcs_proof_mles(&self) -> &[Box<dyn MultilinearExtension<S> + 'a>] {
         &self.pcs_proof_mles
+    }
+
+    pub fn byte_distributions(&self) -> &[ByteDistribution] {
+        &self.byte_distributions
     }
 
     /// Get the chi evaluation lengths used in the proof.
@@ -83,6 +90,11 @@ impl<'a, S: Scalar> FirstRoundBuilder<'a, S> {
     ) {
         self.commitment_descriptor.push(data.into());
         self.pcs_proof_mles.push(Box::new(data));
+    }
+
+    /// Produce a byte distribution that describes which bytes are constant and which bytes vary in a column of data
+    pub fn produce_byte_distribution(&mut self, dist: ByteDistribution) {
+        self.byte_distributions.push(dist);
     }
 
     /// Compute commitments of all the interemdiate MLEs used in sumcheck
