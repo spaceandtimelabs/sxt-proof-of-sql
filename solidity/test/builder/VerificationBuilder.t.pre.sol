@@ -5,7 +5,7 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
 import {Errors} from "../../src/base/Errors.sol";
-import {VerificationBuilder} from "../../src/proof/VerificationBuilder.pre.sol";
+import {VerificationBuilder} from "../../src/builder/VerificationBuilder.pre.sol";
 import {F, FF} from "../base/FieldUtil.sol";
 
 contract VerificationBuilderTest is Test {
@@ -34,7 +34,7 @@ contract VerificationBuilderTest is Test {
         uint256 endFreePtr;
         uint256 builderPtr;
         assembly {
-            /// IMPORT-YUL ../../src/proof/VerificationBuilder.pre.sol
+            /// IMPORT-YUL ../../src/builder/VerificationBuilder.pre.sol
             function builder_new() -> builder {
                 revert(0, 0)
             }
