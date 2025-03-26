@@ -108,6 +108,11 @@ name = "commitment-utility"
 path = "utils/commitment-utility/main.rs"
 required-features = [ "std", "blitzar", "utils" ]
 
+[[bin]]
+name = "jaeger_benches"
+path = "benches/jaeger/bin/jaeger_benches.rs"
+required-features = [ "bench" ]
+
 [[example]]
 name = "hello_world"
 required-features = ["test"]
