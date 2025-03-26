@@ -18,6 +18,12 @@ pub trait VerificationBuilder<S: Scalar> {
     /// Consume the evaluation of a final round MLE used in sumcheck and provide the commitment of the MLE
     fn try_consume_final_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch>;
 
+    /// Consume multiple first round MLE evaluations
+    fn try_consume_first_round_mle_evaluations(
+        &mut self,
+        count: usize,
+    ) -> Result<Vec<S>, ProofSizeMismatch>;
+
     /// Consume multiple final round MLE evaluations
     fn try_consume_final_round_mle_evaluations(
         &mut self,
@@ -181,6 +187,15 @@ impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
             .get(index)
             .copied()
             .ok_or(ProofSizeMismatch::TooFewMLEEvaluations)
+    }
+
+    fn try_consume_first_round_mle_evaluations(
+        &mut self,
+        count: usize,
+    ) -> Result<Vec<S>, ProofSizeMismatch> {
+        iter::repeat_with(|| self.try_consume_first_round_mle_evaluation())
+            .take(count)
+            .collect()
     }
 
     fn try_consume_final_round_mle_evaluations(

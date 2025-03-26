@@ -31,7 +31,7 @@ use crate::{
         FinalRoundBuilder, FirstRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
-use alloc::{boxed::Box, vec, vec::Vec};
+use alloc::{boxed::Box, vec};
 use bnum::types::U256;
 use bumpalo::Bump;
 use core::ops::Shl;
@@ -63,8 +63,6 @@ pub(crate) fn first_round_evaluate_range_check<'a, S>(
     }
 }
 
-/// Prove that a word-wise decomposition of a collection of scalars
-/// are all within the range 0 to 2^248.
 #[tracing::instrument(name = "range check final round evaluate", level = "debug", skip_all)]
 pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
@@ -178,50 +176,33 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
     let alpha = builder.try_consume_post_result_challenge()?;
     let chi_ones_256_eval = builder.try_consume_chi_evaluation()?;
 
-    // We will accumulate ∑(wᵢ * 256ⁱ) in `sum`.
-    // Additionally, we'll collect all (wᵢ + α)⁻¹ evaluations in `w_plus_alpha_inv_evals`
-    // to use later for the ZeroSum argument.
-    let mut sum = S::ZERO;
-    let mut w_plus_alpha_inv_evals = Vec::with_capacity(31);
-
     let word_byte_distribution = builder.try_consume_byte_distribution()?;
 
-    // Process 31 columns (one per byte in a 248-bit decomposition).
-    // Each iteration handles:
-    //  - Consuming MLE evaluations for wᵢ and (wᵢ + α)⁻¹
-    //  - Verifying that (wᵢ + α)⁻¹ * (wᵢ + α) - 1 = 0
-    //  - Accumulating wᵢ * 256ⁱ into `sum`
-    for i in 0..word_byte_distribution.varying_byte_count() {
-        // Consume the next MLE evaluations: one for wᵢ, one for (wᵢ + α)⁻¹
-        let w_eval = builder.try_consume_first_round_mle_evaluation()?;
-        let words_inv = builder.try_consume_final_round_mle_evaluation()?;
+    let words = builder.try_consume_first_round_mle_evaluations(
+        word_byte_distribution.varying_byte_count().into(),
+    )?;
+    let word_inverses = builder.try_consume_final_round_mle_evaluations(
+        word_byte_distribution.varying_byte_count().into(),
+    )?;
 
-        // Compute word_eval = (wᵢ + α) * (wᵢ + α)⁻¹
-        // This is used in the subpolynomial check below.
-        let word_eval = words_inv * (w_eval + alpha);
-
-        // Compute 256ⁱ via a small loop (instead of a fold or pow)
-        let mut power = S::from(1);
-        for _ in 0..i {
-            power *= S::from(256);
-        }
-
+    for (word, word_inverse) in words.iter().copied().zip(word_inverses.iter().copied()) {
         // Argue that ( (wᵢ + α)⁻¹ * (wᵢ + α) ) - 1 = 0
         builder.try_produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
-            word_eval - chi_n_eval,
+            word_inverse * (word + alpha) - chi_n_eval,
             2,
         )?;
-
-        // Add wᵢ * 256ⁱ to our running sum to ensure the entire column is in range
-        sum += w_eval * power;
-
-        // Collect the inverse factor for the final ZeroSum argument
-        w_plus_alpha_inv_evals.push(words_inv);
     }
-    sum += (S::from_wrapping(word_byte_distribution.constant_mask())
-        - S::from_wrapping(U256::ONE.shl(255)))
-        * chi_n_eval;
+
+    let sum = words
+        .into_iter()
+        .zip(word_byte_distribution.varying_byte_indices())
+        .fold(
+            (S::from_wrapping(word_byte_distribution.constant_mask())
+                - S::from_wrapping(U256::ONE.shl(255)))
+                * chi_n_eval,
+            |acc, (word, i)| acc + word * S::from_wrapping(U256::ONE.shl(i)),
+        );
 
     // Ensure the sum of the scalars (interpreted in base 256) matches
     // the claimed input_column_eval. If not, the column is out of range.
@@ -240,10 +221,9 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
     let word_vals_plus_alpha_inv = builder.try_consume_final_round_mle_evaluation()?;
 
     // Argue that (word_vals + α)⁻¹ * (word_vals + α) - 1 = 0
-    let word_value_constraint = word_vals_plus_alpha_inv * (word_vals_eval + alpha);
     builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::Identity,
-        word_value_constraint - chi_ones_256_eval,
+        word_vals_plus_alpha_inv * (word_vals_eval + alpha) - chi_ones_256_eval,
         2,
     )?;
 
@@ -251,19 +231,15 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
     let count_eval = builder.try_consume_final_round_mle_evaluation()?;
 
     // Sum over all (wᵢ + α)⁻¹ evaluations to get row_sum_eval
-    let mut row_sum_eval = S::ZERO;
-    for inv_eval in &w_plus_alpha_inv_evals {
-        row_sum_eval += *inv_eval;
-    }
-
-    // Compute count_eval * (word_vals + α)⁻¹
-    let count_value_product_eval = count_eval * word_vals_plus_alpha_inv;
+    let row_sum_eval = word_inverses
+        .into_iter()
+        .fold(S::ZERO, |acc, inv| acc + inv);
 
     // Argue that row_sum_eval - (count_eval * (word_vals + α)⁻¹) = 0
     // This ensures consistency of counts vs. actual row sums.
     builder.try_produce_sumcheck_subpolynomial_evaluation(
         SumcheckSubpolynomialType::ZeroSum,
-        row_sum_eval - count_value_product_eval,
+        row_sum_eval - count_eval * word_vals_plus_alpha_inv,
         2,
     )?;
 
