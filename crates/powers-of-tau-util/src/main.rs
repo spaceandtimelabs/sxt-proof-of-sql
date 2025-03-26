@@ -55,7 +55,9 @@ fn parse_args(args: &[String]) -> Result<(&str, &str, usize), String> {
 fn load_setup_from_file(ptau_path: &str, n: usize) -> CommitmentKey<E> {
     let file = OpenOptions::new().read(true).open(ptau_path).unwrap();
     let mut reader = BufReader::new(file);
-    CommitmentEngine::<E>::load_setup(&mut reader, n).unwrap()
+    // Use a static label for the setup
+    const SETUP_LABEL: &[u8] = b"powers-of-tau-setup";
+    CommitmentEngine::<E>::load_setup(&mut reader, SETUP_LABEL, n).unwrap()
 }
 
 /// Write the commitment key to a binary file.
