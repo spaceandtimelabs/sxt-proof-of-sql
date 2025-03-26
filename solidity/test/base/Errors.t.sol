@@ -103,4 +103,74 @@ contract ErrorsTest is Test {
         vm.expectRevert(Errors.UnsupportedProofExprVariant.selector);
         Errors.__err(ERR_UNSUPPORTED_PROOF_EXPR_VARIANT);
     }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorPCSBatchLengthMismatch() public {
+        assert(Errors.PCSBatchLengthMismatch.selector == bytes4(ERR_PCS_BATCH_LENGTH_MISMATCH));
+        vm.expectRevert(Errors.PCSBatchLengthMismatch.selector);
+        Errors.__err(ERR_PCS_BATCH_LENGTH_MISMATCH);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorResultColumnCountMismatch() public {
+        assert(Errors.ResultColumnCountMismatch.selector == bytes4(ERR_RESULT_COLUMN_COUNT_MISMATCH));
+        vm.expectRevert(Errors.ResultColumnCountMismatch.selector);
+        Errors.__err(ERR_RESULT_COLUMN_COUNT_MISMATCH);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorInvalidResultColumnName() public {
+        assert(Errors.InvalidResultColumnName.selector == bytes4(ERR_INVALID_RESULT_COLUMN_NAME));
+        vm.expectRevert(Errors.InvalidResultColumnName.selector);
+        Errors.__err(ERR_INVALID_RESULT_COLUMN_NAME);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorInconsistentResultColumnLengths() public {
+        assert(Errors.InconsistentResultColumnLengths.selector == bytes4(ERR_INCONSISTENT_RESULT_COLUMN_LENGTHS));
+        vm.expectRevert(Errors.InconsistentResultColumnLengths.selector);
+        Errors.__err(ERR_INCONSISTENT_RESULT_COLUMN_LENGTHS);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorIncorrectResult() public {
+        assert(Errors.IncorrectResult.selector == bytes4(ERR_INCORRECT_RESULT));
+        vm.expectRevert(Errors.IncorrectResult.selector);
+        Errors.__err(ERR_INCORRECT_RESULT);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorHyperKZGProofSizeMismatch() public {
+        assert(Errors.HyperKZGProofSizeMismatch.selector == bytes4(ERR_HYPER_KZG_PROOF_SIZE_MISMATCH));
+        vm.expectRevert(Errors.HyperKZGProofSizeMismatch.selector);
+        Errors.__err(ERR_HYPER_KZG_PROOF_SIZE_MISMATCH);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorAggregateEvaluationMismatch() public {
+        assert(Errors.AggregateEvaluationMismatch.selector == bytes4(ERR_AGGREGATE_EVALUATION_MISMATCH));
+        vm.expectRevert(Errors.AggregateEvaluationMismatch.selector);
+        Errors.__err(ERR_AGGREGATE_EVALUATION_MISMATCH);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorUnsupportedProof() public {
+        assert(Errors.UnsupportedProof.selector == bytes4(ERR_UNSUPPORTED_PROOF));
+        vm.expectRevert(Errors.UnsupportedProof.selector);
+        Errors.__err(ERR_UNSUPPORTED_PROOF);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorUnsupportedProofPlanVariant() public {
+        assert(Errors.UnsupportedProofPlanVariant.selector == bytes4(ERR_UNSUPPORTED_PROOF_PLAN_VARIANT));
+        vm.expectRevert(Errors.UnsupportedProofPlanVariant.selector);
+        Errors.__err(ERR_UNSUPPORTED_PROOF_PLAN_VARIANT);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorUnsupportedDataTypeVariant() public {
+        assert(Errors.UnsupportedDataTypeVariant.selector == bytes4(ERR_UNSUPPORTED_DATA_TYPE_VARIANT));
+        vm.expectRevert(Errors.UnsupportedDataTypeVariant.selector);
+        Errors.__err(ERR_UNSUPPORTED_DATA_TYPE_VARIANT);
+    }
 }
