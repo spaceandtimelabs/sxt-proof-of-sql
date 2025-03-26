@@ -10,7 +10,7 @@ license-file.workspace = true
 ark-bn254 = { version = "0.5.0" }
 ark-serialize = { version = "0.5.0" }
 blitzar = { version = "4.3.0" }
-nova-snark = { git = "https://github.com/microsoft/Nova.git" }
+nova-snark = { git = "https://github.com/microsoft/Nova.git", rev = "4386a91" }
 
 [lints]
 workspace = true
