@@ -1,6 +1,7 @@
 use crate::base::{
     database::{Column, ColumnarValue, LiteralValue},
     scalar::{Scalar, ScalarExt},
+    slice_ops,
 };
 use bumpalo::Bump;
 use core::{cmp::Ordering, ops::Neg};
@@ -491,6 +492,17 @@ pub(crate) fn modulo_columns<'a, S: Scalar>(
     }
 }
 
+pub fn get_logarithmic_derivative<T, S: Scalar + From<T>>(
+    alloc: &Bump,
+    column: Vec<T>,
+    alpha: S,
+) -> &[S] {
+    let inverse_column = alloc.alloc_slice_fill_iter(column.into_iter().map(S::from));
+    slice_ops::add_const::<S, S>(inverse_column, alpha);
+    slice_ops::batch_inversion(inverse_column);
+    inverse_column
+}
+
 #[cfg(test)]
 mod tests {
     use super::{divide_columns, divide_integer_columns};
@@ -499,10 +511,14 @@ mod tests {
             database::Column,
             scalar::{test_scalar::TestScalar, Scalar},
         },
-        sql::proof_exprs::numerical_util::{modulo_columns, modulo_integer_columns},
+        sql::proof_exprs::{
+            get_logarithmic_derivative,
+            numerical_util::{modulo_columns, modulo_integer_columns},
+        },
     };
     use bumpalo::Bump;
     use itertools::{iproduct, Itertools};
+    use num_traits::Inv;
 
     fn verify_tinyint_division(
         lhs: &[i8],
@@ -689,5 +705,19 @@ mod tests {
         let unsigned_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::Uint8(&[1, 1]);
         let small_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::SmallInt(&[2, 2]);
         divide_columns(&unsigned_int_column, &small_int_column, &alloc);
+    }
+
+    #[test]
+    fn we_can_obtain_logarithmic_derivative_from_byte_columns() {
+        let alloc = Bump::new();
+        let scalars: Vec<_> = vec![1u8, 2, 3, 255, 0, 1];
+        let alpha = TestScalar::from(5);
+        let inverse_columns = get_logarithmic_derivative::<_, TestScalar>(&alloc, scalars, alpha);
+
+        // Perform assertion for all columns at once
+        assert_eq!(
+            inverse_columns,
+            [6, 7, 8, 260, 5, 6].map(|i| TestScalar::from(i).inv().unwrap())
+        );
     }
 }

@@ -22,13 +22,18 @@
 //! * Parallelization: Single-threaded execution of these operations is a performance bottleneck
 use crate::{
     base::{
-        byte::{byte_matrix_utils::{compute_varying_byte_matrix, get_word_counts}, ByteDistribution},
+        byte::{
+            byte_matrix_utils::{compute_varying_byte_matrix, get_word_counts},
+            ByteDistribution,
+        },
         proof::ProofSizeMismatch,
         scalar::{Scalar, ScalarExt},
-        slice_ops,
     },
-    sql::proof::{
-        FinalRoundBuilder, FirstRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder,
+    sql::{
+        proof::{
+            FinalRoundBuilder, FirstRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder,
+        },
+        proof_exprs::get_logarithmic_derivative,
     },
 };
 use alloc::{boxed::Box, vec};
@@ -59,7 +64,8 @@ pub(crate) fn first_round_evaluate_range_check<'a, S>(
 
     for byte_column in varying_columns {
         // commit to each varying column
-        builder.produce_intermediate_mle(&*alloc.alloc_slice_fill_iter(byte_column.into_iter()));
+        builder
+            .produce_intermediate_mle(alloc.alloc_slice_fill_iter(byte_column.into_iter()) as &[_]);
     }
 }
 
@@ -86,12 +92,9 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     let varying_columns = compute_varying_byte_matrix(column_data, &word_byte_distribution);
 
     // get the inverses of the varying columns plus alpha and commit to them
-    let varying_inverse_columns = varying_columns.clone().map(|column| {
-        let inverse_column = alloc.alloc_slice_fill_iter(column.iter().map(S::from));
-        slice_ops::add_const::<S, S>(inverse_column, alpha);
-        slice_ops::batch_inversion(inverse_column);
-        &*inverse_column
-    });
+    let varying_inverse_columns = varying_columns
+        .clone()
+        .map(|column| get_logarithmic_derivative(alloc, column, alpha));
     for (column, inverse_column) in varying_columns.clone().zip(varying_inverse_columns.clone()) {
         builder.produce_intermediate_mle(inverse_column);
         // (wordᵢ + α) * (wordᵢ + α)⁻¹ - 1 = 0
@@ -102,33 +105,31 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
                 (
                     S::one(),
                     vec![
-                        Box::new(&*alloc.alloc_slice_fill_iter(column.into_iter())),
+                        Box::new(alloc.alloc_slice_fill_iter(column.into_iter()) as &[_]),
                         Box::new(inverse_column as &[_]),
                     ],
                 ),
-                (-S::one(), vec![Box::new(&*chi_n)]),
+                (-S::one(), vec![Box::new(chi_n as &[_])]),
             ],
         );
     }
 
     // calculate the inverses of all 256 words plus alpha
-    let rho_inverse = alloc.alloc_slice_fill_with(256, |i| S::from(u8::try_from(i).unwrap()));
-    slice_ops::add_const::<S, S>(rho_inverse, alpha);
-    slice_ops::batch_inversion(rho_inverse);
+    let rho_inverse = get_logarithmic_derivative(alloc, (0..256).collect(), alpha);
 
     // commit these inverses
-    builder.produce_intermediate_mle(&*rho_inverse);
+    builder.produce_intermediate_mle(rho_inverse as &[_]);
 
     // (rhoᵢ + α) * (rhoᵢ + α)⁻¹ - 1 = 0
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
-            (alpha, vec![Box::new(&*rho_inverse)]),
+            (alpha, vec![Box::new(rho_inverse as &[_])]),
             (
                 S::one(),
-                vec![Box::new(&*rho_256), Box::new(rho_inverse as &[_])],
+                vec![Box::new(rho_256 as &[_]), Box::new(rho_inverse as &[_])],
             ),
-            (-S::one(), vec![Box::new(&*chi_256)]),
+            (-S::one(), vec![Box::new(chi_256 as &[_])]),
         ],
     );
 
@@ -259,9 +260,9 @@ mod tests {
             FirstRoundBuilder,
         },
     };
+    use alloc::collections::VecDeque;
     use bumpalo::Bump;
     use core::convert::identity;
-    use alloc::collections::VecDeque;
 
     #[test]
     fn we_can_verify_simple_range_check() {
@@ -303,205 +304,4 @@ mod tests {
             .copied()
             .all(identity));
     }
-
-    // #[test]
-    // fn we_can_obtain_logarithmic_derivative_from_small_scalar() {
-    //     let scalars: Vec<S> = [1, 2, 3, 255, 256, 257].iter().map(S::from).collect();
-    //     let mut word_columns: Vec<Vec<u8>> = vec![vec![0; scalars.len()]; 31];
-
-    //     // Manually set the decomposed words column
-    //     word_columns[0] = [1, 2, 3, 255, 0, 1].to_vec();
-    //     word_columns[1] = [0, 0, 0, 0, 1, 1].to_vec();
-
-    //     let alpha = S::from(5);
-
-    //     // Initialize the inverted_word_columns_plus_alpha vector
-    //     let mut inverted_word_columns_plus_alpha: Vec<Vec<S>> =
-    //         vec![vec![S::ZERO; scalars.len()]; 31];
-
-    //     // Convert Vec<Vec<S>> into Vec<&mut [S]> for use in get_logarithmic_derivative
-    //     let mut word_columns_from_log_deriv: Vec<&mut [S]> = inverted_word_columns_plus_alpha
-    //         .iter_mut()
-    //         .map(Vec::as_mut_slice)
-    //         .collect();
-
-    //     let alloc = Bump::new();
-    //     let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
-
-    //     let mut table = [0u8; 256];
-    //     let mut table_plus_alpha = [S::ZERO; 256];
-
-    //     for i in 0u8..=255 {
-    //         table[i as usize] = i;
-    //         table_plus_alpha[i as usize] = S::from(&i);
-    //     }
-
-    //     slice_ops::add_const::<S, S>(&mut table_plus_alpha, alpha);
-    //     slice_ops::batch_inversion(&mut table_plus_alpha);
-
-    //     get_logarithmic_derivative(
-    //         &mut builder,
-    //         &alloc,
-    //         &word_columns.iter().map(|col| &col[..]).collect::<Vec<_>>(),
-    //         alpha,
-    //         &mut word_columns_from_log_deriv,
-    //         &table_plus_alpha,
-    //     );
-
-    //     let expected_data: [[u8; 6]; 31] = [
-    //         [1, 2, 3, 255, 0, 1],
-    //         [0, 0, 0, 0, 1, 1],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0],
-    //     ];
-
-    //     // Invert the expected data and add the verifier challenge
-    //     let expected_columns: Vec<Vec<S>> = expected_data
-    //         .iter()
-    //         .map(|row| {
-    //             row.iter()
-    //                 .map(|&w| (S::from(w) + alpha).inv().unwrap_or(S::ZERO))
-    //                 .collect()
-    //         })
-    //         .collect();
-
-    //     // Perform assertion for all columns at once
-    //     assert_eq!(word_columns_from_log_deriv, expected_columns);
-    // }
-
-    // #[test]
-    // fn we_can_obtain_logarithmic_derivative_from_large_scalar() {
-    //     let scalars: Vec<S> = [u64::MAX, u64::MAX].iter().map(S::from).collect();
-
-    //     let mut word_columns: Vec<Vec<u8>> = vec![vec![0; scalars.len()]; 31];
-
-    //     // Manually set the decomposed words column.
-    //     // Its helpful to think of this transposed, i.e.
-    //     // Scalar 1:  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  00  00  00  ...
-    //     // Scalar 2:  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  00  00  00  ...
-    //     word_columns[0] = [0xFF, 0xFF].to_vec();
-    //     word_columns[1] = [0xFF, 0xFF].to_vec();
-    //     word_columns[2] = [0xFF, 0xFF].to_vec();
-    //     word_columns[3] = [0xFF, 0xFF].to_vec();
-    //     word_columns[4] = [0xFF, 0xFF].to_vec();
-    //     word_columns[5] = [0xFF, 0xFF].to_vec();
-    //     word_columns[6] = [0xFF, 0xFF].to_vec();
-    //     word_columns[7] = [0xFF, 0xFF].to_vec();
-    //     word_columns[8] = [0xFF, 0xFF].to_vec();
-    //     word_columns[9] = [0xFF, 0xFF].to_vec();
-    //     word_columns[10] = [0xFF, 0xFF].to_vec();
-    //     word_columns[11] = [0xFF, 0xFF].to_vec();
-    //     word_columns[12] = [0xFF, 0xFF].to_vec();
-    //     word_columns[13] = [0xFF, 0xFF].to_vec();
-    //     word_columns[14] = [0xFF, 0xFF].to_vec();
-    //     word_columns[15] = [0xFF, 0xFF].to_vec();
-
-    //     // Simulate a verifier challenge, then prepare storage for
-    //     // 1 / (word + alpha)
-    //     let alpha = S::from(5);
-
-    //     let mut inverted_word_columns_plus_alpha: Vec<Vec<S>> =
-    //         vec![vec![S::ZERO; scalars.len()]; 31];
-    //     // Convert Vec<Vec<S>> into Vec<&mut [S]> for use in get_logarithmic_derivative
-    //     let mut word_columns_from_log_deriv: Vec<&mut [S]> = inverted_word_columns_plus_alpha
-    //         .iter_mut()
-    //         .map(Vec::as_mut_slice)
-    //         .collect();
-
-    //     let alloc = Bump::new();
-    //     let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
-
-    //     let mut table = [0u8; 256];
-    //     let mut table_plus_alpha = [S::ZERO; 256];
-
-    //     for i in 0u8..=255 {
-    //         table[i as usize] = i;
-    //         table_plus_alpha[i as usize] = S::from(&i);
-    //     }
-    //     slice_ops::add_const::<S, S>(&mut table_plus_alpha, alpha);
-    //     slice_ops::batch_inversion(&mut table_plus_alpha);
-
-    //     get_logarithmic_derivative(
-    //         &mut builder,
-    //         &alloc,
-    //         &word_columns.iter().map(|col| &col[..]).collect::<Vec<_>>(),
-    //         alpha,
-    //         &mut word_columns_from_log_deriv,
-    //         &table_plus_alpha,
-    //     );
-
-    //     let expected_data: [[u8; 2]; 31] = [
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0xFF, 0xFF],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //         [0, 0],
-    //     ];
-
-    //     // Invert the expected data and add the verifier challenge, producing
-    //     // columns containing 1 / (word + alpha)
-    //     let expected_columns: Vec<Vec<S>> = expected_data
-    //         .iter()
-    //         .map(|row| {
-    //             row.iter()
-    //                 .map(|&w| (S::from(w) + alpha).inv().unwrap_or(S::ZERO))
-    //                 .collect()
-    //         })
-    //         .collect();
-
-    //     assert_eq!(word_columns_from_log_deriv, expected_columns);
-    // }
 }

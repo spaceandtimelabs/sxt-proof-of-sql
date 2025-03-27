@@ -50,7 +50,7 @@ pub(crate) use comparison_util::scale_and_subtract;
 
 mod numerical_util;
 pub(crate) use numerical_util::{
-    add_subtract_columns, multiply_columns, scale_and_add_subtract_eval,
+    add_subtract_columns, get_logarithmic_derivative, multiply_columns, scale_and_add_subtract_eval,
 };
 #[cfg(test)]
 pub(crate) use numerical_util::{divide_columns, modulo_columns};
