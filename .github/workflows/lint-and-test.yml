@@ -248,3 +248,20 @@ jobs:
         with:
           target: solidity
           slither-config: solidity/slither.config.json
+
+  rustevmtests:
+    name: Rust EVM Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.0.0
+      - name: Install dependencies
+        run: solidity/scripts/install_deps.sh
+      - uses: dtolnay/rust-toolchain@1.85.0
+      - name: Run Rust EVM tests
+        run: cargo test --package proof-of-sql --lib --all-features -- evm_tests --ignored --test-threads=1
+

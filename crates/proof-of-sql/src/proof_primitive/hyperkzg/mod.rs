@@ -35,3 +35,6 @@ pub use commitment_evaluation_proof::HyperKZGCommitmentEvaluationProof;
 
 #[cfg(feature = "hyperkzg_proof")]
 mod halo2_conversions;
+
+#[cfg(all(test, feature = "hyperkzg_proof"))]
+mod evm_tests;

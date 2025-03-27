@@ -8,6 +8,22 @@ import "../../src/base/Errors.sol";
 import {HyperKZGVerifier} from "../../src/hyperkzg/HyperKZGVerifier.pre.sol";
 
 contract HyperKZGVerifierTest is Test {
+    function verifyHyperKZG(
+        bytes calldata proof,
+        uint256[1] memory transcript,
+        uint256[2] memory commitment,
+        uint256[] memory x,
+        uint256 y
+    ) public view {
+        HyperKZGVerifier.__verifyHyperKZG({
+            __proof: proof,
+            __transcript: transcript,
+            __commitment: commitment,
+            __x: x,
+            __y: y
+        });
+    }
+
     function _smallValidProof()
         internal
         pure

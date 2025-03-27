@@ -70,6 +70,7 @@ zerocopy = { workspace = true }
 [dev-dependencies]
 arrow-csv = { workspace = true }
 criterion = { workspace = true, features = ["html_reports"] }
+hex = { workspace = true }
 merlin = { workspace = true }
 rand = { workspace = true, default-features = false, features = ["std"] }
 rand_core = { workspace = true, default-features = false }
