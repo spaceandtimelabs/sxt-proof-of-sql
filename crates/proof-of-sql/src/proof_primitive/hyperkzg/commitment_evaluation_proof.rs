@@ -147,7 +147,10 @@ mod tests {
             test_commitment_evaluation_proof_with_length_1,
             test_random_commitment_evaluation_proof, test_simple_commitment_evaluation_proof,
         },
-        proof_primitive::hyperkzg::nova_commitment_key_to_hyperkzg_public_setup,
+        proof_primitive::hyperkzg::{
+            nova_commitment_key_to_hyperkzg_public_setup,
+            public_setup::load_small_setup_for_testing,
+        },
     };
     use nova_snark::{
         provider::hyperkzg::CommitmentEngine, traits::commitment::CommitmentEngineTrait,
@@ -247,6 +250,17 @@ mod tests {
             128,
             0,
             &&nova_commitment_key_to_hyperkzg_public_setup(&ck)[..],
+            &&vk,
+        );
+    }
+
+    #[test]
+    fn we_create_hyperkzg_proof_using_setup_from_file() {
+        let (pk, vk) = load_small_setup_for_testing();
+        test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
+            23,
+            0,
+            &&pk[..],
             &&vk,
         );
     }
