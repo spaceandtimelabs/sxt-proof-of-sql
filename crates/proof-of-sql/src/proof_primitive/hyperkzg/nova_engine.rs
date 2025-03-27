@@ -14,19 +14,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct HyperKZGEngine;
 
-impl From<&BNScalar> for NovaScalar {
-    fn from(value: &BNScalar) -> Self {
-        ff::PrimeField::from_repr_vartime(bytemuck::cast::<[u64; 4], [u8; 32]>(value.into()).into())
-            .unwrap()
-    }
-}
-
-impl From<BNScalar> for NovaScalar {
-    fn from(value: BNScalar) -> Self {
-        Self::from(&value)
-    }
-}
-
 impl Engine for HyperKZGEngine {
     type Base = nova_snark::provider::bn256_grumpkin::bn256::Base;
     type Scalar = NovaScalar;
