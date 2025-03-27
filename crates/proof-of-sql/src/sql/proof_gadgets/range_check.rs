@@ -26,7 +26,7 @@ use crate::{
             byte_matrix_utils::{compute_varying_byte_matrix, get_word_counts},
             ByteDistribution,
         },
-        proof::ProofSizeMismatch,
+        proof::{ProofError, ProofSizeMismatch},
         scalar::{Scalar, ScalarExt},
     },
     sql::{
@@ -169,7 +169,7 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
     builder: &mut impl VerificationBuilder<S>,
     input_column_eval: S,
     chi_n_eval: S,
-) -> Result<(), ProofSizeMismatch> {
+) -> Result<(), ProofError> {
     // Retrieve the post-result challenge α
     let alpha = builder.try_consume_post_result_challenge()?;
     let chi_ones_256_eval = builder.try_consume_chi_evaluation()?;
@@ -201,13 +201,6 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
                 * chi_n_eval,
             |acc, (word, i)| acc + word * S::from_wrapping(U256::ONE.shl(i)),
         );
-
-    // Ensure the sum of the scalars (interpreted in base 256) matches
-    // the claimed input_column_eval. If not, the column is out of range.
-    assert_eq!(
-        sum, input_column_eval,
-        "Range check failed, column contains values outside of the selected range"
-    );
 
     // Retrieve word_vals_eval (evaluation for w-values)
     // from the builder’s MLE evaluations
@@ -241,7 +234,13 @@ pub(crate) fn verifier_evaluate_range_check<S: Scalar>(
         2,
     )?;
 
-    Ok(())
+    // Ensure the sum of the scalars (interpreted in base 256) matches
+    // the claimed input_column_eval. If not, the column is out of range.
+    (sum == input_column_eval)
+        .then_some(())
+        .ok_or(ProofError::VerificationError {
+            error: "Range check failed, column contains values outside of the selected range",
+        })
 }
 
 #[cfg(test)]
@@ -297,11 +296,17 @@ mod tests {
         assert!(mock_verification_builder
             .get_identity_results()
             .iter()
-            .all(|v| v.iter().all(|b| *b)));
+            .all(|v| v.iter().copied().all(identity)));
         assert!(mock_verification_builder
             .get_zero_sum_results()
             .iter()
             .copied()
             .all(identity));
+    }
+
+    // 
+    #[test]
+    fn we_can_reject_range_check_verification_if_bytes_are_rearranged(){
+
     }
 }
