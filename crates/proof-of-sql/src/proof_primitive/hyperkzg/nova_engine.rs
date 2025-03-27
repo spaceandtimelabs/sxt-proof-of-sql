@@ -18,8 +18,10 @@ impl Engine for HyperKZGEngine {
     type Base = nova_snark::provider::bn256_grumpkin::bn256::Base;
     type Scalar = NovaScalar;
     type GE = nova_snark::provider::bn256_grumpkin::bn256::Point;
-    type RO = nova_snark::provider::poseidon::PoseidonRO<Self::Base, Self::Scalar>;
+    type RO = nova_snark::provider::poseidon::PoseidonRO<Self::Base>;
     type ROCircuit = nova_snark::provider::poseidon::PoseidonROCircuit<Self::Base>;
+    type RO2 = nova_snark::provider::poseidon::PoseidonRO<Self::Scalar>;
+    type RO2Circuit = nova_snark::provider::poseidon::PoseidonROCircuit<Self::Scalar>;
     type TE = Keccak256Transcript;
     type CE = nova_snark::provider::hyperkzg::CommitmentEngine<Self>;
 }
