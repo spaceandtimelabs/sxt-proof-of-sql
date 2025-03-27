@@ -32,3 +32,6 @@ pub use nova_engine::{nova_commitment_key_to_hyperkzg_public_setup, HyperKZGEngi
 mod commitment_evaluation_proof;
 #[cfg(feature = "hyperkzg_proof")]
 pub use commitment_evaluation_proof::HyperKZGCommitmentEvaluationProof;
+
+#[cfg(feature = "hyperkzg_proof")]
+mod halo2_conversions;
