@@ -33,7 +33,7 @@ bnum = { workspace = true }
 bumpalo = { workspace = true, features = ["collections"] }
 bytemuck = { workspace = true }
 byte-slice-cast = { workspace = true }
-clap = { workspace = true, features = ["derive"], optional = true }
+clap = { workspace = true, features = ["derive", "env"], optional = true }
 curve25519-dalek = { workspace = true, features = ["serde"] }
 chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true }
@@ -47,6 +47,8 @@ merlin = { workspace = true, optional = true }
 nova-snark = { workspace = true, optional = true }
 num-traits = { workspace = true }
 num-bigint = { workspace = true, default-features = false }
+opentelemetry = { workspace = true, optional = true  }
+opentelemetry-jaeger = { workspace = true, optional = true }
 postcard = { workspace = true, features = ["alloc"] }
 proof-of-sql-parser = { workspace = true }
 rand = { workspace = true, default-features = false, optional = true }
@@ -61,31 +63,30 @@ sysinfo = {workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 tiny-keccak = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
+tracing-opentelemetry = { workspace = true, optional = true }
+tracing-subscriber = { workspace = true, optional = true }
 zerocopy = { workspace = true }
 
 [dev-dependencies]
 arrow-csv = { workspace = true }
 criterion = { workspace = true, features = ["html_reports"] }
 merlin = { workspace = true }
-opentelemetry = { workspace = true }
-opentelemetry-jaeger = { workspace = true }
 rand = { workspace = true, default-features = false, features = ["std"] }
 rand_core = { workspace = true, default-features = false }
 serde_json = { workspace = true }
 tracing = { workspace = true }
-tracing-opentelemetry = { workspace = true }
-tracing-subscriber = { workspace = true }
 flexbuffers = { workspace = true }
 proptest = { workspace = true }
 proptest-derive = { workspace = true }
 
 [package.metadata.cargo-udeps.ignore]
-development = ["arrow-csv", "opentelemetry", "opentelemetry-jaeger", "tracing-opentelemetry", "tracing-subscriber"]
+development = ["arrow-csv", "criterion", "opentelemetry", "opentelemetry-jaeger", "tracing-opentelemetry", "tracing-subscriber"]
 
 [features]
 default = ["arrow", "perf"]
 utils = ["dep:indicatif", "dep:rand_chacha", "dep:sha2", "dep:clap", "dep:tempfile"]
 arrow = ["dep:arrow", "std"]
+bench = ["blitzar", "dep:clap", "dep:rand", "hyperkzg_proof", "opentelemetry", "opentelemetry-jaeger", "std", "tracing-opentelemetry", "tracing-subscriber" ]
 blitzar = ["dep:blitzar", "dep:merlin", "std"]
 hyperkzg_proof = ["dep:nova-snark", "std", "dep:ff", "dep:halo2curves", "blitzar"]
 test = ["dep:rand", "std"]
@@ -106,6 +107,11 @@ required-features = [ "std", "blitzar", "utils" ]
 name = "commitment-utility"
 path = "utils/commitment-utility/main.rs"
 required-features = [ "std", "blitzar", "utils" ]
+
+[[bin]]
+name = "jaeger_benches"
+path = "benches/jaeger/bin/jaeger_benches.rs"
+required-features = [ "bench" ]
 
 [[example]]
 name = "hello_world"
@@ -183,18 +189,7 @@ required-features = [ "arrow" ]
 name = "rockets"
 required-features = [ "arrow" ]
 
-
-[[bench]]
-name = "posql_benches"
-harness = false
-required-features = ["blitzar"]
-
 [[bench]]
 name = "bench_append_rows"
 harness = false
 required-features = ["test"]
-
-[[bench]]
-name = "jaeger_benches"
-harness = false
-required-features = ["hyperkzg_proof"]

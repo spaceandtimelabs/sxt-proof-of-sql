@@ -2,6 +2,12 @@
 use super::OptionalRandBound;
 use proof_of_sql::base::database::ColumnType;
 
+/// Type alias for a single column definition in a query.
+type ColumnDefinition = (&'static str, ColumnType, OptionalRandBound);
+
+/// Type alias for a single query entry in the `QUERIES` constant.
+pub type QueryEntry = (&'static str, &'static str, &'static [ColumnDefinition]);
+
 const SINGLE_COLUMN_FILTER_TITLE: &str = "Single Column Filter";
 const SINGLE_COLUMN_FILTER_SQL: &str = "SELECT b FROM table WHERE a = 0";
 const SINGLE_COLUMN_FILTER_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
@@ -140,8 +146,7 @@ const COMPLEX_CONDITION_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     ("d", ColumnType::VarChar, None),
 ];
 
-#[expect(clippy::type_complexity)]
-pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &[
+pub const QUERIES: &[QueryEntry] = &[
     (
         SINGLE_COLUMN_FILTER_TITLE,
         SINGLE_COLUMN_FILTER_SQL,
@@ -171,3 +176,19 @@ pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &
         COMPLEX_CONDITION_COLUMNS,
     ),
 ];
+
+/// Retrieves a single query from the `QUERIES` constant by its title.
+///
+/// # Arguments
+/// * `title` - The title of the query to retrieve.
+///
+/// # Returns
+/// * `Some((&str, &str, &[(&str, ColumnType, OptionalRandBound)]))` if the query is found.
+/// * `None` if no query with the given title exists.
+#[allow(dead_code)]
+pub fn get_query(title: &str) -> Option<QueryEntry> {
+    QUERIES
+        .iter()
+        .find(|(query_title, _, _)| *query_title == title)
+        .copied()
+}
