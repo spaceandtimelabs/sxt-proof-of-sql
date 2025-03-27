@@ -128,6 +128,38 @@ fn test_empty_sql() {
     );
 }
 
+/// Test tableless SQL queries
+#[test]
+fn test_tableless_queries() {
+    let sql = "select 1 + 1;
+    select 'tableless' as res;
+    select 'Chloe' as name, 13 as age
+    union all
+    select 'Margaret' as name, 2 as age;";
+    let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {};
+    let expected_results: Vec<OwnedTable<DoryScalar>> = vec![
+        owned_table([bigint("Int64(1) + Int64(1)", [2_i64])]),
+        owned_table([varchar("res", ["tableless"])]),
+        owned_table([
+            varchar("name", ["Chloe", "Margaret"]),
+            bigint("age", [13_i64, 2]),
+        ]),
+    ];
+
+    // Create public parameters for DynamicDoryEvaluationProof
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+
+    posql_end_to_end_test::<DynamicDoryEvaluationProof>(
+        sql,
+        tables,
+        &expected_results,
+        &prover_setup,
+        &verifier_setup,
+    );
+}
+
 /// Test a simple SQL query
 #[test]
 fn test_simple_filter_queries() {
