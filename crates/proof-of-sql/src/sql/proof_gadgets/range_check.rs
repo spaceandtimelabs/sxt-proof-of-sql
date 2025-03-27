@@ -22,7 +22,7 @@
 //! * Parallelization: Single-threaded execution of these operations is a performance bottleneck
 use crate::{
     base::{
-        byte::{byte_matrix_utils::compute_varying_byte_matrix, ByteDistribution},
+        byte::{byte_matrix_utils::{compute_varying_byte_matrix, get_word_counts}, ByteDistribution},
         proof::ProofSizeMismatch,
         scalar::{Scalar, ScalarExt},
         slice_ops,
@@ -133,13 +133,10 @@ pub(crate) fn final_round_evaluate_range_check<'a, S: Scalar + 'a>(
     );
 
     // get the counts of all bytes that belong to varying columns in the data
-    let word_counts = alloc.alloc_slice_fill_copy(256, 0i64);
-    for byte in varying_columns.into_iter().flatten() {
-        word_counts[byte as usize] += 1;
-    }
+    let word_counts = get_word_counts(alloc, varying_columns);
 
     // commit the counts
-    builder.produce_intermediate_mle(&*word_counts);
+    builder.produce_intermediate_mle(word_counts);
 
     // get the sum of each row's inverse bytes
     let varying_column_sum = alloc.alloc_slice_fill_copy(column_data.len(), S::ZERO);
@@ -263,7 +260,8 @@ mod tests {
         },
     };
     use bumpalo::Bump;
-    use std::collections::VecDeque;
+    use core::convert::identity;
+    use alloc::collections::VecDeque;
 
     #[test]
     fn we_can_verify_simple_range_check() {
@@ -302,136 +300,9 @@ mod tests {
         assert!(mock_verification_builder
             .get_zero_sum_results()
             .iter()
-            .all(|b| *b));
+            .copied()
+            .all(identity));
     }
-
-    // use super::*;
-    // use crate::{
-    //     base::scalar::Scalar,
-    //     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar as S,
-    //     sql::proof::FinalRoundBuilder,
-    // };
-    // use alloc::collections::VecDeque;
-    // use num_traits::Inv;
-
-    // #[test]
-    // fn we_can_decompose_small_scalars_to_words() {
-    //     let scalars: Vec<S> = [1, 2, 3, 255, 256, 257].iter().map(S::from).collect();
-
-    //     let mut word_columns = vec![vec![0; scalars.len()]; 31];
-    //     let mut word_slices: Vec<&mut [u8]> = word_columns
-    //         .iter_mut()
-    //         .map(|column| &mut column[..])
-    //         .collect();
-
-    //     let mut byte_counts = vec![0; 256];
-
-    //     // Call the decomposer first
-    //     decompose_scalars_to_words::<S, S>(&scalars, &mut word_slices);
-
-    //     let word_columns_immut: Vec<&[u8]> = word_slices
-    //         .iter()
-    //         .map(|column| &column[..]) // convert &mut [u8] -> &[u8]
-    //         .collect();
-
-    //     // Then do the counting
-    //     count_word_occurrences(&word_columns_immut, scalars.len(), &mut byte_counts);
-
-    //     let mut expected_word_columns = vec![vec![0; scalars.len()]; 31];
-    //     expected_word_columns[0] = vec![1, 2, 3, 255, 0, 1];
-    //     expected_word_columns[1] = vec![0, 0, 0, 0, 1, 1];
-    //     // expected_word_columns[2..] is filled with 0s.
-    //     let mut expected_byte_counts = vec![0; 256];
-    //     expected_byte_counts[0] = 31 * 6 - 7;
-    //     expected_byte_counts[1] = 4;
-    //     expected_byte_counts[2] = 1;
-    //     expected_byte_counts[3] = 1;
-    //     // expected_byte_counts[4..255] is filled with 0s.
-    //     expected_byte_counts[255] = 1;
-
-    //     assert_eq!(word_columns, expected_word_columns);
-    //     assert_eq!(byte_counts, expected_byte_counts);
-    // }
-
-    // #[test]
-    // fn we_can_decompose_large_scalars_to_words() {
-    //     let scalars: Vec<S> = [S::MAX_SIGNED, S::from(u64::MAX), S::from(-1)]
-    //         .iter()
-    //         .map(S::from)
-    //         .collect();
-
-    //     let mut word_columns = vec![vec![0; scalars.len()]; 31];
-    //     let mut word_slices: Vec<&mut [u8]> = word_columns
-    //         .iter_mut()
-    //         .map(|column| &mut column[..])
-    //         .collect();
-
-    //     let mut byte_counts = vec![0; 256];
-
-    //     decompose_scalars_to_words::<S, S>(&scalars, &mut word_slices);
-
-    //     let word_columns_immut: Vec<&[u8]> = word_slices.iter().map(|column| &column[..]).collect();
-
-    //     count_word_occurrences(&word_columns_immut, scalars.len(), &mut byte_counts);
-
-    //     let expected_word_columns = [
-    //         [246, 255, 236],
-    //         [233, 255, 211],
-    //         [122, 255, 245],
-    //         [46, 255, 92],
-    //         [141, 255, 26],
-    //         [49, 255, 99],
-    //         [9, 255, 18],
-    //         [44, 255, 88],
-    //         [107, 0, 214],
-    //         [206, 0, 156],
-    //         [123, 0, 247],
-    //         [81, 0, 162],
-    //         [239, 0, 222],
-    //         [124, 0, 249],
-    //         [111, 0, 222],
-    //         [10, 0, 20],
-    //         // expected_word_columns[16..] is filled with 0s.
-    //     ];
-
-    //     let mut expected_byte_counts_hardcoded = vec![0; 256];
-    //     expected_byte_counts_hardcoded[0] = 53;
-    //     expected_byte_counts_hardcoded[9] = 1;
-    //     expected_byte_counts_hardcoded[10] = 1;
-    //     expected_byte_counts_hardcoded[18] = 1;
-    //     expected_byte_counts_hardcoded[20] = 1;
-    //     expected_byte_counts_hardcoded[26] = 1;
-    //     expected_byte_counts_hardcoded[44] = 1;
-    //     expected_byte_counts_hardcoded[46] = 1;
-    //     expected_byte_counts_hardcoded[49] = 1;
-    //     expected_byte_counts_hardcoded[81] = 1;
-    //     expected_byte_counts_hardcoded[88] = 1;
-    //     expected_byte_counts_hardcoded[92] = 1;
-    //     expected_byte_counts_hardcoded[99] = 1;
-    //     expected_byte_counts_hardcoded[107] = 1;
-    //     expected_byte_counts_hardcoded[111] = 1;
-    //     expected_byte_counts_hardcoded[122] = 1;
-    //     expected_byte_counts_hardcoded[123] = 1;
-    //     expected_byte_counts_hardcoded[124] = 1;
-    //     expected_byte_counts_hardcoded[141] = 1;
-    //     expected_byte_counts_hardcoded[156] = 1;
-    //     expected_byte_counts_hardcoded[162] = 1;
-    //     expected_byte_counts_hardcoded[206] = 1;
-    //     expected_byte_counts_hardcoded[211] = 1;
-    //     expected_byte_counts_hardcoded[214] = 1;
-    //     expected_byte_counts_hardcoded[222] = 2;
-    //     expected_byte_counts_hardcoded[233] = 1;
-    //     expected_byte_counts_hardcoded[236] = 1;
-    //     expected_byte_counts_hardcoded[239] = 1;
-    //     expected_byte_counts_hardcoded[245] = 1;
-    //     expected_byte_counts_hardcoded[246] = 1;
-    //     expected_byte_counts_hardcoded[247] = 1;
-    //     expected_byte_counts_hardcoded[249] = 1;
-    //     expected_byte_counts_hardcoded[255] = 8;
-
-    //     assert_eq!(word_columns[..16], expected_word_columns);
-    //     assert_eq!(byte_counts, expected_byte_counts_hardcoded);
-    // }
 
     // #[test]
     // fn we_can_obtain_logarithmic_derivative_from_small_scalar() {
