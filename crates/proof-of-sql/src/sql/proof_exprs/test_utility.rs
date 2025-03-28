@@ -1,6 +1,6 @@
 use super::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr};
 use crate::base::{
-    database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
+    database::{ColumnRef, ColumnType, LiteralValue, SchemaAccessor, TableRef},
     math::{decimal::Precision, i256::I256},
     scalar::Scalar,
 };
@@ -82,6 +82,10 @@ pub fn subtract(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
 /// - `DynProofExpr::try_new_multiply()` returns an error.
 pub fn multiply(left: DynProofExpr, right: DynProofExpr) -> DynProofExpr {
     DynProofExpr::try_new_multiply(left, right).unwrap()
+}
+
+pub fn cast(left: DynProofExpr, right: ColumnType) -> DynProofExpr {
+    DynProofExpr::try_new_cast(left, right).unwrap()
 }
 
 pub fn const_bool(val: bool) -> DynProofExpr {

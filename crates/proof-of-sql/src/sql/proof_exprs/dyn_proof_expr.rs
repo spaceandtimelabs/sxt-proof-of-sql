@@ -1,10 +1,10 @@
 use super::{
-    AddSubtractExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr, MultiplyExpr,
-    NotExpr, OrExpr, ProofExpr,
+    cast_expr::CastExpr, AddSubtractExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr,
+    LiteralExpr, MultiplyExpr, NotExpr, OrExpr, ProofExpr,
 };
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{try_cast_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -43,6 +43,8 @@ pub enum DynProofExpr {
     AddSubtract(AddSubtractExpr),
     /// Provable numeric `*` expression
     Multiply(MultiplyExpr),
+    /// Provable CAST expression
+    Cast(CastExpr),
 }
 impl DynProofExpr {
     /// Create column expression
@@ -158,6 +160,17 @@ impl DynProofExpr {
                 right_type: rhs_datatype.to_string(),
             })
         }
+    }
+
+    /// Create a new cast expression
+    pub fn try_new_cast(from_column: DynProofExpr, to_datatype: ColumnType) -> AnalyzeResult<Self> {
+        let from_datatype = from_column.data_type();
+        try_cast_types(from_datatype, to_datatype)
+            .map(|()| Self::Cast(CastExpr::new(Box::new(from_column), to_datatype)))
+            .map_err(|_| AnalyzeError::DataTypeMismatch {
+                left_type: from_datatype.to_string(),
+                right_type: to_datatype.to_string(),
+            })
     }
 
     /// Check that the plan has the correct data type

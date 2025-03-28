@@ -70,3 +70,7 @@ mod column_expr;
 pub use column_expr::ColumnExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod column_expr_test;
+
+mod cast_expr;
+#[cfg(all(test, feature = "blitzar"))]
+mod cast_expr_test;

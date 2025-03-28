@@ -189,7 +189,6 @@ pub fn try_divide_column_types(
 }
 
 /// Verifies that `from` can be cast to `to`. For now, this supports a limited number of casts.
-#[cfg_attr(not(test), expect(dead_code))]
 pub fn try_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult<()> {
     match (from, to) {
         (
