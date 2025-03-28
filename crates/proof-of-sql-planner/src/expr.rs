@@ -1,7 +1,7 @@
 use super::{column_to_column_ref, scalar_value_to_literal_value, PlannerError, PlannerResult};
 use datafusion::{
     common::DFSchema,
-    logical_expr::{BinaryExpr, Expr, Operator},
+    logical_expr::{expr::Alias, BinaryExpr, Expr, Operator},
 };
 use proof_of_sql::sql::proof_exprs::DynProofExpr;
 
@@ -11,6 +11,7 @@ use proof_of_sql::sql::proof_exprs::DynProofExpr;
 /// The function should not panic if Proof of SQL is working correctly
 pub fn expr_to_proof_expr(expr: &Expr, schema: &DFSchema) -> PlannerResult<DynProofExpr> {
     match expr {
+        Expr::Alias(Alias { expr, .. }) => expr_to_proof_expr(expr, schema),
         Expr::Column(col) => Ok(DynProofExpr::new_column(column_to_column_ref(col, schema)?)),
         Expr::BinaryExpr(BinaryExpr { left, right, op }) => {
             let left_proof_expr = expr_to_proof_expr(left, schema)?;
@@ -118,6 +119,15 @@ mod tests {
             "column2".into(),
             ColumnType::Boolean,
         ))
+    }
+
+    // Alias
+    #[test]
+    fn we_can_convert_alias_to_proof_expr() {
+        // Column
+        let expr = df_column("namespace.table_name", "column").alias("alias");
+        let schema = df_schema("namespace.table_name", vec![("column", DataType::Int32)]);
+        assert_eq!(expr_to_proof_expr(&expr, &schema).unwrap(), COLUMN_INT());
     }
 
     // Column
