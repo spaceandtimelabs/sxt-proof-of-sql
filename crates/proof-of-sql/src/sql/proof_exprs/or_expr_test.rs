@@ -38,9 +38,12 @@ fn we_can_prove_a_simple_or_query() {
             equal(column(&t, "d", &accessor), const_varchar("g")),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [2_i64, 3]), varchar("d", ["t", "g"])]);
     assert_eq!(res, expected_res);
 }
@@ -63,9 +66,12 @@ fn we_can_prove_a_simple_or_query_with_variable_integer_types() {
             equal(column(&t, "d", &accessor), const_varchar("g")),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([int128("a", [2_i64, 3]), varchar("d", ["t", "g"])]);
     assert_eq!(res, expected_res);
 }
@@ -89,9 +95,12 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
             equal(column(&t, "d", &accessor), const_varchar("g")),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [2_i64, 3, 4]), varchar("d", ["t", "g", "efg"])]);
     assert_eq!(res, expected_res);
 }
@@ -138,9 +147,12 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 equal(column(&t, "c", &accessor), const_bigint(filter_val2)),
             ),
         );
-        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
         exercise_verification(&verifiable_res, &ast, &accessor, &t);
-        let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+        let res = verifiable_res
+            .verify(&ast, &accessor, &(), &[])
+            .unwrap()
+            .table;
 
         // Calculate/compare expected result
         let (expected_a, expected_d): (Vec<_>, Vec<_>) = multizip((
@@ -189,7 +201,7 @@ fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
         equal(column(&t, "b", &accessor), const_int128(1)),
         equal(column(&t, "d", &accessor), const_varchar("g")),
     );
-    let res = and_expr.result_evaluate(&alloc, &data);
+    let res = and_expr.result_evaluate(&alloc, &data, &[]);
     let expected_res = Column::Boolean(&[false, true, true, true]);
     assert_eq!(res, expected_res);
 }

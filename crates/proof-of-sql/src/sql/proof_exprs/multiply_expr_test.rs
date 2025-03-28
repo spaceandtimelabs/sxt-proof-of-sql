@@ -59,9 +59,12 @@ fn we_can_prove_a_typical_multiply_query() {
             const_decimal75(3, 2, 819),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         int("a", [2_i32, 6]),
         bigint("c", [0_i64, 2]),
@@ -105,9 +108,9 @@ fn result_expr_can_overflow() {
         equal(column(&t, "b", &accessor), const_bigint(2)),
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     assert!(matches!(
-        verifiable_res.verify(&ast, &accessor, &()),
+        verifiable_res.verify(&ast, &accessor, &(), &[]),
         Err(QueryError::Overflow)
     ));
 }
@@ -131,9 +134,12 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
         equal(column(&t, "b", &accessor), const_bigint(0)),
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([smallint("c", [0_i16])]);
     assert_eq!(res, expected_res);
 }
@@ -157,9 +163,12 @@ fn overflow_in_where_clause_doesnt_error_out() {
         ),
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [i64::MAX]), smallint("b", [2_i16])]);
     assert_eq!(res, expected_res);
 }
@@ -183,9 +192,9 @@ fn result_expr_can_overflow_more() {
         const_bool(true),
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     assert!(matches!(
-        verifiable_res.verify(&ast, &accessor, &()),
+        verifiable_res.verify(&ast, &accessor, &(), &[]),
         Err(QueryError::Overflow)
     ));
 }
@@ -231,9 +240,12 @@ fn where_clause_can_wrap_around() {
         ),
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint(
             "a",
@@ -305,9 +317,12 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 ),
             ),
         );
-        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
         exercise_verification(&verifiable_res, &ast, &accessor, &t);
-        let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+        let res = verifiable_res
+            .verify(&ast, &accessor, &(), &[])
+            .unwrap()
+            .table;
 
         // Calculate/compare expected result
         let (expected_f, expected_d): (Vec<_>, Vec<_>) = multizip((
@@ -357,7 +372,7 @@ fn we_can_compute_the_correct_output_of_a_multiply_expr_using_result_evaluate() 
         column(&t, "b", &accessor),
         subtract(column(&t, "a", &accessor), const_decimal75(2, 1, 15)),
     );
-    let res = arithmetic_expr.result_evaluate(&alloc, &data);
+    let res = arithmetic_expr.result_evaluate(&alloc, &data, &[]);
     let expected_res_scalar = [0, 5, 75, 25]
         .iter()
         .map(|v| Curve25519Scalar::from(*v))

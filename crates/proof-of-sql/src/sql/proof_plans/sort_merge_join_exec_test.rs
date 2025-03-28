@@ -57,9 +57,12 @@ fn we_can_prove_and_get_the_correct_result_from_a_sort_merge_join() {
         vec![Ident::new("id"), Ident::new("name"), Ident::new("human")],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &table_left);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("id", [1_i64, 1, 2, 2, 4]),
         varchar("name", ["Chloe", "Chloe", "Margaret", "Margaret", "Lucy"]),
@@ -120,9 +123,12 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_sort_m
         Some(3),
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &table_cats);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("id", [2_i64, 2]),
         varchar("name", ["Margaret", "Margaret"]),
@@ -231,9 +237,12 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_two_so
     );
 
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &table_cats);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("id", [1_i64, 1, 2, 2, 10]),
         varchar("name", ["Chloe", "Chloe", "Margaret", "Margaret", "Nova"]),
@@ -293,9 +302,12 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join() {
         vec![Ident::new("id"), Ident::new("name"), Ident::new("human")],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &table_left);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("id", [0_i64; 0]),
         varchar("name", [""; 0]),
@@ -343,9 +355,12 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
         vec![Ident::new("id"), Ident::new("name"), Ident::new("human")],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &table_right);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("id", [0_i64; 0]),
         varchar("name", [""; 0]),
@@ -391,9 +406,12 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
         vec![Ident::new("id"), Ident::new("name"), Ident::new("human")],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &table_left);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("id", [0_i64; 0]),
         varchar("name", [""; 0]),
@@ -435,8 +453,11 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
         vec![Ident::new("id"), Ident::new("name"), Ident::new("human")],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("id", [0_i64; 0]),
         varchar("name", [""; 0]),

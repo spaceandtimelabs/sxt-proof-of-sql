@@ -7,8 +7,8 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             table_utility::*,
-            ColumnField, ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, Table,
-            TableEvaluation, TableRef,
+            ColumnField, ColumnRef, ColumnType, LiteralValue, OwnedTable, OwnedTableTestAccessor,
+            Table, TableEvaluation, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
@@ -30,6 +30,7 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
+        _params: &[LiteralValue],
     ) -> Table<'a, S> {
         let zeros = vec![0_i64; self.length];
         builder.produce_chi_evaluation_length(self.length);
@@ -45,6 +46,7 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
+        _params: &[LiteralValue],
     ) -> Table<'a, S> {
         let zeros = vec![0_i64; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
@@ -65,6 +67,7 @@ impl ProofPlan for EmptyTestQueryExpr {
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
+        _params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         assert_eq!(
             builder.try_consume_final_round_mle_evaluations(self.columns)?,
@@ -103,11 +106,11 @@ fn we_can_verify_queries_on_an_empty_table() {
         0,
         (),
     );
-    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
     let QueryData {
         verification_hash: _,
         table,
-    } = res.verify(&expr, &accessor, &()).unwrap();
+    } = res.verify(&expr, &accessor, &(), &[]).unwrap();
     let expected_res = owned_table([bigint("a1", [0; 0])]);
     assert_eq!(table, expected_res);
 }

@@ -73,10 +73,11 @@ fn main() {
         query.proof_expr(),
         &accessor,
         &&prover_setup,
+        &[],
     );
     end_timer(timer);
     let timer = start_timer("Verifying Proof");
-    let result = verifiable_result.verify(query.proof_expr(), &accessor, &&verifier_setup);
+    let result = verifiable_result.verify(query.proof_expr(), &accessor, &&verifier_setup, &[]);
     end_timer(timer);
     match result {
         Ok(result) => {

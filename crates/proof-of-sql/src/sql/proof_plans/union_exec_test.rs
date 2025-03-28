@@ -30,8 +30,11 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_union_with_no_tables() {
         ],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [0_i64; 0]), varchar("b", [""; 0])]);
     assert_eq!(res, expected_res);
 }
@@ -54,8 +57,11 @@ fn we_can_prove_and_get_the_correct_result_from_a_union_with_one_table() {
         vec![column_field("a", ColumnType::BigInt)],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [2_i64, 3, 4])]);
     assert_eq!(res, expected_res);
 }
@@ -82,8 +88,11 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_union_exec() {
         ],
         vec![column_field("a", ColumnType::BigInt)],
     );
-    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [0_i64; 0])]);
     assert_eq!(res, expected_res);
 }
@@ -129,9 +138,12 @@ fn we_can_prove_and_get_the_correct_result_from_a_union_exec() {
             column_field("b", ColumnType::VarChar),
         ],
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t0);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("a", [1_i64, 2, 3, 4, 5, 2, 3, 4, 5, 6]),
         varchar("b", ["1", "2", "3", "4", "5", "2", "3", "4", "5", "6"]),
@@ -267,9 +279,12 @@ fn we_can_prove_and_get_the_correct_result_from_a_more_complex_union_exec() {
             column_field("b", ColumnType::VarChar),
         ],
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t0);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("a", [5_i64, 2, 3, 4, 5, 6, 7, 105, 5, 6, 7, 7, 8, 9, 10]),
         varchar(
@@ -343,6 +358,7 @@ fn we_can_get_result_from_union_using_first_round_evaluate() {
         first_round_builder,
         &alloc,
         &table_map,
+        &[],
     ))
     .to_owned_table(&fields)
     .unwrap();

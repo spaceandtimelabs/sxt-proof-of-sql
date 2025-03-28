@@ -1,7 +1,7 @@
 use super::ProofExpr;
 use crate::{
     base::{
-        database::{Column, ColumnField, ColumnRef, ColumnType, Table},
+        database::{Column, ColumnField, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -70,6 +70,7 @@ impl ProofExpr for ColumnExpr {
         &self,
         _alloc: &'a Bump,
         table: &Table<'a, S>,
+        _params: &[LiteralValue],
     ) -> Column<'a, S> {
         self.fetch_column(table)
     }
@@ -81,6 +82,7 @@ impl ProofExpr for ColumnExpr {
         _builder: &mut FinalRoundBuilder<'a, S>,
         _alloc: &'a Bump,
         table: &Table<'a, S>,
+        _params: &[LiteralValue],
     ) -> Column<'a, S> {
         self.fetch_column(table)
     }
@@ -92,6 +94,7 @@ impl ProofExpr for ColumnExpr {
         _builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         _chi_eval: S,
+        _params: &[LiteralValue],
     ) -> Result<S, ProofError> {
         Ok(*accessor
             .get(&self.column_ref)

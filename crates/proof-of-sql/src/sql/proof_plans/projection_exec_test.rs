@@ -131,9 +131,12 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_projection() {
             ],
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected = owned_table([bigint("b", [1_i64, 2, 3, 4, 5, 1, 2, 3, 4, 5])]);
     assert_eq!(res, expected);
 }
@@ -163,9 +166,12 @@ fn we_can_prove_and_get_the_correct_result_from_a_nontrivial_projection() {
             ],
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected = owned_table([
         bigint("b", [2_i64, 3, 4, 5, 6]),
         bigint("prod", [1_i64, 8, 15, 8, 25]),
@@ -202,9 +208,12 @@ fn we_can_prove_and_get_the_correct_result_from_a_composed_projection() {
             equal(column(&t, "a", &accessor), const_int128(5)),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected = owned_table([bigint("b", [5_i64, 7]), bigint("prod", [32_i64, 60])]);
     assert_eq!(res, expected);
 }
@@ -253,6 +262,7 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
         first_round_builder,
         &alloc,
         &table_map,
+        &[],
     ))
     .to_owned_table(fields)
     .unwrap();
@@ -303,6 +313,7 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
         first_round_builder,
         &alloc,
         &table_map,
+        &[],
     ))
     .to_owned_table(fields)
     .unwrap();
@@ -362,6 +373,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_first_round_evalu
         first_round_builder,
         &alloc,
         &table_map,
+        &[],
     ))
     .to_owned_table(fields)
     .unwrap();
@@ -407,8 +419,8 @@ fn we_can_prove_a_projection_on_an_empty_table() {
             ],
         ),
     );
-    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("b", [3; 0]),
         int128("prod", [3; 0]),
@@ -453,9 +465,9 @@ fn we_can_prove_a_projection() {
             ],
         ),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
     exercise_verification(&res, &expr, &accessor, &t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("b", [1, 2, 3, 4, 7]),
         int128("c", [1, 3, 3, 4, 5]),

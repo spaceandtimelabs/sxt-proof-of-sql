@@ -1,7 +1,8 @@
 use crate::{
     base::{
         database::{
-            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
+            ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation, TableOptions,
+            TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -42,6 +43,7 @@ impl ProofPlan for EmptyExec {
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
+        _params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         Ok(TableEvaluation::new(
             Vec::<S>::new(),
@@ -69,6 +71,7 @@ impl ProverEvaluate for EmptyExec {
         _builder: &mut FirstRoundBuilder<'a, S>,
         _alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
+        _params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
@@ -88,6 +91,7 @@ impl ProverEvaluate for EmptyExec {
         _builder: &mut FinalRoundBuilder<'a, S>,
         _alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
+        _params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
