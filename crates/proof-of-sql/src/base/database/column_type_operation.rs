@@ -188,6 +188,26 @@ pub fn try_divide_column_types(
     Ok(ColumnType::Decimal75(precision, scale))
 }
 
+/// Verifies that `from` can be cast to `to`. For now, this supports a limited number of casts.
+#[cfg_attr(not(test), expect(dead_code))]
+pub fn try_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult<()> {
+    match (from, to) {
+        (
+            ColumnType::Boolean,
+            ColumnType::TinyInt
+            | ColumnType::SmallInt
+            | ColumnType::Int
+            | ColumnType::Int128
+            | ColumnType::BigInt,
+        )
+        | (ColumnType::TimestampTZ(_, _), ColumnType::BigInt) => Ok(()),
+        _ => Err(ColumnOperationError::CastingError {
+            left_type: from,
+            right_type: to,
+        }),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -807,5 +827,35 @@ mod test {
                 }
             ));
         }
+    }
+
+    #[test]
+    fn we_can_cast_all_castable_types() {
+        for to in [
+            ColumnType::TinyInt,
+            ColumnType::SmallInt,
+            ColumnType::Int,
+            ColumnType::BigInt,
+            ColumnType::Int128,
+        ] {
+            try_cast_types(ColumnType::Boolean, to).unwrap();
+        }
+        try_cast_types(
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::new(1)),
+            ColumnType::BigInt,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn we_cannot_cast_uncastable_type() {
+        let err = try_cast_types(ColumnType::BigInt, ColumnType::Boolean).unwrap_err();
+        assert!(matches!(
+            err,
+            ColumnOperationError::CastingError {
+                left_type: ColumnType::BigInt,
+                right_type: ColumnType::Boolean
+            }
+        ));
     }
 }
