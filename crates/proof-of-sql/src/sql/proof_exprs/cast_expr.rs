@@ -21,7 +21,6 @@ pub struct CastExpr {
 
 impl CastExpr {
     /// Creates a new `CastExpr`
-    #[expect(dead_code)]
     pub fn new(from_expr: Box<DynProofExpr>, to_type: ColumnType) -> Self {
         Self { from_expr, to_type }
     }
