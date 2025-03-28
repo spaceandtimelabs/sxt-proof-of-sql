@@ -1,5 +1,5 @@
 use crate::base::{
-    database::{Column, ColumnarValue, LiteralValue},
+    database::{Column, ColumnType, ColumnarValue, LiteralValue},
     scalar::{Scalar, ScalarExt},
 };
 use bumpalo::Bump;
@@ -491,12 +491,79 @@ pub(crate) fn modulo_columns<'a, S: Scalar>(
     }
 }
 
+fn cast_bool_slice_to_signed_int_slice<'a, I: PrimInt>(
+    alloc: &'a Bump,
+    column: &[bool],
+) -> &'a [I] {
+    let cast_column = alloc.alloc_slice_fill_copy(column.len(), I::zero());
+    for (cast_val, bool_val) in cast_column.iter_mut().zip(column) {
+        *cast_val = if *bool_val { I::one() } else { I::zero() }
+    }
+    cast_column
+}
+
+/// Handles the casting of a bool column to a signed type
+///
+/// # Panics
+/// Panics if casting is not supported between the two types
+fn cast_bool_column_to_signed_int_column<'a, S: Scalar>(
+    alloc: &'a Bump,
+    column: &[bool],
+    to_type: ColumnType,
+) -> Column<'a, S> {
+    match to_type {
+        ColumnType::TinyInt => Column::TinyInt(cast_bool_slice_to_signed_int_slice(alloc, column)),
+        ColumnType::SmallInt => {
+            Column::SmallInt(cast_bool_slice_to_signed_int_slice(alloc, column))
+        }
+        ColumnType::Int => Column::Int(cast_bool_slice_to_signed_int_slice(alloc, column)),
+        ColumnType::BigInt => Column::BigInt(cast_bool_slice_to_signed_int_slice(alloc, column)),
+        ColumnType::Int128 => Column::Int128(cast_bool_slice_to_signed_int_slice(alloc, column)),
+        _ => panic!(
+            "Casting not supported between {} and {}",
+            ColumnType::Boolean,
+            to_type
+        ),
+    }
+}
+
+/// Handles the casting of one column to another
+///
+/// # Panics
+/// Panics if casting is not supported between the two types
+#[cfg_attr(not(test), expect(dead_code))]
+pub fn cast_column<'a, S: Scalar>(
+    alloc: &'a Bump,
+    from_column: Column<'a, S>,
+    to_type: ColumnType,
+) -> Column<'a, S> {
+    match (from_column, to_type) {
+        (
+            Column::Boolean(vals),
+            ColumnType::TinyInt
+            | ColumnType::SmallInt
+            | ColumnType::Int
+            | ColumnType::BigInt
+            | ColumnType::Int128,
+        ) => cast_bool_column_to_signed_int_column(alloc, vals, to_type),
+        (Column::TimestampTZ(_, _, vals), ColumnType::BigInt) => Column::BigInt(vals),
+        _ => panic!(
+            "Casting not supported between {} and {}",
+            ColumnType::Boolean,
+            to_type
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{divide_columns, divide_integer_columns};
+    use super::{
+        cast_bool_column_to_signed_int_column, cast_column, divide_columns, divide_integer_columns,
+    };
     use crate::{
         base::{
-            database::Column,
+            database::{Column, ColumnType},
+            posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
             scalar::{test_scalar::TestScalar, Scalar},
         },
         sql::proof_exprs::numerical_util::{modulo_columns, modulo_integer_columns},
@@ -689,5 +756,59 @@ mod tests {
         let unsigned_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::Uint8(&[1, 1]);
         let small_int_column: Column<'_, TestScalar> = Column::<'_, TestScalar>::SmallInt(&[2, 2]);
         divide_columns(&unsigned_int_column, &small_int_column, &alloc);
+    }
+
+    #[test]
+    fn we_can_cast_columns_of_all_castable_types() {
+        let alloc = Bump::new();
+
+        // bool to signed casting
+        let bool_column = Column::<TestScalar>::Boolean(&[true, false, true]);
+        let expected_tiny_int_column = Column::<TestScalar>::TinyInt(&[1i8, 0, 1]);
+        let expected_small_int_column = Column::<TestScalar>::SmallInt(&[1i16, 0, 1]);
+        let expected_int_column = Column::<TestScalar>::Int(&[1i32, 0, 1]);
+        let expected_big_int_column = Column::<TestScalar>::BigInt(&[1i64, 0, 1]);
+        let expected_int_128_column = Column::<TestScalar>::Int128(&[1i128, 0, 1]);
+        for expected_signed_column in [
+            expected_tiny_int_column,
+            expected_small_int_column,
+            expected_int_column,
+            expected_int_128_column,
+            expected_big_int_column,
+        ] {
+            let signed_column =
+                cast_column(&alloc, bool_column, expected_signed_column.column_type());
+            assert_eq!(signed_column, expected_signed_column);
+        }
+
+        // timestamp to big int
+        let timestamp_column = Column::<TestScalar>::TimestampTZ(
+            PoSQLTimeUnit::Microsecond,
+            PoSQLTimeZone::new(1),
+            &[1i64, 9, -1],
+        );
+        let expected_big_int_column = Column::<TestScalar>::BigInt(&[1i64, 9, -1]);
+        let big_int_column = cast_column(&alloc, timestamp_column, ColumnType::BigInt);
+        assert_eq!(big_int_column, expected_big_int_column);
+    }
+
+    #[should_panic(expected = "Casting not supported between BOOLEAN and BINARY")]
+    #[test]
+    fn we_cannot_cast_column_of_uncastable_type() {
+        let alloc = Bump::new();
+        let bool_column = Column::<TestScalar>::Boolean(&[true, false, true]);
+        cast_column(&alloc, bool_column, ColumnType::VarBinary);
+    }
+
+    #[should_panic(expected = "Casting not supported between BOOLEAN and BINARY")]
+    #[test]
+    fn we_cannot_cast_bool_column_to_uncastable_type() {
+        let alloc = Bump::new();
+        let bool_column = &[true, false, true];
+        cast_bool_column_to_signed_int_column::<TestScalar>(
+            &alloc,
+            bool_column,
+            ColumnType::VarBinary,
+        );
     }
 }
