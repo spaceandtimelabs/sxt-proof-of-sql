@@ -29,19 +29,19 @@ pub fn exercise_verification(
     table_ref: &TableRef,
 ) {
     res.clone()
-        .verify(expr, accessor, &())
+        .verify(expr, accessor, &(), &[])
         .expect("Verification failed");
 
     // try changing the result
     let mut res_p = res.clone();
     res_p.result = tampered_table(&res.result);
-    assert!(res_p.verify(expr, accessor, &()).is_err());
+    assert!(res_p.verify(expr, accessor, &(), &[]).is_err());
 
     // try changing MLE evaluations
     for i in 0..res.proof.pcs_proof_evaluations.final_round.len() {
         let mut res_p = res.clone();
         res_p.proof.pcs_proof_evaluations.final_round[i] += Curve25519Scalar::one();
-        assert!(res_p.verify(expr, accessor, &()).is_err());
+        assert!(res_p.verify(expr, accessor, &(), &[]).is_err());
     }
 
     // try changing intermediate commitments
@@ -57,7 +57,7 @@ pub fn exercise_verification(
     for i in 0..res.proof.final_round_message.round_commitments.len() {
         let mut res_p = res.clone();
         res_p.proof.final_round_message.round_commitments[i] = commit_p;
-        assert!(res_p.verify(expr, accessor, &()).is_err());
+        assert!(res_p.verify(expr, accessor, &(), &[]).is_err());
     }
 
     // try changing the offset
@@ -76,9 +76,9 @@ pub fn exercise_verification(
         let offset_generators = accessor.get_offset(table_ref);
         let mut fake_accessor = accessor.clone();
         fake_accessor.update_offset(table_ref, offset_generators);
-        res.clone().verify(expr, &fake_accessor, &()).unwrap();
+        res.clone().verify(expr, &fake_accessor, &(), &[]).unwrap();
         fake_accessor.update_offset(table_ref, offset_generators + 1);
-        assert!(res.clone().verify(expr, &fake_accessor, &()).is_err());
+        assert!(res.clone().verify(expr, &fake_accessor, &(), &[]).is_err());
     }
 }
 

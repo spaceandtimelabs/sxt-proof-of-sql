@@ -67,9 +67,12 @@ fn we_can_prove_a_simple_cast_expr() {
         tab(&t),
         super::DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Boolean(true))),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         tinyint("a_cast", [0i8, 1, 0, 1]),
         smallint("b_cast", [1i16, 1, 0, 1]),

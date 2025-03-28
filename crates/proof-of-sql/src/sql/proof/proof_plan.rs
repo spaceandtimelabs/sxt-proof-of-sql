@@ -1,6 +1,8 @@
 use super::{verification_builder::VerificationBuilder, FinalRoundBuilder, FirstRoundBuilder};
 use crate::base::{
-    database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
+    database::{
+        ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation, TableRef,
+    },
     map::{IndexMap, IndexSet},
     proof::ProofError,
     scalar::Scalar,
@@ -19,6 +21,7 @@ pub trait ProofPlan: Debug + Send + Sync + ProverEvaluate {
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
+        params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError>;
 
     /// Return all the result column fields
@@ -39,6 +42,7 @@ pub trait ProverEvaluate {
         builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S>;
 
     /// Evaluate the query and modify `FinalRoundBuilder` to store an intermediate representation
@@ -52,6 +56,7 @@ pub trait ProverEvaluate {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S>;
 }
 

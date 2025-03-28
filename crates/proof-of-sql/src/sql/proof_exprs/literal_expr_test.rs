@@ -52,9 +52,12 @@ fn test_random_tables_with_given_offset(offset: usize) {
             tab(&t),
             const_bool(lit),
         );
-        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
         exercise_verification(&verifiable_res, &ast, &accessor, &t);
-        let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+        let res = verifiable_res
+            .verify(&ast, &accessor, &(), &[])
+            .unwrap()
+            .table;
 
         // Calculate/compare expected result
         let (expected_a, expected_b, expected_c): (Vec<bool>, Vec<String>, Vec<i64>) = if lit {
@@ -98,9 +101,12 @@ fn we_can_prove_a_query_with_a_single_selected_row() {
         tab(&t),
         const_bool(true),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     assert_eq!(res, expected_res);
 }
 
@@ -115,9 +121,12 @@ fn we_can_prove_a_query_with_a_single_non_selected_row() {
         tab(&t),
         const_bool(false),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [1_i64; 0])]);
     assert_eq!(res, expected_res);
 }
@@ -128,7 +137,7 @@ fn we_can_compute_the_correct_output_of_a_literal_expr_using_result_evaluate() {
     let data: Table<Curve25519Scalar> =
         table([borrowed_bigint("a", [123_i64, 456, 789, 1011], &alloc)]);
     let literal_expr: DynProofExpr = const_bool(true);
-    let res = literal_expr.result_evaluate(&alloc, &data);
+    let res = literal_expr.result_evaluate(&alloc, &data, &[]);
     let expected_res = Column::Boolean(&[true, true, true, true]);
     assert_eq!(res, expected_res);
 }

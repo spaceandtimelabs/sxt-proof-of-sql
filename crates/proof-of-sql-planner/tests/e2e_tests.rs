@@ -8,7 +8,7 @@ use proof_of_sql::{
     base::{
         commitment::CommitmentEvaluationProof,
         database::{
-            owned_table_utility::*, table_utility::*, OwnedTable, Table, TableRef,
+            owned_table_utility::*, table_utility::*, LiteralValue, OwnedTable, Table, TableRef,
             TableTestAccessor, TestAccessor,
         },
     },
@@ -62,6 +62,7 @@ fn posql_end_to_end_test<'a, CP: CommitmentEvaluationProof>(
     expected_results: &[OwnedTable<CP::Scalar>],
     prover_setup: CP::ProverPublicSetup<'a>,
     verifier_setup: CP::VerifierPublicSetup<'_>,
+    params: &[LiteralValue],
 ) {
     // Get accessor
     let accessor: TableTestAccessor<'a, CP> = new_test_accessor(&tables, prover_setup);
@@ -71,8 +72,11 @@ fn posql_end_to_end_test<'a, CP: CommitmentEvaluationProof>(
     let plans = sql_to_proof_plans(sql, &context_provider, &schemas, &config).unwrap();
     // Prove and verify the plans
     for (plan, expected) in plans.iter().zip(expected_results.iter()) {
-        let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup);
-        let res = res.verify(plan, &accessor, &verifier_setup).unwrap().table;
+        let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup, params);
+        let res = res
+            .verify(plan, &accessor, &verifier_setup, params)
+            .unwrap()
+            .table;
         assert_eq!(res, expected.clone());
     }
 }
@@ -85,6 +89,7 @@ fn posql_end_to_end_test_with_postprocessing<'a, CP: CommitmentEvaluationProof>(
     expected_results: &[OwnedTable<CP::Scalar>],
     prover_setup: CP::ProverPublicSetup<'a>,
     verifier_setup: CP::VerifierPublicSetup<'_>,
+    params: &[LiteralValue],
 ) {
     // Get accessor
     let accessor: TableTestAccessor<'a, CP> = new_test_accessor(&tables, prover_setup);
@@ -99,8 +104,11 @@ fn posql_end_to_end_test_with_postprocessing<'a, CP: CommitmentEvaluationProof>(
     {
         // Prove and verify the plans
         let plan = plan_with_postprocessing.plan();
-        let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup);
-        let raw_table = res.verify(plan, &accessor, &verifier_setup).unwrap().table;
+        let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup, params);
+        let raw_table = res
+            .verify(plan, &accessor, &verifier_setup, params)
+            .unwrap()
+            .table;
         // Apply postprocessing
         let transformed_table = plan_with_postprocessing
             .postprocessing()
@@ -125,6 +133,7 @@ fn test_empty_sql() {
         &[],
         &prover_setup,
         &verifier_setup,
+        &[],
     );
 }
 
@@ -157,6 +166,7 @@ fn test_tableless_queries() {
         &expected_results,
         &prover_setup,
         &verifier_setup,
+        &[],
     );
 }
 
@@ -198,6 +208,7 @@ fn test_simple_filter_queries() {
         &expected_results,
         &prover_setup,
         &verifier_setup,
+        &[],
     );
 }
 
@@ -234,6 +245,7 @@ fn test_projection() {
         &expected_results,
         &prover_setup,
         &verifier_setup,
+        &[],
     );
 }
 
@@ -270,6 +282,7 @@ fn test_slicing_limit() {
         &expected_results,
         &prover_setup,
         &verifier_setup,
+        &[],
     );
 }
 
@@ -350,6 +363,7 @@ fn test_group_by() {
         &expected_results,
         &prover_setup,
         &verifier_setup,
+        &[],
     );
 }
 
@@ -390,5 +404,6 @@ fn test_group_by_with_postprocessing() {
         &expected_results,
         &prover_setup,
         &verifier_setup,
+        &[],
     );
 }

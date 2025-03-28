@@ -2,8 +2,8 @@ use super::{fold_columns, fold_vals, DynProofPlan};
 use crate::{
     base::{
         database::{
-            union_util::table_union, Column, ColumnField, ColumnRef, OwnedTable, Table,
-            TableEvaluation, TableRef,
+            union_util::table_union, Column, ColumnField, ColumnRef, LiteralValue, OwnedTable,
+            Table, TableEvaluation, TableRef,
         },
         map::{IndexMap, IndexSet},
         polynomial::MultilinearExtension,
@@ -54,11 +54,12 @@ where
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
+        params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         let input_table_evals = self
             .inputs
             .iter()
-            .map(|input| input.verifier_evaluate(builder, accessor, None, chi_eval_map))
+            .map(|input| input.verifier_evaluate(builder, accessor, None, chi_eval_map, params))
             .collect::<Result<Vec<_>, _>>()?;
         let num_parts = self.inputs.len();
         let input_column_evals = input_table_evals
@@ -112,11 +113,12 @@ impl ProverEvaluate for UnionExec {
         builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         let inputs = self
             .inputs
             .iter()
-            .map(|input| input.first_round_evaluate(builder, alloc, table_map))
+            .map(|input| input.first_round_evaluate(builder, alloc, table_map, params))
             .collect::<Vec<_>>();
         let res = table_union(&inputs, alloc, self.schema.clone()).expect("Failed to union tables");
         builder.request_post_result_challenges(2);
@@ -130,11 +132,12 @@ impl ProverEvaluate for UnionExec {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         let inputs = self
             .inputs
             .iter()
-            .map(|input| input.final_round_evaluate(builder, alloc, table_map))
+            .map(|input| input.final_round_evaluate(builder, alloc, table_map, params))
             .collect::<Vec<_>>();
         let input_lengths = inputs.iter().map(Table::num_rows).collect::<Vec<_>>();
         let res = table_union(&inputs, alloc, self.schema.clone()).expect("Failed to union tables");

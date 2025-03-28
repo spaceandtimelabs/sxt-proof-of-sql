@@ -7,7 +7,8 @@ use crate::{
                 ordered_set_union,
             },
             slice_operation::apply_slice_to_indexes,
-            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
+            ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation, TableOptions,
+            TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -104,15 +105,16 @@ where
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
+        params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         // 1. columns
         // TODO: Make sure `GroupByExec` as self.input is supported
-        let left_eval = self
-            .left
-            .verifier_evaluate(builder, accessor, None, chi_eval_map)?;
-        let right_eval = self
-            .right
-            .verifier_evaluate(builder, accessor, None, chi_eval_map)?;
+        let left_eval =
+            self.left
+                .verifier_evaluate(builder, accessor, None, chi_eval_map, params)?;
+        let right_eval =
+            self.right
+                .verifier_evaluate(builder, accessor, None, chi_eval_map, params)?;
         // 2. Chi evals and rho evals
         let left_chi_eval = left_eval.chi_eval();
         let right_chi_eval = right_eval.chi_eval();
@@ -315,9 +317,14 @@ impl ProverEvaluate for SortMergeJoinExec {
         builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
-        let left = self.left.first_round_evaluate(builder, alloc, table_map);
-        let right = self.right.first_round_evaluate(builder, alloc, table_map);
+        let left = self
+            .left
+            .first_round_evaluate(builder, alloc, table_map, params);
+        let right = self
+            .right
+            .first_round_evaluate(builder, alloc, table_map, params);
         let num_rows_left = left.num_rows();
         let num_rows_right = right.num_rows();
         let num_columns_left = left.num_columns();
@@ -428,9 +435,14 @@ impl ProverEvaluate for SortMergeJoinExec {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
-        let left = self.left.final_round_evaluate(builder, alloc, table_map);
-        let right = self.right.final_round_evaluate(builder, alloc, table_map);
+        let left = self
+            .left
+            .final_round_evaluate(builder, alloc, table_map, params);
+        let right = self
+            .right
+            .final_round_evaluate(builder, alloc, table_map, params);
         let num_rows_left = left.num_rows();
         let num_rows_right = right.num_rows();
         let num_columns_left = left.num_columns();

@@ -5,7 +5,8 @@ use super::range_check::{
 use crate::{
     base::{
         database::{
-            ColumnField, ColumnRef, ColumnType, OwnedTable, Table, TableEvaluation, TableRef,
+            ColumnField, ColumnRef, ColumnType, LiteralValue, OwnedTable, Table, TableEvaluation,
+            TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
@@ -96,6 +97,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
         builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        _params: &[LiteralValue],
     ) -> Table<'a, S> {
         builder.request_post_result_challenges(1);
         builder.update_range_length(256);
@@ -124,6 +126,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        _params: &[LiteralValue],
     ) -> Table<'a, S> {
         let table = table_map
             .get(&self.column.table_ref())
@@ -163,6 +166,7 @@ impl ProofPlan for RangeCheckTestPlan {
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
+        _params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         let input_column_eval = accessor[&self.column];
         let chi_n_eval = chi_eval_map[&self.column.table_ref()];
@@ -200,8 +204,9 @@ mod tests {
         let ast = RangeCheckTestPlan {
             column: ColumnRef::new(table_name, col_name.into(), col_type),
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, accessor, &());
-        assert!(verifiable_res.verify(&ast, accessor, &()).is_ok());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&ast, accessor, &(), &[]);
+        assert!(verifiable_res.verify(&ast, accessor, &(), &[]).is_ok());
     }
 
     #[test]
@@ -272,8 +277,9 @@ mod tests {
         let ast = RangeCheckTestPlan {
             column: ColumnRef::new(t.clone(), "a".into(), ColumnType::Scalar),
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
-        let _ = verifiable_res.verify(&ast, &accessor, &());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+        let _ = verifiable_res.verify(&ast, &accessor, &(), &[]);
     }
 
     #[test]
@@ -301,11 +307,12 @@ mod tests {
         let ast = RangeCheckTestPlan {
             column: ColumnRef::new(t.clone(), "a".into(), ColumnType::Scalar),
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
         let res: Result<
             crate::sql::proof::QueryData<crate::base::scalar::MontScalar<ark_curve25519::FrConfig>>,
             crate::sql::proof::QueryError,
-        > = verifiable_res.verify(&ast, &accessor, &());
+        > = verifiable_res.verify(&ast, &accessor, &(), &[]);
 
         if let Err(e) = res {
             panic!("Verification failed: {e}");
@@ -339,11 +346,12 @@ mod tests {
         let ast = RangeCheckTestPlan {
             column: ColumnRef::new(t.clone(), "a".into(), ColumnType::Scalar),
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
         let res: Result<
             crate::sql::proof::QueryData<crate::base::scalar::MontScalar<ark_curve25519::FrConfig>>,
             crate::sql::proof::QueryError,
-        > = verifiable_res.verify(&ast, &accessor, &());
+        > = verifiable_res.verify(&ast, &accessor, &(), &[]);
 
         if let Err(e) = res {
             panic!("Verification failed: {e}");
@@ -379,7 +387,8 @@ mod tests {
         let ast = RangeCheckTestPlan {
             column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
-        verifiable_res.verify(&ast, &accessor, &()).unwrap();
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+        verifiable_res.verify(&ast, &accessor, &(), &[]).unwrap();
     }
 }

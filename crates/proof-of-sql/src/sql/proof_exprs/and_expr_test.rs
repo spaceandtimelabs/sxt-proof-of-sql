@@ -51,9 +51,12 @@ fn we_can_prove_a_simple_and_query() {
             ),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [2]), varchar("d", ["t"])]);
     assert_eq!(res, expected_res);
 }
@@ -80,9 +83,12 @@ fn we_can_prove_a_simple_and_query_with_128_bits() {
             ),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([int128("a", [2]), varchar("d", ["t"])]);
     assert_eq!(res, expected_res);
 }
@@ -129,9 +135,12 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 equal(column(&t, "c", &accessor), const_bigint(filter_val2)),
             ),
         );
-        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
         exercise_verification(&verifiable_res, &ast, &accessor, &t);
-        let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+        let res = verifiable_res
+            .verify(&ast, &accessor, &(), &[])
+            .unwrap()
+            .table;
 
         // Calculate/compare expected result
         let (expected_a, expected_d): (Vec<_>, Vec<_>) = multizip((
@@ -180,7 +189,7 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
         equal(column(&t, "b", &accessor), const_int128(1)),
         equal(column(&t, "d", &accessor), const_varchar("t")),
     );
-    let res = and_expr.result_evaluate(&alloc, &data);
+    let res = and_expr.result_evaluate(&alloc, &data, &[]);
     let expected_res = Column::Boolean(&[false, true, false, false]);
     assert_eq!(res, expected_res);
 }
@@ -207,7 +216,7 @@ fn we_can_verify_a_simple_proof() {
     let mut final_round_builder: FinalRoundBuilder<'_, TestScalar> =
         FinalRoundBuilder::new(4, VecDeque::new());
 
-    and_expr.prover_evaluate(&mut final_round_builder, &alloc, &table);
+    and_expr.prover_evaluate(&mut final_round_builder, &alloc, &table, &[]);
 
     let verification_builder = run_verify_for_each_row(
         4,
@@ -220,7 +229,7 @@ fn we_can_verify_a_simple_proof() {
                 b.clone() => rhs.inner_product(evaluation_point)
             };
             and_expr
-                .verifier_evaluate(verification_builder, &accessor, chi_eval)
+                .verifier_evaluate(verification_builder, &accessor, chi_eval, &[])
                 .unwrap();
         },
     );
@@ -274,7 +283,7 @@ fn we_can_reject_a_simple_tampered_proof() {
             b.clone() => rhs.inner_product(evaluation_point)
         };
         and_expr
-            .verifier_evaluate(&mut verification_builder, &accessor, chi_eval)
+            .verifier_evaluate(&mut verification_builder, &accessor, chi_eval, &[])
             .unwrap();
         verification_builder.increment_row_index();
     }
