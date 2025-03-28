@@ -207,6 +207,33 @@ pub fn try_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult
     }
 }
 
+/// Verifies that `from` can be cast to `to`. This only supports converting types to a larger type (Decimal(10, 5) to Decimal (11, 5) for example).
+#[cfg_attr(not(test), expect(dead_code))]
+pub fn try_cast_types_with_scaling(
+    from: ColumnType,
+    to: ColumnType,
+) -> ColumnOperationResult<ColumnType> {
+    match (from, to) {
+        (
+            ColumnType::TinyInt
+            | ColumnType::SmallInt
+            | ColumnType::Int
+            | ColumnType::Int128
+            | ColumnType::BigInt,
+            (ColumnType::Decimal75(precision, scale)),
+        ) => {
+            unimplemented!()
+        },
+        (ColumnType::Decimal75(precision_small, scale_small ), ColumnType::Decimal75(precision_big, scale_big )) => {
+            unimplemented!()
+        }
+        _ => Err(ColumnOperationError::ScaleCastingError {
+            left_type: from,
+            right_type: to,
+        }),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

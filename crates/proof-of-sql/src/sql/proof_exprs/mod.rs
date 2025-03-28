@@ -74,3 +74,5 @@ mod column_expr_test;
 mod cast_expr;
 #[cfg(all(test, feature = "blitzar"))]
 mod cast_expr_test;
+
+mod scaling_cast_expr;
