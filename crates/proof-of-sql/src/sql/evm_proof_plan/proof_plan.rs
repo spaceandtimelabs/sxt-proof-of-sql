@@ -2,7 +2,8 @@ use super::{error::Error, plans::Plan};
 use crate::{
     base::{
         database::{
-            ColumnField, ColumnRef, ColumnType, OwnedTable, Table, TableEvaluation, TableRef,
+            ColumnField, ColumnRef, ColumnType, LiteralValue, OwnedTable, Table, TableEvaluation,
+            TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -155,9 +156,10 @@ impl ProofPlan for EVMProofPlan {
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
+        params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         self.inner()
-            .verifier_evaluate(builder, accessor, result, chi_eval_map)
+            .verifier_evaluate(builder, accessor, result, chi_eval_map, params)
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         self.inner().get_column_result_fields()
@@ -175,15 +177,19 @@ impl ProverEvaluate for EVMProofPlan {
         builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
-        self.inner().first_round_evaluate(builder, alloc, table_map)
+        self.inner()
+            .first_round_evaluate(builder, alloc, table_map, params)
     }
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
-        self.inner().final_round_evaluate(builder, alloc, table_map)
+        self.inner()
+            .final_round_evaluate(builder, alloc, table_map, params)
     }
 }

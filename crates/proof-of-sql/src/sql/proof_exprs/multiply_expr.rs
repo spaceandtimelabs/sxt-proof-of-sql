@@ -1,7 +1,7 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{try_multiply_column_types, Column, ColumnRef, ColumnType, Table},
+        database::{try_multiply_column_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -40,9 +40,10 @@ impl ProofExpr for MultiplyExpr {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        params: &[LiteralValue],
     ) -> Column<'a, S> {
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table);
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table);
+        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table, params);
+        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table, params);
         let scalars = multiply_columns(&lhs_column, &rhs_column, alloc);
         Column::Scalar(scalars)
     }
@@ -57,11 +58,12 @@ impl ProofExpr for MultiplyExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        params: &[LiteralValue],
     ) -> Column<'a, S> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table, params);
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table, params);
 
         // lhs_times_rhs
         let lhs_times_rhs: &'a [S] = multiply_columns(&lhs_column, &rhs_column, alloc);
@@ -87,9 +89,14 @@ impl ProofExpr for MultiplyExpr {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
+        params: &[LiteralValue],
     ) -> Result<S, ProofError> {
-        let lhs = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
-        let rhs = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
+        let lhs = self
+            .lhs
+            .verifier_evaluate(builder, accessor, chi_eval, params)?;
+        let rhs = self
+            .rhs
+            .verifier_evaluate(builder, accessor, chi_eval, params)?;
 
         // lhs_times_rhs
         let lhs_times_rhs = builder.try_consume_final_round_mle_evaluation()?;

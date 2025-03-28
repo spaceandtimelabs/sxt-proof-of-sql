@@ -2,7 +2,8 @@ use super::DynProofPlan;
 use crate::{
     base::{
         database::{
-            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
+            ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation, TableOptions,
+            TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -47,11 +48,12 @@ impl ProofPlan for ProjectionExec {
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
+        params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         // For projections input and output have the same length and hence the same chi eval
-        let input_eval = self
-            .input
-            .verifier_evaluate(builder, accessor, None, chi_eval_map)?;
+        let input_eval =
+            self.input
+                .verifier_evaluate(builder, accessor, None, chi_eval_map, params)?;
         let chi_eval = input_eval.chi_eval();
         // Build new accessors
         // TODO: Make this work with inputs with multiple tables such as join
@@ -90,7 +92,7 @@ impl ProofPlan for ProjectionExec {
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .verifier_evaluate(builder, &current_accessor, chi_eval)
+                    .verifier_evaluate(builder, &current_accessor, chi_eval, params)
             })
             .collect::<Result<Vec<_>, _>>()?;
         Ok(TableEvaluation::new(output_column_evals, chi_eval))
@@ -126,16 +128,19 @@ impl ProverEvaluate for ProjectionExec {
         builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
-        let input = self.input.first_round_evaluate(builder, alloc, table_map);
+        let input = self
+            .input
+            .first_round_evaluate(builder, alloc, table_map, params);
 
         let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias.clone(),
-                    aliased_expr.expr.result_evaluate(alloc, &input),
+                    aliased_expr.expr.result_evaluate(alloc, &input, params),
                 )
             }),
             TableOptions::new(Some(input.num_rows())),
@@ -157,16 +162,21 @@ impl ProverEvaluate for ProjectionExec {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
-        let input = self.input.final_round_evaluate(builder, alloc, table_map);
+        let input = self
+            .input
+            .final_round_evaluate(builder, alloc, table_map, params);
         // Evaluate result expressions
         let res = Table::<'a, S>::try_from_iter_with_options(
             self.aliased_results.iter().map(|aliased_expr| {
                 (
                     aliased_expr.alias.clone(),
-                    aliased_expr.expr.prover_evaluate(builder, alloc, &input),
+                    aliased_expr
+                        .expr
+                        .prover_evaluate(builder, alloc, &input, params),
                 )
             }),
             TableOptions::new(Some(input.num_rows())),

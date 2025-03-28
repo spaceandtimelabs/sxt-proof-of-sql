@@ -2,8 +2,8 @@ use super::{fold_columns, fold_vals};
 use crate::{
     base::{
         database::{
-            filter_util::filter_columns, Column, ColumnField, ColumnRef, OwnedTable, Table,
-            TableEvaluation, TableOptions, TableRef,
+            filter_util::filter_columns, Column, ColumnField, ColumnRef, LiteralValue, OwnedTable,
+            Table, TableEvaluation, TableOptions, TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -66,6 +66,7 @@ where
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
+        params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         let input_chi_eval = *chi_eval_map
             .get(&self.table.table_ref)
@@ -73,7 +74,7 @@ where
         // 1. selection
         let selection_eval =
             self.where_clause
-                .verifier_evaluate(builder, accessor, input_chi_eval)?;
+                .verifier_evaluate(builder, accessor, input_chi_eval, params)?;
         // 2. columns
         let columns_evals = Vec::from_iter(
             self.aliased_results
@@ -81,7 +82,7 @@ where
                 .map(|aliased_expr| {
                     aliased_expr
                         .expr
-                        .verifier_evaluate(builder, accessor, input_chi_eval)
+                        .verifier_evaluate(builder, accessor, input_chi_eval, params)
                 })
                 .collect::<Result<Vec<_>, _>>()?,
         );
@@ -147,6 +148,7 @@ impl ProverEvaluate for FilterExec {
         builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
@@ -154,7 +156,8 @@ impl ProverEvaluate for FilterExec {
             .get(&self.table.table_ref)
             .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, table);
+        let selection_column: Column<'a, S> =
+            self.where_clause.result_evaluate(alloc, table, params);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -164,7 +167,7 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table))
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table, params))
             .collect();
 
         // Compute filtered_columns and indexes
@@ -191,6 +194,7 @@ impl ProverEvaluate for FilterExec {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
@@ -198,8 +202,9 @@ impl ProverEvaluate for FilterExec {
             .get(&self.table.table_ref)
             .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, S> =
-            self.where_clause.prover_evaluate(builder, alloc, table);
+        let selection_column: Column<'a, S> = self
+            .where_clause
+            .prover_evaluate(builder, alloc, table, params);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -209,7 +214,11 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, table))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(builder, alloc, table, params)
+            })
             .collect();
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);

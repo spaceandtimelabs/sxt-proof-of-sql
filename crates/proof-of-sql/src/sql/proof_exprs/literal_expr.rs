@@ -45,6 +45,7 @@ impl ProofExpr for LiteralExpr {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        _params: &[LiteralValue],
     ) -> Column<'a, S> {
         log::log_memory_usage("Start");
 
@@ -61,6 +62,7 @@ impl ProofExpr for LiteralExpr {
         _builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        _params: &[LiteralValue],
     ) -> Column<'a, S> {
         log::log_memory_usage("Start");
 
@@ -77,6 +79,7 @@ impl ProofExpr for LiteralExpr {
         _builder: &mut impl VerificationBuilder<S>,
         _accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
+        _params: &[LiteralValue],
     ) -> Result<S, ProofError> {
         Ok(chi_eval * self.value.to_scalar())
     }

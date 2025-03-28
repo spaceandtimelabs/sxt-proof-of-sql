@@ -5,7 +5,7 @@ use super::{
 use crate::{
     base::{
         database::{
-            filter_util::filter_columns, ColumnField, ColumnRef, OwnedTable, Table,
+            filter_util::filter_columns, ColumnField, ColumnRef, LiteralValue, OwnedTable, Table,
             TableEvaluation, TableOptions, TableRef,
         },
         map::{IndexMap, IndexSet},
@@ -60,11 +60,12 @@ where
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
+        params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         // 1. columns
         let input_table_eval =
             self.input
-                .verifier_evaluate(builder, accessor, None, chi_eval_map)?;
+                .verifier_evaluate(builder, accessor, None, chi_eval_map, params)?;
         let output_chi_eval = builder.try_consume_chi_evaluation()?;
         let columns_evals = input_table_eval.column_evals();
         // 2. selection
@@ -114,11 +115,14 @@ impl ProverEvaluate for SliceExec {
         builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
         // 1. columns
-        let input = self.input.first_round_evaluate(builder, alloc, table_map);
+        let input = self
+            .input
+            .first_round_evaluate(builder, alloc, table_map, params);
         let input_length = input.num_rows();
         let columns = input.columns().copied().collect::<Vec<_>>();
         // 2. select
@@ -157,11 +161,14 @@ impl ProverEvaluate for SliceExec {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
         // 1. columns
-        let input = self.input.final_round_evaluate(builder, alloc, table_map);
+        let input = self
+            .input
+            .final_round_evaluate(builder, alloc, table_map, params);
         let columns = input.columns().copied().collect::<Vec<_>>();
         // 2. select
         let select = get_slice_select(input.num_rows(), self.skip, self.fetch);

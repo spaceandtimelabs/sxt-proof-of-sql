@@ -4,8 +4,8 @@ use crate::{
         database::{
             group_by_util::{aggregate_columns, AggregatedColumns},
             order_by_util::compare_indexes_by_owned_columns,
-            Column, ColumnField, ColumnRef, ColumnType, OwnedTable, Table, TableEvaluation,
-            TableRef,
+            Column, ColumnField, ColumnRef, ColumnType, LiteralValue, OwnedTable, Table,
+            TableEvaluation, TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -74,19 +74,20 @@ impl ProofPlan for GroupByExec {
         accessor: &IndexMap<ColumnRef, S>,
         result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
+        params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         let input_chi_eval = *chi_eval_map
             .get(&self.table.table_ref)
             .expect("Chi eval not found");
         // 1. selection
-        let where_eval = self
-            .where_clause
-            .verifier_evaluate(builder, accessor, input_chi_eval)?;
+        let where_eval =
+            self.where_clause
+                .verifier_evaluate(builder, accessor, input_chi_eval, params)?;
         // 2. columns
         let group_by_evals = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.verifier_evaluate(builder, accessor, input_chi_eval))
+            .map(|expr| expr.verifier_evaluate(builder, accessor, input_chi_eval, params))
             .collect::<Result<Vec<_>, _>>()?;
         let aggregate_evals = self
             .sum_expr
@@ -94,7 +95,7 @@ impl ProofPlan for GroupByExec {
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .verifier_evaluate(builder, accessor, input_chi_eval)
+                    .verifier_evaluate(builder, accessor, input_chi_eval, params)
             })
             .collect::<Result<Vec<_>, _>>()?;
         // 3. filtered_columns
@@ -196,6 +197,7 @@ impl ProverEvaluate for GroupByExec {
         builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
@@ -203,7 +205,8 @@ impl ProverEvaluate for GroupByExec {
             .get(&self.table.table_ref)
             .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, table);
+        let selection_column: Column<'a, S> =
+            self.where_clause.result_evaluate(alloc, table, params);
 
         let selection = selection_column
             .as_boolean()
@@ -213,12 +216,12 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.result_evaluate(alloc, table))
+            .map(|expr| expr.result_evaluate(alloc, table, params))
             .collect::<Vec<_>>();
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table))
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table, params))
             .collect::<Vec<_>>();
         // Compute filtered_columns
         let AggregatedColumns {
@@ -255,6 +258,7 @@ impl ProverEvaluate for GroupByExec {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
@@ -262,8 +266,9 @@ impl ProverEvaluate for GroupByExec {
             .get(&self.table.table_ref)
             .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, S> =
-            self.where_clause.prover_evaluate(builder, alloc, table);
+        let selection_column: Column<'a, S> = self
+            .where_clause
+            .prover_evaluate(builder, alloc, table, params);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -272,12 +277,16 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.prover_evaluate(builder, alloc, table))
+            .map(|expr| expr.prover_evaluate(builder, alloc, table, params))
             .collect::<Vec<_>>();
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, table))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(builder, alloc, table, params)
+            })
             .collect::<Vec<_>>();
         // 3. Compute filtered_columns
         let AggregatedColumns {

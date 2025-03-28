@@ -43,9 +43,9 @@ fn we_can_prove_a_minimal_filter_query_with_curve25519() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let expected_result = owned_table([boolean("a", [true])]);
@@ -77,9 +77,10 @@ fn we_can_prove_a_minimal_filter_query_with_dory() {
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
+        &[],
     );
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[])
         .unwrap()
         .table;
     let expected_result = owned_table([boolean("a", [false])]);
@@ -109,9 +110,10 @@ fn we_can_prove_a_minimal_filter_query_with_dynamic_dory() {
         query.proof_expr(),
         &accessor,
         &&prover_setup,
+        &[],
     );
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &&verifier_setup)
+        .verify(query.proof_expr(), &accessor, &&verifier_setup, &[])
         .unwrap()
         .table;
     let expected_result = owned_table([boolean("a", [false])]);
@@ -134,9 +136,9 @@ fn we_can_prove_a_basic_equality_query_with_curve25519() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let expected_result = owned_table([bigint("a", [1, 3]), bigint("b", [1, 1])]);
@@ -168,9 +170,10 @@ fn we_can_prove_a_basic_equality_query_with_dory() {
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
+        &[],
     );
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[])
         .unwrap()
         .table;
     let expected_result = owned_table([bigint("a", [1, 3]), bigint("b", [1, 1])]);
@@ -204,9 +207,9 @@ fn we_can_prove_a_basic_equality_query_with_hyperkzg() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, &&ark_setup[..]);
+        VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, &&ark_setup[..], &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &&vk)
+        .verify(query.proof_expr(), &accessor, &&vk, &[])
         .unwrap()
         .table;
     let expected_result = owned_table([bigint("a", [1, 3]), bigint("b", [1, 1])]);
@@ -229,9 +232,9 @@ fn we_can_prove_a_basic_inequality_query_with_curve25519() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let expected_result = owned_table([bigint("a", [1, 3]), bigint("b", [1, 2])]);
@@ -260,9 +263,9 @@ fn we_can_prove_a_basic_query_containing_extrema_with_curve25519() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -306,9 +309,10 @@ fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
+        &[],
     );
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[])
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -337,9 +341,9 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let transformed_result: OwnedTable<Curve25519Scalar> =
@@ -372,9 +376,10 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
+        &[],
     );
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[])
         .unwrap()
         .table;
     let expected_result = owned_table([bigint("a", [3]), bigint("b", [2])]);
@@ -402,9 +407,9 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let transformed_result: OwnedTable<Curve25519Scalar> =
@@ -438,9 +443,10 @@ fn we_can_prove_a_basic_inequality_query_with_dory() {
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
+        &[],
     );
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[])
         .unwrap()
         .table;
     let expected_result = owned_table([bigint("a", [2]), bigint("b", [0])]);
@@ -492,9 +498,9 @@ fn we_can_prove_a_complex_query_with_curve25519() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -542,9 +548,10 @@ fn we_can_prove_a_complex_query_with_dory() {
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
+        &[],
     );
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[])
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -575,9 +582,9 @@ fn we_can_prove_a_minimal_group_by_query_with_curve25519() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result: OwnedTable<Curve25519Scalar> = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let transformed_result: OwnedTable<Curve25519Scalar> =
@@ -609,9 +616,9 @@ fn we_can_prove_a_basic_group_by_query_with_curve25519() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -671,9 +678,9 @@ fn we_can_prove_a_cat_group_by_query_with_curve25519() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -745,9 +752,10 @@ fn we_can_prove_a_cat_group_by_query_with_dynamic_dory() {
         query.proof_expr(),
         &accessor,
         &&prover_setup,
+        &[],
     );
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &&verifier_setup)
+        .verify(query.proof_expr(), &accessor, &&verifier_setup, &[])
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -788,9 +796,10 @@ fn we_can_prove_a_basic_group_by_query_with_dory() {
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
+        &[],
     );
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &dory_verifier_setup)
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[])
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -822,9 +831,9 @@ fn we_can_prove_a_varbinary_equality_query_with_hex_literal() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let expected_result = owned_table([bigint("a", [4567]), varbinary("b", [vec![4, 5, 6, 7]])]);
@@ -848,9 +857,9 @@ fn we_can_prove_a_query_with_overflow_with_curve25519() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     assert!(matches!(
-        verifiable_result.verify(query.proof_expr(), &accessor, &()),
+        verifiable_result.verify(query.proof_expr(), &accessor, &(), &[]),
         Err(QueryError::Overflow)
     ));
 }
@@ -880,9 +889,10 @@ fn we_can_prove_a_query_with_overflow_with_dory() {
         query.proof_expr(),
         &accessor,
         &dory_prover_setup,
+        &[],
     );
     assert!(matches!(
-        verifiable_result.verify(query.proof_expr(), &accessor, &dory_verifier_setup,),
+        verifiable_result.verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[]),
         Err(QueryError::Overflow)
     ));
 }
@@ -909,9 +919,9 @@ fn we_can_perform_arithmetic_and_conditional_operations_on_tinyint() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let expected_result = owned_table([tinyint("result", [9_i8, 10])]);
@@ -940,9 +950,9 @@ fn we_can_perform_equality_checks_on_var_binary() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -1018,9 +1028,9 @@ fn we_can_perform_rich_equality_checks_on_var_binary() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let expected_result = owned_table([
@@ -1173,9 +1183,9 @@ fn we_can_perform_equality_checks_on_rich_var_binary_data() {
     )
     .unwrap();
     let verifiable_result =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = verifiable_result
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
 

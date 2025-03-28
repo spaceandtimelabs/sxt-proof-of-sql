@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, Table},
+        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -23,6 +23,7 @@ pub trait ProofExpr: Debug + Send + Sync {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        params: &[LiteralValue],
     ) -> Column<'a, S>;
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
@@ -32,6 +33,7 @@ pub trait ProofExpr: Debug + Send + Sync {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        params: &[LiteralValue],
     ) -> Column<'a, S>;
 
     /// Compute the evaluation of a multilinear extension from this expression
@@ -42,6 +44,7 @@ pub trait ProofExpr: Debug + Send + Sync {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
+        params: &[LiteralValue],
     ) -> Result<S, ProofError>;
 
     /// Insert in the [`IndexSet`] `columns` all the column

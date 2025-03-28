@@ -2,8 +2,8 @@ use super::{filter_exec::prove_filter, OstensibleFilterExec};
 use crate::{
     base::{
         database::{
-            filter_util::*, owned_table_utility::*, Column, OwnedTableTestAccessor, Table,
-            TableOptions, TableRef, TestAccessor,
+            filter_util::*, owned_table_utility::*, Column, LiteralValue, OwnedTableTestAccessor,
+            Table, TableOptions, TableRef, TestAccessor,
         },
         map::IndexMap,
         proof::ProofError,
@@ -40,6 +40,7 @@ impl ProverEvaluate for DishonestFilterExec {
         builder: &mut FirstRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
@@ -47,7 +48,8 @@ impl ProverEvaluate for DishonestFilterExec {
             .get(&self.table.table_ref)
             .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, S> = self.where_clause.result_evaluate(alloc, table);
+        let selection_column: Column<'a, S> =
+            self.where_clause.result_evaluate(alloc, table, params);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -56,7 +58,7 @@ impl ProverEvaluate for DishonestFilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table))
+            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table, params))
             .collect();
         // Compute filtered_columns
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
@@ -87,6 +89,7 @@ impl ProverEvaluate for DishonestFilterExec {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        params: &[LiteralValue],
     ) -> Table<'a, S> {
         log::log_memory_usage("Start");
 
@@ -94,8 +97,9 @@ impl ProverEvaluate for DishonestFilterExec {
             .get(&self.table.table_ref)
             .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, S> =
-            self.where_clause.prover_evaluate(builder, alloc, table);
+        let selection_column: Column<'a, S> = self
+            .where_clause
+            .prover_evaluate(builder, alloc, table, params);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -104,7 +108,11 @@ impl ProverEvaluate for DishonestFilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, table))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(builder, alloc, table, params)
+            })
             .collect();
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
@@ -179,9 +187,9 @@ fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
         tab(&t),
         equal(column(&t, "a", &accessor), const_int128(105_i128)),
     );
-    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
     assert!(matches!(
-        res.verify(&expr, &accessor, &()),
+        res.verify(&expr, &accessor, &(), &[]),
         Err(QueryError::ProofError {
             source: ProofError::VerificationError { .. }
         })

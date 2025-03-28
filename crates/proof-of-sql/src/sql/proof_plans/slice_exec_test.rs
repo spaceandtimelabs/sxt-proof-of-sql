@@ -44,9 +44,12 @@ fn we_can_prove_and_get_the_correct_result_from_a_slice_exec() {
         1,
         Some(2),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [2_i64, 3]), varchar("b", ["2", "3"])]);
     assert_eq!(res, expected_res);
 }
@@ -70,9 +73,12 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_slice_exec() {
         1,
         Some(2),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [0_i64; 0]), varchar("b", [""; 0])]);
     assert_eq!(res, expected_res);
 }
@@ -119,6 +125,7 @@ fn we_can_get_an_empty_result_from_a_slice_on_an_empty_table_using_first_round_e
         first_round_builder,
         &alloc,
         &table_map,
+        &[],
     ))
     .to_owned_table(fields)
     .unwrap();
@@ -174,6 +181,7 @@ fn we_can_get_an_empty_result_from_a_slice_using_first_round_evaluate() {
         first_round_builder,
         &alloc,
         &table_map,
+        &[],
     ))
     .to_owned_table(fields)
     .unwrap();
@@ -216,6 +224,7 @@ fn we_can_get_no_columns_from_a_slice_with_empty_input_using_first_round_evaluat
         first_round_builder,
         &alloc,
         &table_map,
+        &[],
     ))
     .to_owned_table(fields)
     .unwrap();
@@ -264,6 +273,7 @@ fn we_can_get_the_correct_result_from_a_slice_using_first_round_evaluate() {
         first_round_builder,
         &alloc,
         &table_map,
+        &[],
     ))
     .to_owned_table(fields)
     .unwrap();
@@ -307,9 +317,9 @@ fn we_can_prove_a_slice_exec() {
         2,
         Some(1),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
     exercise_verification(&res, &expr, &accessor, &t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("b", [4]),
         int128("c", [4]),
@@ -356,9 +366,9 @@ fn we_can_prove_a_nested_slice_exec() {
         1,
         Some(1),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
     exercise_verification(&res, &expr, &accessor, &t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("b", [4]),
         int128("c", [4]),
@@ -405,9 +415,9 @@ fn we_can_prove_a_nested_slice_exec_with_no_rows() {
         3,
         None,
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
     exercise_verification(&res, &expr, &accessor, &t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("b", [0; 0]),
         int128("c", [0; 0]),
@@ -454,9 +464,9 @@ fn we_can_prove_another_nested_slice_exec_with_no_rows() {
         3,
         None,
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
     exercise_verification(&res, &expr, &accessor, &t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("b", [0; 0]),
         int128("c", [0; 0]),
@@ -507,9 +517,12 @@ fn we_can_create_and_prove_a_slice_exec_on_top_of_a_table_exec() {
         0_usize,
         (),
     );
-    let verifiable_res = VerifiableQueryResult::new(&plan, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&plan, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &plan, &accessor, &table_ref);
-    let res = verifiable_res.verify(&plan, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&plan, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected = owned_table([
         bigint("language_rank", [1_i64, 2, 3]),
         varchar("language_name", ["Español", "Português", "Français"]),
@@ -526,8 +539,8 @@ fn we_can_create_and_prove_a_slice_exec_on_top_of_an_empty_exec() {
     let empty_table = owned_table([]);
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let expr = slice_exec(empty_exec(), 3, Some(2));
-    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     assert_eq!(res, empty_table);
 }
 
@@ -553,9 +566,9 @@ fn we_cannot_prove_a_slice_exec_if_it_has_groupby_as_input_for_now() {
         None,
     );
     let res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&expr, &accessor, &());
+        VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
     assert!(matches!(
-        res.verify(&expr, &accessor, &()),
+        res.verify(&expr, &accessor, &(), &[]),
         Err(QueryError::ProofError {
             source: ProofError::UnsupportedQueryPlan { .. }
         })

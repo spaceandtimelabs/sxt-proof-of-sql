@@ -35,9 +35,10 @@ fn run_query(
     accessor.add_table(TableRef::new("sxt", "table"), data, 0);
 
     let query = QueryExpr::try_new(query_str.parse().unwrap(), "sxt".into(), &accessor).unwrap();
-    let proof = VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let proof =
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &())
+        .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
     let owned_table_result: OwnedTable<_> =

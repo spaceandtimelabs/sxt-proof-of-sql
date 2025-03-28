@@ -54,6 +54,7 @@ fn prove_and_verify_query(
         query_plan.proof_expr(),
         accessor,
         &prover_setup,
+        &[],
     );
     println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
@@ -61,7 +62,7 @@ fn prove_and_verify_query(
     print!("Verifying proof...");
     let now = Instant::now();
     let result = verifiable_result
-        .verify(query_plan.proof_expr(), accessor, &verifier_setup)
+        .verify(query_plan.proof_expr(), accessor, &verifier_setup, &[])
         .unwrap();
     let result = apply_postprocessing_steps(result.table, query_plan.postprocessing());
     println!("Verified in {} ms.", now.elapsed().as_secs_f64() * 1000.);

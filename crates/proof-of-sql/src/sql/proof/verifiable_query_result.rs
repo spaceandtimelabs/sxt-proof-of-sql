@@ -2,7 +2,7 @@ use super::{ProofPlan, QueryData, QueryProof, QueryResult};
 use crate::{
     base::{
         commitment::CommitmentEvaluationProof,
-        database::{CommitmentAccessor, DataAccessor, OwnedTable},
+        database::{CommitmentAccessor, DataAccessor, LiteralValue, OwnedTable},
     },
     utils::log,
 };
@@ -82,9 +82,10 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         expr: &(impl ProofPlan + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
+        params: &[LiteralValue],
     ) -> Self {
         log::log_memory_usage("Start");
-        let (proof, res) = QueryProof::new(expr, accessor, setup);
+        let (proof, res) = QueryProof::new(expr, accessor, setup, params);
         log::log_memory_usage("End");
         Self { result: res, proof }
     }
@@ -102,12 +103,15 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         expr: &(impl ProofPlan + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         setup: &CP::VerifierPublicSetup<'_>,
+        params: &[LiteralValue],
     ) -> QueryResult<CP::Scalar> {
         log::log_memory_usage("Start");
         let QueryData {
             table,
             verification_hash,
-        } = self.proof.verify(expr, accessor, self.result, setup)?;
+        } = self
+            .proof
+            .verify(expr, accessor, self.result, setup, params)?;
         Ok(QueryData {
             table: table.try_coerce_with_fields(expr.get_column_result_fields())?,
             verification_hash,
