@@ -531,7 +531,6 @@ fn cast_bool_column_to_signed_int_column<'a, S: Scalar>(
 ///
 /// # Panics
 /// Panics if casting is not supported between the two types
-#[cfg_attr(not(test), expect(dead_code))]
 pub fn cast_column<'a, S: Scalar>(
     alloc: &'a Bump,
     from_column: Column<'a, S>,

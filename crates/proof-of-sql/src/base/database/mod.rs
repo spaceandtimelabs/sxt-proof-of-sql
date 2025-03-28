@@ -14,7 +14,8 @@ mod slice_decimal_operation;
 
 mod column_type_operation;
 pub use column_type_operation::{
-    try_add_subtract_column_types, try_divide_column_types, try_multiply_column_types,
+    try_add_subtract_column_types, try_cast_types, try_divide_column_types,
+    try_multiply_column_types,
 };
 
 mod column_arithmetic_operation;
