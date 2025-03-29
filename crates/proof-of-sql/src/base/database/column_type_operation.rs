@@ -209,29 +209,32 @@ pub fn try_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult
 
 /// Verifies that `from` can be cast to `to`. This only supports converting types to a larger type (Decimal(10, 5) to Decimal (11, 5) for example).
 #[cfg_attr(not(test), expect(dead_code))]
-pub fn try_cast_types_with_scaling(
-    from: ColumnType,
-    to: ColumnType,
-) -> ColumnOperationResult<ColumnType> {
+#[expect(clippy::missing_panics_doc)]
+pub fn try_cast_types_with_scaling(from: ColumnType, to: ColumnType) -> ColumnOperationResult<()> {
     match (from, to) {
         (
             ColumnType::TinyInt
             | ColumnType::SmallInt
             | ColumnType::Int
             | ColumnType::Int128
-            | ColumnType::BigInt,
-            (ColumnType::Decimal75(precision, scale)),
+            | ColumnType::BigInt
+            | ColumnType::Decimal75(_, _),
+            ColumnType::Decimal75(precision, scale),
         ) => {
-            unimplemented!()
-        },
-        (ColumnType::Decimal75(precision_small, scale_small ), ColumnType::Decimal75(precision_big, scale_big )) => {
-            unimplemented!()
+            let from_precision = i16::from(from.precision_value().unwrap());
+            let from_scale = i16::from(from.scale().unwrap());
+            let to_precision = i16::from(precision.value());
+            let to_scale = i16::from(scale);
+            to_scale >= from_scale
+                && (to_precision - to_scale.max(0)) >= (from_precision - from_scale.max(0))
         }
-        _ => Err(ColumnOperationError::ScaleCastingError {
-            left_type: from,
-            right_type: to,
-        }),
+        _ => false,
     }
+    .then_some(())
+    .ok_or(ColumnOperationError::ScaleCastingError {
+        left_type: from,
+        right_type: to,
+    })
 }
 
 #[cfg(test)]
