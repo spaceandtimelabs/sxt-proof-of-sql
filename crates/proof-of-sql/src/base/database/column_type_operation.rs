@@ -207,6 +207,37 @@ pub fn try_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult
     }
 }
 
+/// Verifies that `from` can be cast to `to`. This only supports converting types to a larger type (Decimal(10, 5) to Decimal (11, 5) for example).
+#[cfg_attr(not(test), expect(dead_code))]
+#[expect(clippy::missing_panics_doc)]
+pub fn try_scale_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult<()> {
+    match (from, to) {
+        (
+            ColumnType::TinyInt
+            | ColumnType::Uint8
+            | ColumnType::SmallInt
+            | ColumnType::Int
+            | ColumnType::Int128
+            | ColumnType::BigInt
+            | ColumnType::Decimal75(_, _),
+            ColumnType::Decimal75(precision, scale),
+        ) => {
+            let from_precision = i16::from(from.precision_value().unwrap());
+            let from_scale = i16::from(from.scale().unwrap());
+            let to_precision = i16::from(precision.value());
+            let to_scale = i16::from(scale);
+            to_scale >= from_scale
+                && (to_precision - to_scale.max(0)) >= (from_precision - from_scale.max(0))
+        }
+        _ => false,
+    }
+    .then_some(())
+    .ok_or(ColumnOperationError::ScaleCastingError {
+        left_type: from,
+        right_type: to,
+    })
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -856,5 +887,99 @@ mod test {
                 right_type: ColumnType::Boolean
             }
         ));
+    }
+
+    #[test]
+    fn we_can_properly_determine_if_types_are_scale_castable() {
+        for from in [
+            ColumnType::Uint8,
+            ColumnType::TinyInt,
+            ColumnType::SmallInt,
+            ColumnType::Int,
+            ColumnType::BigInt,
+            ColumnType::Int128,
+        ] {
+            let from_precision = Precision::new(from.precision_value().unwrap()).unwrap();
+            let two_prec = Precision::new(2).unwrap();
+            let forty_prec = Precision::new(40).unwrap();
+            try_scale_cast_types(from, ColumnType::Decimal75(two_prec, 0)).unwrap_err();
+            try_scale_cast_types(from, ColumnType::Decimal75(two_prec, -1)).unwrap_err();
+            try_scale_cast_types(from, ColumnType::Decimal75(two_prec, 1)).unwrap_err();
+            try_scale_cast_types(from, ColumnType::Decimal75(from_precision, 0)).unwrap();
+            try_scale_cast_types(from, ColumnType::Decimal75(from_precision, -1)).unwrap_err();
+            try_scale_cast_types(from, ColumnType::Decimal75(from_precision, 1)).unwrap_err();
+            try_scale_cast_types(from, ColumnType::Decimal75(forty_prec, 0)).unwrap();
+            try_scale_cast_types(from, ColumnType::Decimal75(forty_prec, -1)).unwrap_err();
+            try_scale_cast_types(from, ColumnType::Decimal75(forty_prec, 1)).unwrap();
+        }
+
+        let from_prec = Precision::new(20).unwrap();
+
+        // from_with_negative_scale
+        let neg_scale = ColumnType::Decimal75(from_prec, -3);
+
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(from_prec, -4)).unwrap_err();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(from_prec, -3)).unwrap();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(from_prec, -2)).unwrap();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(from_prec, 0)).unwrap();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(from_prec, 1)).unwrap_err();
+
+        let nineteen_prec = Precision::new(19).unwrap();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(nineteen_prec, -4)).unwrap_err();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(nineteen_prec, -3)).unwrap_err();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(nineteen_prec, -2)).unwrap_err();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(nineteen_prec, 0)).unwrap_err();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(nineteen_prec, 1)).unwrap_err();
+
+        let twenty_one_prec = Precision::new(21).unwrap();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(twenty_one_prec, -4)).unwrap_err();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(twenty_one_prec, -3)).unwrap();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(twenty_one_prec, -2)).unwrap();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(twenty_one_prec, 0)).unwrap();
+        try_scale_cast_types(neg_scale, ColumnType::Decimal75(twenty_one_prec, 1)).unwrap();
+
+        // from_with_zero_scale
+        let zero_scale = ColumnType::Decimal75(from_prec, 0);
+
+        try_scale_cast_types(zero_scale, ColumnType::Decimal75(from_prec, -1)).unwrap_err();
+        try_scale_cast_types(zero_scale, ColumnType::Decimal75(from_prec, 0)).unwrap();
+        try_scale_cast_types(zero_scale, ColumnType::Decimal75(from_prec, 1)).unwrap_err();
+
+        try_scale_cast_types(zero_scale, ColumnType::Decimal75(nineteen_prec, -1)).unwrap_err();
+        try_scale_cast_types(zero_scale, ColumnType::Decimal75(nineteen_prec, 0)).unwrap_err();
+        try_scale_cast_types(zero_scale, ColumnType::Decimal75(nineteen_prec, 1)).unwrap_err();
+        try_scale_cast_types(zero_scale, ColumnType::Decimal75(nineteen_prec, 2)).unwrap_err();
+
+        try_scale_cast_types(zero_scale, ColumnType::Decimal75(twenty_one_prec, -1)).unwrap_err();
+        try_scale_cast_types(zero_scale, ColumnType::Decimal75(twenty_one_prec, 0)).unwrap();
+        try_scale_cast_types(zero_scale, ColumnType::Decimal75(twenty_one_prec, 1)).unwrap();
+        try_scale_cast_types(zero_scale, ColumnType::Decimal75(twenty_one_prec, 2)).unwrap_err();
+
+        // from_with_positive_scale
+        let pos_scale = ColumnType::Decimal75(from_prec, 3);
+
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(from_prec, -1)).unwrap_err();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(from_prec, 0)).unwrap_err();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(from_prec, 2)).unwrap_err();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(from_prec, 3)).unwrap();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(from_prec, 4)).unwrap_err();
+
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(nineteen_prec, -1)).unwrap_err();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(nineteen_prec, 0)).unwrap_err();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(nineteen_prec, 2)).unwrap_err();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(nineteen_prec, 3)).unwrap_err();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(nineteen_prec, 4)).unwrap_err();
+
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(twenty_one_prec, -1)).unwrap_err();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(twenty_one_prec, 0)).unwrap_err();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(twenty_one_prec, 2)).unwrap_err();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(twenty_one_prec, 3)).unwrap();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(twenty_one_prec, 4)).unwrap();
+        try_scale_cast_types(pos_scale, ColumnType::Decimal75(twenty_one_prec, 5)).unwrap_err();
+    }
+
+    #[test]
+    fn we_cannot_scale_cast_nonsense_pairings() {
+        try_scale_cast_types(ColumnType::Int128, ColumnType::Boolean).unwrap_err();
     }
 }
