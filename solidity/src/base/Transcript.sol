@@ -34,15 +34,19 @@ library Transcript {
     function __drawChallenges(uint256[1] memory __transcript, uint256 __count)
         internal
         pure
-        returns (uint256 __resultPtr)
+        returns (uint256[] memory __resultPtr)
     {
         assembly {
             function draw_challenges(transcript_ptr, count) -> result_ptr {
                 // allocate `count` words
                 let free_ptr := mload(FREE_PTR)
-                mstore(FREE_PTR, add(free_ptr, mul(count, WORD_SIZE)))
+                mstore(FREE_PTR, add(free_ptr, mul(add(count, 1), WORD_SIZE)))
                 // result is the pointer to the first word
                 result_ptr := free_ptr
+                // store count in the first word
+                mstore(result_ptr, count)
+                // increment to next word
+                free_ptr := add(free_ptr, WORD_SIZE)
                 // first challenge is the current transcript state
                 let challenge := mload(transcript_ptr)
                 for {} count {} {
@@ -83,6 +87,29 @@ library Transcript {
                 mstore(transcript_ptr, keccak256(free_ptr, add(size, WORD_SIZE)))
             }
             append_calldata(__transcript, __data.offset, __data.length)
+        }
+        __resultTranscript = __transcript;
+    }
+
+    /// @notice Append an array to the transcript, and update the state of the transcript.
+    /// @dev This is achieved by hashing the current transcript state with the array data.
+    /// The operation is done in place by temporarily swapping the array length with the transcript state.
+    /// @param __transcript The current state of the transcript
+    /// @param __data The array to append
+    /// @return __resultTranscript The updated state of the transcript
+    function __appendArray(uint256[1] memory __transcript, uint256[] memory __data)
+        internal
+        pure
+        returns (uint256[1] memory __resultTranscript)
+    {
+        assembly {
+            function append_array(transcript_ptr, array_ptr) {
+                let array_len := mload(array_ptr)
+                mstore(array_ptr, mload(transcript_ptr))
+                mstore(transcript_ptr, keccak256(array_ptr, mul(add(array_len, 1), WORD_SIZE)))
+                mstore(array_ptr, array_len)
+            }
+            append_array(__transcript, __data)
         }
         __resultTranscript = __transcript;
     }
