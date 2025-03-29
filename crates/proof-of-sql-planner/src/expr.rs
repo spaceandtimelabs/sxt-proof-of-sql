@@ -64,6 +64,15 @@ pub fn expr_to_proof_expr(expr: &Expr, schema: &DFSchema) -> PlannerResult<DynPr
             let proof_expr = expr_to_proof_expr(expr, schema)?;
             Ok(DynProofExpr::try_new_not(proof_expr)?)
         }
+        Expr::Cast(cast) => {
+            let from_expr = expr_to_proof_expr(&cast.expr, schema)?;
+            let to_type = cast.data_type.clone().try_into().map_err(|_| {
+                PlannerError::UnsupportedDataType {
+                    data_type: cast.data_type.clone(),
+                }
+            })?;
+            Ok(DynProofExpr::try_new_cast(from_expr, to_type)?)
+        }
         _ => Err(PlannerError::UnsupportedLogicalExpression { expr: expr.clone() }),
     }
 }
@@ -73,7 +82,10 @@ mod tests {
     use super::*;
     use crate::df_util::*;
     use arrow::datatypes::DataType;
-    use datafusion::{common::ScalarValue, logical_expr::expr::Placeholder};
+    use datafusion::{
+        common::ScalarValue,
+        logical_expr::{expr::Placeholder, Cast},
+    };
     use proof_of_sql::base::database::{ColumnRef, ColumnType, LiteralValue, TableRef};
 
     #[expect(non_snake_case)]
@@ -323,6 +335,71 @@ mod tests {
         assert!(matches!(
             expr_to_proof_expr(&expr, &schema),
             Err(PlannerError::UnsupportedLogicalExpression { .. })
+        ));
+    }
+
+    #[test]
+    fn we_can_convert_cast_expr_to_proof_expr() {
+        // Unsupported logical expression
+        let expr = Expr::Cast(Cast::new(
+            Box::new(Expr::Literal(ScalarValue::Boolean(Some(true)))),
+            DataType::Int32,
+        ));
+        let schema = df_schema("namespace.table_name", vec![]);
+        let expression = expr_to_proof_expr(&expr, &schema).unwrap();
+        assert_eq!(
+            expression,
+            DynProofExpr::try_new_cast(
+                DynProofExpr::new_literal(LiteralValue::Boolean(true)),
+                ColumnType::Int
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn we_cannot_convert_cast_expr_to_proof_expr_when_inner_expr_to_proof_expr_fails() {
+        // Unsupported logical expression
+        let expr = Expr::Cast(Cast::new(
+            Box::new(Expr::Literal(ScalarValue::UInt64(Some(100)))),
+            DataType::Int16,
+        ));
+        let schema = df_schema("namespace.table_name", vec![]);
+        let expression = expr_to_proof_expr(&expr, &schema).unwrap_err();
+        assert!(matches!(
+            expression,
+            PlannerError::UnsupportedDataType { data_type: _ }
+        ));
+    }
+
+    #[test]
+    fn we_cannot_convert_cast_expr_to_proof_expr_for_unsupported_datatypes() {
+        // Unsupported logical expression
+        let expr = Expr::Cast(Cast::new(
+            Box::new(Expr::Literal(ScalarValue::Boolean(Some(true)))),
+            DataType::UInt16,
+        ));
+        let schema = df_schema("namespace.table_name", vec![]);
+        let expression = expr_to_proof_expr(&expr, &schema).unwrap_err();
+        assert!(matches!(
+            expression,
+            PlannerError::UnsupportedDataType { data_type: _ }
+        ));
+    }
+
+    #[test]
+    fn we_cannot_convert_cast_expr_to_proof_expr_for_datatypes_for_which_casting_is_not_supported()
+    {
+        // Unsupported logical expression
+        let expr = Expr::Cast(Cast::new(
+            Box::new(Expr::Literal(ScalarValue::Int16(Some(100)))),
+            DataType::Boolean,
+        ));
+        let schema = df_schema("namespace.table_name", vec![]);
+        let expression = expr_to_proof_expr(&expr, &schema).unwrap_err();
+        assert!(matches!(
+            expression,
+            PlannerError::AnalyzeError { source: _ }
         ));
     }
 }
