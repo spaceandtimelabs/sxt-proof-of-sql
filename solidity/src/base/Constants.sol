@@ -110,7 +110,7 @@ uint256 constant VK_TAU_HY_REAL = 0x1a44ae9f94f7e4a96d8ea5f1d1a67f22e292e9f58cdd
 uint256 constant VK_TAU_HY_IMAG = 0x01ea86d896eddc7a6edac41e80a9e9059440e9b3baf2186fad830ae001a1482a;
 
 /// @dev Size of the verification builder in bytes.
-uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 11;
+uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 13;
 /// @dev Offset of the pointer to the challenge queue in the verification builder.
 uint256 constant BUILDER_CHALLENGES_OFFSET = 0x20 * 0;
 /// @dev Offset of the pointer to the first round MLEs in the verification builder.
@@ -133,3 +133,10 @@ uint256 constant BUILDER_ROW_MULTIPLIERS_EVALUATION_OFFSET = 0x20 * 8;
 uint256 constant BUILDER_COLUMN_EVALUATIONS_OFFSET = 0x20 * 9;
 /// @dev Offset of the pointer to the table chi evaluations in the verification builder.
 uint256 constant BUILDER_TABLE_CHI_EVALUATIONS_OFFSET = 0x20 * 10;
+/// @dev Offset of the pointer to the first round commitments in the verification builder.
+uint256 constant BUILDER_FIRST_ROUND_COMMITMENTS_OFFSET = 0x20 * 11;
+/// @dev Offset of the pointer to the final round commitments in the verification builder.
+uint256 constant BUILDER_FINAL_ROUND_COMMITMENTS_OFFSET = 0x20 * 12;
+
+/// @dev The initial transcript state. This is the hash of the empty string.
+uint256 constant INITIAL_TRANSCRIPT_STATE = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
