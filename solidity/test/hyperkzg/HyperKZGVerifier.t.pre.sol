@@ -8,6 +8,22 @@ import "../../src/base/Errors.sol";
 import {HyperKZGVerifier} from "../../src/hyperkzg/HyperKZGVerifier.pre.sol";
 
 contract HyperKZGVerifierTest is Test {
+    function verifyHyperKZG(
+        bytes calldata proof,
+        uint256[1] memory transcript,
+        uint256[2] memory commitment,
+        uint256[] memory x,
+        uint256 y
+    ) public view {
+        HyperKZGVerifier.__verifyHyperKZG({
+            __proof: proof,
+            __transcript: transcript,
+            __commitment: commitment,
+            __x: x,
+            __y: y
+        });
+    }
+
     function _smallValidProof()
         internal
         pure
@@ -19,24 +35,24 @@ contract HyperKZGVerifierTest is Test {
             uint256 y
         )
     {
-        proof = hex"0b6f635ac169750af717f5d53eb0cf78f4d950ba03a8682dc64c999865e4fa35"
-            hex"2c10edb249e2fb60808d4f3b341046234b642722fb52d8e5e9d93ea56d2cd568"
-            hex"1aa53426df3662ebfa29e721651ace4ab0930f126e97d9244e119fe364f0ff17"
-            hex"2866f444c0e85d2b451e62516979b5927a1f9780fe09e97cd9e06ce477247990"
-            hex"0e0c52f1bad3c3a7130d06c3326082582bd72ee8ddca8d79de7e3e71927c3b8b"
-            hex"038c3b66e85d4c2855d79f8d9412985a2fb626aba5889185e2bef8aa20065255"
-            hex"2cd8130bf8d454016278a628ed6ec002f87dc19cd430df0b6122fce9cff9adba"
-            hex"11c783363cfcb7c19385e58c6caa75b17183380465ae005b1f33396adb304f7c"
-            hex"19679242d534d76ca5d3a612a9101559e599202b41c8ffea9d993abe744045be"
-            hex"1d510b121ecf77874c871537b9f57ae762bad86775fb45bd16a0e244e3937460"
-            hex"0ee3b4f118a676a84d7ef4da43fbf557b8edc75108fc8fcfd1d94b7181bd2bf6"
-            hex"0ba843c2a13560d3775eb1bf14dbc87a1568ede645ba1f4095b0a2fe88ba527f"
-            hex"304b78379710a379609aeaa7b1f4c0b50b725e7c70976aee099b6b54b74f2b53"
-            hex"17a56970a14eb4457d2e0bf3d0109ffeb1001179d72bd6babdc5ed7bf98c5848";
-        transcript = [0x9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658];
+        proof = hex"0000000000000001" hex"1f2e45337f9b8344112089d02a9827c05864124c9d68e6dfe4ae4b1ef18b8bec"
+            hex"0603731e181537ca4cac7f28123622a175a7181b08404a64b1197c3a8adee75c" hex"0000000000000002"
+            hex"195601834abe3b06307843dfb2bda53c463acac5ce7452fe7f9afb76ef076159"
+            hex"01b06ce4e5c076c62ee49bea6c8c0d3475c9c4203863f33e407c032f104d7929"
+            hex"0244bf82e008d1628941372c47440cf0b7ddf46a4e07f370e99246946d2c2f96"
+            hex"1fac3ee761eb0bf01d1be7d167923af7a75802fb6daaf7c93b17e48bdb93582a"
+            hex"10b80f8b7f4694399b345de519ef1d6580dbe54d0c0e78c808ca1108146ca7e5"
+            hex"249c5130fc843ff6fa68d4ab85a5254f12f04d615289e5c00e42c22b867eebab"
+            hex"20aaca7d9451a200e417af702479ee0bd90a19d25f90bc5ac31515a2510ecbf9"
+            hex"13880503efe944d65ff45424e0c07237dbb4bbfa7d8dcbed7c0f234d94afd8c0"
+            hex"0afe9d625909d59d10259307138122091a2a4d81d7e419359e9a3b70916edade"
+            hex"12f9228a1c7fa913c0e3b4b20ff5cf106c9555c20c668e6441dfb3fa1a174626"
+            hex"18977d28d54a74822b9816495ab7909d9db911b3d107a7ccbb758baa94217fd5"
+            hex"097467f5beafcf7a6b77c515a0876800db96837e5e279cd8a0d3f86deb571fb7";
+        transcript = [0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470];
         commitment = [
-            0x021c0c77e03d902e65cae960e0a053fa954bfa0d7f9241431bec21447ef8401d,
-            0x09cf5acdf3c124d40247b54aebc809d93d40b7e0b0bf5a1499057bd499da528d
+            0x0bceea30108fed3f7c8e53e56a3aedf0de0bc26292e469ab525f1ac9fe93c758,
+            0x126f299ba3b83331a6901a281b0982b87f154efe57ac4da1f7c51a97dda59e1b
         ];
         x = new uint256[](2);
         x[0] = 0x7;
@@ -61,7 +77,7 @@ contract HyperKZGVerifierTest is Test {
         = _smallValidProof();
 
         uint256 ell = x.length;
-        uint256 vOffset = WORDX2_SIZE * ell - WORDX2_SIZE;
+        uint256 vOffset = WORDX2_SIZE * ell - WORDX2_SIZE + UINT64_SIZE * 2;
 
         // Tweak byte 4 of element 3 of v.
         proof[vOffset + 3 * WORD_SIZE + 4] ^= 0x10;
