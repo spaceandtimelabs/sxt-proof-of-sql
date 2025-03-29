@@ -214,6 +214,7 @@ pub fn try_cast_types_with_scaling(from: ColumnType, to: ColumnType) -> ColumnOp
     match (from, to) {
         (
             ColumnType::TinyInt
+            | ColumnType::Uint8
             | ColumnType::SmallInt
             | ColumnType::Int
             | ColumnType::Int128
