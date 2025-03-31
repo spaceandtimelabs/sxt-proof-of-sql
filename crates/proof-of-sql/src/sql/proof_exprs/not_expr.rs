@@ -1,7 +1,7 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, Table},
+        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -36,10 +36,11 @@ impl ProofExpr for NotExpr {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        params: &[LiteralValue],
     ) -> Column<'a, S> {
         log::log_memory_usage("Start");
 
-        let expr_column: Column<'a, S> = self.expr.result_evaluate(alloc, table);
+        let expr_column: Column<'a, S> = self.expr.result_evaluate(alloc, table, params);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         let res = Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]));
 
@@ -54,10 +55,11 @@ impl ProofExpr for NotExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        params: &[LiteralValue],
     ) -> Column<'a, S> {
         log::log_memory_usage("Start");
 
-        let expr_column: Column<'a, S> = self.expr.prover_evaluate(builder, alloc, table);
+        let expr_column: Column<'a, S> = self.expr.prover_evaluate(builder, alloc, table, params);
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         let res = Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]));
 
@@ -71,8 +73,11 @@ impl ProofExpr for NotExpr {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
+        params: &[LiteralValue],
     ) -> Result<S, ProofError> {
-        let eval = self.expr.verifier_evaluate(builder, accessor, chi_eval)?;
+        let eval = self
+            .expr
+            .verifier_evaluate(builder, accessor, chi_eval, params)?;
         Ok(chi_eval - eval)
     }
 

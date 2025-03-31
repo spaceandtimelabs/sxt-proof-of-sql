@@ -23,8 +23,12 @@ fn we_can_create_and_prove_an_empty_table_exec() {
         0_usize,
         (),
     );
-    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-    let res = verifiable_res.verify(&plan, &accessor, &()).unwrap().table;
+    let verifiable_res =
+        VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+    let res = verifiable_res
+        .verify(&plan, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected = owned_table([bigint("a", [0_i64; 0])]);
     assert_eq!(res, expected);
 }
@@ -64,9 +68,12 @@ fn we_can_create_and_prove_a_table_exec() {
         0_usize,
         (),
     );
-    let verifiable_res = VerifiableQueryResult::new(&plan, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&plan, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &plan, &accessor, &table_ref);
-    let res = verifiable_res.verify(&plan, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&plan, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected = owned_table([
         bigint("language_rank", [0, 1, 2, 3]),
         varchar(

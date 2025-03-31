@@ -1,6 +1,8 @@
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableRef},
+        database::{
+            ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation, TableRef,
+        },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -25,6 +27,7 @@ impl ProofPlan for DemoMockPlan {
         accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         chi_eval_map: &IndexMap<TableRef, S>,
+        _params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         // place verification logic you want to test here
 
@@ -56,6 +59,7 @@ impl ProverEvaluate for DemoMockPlan {
         _builder: &mut FirstRoundBuilder<'a, S>,
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        _params: &[LiteralValue],
     ) -> Table<'a, S> {
         // place prover logic you want to test here
 
@@ -67,6 +71,7 @@ impl ProverEvaluate for DemoMockPlan {
         _builder: &mut FinalRoundBuilder<'a, S>,
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        _params: &[LiteralValue],
     ) -> Table<'a, S> {
         // place prover logic you want to test here
 
@@ -100,9 +105,10 @@ mod tests {
             0_usize,
             (),
         );
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
         let res = verifiable_res
-            .verify(&plan, &accessor, &())
+            .verify(&plan, &accessor, &(), &[])
             .expect("verification should suceeed")
             .table;
         assert_eq!(res, table);

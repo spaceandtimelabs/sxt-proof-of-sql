@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{Column, ColumnRef, Table},
+        database::{Column, ColumnRef, LiteralValue, Table},
         map::IndexMap,
         proof::ProofError,
         scalar::Scalar,
@@ -77,9 +77,10 @@ impl DivideAndModuloExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         utilities: &U,
+        params: &[LiteralValue],
     ) -> (Column<'a, S>, Column<'a, S>) {
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table, params);
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table, params);
 
         let (quotient_wrapped, _quotient) =
             utilities.divide_columns(&lhs_column, &rhs_column, alloc);
@@ -97,11 +98,12 @@ impl DivideAndModuloExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        params: &[LiteralValue],
     ) -> (Column<'a, S>, Column<'a, S>) {
         log::log_memory_usage("Start");
         let utilities = StandardDivideAndModuloExprUtilities {};
 
-        let res = self.prover_evaluate_base(builder, alloc, table, &utilities);
+        let res = self.prover_evaluate_base(builder, alloc, table, &utilities, params);
 
         log::log_memory_usage("End");
 
@@ -114,9 +116,14 @@ impl DivideAndModuloExpr {
         builder: &mut B,
         accessor: &IndexMap<ColumnRef, S>,
         one_eval: S,
+        params: &[LiteralValue],
     ) -> Result<(S, S), ProofError> {
-        let _lhs = self.lhs.verifier_evaluate(builder, accessor, one_eval)?;
-        let _rhs = self.rhs.verifier_evaluate(builder, accessor, one_eval)?;
+        let _lhs = self
+            .lhs
+            .verifier_evaluate(builder, accessor, one_eval, params)?;
+        let _rhs = self
+            .rhs
+            .verifier_evaluate(builder, accessor, one_eval, params)?;
 
         // lhs_times_rhs
         let quotient_wrapped = builder.try_consume_final_round_mle_evaluation()?;
@@ -169,7 +176,7 @@ mod tests {
             rhs_ident => Column::Int128::<TestScalar>(rhs),
         })
         .unwrap();
-        divide_and_modulo_expr.prover_evaluate(&mut final_round_builder, &alloc, &table);
+        divide_and_modulo_expr.prover_evaluate(&mut final_round_builder, &alloc, &table, &[]);
         let mock_verification_builder = run_verify_for_each_row(
             lhs.len(),
             &first_round_builder,
@@ -181,7 +188,7 @@ mod tests {
                     rhs_ref.clone() => rhs.inner_product(evaluation_point)
                 };
                 divide_and_modulo_expr
-                    .verifier_evaluate(verification_builder, &accessor, chi_eval)
+                    .verifier_evaluate(verification_builder, &accessor, chi_eval, &[])
                     .unwrap();
             },
         );

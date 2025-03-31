@@ -1,7 +1,7 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, Table},
+        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -37,11 +37,12 @@ impl ProofExpr for OrExpr {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        params: &[LiteralValue],
     ) -> Column<'a, S> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table);
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table);
+        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table, params);
+        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table, params);
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         let res = Column::Boolean(result_evaluate_or(table.num_rows(), alloc, lhs, rhs));
@@ -57,11 +58,12 @@ impl ProofExpr for OrExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        params: &[LiteralValue],
     ) -> Column<'a, S> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table);
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table);
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table, params);
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table, params);
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         let res = Column::Boolean(prover_evaluate_or(builder, alloc, lhs, rhs));
@@ -76,9 +78,14 @@ impl ProofExpr for OrExpr {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
+        params: &[LiteralValue],
     ) -> Result<S, ProofError> {
-        let lhs = self.lhs.verifier_evaluate(builder, accessor, chi_eval)?;
-        let rhs = self.rhs.verifier_evaluate(builder, accessor, chi_eval)?;
+        let lhs = self
+            .lhs
+            .verifier_evaluate(builder, accessor, chi_eval, params)?;
+        let rhs = self
+            .rhs
+            .verifier_evaluate(builder, accessor, chi_eval, params)?;
 
         verifier_evaluate_or(builder, &lhs, &rhs)
     }

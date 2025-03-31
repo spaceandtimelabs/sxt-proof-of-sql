@@ -36,12 +36,14 @@ fn prove_and_verify_query(
         query_plan.proof_expr(),
         accessor,
         &prover_setup,
+        &[],
     );
     println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
     print!("Verifying proof...");
     let now = Instant::now();
-    let result = verifiable_result.verify(query_plan.proof_expr(), accessor, &verifier_setup)?;
+    let result =
+        verifiable_result.verify(query_plan.proof_expr(), accessor, &verifier_setup, &[])?;
     println!("Verified in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
     println!("Query Result:");

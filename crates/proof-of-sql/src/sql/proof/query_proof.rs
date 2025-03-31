@@ -8,8 +8,8 @@ use crate::{
         bit::BitDistribution,
         commitment::CommitmentEvaluationProof,
         database::{
-            ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTable, Table,
-            TableRef,
+            ColumnRef, CommitmentAccessor, DataAccessor, LiteralValue, MetadataAccessor,
+            OwnedTable, Table, TableRef,
         },
         map::{IndexMap, IndexSet},
         math::log2_up,
@@ -99,6 +99,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         expr: &(impl ProofPlan + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
+        params: &[LiteralValue],
     ) -> (Self, OwnedTable<CP::Scalar>) {
         log::log_memory_usage("Start");
 
@@ -122,7 +123,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // Prover First Round: Evaluate the query && get the right number of post result challenges
         let mut first_round_builder = FirstRoundBuilder::new(initial_range_length);
-        let query_result = expr.first_round_evaluate(&mut first_round_builder, &alloc, &table_map);
+        let query_result =
+            expr.first_round_evaluate(&mut first_round_builder, &alloc, &table_map, params);
         let owned_table_result = OwnedTable::from(&query_result);
         let provable_result = query_result.into();
         let chi_evaluation_lengths = first_round_builder.chi_evaluation_lengths();
@@ -166,7 +168,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let mut final_round_builder =
             FinalRoundBuilder::new(num_sumcheck_variables, post_result_challenges);
 
-        expr.final_round_evaluate(&mut final_round_builder, &alloc, &table_map);
+        expr.final_round_evaluate(&mut final_round_builder, &alloc, &table_map, params);
 
         let num_sumcheck_variables = final_round_builder.num_sumcheck_variables();
 
@@ -282,6 +284,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         result: OwnedTable<CP::Scalar>,
         setup: &CP::VerifierPublicSetup<'_>,
+        params: &[LiteralValue],
     ) -> QueryResult<CP::Scalar> {
         log::log_memory_usage("Start");
 
@@ -423,6 +426,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &evaluation_accessor,
             Some(&result),
             &chi_eval_map,
+            params,
         )?;
         // compute the evaluation of the result MLEs
         let result_evaluations = result.mle_evaluations(&subclaim.evaluation_point);

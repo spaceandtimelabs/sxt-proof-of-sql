@@ -1,7 +1,7 @@
 use super::{numerical_util::cast_column, DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{try_cast_types, Column, ColumnRef, ColumnType, Table},
+        database::{try_cast_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::ProofError,
         scalar::Scalar,
@@ -37,8 +37,9 @@ impl ProofExpr for CastExpr {
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        params: &[LiteralValue],
     ) -> Column<'a, S> {
-        let uncasted_result = self.from_expr.result_evaluate(alloc, table);
+        let uncasted_result = self.from_expr.result_evaluate(alloc, table, params);
         cast_column(alloc, uncasted_result, self.to_type)
     }
 
@@ -47,8 +48,11 @@ impl ProofExpr for CastExpr {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table: &Table<'a, S>,
+        params: &[LiteralValue],
     ) -> Column<'a, S> {
-        let uncasted_result = self.from_expr.prover_evaluate(builder, alloc, table);
+        let uncasted_result = self
+            .from_expr
+            .prover_evaluate(builder, alloc, table, params);
         cast_column(alloc, uncasted_result, self.to_type)
     }
 
@@ -57,9 +61,10 @@ impl ProofExpr for CastExpr {
         builder: &mut impl VerificationBuilder<S>,
         accessor: &IndexMap<ColumnRef, S>,
         chi_eval: S,
+        params: &[LiteralValue],
     ) -> Result<S, ProofError> {
         self.from_expr
-            .verifier_evaluate(builder, accessor, chi_eval)
+            .verifier_evaluate(builder, accessor, chi_eval, params)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

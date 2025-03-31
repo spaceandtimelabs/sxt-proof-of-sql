@@ -170,9 +170,9 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
 
         for _ in 0..cli.iterations {
             let result: VerifiableQueryResult<InnerProductProof> =
-                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &());
+                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &(), &[]);
             result
-                .verify(query_expr.proof_expr(), &accessor, &())
+                .verify(query_expr.proof_expr(), &accessor, &(), &[])
                 .unwrap();
         }
     }
@@ -207,9 +207,9 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
 
         for _ in 0..cli.iterations {
             let result: VerifiableQueryResult<DoryEvaluationProof> =
-                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &prover_setup);
+                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &prover_setup, &[]);
             result
-                .verify(query_expr.proof_expr(), &accessor, &verifier_setup)
+                .verify(query_expr.proof_expr(), &accessor, &verifier_setup, &[])
                 .unwrap();
         }
     }
@@ -261,9 +261,9 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
 
         for _ in 0..cli.iterations {
             let result: VerifiableQueryResult<DynamicDoryEvaluationProof> =
-                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &&prover_setup);
+                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &&prover_setup, &[]);
             result
-                .verify(query_expr.proof_expr(), &accessor, &&verifier_setup)
+                .verify(query_expr.proof_expr(), &accessor, &&verifier_setup, &[])
                 .unwrap();
         }
     }
@@ -321,9 +321,10 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
                     query_expr.proof_expr(),
                     &accessor,
                     &prover_setup.as_slice(),
+                    &[],
                 );
             result
-                .verify(query_expr.proof_expr(), &accessor, &&vk)
+                .verify(query_expr.proof_expr(), &accessor, &&vk, &[])
                 .unwrap();
         }
     }

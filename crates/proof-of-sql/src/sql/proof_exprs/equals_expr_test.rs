@@ -38,8 +38,11 @@ fn we_can_prove_an_equality_query_with_no_rows() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_bigint(0_i64)),
     );
-    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [0; 0]), varchar("d", [""; 0])]);
     assert_eq!(res, expected_res);
 }
@@ -60,8 +63,11 @@ fn we_can_prove_another_equality_query_with_no_rows() {
         tab(&t),
         equal(column(&t, "a", &accessor), column(&t, "b", &accessor)),
     );
-    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [0; 0]), varchar("d", [""; 0])]);
     assert_eq!(res, expected_res);
 }
@@ -86,8 +92,11 @@ fn we_can_prove_a_nested_equality_query_with_no_rows() {
             equal(column(&t, "a", &accessor), column(&t, "b", &accessor)),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("b", [1; 0]),
         varchar("c", ["t"; 0]),
@@ -112,9 +121,12 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_bigint(0_i64)),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([varchar("d", ["abc"]), bigint("a", [123_i64])]);
     assert_eq!(res, expected_res);
 }
@@ -135,9 +147,12 @@ fn we_can_prove_another_equality_query_with_a_single_selected_row() {
         tab(&t),
         equal(column(&t, "a", &accessor), column(&t, "b", &accessor)),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([varchar("d", ["abc"]), bigint("a", [123_i64])]);
     assert_eq!(res, expected_res);
 }
@@ -158,9 +173,12 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_bigint(0_i64)),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("a", [0; 0]),
         varchar("d", [""; 0]),
@@ -195,9 +213,12 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_bigint(0_i64)),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("a", [1, 3]),
         varchar("c", ["t", "jj"]),
@@ -236,9 +257,12 @@ fn we_can_prove_a_nested_equality_query_with_multiple_rows() {
             equal(column(&t, "a", &accessor), column(&t, "b", &accessor)),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("a", [1, 2]),
         varchar("c", ["t", "ghi"]),
@@ -274,9 +298,12 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_bigint(123_i64)),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("a", [1, 3]),
         varchar("c", ["t", "jj"]),
@@ -313,9 +340,12 @@ fn we_can_prove_an_equality_query_with_a_string_comparison() {
         tab(&t),
         equal(column(&t, "c", &accessor), const_varchar("ghi")),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         bigint("a", [2, 5]),
         bigint("b", [5, 0]),
@@ -362,9 +392,12 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 const_varchar(filter_val.as_str()),
             ),
         );
-        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
         exercise_verification(&verifiable_res, &ast, &accessor, &t);
-        let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+        let res = verifiable_res
+            .verify(&ast, &accessor, &(), &[])
+            .unwrap()
+            .table;
 
         // Calculate/compare expected result
         let (expected_a, expected_d): (Vec<_>, Vec<_>) = multizip((
@@ -424,7 +457,7 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
         column(&t, "e", &accessor),
         const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ZERO),
     );
-    let res = equals_expr.result_evaluate(&alloc, &data);
+    let res = equals_expr.result_evaluate(&alloc, &data, &[]);
     let expected_res = Column::Boolean(&[true, false, true, false]);
     assert_eq!(res, expected_res);
 }
@@ -450,8 +483,11 @@ fn we_can_query_with_varbinary_equality() {
     );
 
     // Execute and verify query
-    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
 
     // Expected result: only the second row should be returned
     let expected_res = owned_table([bigint("a", [4567]), varbinary("b", [&[4, 5, 6, 7]])]);

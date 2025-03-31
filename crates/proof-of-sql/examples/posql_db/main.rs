@@ -249,6 +249,7 @@ fn main() {
                 query.proof_expr(),
                 &csv_accessor,
                 &&prover_setup,
+                &[],
             );
             end_timer(timer);
             fs::write(
@@ -274,7 +275,7 @@ fn main() {
 
             let timer = start_timer("Verifying Proof");
             let query_result = result
-                .verify(query.proof_expr(), &commit_accessor, &&verifier_setup)
+                .verify(query.proof_expr(), &commit_accessor, &&verifier_setup, &[])
                 .expect("Failed to verify proof");
             end_timer(timer);
             println!(

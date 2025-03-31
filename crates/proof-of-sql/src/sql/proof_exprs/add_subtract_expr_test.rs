@@ -48,9 +48,12 @@ fn we_can_prove_a_typical_add_subtract_query() {
             const_bigint(3),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         smallint("a", [3_i16, 4]),
         bigint("c", [2_i16, 0]),
@@ -93,9 +96,12 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
             const_decimal75(12, 4, 3500),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([
         decimal75("a", 12, 1, [4_i64, 2]),
         decimal75("c", 17, 3, [1040_i64, 477]),
@@ -137,9 +143,9 @@ fn result_expr_can_overflow() {
         equal(column(&t, "b", &accessor), const_bigint(1)),
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     assert!(matches!(
-        verifiable_res.verify(&ast, &accessor, &()),
+        verifiable_res.verify(&ast, &accessor, &(), &[]),
         Err(QueryError::Overflow)
     ));
 }
@@ -163,9 +169,12 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
         equal(column(&t, "b", &accessor), const_bigint(0)),
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([smallint("c", [i16::MIN + 1])]);
     assert_eq!(res, expected_res);
 }
@@ -186,9 +195,12 @@ fn overflow_in_where_clause_doesnt_error_out() {
         ),
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
     let expected_res = owned_table([bigint("a", [i64::MAX]), smallint("b", [1_i16])]);
     assert_eq!(res, expected_res);
 }
@@ -218,9 +230,9 @@ fn result_expr_can_overflow_more() {
         const_bool(true),
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &());
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
     assert!(matches!(
-        verifiable_res.verify(&ast, &accessor, &()),
+        verifiable_res.verify(&ast, &accessor, &(), &[]),
         Err(QueryError::Overflow)
     ));
 }
@@ -279,9 +291,12 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 ),
             ),
         );
-        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
         exercise_verification(&verifiable_res, &ast, &accessor, &t);
-        let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+        let res = verifiable_res
+            .verify(&ast, &accessor, &(), &[])
+            .unwrap()
+            .table;
 
         // Calculate/compare expected result
         let (expected_f, expected_d): (Vec<_>, Vec<_>) = multizip((
@@ -331,7 +346,7 @@ fn we_can_compute_the_correct_output_of_an_add_subtract_expr_using_result_evalua
         column(&t, "b", &accessor),
         subtract(column(&t, "a", &accessor), const_bigint(1)),
     );
-    let res = add_subtract_expr.result_evaluate(&alloc, &data);
+    let res = add_subtract_expr.result_evaluate(&alloc, &data, &[]);
     let expected_res_scalar = [0, 2, 2, 4]
         .iter()
         .map(|v| Curve25519Scalar::from(*v))

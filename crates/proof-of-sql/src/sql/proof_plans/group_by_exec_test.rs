@@ -29,9 +29,9 @@ fn we_can_prove_aggregation_without_group_by() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_int128(99)),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
     exercise_verification(&res, &expr, &accessor, &t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("sum_c", [101 + 104 + 102 + 103]),
         bigint("__count__", [4]),
@@ -57,9 +57,9 @@ fn we_can_prove_a_simple_group_by_with_bigint_columns() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_int128(99)),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
     exercise_verification(&res, &expr, &accessor, &t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("a", [1, 2]),
         bigint("sum_c", [101 + 104, 102 + 103]),
@@ -92,9 +92,9 @@ fn we_can_prove_a_group_by_with_bigint_columns() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_int128(99)),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
     exercise_verification(&res, &expr, &accessor, &t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("a", [1, 2]),
         bigint("sum_c", [(101 + 104) * 2 + 2, (102 + 103) * 2 + 2]),
@@ -214,9 +214,9 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
             equal(column(&t, "varchar_filter", &accessor), const_varchar("f2")),
         ),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
     exercise_verification(&res, &expr, &accessor, &t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         scalar("scalar_group", [4, 4, 4]),
         int128("int128_group", [8, 8, 9]),
@@ -247,9 +247,9 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
             equal(column(&t, "varchar_filter", &accessor), const_varchar("f2")),
         ),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
     exercise_verification(&res, &expr, &accessor, &t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("sum_int", [1406 + 927 + 637]),
         int128("sum_128", [(1342 + 1262 + 513) * 4]),

@@ -4,7 +4,8 @@ use super::shift::{final_round_evaluate_shift, first_round_evaluate_shift, verif
 use crate::{
     base::{
         database::{
-            ColumnField, ColumnRef, OwnedTable, Table, TableEvaluation, TableOptions, TableRef,
+            ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation, TableOptions,
+            TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
         proof::ProofError,
@@ -32,6 +33,7 @@ impl ProverEvaluate for ShiftTestPlan {
         builder: &mut FirstRoundBuilder<'a, S>,
         _alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
+        _params: &[LiteralValue],
     ) -> Table<'a, S> {
         builder.request_post_result_challenges(2);
         builder.produce_chi_evaluation_length(self.column_length);
@@ -48,6 +50,7 @@ impl ProverEvaluate for ShiftTestPlan {
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
+        _params: &[LiteralValue],
     ) -> Table<'a, S> {
         // Get the table from the map using the table reference
         let source_table: &Table<'a, S> = table_map
@@ -108,6 +111,7 @@ impl ProofPlan for ShiftTestPlan {
         _accessor: &IndexMap<ColumnRef, S>,
         _result: Option<&OwnedTable<S>>,
         _chi_eval_map: &IndexMap<TableRef, S>,
+        _params: &[LiteralValue],
     ) -> Result<TableEvaluation<S>, ProofError> {
         // Get the challenges from the builder
         let alpha = builder.try_consume_post_result_challenge()?;
@@ -173,8 +177,9 @@ mod tests {
             ),
             column_length: 3,
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let res = verifiable_res.verify(&plan, &accessor, &());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+        let res = verifiable_res.verify(&plan, &accessor, &(), &[]);
         assert!(res.is_ok());
 
         // Varchar column
@@ -187,8 +192,9 @@ mod tests {
             ),
             column_length: 3,
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let res = verifiable_res.verify(&plan, &accessor, &());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+        let res = verifiable_res.verify(&plan, &accessor, &(), &[]);
         assert!(res.is_ok());
 
         // Boolean column
@@ -201,8 +207,9 @@ mod tests {
             ),
             column_length: 3,
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let res = verifiable_res.verify(&plan, &accessor, &());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+        let res = verifiable_res.verify(&plan, &accessor, &(), &[]);
         assert!(res.is_ok());
     }
 
@@ -241,8 +248,9 @@ mod tests {
             ),
             column_length: 3,
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        assert!(verifiable_res.verify(&plan, &accessor, &()).is_err());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+        assert!(verifiable_res.verify(&plan, &accessor, &(), &[]).is_err());
 
         // Varchar column
         let plan = ShiftTestPlan {
@@ -254,8 +262,9 @@ mod tests {
             ),
             column_length: 3,
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        assert!(verifiable_res.verify(&plan, &accessor, &()).is_err());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+        assert!(verifiable_res.verify(&plan, &accessor, &(), &[]).is_err());
 
         // Boolean column
         let plan = ShiftTestPlan {
@@ -267,8 +276,9 @@ mod tests {
             ),
             column_length: 3,
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        assert!(verifiable_res.verify(&plan, &accessor, &()).is_err());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+        assert!(verifiable_res.verify(&plan, &accessor, &(), &[]).is_err());
 
         // Success case: The last pair of columns is correct even though the others are not
         let plan = ShiftTestPlan {
@@ -280,8 +290,9 @@ mod tests {
             ),
             column_length: 3,
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        assert!(verifiable_res.verify(&plan, &accessor, &()).is_ok());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+        assert!(verifiable_res.verify(&plan, &accessor, &(), &[]).is_ok());
     }
 
     #[should_panic(expected = "Shifted column length mismatch")]
@@ -314,8 +325,9 @@ mod tests {
             ),
             column_length: 7,
         };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &());
-        let res = verifiable_res.verify(&plan, &accessor, &());
+        let verifiable_res =
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+        let res = verifiable_res.verify(&plan, &accessor, &(), &[]);
         assert!(res.is_err());
     }
 }
