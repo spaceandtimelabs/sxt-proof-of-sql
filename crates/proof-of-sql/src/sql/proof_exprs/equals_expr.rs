@@ -36,8 +36,8 @@ impl ProofExpr for EqualsExpr {
         ColumnType::Boolean
     }
 
-    #[tracing::instrument(name = "EqualsExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "EqualsExpr::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
@@ -45,21 +45,25 @@ impl ProofExpr for EqualsExpr {
     ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column = self.lhs.result_evaluate(alloc, table, params)?;
-        let rhs_column = self.rhs.result_evaluate(alloc, table, params)?;
+        let lhs_column = self.lhs.first_round_evaluate(alloc, table, params)?;
+        let rhs_column = self.rhs.first_round_evaluate(alloc, table, params)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        let res = Column::Boolean(result_evaluate_equals_zero(table.num_rows(), alloc, res));
+        let res = Column::Boolean(first_round_evaluate_equals_zero(
+            table.num_rows(),
+            alloc,
+            res,
+        ));
 
         log::log_memory_usage("End");
 
         Ok(res)
     }
 
-    #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "EqualsExpr::final_round_evaluate", level = "debug", skip_all)]
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -68,14 +72,18 @@ impl ProofExpr for EqualsExpr {
     ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table, params)?;
-        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table, params)?;
+        let lhs_column = self
+            .lhs
+            .final_round_evaluate(builder, alloc, table, params)?;
+        let rhs_column = self
+            .rhs
+            .final_round_evaluate(builder, alloc, table, params)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let scale_and_subtract_res =
             scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
                 .expect("Failed to scale and subtract");
-        let res = Column::Boolean(prover_evaluate_equals_zero(
+        let res = Column::Boolean(final_round_evaluate_equals_zero(
             table.num_rows(),
             builder,
             alloc,
@@ -116,7 +124,7 @@ impl ProofExpr for EqualsExpr {
     clippy::missing_panics_doc,
     reason = "table_length is guaranteed to match lhs.len()"
 )]
-pub fn result_evaluate_equals_zero<'a, S: Scalar>(
+pub fn first_round_evaluate_equals_zero<'a, S: Scalar>(
     table_length: usize,
     alloc: &'a Bump,
     lhs: &'a [S],
@@ -125,7 +133,7 @@ pub fn result_evaluate_equals_zero<'a, S: Scalar>(
     alloc.alloc_slice_fill_with(table_length, |i| lhs[i] == S::zero())
 }
 
-pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
+pub fn final_round_evaluate_equals_zero<'a, S: Scalar>(
     table_length: usize,
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,

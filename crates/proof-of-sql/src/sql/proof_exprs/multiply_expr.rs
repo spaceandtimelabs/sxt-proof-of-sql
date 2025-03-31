@@ -37,24 +37,24 @@ impl ProofExpr for MultiplyExpr {
             .expect("Failed to multiply column types")
     }
 
-    fn result_evaluate<'a, S: Scalar>(
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
     ) -> PlaceholderProverResult<Column<'a, S>> {
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table, params)?;
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table, params)?;
+        let lhs_column: Column<'a, S> = self.lhs.first_round_evaluate(alloc, table, params)?;
+        let rhs_column: Column<'a, S> = self.rhs.first_round_evaluate(alloc, table, params)?;
         let scalars = multiply_columns(&lhs_column, &rhs_column, alloc);
         Ok(Column::Scalar(scalars))
     }
 
     #[tracing::instrument(
-        name = "proofs.sql.ast.multiply_expr.prover_evaluate",
+        name = "proofs.sql.ast.multiply_expr.final_round_evaluate",
         level = "info",
         skip_all
     )]
-    fn prover_evaluate<'a, S: Scalar>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -63,8 +63,12 @@ impl ProofExpr for MultiplyExpr {
     ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table, params)?;
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table, params)?;
+        let lhs_column: Column<'a, S> = self
+            .lhs
+            .final_round_evaluate(builder, alloc, table, params)?;
+        let rhs_column: Column<'a, S> = self
+            .rhs
+            .final_round_evaluate(builder, alloc, table, params)?;
 
         // lhs_times_rhs
         let lhs_times_rhs: &'a [S] = multiply_columns(&lhs_column, &rhs_column, alloc);

@@ -331,7 +331,7 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 
 // b + a - 1
 #[test]
-fn we_can_compute_the_correct_output_of_an_add_subtract_expr_using_result_evaluate() {
+fn we_can_compute_the_correct_output_of_an_add_subtract_expr_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data = table([
         borrowed_smallint("a", [1_i16, 2, 3, 4], &alloc),
@@ -347,7 +347,7 @@ fn we_can_compute_the_correct_output_of_an_add_subtract_expr_using_result_evalua
         subtract(column(&t, "a", &accessor), const_bigint(1)),
     );
     let res = add_subtract_expr
-        .result_evaluate(&alloc, &data, &[])
+        .first_round_evaluate(&alloc, &data, &[])
         .unwrap();
     let expected_res_scalar = [0, 2, 2, 4]
         .iter()

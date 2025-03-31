@@ -69,7 +69,7 @@ impl ProofExpr for ColumnExpr {
 
     /// Evaluate the column expression and
     /// add the result to the [`FirstRoundBuilder`](crate::sql::proof::FirstRoundBuilder)
-    fn result_evaluate<'a, S: Scalar>(
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
         _alloc: &'a Bump,
         table: &Table<'a, S>,
@@ -80,7 +80,7 @@ impl ProofExpr for ColumnExpr {
 
     /// Given the selected rows (as a slice of booleans), evaluate the column expression and
     /// add the components needed to prove the result
-    fn prover_evaluate<'a, S: Scalar>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         _builder: &mut FinalRoundBuilder<'a, S>,
         _alloc: &'a Bump,

@@ -1,4 +1,4 @@
-use super::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
+use super::{final_round_evaluate_sign, first_round_evaluate_sign, verifier_evaluate_sign};
 use crate::{
     base::{
         bit::BitDistribution,
@@ -19,7 +19,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
     let alloc = Bump::new();
     let data: Vec<TestScalar> = data.into_iter().map(TestScalar::from).collect();
     let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
-    let sign = prover_evaluate_sign(&mut builder, &alloc, &data);
+    let sign = final_round_evaluate_sign(&mut builder, &alloc, &data);
     assert_eq!(sign, [false; 3]);
     assert_eq!(builder.bit_distributions(), [dist]);
 }
@@ -31,7 +31,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_colum
     let alloc = Bump::new();
     let data: Vec<TestScalar> = data.into_iter().map(TestScalar::from).collect();
     let mut builder = FinalRoundBuilder::new(2, VecDeque::new());
-    let sign = prover_evaluate_sign(&mut builder, &alloc, &data);
+    let sign = final_round_evaluate_sign(&mut builder, &alloc, &data);
     assert_eq!(sign, [true; 3]);
     assert_eq!(builder.bit_distributions(), [dist]);
 }
@@ -104,26 +104,26 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
 }
 
 #[test]
-fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_for_a_constant() {
+fn we_can_compute_the_correct_sign_of_scalars_using_first_round_evaluate_sign_for_a_constant() {
     let data: &[TestScalar] = &[(-123).into(), (-123).into()];
     let alloc = Bump::new();
-    let res = result_evaluate_sign(2, &alloc, data);
+    let res = first_round_evaluate_sign(2, &alloc, data);
     let expected_res = [true, true];
     assert_eq!(res, expected_res);
 }
 
 #[test]
-fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_with_varying_bits_and_fixed_sign(
+fn we_can_compute_the_correct_sign_of_scalars_using_first_round_evaluate_sign_with_varying_bits_and_fixed_sign(
 ) {
     let data: &[TestScalar] = &[123.into(), 452.into(), 0.into(), 789.into(), 910.into()];
     let alloc = Bump::new();
-    let res = result_evaluate_sign(5, &alloc, data);
+    let res = first_round_evaluate_sign(5, &alloc, data);
     let expected_res = [false, false, false, false, false];
     assert_eq!(res, expected_res);
 }
 
 #[test]
-fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_with_varying_bits_and_sign(
+fn we_can_compute_the_correct_sign_of_scalars_using_first_round_evaluate_sign_with_varying_bits_and_sign(
 ) {
     let data: &[TestScalar] = &[
         123.into(),
@@ -133,7 +133,7 @@ fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_with_va
         (-910).into(),
     ];
     let alloc = Bump::new();
-    let res = result_evaluate_sign(5, &alloc, data);
+    let res = first_round_evaluate_sign(5, &alloc, data);
     let expected_res = [false, true, false, false, true];
     assert_eq!(res, expected_res);
 }

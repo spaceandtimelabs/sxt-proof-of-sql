@@ -145,7 +145,9 @@ impl ProverEvaluate for ProjectionExec {
                 |aliased_expr| -> PlaceholderProverResult<(Ident, Column<'a, S>)> {
                     Ok((
                         aliased_expr.alias.clone(),
-                        aliased_expr.expr.result_evaluate(alloc, &input, params)?,
+                        aliased_expr
+                            .expr
+                            .first_round_evaluate(alloc, &input, params)?,
                     ))
                 },
             )
@@ -188,7 +190,7 @@ impl ProverEvaluate for ProjectionExec {
                         aliased_expr.alias.clone(),
                         aliased_expr
                             .expr
-                            .prover_evaluate(builder, alloc, &input, params)?,
+                            .final_round_evaluate(builder, alloc, &input, params)?,
                     ))
                 },
             )

@@ -219,7 +219,8 @@ fn we_can_prove_and_get_the_correct_result_from_a_composed_projection() {
 }
 
 #[test]
-fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_result_evaluate() {
+fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_first_round_evaluate()
+{
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint("a", [0; 0], &alloc),

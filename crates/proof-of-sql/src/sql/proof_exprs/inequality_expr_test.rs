@@ -637,7 +637,7 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 }
 
 #[test]
-fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evaluate() {
+fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint("a", [-1, 9, 1], &alloc),
@@ -649,13 +649,13 @@ fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evalu
     let lhs_expr: DynProofExpr = column(&t, "a", &accessor);
     let rhs_expr = column(&t, "b", &accessor);
     let lte_expr = lte(lhs_expr, rhs_expr);
-    let res = lte_expr.result_evaluate(&alloc, &data, &[]).unwrap();
+    let res = lte_expr.first_round_evaluate(&alloc, &data, &[]).unwrap();
     let expected_res = Column::Boolean(&[true, false, true]);
     assert_eq!(res, expected_res);
 }
 
 #[test]
-fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evaluate() {
+fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint("a", [-1, 9, 1], &alloc),
@@ -667,7 +667,7 @@ fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evalu
     let col_expr: DynProofExpr = column(&t, "a", &accessor);
     let lit_expr = const_bigint(1);
     let gte_expr = gte(col_expr, lit_expr);
-    let res = gte_expr.result_evaluate(&alloc, &data, &[]).unwrap();
+    let res = gte_expr.first_round_evaluate(&alloc, &data, &[]).unwrap();
     let expected_res = Column::Boolean(&[false, true, true]);
     assert_eq!(res, expected_res);
 }

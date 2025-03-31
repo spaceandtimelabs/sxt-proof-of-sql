@@ -1,6 +1,6 @@
 //! Prove that a column is increasing or decreasing, strictly or non-strictly.
 use super::{
-    final_round_evaluate_shift, first_round_evaluate_shift, prover_evaluate_sign,
+    final_round_evaluate_shift, final_round_evaluate_sign, first_round_evaluate_shift,
     verifier_evaluate_sign, verify_shift,
 };
 use crate::{
@@ -74,7 +74,7 @@ pub(crate) fn final_round_evaluate_monotonic<'a, S: Scalar, const STRICT: bool, 
     };
 
     // 3. Prove the sign of `ind`
-    prover_evaluate_sign(builder, alloc, ind);
+    final_round_evaluate_sign(builder, alloc, ind);
 }
 
 pub(crate) fn verify_monotonic<S: Scalar, const STRICT: bool, const ASC: bool>(

@@ -20,7 +20,7 @@ use core::ops::Shl;
 /// Panics if `bits.last()` is `None` or if `result.len()` does not match `table_length`.
 ///
 /// todo! make this more efficient and targeted at just the sign bit rather than all bits to create a proof
-pub fn result_evaluate_sign<'a, S: Scalar>(
+pub fn first_round_evaluate_sign<'a, S: Scalar>(
     table_length: usize,
     alloc: &'a Bump,
     expr: &'a [S],
@@ -46,7 +46,7 @@ pub fn result_evaluate_sign<'a, S: Scalar>(
 ///
 /// Note: We can only prove the sign bit for non-zero scalars, and we restict
 /// the range of non-zero scalar so that there is a unique sign representation.
-pub fn prover_evaluate_sign<'a, S: Scalar>(
+pub fn final_round_evaluate_sign<'a, S: Scalar>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     expr: &'a [S],
@@ -77,7 +77,7 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
 /// Panics if `bit_evals` is empty and `dist` indicates a variable lead bit.
 /// This would mean that there is no way to determine the sign bit.
 ///
-/// See [`prover_evaluate_sign`].
+/// See [`final_round_evaluate_sign`].
 pub fn verifier_evaluate_sign<S: Scalar>(
     builder: &mut impl VerificationBuilder<S>,
     eval: S,

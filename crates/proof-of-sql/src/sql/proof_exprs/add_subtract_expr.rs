@@ -43,14 +43,14 @@ impl ProofExpr for AddSubtractExpr {
             .expect("Failed to add/subtract column types")
     }
 
-    fn result_evaluate<'a, S: Scalar>(
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
     ) -> PlaceholderProverResult<Column<'a, S>> {
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table, params)?;
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table, params)?;
+        let lhs_column: Column<'a, S> = self.lhs.first_round_evaluate(alloc, table, params)?;
+        let rhs_column: Column<'a, S> = self.rhs.first_round_evaluate(alloc, table, params)?;
         Ok(Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,
@@ -62,11 +62,11 @@ impl ProofExpr for AddSubtractExpr {
     }
 
     #[tracing::instrument(
-        name = "proofs.sql.ast.add_subtract_expr.prover_evaluate",
+        name = "proofs.sql.ast.add_subtract_expr.final_round_evaluate",
         level = "info",
         skip_all
     )]
-    fn prover_evaluate<'a, S: Scalar>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -75,8 +75,12 @@ impl ProofExpr for AddSubtractExpr {
     ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table, params)?;
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table, params)?;
+        let lhs_column: Column<'a, S> = self
+            .lhs
+            .final_round_evaluate(builder, alloc, table, params)?;
+        let rhs_column: Column<'a, S> = self
+            .rhs
+            .final_round_evaluate(builder, alloc, table, params)?;
         let res = Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,

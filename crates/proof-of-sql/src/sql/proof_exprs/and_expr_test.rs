@@ -174,7 +174,7 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 }
 
 #[test]
-fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
+fn we_can_compute_the_correct_output_of_an_and_expr_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint("a", [1, 2, 3, 4], &alloc),
@@ -189,7 +189,7 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
         equal(column(&t, "b", &accessor), const_int128(1)),
         equal(column(&t, "d", &accessor), const_varchar("t")),
     );
-    let res = and_expr.result_evaluate(&alloc, &data, &[]).unwrap();
+    let res = and_expr.first_round_evaluate(&alloc, &data, &[]).unwrap();
     let expected_res = Column::Boolean(&[false, true, false, false]);
     assert_eq!(res, expected_res);
 }
@@ -217,7 +217,7 @@ fn we_can_verify_a_simple_proof() {
         FinalRoundBuilder::new(4, VecDeque::new());
 
     and_expr
-        .prover_evaluate(&mut final_round_builder, &alloc, &table, &[])
+        .final_round_evaluate(&mut final_round_builder, &alloc, &table, &[])
         .unwrap();
 
     let verification_builder = run_verify_for_each_row(
