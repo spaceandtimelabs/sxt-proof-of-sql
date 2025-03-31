@@ -25,6 +25,11 @@ pub(crate) use literal_expr::LiteralExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod literal_expr_test;
 
+mod placeholder_expr;
+pub(crate) use placeholder_expr::PlaceholderExpr;
+#[cfg(all(test, feature = "blitzar"))]
+mod placeholder_expr_test;
+
 mod and_expr;
 pub(crate) use and_expr::AndExpr;
 #[cfg(all(test, feature = "blitzar"))]
