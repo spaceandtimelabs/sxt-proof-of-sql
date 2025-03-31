@@ -30,7 +30,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_union_with_no_tables() {
         ],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
         .unwrap()
@@ -57,7 +57,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_union_with_one_table() {
         vec![column_field("a", ColumnType::BigInt)],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
         .unwrap()
@@ -88,7 +88,8 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_union_exec() {
         ],
         vec![column_field("a", ColumnType::BigInt)],
     );
-    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+    let verifiable_res =
+        VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]).unwrap();
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
         .unwrap()
@@ -138,7 +139,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_union_exec() {
             column_field("b", ColumnType::VarChar),
         ],
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t0);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -279,7 +280,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_more_complex_union_exec() {
             column_field("b", ColumnType::VarChar),
         ],
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t0);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -354,12 +355,10 @@ fn we_can_get_result_from_union_using_first_round_evaluate() {
         fields.clone(),
     );
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(ast.first_round_evaluate(
-        first_round_builder,
-        &alloc,
-        &table_map,
-        &[],
-    ))
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        ast.first_round_evaluate(first_round_builder, &alloc, &table_map, &[])
+            .unwrap(),
+    )
     .to_owned_table(&fields)
     .unwrap();
 

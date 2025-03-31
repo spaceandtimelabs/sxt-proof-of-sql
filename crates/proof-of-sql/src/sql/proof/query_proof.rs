@@ -17,6 +17,7 @@ use crate::{
         proof::{Keccak256Transcript, ProofError, Transcript},
     },
     proof_primitive::sumcheck::SumcheckProof,
+    sql::PlaceholderProverResult,
     utils::log,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
@@ -100,7 +101,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
         params: &[LiteralValue],
-    ) -> (Self, OwnedTable<CP::Scalar>) {
+    ) -> PlaceholderProverResult<(Self, OwnedTable<CP::Scalar>)> {
         log::log_memory_usage("Start");
 
         let (min_row_num, max_row_num) = get_index_range(accessor, &expr.get_table_references());
@@ -124,7 +125,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // Prover First Round: Evaluate the query && get the right number of post result challenges
         let mut first_round_builder = FirstRoundBuilder::new(initial_range_length);
         let query_result =
-            expr.first_round_evaluate(&mut first_round_builder, &alloc, &table_map, params);
+            expr.first_round_evaluate(&mut first_round_builder, &alloc, &table_map, params)?;
         let owned_table_result = OwnedTable::from(&query_result);
         let provable_result = query_result.into();
         let chi_evaluation_lengths = first_round_builder.chi_evaluation_lengths();
@@ -168,7 +169,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let mut final_round_builder =
             FinalRoundBuilder::new(num_sumcheck_variables, post_result_challenges);
 
-        expr.final_round_evaluate(&mut final_round_builder, &alloc, &table_map, params);
+        expr.final_round_evaluate(&mut final_round_builder, &alloc, &table_map, params)?;
 
         let num_sumcheck_variables = final_round_builder.num_sumcheck_variables();
 
@@ -273,7 +274,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         log::log_memory_usage("End");
 
-        (proof, provable_result)
+        Ok((proof, provable_result))
     }
 
     #[tracing::instrument(name = "QueryProof::verify", level = "debug", skip_all, err)]

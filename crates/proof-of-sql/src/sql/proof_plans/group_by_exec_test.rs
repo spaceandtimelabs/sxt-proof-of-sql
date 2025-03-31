@@ -29,7 +29,7 @@ fn we_can_prove_aggregation_without_group_by() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_int128(99)),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
@@ -57,7 +57,7 @@ fn we_can_prove_a_simple_group_by_with_bigint_columns() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_int128(99)),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
@@ -92,7 +92,7 @@ fn we_can_prove_a_group_by_with_bigint_columns() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_int128(99)),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
@@ -214,7 +214,7 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
             equal(column(&t, "varchar_filter", &accessor), const_varchar("f2")),
         ),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
@@ -247,7 +247,7 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
             equal(column(&t, "varchar_filter", &accessor), const_varchar("f2")),
         ),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([

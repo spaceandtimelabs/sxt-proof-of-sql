@@ -9,6 +9,7 @@ use crate::{
     sql::{
         proof::{FinalRoundBuilder, VerificationBuilder},
         proof_gadgets::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign},
+        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -42,11 +43,11 @@ impl ProofExpr for InequalityExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> Column<'a, S> {
+    ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column = self.lhs.result_evaluate(alloc, table, params);
-        let rhs_column = self.rhs.result_evaluate(alloc, table, params);
+        let lhs_column = self.lhs.result_evaluate(alloc, table, params)?;
+        let rhs_column = self.rhs.result_evaluate(alloc, table, params)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let table_length = table.num_rows();
@@ -63,7 +64,7 @@ impl ProofExpr for InequalityExpr {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     #[tracing::instrument(name = "InequalityExpr::prover_evaluate", level = "debug", skip_all)]
@@ -73,11 +74,11 @@ impl ProofExpr for InequalityExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> Column<'a, S> {
+    ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table, params);
-        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table, params);
+        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table, params)?;
+        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table, params)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let diff = if self.is_lt {
@@ -93,7 +94,7 @@ impl ProofExpr for InequalityExpr {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     fn verifier_evaluate<S: Scalar>(

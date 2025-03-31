@@ -6,7 +6,10 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+        PlaceholderProverResult,
+    },
     utils::log,
 };
 use alloc::{boxed::Box, vec};
@@ -38,18 +41,18 @@ impl ProofExpr for OrExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> Column<'a, S> {
+    ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table, params);
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table, params);
+        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table, params)?;
+        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table, params)?;
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         let res = Column::Boolean(result_evaluate_or(table.num_rows(), alloc, lhs, rhs));
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     #[tracing::instrument(name = "OrExpr::prover_evaluate", level = "debug", skip_all)]
@@ -59,18 +62,18 @@ impl ProofExpr for OrExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> Column<'a, S> {
+    ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table, params);
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table, params);
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table, params)?;
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table, params)?;
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         let res = Column::Boolean(prover_evaluate_or(builder, alloc, lhs, rhs));
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     fn verifier_evaluate<S: Scalar>(

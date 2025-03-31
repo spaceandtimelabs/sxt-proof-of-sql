@@ -44,7 +44,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_slice_exec() {
         1,
         Some(2),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -73,7 +73,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_slice_exec() {
         1,
         Some(2),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -121,12 +121,10 @@ fn we_can_get_an_empty_result_from_a_slice_on_an_empty_table_using_first_round_e
         ),
     ];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
-        first_round_builder,
-        &alloc,
-        &table_map,
-        &[],
-    ))
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map, &[])
+            .unwrap(),
+    )
     .to_owned_table(fields)
     .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -177,12 +175,10 @@ fn we_can_get_an_empty_result_from_a_slice_using_first_round_evaluate() {
         ),
     ];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
-        first_round_builder,
-        &alloc,
-        &table_map,
-        &[],
-    ))
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map, &[])
+            .unwrap(),
+    )
     .to_owned_table(fields)
     .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -220,12 +216,10 @@ fn we_can_get_no_columns_from_a_slice_with_empty_input_using_first_round_evaluat
     );
     let fields = &[];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
-        first_round_builder,
-        &alloc,
-        &table_map,
-        &[],
-    ))
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map, &[])
+            .unwrap(),
+    )
     .to_owned_table(fields)
     .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
@@ -269,12 +263,10 @@ fn we_can_get_the_correct_result_from_a_slice_using_first_round_evaluate() {
         ),
     ];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
-        first_round_builder,
-        &alloc,
-        &table_map,
-        &[],
-    ))
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map, &[])
+            .unwrap(),
+    )
     .to_owned_table(fields)
     .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -317,7 +309,7 @@ fn we_can_prove_a_slice_exec() {
         2,
         Some(1),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
@@ -366,7 +358,7 @@ fn we_can_prove_a_nested_slice_exec() {
         1,
         Some(1),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
@@ -415,7 +407,7 @@ fn we_can_prove_a_nested_slice_exec_with_no_rows() {
         3,
         None,
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
@@ -464,7 +456,7 @@ fn we_can_prove_another_nested_slice_exec_with_no_rows() {
         3,
         None,
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
@@ -517,7 +509,7 @@ fn we_can_create_and_prove_a_slice_exec_on_top_of_a_table_exec() {
         0_usize,
         (),
     );
-    let verifiable_res = VerifiableQueryResult::new(&plan, &accessor, &(), &[]);
+    let verifiable_res = VerifiableQueryResult::new(&plan, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &plan, &accessor, &table_ref);
     let res = verifiable_res
         .verify(&plan, &accessor, &(), &[])
@@ -539,7 +531,7 @@ fn we_can_create_and_prove_a_slice_exec_on_top_of_an_empty_exec() {
     let empty_table = owned_table([]);
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let expr = slice_exec(empty_exec(), 3, Some(2));
-    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     assert_eq!(res, empty_table);
 }
@@ -566,7 +558,7 @@ fn we_cannot_prove_a_slice_exec_if_it_has_groupby_as_input_for_now() {
         None,
     );
     let res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+        VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(matches!(
         res.verify(&expr, &accessor, &(), &[]),
         Err(QueryError::ProofError {

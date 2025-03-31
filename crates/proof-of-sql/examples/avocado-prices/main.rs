@@ -53,7 +53,8 @@ fn prove_and_verify_query(
         accessor,
         &prover_setup,
         &[],
-    );
+    )
+    .unwrap();
     println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
     // Verify the result with the proof:

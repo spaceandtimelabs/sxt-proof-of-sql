@@ -36,7 +36,7 @@ fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
         tab(&t),
         not(equal(column(&t, "b", &accessor), const_bigint(1))),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -83,7 +83,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 ),
             )),
         );
-        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
         exercise_verification(&verifiable_res, &ast, &accessor, &t);
         let res = verifiable_res
             .verify(&ast, &accessor, &(), &[])
@@ -129,7 +129,7 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
     let t = TableRef::new("sxt", "t");
     accessor.add_table(t.clone(), data.clone(), 0);
     let not_expr: DynProofExpr = not(equal(column(&t, "b", &accessor), const_int128(1)));
-    let res = not_expr.result_evaluate(&alloc, &data, &[]);
+    let res = not_expr.result_evaluate(&alloc, &data, &[]).unwrap();
     let expected_res = Column::Boolean(&[true, false]);
     assert_eq!(res, expected_res);
 }

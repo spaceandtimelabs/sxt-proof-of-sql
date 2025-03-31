@@ -37,7 +37,7 @@ fn prove_and_verify_query(
         accessor,
         &prover_setup,
         &[],
-    );
+    )?;
     println!("Done in {} ms.", now.elapsed().as_secs_f64() * 1000.);
 
     print!("Verifying proof...");

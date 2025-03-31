@@ -12,8 +12,11 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{
-        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+    sql::{
+        proof::{
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+        },
+        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -116,13 +119,13 @@ impl ProverEvaluate for SliceExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         // 1. columns
         let input = self
             .input
-            .first_round_evaluate(builder, alloc, table_map, params);
+            .first_round_evaluate(builder, alloc, table_map, params)?;
         let input_length = input.num_rows();
         let columns = input.columns().copied().collect::<Vec<_>>();
         // 2. select
@@ -152,7 +155,7 @@ impl ProverEvaluate for SliceExec {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     #[tracing::instrument(name = "SliceExec::prover_evaluate", level = "debug", skip_all)]
@@ -162,13 +165,13 @@ impl ProverEvaluate for SliceExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         // 1. columns
         let input = self
             .input
-            .final_round_evaluate(builder, alloc, table_map, params);
+            .final_round_evaluate(builder, alloc, table_map, params)?;
         let columns = input.columns().copied().collect::<Vec<_>>();
         // 2. select
         let select = get_slice_select(input.num_rows(), self.skip, self.fetch);
@@ -205,6 +208,6 @@ impl ProverEvaluate for SliceExec {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 }

@@ -72,7 +72,7 @@ fn posql_end_to_end_test<'a, CP: CommitmentEvaluationProof>(
     let plans = sql_to_proof_plans(sql, &context_provider, &schemas, &config).unwrap();
     // Prove and verify the plans
     for (plan, expected) in plans.iter().zip(expected_results.iter()) {
-        let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup, params);
+        let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup, params).unwrap();
         let res = res
             .verify(plan, &accessor, &verifier_setup, params)
             .unwrap()
@@ -104,7 +104,7 @@ fn posql_end_to_end_test_with_postprocessing<'a, CP: CommitmentEvaluationProof>(
     {
         // Prove and verify the plans
         let plan = plan_with_postprocessing.plan();
-        let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup, params);
+        let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup, params).unwrap();
         let raw_table = res
             .verify(plan, &accessor, &verifier_setup, params)
             .unwrap()

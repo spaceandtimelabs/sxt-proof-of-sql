@@ -51,7 +51,7 @@ fn we_can_prove_a_simple_and_query() {
             ),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -83,7 +83,7 @@ fn we_can_prove_a_simple_and_query_with_128_bits() {
             ),
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -135,7 +135,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 equal(column(&t, "c", &accessor), const_bigint(filter_val2)),
             ),
         );
-        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
         exercise_verification(&verifiable_res, &ast, &accessor, &t);
         let res = verifiable_res
             .verify(&ast, &accessor, &(), &[])
@@ -189,7 +189,7 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
         equal(column(&t, "b", &accessor), const_int128(1)),
         equal(column(&t, "d", &accessor), const_varchar("t")),
     );
-    let res = and_expr.result_evaluate(&alloc, &data, &[]);
+    let res = and_expr.result_evaluate(&alloc, &data, &[]).unwrap();
     let expected_res = Column::Boolean(&[false, true, false, false]);
     assert_eq!(res, expected_res);
 }
@@ -216,7 +216,9 @@ fn we_can_verify_a_simple_proof() {
     let mut final_round_builder: FinalRoundBuilder<'_, TestScalar> =
         FinalRoundBuilder::new(4, VecDeque::new());
 
-    and_expr.prover_evaluate(&mut final_round_builder, &alloc, &table, &[]);
+    and_expr
+        .prover_evaluate(&mut final_round_builder, &alloc, &table, &[])
+        .unwrap();
 
     let verification_builder = run_verify_for_each_row(
         4,

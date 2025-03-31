@@ -74,7 +74,8 @@ fn main() {
         &accessor,
         &&prover_setup,
         &[],
-    );
+    )
+    .unwrap();
     end_timer(timer);
     let timer = start_timer("Verifying Proof");
     let result = verifiable_result.verify(query.proof_expr(), &accessor, &&verifier_setup, &[]);

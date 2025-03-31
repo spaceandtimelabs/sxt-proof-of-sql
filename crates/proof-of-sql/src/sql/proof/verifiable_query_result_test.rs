@@ -14,7 +14,10 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{FirstRoundBuilder, QueryData},
+    sql::{
+        proof::{FirstRoundBuilder, QueryData},
+        PlaceholderProverResult,
+    },
 };
 use bumpalo::Bump;
 use serde::Serialize;
@@ -31,14 +34,14 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let zeros = vec![0_i64; self.length];
         builder.produce_chi_evaluation_length(self.length);
-        table_with_row_count(
+        Ok(table_with_row_count(
             (1..=self.columns)
                 .map(|i| borrowed_bigint(format!("a{i}").as_str(), zeros.clone(), alloc)),
             self.length,
-        )
+        ))
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -47,17 +50,17 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let zeros = vec![0_i64; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
         let _ = std::iter::repeat_with(|| builder.produce_intermediate_mle(res))
             .take(self.columns)
             .collect::<Vec<_>>();
-        table_with_row_count(
+        Ok(table_with_row_count(
             (1..=self.columns)
                 .map(|i| borrowed_bigint(format!("a{i}").as_str(), zeros.clone(), alloc)),
             self.length,
-        )
+        ))
     }
 }
 impl ProofPlan for EmptyTestQueryExpr {
@@ -106,7 +109,7 @@ fn we_can_verify_queries_on_an_empty_table() {
         0,
         (),
     );
-    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     let QueryData {
         verification_hash: _,
         table,

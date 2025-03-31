@@ -163,7 +163,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_filter() {
         OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let where_clause = equal(column(&t, "a", &accessor), const_int128(5_i128));
     let ast = filter(cols_expr_plan(&t, &["b"], &accessor), tab(&t), where_clause);
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -206,12 +206,10 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_first_
         ),
     ];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
-        first_round_builder,
-        &alloc,
-        &table_map,
-        &[],
-    ))
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map, &[])
+            .unwrap(),
+    )
     .to_owned_table(fields)
     .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -257,12 +255,10 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_first_round_evaluate() {
         ),
     ];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
-        first_round_builder,
-        &alloc,
-        &table_map,
-        &[],
-    ))
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map, &[])
+            .unwrap(),
+    )
     .to_owned_table(fields)
     .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -296,12 +292,10 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_firs
     let expr = filter(cols_expr_plan(&t, &[], &accessor), tab(&t), where_clause);
     let fields = &[];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
-        first_round_builder,
-        &alloc,
-        &table_map,
-        &[],
-    ))
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map, &[])
+            .unwrap(),
+    )
     .to_owned_table(fields)
     .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
@@ -341,12 +335,10 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_first_round_evaluate(
         ),
     ];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
-    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(expr.first_round_evaluate(
-        first_round_builder,
-        &alloc,
-        &table_map,
-        &[],
-    ))
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
+        expr.first_round_evaluate(first_round_builder, &alloc, &table_map, &[])
+            .unwrap(),
+    )
     .to_owned_table(fields)
     .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -375,7 +367,7 @@ fn we_can_prove_a_filter_on_an_empty_table() {
         tab(&t),
         equal(column(&t, "a", &accessor), const_int128(106)),
     );
-    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("b", [3; 0]),
@@ -403,7 +395,7 @@ fn we_can_prove_a_filter_with_empty_results() {
         tab(&t),
         equal(column(&t, "a", &accessor), const_int128(106)),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
@@ -442,7 +434,7 @@ fn we_can_prove_a_filter() {
         tab(&t),
         equal(column(&t, "a", &accessor), const_int128(105)),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     exercise_verification(&res, &expr, &accessor, &t);
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([

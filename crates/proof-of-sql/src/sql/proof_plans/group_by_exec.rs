@@ -18,6 +18,7 @@ use crate::{
             SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
+        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -198,7 +199,7 @@ impl ProverEvaluate for GroupByExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let table = table_map
@@ -206,7 +207,7 @@ impl ProverEvaluate for GroupByExec {
             .expect("Table not found");
         // 1. selection
         let selection_column: Column<'a, S> =
-            self.where_clause.result_evaluate(alloc, table, params);
+            self.where_clause.result_evaluate(alloc, table, params)?;
 
         let selection = selection_column
             .as_boolean()
@@ -216,13 +217,17 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.result_evaluate(alloc, table, params))
-            .collect::<Vec<_>>();
+            .map(|expr| -> PlaceholderProverResult<Column<'a, S>> {
+                expr.result_evaluate(alloc, table, params)
+            })
+            .collect::<PlaceholderProverResult<Vec<_>>>()?;
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table, params))
-            .collect::<Vec<_>>();
+            .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
+                aliased_expr.expr.result_evaluate(alloc, table, params)
+            })
+            .collect::<PlaceholderProverResult<Vec<_>>>()?;
         // Compute filtered_columns
         let AggregatedColumns {
             group_by_columns: group_by_result_columns,
@@ -249,7 +254,7 @@ impl ProverEvaluate for GroupByExec {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     #[tracing::instrument(name = "GroupByExec::final_round_evaluate", level = "debug", skip_all)]
@@ -259,7 +264,7 @@ impl ProverEvaluate for GroupByExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let table = table_map
@@ -268,7 +273,7 @@ impl ProverEvaluate for GroupByExec {
         // 1. selection
         let selection_column: Column<'a, S> = self
             .where_clause
-            .prover_evaluate(builder, alloc, table, params);
+            .prover_evaluate(builder, alloc, table, params)?;
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -277,17 +282,19 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.prover_evaluate(builder, alloc, table, params))
-            .collect::<Vec<_>>();
+            .map(|expr| -> PlaceholderProverResult<Column<'a, S>> {
+                expr.prover_evaluate(builder, alloc, table, params)
+            })
+            .collect::<PlaceholderProverResult<Vec<_>>>()?;
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| {
+            .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
                 aliased_expr
                     .expr
                     .prover_evaluate(builder, alloc, table, params)
             })
-            .collect::<Vec<_>>();
+            .collect::<PlaceholderProverResult<Vec<_>>>()?;
         // 3. Compute filtered_columns
         let AggregatedColumns {
             group_by_columns: group_by_result_columns,
@@ -331,7 +338,7 @@ impl ProverEvaluate for GroupByExec {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 }
 

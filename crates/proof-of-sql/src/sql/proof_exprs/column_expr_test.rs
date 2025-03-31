@@ -25,7 +25,7 @@ fn we_can_prove_a_query_with_a_single_selected_row() {
             vec![ColumnField::new("a".into(), ColumnType::Boolean)],
         ),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])

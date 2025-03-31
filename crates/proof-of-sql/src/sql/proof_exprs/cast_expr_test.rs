@@ -67,7 +67,7 @@ fn we_can_prove_a_simple_cast_expr() {
         tab(&t),
         super::DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Boolean(true))),
     );
-    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])

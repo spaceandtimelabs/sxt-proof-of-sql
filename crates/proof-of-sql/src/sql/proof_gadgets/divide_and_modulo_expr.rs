@@ -8,6 +8,7 @@ use crate::{
     sql::{
         proof::{FinalRoundBuilder, VerificationBuilder},
         proof_exprs::{divide_columns, modulo_columns, DynProofExpr, ProofExpr},
+        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -78,9 +79,9 @@ impl DivideAndModuloExpr {
         table: &Table<'a, S>,
         utilities: &U,
         params: &[LiteralValue],
-    ) -> (Column<'a, S>, Column<'a, S>) {
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table, params);
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table, params);
+    ) -> PlaceholderProverResult<(Column<'a, S>, Column<'a, S>)> {
+        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table, params)?;
+        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table, params)?;
 
         let (quotient_wrapped, _quotient) =
             utilities.divide_columns(&lhs_column, &rhs_column, alloc);
@@ -89,7 +90,7 @@ impl DivideAndModuloExpr {
         builder.produce_intermediate_mle(quotient_wrapped);
         builder.produce_intermediate_mle(remainder);
 
-        (quotient_wrapped, remainder)
+        Ok((quotient_wrapped, remainder))
     }
 
     #[cfg_attr(not(test), expect(dead_code))]
@@ -99,15 +100,15 @@ impl DivideAndModuloExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> (Column<'a, S>, Column<'a, S>) {
+    ) -> PlaceholderProverResult<(Column<'a, S>, Column<'a, S>)> {
         log::log_memory_usage("Start");
         let utilities = StandardDivideAndModuloExprUtilities {};
 
-        let res = self.prover_evaluate_base(builder, alloc, table, &utilities, params);
+        let res = self.prover_evaluate_base(builder, alloc, table, &utilities, params)?;
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     #[cfg_attr(not(test), expect(dead_code))]
@@ -176,7 +177,9 @@ mod tests {
             rhs_ident => Column::Int128::<TestScalar>(rhs),
         })
         .unwrap();
-        divide_and_modulo_expr.prover_evaluate(&mut final_round_builder, &alloc, &table, &[]);
+        divide_and_modulo_expr
+            .prover_evaluate(&mut final_round_builder, &alloc, &table, &[])
+            .unwrap();
         let mock_verification_builder = run_verify_for_each_row(
             lhs.len(),
             &first_round_builder,

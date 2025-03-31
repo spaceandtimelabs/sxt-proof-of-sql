@@ -2,8 +2,8 @@ use super::DynProofPlan;
 use crate::{
     base::{
         database::{
-            ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation, TableOptions,
-            TableRef,
+            Column, ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation,
+            TableOptions, TableRef,
         },
         map::{IndexMap, IndexSet},
         proof::ProofError,
@@ -14,12 +14,14 @@ use crate::{
             FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ProofExpr},
+        PlaceholderProverResult,
     },
     utils::log,
 };
 use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -129,27 +131,33 @@ impl ProverEvaluate for ProjectionExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let input = self
             .input
-            .first_round_evaluate(builder, alloc, table_map, params);
+            .first_round_evaluate(builder, alloc, table_map, params)?;
 
-        let res = Table::<'a, S>::try_from_iter_with_options(
-            self.aliased_results.iter().map(|aliased_expr| {
-                (
-                    aliased_expr.alias.clone(),
-                    aliased_expr.expr.result_evaluate(alloc, &input, params),
-                )
-            }),
-            TableOptions::new(Some(input.num_rows())),
-        )
-        .expect("Failed to create table from iterator");
+        let cols = self
+            .aliased_results
+            .iter()
+            .map(
+                |aliased_expr| -> PlaceholderProverResult<(Ident, Column<'a, S>)> {
+                    Ok((
+                        aliased_expr.alias.clone(),
+                        aliased_expr.expr.result_evaluate(alloc, &input, params)?,
+                    ))
+                },
+            )
+            .collect::<PlaceholderProverResult<IndexMap<_, _>>>()?;
+
+        let res =
+            Table::<'a, S>::try_new_with_options(cols, TableOptions::new(Some(input.num_rows())))
+                .expect("Failed to create table from iterator");
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     #[tracing::instrument(
@@ -163,28 +171,35 @@ impl ProverEvaluate for ProjectionExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let input = self
             .input
-            .final_round_evaluate(builder, alloc, table_map, params);
+            .final_round_evaluate(builder, alloc, table_map, params)?;
+
         // Evaluate result expressions
-        let res = Table::<'a, S>::try_from_iter_with_options(
-            self.aliased_results.iter().map(|aliased_expr| {
-                (
-                    aliased_expr.alias.clone(),
-                    aliased_expr
-                        .expr
-                        .prover_evaluate(builder, alloc, &input, params),
-                )
-            }),
-            TableOptions::new(Some(input.num_rows())),
-        )
-        .expect("Failed to create table from iterator");
+        let cols = self
+            .aliased_results
+            .iter()
+            .map(
+                |aliased_expr| -> PlaceholderProverResult<(Ident, Column<'a, S>)> {
+                    Ok((
+                        aliased_expr.alias.clone(),
+                        aliased_expr
+                            .expr
+                            .prover_evaluate(builder, alloc, &input, params)?,
+                    ))
+                },
+            )
+            .collect::<PlaceholderProverResult<IndexMap<_, _>>>()?;
+
+        let res =
+            Table::<'a, S>::try_new_with_options(cols, TableOptions::new(Some(input.num_rows())))
+                .expect("Failed to create table from iterator");
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 }
