@@ -63,10 +63,8 @@ impl From<IntermediateDecimalError> for AnalyzeError {
 pub type AnalyzeResult<T> = Result<T, AnalyzeError>;
 
 /// Errors related to placeholders in provers
-#[allow(dead_code)]
 #[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum PlaceholderProverError {}
 
 /// Result type for placeholder errors in provers
-#[allow(dead_code)]
 pub type PlaceholderProverResult<T> = Result<T, PlaceholderProverError>;
