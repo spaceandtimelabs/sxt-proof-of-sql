@@ -118,7 +118,7 @@ fn we_can_query_random_tables_with_a_non_zero_offset() {
 }
 
 #[test]
-fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
+fn we_can_compute_the_correct_output_of_a_not_expr_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint("a", [123, 456], &alloc),
@@ -129,7 +129,7 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
     let t = TableRef::new("sxt", "t");
     accessor.add_table(t.clone(), data.clone(), 0);
     let not_expr: DynProofExpr = not(equal(column(&t, "b", &accessor), const_int128(1)));
-    let res = not_expr.result_evaluate(&alloc, &data, &[]).unwrap();
+    let res = not_expr.first_round_evaluate(&alloc, &data, &[]).unwrap();
     let expected_res = Column::Boolean(&[true, false]);
     assert_eq!(res, expected_res);
 }

@@ -34,8 +34,8 @@ impl ProofExpr for NotExpr {
         ColumnType::Boolean
     }
 
-    #[tracing::instrument(name = "NotExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "NotExpr::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
@@ -43,7 +43,7 @@ impl ProofExpr for NotExpr {
     ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let expr_column: Column<'a, S> = self.expr.result_evaluate(alloc, table, params)?;
+        let expr_column: Column<'a, S> = self.expr.first_round_evaluate(alloc, table, params)?;
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         let res = Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]));
 
@@ -52,8 +52,8 @@ impl ProofExpr for NotExpr {
         Ok(res)
     }
 
-    #[tracing::instrument(name = "NotExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "NotExpr::final_round_evaluate", level = "debug", skip_all)]
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -62,8 +62,9 @@ impl ProofExpr for NotExpr {
     ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let expr_column: Column<'a, S> =
-            self.expr.prover_evaluate(builder, alloc, table, params)?;
+        let expr_column: Column<'a, S> = self
+            .expr
+            .final_round_evaluate(builder, alloc, table, params)?;
         let expr = expr_column.as_boolean().expect("expr is not boolean");
         let res = Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]));
 

@@ -6,7 +6,7 @@ use crate::base::{
 use bumpalo::Bump;
 
 #[test]
-fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluate() {
+fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint(
@@ -41,7 +41,7 @@ fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluat
         ),
         not(equal(column(&t, "c", &accessor), const_int128(3))),
     );
-    let res = bool_expr.result_evaluate(&alloc, &data, &[]).unwrap();
+    let res = bool_expr.first_round_evaluate(&alloc, &data, &[]).unwrap();
     let expected_res = Column::Boolean(&[
         false, true, false, true, false, true, false, true, false, true, false, true, false, true,
         false, false, false,

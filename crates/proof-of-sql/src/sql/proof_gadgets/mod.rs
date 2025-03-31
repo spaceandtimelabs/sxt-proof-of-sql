@@ -20,7 +20,9 @@ use shift::{final_round_evaluate_shift, first_round_evaluate_shift, verify_shift
 #[cfg(test)]
 mod shift_test;
 mod sign_expr;
-pub(crate) use sign_expr::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
+pub(crate) use sign_expr::{
+    final_round_evaluate_sign, first_round_evaluate_sign, verifier_evaluate_sign,
+};
 #[cfg(feature = "blitzar")]
 #[allow(dead_code)]
 mod range_check;

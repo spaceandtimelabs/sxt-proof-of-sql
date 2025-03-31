@@ -158,7 +158,7 @@ impl ProverEvaluate for SliceExec {
         Ok(res)
     }
 
-    #[tracing::instrument(name = "SliceExec::prover_evaluate", level = "debug", skip_all)]
+    #[tracing::instrument(name = "SliceExec::final_round_evaluate", level = "debug", skip_all)]
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,

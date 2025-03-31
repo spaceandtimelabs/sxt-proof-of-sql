@@ -72,7 +72,7 @@ impl DivideAndModuloExpr {
     /// This is abstracted into its own function for ease of unit testing.
     /// The `utilities` function is where any functionality that needs to be mocked
     /// can be provided.
-    fn prover_evaluate_base<'a, S: Scalar, U: DivideAndModuloExprUtilities<S>>(
+    fn final_round_evaluate_base<'a, S: Scalar, U: DivideAndModuloExprUtilities<S>>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -80,8 +80,12 @@ impl DivideAndModuloExpr {
         utilities: &U,
         params: &[LiteralValue],
     ) -> PlaceholderProverResult<(Column<'a, S>, Column<'a, S>)> {
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table, params)?;
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table, params)?;
+        let lhs_column: Column<'a, S> = self
+            .lhs
+            .final_round_evaluate(builder, alloc, table, params)?;
+        let rhs_column: Column<'a, S> = self
+            .rhs
+            .final_round_evaluate(builder, alloc, table, params)?;
 
         let (quotient_wrapped, _quotient) =
             utilities.divide_columns(&lhs_column, &rhs_column, alloc);
@@ -94,7 +98,7 @@ impl DivideAndModuloExpr {
     }
 
     #[cfg_attr(not(test), expect(dead_code))]
-    fn prover_evaluate<'a, S: Scalar>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -104,7 +108,7 @@ impl DivideAndModuloExpr {
         log::log_memory_usage("Start");
         let utilities = StandardDivideAndModuloExprUtilities {};
 
-        let res = self.prover_evaluate_base(builder, alloc, table, &utilities, params)?;
+        let res = self.final_round_evaluate_base(builder, alloc, table, &utilities, params)?;
 
         log::log_memory_usage("End");
 
@@ -178,7 +182,7 @@ mod tests {
         })
         .unwrap();
         divide_and_modulo_expr
-            .prover_evaluate(&mut final_round_builder, &alloc, &table, &[])
+            .final_round_evaluate(&mut final_round_builder, &alloc, &table, &[])
             .unwrap();
         let mock_verification_builder = run_verify_for_each_row(
             lhs.len(),

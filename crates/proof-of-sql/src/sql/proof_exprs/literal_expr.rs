@@ -43,8 +43,8 @@ impl ProofExpr for LiteralExpr {
         self.value.column_type()
     }
 
-    #[tracing::instrument(name = "LiteralExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "LiteralExpr::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
@@ -59,8 +59,8 @@ impl ProofExpr for LiteralExpr {
         Ok(res)
     }
 
-    #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "LiteralExpr::final_round_evaluate", level = "debug", skip_all)]
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         _builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,

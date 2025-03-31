@@ -35,8 +35,8 @@ impl ProofExpr for OrExpr {
         ColumnType::Boolean
     }
 
-    #[tracing::instrument(name = "OrExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "OrExpr::first_round_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
@@ -44,19 +44,19 @@ impl ProofExpr for OrExpr {
     ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.result_evaluate(alloc, table, params)?;
-        let rhs_column: Column<'a, S> = self.rhs.result_evaluate(alloc, table, params)?;
+        let lhs_column: Column<'a, S> = self.lhs.first_round_evaluate(alloc, table, params)?;
+        let rhs_column: Column<'a, S> = self.rhs.first_round_evaluate(alloc, table, params)?;
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        let res = Column::Boolean(result_evaluate_or(table.num_rows(), alloc, lhs, rhs));
+        let res = Column::Boolean(first_round_evaluate_or(table.num_rows(), alloc, lhs, rhs));
 
         log::log_memory_usage("End");
 
         Ok(res)
     }
 
-    #[tracing::instrument(name = "OrExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(name = "OrExpr::final_round_evaluate", level = "debug", skip_all)]
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -65,11 +65,15 @@ impl ProofExpr for OrExpr {
     ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column: Column<'a, S> = self.lhs.prover_evaluate(builder, alloc, table, params)?;
-        let rhs_column: Column<'a, S> = self.rhs.prover_evaluate(builder, alloc, table, params)?;
+        let lhs_column: Column<'a, S> = self
+            .lhs
+            .final_round_evaluate(builder, alloc, table, params)?;
+        let rhs_column: Column<'a, S> = self
+            .rhs
+            .final_round_evaluate(builder, alloc, table, params)?;
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        let res = Column::Boolean(prover_evaluate_or(builder, alloc, lhs, rhs));
+        let res = Column::Boolean(final_round_evaluate_or(builder, alloc, lhs, rhs));
 
         log::log_memory_usage("End");
 
@@ -103,7 +107,7 @@ impl ProofExpr for OrExpr {
     clippy::missing_panics_doc,
     reason = "table_length matches lhs and rhs lengths, ensuring no panic occurs"
 )]
-pub fn result_evaluate_or<'a>(
+pub fn first_round_evaluate_or<'a>(
     table_length: usize,
     alloc: &'a Bump,
     lhs: &[bool],
@@ -118,7 +122,7 @@ pub fn result_evaluate_or<'a>(
     clippy::missing_panics_doc,
     reason = "lhs and rhs are guaranteed to have the same length, ensuring no panic occurs"
 )]
-pub fn prover_evaluate_or<'a, S: Scalar>(
+pub fn final_round_evaluate_or<'a, S: Scalar>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     lhs: &'a [bool],

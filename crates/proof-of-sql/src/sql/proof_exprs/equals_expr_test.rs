@@ -434,7 +434,7 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 }
 
 #[test]
-fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
+fn we_can_compute_the_correct_output_of_an_equals_expr_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data: Table<Curve25519Scalar> = table([
         borrowed_bigint("a", [1, 2, 3, 4], &alloc),
@@ -460,7 +460,9 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
         column(&t, "e", &accessor),
         const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ZERO),
     );
-    let res = equals_expr.result_evaluate(&alloc, &data, &[]).unwrap();
+    let res = equals_expr
+        .first_round_evaluate(&alloc, &data, &[])
+        .unwrap();
     let expected_res = Column::Boolean(&[true, false, true, false]);
     assert_eq!(res, expected_res);
 }

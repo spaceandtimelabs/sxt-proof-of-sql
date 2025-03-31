@@ -36,17 +36,17 @@ impl ProofExpr for CastExpr {
         self.to_type
     }
 
-    fn result_evaluate<'a, S: Scalar>(
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
     ) -> PlaceholderProverResult<Column<'a, S>> {
-        let uncasted_result = self.from_expr.result_evaluate(alloc, table, params)?;
+        let uncasted_result = self.from_expr.first_round_evaluate(alloc, table, params)?;
         Ok(cast_column(alloc, uncasted_result, self.to_type))
     }
 
-    fn prover_evaluate<'a, S: Scalar>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -55,7 +55,7 @@ impl ProofExpr for CastExpr {
     ) -> PlaceholderProverResult<Column<'a, S>> {
         let uncasted_result = self
             .from_expr
-            .prover_evaluate(builder, alloc, table, params)?;
+            .final_round_evaluate(builder, alloc, table, params)?;
         Ok(cast_column(alloc, uncasted_result, self.to_type))
     }
 

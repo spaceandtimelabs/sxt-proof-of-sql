@@ -157,8 +157,9 @@ impl ProverEvaluate for FilterExec {
             .get(&self.table.table_ref)
             .expect("Table not found");
         // 1. selection
-        let selection_column: Column<'a, S> =
-            self.where_clause.result_evaluate(alloc, table, params)?;
+        let selection_column: Column<'a, S> = self
+            .where_clause
+            .first_round_evaluate(alloc, table, params)?;
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -169,7 +170,7 @@ impl ProverEvaluate for FilterExec {
             .aliased_results
             .iter()
             .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
-                aliased_expr.expr.result_evaluate(alloc, table, params)
+                aliased_expr.expr.first_round_evaluate(alloc, table, params)
             })
             .collect::<PlaceholderProverResult<Vec<_>>>()?;
 
@@ -207,7 +208,7 @@ impl ProverEvaluate for FilterExec {
         // 1. selection
         let selection_column: Column<'a, S> = self
             .where_clause
-            .prover_evaluate(builder, alloc, table, params)?;
+            .final_round_evaluate(builder, alloc, table, params)?;
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -220,7 +221,7 @@ impl ProverEvaluate for FilterExec {
             .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
                 aliased_expr
                     .expr
-                    .prover_evaluate(builder, alloc, table, params)
+                    .final_round_evaluate(builder, alloc, table, params)
             })
             .collect::<PlaceholderProverResult<Vec<_>>>()?;
         // Compute filtered_columns

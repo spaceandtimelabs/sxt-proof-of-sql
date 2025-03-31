@@ -186,7 +186,7 @@ fn we_can_query_random_tables_with_a_non_zero_offset() {
 }
 
 #[test]
-fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
+fn we_can_compute_the_correct_output_of_an_or_expr_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data = table([
         borrowed_bigint("a", [1, 2, 3, 4], &alloc),
@@ -201,7 +201,7 @@ fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
         equal(column(&t, "b", &accessor), const_int128(1)),
         equal(column(&t, "d", &accessor), const_varchar("g")),
     );
-    let res = and_expr.result_evaluate(&alloc, &data, &[]).unwrap();
+    let res = and_expr.first_round_evaluate(&alloc, &data, &[]).unwrap();
     let expected_res = Column::Boolean(&[false, true, true, true]);
     assert_eq!(res, expected_res);
 }

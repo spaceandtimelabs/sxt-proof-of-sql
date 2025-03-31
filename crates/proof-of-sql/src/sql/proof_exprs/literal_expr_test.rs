@@ -132,12 +132,14 @@ fn we_can_prove_a_query_with_a_single_non_selected_row() {
 }
 
 #[test]
-fn we_can_compute_the_correct_output_of_a_literal_expr_using_result_evaluate() {
+fn we_can_compute_the_correct_output_of_a_literal_expr_using_first_round_evaluate() {
     let alloc = Bump::new();
     let data: Table<Curve25519Scalar> =
         table([borrowed_bigint("a", [123_i64, 456, 789, 1011], &alloc)]);
     let literal_expr: DynProofExpr = const_bool(true);
-    let res = literal_expr.result_evaluate(&alloc, &data, &[]).unwrap();
+    let res = literal_expr
+        .first_round_evaluate(&alloc, &data, &[])
+        .unwrap();
     let expected_res = Column::Boolean(&[true, true, true, true]);
     assert_eq!(res, expected_res);
 }

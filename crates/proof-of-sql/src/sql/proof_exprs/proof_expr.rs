@@ -22,7 +22,7 @@ pub trait ProofExpr: Debug + Send + Sync {
     /// This returns the result of evaluating the expression on the given table, and returns
     /// a column of values. This result slice is guaranteed to have length `table_length`.
     /// Implementations must ensure that the returned slice has length `table_length`.
-    fn result_evaluate<'a, S: Scalar>(
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
@@ -31,7 +31,7 @@ pub trait ProofExpr: Debug + Send + Sync {
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
     /// of values
-    fn prover_evaluate<'a, S: Scalar>(
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,

@@ -131,7 +131,7 @@ impl ProverEvaluate for UnionExec {
         Ok(res)
     }
 
-    #[tracing::instrument(name = "UnionExec::prover_evaluate", level = "debug", skip_all)]
+    #[tracing::instrument(name = "UnionExec::final_round_evaluate", level = "debug", skip_all)]
     fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,

@@ -8,7 +8,9 @@ use crate::{
     },
     sql::{
         proof::{FinalRoundBuilder, VerificationBuilder},
-        proof_gadgets::{prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign},
+        proof_gadgets::{
+            final_round_evaluate_sign, first_round_evaluate_sign, verifier_evaluate_sign,
+        },
         PlaceholderProverResult,
     },
     utils::log,
@@ -37,8 +39,12 @@ impl ProofExpr for InequalityExpr {
         ColumnType::Boolean
     }
 
-    #[tracing::instrument(name = "InequalityExpr::result_evaluate", level = "debug", skip_all)]
-    fn result_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(
+        name = "InequalityExpr::first_round_evaluate",
+        level = "debug",
+        skip_all
+    )]
+    fn first_round_evaluate<'a, S: Scalar>(
         &self,
         alloc: &'a Bump,
         table: &Table<'a, S>,
@@ -46,8 +52,8 @@ impl ProofExpr for InequalityExpr {
     ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column = self.lhs.result_evaluate(alloc, table, params)?;
-        let rhs_column = self.rhs.result_evaluate(alloc, table, params)?;
+        let lhs_column = self.lhs.first_round_evaluate(alloc, table, params)?;
+        let rhs_column = self.rhs.first_round_evaluate(alloc, table, params)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let table_length = table.num_rows();
@@ -60,15 +66,19 @@ impl ProofExpr for InequalityExpr {
         };
 
         // (sign(diff) == -1)
-        let res = Column::Boolean(result_evaluate_sign(table_length, alloc, diff));
+        let res = Column::Boolean(first_round_evaluate_sign(table_length, alloc, diff));
 
         log::log_memory_usage("End");
 
         Ok(res)
     }
 
-    #[tracing::instrument(name = "InequalityExpr::prover_evaluate", level = "debug", skip_all)]
-    fn prover_evaluate<'a, S: Scalar>(
+    #[tracing::instrument(
+        name = "InequalityExpr::final_round_evaluate",
+        level = "debug",
+        skip_all
+    )]
+    fn final_round_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -77,8 +87,12 @@ impl ProofExpr for InequalityExpr {
     ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table, params)?;
-        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table, params)?;
+        let lhs_column = self
+            .lhs
+            .final_round_evaluate(builder, alloc, table, params)?;
+        let rhs_column = self
+            .rhs
+            .final_round_evaluate(builder, alloc, table, params)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let diff = if self.is_lt {
@@ -90,7 +104,7 @@ impl ProofExpr for InequalityExpr {
         };
 
         // (sign(diff) == -1)
-        let res = Column::Boolean(prover_evaluate_sign(builder, alloc, diff));
+        let res = Column::Boolean(final_round_evaluate_sign(builder, alloc, diff));
 
         log::log_memory_usage("End");
 
