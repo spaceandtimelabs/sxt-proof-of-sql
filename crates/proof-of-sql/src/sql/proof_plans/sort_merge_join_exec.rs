@@ -24,6 +24,7 @@ use crate::{
             first_round_evaluate_membership_check, first_round_evaluate_monotonic,
             verify_membership_check, verify_monotonic,
         },
+        PlaceholderProverResult,
     },
 };
 use alloc::{boxed::Box, vec, vec::Vec};
@@ -318,13 +319,13 @@ impl ProverEvaluate for SortMergeJoinExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let left = self
             .left
-            .first_round_evaluate(builder, alloc, table_map, params);
+            .first_round_evaluate(builder, alloc, table_map, params)?;
         let right = self
             .right
-            .first_round_evaluate(builder, alloc, table_map, params);
+            .first_round_evaluate(builder, alloc, table_map, params)?;
         let num_rows_left = left.num_rows();
         let num_rows_right = right.num_rows();
         let num_columns_left = left.num_columns();
@@ -421,7 +422,7 @@ impl ProverEvaluate for SortMergeJoinExec {
             TableOptions::new(Some(num_rows_res)),
         )
         .expect("Can not create table");
-        tab
+        Ok(tab)
     }
 
     #[tracing::instrument(
@@ -436,13 +437,13 @@ impl ProverEvaluate for SortMergeJoinExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let left = self
             .left
-            .final_round_evaluate(builder, alloc, table_map, params);
+            .final_round_evaluate(builder, alloc, table_map, params)?;
         let right = self
             .right
-            .final_round_evaluate(builder, alloc, table_map, params);
+            .final_round_evaluate(builder, alloc, table_map, params)?;
         let num_rows_left = left.num_rows();
         let num_rows_right = right.num_rows();
         let num_columns_left = left.num_columns();
@@ -593,10 +594,10 @@ impl ProverEvaluate for SortMergeJoinExec {
         let res_columns = apply_slice_to_indexes(res_hat, &res_column_indexes)
             .expect("Indexes can not be out of bounds");
 
-        Table::try_from_iter_with_options(
+        Ok(Table::try_from_iter_with_options(
             self.result_idents.iter().cloned().zip_eq(res_columns),
             TableOptions::new(Some(num_rows_res)),
         )
-        .expect("Can not create table")
+        .expect("Can not create table"))
     }
 }

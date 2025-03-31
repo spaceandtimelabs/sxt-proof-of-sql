@@ -4,8 +4,9 @@ mod error;
 /// This module holds the [`EVMProofPlan`] struct and its implementation, which allows for EVM compatible serialization.
 pub mod evm_proof_plan;
 pub mod parse;
-/// This temporarily exists until we switch to using Datafusion Analyzer to handle type checking.
-pub use error::{AnalyzeError, AnalyzeResult};
+/// [`AnalyzeError`] temporarily exists until we switch to using Datafusion Analyzer to handle type checking.
+/// [`PlaceholderProverError`] handles errors related to placeholders in provers.
+pub use error::{AnalyzeError, AnalyzeResult, PlaceholderProverError, PlaceholderProverResult};
 pub mod postprocessing;
 pub mod proof;
 pub mod proof_exprs;

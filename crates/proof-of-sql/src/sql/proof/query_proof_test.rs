@@ -14,7 +14,10 @@ use crate::{
         scalar::Scalar,
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
-    sql::proof::{FirstRoundBuilder, QueryData, SumcheckSubpolynomialType},
+    sql::{
+        proof::{FirstRoundBuilder, QueryData, SumcheckSubpolynomialType},
+        PlaceholderProverResult,
+    },
 };
 use bumpalo::Bump;
 use serde::Serialize;
@@ -53,12 +56,12 @@ impl ProverEvaluate for TrivialTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let col = vec![self.column_fill_value; self.length];
         if self.produce_length {
             builder.produce_chi_evaluation_length(self.length);
         }
-        table([borrowed_bigint("a1", col, alloc)])
+        Ok(table([borrowed_bigint("a1", col, alloc)]))
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -67,7 +70,7 @@ impl ProverEvaluate for TrivialTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
         builder.produce_intermediate_mle(col as &[_]);
         builder.produce_sumcheck_subpolynomial(
@@ -77,11 +80,11 @@ impl ProverEvaluate for TrivialTestProofPlan {
         if let Some(bit_distribution) = &self.bit_distribution {
             builder.produce_bit_distribution(bit_distribution.clone());
         }
-        table([borrowed_bigint(
+        Ok(table([borrowed_bigint(
             "a1",
             vec![self.column_fill_value; self.length],
             alloc,
-        )])
+        )]))
     }
 }
 impl ProofPlan for TrivialTestProofPlan {
@@ -133,7 +136,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         offset_generators,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     let QueryData {
         verification_hash,
         table,
@@ -173,7 +176,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         0,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
 }
 
@@ -191,7 +194,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         0,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
 }
 
@@ -209,7 +212,7 @@ fn verify_fails_if_counts_dont_match() {
         0,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
 }
 
@@ -225,7 +228,7 @@ fn verify_fails_if_the_number_of_bit_distributions_is_not_enough() {
         0,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
 }
 
@@ -244,7 +247,7 @@ fn verify_fails_if_a_bit_distribution_is_invalid() {
         0,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
 }
 
@@ -271,9 +274,9 @@ impl ProverEvaluate for SquareTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         builder.produce_chi_evaluation_length(2);
-        table([borrowed_bigint("a1", self.res, alloc)])
+        Ok(table([borrowed_bigint("a1", self.res, alloc)]))
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -282,7 +285,7 @@ impl ProverEvaluate for SquareTestProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let x = *table_map
             .get(&TableRef::new("sxt", "test"))
             .unwrap()
@@ -298,7 +301,7 @@ impl ProverEvaluate for SquareTestProofPlan {
                 (-S::ONE, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        table([borrowed_bigint("a1", self.res, alloc)])
+        Ok(table([borrowed_bigint("a1", self.res, alloc)]))
     }
 }
 impl ProofPlan for SquareTestProofPlan {
@@ -357,7 +360,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         offset_generators,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     let QueryData {
         verification_hash,
         table,
@@ -406,7 +409,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         0,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
 }
 
@@ -425,7 +428,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         0,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
 }
 
@@ -453,9 +456,9 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         builder.produce_chi_evaluation_length(2);
-        table([borrowed_bigint("a1", self.res, alloc)])
+        Ok(table([borrowed_bigint("a1", self.res, alloc)]))
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -464,7 +467,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let x = *table_map
             .get(&TableRef::new("sxt", "test"))
             .unwrap()
@@ -493,7 +496,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
             ],
         );
         builder.produce_intermediate_mle(res);
-        table([borrowed_bigint("a1", self.res, alloc)])
+        Ok(table([borrowed_bigint("a1", self.res, alloc)]))
     }
 }
 impl ProofPlan for DoubleSquareTestProofPlan {
@@ -562,7 +565,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         offset_generators,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     let QueryData {
         verification_hash,
         table,
@@ -609,7 +612,8 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         0,
         (),
     );
-    let (mut proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (mut proof, result) =
+        QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     proof.final_round_message.round_commitments[0] =
         proof.final_round_message.round_commitments[0] * Curve25519Scalar::from(2u64);
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
@@ -632,7 +636,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         0,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
 }
 
@@ -654,7 +658,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         0,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
 }
 
@@ -667,10 +671,10 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         builder.request_post_result_challenges(2);
         builder.produce_chi_evaluation_length(2);
-        table([borrowed_bigint("a1", [9, 25], alloc)])
+        Ok(table([borrowed_bigint("a1", [9, 25], alloc)]))
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -679,7 +683,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let x = *table_map
             .get(&TableRef::new("sxt", "test"))
             .unwrap()
@@ -697,7 +701,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
                 (-alpha, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        table([borrowed_bigint("a1", [9, 25], alloc)])
+        Ok(table([borrowed_bigint("a1", [9, 25], alloc)]))
     }
 }
 impl ProofPlan for ChallengeTestProofPlan {
@@ -756,7 +760,7 @@ fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generator
         offset_generators,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     let QueryData {
         verification_hash,
         table,
@@ -811,11 +815,11 @@ impl ProverEvaluate for FirstRoundSquareTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         builder.produce_intermediate_mle(res);
         builder.produce_chi_evaluation_length(2);
-        table([borrowed_bigint("a1", self.res, alloc)])
+        Ok(table([borrowed_bigint("a1", self.res, alloc)]))
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -824,7 +828,7 @@ impl ProverEvaluate for FirstRoundSquareTestProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let x = *table_map
             .get(&TableRef::new("sxt", "test"))
             .unwrap()
@@ -840,7 +844,7 @@ impl ProverEvaluate for FirstRoundSquareTestProofPlan {
                 (-S::ONE, vec![Box::new(x), Box::new(x)]),
             ],
         );
-        table([borrowed_bigint("a1", self.res, alloc)])
+        Ok(table([borrowed_bigint("a1", self.res, alloc)]))
     }
 }
 impl ProofPlan for FirstRoundSquareTestProofPlan {
@@ -901,7 +905,7 @@ fn verify_a_proof_with_a_commitment_and_given_offset(offset_generators: usize) {
         offset_generators,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     let QueryData {
         verification_hash,
         table,
@@ -950,7 +954,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_equation() {
         0,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
 }
 
@@ -969,6 +973,6 @@ fn verify_fails_if_the_commitment_doesnt_match() {
         0,
         (),
     );
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]);
+    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     assert!(proof.verify(&expr, &accessor, result, &(), &[]).is_err());
 }

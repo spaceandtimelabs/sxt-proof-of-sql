@@ -6,7 +6,10 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, VerificationBuilder},
+        PlaceholderProverResult,
+    },
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -38,9 +41,9 @@ impl ProofExpr for CastExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> Column<'a, S> {
-        let uncasted_result = self.from_expr.result_evaluate(alloc, table, params);
-        cast_column(alloc, uncasted_result, self.to_type)
+    ) -> PlaceholderProverResult<Column<'a, S>> {
+        let uncasted_result = self.from_expr.result_evaluate(alloc, table, params)?;
+        Ok(cast_column(alloc, uncasted_result, self.to_type))
     }
 
     fn prover_evaluate<'a, S: Scalar>(
@@ -49,11 +52,11 @@ impl ProofExpr for CastExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> Column<'a, S> {
+    ) -> PlaceholderProverResult<Column<'a, S>> {
         let uncasted_result = self
             .from_expr
-            .prover_evaluate(builder, alloc, table, params);
-        cast_column(alloc, uncasted_result, self.to_type)
+            .prover_evaluate(builder, alloc, table, params)?;
+        Ok(cast_column(alloc, uncasted_result, self.to_type))
     }
 
     fn verifier_evaluate<S: Scalar>(

@@ -170,7 +170,7 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
 
         for _ in 0..cli.iterations {
             let result: VerifiableQueryResult<InnerProductProof> =
-                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &(), &[]);
+                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &(), &[]).unwrap();
             result
                 .verify(query_expr.proof_expr(), &accessor, &(), &[])
                 .unwrap();
@@ -207,7 +207,8 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
 
         for _ in 0..cli.iterations {
             let result: VerifiableQueryResult<DoryEvaluationProof> =
-                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &prover_setup, &[]);
+                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &prover_setup, &[])
+                    .unwrap();
             result
                 .verify(query_expr.proof_expr(), &accessor, &verifier_setup, &[])
                 .unwrap();
@@ -261,7 +262,8 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
 
         for _ in 0..cli.iterations {
             let result: VerifiableQueryResult<DynamicDoryEvaluationProof> =
-                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &&prover_setup, &[]);
+                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &&prover_setup, &[])
+                    .unwrap();
             result
                 .verify(query_expr.proof_expr(), &accessor, &&verifier_setup, &[])
                 .unwrap();
@@ -322,7 +324,8 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
                     &accessor,
                     &prover_setup.as_slice(),
                     &[],
-                );
+                )
+                .unwrap();
             result
                 .verify(query_expr.proof_expr(), &accessor, &&vk, &[])
                 .unwrap();

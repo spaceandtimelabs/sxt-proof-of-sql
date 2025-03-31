@@ -6,7 +6,10 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, VerificationBuilder},
+        PlaceholderProverResult,
+    },
     utils::log,
 };
 use bumpalo::Bump;
@@ -46,14 +49,14 @@ impl ProofExpr for LiteralExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         _params: &[LiteralValue],
-    ) -> Column<'a, S> {
+    ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
         let res = Column::from_literal_with_length(&self.value, table.num_rows(), alloc);
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]
@@ -63,7 +66,7 @@ impl ProofExpr for LiteralExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         _params: &[LiteralValue],
-    ) -> Column<'a, S> {
+    ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
         let table_length = table.num_rows();
@@ -71,7 +74,7 @@ impl ProofExpr for LiteralExpr {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     fn verifier_evaluate<S: Scalar>(

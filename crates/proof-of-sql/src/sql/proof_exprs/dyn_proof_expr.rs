@@ -12,7 +12,7 @@ use crate::{
     sql::{
         proof::{FinalRoundBuilder, VerificationBuilder},
         util::type_check_binary_operation,
-        AnalyzeError, AnalyzeResult,
+        AnalyzeError, AnalyzeResult, PlaceholderProverResult,
     },
 };
 use alloc::{boxed::Box, string::ToString};

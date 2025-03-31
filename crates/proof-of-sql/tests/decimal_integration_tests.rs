@@ -36,7 +36,8 @@ fn run_query(
 
     let query = QueryExpr::try_new(query_str.parse().unwrap(), "sxt".into(), &accessor).unwrap();
     let proof =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[])
+            .unwrap();
     let owned_table_result = proof
         .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()

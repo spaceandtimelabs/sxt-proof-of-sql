@@ -56,7 +56,8 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
         &accessor,
         &dory_prover_setup,
         &[],
-    );
+    )
+    .unwrap();
     let owned_table_result = verifiable_result
         .verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[])
         .unwrap()
@@ -95,7 +96,8 @@ fn run_timestamp_query_test(
     let query = QueryExpr::try_new(query_str.parse().unwrap(), "sxt".into(), &accessor).unwrap();
 
     let proof =
-        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[]);
+        VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[])
+            .unwrap();
 
     // Verify the results
     let owned_table_result = proof
@@ -444,7 +446,8 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
         &accessor,
         &dory_prover_setup,
         &[],
-    );
+    )
+    .unwrap();
     let owned_table_result = verifiable_result
         .verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[])
         .unwrap()

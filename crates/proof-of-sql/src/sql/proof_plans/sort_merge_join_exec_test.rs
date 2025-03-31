@@ -57,7 +57,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_sort_merge_join() {
         vec![Ident::new("id"), Ident::new("name"), Ident::new("human")],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &table_left);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -123,7 +123,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_sort_m
         Some(3),
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &table_cats);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -237,7 +237,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_complex_query_involving_two_so
     );
 
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &table_cats);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -302,7 +302,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join() {
         vec![Ident::new("id"), Ident::new("name"), Ident::new("human")],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &table_left);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -355,7 +355,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
         vec![Ident::new("id"), Ident::new("name"), Ident::new("human")],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &table_right);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -406,7 +406,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
         vec![Ident::new("id"), Ident::new("name"), Ident::new("human")],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &table_left);
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
@@ -453,7 +453,7 @@ fn we_can_prove_and_get_the_correct_empty_result_from_a_sort_merge_join_if_one_o
         vec![Ident::new("id"), Ident::new("name"), Ident::new("human")],
     );
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]);
+        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     let res = verifiable_res
         .verify(&ast, &accessor, &(), &[])
         .unwrap()

@@ -41,7 +41,7 @@ fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluat
         ),
         not(equal(column(&t, "c", &accessor), const_int128(3))),
     );
-    let res = bool_expr.result_evaluate(&alloc, &data, &[]);
+    let res = bool_expr.result_evaluate(&alloc, &data, &[]).unwrap();
     let expected_res = Column::Boolean(&[
         false, true, false, true, false, true, false, true, false, true, false, true, false, true,
         false, false, false,

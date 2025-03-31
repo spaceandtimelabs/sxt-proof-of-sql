@@ -250,7 +250,8 @@ fn main() {
                 &csv_accessor,
                 &&prover_setup,
                 &[],
-            );
+            )
+            .expect("Failed to generate proof");
             end_timer(timer);
             fs::write(
                 file,

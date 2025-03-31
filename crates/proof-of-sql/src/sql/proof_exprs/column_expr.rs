@@ -6,7 +6,10 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, VerificationBuilder},
+        PlaceholderProverResult,
+    },
 };
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
@@ -71,8 +74,8 @@ impl ProofExpr for ColumnExpr {
         _alloc: &'a Bump,
         table: &Table<'a, S>,
         _params: &[LiteralValue],
-    ) -> Column<'a, S> {
-        self.fetch_column(table)
+    ) -> PlaceholderProverResult<Column<'a, S>> {
+        Ok(self.fetch_column(table))
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the column expression and
@@ -83,8 +86,8 @@ impl ProofExpr for ColumnExpr {
         _alloc: &'a Bump,
         table: &Table<'a, S>,
         _params: &[LiteralValue],
-    ) -> Column<'a, S> {
-        self.fetch_column(table)
+    ) -> PlaceholderProverResult<Column<'a, S>> {
+        Ok(self.fetch_column(table))
     }
 
     /// Evaluate the column expression at the sumcheck's random point,

@@ -12,8 +12,11 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{
-        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+    sql::{
+        proof::{
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+        },
+        PlaceholderProverResult,
     },
 };
 use bumpalo::Bump;
@@ -98,7 +101,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         builder.request_post_result_challenges(1);
         builder.update_range_length(256);
 
@@ -117,7 +120,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
         builder.produce_chi_evaluation_length(256);
 
         // Return a clone of the same table
-        table.clone()
+        Ok(table.clone())
     }
 
     // extract data to test on from here, feed it into range check
@@ -127,7 +130,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         let table = table_map
             .get(&self.column.table_ref())
             .expect("Table not found");
@@ -138,7 +141,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
 
         handle_column_with_match!(col, final_round_evaluate_range_check, builder, alloc);
 
-        table.clone()
+        Ok(table.clone())
     }
 }
 
@@ -205,7 +208,7 @@ mod tests {
             column: ColumnRef::new(table_name, col_name.into(), col_type),
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&ast, accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&ast, accessor, &(), &[]).unwrap();
         assert!(verifiable_res.verify(&ast, accessor, &(), &[]).is_ok());
     }
 
@@ -278,7 +281,7 @@ mod tests {
             column: ColumnRef::new(t.clone(), "a".into(), ColumnType::Scalar),
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]).unwrap();
         let _ = verifiable_res.verify(&ast, &accessor, &(), &[]);
     }
 
@@ -308,7 +311,7 @@ mod tests {
             column: ColumnRef::new(t.clone(), "a".into(), ColumnType::Scalar),
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]).unwrap();
         let res: Result<
             crate::sql::proof::QueryData<crate::base::scalar::MontScalar<ark_curve25519::FrConfig>>,
             crate::sql::proof::QueryError,
@@ -347,7 +350,7 @@ mod tests {
             column: ColumnRef::new(t.clone(), "a".into(), ColumnType::Scalar),
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]).unwrap();
         let res: Result<
             crate::sql::proof::QueryData<crate::base::scalar::MontScalar<ark_curve25519::FrConfig>>,
             crate::sql::proof::QueryError,
@@ -388,7 +391,7 @@ mod tests {
             column: ColumnRef::new(t, "a".into(), ColumnType::Scalar),
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &(), &[]).unwrap();
         verifiable_res.verify(&ast, &accessor, &(), &[]).unwrap();
     }
 }

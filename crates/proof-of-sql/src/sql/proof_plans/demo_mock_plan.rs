@@ -7,8 +7,11 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{
-        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+    sql::{
+        proof::{
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+        },
+        PlaceholderProverResult,
     },
 };
 use alloc::vec::Vec;
@@ -60,10 +63,10 @@ impl ProverEvaluate for DemoMockPlan {
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         // place prover logic you want to test here
 
-        table_map[&self.column.table_ref()].clone()
+        Ok(table_map[&self.column.table_ref()].clone())
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -72,10 +75,10 @@ impl ProverEvaluate for DemoMockPlan {
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         // place prover logic you want to test here
 
-        table_map[&self.column.table_ref()].clone()
+        Ok(table_map[&self.column.table_ref()].clone())
     }
 }
 
@@ -106,7 +109,7 @@ mod tests {
             (),
         );
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         let res = verifiable_res
             .verify(&plan, &accessor, &(), &[])
             .expect("verification should suceeed")

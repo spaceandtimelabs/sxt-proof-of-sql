@@ -16,6 +16,7 @@ use crate::{
             FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
+        PlaceholderProverResult,
     },
 };
 use alloc::{boxed::Box, vec::Vec};

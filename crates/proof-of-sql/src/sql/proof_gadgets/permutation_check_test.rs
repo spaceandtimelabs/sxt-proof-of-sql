@@ -11,8 +11,11 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{
-        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+    sql::{
+        proof::{
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+        },
+        PlaceholderProverResult,
     },
 };
 use bumpalo::{
@@ -37,14 +40,14 @@ impl ProverEvaluate for PermutationCheckTestPlan {
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         // Get the tables from the map using the table reference
         let source_table: &Table<'a, S> =
             table_map.get(&self.source_table).expect("Table not found");
         // Produce chi evaluation length
         builder.produce_chi_evaluation_length(source_table.num_rows());
         builder.request_post_result_challenges(2);
-        table_with_row_count([], 0)
+        Ok(table_with_row_count([], 0))
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -53,7 +56,7 @@ impl ProverEvaluate for PermutationCheckTestPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         // Check that the source columns belong to the source table
         for col_ref in &self.source_columns {
             assert_eq!(self.source_table, col_ref.table_ref(), "Table not found");
@@ -104,7 +107,7 @@ impl ProverEvaluate for PermutationCheckTestPlan {
             &source_columns,
             &candidate_columns,
         );
-        table_with_row_count([], 0)
+        Ok(table_with_row_count([], 0))
     }
 }
 
@@ -198,7 +201,7 @@ mod tests {
             )],
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         assert!(verifiable_res.verify(&plan, &accessor, &(), &[]).is_ok());
     }
 
@@ -241,7 +244,7 @@ mod tests {
             ],
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         assert!(verifiable_res.verify(&plan, &accessor, &(), &[]).is_ok());
     }
 
@@ -284,7 +287,7 @@ mod tests {
             ],
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         assert!(verifiable_res.verify(&plan, &accessor, &(), &[]).is_ok());
     }
 
@@ -319,7 +322,7 @@ mod tests {
                 ColumnType::BigInt,
             )],
         };
-        VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+        VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
     }
 
     #[test]
@@ -351,7 +354,7 @@ mod tests {
             candidate_columns: vec![],
         };
         let _verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
     }
 
     #[test]
@@ -384,7 +387,7 @@ mod tests {
             candidate_columns: vec![],
         };
         let _verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
     }
 
     #[test]
@@ -416,7 +419,7 @@ mod tests {
             candidate_columns: vec![],
         };
         let _verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
     }
 
     #[test]
@@ -447,6 +450,6 @@ mod tests {
             candidate_columns: vec![],
         };
         let _verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
     }
 }

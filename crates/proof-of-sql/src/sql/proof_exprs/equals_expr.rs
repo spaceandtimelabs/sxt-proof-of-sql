@@ -7,7 +7,10 @@ use crate::{
         scalar::Scalar,
         slice_ops,
     },
-    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+        PlaceholderProverResult,
+    },
     utils::log,
 };
 use alloc::{boxed::Box, vec};
@@ -39,11 +42,11 @@ impl ProofExpr for EqualsExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> Column<'a, S> {
+    ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column = self.lhs.result_evaluate(alloc, table, params);
-        let rhs_column = self.rhs.result_evaluate(alloc, table, params);
+        let lhs_column = self.lhs.result_evaluate(alloc, table, params)?;
+        let rhs_column = self.rhs.result_evaluate(alloc, table, params)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
@@ -52,7 +55,7 @@ impl ProofExpr for EqualsExpr {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
@@ -62,11 +65,11 @@ impl ProofExpr for EqualsExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> Column<'a, S> {
+    ) -> PlaceholderProverResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
-        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table, params);
-        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table, params);
+        let lhs_column = self.lhs.prover_evaluate(builder, alloc, table, params)?;
+        let rhs_column = self.rhs.prover_evaluate(builder, alloc, table, params)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let scale_and_subtract_res =
@@ -81,7 +84,7 @@ impl ProofExpr for EqualsExpr {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     fn verifier_evaluate<S: Scalar>(

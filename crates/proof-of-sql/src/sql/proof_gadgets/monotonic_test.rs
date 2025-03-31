@@ -13,8 +13,11 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{
-        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+    sql::{
+        proof::{
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+        },
+        PlaceholderProverResult,
     },
 };
 use bumpalo::Bump;
@@ -33,7 +36,7 @@ impl<const STRICT: bool, const ASC: bool> ProverEvaluate for MonotonicTestPlan<S
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         // Get the tables from the map using the table reference
         let table: &Table<'a, S> = table_map
             .get(&self.column.table_ref())
@@ -44,8 +47,10 @@ impl<const STRICT: bool, const ASC: bool> ProverEvaluate for MonotonicTestPlan<S
         // Evaluate the first round
         first_round_evaluate_monotonic(builder, num_rows);
         // This is just a dummy table, the actual data is not used
-        Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
-            .unwrap()
+        Ok(
+            Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
+                .unwrap(),
+        )
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -54,7 +59,7 @@ impl<const STRICT: bool, const ASC: bool> ProverEvaluate for MonotonicTestPlan<S
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         // Get the table from the map using the table reference
         let table: &Table<'a, S> = table_map
             .get(&self.column.table_ref())
@@ -70,8 +75,10 @@ impl<const STRICT: bool, const ASC: bool> ProverEvaluate for MonotonicTestPlan<S
         let beta = builder.consume_post_result_challenge();
         final_round_evaluate_monotonic::<S, STRICT, ASC>(builder, alloc, alpha, beta, alloc_column);
         // Return a dummy table
-        Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
-            .unwrap()
+        Ok(
+            Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
+                .unwrap(),
+        )
     }
 }
 
@@ -135,7 +142,7 @@ mod tests {
             column: ColumnRef::new(table_ref, column_name.into(), column_type),
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, accessor, &(), &[]).unwrap();
         let res = verifiable_res.verify(&plan, accessor, &(), &[]);
         if shall_error {
             assert!(matches!(

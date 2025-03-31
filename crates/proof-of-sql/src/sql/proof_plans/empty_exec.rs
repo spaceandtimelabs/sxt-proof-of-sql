@@ -8,8 +8,11 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{
-        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+    sql::{
+        proof::{
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+        },
+        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -72,7 +75,7 @@ impl ProverEvaluate for EmptyExec {
         _alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         // Create an empty table with one row
@@ -82,7 +85,7 @@ impl ProverEvaluate for EmptyExec {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     #[tracing::instrument(name = "EmptyExec::final_round_evaluate", level = "debug", skip_all)]
@@ -92,7 +95,7 @@ impl ProverEvaluate for EmptyExec {
         _alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         // Create an empty table with one row
@@ -102,6 +105,6 @@ impl ProverEvaluate for EmptyExec {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 }

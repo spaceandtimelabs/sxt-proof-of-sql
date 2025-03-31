@@ -11,8 +11,11 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{
-        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+    sql::{
+        proof::{
+            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
+        },
+        PlaceholderProverResult,
     },
 };
 use bumpalo::Bump;
@@ -34,15 +37,17 @@ impl ProverEvaluate for ShiftTestPlan {
         _alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         builder.request_post_result_challenges(2);
         builder.produce_chi_evaluation_length(self.column_length);
         builder.produce_chi_evaluation_length(self.column_length + 1);
         // Evaluate the first round
         first_round_evaluate_shift(builder, self.column_length);
         // This is just a dummy table, the actual data is not used
-        Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
-            .unwrap()
+        Ok(
+            Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
+                .unwrap(),
+        )
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -51,7 +56,7 @@ impl ProverEvaluate for ShiftTestPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         // Get the table from the map using the table reference
         let source_table: &Table<'a, S> = table_map
             .get(&self.column.table_ref())
@@ -85,8 +90,10 @@ impl ProverEvaluate for ShiftTestPlan {
             alloc_candidate_column,
         );
         // Return a dummy table
-        Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
-            .unwrap()
+        Ok(
+            Table::try_new_with_options(IndexMap::default(), TableOptions { row_count: Some(0) })
+                .unwrap(),
+        )
     }
 }
 
@@ -178,7 +185,7 @@ mod tests {
             column_length: 3,
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         let res = verifiable_res.verify(&plan, &accessor, &(), &[]);
         assert!(res.is_ok());
 
@@ -193,7 +200,7 @@ mod tests {
             column_length: 3,
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         let res = verifiable_res.verify(&plan, &accessor, &(), &[]);
         assert!(res.is_ok());
 
@@ -208,7 +215,7 @@ mod tests {
             column_length: 3,
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         let res = verifiable_res.verify(&plan, &accessor, &(), &[]);
         assert!(res.is_ok());
     }
@@ -249,7 +256,7 @@ mod tests {
             column_length: 3,
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         assert!(verifiable_res.verify(&plan, &accessor, &(), &[]).is_err());
 
         // Varchar column
@@ -263,7 +270,7 @@ mod tests {
             column_length: 3,
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         assert!(verifiable_res.verify(&plan, &accessor, &(), &[]).is_err());
 
         // Boolean column
@@ -277,7 +284,7 @@ mod tests {
             column_length: 3,
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         assert!(verifiable_res.verify(&plan, &accessor, &(), &[]).is_err());
 
         // Success case: The last pair of columns is correct even though the others are not
@@ -291,7 +298,7 @@ mod tests {
             column_length: 3,
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         assert!(verifiable_res.verify(&plan, &accessor, &(), &[]).is_ok());
     }
 
@@ -326,7 +333,7 @@ mod tests {
             column_length: 7,
         };
         let verifiable_res =
-            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]);
+            VerifiableQueryResult::<InnerProductProof>::new(&plan, &accessor, &(), &[]).unwrap();
         let res = verifiable_res.verify(&plan, &accessor, &(), &[]);
         assert!(res.is_err());
     }

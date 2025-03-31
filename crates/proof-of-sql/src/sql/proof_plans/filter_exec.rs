@@ -16,6 +16,7 @@ use crate::{
             ProverHonestyMarker, SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
+        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -149,7 +150,7 @@ impl ProverEvaluate for FilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let table = table_map
@@ -157,7 +158,7 @@ impl ProverEvaluate for FilterExec {
             .expect("Table not found");
         // 1. selection
         let selection_column: Column<'a, S> =
-            self.where_clause.result_evaluate(alloc, table, params);
+            self.where_clause.result_evaluate(alloc, table, params)?;
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -167,8 +168,10 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.result_evaluate(alloc, table, params))
-            .collect();
+            .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
+                aliased_expr.expr.result_evaluate(alloc, table, params)
+            })
+            .collect::<PlaceholderProverResult<Vec<_>>>()?;
 
         // Compute filtered_columns and indexes
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
@@ -185,7 +188,7 @@ impl ProverEvaluate for FilterExec {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 
     #[tracing::instrument(name = "FilterExec::final_round_evaluate", level = "debug", skip_all)]
@@ -195,7 +198,7 @@ impl ProverEvaluate for FilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> Table<'a, S> {
+    ) -> PlaceholderProverResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let table = table_map
@@ -204,7 +207,7 @@ impl ProverEvaluate for FilterExec {
         // 1. selection
         let selection_column: Column<'a, S> = self
             .where_clause
-            .prover_evaluate(builder, alloc, table, params);
+            .prover_evaluate(builder, alloc, table, params)?;
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -214,12 +217,12 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| {
+            .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
                 aliased_expr
                     .expr
                     .prover_evaluate(builder, alloc, table, params)
             })
-            .collect();
+            .collect::<PlaceholderProverResult<Vec<_>>>()?;
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. Produce MLEs
@@ -252,7 +255,7 @@ impl ProverEvaluate for FilterExec {
 
         log::log_memory_usage("End");
 
-        res
+        Ok(res)
     }
 }
 
