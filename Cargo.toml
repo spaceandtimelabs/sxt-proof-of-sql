@@ -82,9 +82,6 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)
 missing_errors_doc = "allow"
 pedantic = { level = "warn", priority = -1 }
 
-[profile.test]
-opt-level = 3
-
 [patch.crates-io]
 # patch for sqlparser no_std compatibility with the serde feature enabled.
 # required until sqlparser releases a similar update and proof-of-sql upgrades to it.
