@@ -1,14 +1,11 @@
 use super::{verification_builder::VerificationBuilder, FinalRoundBuilder, FirstRoundBuilder};
-use crate::{
-    base::{
-        database::{
-            ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation, TableRef,
-        },
-        map::{IndexMap, IndexSet},
-        proof::ProofError,
-        scalar::Scalar,
+use crate::base::{
+    database::{
+        ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation, TableRef,
     },
-    sql::PlaceholderProverResult,
+    map::{IndexMap, IndexSet},
+    proof::{PlaceholderResult, ProofError},
+    scalar::Scalar,
 };
 use alloc::vec::Vec;
 use bumpalo::Bump;
@@ -46,7 +43,7 @@ pub trait ProverEvaluate {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>>;
+    ) -> PlaceholderResult<Table<'a, S>>;
 
     /// Evaluate the query and modify `FinalRoundBuilder` to store an intermediate representation
     /// of the query result and track all the components needed to form the query's proof.
@@ -60,7 +57,7 @@ pub trait ProverEvaluate {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>>;
+    ) -> PlaceholderResult<Table<'a, S>>;
 }
 
 /// Marker used as a trait bound for generic [`ProofPlan`] types to indicate the honesty of their implementation.

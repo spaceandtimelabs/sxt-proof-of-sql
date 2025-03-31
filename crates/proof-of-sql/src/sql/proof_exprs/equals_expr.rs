@@ -3,14 +3,11 @@ use crate::{
     base::{
         database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
         slice_ops,
     },
-    sql::{
-        proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
-        PlaceholderProverResult,
-    },
+    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
     utils::log,
 };
 use alloc::{boxed::Box, vec};
@@ -42,7 +39,7 @@ impl ProofExpr for EqualsExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
         let lhs_column = self.lhs.first_round_evaluate(alloc, table, params)?;
@@ -69,7 +66,7 @@ impl ProofExpr for EqualsExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
         let lhs_column = self

@@ -10,14 +10,11 @@ use crate::{
             TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{
-            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
-        },
-        PlaceholderProverResult,
+    sql::proof::{
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -36,7 +33,7 @@ impl<const STRICT: bool, const ASC: bool> ProverEvaluate for MonotonicTestPlan<S
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         // Get the tables from the map using the table reference
         let table: &Table<'a, S> = table_map
             .get(&self.column.table_ref())
@@ -59,7 +56,7 @@ impl<const STRICT: bool, const ASC: bool> ProverEvaluate for MonotonicTestPlan<S
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         // Get the table from the map using the table reference
         let table: &Table<'a, S> = table_map
             .get(&self.column.table_ref())

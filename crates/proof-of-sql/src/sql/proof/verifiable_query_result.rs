@@ -3,8 +3,8 @@ use crate::{
     base::{
         commitment::CommitmentEvaluationProof,
         database::{CommitmentAccessor, DataAccessor, LiteralValue, OwnedTable},
+        proof::PlaceholderResult,
     },
-    sql::PlaceholderProverResult,
     utils::log,
 };
 use serde::{Deserialize, Serialize};
@@ -84,7 +84,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Self> {
+    ) -> PlaceholderResult<Self> {
         log::log_memory_usage("Start");
         let (proof, res) = QueryProof::new(expr, accessor, setup, params)?;
         log::log_memory_usage("End");

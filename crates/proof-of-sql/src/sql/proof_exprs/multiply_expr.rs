@@ -3,13 +3,12 @@ use crate::{
     base::{
         database::{try_multiply_column_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
     sql::{
         proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
         proof_exprs::multiply_columns,
-        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -42,7 +41,7 @@ impl ProofExpr for MultiplyExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         let lhs_column: Column<'a, S> = self.lhs.first_round_evaluate(alloc, table, params)?;
         let rhs_column: Column<'a, S> = self.rhs.first_round_evaluate(alloc, table, params)?;
         let scalars = multiply_columns(&lhs_column, &rhs_column, alloc);
@@ -60,7 +59,7 @@ impl ProofExpr for MultiplyExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
         let lhs_column: Column<'a, S> = self

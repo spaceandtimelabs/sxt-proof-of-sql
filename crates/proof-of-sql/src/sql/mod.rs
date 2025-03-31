@@ -5,8 +5,7 @@ mod error;
 pub mod evm_proof_plan;
 pub mod parse;
 /// [`AnalyzeError`] temporarily exists until we switch to using Datafusion Analyzer to handle type checking.
-/// [`PlaceholderProverError`] handles errors related to placeholders in provers.
-pub use error::{AnalyzeError, AnalyzeResult, PlaceholderProverError, PlaceholderProverResult};
+pub use error::{AnalyzeError, AnalyzeResult};
 pub mod postprocessing;
 pub mod proof;
 pub mod proof_exprs;

@@ -11,13 +11,10 @@ use crate::{
             Table, TableEvaluation, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{FirstRoundBuilder, QueryData},
-        PlaceholderProverResult,
-    },
+    sql::proof::{FirstRoundBuilder, QueryData},
 };
 use bumpalo::Bump;
 use serde::Serialize;
@@ -34,7 +31,7 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let zeros = vec![0_i64; self.length];
         builder.produce_chi_evaluation_length(self.length);
         Ok(table_with_row_count(
@@ -50,7 +47,7 @@ impl ProverEvaluate for EmptyTestQueryExpr {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let zeros = vec![0_i64; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
         let _ = std::iter::repeat_with(|| builder.produce_intermediate_mle(res))

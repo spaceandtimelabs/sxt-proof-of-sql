@@ -8,14 +8,11 @@ use crate::{
             Table, TableEvaluation, TableOptions, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{
-            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
-        },
-        PlaceholderProverResult,
+    sql::proof::{
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
     },
 };
 use bumpalo::{
@@ -40,7 +37,7 @@ impl ProverEvaluate for PermutationCheckTestPlan {
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         // Get the tables from the map using the table reference
         let source_table: &Table<'a, S> =
             table_map.get(&self.source_table).expect("Table not found");
@@ -56,7 +53,7 @@ impl ProverEvaluate for PermutationCheckTestPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         // Check that the source columns belong to the source table
         for col_ref in &self.source_columns {
             assert_eq!(self.source_table, col_ref.table_ref(), "Table not found");

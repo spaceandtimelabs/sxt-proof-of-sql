@@ -6,7 +6,7 @@ use crate::{
             Table, TableEvaluation, TableOptions, TableRef,
         },
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
         slice_ops,
     },
@@ -16,7 +16,6 @@ use crate::{
             ProverHonestyMarker, SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
-        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -150,7 +149,7 @@ impl ProverEvaluate for FilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let table = table_map
@@ -169,10 +168,10 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
+            .map(|aliased_expr| -> PlaceholderResult<Column<'a, S>> {
                 aliased_expr.expr.first_round_evaluate(alloc, table, params)
             })
-            .collect::<PlaceholderProverResult<Vec<_>>>()?;
+            .collect::<PlaceholderResult<Vec<_>>>()?;
 
         // Compute filtered_columns and indexes
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
@@ -199,7 +198,7 @@ impl ProverEvaluate for FilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let table = table_map
@@ -218,12 +217,12 @@ impl ProverEvaluate for FilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
+            .map(|aliased_expr| -> PlaceholderResult<Column<'a, S>> {
                 aliased_expr
                     .expr
                     .final_round_evaluate(builder, alloc, table, params)
             })
-            .collect::<PlaceholderProverResult<Vec<_>>>()?;
+            .collect::<PlaceholderResult<Vec<_>>>()?;
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. Produce MLEs

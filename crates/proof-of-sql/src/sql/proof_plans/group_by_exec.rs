@@ -8,7 +8,7 @@ use crate::{
             TableEvaluation, TableRef,
         },
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
         slice_ops,
     },
@@ -18,7 +18,6 @@ use crate::{
             SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
-        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -199,7 +198,7 @@ impl ProverEvaluate for GroupByExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let table = table_map
@@ -218,17 +217,17 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| -> PlaceholderProverResult<Column<'a, S>> {
+            .map(|expr| -> PlaceholderResult<Column<'a, S>> {
                 expr.first_round_evaluate(alloc, table, params)
             })
-            .collect::<PlaceholderProverResult<Vec<_>>>()?;
+            .collect::<PlaceholderResult<Vec<_>>>()?;
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
+            .map(|aliased_expr| -> PlaceholderResult<Column<'a, S>> {
                 aliased_expr.expr.first_round_evaluate(alloc, table, params)
             })
-            .collect::<PlaceholderProverResult<Vec<_>>>()?;
+            .collect::<PlaceholderResult<Vec<_>>>()?;
         // Compute filtered_columns
         let AggregatedColumns {
             group_by_columns: group_by_result_columns,
@@ -265,7 +264,7 @@ impl ProverEvaluate for GroupByExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let table = table_map
@@ -283,19 +282,19 @@ impl ProverEvaluate for GroupByExec {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| -> PlaceholderProverResult<Column<'a, S>> {
+            .map(|expr| -> PlaceholderResult<Column<'a, S>> {
                 expr.final_round_evaluate(builder, alloc, table, params)
             })
-            .collect::<PlaceholderProverResult<Vec<_>>>()?;
+            .collect::<PlaceholderResult<Vec<_>>>()?;
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
+            .map(|aliased_expr| -> PlaceholderResult<Column<'a, S>> {
                 aliased_expr
                     .expr
                     .final_round_evaluate(builder, alloc, table, params)
             })
-            .collect::<PlaceholderProverResult<Vec<_>>>()?;
+            .collect::<PlaceholderResult<Vec<_>>>()?;
         // 3. Compute filtered_columns
         let AggregatedColumns {
             group_by_columns: group_by_result_columns,

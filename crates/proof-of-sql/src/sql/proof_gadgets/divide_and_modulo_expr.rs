@@ -2,13 +2,12 @@ use crate::{
     base::{
         database::{Column, ColumnRef, LiteralValue, Table},
         map::IndexMap,
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
     sql::{
         proof::{FinalRoundBuilder, VerificationBuilder},
         proof_exprs::{divide_columns, modulo_columns, DynProofExpr, ProofExpr},
-        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -79,7 +78,7 @@ impl DivideAndModuloExpr {
         table: &Table<'a, S>,
         utilities: &U,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<(Column<'a, S>, Column<'a, S>)> {
+    ) -> PlaceholderResult<(Column<'a, S>, Column<'a, S>)> {
         let lhs_column: Column<'a, S> = self
             .lhs
             .final_round_evaluate(builder, alloc, table, params)?;
@@ -104,7 +103,7 @@ impl DivideAndModuloExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<(Column<'a, S>, Column<'a, S>)> {
+    ) -> PlaceholderResult<(Column<'a, S>, Column<'a, S>)> {
         log::log_memory_usage("Start");
         let utilities = StandardDivideAndModuloExprUtilities {};
 

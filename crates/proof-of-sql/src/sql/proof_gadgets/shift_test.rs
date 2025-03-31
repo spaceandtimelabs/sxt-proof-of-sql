@@ -8,14 +8,11 @@ use crate::{
             TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{
-            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
-        },
-        PlaceholderProverResult,
+    sql::proof::{
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -37,7 +34,7 @@ impl ProverEvaluate for ShiftTestPlan {
         _alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         builder.request_post_result_challenges(2);
         builder.produce_chi_evaluation_length(self.column_length);
         builder.produce_chi_evaluation_length(self.column_length + 1);
@@ -56,7 +53,7 @@ impl ProverEvaluate for ShiftTestPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         // Get the table from the map using the table reference
         let source_table: &Table<'a, S> = table_map
             .get(&self.column.table_ref())

@@ -4,14 +4,11 @@ use crate::{
             ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{
-            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
-        },
-        PlaceholderProverResult,
+    sql::proof::{
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
     },
 };
 use alloc::vec::Vec;
@@ -63,7 +60,7 @@ impl ProverEvaluate for DemoMockPlan {
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         // place prover logic you want to test here
 
         Ok(table_map[&self.column.table_ref()].clone())
@@ -75,7 +72,7 @@ impl ProverEvaluate for DemoMockPlan {
         _alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         // place prover logic you want to test here
 
         Ok(table_map[&self.column.table_ref()].clone())

@@ -6,7 +6,7 @@ use crate::{
             Table, TableOptions, TableRef, TestAccessor,
         },
         map::IndexMap,
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
     sql::{
@@ -18,7 +18,6 @@ use crate::{
             test_utility::{cols_expr_plan, column, const_int128, equal, tab},
             ProofExpr,
         },
-        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -42,7 +41,7 @@ impl ProverEvaluate for DishonestFilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let table = table_map
@@ -60,10 +59,10 @@ impl ProverEvaluate for DishonestFilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
+            .map(|aliased_expr| -> PlaceholderResult<Column<'a, S>> {
                 aliased_expr.expr.first_round_evaluate(alloc, table, params)
             })
-            .collect::<PlaceholderProverResult<Vec<_>>>()?;
+            .collect::<PlaceholderResult<Vec<_>>>()?;
         // Compute filtered_columns
         let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
@@ -94,7 +93,7 @@ impl ProverEvaluate for DishonestFilterExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let table = table_map
@@ -112,12 +111,12 @@ impl ProverEvaluate for DishonestFilterExec {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| -> PlaceholderProverResult<Column<'a, S>> {
+            .map(|aliased_expr| -> PlaceholderResult<Column<'a, S>> {
                 aliased_expr
                     .expr
                     .final_round_evaluate(builder, alloc, table, params)
             })
-            .collect::<PlaceholderProverResult<Vec<_>>>()?;
+            .collect::<PlaceholderResult<Vec<_>>>()?;
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
