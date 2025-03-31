@@ -9,14 +9,11 @@ use crate::{
             TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{
-            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
-        },
-        PlaceholderProverResult,
+    sql::proof::{
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -101,7 +98,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         builder.request_post_result_challenges(1);
         builder.update_range_length(256);
 
@@ -130,7 +127,7 @@ impl ProverEvaluate for RangeCheckTestPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let table = table_map
             .get(&self.column.table_ref())
             .expect("Table not found");

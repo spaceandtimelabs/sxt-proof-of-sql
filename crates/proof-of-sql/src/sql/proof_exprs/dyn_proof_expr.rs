@@ -6,13 +6,13 @@ use crate::{
     base::{
         database::{try_cast_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
     sql::{
         proof::{FinalRoundBuilder, VerificationBuilder},
         util::type_check_binary_operation,
-        AnalyzeError, AnalyzeResult, PlaceholderProverResult,
+        AnalyzeError, AnalyzeResult,
     },
 };
 use alloc::{boxed::Box, string::ToString};

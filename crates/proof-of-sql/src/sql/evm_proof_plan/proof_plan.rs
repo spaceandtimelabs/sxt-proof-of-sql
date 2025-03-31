@@ -6,7 +6,7 @@ use crate::{
             TableRef,
         },
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
     sql::{
@@ -14,7 +14,6 @@ use crate::{
             FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
         },
         proof_plans::DynProofPlan,
-        PlaceholderProverResult,
     },
 };
 use alloc::{
@@ -179,7 +178,7 @@ impl ProverEvaluate for EVMProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         self.inner()
             .first_round_evaluate(builder, alloc, table_map, params)
     }
@@ -189,7 +188,7 @@ impl ProverEvaluate for EVMProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         self.inner()
             .final_round_evaluate(builder, alloc, table_map, params)
     }

@@ -14,10 +14,9 @@ use crate::{
         map::{IndexMap, IndexSet},
         math::log2_up,
         polynomial::{compute_evaluation_vector, MultilinearExtension},
-        proof::{Keccak256Transcript, ProofError, Transcript},
+        proof::{Keccak256Transcript, PlaceholderResult, ProofError, Transcript},
     },
     proof_primitive::sumcheck::SumcheckProof,
-    sql::PlaceholderProverResult,
     utils::log,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
@@ -101,7 +100,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<(Self, OwnedTable<CP::Scalar>)> {
+    ) -> PlaceholderResult<(Self, OwnedTable<CP::Scalar>)> {
         log::log_memory_usage("Start");
 
         let (min_row_num, max_row_num) = get_index_range(accessor, &expr.get_table_references());

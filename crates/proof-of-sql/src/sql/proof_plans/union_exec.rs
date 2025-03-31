@@ -7,16 +7,13 @@ use crate::{
         },
         map::{IndexMap, IndexSet},
         polynomial::MultilinearExtension,
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
         slice_ops,
     },
-    sql::{
-        proof::{
-            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
-            SumcheckSubpolynomialType, VerificationBuilder,
-        },
-        PlaceholderProverResult,
+    sql::proof::{
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, SumcheckSubpolynomialType,
+        VerificationBuilder,
     },
 };
 use alloc::{boxed::Box, vec, vec::Vec};
@@ -117,14 +114,14 @@ impl ProverEvaluate for UnionExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let inputs = self
             .inputs
             .iter()
-            .map(|input| -> PlaceholderProverResult<Table<'a, S>> {
+            .map(|input| -> PlaceholderResult<Table<'a, S>> {
                 input.first_round_evaluate(builder, alloc, table_map, params)
             })
-            .collect::<PlaceholderProverResult<Vec<_>>>()?;
+            .collect::<PlaceholderResult<Vec<_>>>()?;
         let res = table_union(&inputs, alloc, self.schema.clone()).expect("Failed to union tables");
         builder.request_post_result_challenges(2);
         builder.produce_chi_evaluation_length(res.num_rows());
@@ -138,14 +135,14 @@ impl ProverEvaluate for UnionExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let inputs = self
             .inputs
             .iter()
-            .map(|input| -> PlaceholderProverResult<Table<'a, S>> {
+            .map(|input| -> PlaceholderResult<Table<'a, S>> {
                 input.final_round_evaluate(builder, alloc, table_map, params)
             })
-            .collect::<PlaceholderProverResult<Vec<_>>>()?;
+            .collect::<PlaceholderResult<Vec<_>>>()?;
         let input_lengths = inputs.iter().map(Table::num_rows).collect::<Vec<_>>();
         let res = table_union(&inputs, alloc, self.schema.clone()).expect("Failed to union tables");
         let gamma = builder.consume_post_result_challenge();

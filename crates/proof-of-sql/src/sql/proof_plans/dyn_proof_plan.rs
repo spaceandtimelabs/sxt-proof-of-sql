@@ -8,7 +8,7 @@ use crate::{
             ColumnField, ColumnRef, LiteralValue, OwnedTable, Table, TableEvaluation, TableRef,
         },
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
     sql::{
@@ -16,7 +16,6 @@ use crate::{
             FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
-        PlaceholderProverResult,
     },
 };
 use alloc::{boxed::Box, vec::Vec};

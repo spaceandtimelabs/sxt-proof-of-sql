@@ -11,7 +11,7 @@ use crate::{
             TableRef,
         },
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
     sql::{
@@ -24,7 +24,6 @@ use crate::{
             first_round_evaluate_membership_check, first_round_evaluate_monotonic,
             verify_membership_check, verify_monotonic,
         },
-        PlaceholderProverResult,
     },
 };
 use alloc::{boxed::Box, vec, vec::Vec};
@@ -319,7 +318,7 @@ impl ProverEvaluate for SortMergeJoinExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let left = self
             .left
             .first_round_evaluate(builder, alloc, table_map, params)?;
@@ -437,7 +436,7 @@ impl ProverEvaluate for SortMergeJoinExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let left = self
             .left
             .final_round_evaluate(builder, alloc, table_map, params)?;

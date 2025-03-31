@@ -56,3 +56,10 @@ pub enum ProofSizeMismatch {
     #[snafu(display("Proof doesn't have requested rho length"))]
     RhoLengthNotFound,
 }
+
+/// Errors related to placeholders
+#[derive(Snafu, Debug, PartialEq, Eq)]
+pub enum PlaceholderError {}
+
+/// Result type for placeholder errors
+pub type PlaceholderResult<T> = Result<T, PlaceholderError>;

@@ -3,13 +3,10 @@ use crate::{
     base::{
         database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{FinalRoundBuilder, VerificationBuilder},
-        PlaceholderProverResult,
-    },
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
     utils::log,
 };
 use alloc::boxed::Box;
@@ -40,7 +37,7 @@ impl ProofExpr for NotExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
         let expr_column: Column<'a, S> = self.expr.first_round_evaluate(alloc, table, params)?;
@@ -59,7 +56,7 @@ impl ProofExpr for NotExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
         let expr_column: Column<'a, S> = self

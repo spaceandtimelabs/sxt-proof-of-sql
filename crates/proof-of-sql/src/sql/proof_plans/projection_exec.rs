@@ -6,7 +6,7 @@ use crate::{
             TableOptions, TableRef,
         },
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
     sql::{
@@ -14,7 +14,6 @@ use crate::{
             FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ProofExpr},
-        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -131,7 +130,7 @@ impl ProverEvaluate for ProjectionExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let input = self
@@ -142,7 +141,7 @@ impl ProverEvaluate for ProjectionExec {
             .aliased_results
             .iter()
             .map(
-                |aliased_expr| -> PlaceholderProverResult<(Ident, Column<'a, S>)> {
+                |aliased_expr| -> PlaceholderResult<(Ident, Column<'a, S>)> {
                     Ok((
                         aliased_expr.alias.clone(),
                         aliased_expr
@@ -151,7 +150,7 @@ impl ProverEvaluate for ProjectionExec {
                     ))
                 },
             )
-            .collect::<PlaceholderProverResult<IndexMap<_, _>>>()?;
+            .collect::<PlaceholderResult<IndexMap<_, _>>>()?;
 
         let res =
             Table::<'a, S>::try_new_with_options(cols, TableOptions::new(Some(input.num_rows())))
@@ -173,7 +172,7 @@ impl ProverEvaluate for ProjectionExec {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         let input = self
@@ -185,7 +184,7 @@ impl ProverEvaluate for ProjectionExec {
             .aliased_results
             .iter()
             .map(
-                |aliased_expr| -> PlaceholderProverResult<(Ident, Column<'a, S>)> {
+                |aliased_expr| -> PlaceholderResult<(Ident, Column<'a, S>)> {
                     Ok((
                         aliased_expr.alias.clone(),
                         aliased_expr
@@ -194,7 +193,7 @@ impl ProverEvaluate for ProjectionExec {
                     ))
                 },
             )
-            .collect::<PlaceholderProverResult<IndexMap<_, _>>>()?;
+            .collect::<PlaceholderResult<IndexMap<_, _>>>()?;
 
         let res =
             Table::<'a, S>::try_new_with_options(cols, TableOptions::new(Some(input.num_rows())))

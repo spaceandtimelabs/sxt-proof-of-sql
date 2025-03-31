@@ -3,13 +3,10 @@ use crate::{
     base::{
         database::{Column, ColumnField, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{FinalRoundBuilder, VerificationBuilder},
-        PlaceholderProverResult,
-    },
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
@@ -74,7 +71,7 @@ impl ProofExpr for ColumnExpr {
         _alloc: &'a Bump,
         table: &Table<'a, S>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         Ok(self.fetch_column(table))
     }
 
@@ -86,7 +83,7 @@ impl ProofExpr for ColumnExpr {
         _alloc: &'a Bump,
         table: &Table<'a, S>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         Ok(self.fetch_column(table))
     }
 

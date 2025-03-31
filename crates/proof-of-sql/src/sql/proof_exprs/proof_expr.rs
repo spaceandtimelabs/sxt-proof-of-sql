@@ -2,13 +2,10 @@ use crate::{
     base::{
         database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{FinalRoundBuilder, VerificationBuilder},
-        PlaceholderProverResult,
-    },
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use core::fmt::Debug;
@@ -27,7 +24,7 @@ pub trait ProofExpr: Debug + Send + Sync {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>>;
+    ) -> PlaceholderResult<Column<'a, S>>;
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
     /// of values
@@ -37,7 +34,7 @@ pub trait ProofExpr: Debug + Send + Sync {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>>;
+    ) -> PlaceholderResult<Column<'a, S>>;
 
     /// Compute the evaluation of a multilinear extension from this expression
     /// at the random sumcheck point and adds components needed to verify the expression to

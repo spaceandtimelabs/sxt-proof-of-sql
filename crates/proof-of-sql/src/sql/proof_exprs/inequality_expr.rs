@@ -3,7 +3,7 @@ use crate::{
     base::{
         database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
     sql::{
@@ -11,7 +11,6 @@ use crate::{
         proof_gadgets::{
             final_round_evaluate_sign, first_round_evaluate_sign, verifier_evaluate_sign,
         },
-        PlaceholderProverResult,
     },
     utils::log,
 };
@@ -49,7 +48,7 @@ impl ProofExpr for InequalityExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
         let lhs_column = self.lhs.first_round_evaluate(alloc, table, params)?;
@@ -84,7 +83,7 @@ impl ProofExpr for InequalityExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
         let lhs_column = self

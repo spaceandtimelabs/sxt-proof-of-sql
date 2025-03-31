@@ -3,13 +3,10 @@ use crate::{
     base::{
         database::{try_cast_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{FinalRoundBuilder, VerificationBuilder},
-        PlaceholderProverResult,
-    },
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -41,7 +38,7 @@ impl ProofExpr for CastExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         let uncasted_result = self.from_expr.first_round_evaluate(alloc, table, params)?;
         Ok(cast_column(alloc, uncasted_result, self.to_type))
     }
@@ -52,7 +49,7 @@ impl ProofExpr for CastExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         let uncasted_result = self
             .from_expr
             .final_round_evaluate(builder, alloc, table, params)?;

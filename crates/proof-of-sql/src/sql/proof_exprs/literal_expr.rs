@@ -3,13 +3,10 @@ use crate::{
     base::{
         database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{FinalRoundBuilder, VerificationBuilder},
-        PlaceholderProverResult,
-    },
+    sql::proof::{FinalRoundBuilder, VerificationBuilder},
     utils::log,
 };
 use bumpalo::Bump;
@@ -49,7 +46,7 @@ impl ProofExpr for LiteralExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
         let res = Column::from_literal_with_length(&self.value, table.num_rows(), alloc);
@@ -66,7 +63,7 @@ impl ProofExpr for LiteralExpr {
         alloc: &'a Bump,
         table: &Table<'a, S>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Column<'a, S>> {
+    ) -> PlaceholderResult<Column<'a, S>> {
         log::log_memory_usage("Start");
 
         let table_length = table.num_rows();

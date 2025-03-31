@@ -5,14 +5,11 @@ use crate::{
             TableRef,
         },
         map::{IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::{
-        proof::{
-            FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
-        },
-        PlaceholderProverResult,
+    sql::proof::{
+        FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate, VerificationBuilder,
     },
     utils::log,
 };
@@ -75,7 +72,7 @@ impl ProverEvaluate for EmptyExec {
         _alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         // Create an empty table with one row
@@ -95,7 +92,7 @@ impl ProverEvaluate for EmptyExec {
         _alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         log::log_memory_usage("Start");
 
         // Create an empty table with one row

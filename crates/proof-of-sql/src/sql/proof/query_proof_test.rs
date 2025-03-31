@@ -10,14 +10,11 @@ use crate::{
             Table, TableEvaluation, TableRef,
         },
         map::{indexset, IndexMap, IndexSet},
-        proof::ProofError,
+        proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
-    sql::{
-        proof::{FirstRoundBuilder, QueryData, SumcheckSubpolynomialType},
-        PlaceholderProverResult,
-    },
+    sql::proof::{FirstRoundBuilder, QueryData, SumcheckSubpolynomialType},
 };
 use bumpalo::Bump;
 use serde::Serialize;
@@ -56,7 +53,7 @@ impl ProverEvaluate for TrivialTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let col = vec![self.column_fill_value; self.length];
         if self.produce_length {
             builder.produce_chi_evaluation_length(self.length);
@@ -70,7 +67,7 @@ impl ProverEvaluate for TrivialTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
         builder.produce_intermediate_mle(col as &[_]);
         builder.produce_sumcheck_subpolynomial(
@@ -274,7 +271,7 @@ impl ProverEvaluate for SquareTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         builder.produce_chi_evaluation_length(2);
         Ok(table([borrowed_bigint("a1", self.res, alloc)]))
     }
@@ -285,7 +282,7 @@ impl ProverEvaluate for SquareTestProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let x = *table_map
             .get(&TableRef::new("sxt", "test"))
             .unwrap()
@@ -456,7 +453,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         builder.produce_chi_evaluation_length(2);
         Ok(table([borrowed_bigint("a1", self.res, alloc)]))
     }
@@ -467,7 +464,7 @@ impl ProverEvaluate for DoubleSquareTestProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let x = *table_map
             .get(&TableRef::new("sxt", "test"))
             .unwrap()
@@ -671,7 +668,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         builder.request_post_result_challenges(2);
         builder.produce_chi_evaluation_length(2);
         Ok(table([borrowed_bigint("a1", [9, 25], alloc)]))
@@ -683,7 +680,7 @@ impl ProverEvaluate for ChallengeTestProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let x = *table_map
             .get(&TableRef::new("sxt", "test"))
             .unwrap()
@@ -815,7 +812,7 @@ impl ProverEvaluate for FirstRoundSquareTestProofPlan {
         alloc: &'a Bump,
         _table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         builder.produce_intermediate_mle(res);
         builder.produce_chi_evaluation_length(2);
@@ -828,7 +825,7 @@ impl ProverEvaluate for FirstRoundSquareTestProofPlan {
         alloc: &'a Bump,
         table_map: &IndexMap<TableRef, Table<'a, S>>,
         _params: &[LiteralValue],
-    ) -> PlaceholderProverResult<Table<'a, S>> {
+    ) -> PlaceholderResult<Table<'a, S>> {
         let x = *table_map
             .get(&TableRef::new("sxt", "test"))
             .unwrap()
