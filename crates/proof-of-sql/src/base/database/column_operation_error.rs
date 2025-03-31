@@ -95,6 +95,15 @@ pub enum ColumnOperationError {
         /// `ColumnType` of right operand
         right_type: ColumnType,
     },
+
+    /// Errors related to casting with scaling between two types.
+    #[snafu(display("Cannot fit {left_type} into {right_type} without losing data"))]
+    ScaleCastingError {
+        /// `ColumnType` of left operand
+        left_type: ColumnType,
+        /// `ColumnType` of right operand
+        right_type: ColumnType,
+    },
 }
 
 /// Result type for column operations
