@@ -1,3 +1,4 @@
+use crate::base::database::ColumnType;
 use snafu::Snafu;
 
 #[derive(Snafu, Debug)]
@@ -20,6 +21,8 @@ pub enum ProofError {
     FieldCountMismatch,
     #[snafu(transparent)]
     ProofSizeMismatch { source: ProofSizeMismatch },
+    #[snafu(transparent)]
+    PlaceholderError { source: PlaceholderError },
 }
 
 #[derive(Snafu, Debug)]
@@ -59,7 +62,27 @@ pub enum ProofSizeMismatch {
 
 /// Errors related to placeholders
 #[derive(Snafu, Debug, PartialEq, Eq)]
-pub enum PlaceholderError {}
+pub enum PlaceholderError {
+    #[snafu(display("Invalid placeholder id: {id}, number of params: {num_params}"))]
+    /// Placeholder id is invalid
+    InvalidPlaceholderId {
+        /// The invalid placeholder id
+        id: usize,
+        /// The number of parameters
+        num_params: usize,
+    },
+
+    #[snafu(display("Invalid placeholder type: {id}, expected: {expected}, actual: {actual}"))]
+    /// Placeholder type is invalid
+    InvalidPlaceholderType {
+        /// The invalid placeholder id
+        id: usize,
+        /// The expected type
+        expected: ColumnType,
+        /// The actual type
+        actual: ColumnType,
+    },
+}
 
 /// Result type for placeholder errors
 pub type PlaceholderResult<T> = Result<T, PlaceholderError>;

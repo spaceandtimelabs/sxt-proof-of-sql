@@ -1,6 +1,6 @@
 use super::{
     cast_expr::CastExpr, AddSubtractExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr,
-    LiteralExpr, MultiplyExpr, NotExpr, OrExpr, ProofExpr,
+    LiteralExpr, MultiplyExpr, NotExpr, OrExpr, PlaceholderExpr, ProofExpr,
 };
 use crate::{
     base::{
@@ -35,6 +35,8 @@ pub enum DynProofExpr {
     Not(NotExpr),
     /// Provable CONST expression
     Literal(LiteralExpr),
+    /// Provable placeholder expression
+    Placeholder(PlaceholderExpr),
     /// Provable AST expression for an equals expression
     Equals(EqualsExpr),
     /// Provable AST expression for an inequality expression
@@ -73,6 +75,11 @@ impl DynProofExpr {
     #[must_use]
     pub fn new_literal(value: LiteralValue) -> Self {
         Self::Literal(LiteralExpr::new(value))
+    }
+    /// Create placeholder expression
+    #[must_use]
+    pub fn new_placeholder(id: usize, column_type: ColumnType) -> Self {
+        Self::Placeholder(PlaceholderExpr::new(id, column_type))
     }
     /// Create a new equals expression
     pub fn try_new_equals(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {

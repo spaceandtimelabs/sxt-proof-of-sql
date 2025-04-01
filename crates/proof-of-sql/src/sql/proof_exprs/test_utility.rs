@@ -133,6 +133,14 @@ pub fn const_decimal75<T: Into<I256>>(precision: u8, scale: i8, val: T) -> DynPr
     ))
 }
 
+/// Aliased placeholder expression
+pub fn aliased_placeholder(index: usize, col_type: ColumnType, alias: &str) -> AliasedDynProofExpr {
+    AliasedDynProofExpr {
+        expr: DynProofExpr::new_placeholder(index, col_type),
+        alias: alias.into(),
+    }
+}
+
 pub fn tab(tab: &TableRef) -> TableExpr {
     TableExpr {
         table_ref: tab.clone(),
