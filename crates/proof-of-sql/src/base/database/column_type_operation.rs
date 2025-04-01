@@ -189,6 +189,7 @@ pub fn try_divide_column_types(
 }
 
 /// Verifies that `from` can be cast to `to`. For now, this supports a limited number of casts.
+#[expect(clippy::missing_panics_doc)]
 pub fn try_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult<()> {
     match (from, to) {
         (
@@ -199,12 +200,32 @@ pub fn try_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult
             | ColumnType::Int128
             | ColumnType::BigInt,
         )
-        | (ColumnType::TimestampTZ(_, _), ColumnType::BigInt) => Ok(()),
-        _ => Err(ColumnOperationError::CastingError {
-            left_type: from,
-            right_type: to,
-        }),
+        | (ColumnType::TimestampTZ(_, _), ColumnType::BigInt)
+        | (ColumnType::Uint8, ColumnType::Uint8)
+        | (ColumnType::TinyInt, ColumnType::TinyInt) => true,
+        (
+            ColumnType::TinyInt
+            | ColumnType::Uint8
+            | ColumnType::SmallInt
+            | ColumnType::Int
+            | ColumnType::Int128
+            | ColumnType::BigInt,
+            ColumnType::Decimal75(_, 0)
+            | ColumnType::SmallInt
+            | ColumnType::Int
+            | ColumnType::BigInt
+            | ColumnType::Int128,
+        )
+        | (ColumnType::Decimal75(_, 0), ColumnType::Decimal75(_, 0)) => {
+            to.precision_value().unwrap() >= from.precision_value().unwrap()
+        }
+        _ => false,
     }
+    .then_some(())
+    .ok_or(ColumnOperationError::CastingError {
+        left_type: from,
+        right_type: to,
+    })
 }
 
 /// Verifies that `from` can be cast to `to`.
@@ -860,7 +881,7 @@ mod test {
     }
 
     #[test]
-    fn we_can_cast_all_castable_types() {
+    fn we_can_cast_bool_to_signed_ints() {
         for to in [
             ColumnType::TinyInt,
             ColumnType::SmallInt,
@@ -870,6 +891,66 @@ mod test {
         ] {
             try_cast_types(ColumnType::Boolean, to).unwrap();
         }
+    }
+
+    #[test]
+    fn we_can_cast_integers_and_decimal_to_decimal() {
+        for from in [
+            ColumnType::TinyInt,
+            ColumnType::Uint8,
+            ColumnType::SmallInt,
+            ColumnType::Int,
+            ColumnType::BigInt,
+            ColumnType::Int128,
+            ColumnType::Decimal75(Precision::new(60).unwrap(), 0),
+        ] {
+            try_cast_types(from, ColumnType::Decimal75(Precision::new(60).unwrap(), 0)).unwrap();
+            try_cast_types(
+                from,
+                ColumnType::Decimal75(Precision::new(from.precision_value().unwrap()).unwrap(), 0),
+            )
+            .unwrap();
+            try_cast_types(from, ColumnType::Decimal75(Precision::new(2).unwrap(), 0)).unwrap_err();
+        }
+    }
+
+    #[test]
+    fn we_can_cast_integers_to_signed_integers() {
+        try_cast_types(ColumnType::Uint8, ColumnType::Uint8).unwrap();
+        try_cast_types(ColumnType::Uint8, ColumnType::TinyInt).unwrap_err();
+        try_cast_types(ColumnType::Uint8, ColumnType::SmallInt).unwrap();
+        try_cast_types(ColumnType::Uint8, ColumnType::Int).unwrap();
+        try_cast_types(ColumnType::Uint8, ColumnType::BigInt).unwrap();
+        try_cast_types(ColumnType::Uint8, ColumnType::Int128).unwrap();
+        try_cast_types(ColumnType::TinyInt, ColumnType::TinyInt).unwrap();
+        try_cast_types(ColumnType::TinyInt, ColumnType::SmallInt).unwrap();
+        try_cast_types(ColumnType::TinyInt, ColumnType::Int).unwrap();
+        try_cast_types(ColumnType::TinyInt, ColumnType::BigInt).unwrap();
+        try_cast_types(ColumnType::TinyInt, ColumnType::Int128).unwrap();
+        try_cast_types(ColumnType::SmallInt, ColumnType::TinyInt).unwrap_err();
+        try_cast_types(ColumnType::SmallInt, ColumnType::SmallInt).unwrap();
+        try_cast_types(ColumnType::SmallInt, ColumnType::Int).unwrap();
+        try_cast_types(ColumnType::SmallInt, ColumnType::BigInt).unwrap();
+        try_cast_types(ColumnType::SmallInt, ColumnType::Int128).unwrap();
+        try_cast_types(ColumnType::Int, ColumnType::TinyInt).unwrap_err();
+        try_cast_types(ColumnType::Int, ColumnType::SmallInt).unwrap_err();
+        try_cast_types(ColumnType::Int, ColumnType::Int).unwrap();
+        try_cast_types(ColumnType::Int, ColumnType::BigInt).unwrap();
+        try_cast_types(ColumnType::Int, ColumnType::Int128).unwrap();
+        try_cast_types(ColumnType::BigInt, ColumnType::TinyInt).unwrap_err();
+        try_cast_types(ColumnType::BigInt, ColumnType::SmallInt).unwrap_err();
+        try_cast_types(ColumnType::BigInt, ColumnType::Int).unwrap_err();
+        try_cast_types(ColumnType::BigInt, ColumnType::BigInt).unwrap();
+        try_cast_types(ColumnType::BigInt, ColumnType::Int128).unwrap();
+        try_cast_types(ColumnType::Int128, ColumnType::TinyInt).unwrap_err();
+        try_cast_types(ColumnType::Int128, ColumnType::SmallInt).unwrap_err();
+        try_cast_types(ColumnType::Int128, ColumnType::Int).unwrap_err();
+        try_cast_types(ColumnType::Int128, ColumnType::BigInt).unwrap_err();
+        try_cast_types(ColumnType::Int128, ColumnType::Int128).unwrap();
+    }
+
+    #[test]
+    fn we_can_cast_timestamp_to_big_int() {
         try_cast_types(
             ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::new(1)),
             ColumnType::BigInt,
