@@ -1,4 +1,4 @@
-use super::{DynProofExpr, ProofExpr};
+use super::{DynProofExpr, PlaceholderExpr, ProofExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -21,6 +21,13 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
+
+#[test]
+fn we_can_get_id_and_type_of_placeholder_expr() {
+    let expr = PlaceholderExpr::new(0, ColumnType::Boolean);
+    assert_eq!(expr.data_type(), ColumnType::Boolean);
+    assert_eq!(expr.id(), 0);
+}
 
 fn test_random_tables_with_given_offset(offset: usize) {
     let dist = Uniform::new(-3, 4);

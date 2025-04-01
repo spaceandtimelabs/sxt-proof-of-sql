@@ -12,20 +12,30 @@ use crate::{
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
-/// Provable placeholder expression
+/// Provable placeholder expression, that is, a placeholder in a SQL query
 ///
 /// This node allows us to easily represent queries like
 ///    select $0, $1 from T
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlaceholderExpr {
-    pub(crate) id: usize,
-    pub(crate) column_type: ColumnType,
+    id: usize,
+    column_type: ColumnType,
 }
 
 impl PlaceholderExpr {
     /// Creates a new `PlaceholderExpr`
     pub fn new(id: usize, column_type: ColumnType) -> Self {
         Self { id, column_type }
+    }
+
+    /// Get the id of the placeholder
+    pub fn id(&self) -> usize {
+        self.id
+    }
+
+    /// Get the column type of the placeholder
+    pub fn column_type(&self) -> ColumnType {
+        self.column_type
     }
 
     /// Replace the placeholder with the correct value in `params`
@@ -37,13 +47,12 @@ impl PlaceholderExpr {
         &self,
         params: &'a [LiteralValue],
     ) -> Result<&'a LiteralValue, PlaceholderError> {
-        if self.id >= params.len() {
-            return Err(PlaceholderError::InvalidPlaceholderId {
+        let param_value = params
+            .get(self.id)
+            .ok_or(PlaceholderError::InvalidPlaceholderId {
                 id: self.id,
                 num_params: params.len(),
-            });
-        }
-        let param_value = &params[self.id];
+            })?;
         if param_value.column_type() != self.column_type {
             return Err(PlaceholderError::InvalidPlaceholderType {
                 id: self.id,
