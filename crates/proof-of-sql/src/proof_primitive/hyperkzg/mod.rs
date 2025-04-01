@@ -12,6 +12,8 @@ pub use scalar::BNScalar;
 mod public_setup;
 #[cfg(feature = "std")]
 pub use public_setup::deserialize_flat_compressed_hyperkzg_public_setup_from_reader;
+#[cfg(all(test, feature = "hyperkzg_proof"))]
+pub use public_setup::load_small_setup_for_testing;
 pub use public_setup::{
     deserialize_flat_compressed_hyperkzg_public_setup_from_slice, HyperKZGPublicSetup,
     HyperKZGPublicSetupOwned,
