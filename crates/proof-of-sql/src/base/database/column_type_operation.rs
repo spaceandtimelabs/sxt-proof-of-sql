@@ -210,7 +210,6 @@ pub fn try_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult
 /// Verifies that `from` can be cast to `to`.
 /// Casting can only be supported if the resulting data type is a superset of the input data type.
 /// For example Deciaml(6,1) can be cast to Decimal(7,1), but not vice versa.
-#[cfg_attr(not(test), expect(dead_code))]
 #[expect(clippy::missing_panics_doc)]
 pub fn try_scale_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult<()> {
     match (from, to) {
