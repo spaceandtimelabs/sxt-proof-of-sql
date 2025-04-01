@@ -18,12 +18,8 @@ use sqlparser::ast::Ident;
 /// Parse a placeholder string of the form "$1", "$2", etc. into a `usize`.
 fn parse_placeholder_id(s: &str) -> Option<usize> {
     s.strip_prefix('$')
-        // Must not be empty
-        .filter(|digits| !digits.is_empty())
         // Must be all digits
-        .filter(|digits| digits.chars().all(|c| c.is_ascii_digit()))
-        // Disallow leading zero
-        .filter(|digits| !digits.starts_with('0'))
+        .filter(|digits| digits.chars().all(|c| c.is_ascii_digit()) && !digits.starts_with('0'))
         // Finally, parse
         .and_then(|digits| digits.parse().ok())
 }
@@ -181,6 +177,8 @@ mod tests {
 
     #[test]
     fn we_cannot_parse_placeholder_id_without_dollar_sign() {
+        // "" => None
+        assert_eq!(parse_placeholder_id(""), None);
         // "1" => None
         assert_eq!(parse_placeholder_id("1"), None);
     }

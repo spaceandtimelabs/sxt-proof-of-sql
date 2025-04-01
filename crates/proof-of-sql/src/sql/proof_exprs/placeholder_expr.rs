@@ -51,18 +51,18 @@ impl PlaceholderExpr {
         &self,
         params: &'a [LiteralValue],
     ) -> Result<&'a LiteralValue, PlaceholderError> {
-        let param_value =
-            params
-                .get(self.id - 1)
-                .ok_or(PlaceholderError::InvalidPlaceholderId {
-                    id: self.id,
-                    num_params: params.len(),
-                })?;
+        let pos = self.id - 1;
+        let param_value = params
+            .get(pos)
+            .ok_or(PlaceholderError::InvalidPlaceholderId {
+                id: self.id,
+                num_params: params.len(),
+            })?;
         if param_value.column_type() != self.column_type {
             return Err(PlaceholderError::InvalidPlaceholderType {
                 id: self.id,
                 expected: self.column_type,
-                actual: params[self.id - 1].column_type(),
+                actual: param_value.column_type(),
             });
         }
         Ok(param_value)

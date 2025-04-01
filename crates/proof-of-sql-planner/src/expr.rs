@@ -4,10 +4,7 @@ use super::{
 };
 use datafusion::{
     common::DFSchema,
-    logical_expr::{
-        expr::{Alias, Unnest},
-        BinaryExpr, Expr, Operator,
-    },
+    logical_expr::{expr::Alias, BinaryExpr, Expr, Operator},
 };
 use proof_of_sql::sql::proof_exprs::DynProofExpr;
 
@@ -91,7 +88,10 @@ mod tests {
     use arrow::datatypes::DataType;
     use datafusion::{
         common::ScalarValue,
-        logical_expr::{expr::Placeholder, Cast},
+        logical_expr::{
+            expr::{Placeholder, Unnest},
+            Cast,
+        },
     };
     use proof_of_sql::base::database::{ColumnRef, ColumnType, LiteralValue, TableRef};
 
