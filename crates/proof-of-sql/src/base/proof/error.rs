@@ -82,6 +82,10 @@ pub enum PlaceholderError {
         /// The actual type
         actual: ColumnType,
     },
+
+    #[snafu(display("Placeholder id must be greater than 0"))]
+    /// Placeholder id is zero
+    ZeroPlaceholderId,
 }
 
 /// Result type for placeholder errors

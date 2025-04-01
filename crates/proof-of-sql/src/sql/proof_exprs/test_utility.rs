@@ -136,7 +136,7 @@ pub fn const_decimal75<T: Into<I256>>(precision: u8, scale: i8, val: T) -> DynPr
 /// Aliased placeholder expression
 pub fn aliased_placeholder(index: usize, col_type: ColumnType, alias: &str) -> AliasedDynProofExpr {
     AliasedDynProofExpr {
-        expr: DynProofExpr::new_placeholder(index, col_type),
+        expr: DynProofExpr::try_new_placeholder(index, col_type).unwrap(),
         alias: alias.into(),
     }
 }

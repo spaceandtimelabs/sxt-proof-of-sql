@@ -24,9 +24,9 @@ use rand_core::SeedableRng;
 
 #[test]
 fn we_can_get_id_and_type_of_placeholder_expr() {
-    let expr = PlaceholderExpr::new(0, ColumnType::Boolean);
+    let expr = PlaceholderExpr::try_new(1, ColumnType::Boolean).unwrap();
     assert_eq!(expr.data_type(), ColumnType::Boolean);
-    assert_eq!(expr.id(), 0);
+    assert_eq!(expr.id(), 1);
 }
 
 fn test_random_tables_with_given_offset(offset: usize) {
@@ -63,8 +63,8 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 col_expr_plan(&t, "a", &accessor),
                 col_expr_plan(&t, "b", &accessor),
                 col_expr_plan(&t, "c", &accessor),
-                aliased_placeholder(0, ColumnType::BigInt, "p0"),
-                aliased_placeholder(1, ColumnType::VarChar, "p1"),
+                aliased_placeholder(1, ColumnType::BigInt, "p1"),
+                aliased_placeholder(2, ColumnType::VarChar, "p2"),
             ],
             tab(&t),
             const_bool(true),
@@ -81,14 +81,14 @@ fn test_random_tables_with_given_offset(offset: usize) {
         let expected_a: Vec<bool> = data["a"].bool_iter().copied().collect();
         let expected_b: Vec<String> = data["b"].string_iter().cloned().collect();
         let expected_c: Vec<i64> = data["c"].i64_iter().copied().collect();
-        let expected_p0: Vec<i64> = vec![random_bigint; n];
-        let expected_p1: Vec<String> = vec![random_varchar.clone(); n];
+        let expected_p1: Vec<i64> = vec![random_bigint; n];
+        let expected_p2: Vec<String> = vec![random_varchar.clone(); n];
         let expected_result = owned_table([
             boolean("a", expected_a),
             varchar("b", expected_b),
             bigint("c", expected_c),
-            bigint("p0", expected_p0),
-            varchar("p1", expected_p1),
+            bigint("p1", expected_p1),
+            varchar("p2", expected_p2),
         ]);
 
         assert_eq!(expected_result, res);
@@ -108,12 +108,12 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 #[test]
 fn we_can_prove_a_query_with_a_single_selected_row() {
     let data = owned_table([bigint("a", [123_i64])]);
-    let expected_res = owned_table([boolean("p0", [true])]);
+    let expected_res = owned_table([boolean("p1", [true])]);
     let t = TableRef::new("sxt", "t");
     let accessor =
         OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
-        vec![aliased_placeholder(0, ColumnType::Boolean, "p0")],
+        vec![aliased_placeholder(1, ColumnType::Boolean, "p1")],
         tab(&t),
         const_bool(true),
     );
@@ -134,12 +134,12 @@ fn we_can_prove_a_query_with_a_single_selected_row() {
 #[test]
 fn we_can_prove_a_query_with_a_single_non_selected_row() {
     let data = owned_table([bigint("a", [123_i64])]);
-    let expected_res = owned_table([boolean("p0", [true; 0])]);
+    let expected_res = owned_table([boolean("p1", [true; 0])]);
     let t = TableRef::new("sxt", "t");
     let accessor =
         OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
-        vec![aliased_placeholder(0, ColumnType::Boolean, "p0")],
+        vec![aliased_placeholder(1, ColumnType::Boolean, "p1")],
         tab(&t),
         const_bool(false),
     );
@@ -162,7 +162,8 @@ fn we_can_compute_the_correct_output_of_a_placeholder_expr_using_first_round_eva
     let alloc = Bump::new();
     let data: Table<Curve25519Scalar> =
         table([borrowed_bigint("a", [123_i64, 456, 789, 1011], &alloc)]);
-    let placeholder_expr: DynProofExpr = DynProofExpr::new_placeholder(0, ColumnType::BigInt);
+    let placeholder_expr: DynProofExpr =
+        DynProofExpr::try_new_placeholder(1, ColumnType::BigInt).unwrap();
     let res = placeholder_expr
         .first_round_evaluate(&alloc, &data, &[LiteralValue::BigInt(504_i64)])
         .unwrap();
@@ -177,7 +178,7 @@ fn we_cannot_prove_placeholder_expr_if_interpolate_fails() {
     let t = TableRef::new("sxt", "t");
     let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
-        vec![aliased_placeholder(0, ColumnType::Boolean, "p0")],
+        vec![aliased_placeholder(1, ColumnType::Boolean, "p1")],
         tab(&t),
         const_bool(true),
     );
@@ -194,7 +195,7 @@ fn we_cannot_verify_placeholder_expr_if_interpolate_fails() {
     let t = TableRef::new("sxt", "t");
     let accessor = TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
     let ast = filter(
-        vec![aliased_placeholder(0, ColumnType::Boolean, "p0")],
+        vec![aliased_placeholder(1, ColumnType::Boolean, "p1")],
         tab(&t),
         const_bool(true),
     );
@@ -222,8 +223,8 @@ fn we_can_verify_placeholder_expr_if_and_only_if_prover_and_verifier_have_the_sa
     let ast = filter(
         vec![
             col_expr_plan(&t, "a", &accessor),
-            aliased_placeholder(0, ColumnType::BigInt, "p0"),
-            aliased_placeholder(1, ColumnType::VarChar, "p1"),
+            aliased_placeholder(1, ColumnType::BigInt, "p1"),
+            aliased_placeholder(2, ColumnType::VarChar, "p2"),
         ],
         tab(&t),
         const_bool(true),
@@ -294,8 +295,8 @@ fn we_can_verify_placeholder_expr_if_and_only_if_prover_and_verifier_have_the_sa
         .table;
     let expected_res = owned_table([
         bigint("a", [123_i64, 456]),
-        bigint("p0", [504_i64, 504]),
-        varchar("p1", ["abc", "abc"]),
+        bigint("p1", [504_i64, 504]),
+        varchar("p2", ["abc", "abc"]),
     ]);
     assert_eq!(res, expected_res);
 }
