@@ -104,10 +104,10 @@ uint256 constant G2_NEG_GEN_Y_REAL = 0x1d9befcd05a5323e6da4d435f3b617cdb3af83285
 /// @dev The G2 negated generator point's y-coordinate imaginary component.
 uint256 constant G2_NEG_GEN_Y_IMAG = 0x275dc4a288d1afb3cbb1ac09187524c7db36395df7be3b99e673b13a075a65ec;
 
-uint256 constant VK_TAU_HX_REAL = 0x26787d1c508c26d6ea86ad6460de9fc29ba207e3cb2e57e5b0d82413f3098a9e;
-uint256 constant VK_TAU_HX_IMAG = 0x2b20cbaaab03ac14e5957f6f18c5a62b693a5c5ebe02ed09fa928f0db02bf9f6;
-uint256 constant VK_TAU_HY_REAL = 0x1a44ae9f94f7e4a96d8ea5f1d1a67f22e292e9f58cdd85813381156679888a01;
-uint256 constant VK_TAU_HY_IMAG = 0x01ea86d896eddc7a6edac41e80a9e9059440e9b3baf2186fad830ae001a1482a;
+uint256 constant VK_TAU_HX_REAL = 0x285b1f14edd7e6632340a37dfae9005ff762edcfecfe1c732a7474c0708bef80;
+uint256 constant VK_TAU_HX_IMAG = 0x17cc93077f56f654da727c1def86010339c2b4131094547285adb083e48c197b;
+uint256 constant VK_TAU_HY_REAL = 0x2bad9a374aec49d329ec66e8f530f68509313450580c4c17c6db5ddb9bde7fd0;
+uint256 constant VK_TAU_HY_IMAG = 0x219edfceee1723de674f5b2f6fdb69d9e32dd53b15844956a630d3c7cdaa6ed9;
 
 /// @dev Size of the verification builder in bytes.
 uint256 constant VERIFICATION_BUILDER_SIZE = 0x20 * 13;

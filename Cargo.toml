@@ -40,6 +40,7 @@ enum_dispatch = { version = "0.3.13" }
 ff = { version = "0.13.0"}
 flexbuffers = { version = "2.0.0" }
 halo2curves = { version = "0.8.0", default-features = false }
+hex = { version = "0.4.3" }
 indexmap = { version = "2.1", default-features = false }
 indicatif = { version = "0.17.8", default-features = false }
 itertools = { version = "0.13.0", default-features = false, features = ["use_alloc"] }

@@ -55,6 +55,67 @@ pub fn deserialize_flat_compressed_hyperkzg_public_setup_from_slice(
         .collect()
 }
 
+#[cfg(all(test, feature = "hyperkzg_proof"))]
+#[must_use]
+/// Load a small setup for testing.
+/// This returns a public setup and a verifier key.
+pub fn load_small_setup_for_testing() -> (
+    HyperKZGPublicSetupOwned,
+    nova_snark::provider::hyperkzg::VerifierKey<super::HyperKZGEngine>,
+) {
+    use super::HyperKZGEngine;
+    use ark_ec::AffineRepr;
+    use halo2curves::bn256::{Fq, Fq2, G1Affine, G2Affine};
+    use nova_snark::{
+        provider::hyperkzg::{CommitmentKey, EvaluationEngine},
+        traits::evaluation::EvaluationEngineTrait,
+    };
+
+    const VK_X_REAL: [u64; 4] = [
+        0x2a74_74c0_708b_ef80,
+        0xf762_edcf_ecfe_1c73,
+        0x2340_a37d_fae9_005f,
+        0x285b_1f14_edd7_e663,
+    ];
+    const VK_X_IMAG: [u64; 4] = [
+        0x85ad_b083_e48c_197b,
+        0x39c2_b413_1094_5472,
+        0xda72_7c1d_ef86_0103,
+        0x17cc_9307_7f56_f654,
+    ];
+    const VK_Y_REAL: [u64; 4] = [
+        0xc6db_5ddb_9bde_7fd0,
+        0x0931_3450_580c_4c17,
+        0x29ec_66e8_f530_f685,
+        0x2bad_9a37_4aec_49d3,
+    ];
+    const VK_Y_IMAG: [u64; 4] = [
+        0xa630_d3c7_cdaa_6ed9,
+        0xe32d_d53b_1584_4956,
+        0x674f_5b2f_6fdb_69d9,
+        0x219e_dfce_ee17_23de,
+    ];
+    let tau_h = G2Affine {
+        x: Fq2::new(Fq::from_raw(VK_X_REAL), Fq::from_raw(VK_X_IMAG)),
+        y: Fq2::new(Fq::from_raw(VK_Y_REAL), Fq::from_raw(VK_Y_IMAG)),
+    };
+    let (_, vk) = EvaluationEngine::<HyperKZGEngine>::setup(&CommitmentKey::new(
+        vec![],
+        G1Affine::generator(),
+        tau_h,
+    ));
+
+    let mut ps = super::deserialize_flat_compressed_hyperkzg_public_setup_from_reader(
+        &std::fs::File::open("test_assets/ppot_0080_10.bin").unwrap(),
+        ark_serialize::Validate::Yes,
+    )
+    .unwrap();
+
+    ps.insert(0, ark_bn254::G1Affine::generator());
+
+    (ps, vk)
+}
+
 #[cfg(all(test, feature = "std"))]
 mod std_tests {
     use super::*;

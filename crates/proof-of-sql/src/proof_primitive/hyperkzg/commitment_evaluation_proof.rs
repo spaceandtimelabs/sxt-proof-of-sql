@@ -16,10 +16,33 @@ use nova_snark::{
     },
     traits::evaluation::EvaluationEngineTrait,
 };
+use serde::{Deserialize, Serialize};
 use tracing::{span, Level};
 
 /// The evaluation proof for the `HyperKZG` PCS.
-pub type HyperKZGCommitmentEvaluationProof = EvaluationArgument<HyperKZGEngine>;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HyperKZGCommitmentEvaluationProof {
+    com: Vec<HyperKZGCommitment>,
+    v: Vec<[BNScalar; 3]>,
+    w: [HyperKZGCommitment; 3],
+}
+
+impl From<&HyperKZGCommitmentEvaluationProof> for EvaluationArgument<HyperKZGEngine> {
+    fn from(value: &HyperKZGCommitmentEvaluationProof) -> Self {
+        let nova_com = value.com.iter().map(Into::into).collect();
+        let nova_w = value.w.map(Into::into);
+        let nova_v = value.v.iter().map(|vj| vj.map(Into::into)).collect();
+        EvaluationArgument::new(nova_com, nova_w, nova_v)
+    }
+}
+impl From<EvaluationArgument<HyperKZGEngine>> for HyperKZGCommitmentEvaluationProof {
+    fn from(value: EvaluationArgument<HyperKZGEngine>) -> Self {
+        let com = value.com().iter().copied().map(Into::into).collect();
+        let w = [0, 1, 2].map(|i| value.w()[i].into());
+        let v = value.v().iter().map(|vj| vj.map(Into::into)).collect();
+        Self { com, v, w }
+    }
+}
 
 impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
     type Scalar = BNScalar;
@@ -51,21 +74,23 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
             Affine::default(),   // I'm pretty sure this is unused in the proof
             G2Affine::default(), // I'm pretty sure this is unused in the proof
         );
-        transcript.wrap_transcript(|keccak_transcript| {
-            let span = span!(Level::DEBUG, "EvaluationEngine::prove").entered();
-            let eval_eng = EvaluationEngine::prove(
-                &nova_ck,
-                &EvaluationEngine::setup(&nova_ck).0, // This parameter is unused
-                keccak_transcript,
-                &NovaCommitment::default(), // This parameter is unused
-                &nova_a,
-                &nova_point,
-                &NovaScalar::default(), // This parameter is unused
-            )
-            .unwrap();
-            span.exit();
-            eval_eng
-        })
+        transcript
+            .wrap_transcript(|keccak_transcript| {
+                let span = span!(Level::DEBUG, "EvaluationEngine::prove").entered();
+                let eval_eng = EvaluationEngine::prove(
+                    &nova_ck,
+                    &EvaluationEngine::setup(&nova_ck).0, // This parameter is unused
+                    keccak_transcript,
+                    &NovaCommitment::default(), // This parameter is unused
+                    &nova_a,
+                    &nova_point,
+                    &NovaScalar::default(), // This parameter is unused
+                )
+                .unwrap();
+                span.exit();
+                eval_eng
+            })
+            .into()
     }
 
     fn verify_batched_proof(
@@ -108,7 +133,7 @@ impl CommitmentEvaluationProof for HyperKZGCommitmentEvaluationProof {
                 &nova_commit,
                 &nova_point,
                 &nova_eval.into(),
-                self,
+                &self.into(),
             )
         })
     }
@@ -122,7 +147,10 @@ mod tests {
             test_commitment_evaluation_proof_with_length_1,
             test_random_commitment_evaluation_proof, test_simple_commitment_evaluation_proof,
         },
-        proof_primitive::hyperkzg::nova_commitment_key_to_hyperkzg_public_setup,
+        proof_primitive::hyperkzg::{
+            nova_commitment_key_to_hyperkzg_public_setup,
+            public_setup::load_small_setup_for_testing,
+        },
     };
     use nova_snark::{
         provider::hyperkzg::CommitmentEngine, traits::commitment::CommitmentEngineTrait,
@@ -222,6 +250,17 @@ mod tests {
             128,
             0,
             &&nova_commitment_key_to_hyperkzg_public_setup(&ck)[..],
+            &&vk,
+        );
+    }
+
+    #[test]
+    fn we_create_hyperkzg_proof_using_setup_from_file() {
+        let (pk, vk) = load_small_setup_for_testing();
+        test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
+            23,
+            0,
+            &&pk[..],
             &&vk,
         );
     }
