@@ -1,7 +1,11 @@
 use crate::base::{
-    database::{Column, ColumnType, ColumnarValue, LiteralValue},
+    database::{
+        try_scale_cast_types, Column, ColumnOperationResult, ColumnType, ColumnarValue,
+        LiteralValue,
+    },
     scalar::{Scalar, ScalarExt},
 };
+use bnum::types::U256;
 use bumpalo::Bump;
 use core::{cmp::Ordering, ops::Neg};
 use itertools::izip;
@@ -554,19 +558,42 @@ pub fn cast_column<'a, S: Scalar>(
     }
 }
 
+/// Tries to get the scale factor between the from and to types.
+/// The precision and scale are returned along with the scale so that the unwrapping
+/// can occur in the function that confirms that the types are castable
+#[expect(clippy::missing_panics_doc)]
+#[cfg_attr(not(test), expect(dead_code))]
+fn try_get_scaling_factor_with_precision_and_scale<S: Scalar>(
+    from_type: ColumnType,
+    to_type: ColumnType,
+) -> ColumnOperationResult<(S, u8, i8)> {
+    try_scale_cast_types(from_type, to_type)?;
+    let to_precision = to_type.precision_value().unwrap();
+    let to_scale = to_type.scale().unwrap();
+    let power = u32::try_from(to_scale - from_type.scale().unwrap()).unwrap();
+    Ok((
+        S::from_wrapping(U256::TEN.pow(power)),
+        to_precision,
+        to_scale,
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         cast_bool_column_to_signed_int_column, cast_column, divide_columns, divide_integer_columns,
+        try_get_scaling_factor_with_precision_and_scale,
     };
     use crate::{
         base::{
             database::{Column, ColumnType},
+            math::decimal::Precision,
             posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-            scalar::{test_scalar::TestScalar, Scalar},
+            scalar::{test_scalar::TestScalar, Scalar, ScalarExt},
         },
         sql::proof_exprs::numerical_util::{modulo_columns, modulo_integer_columns},
     };
+    use bnum::types::U256;
     use bumpalo::Bump;
     use itertools::{iproduct, Itertools};
 
@@ -809,5 +836,138 @@ mod tests {
             bool_column,
             ColumnType::VarBinary,
         );
+    }
+
+    #[test]
+    fn we_can_properly_determine_scaling_factors_for_ints() {
+        for from in [
+            ColumnType::Uint8,
+            ColumnType::TinyInt,
+            ColumnType::SmallInt,
+            ColumnType::Int,
+            ColumnType::BigInt,
+            ColumnType::Int128,
+        ] {
+            let from_precision = Precision::new(from.precision_value().unwrap()).unwrap();
+            let forty_prec = Precision::new(40).unwrap();
+            let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+                from,
+                ColumnType::Decimal75(from_precision, 0),
+            )
+            .unwrap();
+            assert_eq!(triple, (TestScalar::ONE, from_precision.value(), 0));
+
+            let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+                from,
+                ColumnType::Decimal75(forty_prec, 0),
+            )
+            .unwrap();
+            assert_eq!(triple, (TestScalar::ONE, forty_prec.value(), 0));
+
+            let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+                from,
+                ColumnType::Decimal75(forty_prec, 1),
+            )
+            .unwrap();
+            assert_eq!(triple, (TestScalar::TEN, forty_prec.value(), 1));
+        }
+    }
+
+    #[test]
+    fn we_can_properly_determine_scaling_factors_for_decimals() {
+        let twenty_prec = Precision::new(20).unwrap();
+
+        // from_with_negative_scale
+        let neg_scale = ColumnType::Decimal75(twenty_prec, -3);
+
+        let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+            neg_scale,
+            ColumnType::Decimal75(twenty_prec, -3),
+        )
+        .unwrap();
+        assert_eq!(triple, (TestScalar::ONE, twenty_prec.value(), -3));
+
+        let twenty_one_prec = Precision::new(21).unwrap();
+        let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+            neg_scale,
+            ColumnType::Decimal75(twenty_one_prec, -3),
+        )
+        .unwrap();
+        assert_eq!(triple, (TestScalar::ONE, twenty_one_prec.value(), -3));
+
+        let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+            neg_scale,
+            ColumnType::Decimal75(twenty_one_prec, -2),
+        )
+        .unwrap();
+        assert_eq!(triple, (TestScalar::TEN, twenty_one_prec.value(), -2));
+
+        // from_with_zero_scale
+        let zero_scale = ColumnType::Decimal75(twenty_prec, 0);
+
+        let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+            zero_scale,
+            ColumnType::Decimal75(twenty_prec, 0),
+        )
+        .unwrap();
+        assert_eq!(triple, (TestScalar::ONE, twenty_prec.value(), 0));
+
+        let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+            zero_scale,
+            ColumnType::Decimal75(twenty_one_prec, 0),
+        )
+        .unwrap();
+        assert_eq!(triple, (TestScalar::ONE, twenty_one_prec.value(), 0));
+
+        let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+            zero_scale,
+            ColumnType::Decimal75(twenty_one_prec, 1),
+        )
+        .unwrap();
+        assert_eq!(triple, (TestScalar::TEN, twenty_one_prec.value(), 1));
+
+        // from_with_positive_scale
+        let pos_scale = ColumnType::Decimal75(twenty_prec, 3);
+
+        let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+            pos_scale,
+            ColumnType::Decimal75(twenty_prec, 3),
+        )
+        .unwrap();
+        assert_eq!(triple, (TestScalar::ONE, twenty_prec.value(), 3));
+        let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+            pos_scale,
+            ColumnType::Decimal75(twenty_one_prec, 3),
+        )
+        .unwrap();
+        assert_eq!(triple, (TestScalar::ONE, twenty_one_prec.value(), 3));
+        let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+            pos_scale,
+            ColumnType::Decimal75(twenty_one_prec, 4),
+        )
+        .unwrap();
+        assert_eq!(triple, (TestScalar::TEN, twenty_one_prec.value(), 4));
+    }
+
+    #[test]
+    fn we_can_get_scaling_factor_for_min_and_max_types() {
+        let triple = try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+            ColumnType::Uint8,
+            ColumnType::Decimal75(Precision::new(75).unwrap(), 72),
+        )
+        .unwrap();
+        assert_eq!(
+            triple,
+            (TestScalar::from_wrapping(U256::TEN.pow(72)), 75, 72)
+        );
+    }
+
+    #[test]
+    fn we_cannot_get_scaling_factor_with_uncastable_types() {
+        try_get_scaling_factor_with_precision_and_scale::<TestScalar>(
+            ColumnType::Int128,
+            ColumnType::Boolean,
+        )
+        .unwrap_err();
     }
 }
