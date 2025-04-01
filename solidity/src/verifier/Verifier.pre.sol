@@ -400,6 +400,14 @@ library Verifier {
                     plan_ptr := add(plan_ptr, UINT64_SIZE)
                     let name_len := shr(UINT64_PADDING_BITS, calldataload(plan_ptr))
                     plan_ptr := add(plan_ptr, add(UINT64_SIZE, name_len))
+                    plan_ptr := add(plan_ptr, UINT32_SIZE)
+                }
+                // skip over the output column names
+                let num_outputs := shr(UINT64_PADDING_BITS, calldataload(plan_ptr))
+                plan_ptr := add(plan_ptr, UINT64_SIZE)
+                for {} num_outputs { num_outputs := sub(num_outputs, 1) } {
+                    let name_len := shr(UINT64_PADDING_BITS, calldataload(plan_ptr))
+                    plan_ptr := add(plan_ptr, add(UINT64_SIZE, name_len))
                 }
 
                 plan_ptr := add(plan_ptr, UINT32_SIZE)
