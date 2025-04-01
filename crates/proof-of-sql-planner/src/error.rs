@@ -1,7 +1,10 @@
 use arrow::datatypes::DataType;
 use datafusion::{
     common::DataFusionError,
-    logical_expr::{expr::AggregateFunction, Expr, LogicalPlan, Operator},
+    logical_expr::{
+        expr::{AggregateFunction, Placeholder},
+        Expr, LogicalPlan, Operator,
+    },
     physical_plan,
 };
 use proof_of_sql::{base::math::decimal::DecimalError, sql::AnalyzeError};
@@ -40,6 +43,18 @@ pub enum PlannerError {
     TableNotFound {
         /// Table name
         table_name: String,
+    },
+    /// Returned when a placeholder id is invalid
+    #[snafu(display("Placeholder id {id:?} is invalid"))]
+    InvalidPlaceholderId {
+        /// Unsupported placeholder id
+        id: String,
+    },
+    /// Returned when a placeholder is untyped
+    #[snafu(display("Placeholder {placeholder:?} is untyped"))]
+    UntypedPlaceholder {
+        /// Untyped placeholder
+        placeholder: Placeholder,
     },
     /// Returned when a datatype is not supported
     #[snafu(display("Unsupported datatype: {}", data_type))]
