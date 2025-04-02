@@ -619,8 +619,12 @@ pub fn cast_column<'a, S: Scalar>(
             alloc.alloc_slice_fill_with(from_column.len(), |i| from_column.scalar_at(i).unwrap())
                 as &[_],
         ),
-        (Column::Decimal75(_, 0, scalars), ColumnType::Decimal75(precision, 0)) => {
-            Column::Decimal75(precision, 0, scalars)
+        (Column::Decimal75(_, from_scale, scalars), ColumnType::Decimal75(precision, to_scale)) => {
+            assert_eq!(
+                from_scale, to_scale,
+                "Casting not supported between {from_type} and {to_type}"
+            );
+            Column::Decimal75(precision, to_scale, scalars)
         }
         (
             Column::TinyInt(_)
@@ -954,6 +958,22 @@ mod tests {
                 assert_eq!(cast_column(&alloc, from_column, to_type), to_column);
             }
         }
+    }
+
+    #[test]
+    fn we_can_cast_decimal_column_to_decimal_column_with_same_scale() {
+        let alloc = Bump::new();
+        let decimal_column_with_scale =
+            Column::<TestScalar>::Decimal75(Precision::new(2).unwrap(), 1, &[TestScalar::ONE]);
+        let res = cast_column(
+            &alloc,
+            decimal_column_with_scale,
+            ColumnType::Decimal75(Precision::new(3).unwrap(), 1),
+        );
+        assert_eq!(
+            res,
+            Column::<TestScalar>::Decimal75(Precision::new(3).unwrap(), 1, &[TestScalar::ONE])
+        );
     }
 
     #[test]
