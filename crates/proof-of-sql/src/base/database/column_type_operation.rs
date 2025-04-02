@@ -216,8 +216,9 @@ pub fn try_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult
             | ColumnType::BigInt
             | ColumnType::Int128,
         )
-        | (ColumnType::Decimal75(_, 0), ColumnType::Decimal75(_, 0)) => {
+        | (ColumnType::Decimal75(_, _), ColumnType::Decimal75(_, _)) => {
             to.precision_value().unwrap() >= from.precision_value().unwrap()
+                && to.scale() == from.scale()
         }
         _ => false,
     }
@@ -912,6 +913,20 @@ mod test {
             .unwrap();
             try_cast_types(from, ColumnType::Decimal75(Precision::new(2).unwrap(), 0)).unwrap_err();
         }
+    }
+
+    #[test]
+    fn we_can_cast_decimal_to_decimal_with_same_scale() {
+        try_cast_types(
+            ColumnType::Decimal75(Precision::new(2).unwrap(), 1),
+            ColumnType::Decimal75(Precision::new(3).unwrap(), 1),
+        )
+        .unwrap();
+        try_cast_types(
+            ColumnType::Decimal75(Precision::new(2).unwrap(), 1),
+            ColumnType::Decimal75(Precision::new(3).unwrap(), 2),
+        )
+        .unwrap_err();
     }
 
     #[test]
