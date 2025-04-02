@@ -136,9 +136,9 @@ mod tests {
         ];
 
         let scalars = vec![
-            TestScalar::from(201),
             TestScalar::from(202),
             TestScalar::from(203),
+            TestScalar::from(201),
         ];
         let random_scalars = SumcheckRandomScalars::new(&scalars, 2, 1);
 
@@ -215,13 +215,13 @@ mod tests {
         ];
 
         let scalars = vec![
-            TestScalar::from(201),
-            TestScalar::from(202),
-            TestScalar::from(203),
             TestScalar::from(204),
             TestScalar::from(205),
             TestScalar::from(206),
             TestScalar::from(207),
+            TestScalar::from(201),
+            TestScalar::from(202),
+            TestScalar::from(203),
         ];
         let random_scalars = SumcheckRandomScalars::new(&scalars, 6, 3);
 

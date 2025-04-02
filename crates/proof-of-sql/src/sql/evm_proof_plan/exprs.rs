@@ -13,8 +13,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub(crate) enum Expr {
     Column(ColumnExpr),
-    Equals(EqualsExpr),
     Literal(LiteralExpr),
+    Equals(EqualsExpr),
 }
 impl Expr {
     /// Try to create an `Expr` from a `DynProofExpr`.
