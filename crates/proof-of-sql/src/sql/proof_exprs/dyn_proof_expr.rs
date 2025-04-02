@@ -77,9 +77,11 @@ impl DynProofExpr {
         Self::Literal(LiteralExpr::new(value))
     }
     /// Create placeholder expression
-    #[must_use]
-    pub fn new_placeholder(id: usize, column_type: ColumnType) -> Self {
-        Self::Placeholder(PlaceholderExpr::new(id, column_type))
+    pub fn try_new_placeholder(id: usize, column_type: ColumnType) -> AnalyzeResult<Self> {
+        Ok(Self::Placeholder(PlaceholderExpr::try_new(
+            id,
+            column_type,
+        )?))
     }
     /// Create a new equals expression
     pub fn try_new_equals(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {

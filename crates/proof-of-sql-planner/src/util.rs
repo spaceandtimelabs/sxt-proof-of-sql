@@ -3,13 +3,47 @@ use arrow::datatypes::{Field, Schema};
 use datafusion::{
     catalog::TableReference,
     common::{Column, DFSchema, ScalarValue},
+    logical_expr::expr::Placeholder,
 };
-use proof_of_sql::base::{
-    database::{ColumnField, ColumnRef, ColumnType, LiteralValue, TableRef},
-    math::decimal::Precision,
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+use proof_of_sql::{
+    base::{
+        database::{ColumnField, ColumnRef, ColumnType, LiteralValue, TableRef},
+        math::decimal::Precision,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    },
+    sql::proof_exprs::DynProofExpr,
 };
 use sqlparser::ast::Ident;
+
+/// Parse a placeholder string of the form "$1", "$2", etc. into a `usize`.
+fn parse_placeholder_id(s: &str) -> Option<usize> {
+    s.strip_prefix('$')
+        // Must be all digits
+        .filter(|digits| digits.chars().all(|c| c.is_ascii_digit()) && !digits.starts_with('0'))
+        // Finally, parse
+        .and_then(|digits| digits.parse().ok())
+}
+
+/// Convert a datafusion [`Placeholder`] to a Proof of SQL [`PlaceholderExpr`]
+#[expect(clippy::missing_panics_doc, reason = "can not actually panic")]
+pub(crate) fn placeholder_to_placeholder_expr(
+    placeholder: &Placeholder,
+) -> PlannerResult<DynProofExpr> {
+    let df_id = placeholder.id.clone();
+    let df_type = placeholder.data_type.clone();
+    let posql_id = parse_placeholder_id(&df_id)
+        .ok_or_else(|| PlannerError::InvalidPlaceholderId { id: df_id.clone() })?;
+    let posql_type = df_type
+        .clone()
+        .ok_or(PlannerError::UntypedPlaceholder {
+            placeholder: placeholder.clone(),
+        })?
+        .try_into()
+        .map_err(|_| PlannerError::UnsupportedDataType {
+            data_type: df_type.clone().unwrap(),
+        })?;
+    Ok(DynProofExpr::try_new_placeholder(posql_id, posql_type)?)
+}
 
 /// Convert a [`TableReference`] to a [`TableRef`]
 ///
@@ -131,6 +165,82 @@ pub(crate) fn df_schema_to_column_fields(schema: &DFSchema) -> PlannerResult<Vec
 mod tests {
     use super::*;
     use arrow::datatypes::DataType;
+
+    // parse_placeholder_id
+    #[test]
+    fn we_can_parse_valid_placeholder_id() {
+        // "$1" => Some(1)
+        assert_eq!(parse_placeholder_id("$1"), Some(1));
+        // "$123" => Some(123)
+        assert_eq!(parse_placeholder_id("$123"), Some(123));
+    }
+
+    #[test]
+    fn we_cannot_parse_placeholder_id_without_dollar_sign() {
+        // "" => None
+        assert_eq!(parse_placeholder_id(""), None);
+        // "1" => None
+        assert_eq!(parse_placeholder_id("1"), None);
+    }
+
+    #[test]
+    fn we_cannot_parse_placeholder_id_empty_after_dollar_sign() {
+        // "$" => None
+        assert_eq!(parse_placeholder_id("$"), None);
+    }
+
+    #[test]
+    fn we_cannot_parse_placeholder_id_with_non_digits() {
+        // "$abc" => None
+        assert_eq!(parse_placeholder_id("$abc"), None);
+        // "$1x" => None
+        assert_eq!(parse_placeholder_id("$1x"), None);
+    }
+
+    #[test]
+    fn we_cannot_parse_placeholder_id_with_leading_zero() {
+        // "$0" => None
+        assert_eq!(parse_placeholder_id("$0"), None);
+        // "$01" => None
+        assert_eq!(parse_placeholder_id("$01"), None);
+    }
+
+    // placeholder_to_placeholder_expr
+    #[test]
+    fn we_can_convert_valid_placeholder_to_placeholder_expr() {
+        let placeholder = Placeholder {
+            id: "$42".to_string(),
+            data_type: Some(DataType::Int32),
+        };
+        let expected = DynProofExpr::try_new_placeholder(42, ColumnType::Int).unwrap();
+        let result = placeholder_to_placeholder_expr(&placeholder).unwrap();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn we_cannot_convert_placeholder_without_type() {
+        let placeholder = Placeholder {
+            id: "$1".to_string(),
+            data_type: None,
+        };
+        assert!(matches!(
+            placeholder_to_placeholder_expr(&placeholder),
+            Err(PlannerError::UntypedPlaceholder { .. })
+        ));
+    }
+
+    #[test]
+    fn we_cannot_convert_placeholder_with_invalid_id() {
+        let placeholder = Placeholder {
+            // Something invalid like "$0" or "1"
+            id: "$0".to_string(),
+            data_type: Some(DataType::Int32),
+        };
+        assert!(matches!(
+            placeholder_to_placeholder_expr(&placeholder),
+            Err(PlannerError::InvalidPlaceholderId { .. })
+        ));
+    }
 
     // TableReference to TableRef
     #[test]

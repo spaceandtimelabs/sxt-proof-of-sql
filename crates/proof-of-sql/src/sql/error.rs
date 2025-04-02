@@ -1,6 +1,7 @@
 use crate::base::{
     database::ColumnType,
     math::decimal::{DecimalError, IntermediateDecimalError},
+    proof::PlaceholderError,
 };
 use alloc::string::{String, ToString};
 use core::result::Result;
@@ -42,6 +43,13 @@ pub enum AnalyzeError {
     DecimalConversionError {
         /// The underlying source error
         source: DecimalError,
+    },
+
+    #[snafu(transparent)]
+    /// Errors related to placeholders
+    PlaceholderError {
+        /// The underlying source error
+        source: PlaceholderError,
     },
 }
 

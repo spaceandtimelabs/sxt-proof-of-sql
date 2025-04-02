@@ -1,4 +1,7 @@
-use super::{column_to_column_ref, scalar_value_to_literal_value, PlannerError, PlannerResult};
+use super::{
+    column_to_column_ref, placeholder_to_placeholder_expr, scalar_value_to_literal_value,
+    PlannerError, PlannerResult,
+};
 use datafusion::{
     common::DFSchema,
     logical_expr::{expr::Alias, BinaryExpr, Expr, Operator},
@@ -13,6 +16,7 @@ pub fn expr_to_proof_expr(expr: &Expr, schema: &DFSchema) -> PlannerResult<DynPr
     match expr {
         Expr::Alias(Alias { expr, .. }) => expr_to_proof_expr(expr, schema),
         Expr::Column(col) => Ok(DynProofExpr::new_column(column_to_column_ref(col, schema)?)),
+        Expr::Placeholder(placeholder) => placeholder_to_placeholder_expr(placeholder),
         Expr::BinaryExpr(BinaryExpr { left, right, op }) => {
             let left_proof_expr = expr_to_proof_expr(left, schema)?;
             let right_proof_expr = expr_to_proof_expr(right, schema)?;
@@ -84,7 +88,10 @@ mod tests {
     use arrow::datatypes::DataType;
     use datafusion::{
         common::ScalarValue,
-        logical_expr::{expr::Placeholder, Cast},
+        logical_expr::{
+            expr::{Placeholder, Unnest},
+            Cast,
+        },
     };
     use proof_of_sql::base::database::{ColumnRef, ColumnType, LiteralValue, TableRef};
 
@@ -324,20 +331,7 @@ mod tests {
         );
     }
 
-    #[test]
-    fn we_cannot_convert_unsupported_logical_expr_to_proof_expr() {
-        // Unsupported logical expression
-        let expr = Expr::Placeholder(Placeholder {
-            id: "$1".to_string(),
-            data_type: None,
-        });
-        let schema = df_schema("namespace.table_name", vec![]);
-        assert!(matches!(
-            expr_to_proof_expr(&expr, &schema),
-            Err(PlannerError::UnsupportedLogicalExpression { .. })
-        ));
-    }
-
+    // Cast
     #[test]
     fn we_can_convert_cast_expr_to_proof_expr() {
         // Unsupported logical expression
@@ -400,6 +394,32 @@ mod tests {
         assert!(matches!(
             expression,
             PlannerError::AnalyzeError { source: _ }
+        ));
+    }
+
+    // Placeholder
+    #[test]
+    fn we_can_convert_placeholder_to_proof_expr() {
+        let expr = Expr::Placeholder(Placeholder {
+            id: "$1".to_string(),
+            data_type: Some(DataType::Int32),
+        });
+        let schema = df_schema("namespace.table_name", vec![]);
+        let expression = expr_to_proof_expr(&expr, &schema).unwrap();
+        assert_eq!(
+            expression,
+            DynProofExpr::try_new_placeholder(1, ColumnType::Int).unwrap()
+        );
+    }
+
+    // Unsupported logical expression
+    #[test]
+    fn we_cannot_convert_unsupported_expr_to_proof_expr() {
+        let expr = Expr::Unnest(Unnest::new(Expr::Literal(ScalarValue::Int32(Some(100)))));
+        let schema = df_schema("namespace.table_name", vec![]);
+        assert!(matches!(
+            expr_to_proof_expr(&expr, &schema),
+            Err(PlannerError::UnsupportedLogicalExpression { .. })
         ));
     }
 }

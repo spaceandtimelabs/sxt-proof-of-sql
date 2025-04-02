@@ -26,6 +26,6 @@ pub use proof_plan_with_postprocessing::{
 mod util;
 pub use util::column_fields_to_schema;
 pub(crate) use util::{
-    column_to_column_ref, df_schema_to_column_fields, scalar_value_to_literal_value,
-    table_reference_to_table_ref,
+    column_to_column_ref, df_schema_to_column_fields, placeholder_to_placeholder_expr,
+    scalar_value_to_literal_value, table_reference_to_table_ref,
 };

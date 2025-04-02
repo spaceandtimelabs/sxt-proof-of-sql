@@ -175,7 +175,8 @@ fn test_tableless_queries() {
 fn test_simple_filter_queries() {
     let alloc = Bump::new();
     let sql = "select id, name from cats where age > 2;
-    select * from cats;";
+    select * from cats;
+    select name == $1 as name_eq from cats;";
     let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {
         TableRef::from_names(None, "cats") => table(
             vec![
@@ -195,6 +196,7 @@ fn test_simple_filter_queries() {
             varchar("name", ["Chloe", "Margaret", "Katy", "Lucy", "Prudence"]),
             tinyint("age", [13_i8, 2, 0, 4, 4]),
         ]),
+        owned_table([boolean("name_eq", [false, false, true, false, false])]),
     ];
 
     // Create public parameters for DynamicDoryEvaluationProof
@@ -208,7 +210,7 @@ fn test_simple_filter_queries() {
         &expected_results,
         &prover_setup,
         &verifier_setup,
-        &[],
+        &[LiteralValue::VarChar("Katy".to_string())],
     );
 }
 
