@@ -186,30 +186,42 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
 ///
 /// Will panic if:
 /// - The table reference cannot be parsed from the string.
-/// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
-/// - The query string cannot be parsed into a `QueryExpr`.
-/// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
-fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
-    let public_parameters;
+fn load_dory_setup<'a>(
+    cli: &Cli,
+    public_parameters: &'a mut PublicParameters,
+) -> (ProverSetup<'a>, VerifierSetup) {
     let (prover, verifier) = if let (Some(blitzar_handle_path), Some(dory_public_params_path)) =
         (&cli.blitzar_handle_path, &cli.dory_public_params_path)
     {
         let handle =
             blitzar::compute::MsmHandle::new_from_file(blitzar_handle_path.to_str().unwrap());
-        public_parameters =
+        *public_parameters =
             PublicParameters::load_from_file(std::path::Path::new(&dory_public_params_path))
                 .expect("Failed to load Dory public parameters");
         let prover =
-            ProverSetup::from_public_parameters_and_blitzar_handle(&public_parameters, handle);
-        let verifier = VerifierSetup::from(&public_parameters);
+            ProverSetup::from_public_parameters_and_blitzar_handle(&*public_parameters, handle);
+        let verifier = VerifierSetup::from(&*public_parameters);
 
         (prover, verifier)
     } else {
-        public_parameters = PublicParameters::test_rand(cli.nu_sigma, &mut test_rng());
-        let prover = ProverSetup::from(&public_parameters);
-        let verifier = VerifierSetup::from(&public_parameters);
+        *public_parameters = PublicParameters::test_rand(cli.nu_sigma, &mut test_rng());
+        let prover = ProverSetup::from(&*public_parameters);
+        let verifier = VerifierSetup::from(&*public_parameters);
         (prover, verifier)
     };
+
+    (prover, verifier)
+}
+
+/// # Panics
+///
+/// Will panic if:
+/// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
+/// - The query string cannot be parsed into a `QueryExpr`.
+/// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
+fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
+    let mut public_parameters = PublicParameters::test_rand(1, &mut test_rng());
+    let (prover, verifier) = load_dory_setup(cli, &mut public_parameters);
 
     let prover_setup = DoryProverPublicSetup::new(&prover, cli.nu_sigma);
     let verifier_setup = DoryVerifierPublicSetup::new(&verifier, cli.nu_sigma);
@@ -241,32 +253,13 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
 /// # Panics
 ///
 /// Will panic if:
-/// - The table reference cannot be parsed from the string.
 /// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
 /// - The query string cannot be parsed into a `QueryExpr`.
 /// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
 /// - If the public parameters file or the Blitzar handle file path is not valid.
 fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
-    let public_parameters;
-    let (prover, verifier) = if let (Some(blitzar_handle_path), Some(dory_public_params_path)) =
-        (&cli.blitzar_handle_path, &cli.dory_public_params_path)
-    {
-        let handle =
-            blitzar::compute::MsmHandle::new_from_file(blitzar_handle_path.to_str().unwrap());
-        public_parameters =
-            PublicParameters::load_from_file(std::path::Path::new(&dory_public_params_path))
-                .expect("Failed to load Dory public parameters");
-        let prover =
-            ProverSetup::from_public_parameters_and_blitzar_handle(&public_parameters, handle);
-        let verifier = VerifierSetup::from(&public_parameters);
-
-        (prover, verifier)
-    } else {
-        public_parameters = PublicParameters::test_rand(cli.nu_sigma, &mut test_rng());
-        let prover = ProverSetup::from(&public_parameters);
-        let verifier = VerifierSetup::from(&public_parameters);
-        (prover, verifier)
-    };
+    let mut public_parameters = PublicParameters::test_rand(1, &mut test_rng());
+    let (prover, verifier) = load_dory_setup(cli, &mut public_parameters);
 
     let mut accessor: BenchmarkAccessor<'_, DynamicDoryCommitment> = BenchmarkAccessor::default();
     let mut rng = rand::thread_rng();
