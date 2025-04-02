@@ -4,7 +4,10 @@ use super::{
 };
 use datafusion::{
     common::DFSchema,
-    logical_expr::{expr::Alias, BinaryExpr, Expr, Operator},
+    logical_expr::{
+        expr::{Alias, Placeholder},
+        BinaryExpr, Expr, Operator,
+    },
 };
 use proof_of_sql::sql::proof_exprs::DynProofExpr;
 
@@ -69,13 +72,23 @@ pub fn expr_to_proof_expr(expr: &Expr, schema: &DFSchema) -> PlannerResult<DynPr
             Ok(DynProofExpr::try_new_not(proof_expr)?)
         }
         Expr::Cast(cast) => {
-            let from_expr = expr_to_proof_expr(&cast.expr, schema)?;
-            let to_type = cast.data_type.clone().try_into().map_err(|_| {
-                PlannerError::UnsupportedDataType {
-                    data_type: cast.data_type.clone(),
+            match &*cast.expr {
+                // handle cases such as `$1::int`
+                Expr::Placeholder(placeholder) if placeholder.data_type.is_none() => {
+                    let typed_placeholder =
+                        Placeholder::new(placeholder.id.clone(), Some(cast.data_type.clone()));
+                    placeholder_to_placeholder_expr(&typed_placeholder)
                 }
-            })?;
-            Ok(DynProofExpr::try_new_cast(from_expr, to_type)?)
+                _ => {
+                    let from_expr = expr_to_proof_expr(&cast.expr, schema)?;
+                    let to_type = cast.data_type.clone().try_into().map_err(|_| {
+                        PlannerError::UnsupportedDataType {
+                            data_type: cast.data_type.clone(),
+                        }
+                    })?;
+                    Ok(DynProofExpr::try_new_cast(from_expr, to_type)?)
+                }
+            }
         }
         _ => Err(PlannerError::UnsupportedLogicalExpression { expr: expr.clone() }),
     }
@@ -404,6 +417,24 @@ mod tests {
             id: "$1".to_string(),
             data_type: Some(DataType::Int32),
         });
+        let schema = df_schema("namespace.table_name", vec![]);
+        let expression = expr_to_proof_expr(&expr, &schema).unwrap();
+        assert_eq!(
+            expression,
+            DynProofExpr::try_new_placeholder(1, ColumnType::Int).unwrap()
+        );
+    }
+
+    // Placeholder with data type specified by cast
+    #[test]
+    fn we_can_convert_placeholder_with_data_type_specified_by_cast_to_proof_expr() {
+        let expr = Expr::Cast(Cast::new(
+            Box::new(Expr::Placeholder(Placeholder {
+                id: "$1".to_string(),
+                data_type: None,
+            })),
+            DataType::Int32,
+        ));
         let schema = df_schema("namespace.table_name", vec![]);
         let expression = expr_to_proof_expr(&expr, &schema).unwrap();
         assert_eq!(
