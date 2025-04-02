@@ -14,6 +14,7 @@ pub(crate) mod polynomial;
 /// Module for Proof of SQL datetime types.
 pub mod posql_time;
 pub(crate) mod proof;
+pub use proof::{PlaceholderError, PlaceholderResult};
 pub(crate) mod ref_into;
 /// This module contains the `Scalar` trait as well as the main, generic, implementations of it.
 pub mod scalar;
