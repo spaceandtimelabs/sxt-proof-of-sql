@@ -535,7 +535,7 @@ fn cast_bool_column_to_signed_int_column<'a, S: Scalar>(
 
 /// # Panics
 /// Panics if `I` cannot be cast to `O`
-fn cast_int_slice_to_signed_int_slice<'a, I: NumCast + PrimInt, O: NumCast + PrimInt>(
+fn cast_int_slice_to_int_slice<'a, I: NumCast + PrimInt, O: NumCast + PrimInt>(
     alloc: &'a Bump,
     column: &[I],
 ) -> &'a [O] {
@@ -544,36 +544,36 @@ fn cast_int_slice_to_signed_int_slice<'a, I: NumCast + PrimInt, O: NumCast + Pri
 
 /// # Panics
 /// Panics if the to type is not supported
-fn cast_int_slice_to_signed_int_column<'a, S: Scalar, I: NumCast + PrimInt>(
+fn cast_int_slice_to_int_column<'a, S: Scalar, I: NumCast + PrimInt>(
     alloc: &'a Bump,
     column: &[I],
     to_type: ColumnType,
 ) -> Column<'a, S> {
     match to_type {
-        ColumnType::Uint8 => Column::Uint8(cast_int_slice_to_signed_int_slice(alloc, column)),
-        ColumnType::TinyInt => Column::TinyInt(cast_int_slice_to_signed_int_slice(alloc, column)),
-        ColumnType::SmallInt => Column::SmallInt(cast_int_slice_to_signed_int_slice(alloc, column)),
-        ColumnType::Int => Column::Int(cast_int_slice_to_signed_int_slice(alloc, column)),
-        ColumnType::BigInt => Column::BigInt(cast_int_slice_to_signed_int_slice(alloc, column)),
-        ColumnType::Int128 => Column::Int128(cast_int_slice_to_signed_int_slice(alloc, column)),
+        ColumnType::Uint8 => Column::Uint8(cast_int_slice_to_int_slice(alloc, column)),
+        ColumnType::TinyInt => Column::TinyInt(cast_int_slice_to_int_slice(alloc, column)),
+        ColumnType::SmallInt => Column::SmallInt(cast_int_slice_to_int_slice(alloc, column)),
+        ColumnType::Int => Column::Int(cast_int_slice_to_int_slice(alloc, column)),
+        ColumnType::BigInt => Column::BigInt(cast_int_slice_to_int_slice(alloc, column)),
+        ColumnType::Int128 => Column::Int128(cast_int_slice_to_int_slice(alloc, column)),
         _ => panic!("Unsupported cast from int type to {to_type}"),
     }
 }
 
 /// # Panics
 /// Panics if the from type is not supported
-fn cast_int_column_to_signed_int_column<'a, S: Scalar>(
+fn cast_int_column_to_int_column<'a, S: Scalar>(
     alloc: &'a Bump,
     from_column: Column<'a, S>,
     to_type: ColumnType,
 ) -> Column<'a, S> {
     match from_column {
-        Column::Uint8(column) => cast_int_slice_to_signed_int_column(alloc, column, to_type),
-        Column::TinyInt(column) => cast_int_slice_to_signed_int_column(alloc, column, to_type),
-        Column::SmallInt(column) => cast_int_slice_to_signed_int_column(alloc, column, to_type),
-        Column::Int(column) => cast_int_slice_to_signed_int_column(alloc, column, to_type),
-        Column::BigInt(column) => cast_int_slice_to_signed_int_column(alloc, column, to_type),
-        Column::Int128(column) => cast_int_slice_to_signed_int_column(alloc, column, to_type),
+        Column::Uint8(column) => cast_int_slice_to_int_column(alloc, column, to_type),
+        Column::TinyInt(column) => cast_int_slice_to_int_column(alloc, column, to_type),
+        Column::SmallInt(column) => cast_int_slice_to_int_column(alloc, column, to_type),
+        Column::Int(column) => cast_int_slice_to_int_column(alloc, column, to_type),
+        Column::BigInt(column) => cast_int_slice_to_int_column(alloc, column, to_type),
+        Column::Int128(column) => cast_int_slice_to_int_column(alloc, column, to_type),
         _ => panic!(
             "{}",
             format!(
@@ -635,7 +635,7 @@ pub fn cast_column<'a, S: Scalar>(
             | ColumnType::Int
             | ColumnType::BigInt
             | ColumnType::Int128,
-        ) => cast_int_column_to_signed_int_column(alloc, from_column, to_type),
+        ) => cast_int_column_to_int_column(alloc, from_column, to_type),
         (Column::TimestampTZ(_, _, vals), ColumnType::BigInt) => Column::BigInt(vals),
         _ => panic!("Casting not supported between {from_type} and {to_type}"),
     }
@@ -688,7 +688,7 @@ pub fn scale_cast_column<'a, S: Scalar>(
 #[cfg(test)]
 mod tests {
     use super::{
-        cast_bool_column_to_signed_int_column, cast_column, cast_int_slice_to_signed_int_column,
+        cast_bool_column_to_signed_int_column, cast_column, cast_int_slice_to_int_column,
         divide_columns, divide_integer_columns,
     };
     use crate::{
@@ -994,11 +994,7 @@ mod tests {
     fn we_cannot_cast_int_slice_to_uncastable_type() {
         let alloc = Bump::new();
         let int_column = &[1];
-        cast_int_slice_to_signed_int_column::<TestScalar, _>(
-            &alloc,
-            int_column,
-            ColumnType::VarBinary,
-        );
+        cast_int_slice_to_int_column::<TestScalar, _>(&alloc, int_column, ColumnType::VarBinary);
     }
 
     #[test]
