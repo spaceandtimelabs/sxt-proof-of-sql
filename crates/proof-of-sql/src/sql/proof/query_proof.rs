@@ -6,7 +6,7 @@ use super::{
 use crate::{
     base::{
         bit::BitDistribution,
-        commitment::CommitmentEvaluationProof,
+        commitment::{Commitment, CommitmentEvaluationProof, CommittableColumn},
         database::{
             ColumnRef, CommitmentAccessor, DataAccessor, LiteralValue, MetadataAccessor,
             OwnedTable, Table, TableRef,
@@ -22,6 +22,7 @@ use crate::{
 use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use core::cmp;
+use itertools::Itertools;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
@@ -141,8 +142,31 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript = Transcript::new();
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(expr);
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(&owned_table_result);
+        transcript.challenge_as_le();
+
+        for table in expr.get_table_references() {
+            let length = accessor.get_length(&table);
+            transcript.extend_serialize_as_le(&[0, 0, 0, length]);
+        }
+        transcript.challenge_as_le();
+
+        for commitment in CP::Commitment::compute_commitments(
+            &expr
+                .get_column_references()
+                .into_iter()
+                .map(|col| CommittableColumn::from(accessor.get_column(col)))
+                .collect_vec(),
+            min_row_num,
+            setup,
+        ) {
+            transcript.extend_serialize_as_le(&commitment);
+        }
+        transcript.challenge_as_le();
+
         transcript.extend_serialize_as_le(&min_row_num);
         transcript.challenge_as_le();
 
@@ -310,8 +334,27 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript = Transcript::new();
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(expr);
+        transcript.challenge_as_le();
         transcript.extend_serialize_as_le(&result);
+        transcript.challenge_as_le();
+
+        for table in expr.get_table_references() {
+            let length = accessor.get_length(&table);
+            transcript.extend_serialize_as_le(&[0, 0, 0, length]);
+        }
+        transcript.challenge_as_le();
+
+        for commitment in expr
+            .get_column_references()
+            .into_iter()
+            .map(|col| accessor.get_commitment(col))
+        {
+            transcript.extend_serialize_as_le(&commitment);
+        }
+        transcript.challenge_as_le();
+
         transcript.extend_serialize_as_le(&min_row_num);
         transcript.challenge_as_le();
 
