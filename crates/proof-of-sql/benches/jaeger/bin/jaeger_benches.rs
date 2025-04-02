@@ -51,6 +51,7 @@ use proof_of_sql::{
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
+use rand::SeedableRng;
 use std::path::PathBuf;
 mod utils;
 use utils::{
@@ -149,6 +150,20 @@ struct Cli {
     /// Path to the Perpetual Powers of Tau file used for `HyperKZG`.
     #[arg(short, long, env)]
     ppot_file_path: Option<PathBuf>,
+
+    /// Optional random seed for deterministic random number generation.
+    #[arg(short, long, env)]
+    rand_seed: Option<u64>,
+}
+
+/// Gets a random number generator based on the CLI arguments.
+/// If a seed is provided, uses a seeded RNG, otherwise uses `thread_rng`.
+fn get_rng(cli: &Cli) -> Box<dyn rand::RngCore> {
+    if let Some(seed) = cli.rand_seed {
+        Box::new(rand::rngs::StdRng::seed_from_u64(seed))
+    } else {
+        Box::new(rand::thread_rng())
+    }
 }
 
 /// # Panics
@@ -160,7 +175,7 @@ struct Cli {
 /// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
 fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
     let mut accessor: BenchmarkAccessor<'_, RistrettoPoint> = BenchmarkAccessor::default();
-    let mut rng = rand::thread_rng();
+    let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
     for (_title, query, columns) in queries {
@@ -227,7 +242,7 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
     let verifier_setup = DoryVerifierPublicSetup::new(&verifier, cli.nu_sigma);
 
     let mut accessor: BenchmarkAccessor<'_, DoryCommitment> = BenchmarkAccessor::default();
-    let mut rng = rand::thread_rng();
+    let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
     for (_title, query, columns) in queries {
@@ -262,7 +277,7 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
     let (prover, verifier) = load_dory_setup(cli, &mut public_parameters);
 
     let mut accessor: BenchmarkAccessor<'_, DynamicDoryCommitment> = BenchmarkAccessor::default();
-    let mut rng = rand::thread_rng();
+    let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
     for (_title, query, columns) in queries {
@@ -319,7 +334,7 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
     };
 
     let mut accessor: BenchmarkAccessor<'_, HyperKZGCommitment> = BenchmarkAccessor::default();
-    let mut rng = rand::thread_rng();
+    let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
     for (_title, query, columns) in queries {
