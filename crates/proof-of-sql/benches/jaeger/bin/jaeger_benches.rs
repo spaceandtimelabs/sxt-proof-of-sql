@@ -51,7 +51,7 @@ use proof_of_sql::{
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
-use rand::SeedableRng;
+use rand::{rngs::StdRng, SeedableRng};
 use std::path::PathBuf;
 mod utils;
 use utils::{
@@ -158,11 +158,11 @@ struct Cli {
 
 /// Gets a random number generator based on the CLI arguments.
 /// If a seed is provided, uses a seeded RNG, otherwise uses `thread_rng`.
-fn get_rng(cli: &Cli) -> Box<dyn rand::RngCore> {
+fn get_rng(cli: &Cli) -> StdRng {
     if let Some(seed) = cli.rand_seed {
-        Box::new(rand::rngs::StdRng::seed_from_u64(seed))
+        StdRng::seed_from_u64(seed)
     } else {
-        Box::new(rand::thread_rng())
+        StdRng::from_entropy()
     }
 }
 
@@ -201,31 +201,39 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
 ///
 /// Will panic if:
 /// - The table reference cannot be parsed from the string.
+fn load_dory_public_parameters(cli: &Cli) -> PublicParameters {
+    if let Some(dory_public_params_path) = &cli.dory_public_params_path {
+        PublicParameters::load_from_file(std::path::Path::new(&dory_public_params_path))
+            .expect("Failed to load Dory public parameters")
+    } else {
+        PublicParameters::test_rand(cli.nu_sigma, &mut test_rng())
+    }
+}
+
+/// # Panics
+///
+/// Will panic if:
+/// - The table reference cannot be parsed from the string.
 fn load_dory_setup<'a>(
-    cli: &Cli,
-    public_parameters: &'a mut PublicParameters,
+    public_parameters: &'a PublicParameters,
+    cli: &'a Cli,
 ) -> (ProverSetup<'a>, VerifierSetup) {
-    let (prover, verifier) = if let (Some(blitzar_handle_path), Some(dory_public_params_path)) =
-        (&cli.blitzar_handle_path, &cli.dory_public_params_path)
+    let (prover_setup, verifier_setup) = if let Some(blitzar_handle_path) = &cli.blitzar_handle_path
     {
         let handle =
             blitzar::compute::MsmHandle::new_from_file(blitzar_handle_path.to_str().unwrap());
-        *public_parameters =
-            PublicParameters::load_from_file(std::path::Path::new(&dory_public_params_path))
-                .expect("Failed to load Dory public parameters");
-        let prover =
-            ProverSetup::from_public_parameters_and_blitzar_handle(&*public_parameters, handle);
-        let verifier = VerifierSetup::from(&*public_parameters);
+        let prover_setup =
+            ProverSetup::from_public_parameters_and_blitzar_handle(public_parameters, handle);
+        let verifier_setup = VerifierSetup::from(public_parameters);
 
-        (prover, verifier)
+        (prover_setup, verifier_setup)
     } else {
-        *public_parameters = PublicParameters::test_rand(cli.nu_sigma, &mut test_rng());
-        let prover = ProverSetup::from(&*public_parameters);
-        let verifier = VerifierSetup::from(&*public_parameters);
-        (prover, verifier)
+        let prover_setup = ProverSetup::from(public_parameters);
+        let verifier_setup = VerifierSetup::from(public_parameters);
+        (prover_setup, verifier_setup)
     };
 
-    (prover, verifier)
+    (prover_setup, verifier_setup)
 }
 
 /// # Panics
@@ -235,11 +243,11 @@ fn load_dory_setup<'a>(
 /// - The query string cannot be parsed into a `QueryExpr`.
 /// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
 fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
-    let mut public_parameters = PublicParameters::test_rand(1, &mut test_rng());
-    let (prover, verifier) = load_dory_setup(cli, &mut public_parameters);
+    let public_parameters = load_dory_public_parameters(cli);
+    let (prover_setup, verifier_setup) = load_dory_setup(&public_parameters, cli);
 
-    let prover_setup = DoryProverPublicSetup::new(&prover, cli.nu_sigma);
-    let verifier_setup = DoryVerifierPublicSetup::new(&verifier, cli.nu_sigma);
+    let prover_public_setup = DoryProverPublicSetup::new(&prover_setup, cli.nu_sigma);
+    let verifier_public_setup = DoryVerifierPublicSetup::new(&verifier_setup, cli.nu_sigma);
 
     let mut accessor: BenchmarkAccessor<'_, DoryCommitment> = BenchmarkAccessor::default();
     let mut rng = get_rng(cli);
@@ -249,17 +257,26 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
         accessor.insert_table(
             "bench.table".parse().unwrap(),
             &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
-            &prover_setup,
+            &prover_public_setup,
         );
         let query_expr =
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
         for _ in 0..cli.iterations {
-            let result: VerifiableQueryResult<DoryEvaluationProof> =
-                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &prover_setup, &[])
-                    .unwrap();
+            let result: VerifiableQueryResult<DoryEvaluationProof> = VerifiableQueryResult::new(
+                query_expr.proof_expr(),
+                &accessor,
+                &prover_public_setup,
+                &[],
+            )
+            .unwrap();
             result
-                .verify(query_expr.proof_expr(), &accessor, &verifier_setup, &[])
+                .verify(
+                    query_expr.proof_expr(),
+                    &accessor,
+                    &verifier_public_setup,
+                    &[],
+                )
                 .unwrap();
         }
     }
@@ -273,8 +290,8 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
 /// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
 /// - If the public parameters file or the Blitzar handle file path is not valid.
 fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
-    let mut public_parameters = PublicParameters::test_rand(1, &mut test_rng());
-    let (prover, verifier) = load_dory_setup(cli, &mut public_parameters);
+    let public_parameters = load_dory_public_parameters(cli);
+    let (prover_setup, verifier_setup) = load_dory_setup(&public_parameters, cli);
 
     let mut accessor: BenchmarkAccessor<'_, DynamicDoryCommitment> = BenchmarkAccessor::default();
     let mut rng = get_rng(cli);
@@ -284,17 +301,17 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
         accessor.insert_table(
             "bench.table".parse().unwrap(),
             &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
-            &&prover,
+            &&prover_setup,
         );
         let query_expr =
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
         for _ in 0..cli.iterations {
             let result: VerifiableQueryResult<DynamicDoryEvaluationProof> =
-                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &&prover, &[])
+                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &&prover_setup, &[])
                     .unwrap();
             result
-                .verify(query_expr.proof_expr(), &accessor, &&verifier, &[])
+                .verify(query_expr.proof_expr(), &accessor, &&verifier_setup, &[])
                 .unwrap();
         }
     }
