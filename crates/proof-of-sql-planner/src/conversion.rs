@@ -2,17 +2,37 @@ use crate::{
     logical_plan_to_proof_plan, logical_plan_to_proof_plan_with_postprocessing, PlannerResult,
     ProofPlanWithPostprocessing,
 };
+use alloc::{sync::Arc, vec::Vec};
 use datafusion::{
     catalog::TableReference,
     common::DFSchema,
     config::ConfigOptions,
     logical_expr::LogicalPlan,
-    optimizer::{Analyzer, Optimizer, OptimizerContext},
+    optimizer::{Analyzer, Optimizer, OptimizerContext, OptimizerRule},
     sql::planner::{ContextProvider, SqlToRel},
 };
 use indexmap::IndexMap;
 use proof_of_sql::sql::proof_plans::DynProofPlan;
 use sqlparser::{dialect::GenericDialect, parser::Parser};
+
+/// Get [`Optimizer`]
+///
+/// In order to support queries such as `select $1::varchar;` we have to temporarily disable
+/// [`CommonSubexprEliminate`] rule in the optimizer in `DataFusion` 38. Once we upgrade to
+/// `DataFusion` 46 we can remove this function and use `Optimizer::new()` directly.
+pub fn optimizer() -> Optimizer {
+    // Step 1: Grab the recommended set
+    let recommended_rules: Vec<Arc<dyn OptimizerRule + Send + Sync>> = Optimizer::new().rules;
+
+    // Step 2: Filter out [`CommonSubexprEliminate`]
+    let filtered_rules = recommended_rules
+        .into_iter()
+        .filter(|rule| rule.name() != "common_sub_expression_eliminate")
+        .collect::<Vec<_>>();
+
+    // Step 3: Build an optimizer with the new list
+    Optimizer::with_rules(filtered_rules)
+}
 
 /// Convert a SQL query to a Proof of SQL plan using schema from provided tables
 ///
@@ -46,7 +66,7 @@ where
             let analyzed_logical_plan =
                 analyzer.execute_and_check(raw_logical_plan, config, |_, _| {})?;
             // 4. Optimize the `LogicalPlan` using `Optimizer`
-            let optimizer = Optimizer::new();
+            let optimizer = optimizer();
             let optimizer_context = OptimizerContext::default();
             let optimized_logical_plan =
                 optimizer.optimize(analyzed_logical_plan, &optimizer_context, |_, _| {})?;

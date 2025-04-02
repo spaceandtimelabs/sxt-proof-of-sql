@@ -144,7 +144,9 @@ fn test_tableless_queries() {
     select 'tableless' as res;
     select 'Chloe' as name, 13 as age
     union all
-    select 'Margaret' as name, 2 as age;";
+    select 'Margaret' as name, 2 as age;
+    select $1::varchar, $2::bigint;
+    select $1::varchar as name, $2::bigint as age;";
     let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {};
     let expected_results: Vec<OwnedTable<DoryScalar>> = vec![
         owned_table([bigint("Int64(1) + Int64(1)", [2_i64])]),
@@ -153,6 +155,8 @@ fn test_tableless_queries() {
             varchar("name", ["Chloe", "Margaret"]),
             bigint("age", [13_i64, 2]),
         ]),
+        owned_table([varchar("$1", ["Katy"]), bigint("$2", [0_i64])]),
+        owned_table([varchar("name", ["Katy"]), bigint("age", [0_i64])]),
     ];
 
     // Create public parameters for DynamicDoryEvaluationProof
@@ -166,7 +170,10 @@ fn test_tableless_queries() {
         &expected_results,
         &prover_setup,
         &verifier_setup,
-        &[],
+        &[
+            LiteralValue::VarChar("Katy".to_string()),
+            LiteralValue::BigInt(0),
+        ],
     );
 }
 
@@ -218,7 +225,8 @@ fn test_simple_filter_queries() {
 #[test]
 fn test_projection() {
     let alloc = Bump::new();
-    let sql = "SELECT name, age FROM pets;";
+    let sql = r"SELECT name, age FROM pets;
+    SELECT name, age, $1::boolean as is_cute FROM pets;";
 
     let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {
         TableRef::from_names(None, "pets") => table(
@@ -231,10 +239,17 @@ fn test_projection() {
         )
     };
 
-    let expected_results: Vec<OwnedTable<DoryScalar>> = vec![owned_table([
-        varchar("name", ["Rex", "Whiskers", "Fido", "Fluffy"]),
-        tinyint("age", [3_i8, 5, 2, 7]),
-    ])];
+    let expected_results: Vec<OwnedTable<DoryScalar>> = vec![
+        owned_table([
+            varchar("name", ["Rex", "Whiskers", "Fido", "Fluffy"]),
+            tinyint("age", [3_i8, 5, 2, 7]),
+        ]),
+        owned_table([
+            varchar("name", ["Rex", "Whiskers", "Fido", "Fluffy"]),
+            tinyint("age", [3_i8, 5, 2, 7]),
+            boolean("is_cute", [true; 4]),
+        ]),
+    ];
 
     // Create public parameters for DynamicDoryEvaluationProof
     let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
@@ -247,7 +262,7 @@ fn test_projection() {
         &expected_results,
         &prover_setup,
         &verifier_setup,
-        &[],
+        &[LiteralValue::Boolean(true)],
     );
 }
 
@@ -299,6 +314,7 @@ fn test_group_by() {
     select human, sum(weight) as total_weight, count(1) as num_cats from cats group by human;
     select human, sum(2 * weight), count(1) from cats group by human;
     select human, sum(2 * weight + 1) as total_transformed_weight, count(1) from cats group by human;
+    select human, sum(2 * weight + $1::bigint) as total_transformed_weight, count(1) from cats group by human;
     select sum(2 * weight + 1) as total_transformed_weight, count(1) as num_cats from cats;
     select count(1) as num_cats from cats;
     select count(1) from cats;";
@@ -347,6 +363,11 @@ fn test_group_by() {
             bigint("COUNT(Int64(1))", [3_i64, 2]),
         ]),
         owned_table([
+            varchar("human", ["Cassia", "Gretta"]),
+            decimal75("total_transformed_weight", 25, 1, [540, 240]),
+            bigint("COUNT(Int64(1))", [3_i64, 2]),
+        ]),
+        owned_table([
             decimal75("total_transformed_weight", 25, 1, [730]),
             bigint("num_cats", [5_i64]),
         ]),
@@ -365,7 +386,7 @@ fn test_group_by() {
         &expected_results,
         &prover_setup,
         &verifier_setup,
-        &[],
+        &[LiteralValue::BigInt(2)],
     );
 }
 
