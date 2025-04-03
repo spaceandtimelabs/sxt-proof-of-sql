@@ -77,6 +77,26 @@ jobs:
 
   test:
     name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y clang lld
+      - run: cargo test --all-features
+
+  testnorayon:
+    name: Test Suite (without rayon)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y clang lld
+      - run: cargo test --no-default-features --features="arrow blitzar"
+
+  testother:
+    name: Test Suite (other)
     runs-on: large-8-core-32gb-22-04
     steps:
       - name: Checkout sources
@@ -90,14 +110,10 @@ jobs:
           export DEBIAN_FRONTEND=non-interactive
           sudo apt-get update
           sudo apt-get install -y clang lld
-      - name: Run cargo test
-        run: cargo test --all-features
       - name: Install Foundry/forge for solidity tests
         uses: foundry-rs/foundry-toolchain@v1
       - name: Run solidity tests (ignored by default)
         run: cargo test --all-features --package proof-of-sql --lib -- tests::sol_test --show-output --ignored
-      - name: Run cargo test without rayon
-        run: cargo test --no-default-features --features="arrow blitzar"
       - name: Dry run cargo test (proof-of-sql) (test feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="test"
       - name: Dry run cargo test (proof-of-sql) (arrow feature only)
