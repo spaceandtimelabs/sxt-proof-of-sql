@@ -11,6 +11,7 @@ use proof_of_sql::{
             owned_table_utility::*, table_utility::*, LiteralValue, OwnedTable, Table, TableRef,
             TableTestAccessor, TestAccessor,
         },
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     },
     proof_primitive::dory::{
         DoryScalar, DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
@@ -387,6 +388,58 @@ fn test_group_by() {
         &prover_setup,
         &verifier_setup,
         &[LiteralValue::BigInt(2)],
+    );
+}
+
+#[test]
+fn test_coin() {
+    let alloc = Bump::new();
+    let sql = "SELECT 
+    SUM( 
+      (
+        CAST (to_address = $1 as bigint)
+        - CAST (from_address = $1 as bigint)
+      )
+      * value
+      * CAST(timestamp AS bigint)
+    ) AS weighted_value,
+    SUM( 
+      (
+        CAST (to_address = $1 as bigint)
+        - CAST (from_address = $1 as bigint)
+      )
+      * value
+    ) AS total_balance,
+    COUNT(1) AS num_transactions
+    FROM transactions;";
+    let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {
+        TableRef::from_names(None, "transactions") => table(
+            vec![
+                borrowed_varchar("from_address", ["0x1", "0x2", "0x3", "0x2", "0x1"], &alloc),
+                borrowed_varchar("to_address", ["0x2", "0x3", "0x1", "0x3", "0x2"], &alloc),
+                borrowed_decimal75("value", 20, 0, [100, 200, 300, 400, 500], &alloc),
+                borrowed_timestamptz("timestamp", PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), [1, 2, 3, 4, 4], &alloc),
+            ]
+        )
+    };
+    let expected_results: Vec<OwnedTable<DoryScalar>> = vec![owned_table([
+        decimal75("weighted_value", 62, 0, [100]),
+        decimal75("total_balance", 41, 0, [0]),
+        bigint("num_transactions", [5_i64]),
+    ])];
+
+    // Create public parameters for DynamicDoryEvaluationProof
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+
+    posql_end_to_end_test::<DynamicDoryEvaluationProof>(
+        sql,
+        tables,
+        &expected_results,
+        &prover_setup,
+        &verifier_setup,
+        &[LiteralValue::VarChar("0x2".to_string())],
     );
 }
 

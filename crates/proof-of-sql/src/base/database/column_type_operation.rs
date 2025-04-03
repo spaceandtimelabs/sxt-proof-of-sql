@@ -895,6 +895,24 @@ mod test {
     }
 
     #[test]
+    fn we_cannot_cast_integers_to_decimal_with_lower_precision() {
+        for from in [
+            ColumnType::TinyInt,
+            ColumnType::Uint8,
+            ColumnType::SmallInt,
+            ColumnType::Int,
+            ColumnType::BigInt,
+            ColumnType::Int128,
+            ColumnType::Decimal75(Precision::new(60).unwrap(), 0),
+        ] {
+            assert!(matches!(
+                try_cast_types(from, ColumnType::Decimal75(Precision::new(2).unwrap(), 0)),
+                Err(ColumnOperationError::CastingError { .. })
+            ));
+        }
+    }
+
+    #[test]
     fn we_can_cast_integers_and_decimal_to_decimal() {
         for from in [
             ColumnType::TinyInt,
