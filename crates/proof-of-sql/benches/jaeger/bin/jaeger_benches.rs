@@ -246,7 +246,10 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
             if !cli.silence {
                 eprintln!("Inner Product Proof - generate proof: {generate_proof_elapsed} ms");
                 eprintln!("Inner Product Proof - verify proof: {verify_elapsed} ms");
-                println!("Inner Product Proof, {title}, {}, {generate_proof_elapsed}, {verify_elapsed}, {i}", cli.table_size);
+                println!(
+                    "Inner Product Proof,{title},{},{generate_proof_elapsed},{verify_elapsed},{i}",
+                    cli.table_size
+                );
             }
         }
     }
@@ -374,7 +377,7 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
                 eprintln!("Dory - generate proof: {generate_proof_elapsed} ms");
                 eprintln!("Dory - verify proof: {verify_elapsed} ms");
                 println!(
-                    "Dory, {title}, {}, {generate_proof_elapsed}, {verify_elapsed}, {i}",
+                    "Dory,{title},{},{generate_proof_elapsed},{verify_elapsed},{i}",
                     cli.table_size
                 );
             }
@@ -446,7 +449,7 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
                 eprintln!("Dynamic Dory - generate proof: {generate_proof_elapsed} ms");
                 eprintln!("Dynamic Dory - verify proof: {verify_elapsed} ms");
                 println!(
-                    "Dynamic Dory, {title}, {}, {generate_proof_elapsed}, {verify_elapsed}, {i}",
+                    "Dynamic Dory,{title},{},{generate_proof_elapsed},{verify_elapsed},{i}",
                     cli.table_size
                 );
             }
@@ -545,7 +548,7 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
                 eprintln!("HyperKZG - generate proof: {generate_proof_elapsed} ms");
                 eprintln!("HyperKZG - verify proof: {verify_elapsed} ms");
                 println!(
-                    "HyperKZG, {title}, {}, {generate_proof_elapsed}, {verify_elapsed}, {i}",
+                    "HyperKZG,{title},{},{generate_proof_elapsed},{verify_elapsed},{i}",
                     cli.table_size
                 );
             }
@@ -572,7 +575,9 @@ fn main() {
     let cli = Cli::parse();
 
     if cli.write_header && !cli.silence {
-        println!("commitment_scheme, query, table_size, generate_proof (ms), verify_proof (ms), iteration");
+        println!(
+            "commitment_scheme,query,table_size,generate_proof (ms),verify_proof (ms),iteration"
+        );
     }
 
     let queries = if cli.query == Query::All {
