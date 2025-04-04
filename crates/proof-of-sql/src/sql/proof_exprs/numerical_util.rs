@@ -592,15 +592,11 @@ fn cast_scalar_slice_to_int_slice<'a, I: Copy, S: Scalar + TryInto<I>>(
     alloc: &'a Bump,
     column: &[S],
 ) -> &'a [I] {
-    let converted = column
-        .iter()
-        .map(|s| {
-            TryInto::<I>::try_into(*s)
-                .map_err(|_| format!("Failed to cast {} to {}", s, core::any::type_name::<I>()))
-                .unwrap()
-        })
-        .collect::<Vec<_>>();
-    alloc.alloc_slice_copy(&converted)
+    alloc.alloc_slice_fill_iter(column.iter().map(|s| {
+        TryInto::<I>::try_into(*s)
+            .map_err(|_| format!("Failed to cast {} to {}", s, core::any::type_name::<I>()))
+            .unwrap()
+    }))
 }
 
 /// Cast a slice of [`Scalar`]s to a [`Column`] of ints
