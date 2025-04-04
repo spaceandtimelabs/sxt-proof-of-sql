@@ -551,7 +551,7 @@ fn we_can_prove_a_complex_query_with_dory() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT 0.5 + a * b * c - d as res, 32 as g, (c >= d) and f as h, (a + 1) * ((b + 1 + c + d) * 1.0000 + d0 - d1 + 0.5000) as res2 FROM table WHERE (a < b) = (c <= d) and e <> 'f' and f and 100000 * d1 * d0 + a * 1.00000000 = 1.3"
+        "SELECT 0.5 + (a * b * c - d) * 1.0 as res, 32 as g, (c >= d) and f as h, (a + 1) * ((b + 1 + c + d) * 1.0000 + d0 - d1 + 0.5000) as res2 FROM table WHERE (a < b) = (c <= d) and e <> 'f' and f and 100000 * d1 * d0 + a * 1.00000000 = 1.3"
             .parse()
             .unwrap(),
          "sxt".into(),
