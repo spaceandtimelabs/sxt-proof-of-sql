@@ -14,11 +14,15 @@
 //! - `-q` `--query` - Query (e.g. `single-column-filter`)
 //! - `-n` `--nu_sigma` - `max_nu` used in the Dynamic Dory or `sigma` used in the Dory setup (default: `11`)
 //! - `-r` `--rand_seed` - Optional random seed for deterministic random number generation
+//! - `-x` `--silent` - Silence console output (default: `false`)
+//! - `-h` `--write_header` - Write CVS header to console (default: `false`)
+//! - `-c` `--csv_path` - Path to the CSV file for storing timing results (Optional)
 //! - `-b` `--blitzar_handle_path` - Path to the Blitzar handle used for `DynamicDory` (Optional)
 //! - `-d` `--dory_public_params_path` - Path to the public parameters used for `DynamicDory` (Optional)
 //! - `-p` `--ppot_path` - Path to the Perpetual Powers of Tau file used for `HyperKZG` (Optional)
 //!
 //! # Optional File Path Environment Variables
+//! - `CSV_PATH` - Path to the CSV file for storing timing results
 //! - `BLITZAR_HANDLE_PATH` - Path to the Blitzar handle used for `Dory` and `DynamicDory` commitment schemes
 //! - `DORY_PUBLIC_PARAMS_PATH` - Path to the public parameters used for `Dory` and `DynamicDory` commitment schemes
 //! - `PPOT_PATH` - Path to the Perpetual Powers of Tau file used for `HyperKZG` commitment scheme
@@ -27,7 +31,7 @@ use ark_serialize::Validate;
 use ark_std::{rand, test_rng};
 use blitzar::{compute::init_backend, proof::InnerProductProof};
 use bumpalo::Bump;
-use clap::{Parser, ValueEnum};
+use clap::{ArgAction, Parser, ValueEnum};
 use curve25519_dalek::RistrettoPoint;
 use halo2curves::bn256::G2Affine;
 use nova_snark::{
@@ -53,13 +57,14 @@ use proof_of_sql::{
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
 use rand::{rngs::StdRng, SeedableRng};
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Instant};
 mod utils;
 use utils::{
     benchmark_accessor::BenchmarkAccessor,
     jaeger_setup::{setup_jaeger_tracing, stop_jaeger_tracing},
     queries::{all_queries, get_query, QueryEntry},
     random_util::generate_random_columns,
+    results_io::append_to_csv,
 };
 
 #[derive(ValueEnum, Clone, Debug)]
@@ -144,6 +149,18 @@ struct Cli {
     #[arg(short, long, env)]
     rand_seed: Option<u64>,
 
+    /// Silence console output
+    #[arg(short='x', long, env, action=ArgAction::SetTrue)]
+    silence: bool,
+
+    /// Write CVS header to console
+    #[arg(short, long, env, action=ArgAction::SetTrue)]
+    write_header: bool,
+
+    /// Optional path to the CSV file for storing results
+    #[arg(short, long, env)]
+    csv_path: Option<PathBuf>,
+
     /// Optional path to the Blitzar handle used for the `Dory` and `DynamicDory` commitment schemes
     #[arg(short, long, env)]
     blitzar_handle_path: Option<PathBuf>,
@@ -187,7 +204,7 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
     let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
-    for (_title, query, columns) in queries {
+    for (title, query, columns) in queries {
         accessor.insert_table(
             "bench.table".parse().unwrap(),
             &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
@@ -196,16 +213,50 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
         let query_expr =
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
-        for _ in 0..cli.iterations {
+        for i in 0..cli.iterations {
+            // Generate the proof
+            let time = Instant::now();
             let result: VerifiableQueryResult<InnerProductProof> =
                 VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &(), &[]).unwrap();
+            let generate_proof_elapsed = time.elapsed().as_millis();
+
+            // Verify the proof
+            let time = Instant::now();
             result
                 .verify(query_expr.proof_expr(), &accessor, &(), &[])
                 .unwrap();
+            let verify_elapsed = time.elapsed().as_millis();
+
+            // Append results to CSV file
+            if let Some(csv_path) = &cli.csv_path {
+                append_to_csv(
+                    csv_path,
+                    &[
+                        "Inner Product Proof".to_string(),
+                        (*title).to_string(),
+                        cli.table_size.to_string(),
+                        generate_proof_elapsed.to_string(),
+                        verify_elapsed.to_string(),
+                        i.to_string(),
+                    ],
+                );
+            }
+
+            // Print results to console
+            if !cli.silence {
+                eprintln!("Inner Product Proof - generate proof: {generate_proof_elapsed} ms");
+                eprintln!("Inner Product Proof - verify proof: {verify_elapsed} ms");
+                println!("Inner Product Proof, {title}, {}, {generate_proof_elapsed}, {verify_elapsed}, {i}", cli.table_size);
+            }
         }
     }
 }
 
+/// Loads the Dory public parameters.
+///
+/// # Arguments
+/// * `cli` - A reference to the command line interface arguments.
+///
 /// # Panics
 /// * The optional Dory public parameters file is defined but can't be loaded.
 fn load_dory_public_parameters(cli: &Cli) -> PublicParameters {
@@ -270,7 +321,7 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
     let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
-    for (_title, query, columns) in queries {
+    for (title, query, columns) in queries {
         accessor.insert_table(
             "bench.table".parse().unwrap(),
             &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
@@ -279,7 +330,9 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
         let query_expr =
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
-        for _ in 0..cli.iterations {
+        for i in 0..cli.iterations {
+            // Generate the proof
+            let time = Instant::now();
             let result: VerifiableQueryResult<DoryEvaluationProof> = VerifiableQueryResult::new(
                 query_expr.proof_expr(),
                 &accessor,
@@ -287,6 +340,10 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
                 &[],
             )
             .unwrap();
+            let generate_proof_elapsed = time.elapsed().as_millis();
+
+            // Verify the proof
+            let time = Instant::now();
             result
                 .verify(
                     query_expr.proof_expr(),
@@ -295,10 +352,42 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
                     &[],
                 )
                 .unwrap();
+            let verify_elapsed = time.elapsed().as_millis();
+
+            // Append results to CSV file
+            if let Some(csv_path) = &cli.csv_path {
+                append_to_csv(
+                    csv_path,
+                    &[
+                        "Dory".to_string(),
+                        (*title).to_string(),
+                        cli.table_size.to_string(),
+                        generate_proof_elapsed.to_string(),
+                        verify_elapsed.to_string(),
+                        i.to_string(),
+                    ],
+                );
+            }
+
+            // Print results to console
+            if !cli.silence {
+                eprintln!("Dory - generate proof: {generate_proof_elapsed} ms");
+                eprintln!("Dory - verify proof: {verify_elapsed} ms");
+                println!(
+                    "Dory, {title}, {}, {generate_proof_elapsed}, {verify_elapsed}, {i}",
+                    cli.table_size
+                );
+            }
         }
     }
 }
 
+/// Benchmarks the `DynamicDory` scheme.
+///
+/// # Arguments
+/// * `cli` - A reference to the command line interface arguments.
+/// * `queries` - A slice of query entries to benchmark.
+///
 /// # Panics
 /// * The table reference cannot be parsed from the string.
 /// * The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
@@ -313,7 +402,7 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
     let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
-    for (_title, query, columns) in queries {
+    for (title, query, columns) in queries {
         accessor.insert_table(
             "bench.table".parse().unwrap(),
             &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
@@ -322,17 +411,55 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
         let query_expr =
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
-        for _ in 0..cli.iterations {
+        for i in 0..cli.iterations {
+            // Generate the proof
+            let time = Instant::now();
             let result: VerifiableQueryResult<DynamicDoryEvaluationProof> =
                 VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &&prover_setup, &[])
                     .unwrap();
+            let generate_proof_elapsed = time.elapsed().as_millis();
+
+            // Verify the proof
+            let time = Instant::now();
             result
                 .verify(query_expr.proof_expr(), &accessor, &&verifier_setup, &[])
                 .unwrap();
+            let verify_elapsed = time.elapsed().as_millis();
+
+            // Append results to CSV file
+            if let Some(csv_path) = &cli.csv_path {
+                append_to_csv(
+                    csv_path,
+                    &[
+                        "Dynamic Dory".to_string(),
+                        (*title).to_string(),
+                        cli.table_size.to_string(),
+                        generate_proof_elapsed.to_string(),
+                        verify_elapsed.to_string(),
+                        i.to_string(),
+                    ],
+                );
+            }
+
+            // Print results to console
+            if !cli.silence {
+                eprintln!("Dynamic Dory - generate proof: {generate_proof_elapsed} ms");
+                eprintln!("Dynamic Dory - verify proof: {verify_elapsed} ms");
+                println!(
+                    "Dynamic Dory, {title}, {}, {generate_proof_elapsed}, {verify_elapsed}, {i}",
+                    cli.table_size
+                );
+            }
         }
     }
 }
 
+/// Benchmarks the `HyperKZG` scheme.
+///
+/// # Arguments
+/// * `cli` - A reference to the command line interface arguments.
+/// * `queries` - A slice of query entries to benchmark.
+///
 /// # Panics
 /// * The table reference cannot be parsed from the string.
 /// * The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
@@ -369,7 +496,7 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
     let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
-    for (_title, query, columns) in queries {
+    for (title, query, columns) in queries {
         accessor.insert_table(
             "bench.table".parse().unwrap(),
             &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
@@ -378,7 +505,9 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
         let query_expr =
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
-        for _ in 0..cli.iterations {
+        for i in 0..cli.iterations {
+            // Generate the proof
+            let time = Instant::now();
             let result: VerifiableQueryResult<HyperKZGCommitmentEvaluationProof> =
                 VerifiableQueryResult::new(
                     query_expr.proof_expr(),
@@ -387,13 +516,45 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
                     &[],
                 )
                 .unwrap();
+            let generate_proof_elapsed = time.elapsed().as_millis();
+
+            // Verify the proof
+            let time = Instant::now();
             result
                 .verify(query_expr.proof_expr(), &accessor, &&vk, &[])
                 .unwrap();
+            let verify_elapsed = time.elapsed().as_millis();
+
+            // Append results to CSV file
+            if let Some(csv_path) = &cli.csv_path {
+                append_to_csv(
+                    csv_path,
+                    &[
+                        "HyperKZG".to_string(),
+                        (*title).to_string(),
+                        cli.table_size.to_string(),
+                        generate_proof_elapsed.to_string(),
+                        verify_elapsed.to_string(),
+                        i.to_string(),
+                    ],
+                );
+            }
+
+            // Print results to console
+            if !cli.silence {
+                eprintln!("HyperKZG - generate proof: {generate_proof_elapsed} ms");
+                eprintln!("HyperKZG - verify proof: {verify_elapsed} ms");
+                println!(
+                    "HyperKZG, {title}, {}, {generate_proof_elapsed}, {verify_elapsed}, {i}",
+                    cli.table_size
+                );
+            }
         }
     }
 }
 
+/// The main function wrapping the traces.
+///
 /// # Panics
 /// * If Jaeger tracing fails to setup.
 /// * If the query type specified is invalid.
@@ -409,6 +570,10 @@ fn main() {
     setup_jaeger_tracing().expect("Failed to setup Jaeger tracing.");
 
     let cli = Cli::parse();
+
+    if cli.write_header && !cli.silence {
+        println!("commitment_scheme, query, table_size, generate_proof (ms), verify_proof (ms), iteration");
+    }
 
     let queries = if cli.query == Query::All {
         all_queries()
