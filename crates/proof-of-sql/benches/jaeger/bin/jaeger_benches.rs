@@ -1,26 +1,27 @@
-//! Benchmarking/Tracing binary wrapper using Jaeger.
+//! Benchmarking/Tracing binary wrapper.
 //!
 //! To run, execute the following commands:
 //! ```bash
 //! docker run --rm -d --name jaeger -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one:1.62.0
 //! cargo run --release --bin jaeger_benches --features="bench" -- --help
 //! ```
+//! Then, navigate to <http://localhost:16686> to view the traces.
 //!
 //! # Options
 //! - `-s` `--scheme` - Commitment scheme (e.g. `hyper-kzg`, `inner-product-proof`, `dynamic-dory`, `dory`)
 //! - `-i` `--iterations` - Number of iterations to run (default: `3`)
 //! - `-t` `--table_size` - Number of iterations to run (default: `1_000_000`)
 //! - `-q` `--query` - Query (e.g. `single-column-filter`)
+//! - `-n` `--nu_sigma` - `max_nu` used in the Dynamic Dory or `sigma` used in the Dory setup (default: `11`)
+//! - `-r` `--rand_seed` - Optional random seed for deterministic random number generation
 //! - `-b` `--blitzar_handle_path` - Path to the Blitzar handle used for `DynamicDory` (Optional)
 //! - `-d` `--dory_public_params_path` - Path to the public parameters used for `DynamicDory` (Optional)
-//! - `-p` `--ppot_file_path` - Path to the Perpetual Powers of Tau file used for `HyperKZG` (Optional)
+//! - `-p` `--ppot_path` - Path to the Perpetual Powers of Tau file used for `HyperKZG` (Optional)
 //!
-//! # Environment Variables
-//! - `BLITZAR_HANDLE_PATH` - Path to the Blitzar handle used for `DynamicDory`
-//! - `DORY_PUBLIC_PARAMS_PATH` - Path to the public parameters used for `DynamicDory`
-//! - `PPOT_FILE_PATH` - Path to the Perpetual Powers of Tau file used for `HyperKZG`
-//!
-//! Then, navigate to <http://localhost:16686> to view the traces.
+//! # Optional File Path Environment Variables
+//! - `BLITZAR_HANDLE_PATH` - Path to the Blitzar handle used for `Dory` and `DynamicDory` commitment schemes
+//! - `DORY_PUBLIC_PARAMS_PATH` - Path to the public parameters used for `Dory` and `DynamicDory` commitment schemes
+//! - `PPOT_PATH` - Path to the Perpetual Powers of Tau file used for `HyperKZG` commitment scheme
 
 use ark_serialize::Validate;
 use ark_std::{rand, test_rng};
@@ -131,7 +132,7 @@ struct Cli {
     #[arg(short, long, env, default_value_t = 1_000_000)]
     table_size: usize,
 
-    /// Query (e.g. `single-column`)
+    /// Query to run tracing on (default: `all`)
     #[arg(short, long, value_enum, env, default_value = "all")]
     query: Query,
 
@@ -139,25 +140,28 @@ struct Cli {
     #[arg(short, long, env, default_value_t = 11)]
     nu_sigma: usize,
 
-    /// Path to the Blitzar handle used for `DynamicDory`.
+    /// Optional random seed for deterministic random number generation
+    #[arg(short, long, env)]
+    rand_seed: Option<u64>,
+
+    /// Optional path to the Blitzar handle used for the `Dory` and `DynamicDory` commitment schemes
     #[arg(short, long, env)]
     blitzar_handle_path: Option<PathBuf>,
 
-    /// Path to the public parameters used for `DynamicDory`.
+    /// Optional path to the public parameters used for the `Dory` and `DynamicDory` commitment schemes
     #[arg(short, long, env)]
     dory_public_params_path: Option<PathBuf>,
 
-    /// Path to the Perpetual Powers of Tau file used for `HyperKZG`.
+    /// Optional path to the Perpetual Powers of Tau file used for `HyperKZG`
     #[arg(short, long, env)]
-    ppot_file_path: Option<PathBuf>,
-
-    /// Optional random seed for deterministic random number generation.
-    #[arg(short, long, env)]
-    rand_seed: Option<u64>,
+    ppot_path: Option<PathBuf>,
 }
 
 /// Gets a random number generator based on the CLI arguments.
 /// If a seed is provided, uses a seeded RNG, otherwise uses `thread_rng`.
+///
+/// # Arguments
+/// * `cli` - A reference to the command line interface arguments.
 fn get_rng(cli: &Cli) -> StdRng {
     if let Some(seed) = cli.rand_seed {
         StdRng::seed_from_u64(seed)
@@ -166,13 +170,18 @@ fn get_rng(cli: &Cli) -> StdRng {
     }
 }
 
-/// # Panics
+/// Benchmarks the `InnerProductProof` scheme.
 ///
-/// Will panic if:
-/// - The table reference cannot be parsed from the string.
-/// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
-/// - The query string cannot be parsed into a `QueryExpr`.
-/// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
+/// # Arguments
+/// * `cli` - A reference to the command line interface arguments.
+/// * `queries` - A slice of query entries to benchmark.
+///
+/// # Panics
+/// * The table reference cannot be parsed from the string.
+/// * The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
+/// * The query string cannot be parsed into a `QueryExpr`.
+/// * The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
+/// * If the verification of the `VerifiableQueryResult` fails.
 fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
     let mut accessor: BenchmarkAccessor<'_, RistrettoPoint> = BenchmarkAccessor::default();
     let mut rng = get_rng(cli);
@@ -198,9 +207,7 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
 }
 
 /// # Panics
-///
-/// Will panic if:
-/// - The table reference cannot be parsed from the string.
+/// * The optional Dory public parameters file is defined but can't be loaded.
 fn load_dory_public_parameters(cli: &Cli) -> PublicParameters {
     if let Some(dory_public_params_path) = &cli.dory_public_params_path {
         PublicParameters::load_from_file(std::path::Path::new(&dory_public_params_path))
@@ -210,10 +217,14 @@ fn load_dory_public_parameters(cli: &Cli) -> PublicParameters {
     }
 }
 
-/// # Panics
+/// Loads the Dory setup for the given public parameters.
 ///
-/// Will panic if:
-/// - The table reference cannot be parsed from the string.
+/// # Arguments
+/// * `public_parameters` - A reference to the public parameters.
+/// * `cli` - A reference to the command line interface arguments.
+///
+/// # Panics
+/// * The Blitzar handle path cannot be parsed from the string.
 fn load_dory_setup<'a>(
     public_parameters: &'a PublicParameters,
     cli: &'a Cli,
@@ -236,12 +247,18 @@ fn load_dory_setup<'a>(
     (prover_setup, verifier_setup)
 }
 
-/// # Panics
+/// Benchmarks the `Dory` scheme.
 ///
-/// Will panic if:
-/// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
-/// - The query string cannot be parsed into a `QueryExpr`.
-/// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
+/// # Arguments
+/// * `cli` - A reference to the command line interface arguments.
+/// * `queries` - A slice of query entries to benchmark.
+///
+/// # Panics
+/// * The table reference cannot be parsed from the string.
+/// * The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
+/// * The query string cannot be parsed into a `QueryExpr`.
+/// * The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
+/// * If the verification of the `VerifiableQueryResult` fails.
 fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
     let public_parameters = load_dory_public_parameters(cli);
     let (prover_setup, verifier_setup) = load_dory_setup(&public_parameters, cli);
@@ -283,12 +300,11 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
 }
 
 /// # Panics
-///
-/// Will panic if:
-/// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
-/// - The query string cannot be parsed into a `QueryExpr`.
-/// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
-/// - If the public parameters file or the Blitzar handle file path is not valid.
+/// * The table reference cannot be parsed from the string.
+/// * The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
+/// * The query string cannot be parsed into a `QueryExpr`.
+/// * The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
+/// * If the verification of the `VerifiableQueryResult` fails.
 fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
     let public_parameters = load_dory_public_parameters(cli);
     let (prover_setup, verifier_setup) = load_dory_setup(&public_parameters, cli);
@@ -318,15 +334,14 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
 }
 
 /// # Panics
-///
-/// Will panic if:
-/// - The table reference cannot be parsed from the string.
-/// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
-/// - The query string cannot be parsed into a `QueryExpr`.
-/// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
-/// - If the public parameters file path is not valid.
+/// * The table reference cannot be parsed from the string.
+/// * The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
+/// * The query string cannot be parsed into a `QueryExpr`.
+/// * The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
+/// * If the verification of the `VerifiableQueryResult` fails.
 fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
-    let (prover_setup, vk) = if let Some(ppot_file_path) = &cli.ppot_file_path {
+    // Load the prover setup and verification key
+    let (prover_setup, vk) = if let Some(ppot_file_path) = &cli.ppot_path {
         let file = std::fs::File::open(ppot_file_path).unwrap();
         let prover_setup =
             deserialize_flat_compressed_hyperkzg_public_setup_from_reader(&file, Validate::Yes)
@@ -380,16 +395,9 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
 }
 
 /// # Panics
-///
-/// Will panic if:
-/// - If jaeger tracing fails to setup.
-/// - If the query type specified is invalid.
-/// - If the commitment computation fails.
-/// - If the length of the columns does not match after insertion.
-/// - If the column reference does not exist in the accessor.
-/// - If the creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
-/// - If the verification of the `VerifiableQueryResult` fails.
-/// - If optional environment variable file paths are not valid.
+/// * If Jaeger tracing fails to setup.
+/// * If the query type specified is invalid.
+/// * If the commitment computation fails.
 fn main() {
     #[cfg(debug_assertions)]
     {
