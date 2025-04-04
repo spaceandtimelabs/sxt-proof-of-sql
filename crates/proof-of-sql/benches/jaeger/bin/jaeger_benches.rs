@@ -51,6 +51,7 @@ use proof_of_sql::{
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
+use rand::{rngs::StdRng, SeedableRng};
 use std::path::PathBuf;
 mod utils;
 use utils::{
@@ -118,7 +119,7 @@ impl Query {
 #[derive(Parser)]
 #[command(about, long_about = None)]
 struct Cli {
-    /// Commitment scheme (e.g. `hyper-kzg`, `ipa`, `dynamic-dory`, `dory`)
+    /// Commitment scheme (e.g. `hyper-kzg`, `inner-product-proof`, `dynamic-dory`, `dory`)
     #[arg(short, long, value_enum, env, default_value = "all")]
     scheme: CommitmentScheme,
 
@@ -134,6 +135,10 @@ struct Cli {
     #[arg(short, long, value_enum, env, default_value = "all")]
     query: Query,
 
+    /// `max_nu` used in the Dynamic Dory or `sigma` used in the Dory setup (default: `11`)
+    #[arg(short, long, env, default_value_t = 11)]
+    nu_sigma: usize,
+
     /// Path to the Blitzar handle used for `DynamicDory`.
     #[arg(short, long, env)]
     blitzar_handle_path: Option<PathBuf>,
@@ -145,6 +150,20 @@ struct Cli {
     /// Path to the Perpetual Powers of Tau file used for `HyperKZG`.
     #[arg(short, long, env)]
     ppot_file_path: Option<PathBuf>,
+
+    /// Optional random seed for deterministic random number generation.
+    #[arg(short, long, env)]
+    rand_seed: Option<u64>,
+}
+
+/// Gets a random number generator based on the CLI arguments.
+/// If a seed is provided, uses a seeded RNG, otherwise uses `thread_rng`.
+fn get_rng(cli: &Cli) -> StdRng {
+    if let Some(seed) = cli.rand_seed {
+        StdRng::seed_from_u64(seed)
+    } else {
+        StdRng::from_entropy()
+    }
 }
 
 /// # Panics
@@ -156,7 +175,7 @@ struct Cli {
 /// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
 fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
     let mut accessor: BenchmarkAccessor<'_, RistrettoPoint> = BenchmarkAccessor::default();
-    let mut rng = rand::thread_rng();
+    let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
     for (_title, query, columns) in queries {
@@ -182,35 +201,82 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
 ///
 /// Will panic if:
 /// - The table reference cannot be parsed from the string.
+fn load_dory_public_parameters(cli: &Cli) -> PublicParameters {
+    if let Some(dory_public_params_path) = &cli.dory_public_params_path {
+        PublicParameters::load_from_file(std::path::Path::new(&dory_public_params_path))
+            .expect("Failed to load Dory public parameters")
+    } else {
+        PublicParameters::test_rand(cli.nu_sigma, &mut test_rng())
+    }
+}
+
+/// # Panics
+///
+/// Will panic if:
+/// - The table reference cannot be parsed from the string.
+fn load_dory_setup<'a>(
+    public_parameters: &'a PublicParameters,
+    cli: &'a Cli,
+) -> (ProverSetup<'a>, VerifierSetup) {
+    let (prover_setup, verifier_setup) = if let Some(blitzar_handle_path) = &cli.blitzar_handle_path
+    {
+        let handle =
+            blitzar::compute::MsmHandle::new_from_file(blitzar_handle_path.to_str().unwrap());
+        let prover_setup =
+            ProverSetup::from_public_parameters_and_blitzar_handle(public_parameters, handle);
+        let verifier_setup = VerifierSetup::from(public_parameters);
+
+        (prover_setup, verifier_setup)
+    } else {
+        let prover_setup = ProverSetup::from(public_parameters);
+        let verifier_setup = VerifierSetup::from(public_parameters);
+        (prover_setup, verifier_setup)
+    };
+
+    (prover_setup, verifier_setup)
+}
+
+/// # Panics
+///
+/// Will panic if:
 /// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
 /// - The query string cannot be parsed into a `QueryExpr`.
 /// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
 fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
-    let pp = PublicParameters::test_rand(10, &mut test_rng());
-    let ps = ProverSetup::from(&pp);
-    let prover_setup = DoryProverPublicSetup::new(&ps, 10);
-    let vs = VerifierSetup::from(&pp);
-    let verifier_setup = DoryVerifierPublicSetup::new(&vs, 10);
+    let public_parameters = load_dory_public_parameters(cli);
+    let (prover_setup, verifier_setup) = load_dory_setup(&public_parameters, cli);
+
+    let prover_public_setup = DoryProverPublicSetup::new(&prover_setup, cli.nu_sigma);
+    let verifier_public_setup = DoryVerifierPublicSetup::new(&verifier_setup, cli.nu_sigma);
 
     let mut accessor: BenchmarkAccessor<'_, DoryCommitment> = BenchmarkAccessor::default();
-    let mut rng = rand::thread_rng();
+    let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
     for (_title, query, columns) in queries {
         accessor.insert_table(
             "bench.table".parse().unwrap(),
             &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
-            &prover_setup,
+            &prover_public_setup,
         );
         let query_expr =
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
         for _ in 0..cli.iterations {
-            let result: VerifiableQueryResult<DoryEvaluationProof> =
-                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &prover_setup, &[])
-                    .unwrap();
+            let result: VerifiableQueryResult<DoryEvaluationProof> = VerifiableQueryResult::new(
+                query_expr.proof_expr(),
+                &accessor,
+                &prover_public_setup,
+                &[],
+            )
+            .unwrap();
             result
-                .verify(query_expr.proof_expr(), &accessor, &verifier_setup, &[])
+                .verify(
+                    query_expr.proof_expr(),
+                    &accessor,
+                    &verifier_public_setup,
+                    &[],
+                )
                 .unwrap();
         }
     }
@@ -219,36 +285,16 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
 /// # Panics
 ///
 /// Will panic if:
-/// - The table reference cannot be parsed from the string.
 /// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
 /// - The query string cannot be parsed into a `QueryExpr`.
 /// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
 /// - If the public parameters file or the Blitzar handle file path is not valid.
 fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
-    let public_parameters;
-    let (prover_setup, verifier_setup) =
-        if let (Some(blitzar_handle_path), Some(dory_public_params_path)) =
-            (&cli.blitzar_handle_path, &cli.dory_public_params_path)
-        {
-            let handle =
-                blitzar::compute::MsmHandle::new_from_file(blitzar_handle_path.to_str().unwrap());
-            public_parameters =
-                PublicParameters::load_from_file(std::path::Path::new(&dory_public_params_path))
-                    .expect("Failed to load Dory public parameters");
-            let prover_setup =
-                ProverSetup::from_public_parameters_and_blitzar_handle(&public_parameters, handle);
-            let verifier_setup = VerifierSetup::from(&public_parameters);
-
-            (prover_setup, verifier_setup)
-        } else {
-            public_parameters = PublicParameters::test_rand(11, &mut test_rng());
-            let prover = ProverSetup::from(&public_parameters);
-            let verifier = VerifierSetup::from(&public_parameters);
-            (prover, verifier)
-        };
+    let public_parameters = load_dory_public_parameters(cli);
+    let (prover_setup, verifier_setup) = load_dory_setup(&public_parameters, cli);
 
     let mut accessor: BenchmarkAccessor<'_, DynamicDoryCommitment> = BenchmarkAccessor::default();
-    let mut rng = rand::thread_rng();
+    let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
     for (_title, query, columns) in queries {
@@ -305,7 +351,7 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
     };
 
     let mut accessor: BenchmarkAccessor<'_, HyperKZGCommitment> = BenchmarkAccessor::default();
-    let mut rng = rand::thread_rng();
+    let mut rng = get_rng(cli);
     let alloc = Bump::new();
 
     for (_title, query, columns) in queries {
