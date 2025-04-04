@@ -55,7 +55,8 @@ pub(crate) use comparison_util::scale_and_subtract;
 
 mod numerical_util;
 pub(crate) use numerical_util::{
-    add_subtract_columns, multiply_columns, scale_and_add_subtract_eval,
+    add_subtract_columns, cast_column, multiply_columns, scale_and_add_subtract_eval,
+    scale_cast_column, try_get_scaling_factor_with_precision_and_scale,
 };
 #[cfg(test)]
 pub(crate) use numerical_util::{divide_columns, modulo_columns};
@@ -77,5 +78,11 @@ pub use column_expr::ColumnExpr;
 mod column_expr_test;
 
 mod cast_expr;
+pub(crate) use cast_expr::CastExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod cast_expr_test;
+
+mod scale_cast_expr;
+pub(crate) use scale_cast_expr::ScaleCastExpr;
+//#[cfg(all(test, feature = "blitzar"))]
+//mod scale_cast_expr_test;
