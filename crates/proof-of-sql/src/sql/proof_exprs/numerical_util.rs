@@ -740,9 +740,9 @@ pub fn try_get_scaling_factor_with_precision_and_scale<S: Scalar>(
 pub fn scale_cast_column<'a, S: Scalar>(
     alloc: &'a Bump,
     from_column: Column<'a, S>,
+    from_type: ColumnType,
     to_type: ColumnType,
 ) -> Column<'a, S> {
-    let from_type = from_column.column_type();
     let (scaling_factor, precision, scale) =
         try_get_scaling_factor_with_precision_and_scale::<S>(from_type, to_type).unwrap_or_else(
             |_| panic!("Unable to get scaling factor between types {from_type} and {to_type}"),
@@ -1307,7 +1307,12 @@ mod tests {
             .map(TestScalar::from)
             .map(|s| s * TestScalar::from(10));
         assert_eq!(
-            scale_cast_column(&alloc, tiny_int_column, ColumnType::Decimal75(prec, scale)),
+            scale_cast_column(
+                &alloc,
+                tiny_int_column,
+                ColumnType::TinyInt,
+                ColumnType::Decimal75(prec, scale)
+            ),
             Column::<TestScalar>::Decimal75(prec, scale, &scalar_slice)
         );
 
@@ -1320,7 +1325,12 @@ mod tests {
             .map(TestScalar::from)
             .map(|s| s * TestScalar::from(10));
         assert_eq!(
-            scale_cast_column(&alloc, uint8_column, ColumnType::Decimal75(prec, scale)),
+            scale_cast_column(
+                &alloc,
+                uint8_column,
+                ColumnType::Uint,
+                ColumnType::Decimal75(prec, scale)
+            ),
             Column::<TestScalar>::Decimal75(prec, scale, &scalar_slice)
         );
 
@@ -1331,7 +1341,12 @@ mod tests {
         let scale = 0i8;
         let scalar_slice = small_int_slice.map(TestScalar::from);
         assert_eq!(
-            scale_cast_column(&alloc, small_int_column, ColumnType::Decimal75(prec, scale)),
+            scale_cast_column(
+                &alloc,
+                small_int_column,
+                ColumnType::SmallInt,
+                ColumnType::Decimal75(prec, scale)
+            ),
             Column::<TestScalar>::Decimal75(prec, scale, &scalar_slice)
         );
 
@@ -1342,7 +1357,12 @@ mod tests {
         let scale = 0i8;
         let scalar_slice = int_slice.map(TestScalar::from);
         assert_eq!(
-            scale_cast_column(&alloc, int_column, ColumnType::Decimal75(prec, scale)),
+            scale_cast_column(
+                &alloc,
+                int_column,
+                ColumnType::Int,
+                ColumnType::Decimal75(prec, scale)
+            ),
             Column::<TestScalar>::Decimal75(prec, scale, &scalar_slice)
         );
 
@@ -1355,7 +1375,12 @@ mod tests {
             .map(TestScalar::from)
             .map(|s| s * TestScalar::from(100));
         assert_eq!(
-            scale_cast_column(&alloc, big_int_column, ColumnType::Decimal75(prec, scale)),
+            scale_cast_column(
+                &alloc,
+                big_int_column,
+                ColumnType::BigInt,
+                ColumnType::Decimal75(prec, scale)
+            ),
             Column::<TestScalar>::Decimal75(prec, scale, &scalar_slice)
         );
 
@@ -1368,7 +1393,12 @@ mod tests {
             .map(TestScalar::from)
             .map(|s| s * TestScalar::from(10));
         assert_eq!(
-            scale_cast_column(&alloc, int_128_column, ColumnType::Decimal75(prec, scale)),
+            scale_cast_column(
+                &alloc,
+                int_128_column,
+                ColumnType::Int128,
+                ColumnType::Decimal75(prec, scale)
+            ),
             Column::<TestScalar>::Decimal75(prec, scale, &scalar_slice)
         );
     }
@@ -1385,7 +1415,12 @@ mod tests {
         let scale = -1i8;
         let scalar_slice = decimal_slice.map(|s| s * TestScalar::TEN);
         assert_eq!(
-            scale_cast_column(&alloc, decimal_column, ColumnType::Decimal75(prec, scale)),
+            scale_cast_column(
+                &alloc,
+                decimal_column,
+                ColumnType::Decimal75(Precision::new(2).unwrap(), -2),
+                ColumnType::Decimal75(prec, scale)
+            ),
             Column::<TestScalar>::Decimal75(prec, scale, &scalar_slice)
         );
 
@@ -1397,7 +1432,12 @@ mod tests {
         let scale = 1i8;
         let scalar_slice = decimal_slice.map(|s| s * TestScalar::from(1_000));
         assert_eq!(
-            scale_cast_column(&alloc, decimal_column, ColumnType::Decimal75(prec, scale)),
+            scale_cast_column(
+                &alloc,
+                decimal_column,
+                ColumnType::Decimal75(Precision::new(2).unwrap(), -2),
+                ColumnType::Decimal75(prec, scale)
+            ),
             Column::<TestScalar>::Decimal75(prec, scale, &scalar_slice)
         );
 
@@ -1409,7 +1449,12 @@ mod tests {
         let scale = 2i8;
         let scalar_slice = decimal_slice.map(|s| s * TestScalar::TEN);
         assert_eq!(
-            scale_cast_column(&alloc, decimal_column, ColumnType::Decimal75(prec, scale)),
+            scale_cast_column(
+                &alloc,
+                decimal_column,
+                ColumnType::Decimal75(Precision::new(2).unwrap(), 1),
+                ColumnType::Decimal75(prec, scale)
+            ),
             Column::<TestScalar>::Decimal75(prec, scale, &scalar_slice)
         );
     }

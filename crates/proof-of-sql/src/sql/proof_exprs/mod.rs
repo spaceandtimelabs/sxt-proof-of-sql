@@ -77,5 +77,11 @@ pub use column_expr::ColumnExpr;
 mod column_expr_test;
 
 mod cast_expr;
+pub(crate) use cast_expr::CastExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod cast_expr_test;
+
+mod scale_cast_expr;
+pub(crate) use scale_cast_expr::ScaleCastExpr;
+//#[cfg(all(test, feature = "blitzar"))]
+//mod scale_cast_expr_test;
