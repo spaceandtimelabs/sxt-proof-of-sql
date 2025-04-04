@@ -40,7 +40,12 @@ impl ProofExpr for CastExpr {
         params: &[LiteralValue],
     ) -> PlaceholderResult<Column<'a, S>> {
         let uncasted_result = self.from_expr.first_round_evaluate(alloc, table, params)?;
-        Ok(cast_column(alloc, uncasted_result, self.to_type))
+        Ok(cast_column(
+            alloc,
+            uncasted_result,
+            self.from_expr.data_type(),
+            self.to_type,
+        ))
     }
 
     fn final_round_evaluate<'a, S: Scalar>(
@@ -53,7 +58,12 @@ impl ProofExpr for CastExpr {
         let uncasted_result = self
             .from_expr
             .final_round_evaluate(builder, alloc, table, params)?;
-        Ok(cast_column(alloc, uncasted_result, self.to_type))
+        Ok(cast_column(
+            alloc,
+            uncasted_result,
+            self.from_expr.data_type(),
+            self.to_type,
+        ))
     }
 
     fn verifier_evaluate<S: Scalar>(

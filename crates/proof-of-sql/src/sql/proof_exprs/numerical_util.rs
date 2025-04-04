@@ -9,11 +9,12 @@ use crate::base::{
 use alloc::format;
 use bnum::types::U256;
 use bumpalo::Bump;
-use core::{cmp::Ordering, ops::Neg};
+use core::{cmp::Ordering, convert::TryInto, ops::Neg};
 use itertools::izip;
 use num_traits::{NumCast, PrimInt};
 
 #[expect(clippy::cast_sign_loss)]
+#[expect(dead_code)]
 /// Add or subtract two literals together.
 pub(crate) fn add_subtract_literals<S: Scalar>(
     lhs: &LiteralValue,
@@ -48,8 +49,6 @@ pub(crate) fn add_subtract_literals<S: Scalar>(
 pub(crate) fn add_subtract_columns<'a, S: Scalar>(
     lhs: Column<'a, S>,
     rhs: Column<'a, S>,
-    lhs_scale: i8,
-    rhs_scale: i8,
     alloc: &'a Bump,
     is_subtract: bool,
 ) -> &'a [S] {
@@ -59,9 +58,8 @@ pub(crate) fn add_subtract_columns<'a, S: Scalar>(
         lhs_len == rhs_len,
         "lhs and rhs should have the same length"
     );
-    let max_scale = lhs_scale.max(rhs_scale);
-    let lhs_scalar = lhs.to_scalar_with_scaling(max_scale - lhs_scale);
-    let rhs_scalar = rhs.to_scalar_with_scaling(max_scale - rhs_scale);
+    let lhs_scalar = lhs.to_scalar_with_scaling(0);
+    let rhs_scalar = rhs.to_scalar_with_scaling(0);
     let result = alloc.alloc_slice_fill_with(lhs_len, |i| {
         if is_subtract {
             lhs_scalar[i] - rhs_scalar[i]
@@ -70,55 +68,6 @@ pub(crate) fn add_subtract_columns<'a, S: Scalar>(
         }
     });
     result
-}
-
-/// Add or subtract two [`ColumnarValues`] together.
-#[expect(dead_code)]
-pub(crate) fn add_subtract_columnar_values<'a, S: Scalar>(
-    lhs: ColumnarValue<'a, S>,
-    rhs: ColumnarValue<'a, S>,
-    lhs_scale: i8,
-    rhs_scale: i8,
-    alloc: &'a Bump,
-    is_subtract: bool,
-) -> ColumnarValue<'a, S> {
-    match (lhs, rhs) {
-        (ColumnarValue::Column(lhs), ColumnarValue::Column(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
-                lhs,
-                rhs,
-                lhs_scale,
-                rhs_scale,
-                alloc,
-                is_subtract,
-            )))
-        }
-        (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
-                Column::from_literal_with_length(&lhs, rhs.len(), alloc),
-                rhs,
-                lhs_scale,
-                rhs_scale,
-                alloc,
-                is_subtract,
-            )))
-        }
-        (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
-                lhs,
-                Column::from_literal_with_length(&rhs, lhs.len(), alloc),
-                lhs_scale,
-                rhs_scale,
-                alloc,
-                is_subtract,
-            )))
-        }
-        (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
-            ColumnarValue::Literal(LiteralValue::Scalar(
-                add_subtract_literals::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_subtract).into(),
-            ))
-        }
-    }
 }
 
 /// Multiply two columns together.
@@ -584,6 +533,47 @@ fn cast_int_column_to_int_column<'a, S: Scalar>(
     }
 }
 
+/// Cast a slice of [`Scalar`]s to a slice of ints
+/// # Panics
+fn cast_scalar_slice_to_int_slice<'a, I: Copy, S: Scalar + TryInto<I>>(
+    alloc: &'a Bump,
+    column: &[S],
+) -> &'a [I] {
+    let converted = column
+        .iter()
+        .copied()
+        .map(|s| s.try_into().map_err(|_| ()).unwrap());
+    alloc.alloc_slice_fill_iter(converted)
+}
+
+/// Cast a slice of [`Scalar`]s to a [`Column`] of ints
+///
+/// # Panics
+/// Panics if casting fails on any element
+fn cast_scalar_slice_to_int_column<'a, S: Scalar>(
+    alloc: &'a Bump,
+    column: &[S],
+    to_type: ColumnType,
+) -> Column<'a, S> {
+    match to_type {
+        ColumnType::Uint8 => Column::Uint8(cast_scalar_slice_to_int_slice::<u8, S>(alloc, column)),
+        ColumnType::TinyInt => {
+            Column::TinyInt(cast_scalar_slice_to_int_slice::<i8, S>(alloc, column))
+        }
+        ColumnType::SmallInt => {
+            Column::SmallInt(cast_scalar_slice_to_int_slice::<i16, S>(alloc, column))
+        }
+        ColumnType::Int => Column::Int(cast_scalar_slice_to_int_slice::<i32, S>(alloc, column)),
+        ColumnType::BigInt => {
+            Column::BigInt(cast_scalar_slice_to_int_slice::<i64, S>(alloc, column))
+        }
+        ColumnType::Int128 => {
+            Column::Int128(cast_scalar_slice_to_int_slice::<i128, S>(alloc, column))
+        }
+        _ => panic!("Unsupported cast from int type to {to_type}"),
+    }
+}
+
 /// Handles the casting of one column to another
 ///
 /// # Panics
@@ -591,9 +581,9 @@ fn cast_int_column_to_int_column<'a, S: Scalar>(
 pub fn cast_column<'a, S: Scalar>(
     alloc: &'a Bump,
     from_column: Column<'a, S>,
+    from_type: ColumnType,
     to_type: ColumnType,
 ) -> Column<'a, S> {
-    let from_type = from_column.column_type();
     try_cast_types(from_type, to_type)
         .unwrap_or_else(|_| panic!("Unable to cast between types {from_type} and {to_type}"));
     match (from_column, to_type) {
@@ -641,6 +631,31 @@ pub fn cast_column<'a, S: Scalar>(
             | ColumnType::Int128,
         ) => cast_int_column_to_int_column(alloc, from_column, to_type),
         (Column::TimestampTZ(_, _, vals), ColumnType::BigInt) => Column::BigInt(vals),
+        // This is due to the current arithmetic expressions causing results to be scalars
+        (
+            Column::Scalar(vals),
+            ColumnType::TinyInt
+            | ColumnType::Uint8
+            | ColumnType::SmallInt
+            | ColumnType::Int
+            | ColumnType::BigInt
+            | ColumnType::Int128,
+        ) => {
+            let from_scale = from_type.scale().unwrap();
+            assert_eq!(
+                from_scale, 0,
+                "Casting not supported between {from_type} and {to_type}"
+            );
+            cast_scalar_slice_to_int_column(alloc, vals, to_type)
+        }
+        (Column::Scalar(vals), ColumnType::Decimal75(to_precision, to_scale)) => {
+            let from_scale = from_type.scale().unwrap();
+            assert_eq!(
+                from_scale, to_scale,
+                "Casting not supported between {from_type} and {to_type}"
+            );
+            Column::Decimal75(to_precision, to_scale, vals)
+        }
         _ => panic!("Casting not supported between {from_type} and {to_type}"),
     }
 }
@@ -914,8 +929,12 @@ mod tests {
             expected_int_128_column,
             expected_big_int_column,
         ] {
-            let signed_column =
-                cast_column(&alloc, bool_column, expected_signed_column.column_type());
+            let signed_column = cast_column(
+                &alloc,
+                bool_column,
+                bool_column.column_type(),
+                expected_signed_column.column_type(),
+            );
             assert_eq!(signed_column, expected_signed_column);
         }
     }
@@ -955,7 +974,10 @@ mod tests {
         ) {
             let to_type = to_column.column_type();
             if let Ok(()) = try_cast_types(from_column.column_type(), to_type) {
-                assert_eq!(cast_column(&alloc, from_column, to_type), to_column);
+                assert_eq!(
+                    cast_column(&alloc, from_column, from_column.column_type(), to_type),
+                    to_column
+                );
             }
         }
     }
@@ -968,6 +990,7 @@ mod tests {
         let res = cast_column(
             &alloc,
             decimal_column_with_scale,
+            decimal_column_with_scale.column_type(),
             ColumnType::Decimal75(Precision::new(3).unwrap(), 1),
         );
         assert_eq!(
@@ -985,7 +1008,12 @@ mod tests {
             &[1i64, 9, -1],
         );
         let expected_big_int_column = Column::<TestScalar>::BigInt(&[1i64, 9, -1]);
-        let big_int_column = cast_column(&alloc, timestamp_column, ColumnType::BigInt);
+        let big_int_column = cast_column(
+            &alloc,
+            timestamp_column,
+            timestamp_column.column_type(),
+            ColumnType::BigInt,
+        );
         assert_eq!(big_int_column, expected_big_int_column);
     }
 
@@ -994,7 +1022,12 @@ mod tests {
     fn we_cannot_cast_column_of_uncastable_type() {
         let alloc = Bump::new();
         let bool_column = Column::<TestScalar>::Boolean(&[true, false, true]);
-        cast_column(&alloc, bool_column, ColumnType::VarBinary);
+        cast_column(
+            &alloc,
+            bool_column,
+            bool_column.column_type(),
+            ColumnType::VarBinary,
+        );
     }
 
     #[should_panic(expected = "Casting not supported between BOOLEAN and BINARY")]
