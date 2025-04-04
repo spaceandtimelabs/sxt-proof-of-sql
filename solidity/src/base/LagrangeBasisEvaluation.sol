@@ -61,6 +61,45 @@ library LagrangeBasisEvaluation {
         }
     }
 
+    /// @notice Computes the Lagrange basis vector for a given evaluation point.
+    /// @notice This is a wrapper around the `compute_lagrange_basis_vector` Yul function.
+    /// @param __length The length of the vector.
+    /// @param __evaluationPoint The evaluation point at which to compute the Lagrange basis vector.
+    /// @return __evaluations The computed Lagrange basis vector.
+    /// @dev This function computes the Lagrange basis vector for the given evaluation point.
+    function __computeEvaluationVec(uint256 __length, uint256[] memory __evaluationPoint)
+        internal
+        pure
+        returns (uint256[] memory __evaluations)
+    {
+        assembly {
+            function compute_evaluation_vec(length, evaluation_point_ptr) -> evaluations_ptr {
+                evaluations_ptr := mload(FREE_PTR)
+                mstore(FREE_PTR, add(evaluations_ptr, mul(length, WORD_SIZE)))
+                mstore(evaluations_ptr, 1)
+                let num_vars := mload(evaluation_point_ptr)
+                for { let len := 1 } num_vars { num_vars := sub(num_vars, 1) } {
+                    let x := mod(mload(add(evaluation_point_ptr, mul(num_vars, WORD_SIZE))), MODULUS)
+                    let one_minux_x := sub(MODULUS_PLUS_ONE, x)
+                    len := mul(len, 2)
+                    if gt(len, length) { len := length }
+                    for { let l := len } l {} {
+                        l := sub(l, 1)
+                        let to_ptr := add(evaluations_ptr, mul(l, WORD_SIZE))
+                        let from_ptr := add(evaluations_ptr, mul(shr(1, l), WORD_SIZE))
+                        switch mod(l, 2)
+                        case 0 { mstore(to_ptr, mulmod(mload(from_ptr), one_minux_x, MODULUS)) }
+                        case 1 { mstore(to_ptr, mulmod(mload(from_ptr), x, MODULUS)) }
+                    }
+                }
+            }
+            mstore(FREE_PTR, add(mload(FREE_PTR), WORD_SIZE))
+            __evaluations := compute_evaluation_vec(__length, __evaluationPoint)
+            __evaluations := sub(__evaluations, WORD_SIZE)
+            mstore(__evaluations, __length)
+        }
+    }
+
     /// @notice Computes the inner product of the Lagrange basis polynomials evaluated at two given points.
     /// @notice Reverts if `__x` and `__y` have different lengths.
     /// @notice This is a wrapper around the `compute_truncated_lagrange_basis_inner_product` Yul function.
