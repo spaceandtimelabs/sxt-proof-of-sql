@@ -18,6 +18,19 @@ library LagrangeBasisEvaluation {
     /// where \\(b_j\\) is the \\(j\\)th bit of \\(i\\).
     /// @dev This function computes \\[ \sum_{i=0}^{\ell-1}\chi_i(x_0,\ldots,x_{\nu-1},0,\ldots),\\]
     /// where \\(\ell = \texttt{length}\\) and \\(\nu = \texttt{num_vars} = \texttt{__x.length}\\).
+    /// @dev The naive formula is \\(O(\ell \cdot \nu)\\). It is be computed in \\(O(\ell)\\) time using the following
+    ///  formulation:
+    /// Let \\(X_\nu=(x_0,\ldots,x_{\nu-1})\\) and let
+    /// \\[f(\ell, X_\nu, \nu)=\sum_{i=0}^{\ell-1}\chi_i(x_0,\ldots,x_{\nu-1},0,\ldots)\\]
+    /// Then, for \\(\ell<2^\nu\\), we have
+    /// \\[\begin{aligned}f(\ell, X_{\nu+1}, \nu+1) &=\sum_{i=0}^{\ell-1}\chi_i(x_0,\ldots,x_{\nu},0,\ldots)\\\\
+    /// &=\sum_{i=0}^{\ell-1}(1-x_\nu)\cdot\chi_i(x_0,\ldots,x_{\nu-1},0,\ldots)\\\\
+    ///  &= (1-x_\nu)\cdot f(\ell, X_\nu, \nu)\\\\
+    ///  f(\ell+2^\nu, X_{\nu+1}, \nu+1) &=\sum_{i=0}^{2^\nu-1}\chi_{i}(x_0,\ldots,x_{\nu},0,\ldots)+\sum_{i=0}^{\ell-1}\chi_{i+2^\nu}(x_0,\ldots,x_{\nu},0,\ldots)\\\\
+    /// &=\sum_{i=0}^{2^\nu-1}(1-x_\nu)\cdot\chi_{i}(x_0,\ldots,x_{\nu-1},0,\ldots)+\sum_{i=0}^{\ell-1}x_\nu\cdot\chi_{i}(x_0,\ldots,x_{\nu-1},0,\ldots)\\\\
+    ///  &= (1-x_\nu)+x_\nu\cdot f(\ell, X_\nu, \nu)
+    /// \end{aligned}\\]
+    /// For \\(\ell \geq 2^{\nu}\\), we have that \\(f(\ell,X_\nu,\nu)=1\\).
     function __computeTruncatedLagrangeBasisSum(uint256 __length, uint256[] memory __x)
         internal
         pure
@@ -62,6 +75,21 @@ library LagrangeBasisEvaluation {
     /// \\[ \sum_{i=0}^{\ell-1}\chi_i(x_0,\ldots,x_{\nu-1},0,\ldots)\chi_i(y_0,\ldots,y_{\nu-1},0,\ldots),\\]
     /// where \\(\ell = \texttt{length}\\) and
     /// \\(\nu = \texttt{num_vars} = \texttt{__x.length} = \texttt{__y.length}\\).
+    /// @dev The naive formula is \\(O(\ell \cdot \nu)\\). It is be computed in \\(O(\ell)\\) time using the following
+    ///  formulation:
+    /// NOTE: this is the generalization of the `compute_truncated_lagrange_basis_sum` formulas, with $y_i=0$.
+    /// Let \\(X_\nu=(x_0,\ldots,x_{\nu-1})\\), \\(Y_\nu=(y_0,\ldots,y_{\nu-1})\\), and let
+    /// \\[\begin{aligned}
+    /// g(\ell, X_\nu, Y_\nu, \nu)&=\sum_{i=0}^{\ell-1}\chi_i(x_0,\ldots,x_{\nu-1},0,\ldots)\chi_i(y_0,\ldots,y_{\nu-1},0,\ldots)\\\\
+    /// h(X_\nu, Y_\nu, \nu)&=g(2^\nu,X_\nu, Y_\nu, \nu)
+    /// \end{aligned}\\]
+    /// Then, for \\(\ell< 2^\nu\\), we have
+    /// \\[\begin{aligned}
+    /// g(\ell, X_{\nu+1},Y_{\nu+1},\nu+1)&=(1-x_\nu)\cdot(1-y_\nu)\cdot g(\ell, X_\nu,Y_\nu,\nu)\\\\
+    /// g(\ell+2^\nu, X_{\nu+1},Y_{\nu+1},\nu+1)&=(1-x_\nu)\cdot(1-y_\nu)\cdot h(X_\nu, Y_\nu, \nu)+x_\nu\cdot y_\nu\cdot g(\ell, X_\nu,Y_\nu,\nu)\\\\
+    /// h(X_\nu, Y_\nu, \nu)&=((1-x_\nu)\cdot(1-y_\nu)+x_\nu\cdot y_\nu)\cdot h(X_\nu, Y_\nu, \nu)
+    /// \end{aligned}\\]
+    /// For \\(\ell \geq 2^{\nu}\\), we have that \\(g(\ell,X_\nu,Y_\nu,\nu)=h(X_\nu,Y_\nu,\nu)\\).
     function __computeTruncatedLagrangeBasisInnerProduct(uint256 __length, uint256[] memory __x, uint256[] memory __y)
         internal
         pure
@@ -70,21 +98,25 @@ library LagrangeBasisEvaluation {
         assert(__x.length == __y.length);
         assembly {
             function compute_truncated_lagrange_basis_inner_product(length, x_ptr, y_ptr, num_vars) -> result {
-                let part := 0
-                result := 1
-                for { let i := 0 } sub(num_vars, i) { i := add(i, 1) } {
+                let part := 0 // This is g in the formulas
+                result := 1 // This is h in the formulas
+                for {} num_vars {} {
                     let x := mload(x_ptr)
                     let y := mload(y_ptr)
-                    x_ptr := add(x_ptr, WORD_SIZE)
-                    y_ptr := add(y_ptr, WORD_SIZE)
                     let xy := mulmod(x, y, MODULUS)
+                    // let c := 1 - x
+                    // let d := 1 - y
                     let cd := sub(add(MODULUS_PLUS_ONE, xy), addmod(x, y, MODULUS))
-                    switch and(shr(i, length), 1)
+                    switch and(length, 1)
                     case 0 { part := mulmod(part, cd, MODULUS) }
                     default { part := add(mulmod(result, cd, MODULUS), mulmod(part, xy, MODULUS)) }
                     result := mulmod(result, add(cd, xy), MODULUS)
+                    num_vars := sub(num_vars, 1)
+                    length := shr(1, length)
+                    x_ptr := add(x_ptr, WORD_SIZE)
+                    y_ptr := add(y_ptr, WORD_SIZE)
                 }
-                if lt(length, shl(num_vars, 1)) { result := mod(part, MODULUS) }
+                if iszero(length) { result := mod(part, MODULUS) } // we return g in "short" cases
             }
             __result :=
                 compute_truncated_lagrange_basis_inner_product(
