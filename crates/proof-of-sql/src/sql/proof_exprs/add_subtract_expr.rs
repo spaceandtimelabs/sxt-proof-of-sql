@@ -1,8 +1,9 @@
-use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
+use super::{add_subtract_columns, DynProofExpr, ProofExpr};
 use crate::{
     base::{
         database::{
-            try_add_subtract_column_types, Column, ColumnRef, ColumnType, LiteralValue, Table,
+            try_add_subtract_column_types_of_same_type, Column, ColumnRef, ColumnType,
+            LiteralValue, Table,
         },
         map::{IndexMap, IndexSet},
         proof::{PlaceholderResult, ProofError},
@@ -36,7 +37,7 @@ impl AddSubtractExpr {
 
 impl ProofExpr for AddSubtractExpr {
     fn data_type(&self) -> ColumnType {
-        try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type())
+        try_add_subtract_column_types_of_same_type(self.lhs.data_type(), self.rhs.data_type())
             .expect("Failed to add/subtract column types")
     }
 
@@ -51,8 +52,6 @@ impl ProofExpr for AddSubtractExpr {
         Ok(Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,
-            self.lhs.data_type().scale().unwrap_or(0),
-            self.rhs.data_type().scale().unwrap_or(0),
             alloc,
             self.is_subtract,
         )))
@@ -81,8 +80,6 @@ impl ProofExpr for AddSubtractExpr {
         let res = Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,
-            self.lhs.data_type().scale().unwrap_or(0),
-            self.rhs.data_type().scale().unwrap_or(0),
             alloc,
             self.is_subtract,
         ));
@@ -105,11 +102,11 @@ impl ProofExpr for AddSubtractExpr {
         let rhs_eval = self
             .rhs
             .verifier_evaluate(builder, accessor, chi_eval, params)?;
-        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
-        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let res =
-            scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, self.is_subtract);
-        Ok(res)
+        Ok(if self.is_subtract {
+            lhs_eval - rhs_eval
+        } else {
+            lhs_eval + rhs_eval
+        })
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

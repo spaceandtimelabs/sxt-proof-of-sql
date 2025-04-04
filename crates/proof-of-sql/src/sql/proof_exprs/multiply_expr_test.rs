@@ -370,7 +370,10 @@ fn we_can_compute_the_correct_output_of_a_multiply_expr_using_first_round_evalua
         TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
     let arithmetic_expr: DynProofExpr = multiply(
         column(&t, "b", &accessor),
-        subtract(column(&t, "a", &accessor), const_decimal75(2, 1, 15)),
+        subtract(
+            multiply(column(&t, "a", &accessor), const_decimal75(2, 1, 10)),
+            const_decimal75(2, 1, 15),
+        ),
     );
     let res = arithmetic_expr
         .first_round_evaluate(&alloc, &data, &[])

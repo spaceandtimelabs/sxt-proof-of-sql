@@ -1,9 +1,13 @@
 use super::{AnalyzeError, AnalyzeResult};
-use crate::base::database::{try_add_subtract_column_types, try_multiply_column_types, ColumnType};
+use crate::base::database::{
+    try_add_subtract_column_types, try_cast_types, try_multiply_column_types, ColumnType,
+};
 use alloc::string::ToString;
 use sqlparser::ast::BinaryOperator;
 
 /// Checks if the binary operation between the left and right data types is valid.
+/// This function should only be used in a context in which the planner has not done any casting
+/// to make the datatypes compatible.
 ///
 /// # Arguments
 ///
@@ -60,7 +64,13 @@ pub(crate) fn type_check_binary_operation(
                 )
         }
         BinaryOperator::Plus | BinaryOperator::Minus => {
-            try_add_subtract_column_types(left_dtype, right_dtype).is_ok()
+            try_add_subtract_column_types(left_dtype, right_dtype)
+                .and_then(|result_type| {
+                    try_cast_types(left_dtype, result_type)?;
+                    try_cast_types(right_dtype, result_type)?;
+                    Ok(())
+                })
+                .is_ok()
         }
         BinaryOperator::Multiply => try_multiply_column_types(left_dtype, right_dtype).is_ok(),
         BinaryOperator::Divide => left_dtype.is_numeric() && right_dtype.is_numeric(),

@@ -67,8 +67,8 @@ fn we_can_prove_a_typical_add_subtract_query() {
 #[test]
 fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
     let data = owned_table([
-        decimal75("a", 12, 1, [4_i64, 2, 2, 7]),
-        decimal75("b", 12, 2, [5_i64, -15, 42, 8]),
+        decimal75("a", 14, 3, [400_i64, 200, 200, 700]),
+        decimal75("b", 13, 3, [50_i64, -150, 420, 80]),
         varchar("d", ["ab", "t", "efg", "g"]),
         decimal75("c", 12, 3, [190_i64, 27, 253, 120]),
     ]);
@@ -84,7 +84,7 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
                         add(column(&t, "a", &accessor), column(&t, "b", &accessor)),
                         column(&t, "c", &accessor),
                     ),
-                    const_decimal75(2, 1, 4),
+                    const_decimal75(4, 3, 400),
                 ),
                 "c",
             ),
@@ -93,7 +93,7 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
         tab(&t),
         equal(
             subtract(column(&t, "a", &accessor), column(&t, "b", &accessor)),
-            const_decimal75(12, 4, 3500),
+            const_decimal75(14, 3, 350),
         ),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
@@ -103,7 +103,7 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
         .unwrap()
         .table;
     let expected_res = owned_table([
-        decimal75("a", 12, 1, [4_i64, 2]),
+        decimal75("a", 14, 3, [400_i64, 200]),
         decimal75("c", 17, 3, [1040_i64, 477]),
         varchar("d", ["ab", "t"]),
     ]);

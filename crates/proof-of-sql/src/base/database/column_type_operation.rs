@@ -61,6 +61,20 @@ pub fn try_add_subtract_column_types(
     }
 }
 
+/// Determines if two types are the same and can be added and subtracted
+pub fn try_add_subtract_column_types_of_same_type(
+    lhs: ColumnType,
+    rhs: ColumnType,
+) -> ColumnOperationResult<ColumnType> {
+    (lhs.is_numeric() && rhs.is_numeric() && lhs == rhs)
+        .then_some(lhs)
+        .ok_or(ColumnOperationError::BinaryOperationInvalidColumnType {
+            operator: "+/-".to_string(),
+            left_type: lhs,
+            right_type: rhs,
+        })
+}
+
 /// Determine the output type of a multiplication operation if it is possible
 /// to multiply the two input types. If the types are not compatible, return
 /// an error.
