@@ -185,7 +185,7 @@ pub const QUERIES: &[QueryEntry] = &[
 /// # Returns
 /// * `Some((&str, &str, &[(&str, ColumnType, OptionalRandBound)]))` if the query is found.
 /// * `None` if no query with the given title exists.
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub fn get_query(title: &str) -> Option<QueryEntry> {
     QUERIES
         .iter()

@@ -3,7 +3,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 /// An intermediate type representing the time units from a parsed query
-#[allow(clippy::module_name_repetitions)]
+#[expect(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PoSQLTimeUnit {
     /// Represents seconds with precision 0: ex "2024-06-20 12:34:56"
@@ -56,7 +56,7 @@ impl fmt::Display for PoSQLTimeUnit {
 // allow(deprecated) for the sole purpose of testing that
 // timestamp precision is parsed correctly.
 #[cfg(test)]
-#[allow(deprecated, clippy::missing_panics_doc)]
+#[expect(deprecated, clippy::missing_panics_doc)]
 mod time_unit_tests {
     use super::*;
     use crate::posql_time::{PoSQLTimestamp, PoSQLTimestampError};
@@ -64,7 +64,7 @@ mod time_unit_tests {
     use chrono::{TimeZone, Utc};
 
     #[test]
-    #[allow(clippy::unnecessary_fallible_conversions)]
+    #[expect(clippy::unnecessary_fallible_conversions)]
     fn test_u64_conversion() {
         assert_eq!(PoSQLTimeUnit::Second.try_into(), Ok(0));
         assert_eq!(PoSQLTimeUnit::Millisecond.try_into(), Ok(3));
