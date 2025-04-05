@@ -14,7 +14,7 @@ library LagrangeBasisEvaluation {
     /// @param __x The point at which to evaluate the Lagrange basis.
     /// @return __result The sum of the Lagrange basis polynomials evaluated at the given point.
     /// @dev Let \\(\chi_i(x)\\) be the \\(i\\)th Lagrange basis polynomial.
-    /// That is, \\[\chi_i(x) = \prod_{j=0}^{\nu-1} (1-x_j)^{1-b_j}x_j^{b_j},\\]
+    /// That is, \\[\chi_i(x) = \prod_{j=0}^{\infty} (1-x_j)^{1-b_j}x_j^{b_j},\\]
     /// where \\(b_j\\) is the \\(j\\)th bit of \\(i\\).
     /// @dev This function computes \\[ \sum_{i=0}^{\ell-1}\chi_i(x_0,\ldots,x_{\nu-1},0,\ldots),\\]
     /// where \\(\ell = \texttt{length}\\) and \\(\nu = \texttt{num_vars} = \texttt{__x.length}\\).
@@ -61,6 +61,71 @@ library LagrangeBasisEvaluation {
         }
     }
 
+    /// @notice Computes the Lagrange basis vector for a given evaluation point.
+    /// @notice This is a wrapper around the `compute_lagrange_basis_vector` Yul function.
+    /// @param __length The length of the vector.
+    /// @param __evaluationPoint The evaluation point at which to compute the Lagrange basis vector.
+    /// @return __evaluations The computed Lagrange basis vector.
+    /// @dev This function computes the Lagrange basis vector for the given evaluation point.
+    function __computeEvaluationVec(uint256 __length, uint256[] memory __evaluationPoint)
+        internal
+        pure
+        returns (uint256[] memory __evaluations)
+    {
+        assembly {
+            function compute_evaluation_vec(length, evaluation_point_ptr) -> evaluations_ptr {
+                evaluations_ptr := mload(FREE_PTR)
+                mstore(FREE_PTR, add(evaluations_ptr, mul(length, WORD_SIZE)))
+                mstore(evaluations_ptr, 1)
+                let num_vars := mload(evaluation_point_ptr)
+                for { let len := 1 } num_vars { num_vars := sub(num_vars, 1) } {
+                    let x := mod(mload(add(evaluation_point_ptr, mul(num_vars, WORD_SIZE))), MODULUS)
+                    let one_minus_x := sub(MODULUS_PLUS_ONE, x)
+                    len := mul(len, 2)
+                    if gt(len, length) { len := length }
+                    for { let l := len } l {} {
+                        l := sub(l, 1)
+                        let to_ptr := add(evaluations_ptr, mul(l, WORD_SIZE))
+                        let from_ptr := add(evaluations_ptr, mul(shr(1, l), WORD_SIZE))
+                        switch mod(l, 2)
+                        case 0 { mstore(to_ptr, mulmod(mload(from_ptr), one_minus_x, MODULUS)) }
+                        case 1 { mstore(to_ptr, mulmod(mload(from_ptr), x, MODULUS)) }
+                    }
+                }
+            }
+            mstore(FREE_PTR, add(mload(FREE_PTR), WORD_SIZE))
+            __evaluations := compute_evaluation_vec(__length, __evaluationPoint)
+            __evaluations := sub(__evaluations, WORD_SIZE)
+            mstore(__evaluations, __length)
+        }
+    }
+
+    /// @notice Computes evaluations of Lagrange basis polynomials for a given evaluation point and array.
+    /// @notice This is a wrapper around the `compute_evaluations` Yul function. Note that the function
+    /// does not return the evaluations, but rather modifies the input array in place.
+    /// @param __evaluationPoint The evaluation point at which to compute the evaluations.
+    /// @param __array The array of lengths to evaluate.
+    /// @dev This could likely be batched more efficiently. For now, we just naively compute the evaluations for each length.
+    function __computeEvaluations(uint256[] memory __evaluationPoint, uint256[] memory __array) internal pure {
+        assembly {
+            // IMPORT-YUL LagrangeBasisEvaluation.pre.sol
+            function compute_truncated_lagrange_basis_sum(length, x_ptr, num_vars) -> result {
+                revert(0, 0)
+            }
+            function compute_evaluations(evaluation_point_ptr, array_ptr) {
+                let num_vars := mload(evaluation_point_ptr)
+                let x := add(evaluation_point_ptr, WORD_SIZE)
+                let array_len := mload(array_ptr)
+                array_ptr := add(array_ptr, WORD_SIZE)
+                for {} array_len { array_len := sub(array_len, 1) } {
+                    mstore(array_ptr, compute_truncated_lagrange_basis_sum(mload(array_ptr), x, num_vars))
+                    array_ptr := add(array_ptr, WORD_SIZE)
+                }
+            }
+            compute_evaluations(__evaluationPoint, __array)
+        }
+    }
+
     /// @notice Computes the inner product of the Lagrange basis polynomials evaluated at two given points.
     /// @notice Reverts if `__x` and `__y` have different lengths.
     /// @notice This is a wrapper around the `compute_truncated_lagrange_basis_inner_product` Yul function.
@@ -87,7 +152,7 @@ library LagrangeBasisEvaluation {
     /// \\[\begin{aligned}
     /// g(\ell, X_{\nu+1},Y_{\nu+1},\nu+1)&=(1-x_\nu)\cdot(1-y_\nu)\cdot g(\ell, X_\nu,Y_\nu,\nu)\\\\
     /// g(\ell+2^\nu, X_{\nu+1},Y_{\nu+1},\nu+1)&=(1-x_\nu)\cdot(1-y_\nu)\cdot h(X_\nu, Y_\nu, \nu)+x_\nu\cdot y_\nu\cdot g(\ell, X_\nu,Y_\nu,\nu)\\\\
-    /// h(X_\nu, Y_\nu, \nu)&=((1-x_\nu)\cdot(1-y_\nu)+x_\nu\cdot y_\nu)\cdot h(X_\nu, Y_\nu, \nu)
+    /// h(X_{\nu+1}, Y_{\nu+1}, \nu+1)&=((1-x_\nu)\cdot(1-y_\nu)+x_\nu\cdot y_\nu)\cdot h(X_\nu, Y_\nu, \nu)
     /// \end{aligned}\\]
     /// For \\(\ell \geq 2^{\nu}\\), we have that \\(g(\ell,X_\nu,Y_\nu,\nu)=h(X_\nu,Y_\nu,\nu)\\).
     function __computeTruncatedLagrangeBasisInnerProduct(uint256 __length, uint256[] memory __x, uint256[] memory __y)

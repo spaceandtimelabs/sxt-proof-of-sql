@@ -2,12 +2,13 @@
 // This is licensed under the Cryptographic Open Software License 1.0
 pragma solidity ^0.8.28;
 
+import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
-import {LagrangeBasisEvaluation} from "./../../src/base/LagrangeBasisEvaluation.sol";
+import {LagrangeBasisEvaluation} from "./../../src/base/LagrangeBasisEvaluation.pre.sol";
 import {F, FF} from "./FieldUtil.sol";
 
 /// A library for efficiently computing sums over Lagrange basis polynomials evaluated at points.
-library LagrangeBasisEvaluationTest {
+contract LagrangeBasisEvaluationTest is Test {
     function testComputeTruncatedLagrangeBasisSumGivesCorrectValuesWith0Variables() public pure {
         uint256[] memory point = new uint256[](0);
         assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisSum(1, point) == 1);
@@ -87,13 +88,13 @@ library LagrangeBasisEvaluationTest {
         assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(0, a, b) == 0);
     }
 
-    uint256 private constant MAX_FUZZ_POINT_LENGTH = 5;
-    uint256 private constant EXTRA_FUZZ_LENGTH = 10;
+    uint256 private constant _MAX_FUZZ_POINT_LENGTH = 5;
+    uint256 private constant _EXTRA_FUZZ_LENGTH = 10;
 
     function testFuzzComputeTruncatedLagrangeBasisSum(uint256[] memory rand) public pure {
         uint256 numVars = rand.length;
-        if (numVars > MAX_FUZZ_POINT_LENGTH) {
-            numVars = MAX_FUZZ_POINT_LENGTH;
+        if (numVars > _MAX_FUZZ_POINT_LENGTH) {
+            numVars = _MAX_FUZZ_POINT_LENGTH;
         }
         uint256[] memory point = new uint256[](numVars);
         for (uint256 i = 0; i < numVars; ++i) {
@@ -101,7 +102,7 @@ library LagrangeBasisEvaluationTest {
         }
 
         FF sum = F.ZERO;
-        for (uint256 i = 0; i < (1 << numVars) + EXTRA_FUZZ_LENGTH; ++i) {
+        for (uint256 i = 0; i < (1 << numVars) + _EXTRA_FUZZ_LENGTH; ++i) {
             FF product = F.ONE;
             for (uint256 j = 0; j < numVars; ++j) {
                 FF term = F.from(point[j]);
@@ -120,8 +121,8 @@ library LagrangeBasisEvaluationTest {
 
     function testFuzzComputeTruncatedLagrangeBasisInnerProduct(uint256[] memory rand) public pure {
         uint256 numVars = rand.length / 2;
-        if (numVars > MAX_FUZZ_POINT_LENGTH) {
-            numVars = MAX_FUZZ_POINT_LENGTH;
+        if (numVars > _MAX_FUZZ_POINT_LENGTH) {
+            numVars = _MAX_FUZZ_POINT_LENGTH;
         }
         uint256[] memory a = new uint256[](numVars);
         uint256[] memory b = new uint256[](numVars);
@@ -131,7 +132,7 @@ library LagrangeBasisEvaluationTest {
         }
 
         FF sum = F.ZERO;
-        for (uint256 i = 0; i < (1 << numVars) + EXTRA_FUZZ_LENGTH; ++i) {
+        for (uint256 i = 0; i < (1 << numVars) + _EXTRA_FUZZ_LENGTH; ++i) {
             FF product = F.ONE;
             for (uint256 j = 0; j < numVars; ++j) {
                 FF aTerm = F.from(a[j]);
@@ -148,6 +149,144 @@ library LagrangeBasisEvaluationTest {
 
             assert(LagrangeBasisEvaluation.__computeTruncatedLagrangeBasisInnerProduct(i, a, b) == sum.into());
             sum = sum + product;
+        }
+    }
+
+    function testSimpleComputeEvaluationVec() public pure {
+        uint256[] memory point = new uint256[](3);
+        point[0] = 2;
+        point[1] = 3;
+        point[2] = 5;
+        FF a = F.from(point[0]);
+        FF b = F.from(point[1]);
+        FF c = F.from(point[2]);
+        uint256[] memory expectedEvaluations = new uint256[](8);
+        expectedEvaluations[0] = ((F.ONE - a) * (F.ONE - b) * (F.ONE - c)).into();
+        expectedEvaluations[1] = (a * (F.ONE - b) * (F.ONE - c)).into();
+        expectedEvaluations[2] = ((F.ONE - a) * b * (F.ONE - c)).into();
+        expectedEvaluations[3] = (a * b * (F.ONE - c)).into();
+        expectedEvaluations[4] = ((F.ONE - a) * (F.ONE - b) * c).into();
+        expectedEvaluations[5] = (a * (F.ONE - b) * c).into();
+        expectedEvaluations[6] = ((F.ONE - a) * b * c).into();
+        expectedEvaluations[7] = (a * b * c).into();
+
+        for (uint256 length = 0; length < 8; ++length) {
+            uint256[] memory evaluations = LagrangeBasisEvaluation.__computeEvaluationVec(length, point);
+            assert(evaluations.length == length);
+            for (uint256 i = 0; i < length; ++i) {
+                assert(evaluations[i] == expectedEvaluations[i]);
+            }
+        }
+    }
+
+    function testFuzzComputeEvaluationVec(uint256[] memory point) public pure {
+        uint256 numVars = point.length;
+        // If the point is too long, we will run out of memory
+        vm.assume(numVars < 10);
+        uint256 maxLength = 1 << numVars;
+        uint256[] memory expectedEvaluations = new uint256[](maxLength);
+        for (uint256 i = 0; i < maxLength; ++i) {
+            FF product = F.ONE;
+            for (uint256 j = 0; j < numVars; ++j) {
+                FF term = F.from(point[j]);
+                if ((i >> j) & 1 == 0) {
+                    term = F.ONE - term;
+                }
+                product = product * term;
+            }
+            expectedEvaluations[i] = product.into();
+        }
+
+        for (uint256 length = 0; length < maxLength; ++length) {
+            uint256[] memory evaluations = LagrangeBasisEvaluation.__computeEvaluationVec(length, point);
+            assert(evaluations.length == length);
+            for (uint256 i = 0; i < length; ++i) {
+                assert(evaluations[i] == expectedEvaluations[i]);
+            }
+        }
+    }
+
+    function testSimpleComputeEvaluations() public pure {
+        uint256[] memory point = new uint256[](3);
+        point[0] = 2;
+        point[1] = 3;
+        point[2] = 5;
+        FF a = F.from(point[0]);
+        FF b = F.from(point[1]);
+        FF c = F.from(point[2]);
+        FF[] memory expectedEvaluations = new FF[](8);
+        expectedEvaluations[0] = ((F.ONE - a) * (F.ONE - b) * (F.ONE - c));
+        expectedEvaluations[1] = (a * (F.ONE - b) * (F.ONE - c));
+        expectedEvaluations[2] = ((F.ONE - a) * b * (F.ONE - c));
+        expectedEvaluations[3] = (a * b * (F.ONE - c));
+        expectedEvaluations[4] = ((F.ONE - a) * (F.ONE - b) * c);
+        expectedEvaluations[5] = (a * (F.ONE - b) * c);
+        expectedEvaluations[6] = ((F.ONE - a) * b * c);
+        expectedEvaluations[7] = (a * b * c);
+
+        FF[] memory expectedSums = new FF[](12);
+        for (uint256 i = 0; i < 8; ++i) {
+            for (uint256 j = 0; j < i; ++j) {
+                expectedSums[i] = expectedSums[i] + expectedEvaluations[j];
+            }
+        }
+
+        for (uint256 i = 8; i < 12; ++i) {
+            expectedSums[i] = F.ONE;
+        }
+
+        uint256[] memory evaluations = new uint256[](12);
+        for (uint256 i = 0; i < 12; ++i) {
+            evaluations[i] = i;
+        }
+
+        LagrangeBasisEvaluation.__computeEvaluations(point, evaluations);
+
+        for (uint256 i = 0; i < 12; ++i) {
+            assert(evaluations[i] == expectedSums[i].into());
+        }
+    }
+
+    // solhint-disable-next-line code-complexity
+    function testFuzzComputeEvaluations(uint256[] memory point) public pure {
+        uint256 numVars = point.length;
+        // If the point is too long, we will run out of memory
+        vm.assume(numVars < _MAX_FUZZ_POINT_LENGTH + 1);
+        uint256 maxEvaluationLength = 1 << numVars;
+        uint256 maxLength = maxEvaluationLength + _EXTRA_FUZZ_LENGTH;
+        FF[] memory expectedEvaluations = new FF[](maxEvaluationLength);
+        for (uint256 i = 0; i < maxEvaluationLength; ++i) {
+            FF product = F.ONE;
+            for (uint256 j = 0; j < numVars; ++j) {
+                FF term = F.from(point[j]);
+                if ((i >> j) & 1 == 0) {
+                    term = F.ONE - term;
+                }
+                product = product * term;
+            }
+            expectedEvaluations[i] = product;
+        }
+
+        FF[] memory expectedSums = new FF[](maxLength);
+        for (uint256 i = 0; i < maxEvaluationLength; ++i) {
+            for (uint256 j = 0; j < i; ++j) {
+                expectedSums[i] = expectedSums[i] + expectedEvaluations[j];
+            }
+        }
+
+        for (uint256 i = maxEvaluationLength; i < maxLength; ++i) {
+            expectedSums[i] = F.ONE;
+        }
+
+        uint256[] memory evaluations = new uint256[](maxLength);
+        for (uint256 i = 0; i < maxLength; ++i) {
+            evaluations[i] = i;
+        }
+
+        LagrangeBasisEvaluation.__computeEvaluations(point, evaluations);
+
+        for (uint256 i = 0; i < maxLength; ++i) {
+            assert(evaluations[i] == expectedSums[i].into());
         }
     }
 }
