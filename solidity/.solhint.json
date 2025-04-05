@@ -4,6 +4,7 @@
         "comprehensive-interface": "off",
         "foundry-test-functions": "off",
         "function-max-lines": "off",
+        "gas-calldata-parameters": "off",
         "max-line-length": "off",
         "no-global-import": "off",
         "no-inline-assembly": "off",
