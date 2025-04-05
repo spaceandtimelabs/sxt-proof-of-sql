@@ -34,6 +34,7 @@ bumpalo = { workspace = true, features = ["collections"] }
 bytemuck = { workspace = true }
 byte-slice-cast = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"], optional = true }
+csv = { workspace = true, optional = true }
 curve25519-dalek = { workspace = true, features = ["serde"] }
 chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true }
@@ -87,7 +88,7 @@ development = ["arrow-csv", "criterion", "opentelemetry", "opentelemetry-jaeger"
 default = ["arrow", "perf"]
 utils = ["dep:indicatif", "dep:rand_chacha", "dep:sha2", "dep:clap", "dep:tempfile"]
 arrow = ["dep:arrow", "std"]
-bench = ["blitzar", "dep:clap", "dep:rand", "hyperkzg_proof", "opentelemetry", "opentelemetry-jaeger", "std", "tracing-opentelemetry", "tracing-subscriber" ]
+bench = ["blitzar", "dep:clap", "csv", "dep:rand", "hyperkzg_proof", "opentelemetry", "opentelemetry-jaeger", "std", "tracing-opentelemetry", "tracing-subscriber" ]
 blitzar = ["dep:blitzar", "dep:merlin", "std"]
 hyperkzg_proof = ["dep:nova-snark", "std", "dep:ff", "dep:halo2curves", "blitzar"]
 test = ["dep:rand", "std"]
