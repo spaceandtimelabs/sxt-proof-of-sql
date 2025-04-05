@@ -63,6 +63,9 @@ uint32 constant LITERAL_BIGINT_VARIANT = 0;
 /// @dev BigInt variant constant for result columns
 uint32 constant COLUMN_BIGINT_VARIANT = 0;
 
+/// @dev Filter variant constant for proof plans
+uint32 constant FILTER_EXEC_VARIANT = 0;
+
 /// @dev Position of the free memory pointer in the context of the EVM memory.
 uint256 constant FREE_PTR = 0x40;
 
