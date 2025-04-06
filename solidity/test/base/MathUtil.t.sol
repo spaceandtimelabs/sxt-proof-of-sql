@@ -25,6 +25,16 @@ library MathUtilTest {
         /* solhint-enable gas-strict-inequalities */
     }
 
+    function testLog2UpEdgeCases() public pure {
+        for (uint256 exponent = 1; exponent < 256; ++exponent) {
+            uint256 value = 1 << exponent;
+            assert(MathUtil.__log2Up(value) == exponent);
+            assert(MathUtil.__log2Up(value - 1) == exponent);
+            assert(MathUtil.__log2Up(value + 1) == exponent + 1);
+        }
+        assert(MathUtil.__log2Up(uint256(int256(-1))) == 256);
+    }
+
     function testFuzzLog2Up(uint256 value) public pure {
         uint256 exponent = MathUtil.__log2Up(value);
         if (value < 2) {
