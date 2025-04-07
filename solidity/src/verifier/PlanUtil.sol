@@ -7,12 +7,26 @@ import "../base/Constants.sol";
 /// @title Plan Utility Library
 /// @notice A library for handling utility functions related to plans.
 library PlanUtil {
-    /// @notice Skips over the names in a plan and returns the updated pointer.
-    /// @notice This is a wrapper around the `skip_plan_names` Yul function.
-    /// This wrapper is only intended to be used for testing.
+    /// @notice The Proof Plan is prefixed with metadata about the plan, primarily the names of the tables and columns.
+    /// @notice This method skips over the names in a plan and returns the updated pointer.
+    /// @dev The format of the plan is as follows:
+    /// @dev * number of tables (uint64)
+    /// @dev * table names
+    /// @dev     * length of table name (uint64)
+    /// @dev     * table name (variable length)
+    /// @dev * number of columns (uint64)
+    /// @dev * column names
+    /// @dev     * index of the table the column belongs to (uint64)
+    /// @dev     * length of column name (uint64)
+    /// @dev     * column name (variable length)
+    /// @dev     * column type (uint32)
+    /// @dev * number of output columns (uint64)
+    /// @dev * output column names
+    /// @dev     * length of output column name (uint64)
+    /// @dev     * output column name (variable length)
     /// @param __plan The calldata pointer to the plan.
     /// @return __planOut The updated pointer after skipping names.
-    function __skipPlanNames(bytes calldata __plan) internal pure returns (bytes calldata __planOut) {
+    function __skipPlanNames(bytes calldata __plan) external pure returns (bytes calldata __planOut) {
         assembly {
             function skip_plan_names(plan_ptr) -> plan_ptr_out {
                 // skip over the table names
