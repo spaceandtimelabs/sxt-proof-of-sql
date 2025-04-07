@@ -6,15 +6,15 @@ import "../base/Constants.sol";
 import "../base/Errors.sol";
 import {VerificationBuilder} from "../builder/VerificationBuilder.pre.sol";
 
-/// @title EqualsExpr
-/// @dev Library for handling equality comparison expressions between two proof expressions
-library EqualsExpr {
-    /// @notice Evaluates an equals expression by comparing two sub-expressions
+/// @title AddExpr
+/// @dev Library for handling adding two proof expressions
+library AddExpr {
+    /// @notice Evaluates an add expression by adding two sub-expressions
     /// @custom:as-yul-wrapper
     /// #### Wrapped Yul Function
     /// ##### Signature
     /// ```yul
-    /// equals_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval
+    /// add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval
     /// ```
     /// ##### Parameters
     /// * `expr_ptr` - calldata pointer to the expression data
@@ -23,44 +23,18 @@ library EqualsExpr {
     /// ##### Return Values
     /// * `expr_ptr_out` - pointer to the remaining expression after consuming both sub-expressions
     /// * `eval` - the evaluation result from the builder's final round MLE
-    /// @notice Evaluates two sub-expressions and produces identity constraints checking their equality
-    /// @notice ##### Constraints
-    /// * Inputs: \\(L=\texttt{lhs}\\), \\(R=\texttt{rhs}\\) with length \\(n\\), and thus \\(\chi_{[0,n)}=\texttt{chi}\\).
-    ///   Note: `proof_expr_evaluate` guarentees that the lengths of \\(L\\) and \\(R\\) are equal the lengths of `chi_{[0,n)}`.
-    /// * Outputs: \\(E=\texttt{result}\\) with length \\(n\\)
-    /// * Hints: \\(D^\star=\texttt{diff_star}\\)
-    /// * Helpers: \\(D :\equiv L - R=\texttt{diff}\\)
-    /// * Constraints:
-    /// \\[\begin{aligned}
-    /// E \cdot D &\equiv 0\\\\
-    /// \chi_{[0,n)} - (D\cdot D^\star + E) &\equiv 0
-    /// \end{aligned}\\]
-    /// @notice ##### Proof of Correctness
-    /// @notice **Theorem:** Given columns \\(L\\) and \\(R\\) of length \\(n\\),
-    /// \\[E[i] = \begin{cases} 1 & L[i] = R[i] \text{ and } i < n\\\\ 0 & \text{else}\end{cases}\\]
-    /// if and only if there exits a \\(D^\star\\) such that
-    /// \\[\begin{aligned}
-    /// E[i] \cdot D[i] &= 0\\\\
-    /// \chi_{[0,n)}[i] - (D[i]\cdot D^\star[i] + E[i]) &= 0
-    /// \end{aligned}\\]
-    /// for all \\(i\\), where \\(D[i] = L[i] - R[i]\\).
-    /// @notice **Completeness Proof:**
-    /// Setting \\[D^\star[i] = \begin{cases} (D[i])^{-1} & D[i] \neq 0\\\ 0 & \text{else}\end{cases}\\] satisfies the above equations.
-    /// @notice **Soundness Proof:**
-    /// * If \\(i<n\\) and \\(L[i] \neq R[i]\\), then \\(D[i] \neq 0\\) and \\(E[i] = 0\\) by the first equation.
-    /// * If \\(i<n\\) and \\(L[i] = R[i]\\), then \\(D[i] = 0\\) and \\(E[i] = \chi_{[0,n)}[i] = 1\\) by the second equation.
-    /// * If \\(i \geq n\\), then \\(L[i] = 0 = R[i]\\) and \\(E[i] = \chi_{[0,n)}[i] = 0\\) by the second equation.
+    /// @notice Evaluates two sub-expressions and adds them together
     /// ##### Proof Plan Encoding
-    /// The equals expression is encoded as follows:
+    /// The add expression is encoded as follows:
     /// 1. The left hand side expression
     /// 2. The right hand side expression
-    /// @param __expr The equals expression data
+    /// @param __expr The add expression data
     /// @param __builder The verification builder
     /// @param __chiEval The chi value for evaluation
     /// @return __exprOut The remaining expression after processing
     /// @return __builderOut The verification builder result
     /// @return __eval The evaluated result
-    function __equalsExprEvaluate( // solhint-disable-line gas-calldata-parameters
+    function __addExprEvaluate( // solhint-disable-line gas-calldata-parameters
     bytes calldata __expr, VerificationBuilder.Builder memory __builder, uint256 __chiEval)
         external
         pure
@@ -95,8 +69,8 @@ library EqualsExpr {
             function literal_expr_evaluate(expr_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
-            // IMPORT-YUL AddExpr.pre.sol
-            function add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+            // IMPORT-YUL EqualsExpr.pre.sol
+            function equals_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
             // IMPORT-YUL SubtractExpr.pre.sol
@@ -116,37 +90,19 @@ library EqualsExpr {
                 revert(0, 0)
             }
 
-            function equals_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
+            function add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
                 let lhs_eval
                 expr_ptr, lhs_eval := proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
 
                 let rhs_eval
                 expr_ptr, rhs_eval := proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
 
-                let diff_eval := addmod(lhs_eval, mulmod(MODULUS_MINUS_ONE, rhs_eval, MODULUS), MODULUS)
-                let diff_star_eval := builder_consume_final_round_mle(builder_ptr)
-                result_eval := mod(builder_consume_final_round_mle(builder_ptr), MODULUS)
-
-                builder_produce_identity_constraint(builder_ptr, mulmod(result_eval, diff_eval, MODULUS), 2)
-                builder_produce_identity_constraint(
-                    builder_ptr,
-                    addmod(
-                        chi_eval,
-                        mulmod(
-                            MODULUS_MINUS_ONE,
-                            addmod(mulmod(diff_eval, diff_star_eval, MODULUS), result_eval, MODULUS),
-                            MODULUS
-                        ),
-                        MODULUS
-                    ),
-                    2
-                )
-
+                result_eval := addmod(lhs_eval, rhs_eval, MODULUS)
                 expr_ptr_out := expr_ptr
             }
 
             let __exprOutOffset
-            __exprOutOffset, __eval := equals_expr_evaluate(__expr.offset, __builder, __chiEval)
+            __exprOutOffset, __eval := add_expr_evaluate(__expr.offset, __builder, __chiEval)
             __exprOut.offset := __exprOutOffset
             // slither-disable-next-line write-after-write
             __exprOut.length := sub(__expr.length, sub(__exprOutOffset, __expr.offset))

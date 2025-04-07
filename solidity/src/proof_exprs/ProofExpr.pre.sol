@@ -12,7 +12,9 @@ library ProofExpr {
     enum ExprVariant {
         Column,
         Literal,
-        Equals
+        Equals,
+        Add,
+        Subtract
     }
 
     /// @notice Evaluates a proof expression
@@ -90,6 +92,14 @@ library ProofExpr {
             function equals_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
                 revert(0, 0)
             }
+            // IMPORT-YUL AddExpr.pre.sol
+            function add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
+                revert(0, 0)
+            }
+            // IMPORT-YUL SubtractExpr.pre.sol
+            function subtract_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
+                revert(0, 0)
+            }
 
             function proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 let proof_expr_variant := shr(UINT32_PADDING_BITS, calldataload(expr_ptr))
@@ -107,6 +117,14 @@ library ProofExpr {
                 case 2 {
                     case_const(2, EQUALS_EXPR_VARIANT)
                     expr_ptr_out, eval := equals_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
+                }
+                case 3 {
+                    case_const(3, ADD_EXPR_VARIANT)
+                    expr_ptr_out, eval := add_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
+                }
+                case 4 {
+                    case_const(4, SUBTRACT_EXPR_VARIANT)
+                    expr_ptr_out, eval := subtract_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
                 }
                 default { err(ERR_UNSUPPORTED_PROOF_EXPR_VARIANT) }
             }
