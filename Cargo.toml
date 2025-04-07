@@ -53,6 +53,7 @@ num-traits = { version = "0.2", default-features = false }
 num-bigint = { version = "0.4.4", default-features = false }
 opentelemetry = { version = "0.23.0" }
 opentelemetry-jaeger = { version = "0.20.0" }
+plotters = { version = "0.3.7" }
 postcard = { version = "1.0" }
 proof-of-sql = { path = "crates/proof-of-sql" } # We automatically update this line during release. So do not modify it!
 proof-of-sql-parser = { path = "crates/proof-of-sql-parser" } # We automatically update this line during release. So do not modify it!

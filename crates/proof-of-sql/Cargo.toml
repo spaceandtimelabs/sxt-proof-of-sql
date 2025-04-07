@@ -50,6 +50,7 @@ num-traits = { workspace = true }
 num-bigint = { workspace = true, default-features = false }
 opentelemetry = { workspace = true, optional = true  }
 opentelemetry-jaeger = { workspace = true, optional = true }
+plotters = { workspace = true, optional = true }
 postcard = { workspace = true, features = ["alloc"] }
 proof-of-sql-parser = { workspace = true }
 rand = { workspace = true, default-features = false, optional = true }
@@ -88,7 +89,7 @@ development = ["arrow-csv", "criterion", "opentelemetry", "opentelemetry-jaeger"
 default = ["arrow", "perf"]
 utils = ["dep:indicatif", "dep:rand_chacha", "dep:sha2", "dep:clap", "dep:tempfile"]
 arrow = ["dep:arrow", "std"]
-bench = ["blitzar", "dep:clap", "csv", "dep:rand", "hyperkzg_proof", "opentelemetry", "opentelemetry-jaeger", "std", "tracing-opentelemetry", "tracing-subscriber" ]
+bench = ["blitzar", "dep:clap", "csv", "dep:rand", "hyperkzg_proof", "opentelemetry", "opentelemetry-jaeger", "plotters", "std", "tracing-opentelemetry", "tracing-subscriber" ]
 blitzar = ["dep:blitzar", "dep:merlin", "std"]
 hyperkzg_proof = ["dep:nova-snark", "std", "dep:ff", "dep:halo2curves", "blitzar"]
 test = ["dep:rand", "std"]

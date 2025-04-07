@@ -17,12 +17,14 @@
 //! - `-x` `--silent` - Silence console output (default: `false`)
 //! - `-h` `--write_header` - Write CVS header to console (default: `false`)
 //! - `-c` `--csv_path` - Path to the CSV file for storing timing results (Optional)
+//! - `-c` `--chart_path` - Path to drawing a chart from the CSV file (Optional)
 //! - `-b` `--blitzar_handle_path` - Path to the Blitzar handle used for `DynamicDory` (Optional)
 //! - `-d` `--dory_public_params_path` - Path to the public parameters used for `DynamicDory` (Optional)
 //! - `-p` `--ppot_path` - Path to the Perpetual Powers of Tau file used for `HyperKZG` (Optional)
 //!
 //! # Optional File Path Environment Variables
 //! - `CSV_PATH` - Path to the CSV file for storing timing results
+//! - `CHART_PATH` - Path to drawing a chart from the CSV file
 //! - `BLITZAR_HANDLE_PATH` - Path to the Blitzar handle used for `Dory` and `DynamicDory` commitment schemes
 //! - `DORY_PUBLIC_PARAMS_PATH` - Path to the public parameters used for `Dory` and `DynamicDory` commitment schemes
 //! - `PPOT_PATH` - Path to the Perpetual Powers of Tau file used for `HyperKZG` commitment scheme
@@ -64,7 +66,7 @@ use utils::{
     jaeger_setup::{setup_jaeger_tracing, stop_jaeger_tracing},
     queries::{get_query, QueryEntry, QUERIES},
     random_util::generate_random_columns,
-    results_io::append_to_csv,
+    results_io::{append_to_csv, draw_chart_from_csv},
 };
 
 #[derive(ValueEnum, Clone, Debug)]
@@ -160,6 +162,10 @@ struct Cli {
     /// Optional path to the CSV file for storing results
     #[arg(short, long, env)]
     csv_path: Option<PathBuf>,
+
+    /// Optional path to drawing a chart from the CSV file
+    #[arg(short, long, env)]
+    chart_path: Option<PathBuf>,
 
     /// Optional path to the Blitzar handle used for the `Dory` and `DynamicDory` commitment schemes
     #[arg(short, long, env)]
@@ -605,6 +611,12 @@ fn main() {
         }
         CommitmentScheme::HyperKZG => {
             bench_hyperkzg(&cli, queries);
+        }
+    }
+
+    if let Some(csv_path) = &cli.csv_path {
+        if let Some(chart_path) = &cli.chart_path {
+            let _ = draw_chart_from_csv(csv_path, chart_path);
         }
     }
 
