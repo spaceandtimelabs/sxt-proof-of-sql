@@ -15,7 +15,38 @@ library MathUtil {
             function log2_up(value) -> exponent {
                 if value { value := sub(value, 1) }
                 exponent := 1
-                for {} shr(exponent, value) {} { exponent := add(exponent, 1) }
+                if gt(value, 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF) {
+                    exponent := add(exponent, 128)
+                    value := shr(128, value)
+                }
+                if gt(value, 0xFFFFFFFFFFFFFFFF) {
+                    exponent := add(exponent, 64)
+                    value := shr(64, value)
+                }
+                if gt(value, 0xFFFFFFFF) {
+                    exponent := add(exponent, 32)
+                    value := shr(32, value)
+                }
+                if gt(value, 0xFFFF) {
+                    exponent := add(exponent, 16)
+                    value := shr(16, value)
+                }
+                if gt(value, 0xFF) {
+                    exponent := add(exponent, 8)
+                    value := shr(8, value)
+                }
+                if gt(value, 0xF) {
+                    exponent := add(exponent, 4)
+                    value := shr(4, value)
+                }
+                if gt(value, 0x3) {
+                    exponent := add(exponent, 2)
+                    value := shr(2, value)
+                }
+                if gt(value, 0x1) {
+                    exponent := add(exponent, 1)
+                    value := shr(1, value)
+                }
             }
             __exponent := log2_up(__value)
         }
