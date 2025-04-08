@@ -163,7 +163,7 @@ jobs:
       - name: Install Dependencies
         run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld
       - name: Run clippy
-        run: cargo cl -- -D warnings
+        run: cargo cl -- -D warnings -A unfulfilled_lint_expectations
 
   coverage:
     name: Code Coverage

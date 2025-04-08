@@ -25,7 +25,7 @@ pub struct DoryMessages {
 }
 impl_serde_for_ark_serde_checked!(DoryMessages);
 
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg_attr(not(test), expect(dead_code))]
 impl DoryMessages {
     /// Pushes a field element from the prover onto the queue, and appends it to the transcript.
     pub(super) fn prover_send_F_message(&mut self, transcript: &mut impl Transcript, message: F) {

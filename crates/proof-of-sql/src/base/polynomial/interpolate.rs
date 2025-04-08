@@ -15,7 +15,7 @@ use num_traits::{Inv, One, Zero};
 // Allow missing panics documentation because the function should not panic under normal conditions.
 /// unless x is one of 0,1,...,d, in which case, f(x) is already known.
 #[expect(clippy::missing_panics_doc)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub fn interpolate_uni_poly<F>(polynomial: &[F], x: F) -> F
 where
     F: Copy
@@ -76,7 +76,7 @@ where
 /// Let `d` be `evals.len() - 1` and let `f` be the polynomial such that `f(i) = evals[i]`.
 /// The output of this function is the vector of coefficients of `f`, with the leading coefficient first.
 /// That is, `f(x) = evals[j] * x^(d - j)`.
-#[allow(
+#[expect(
     clippy::missing_panics_doc,
     clippy::cast_possible_truncation,
     clippy::cast_possible_wrap
