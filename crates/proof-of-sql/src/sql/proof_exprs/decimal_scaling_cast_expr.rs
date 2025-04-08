@@ -26,7 +26,6 @@ pub struct DecimalScalingCastExpr {
 
 impl DecimalScalingCastExpr {
     /// Creates a new `CastExpr`
-    #[expect(dead_code)]
     pub fn try_new(
         from_expr: Box<DynProofExpr>,
         to_type: ColumnType,
