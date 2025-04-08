@@ -732,7 +732,6 @@ pub fn try_get_scaling_factor_with_precision_and_scale(
 ///
 /// # Panics
 /// Panics if casting is invalid between the two types
-#[cfg_attr(not(test), expect(dead_code))]
 pub fn cast_column_to_decimal_with_scaling<'a, S: Scalar>(
     alloc: &'a Bump,
     from_column: Column<'a, S>,
