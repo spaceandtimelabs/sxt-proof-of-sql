@@ -1,5 +1,4 @@
 //! In this file we run end-to-end tests for Proof of SQL.
-#![cfg_attr(test, allow(clippy::missing_panics_doc))]
 use ark_std::test_rng;
 use bumpalo::Bump;
 use datafusion::{catalog::TableReference, common::DFSchema, config::ConfigOptions};

@@ -1,4 +1,4 @@
-#![allow(clippy::module_inception)]
+#![expect(clippy::module_inception)]
 
 use crate::base::{encode::VarInt, ref_into::RefInto, scalar::ScalarConversionError};
 use alloc::string::String;

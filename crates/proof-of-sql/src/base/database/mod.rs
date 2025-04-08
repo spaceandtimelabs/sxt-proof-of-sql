@@ -7,7 +7,7 @@ pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAcc
 mod column;
 pub use column::{Column, ColumnField, ColumnRef, ColumnType};
 
-#[expect(dead_code)]
+#[cfg_attr(not(test), expect(dead_code))]
 pub(crate) mod slice_operation;
 
 mod slice_decimal_operation;
@@ -27,7 +27,6 @@ pub(super) use column_comparison_operation::{ComparisonOp, EqualOp, GreaterThanO
 mod column_index_operation;
 pub(super) use column_index_operation::apply_column_to_indexes;
 
-#[expect(dead_code)]
 mod column_repetition_operation;
 pub(super) use column_repetition_operation::{ColumnRepeatOp, ElementwiseRepeatOp, RepetitionOp};
 
@@ -125,5 +124,5 @@ pub(crate) mod order_by_util;
 #[cfg(test)]
 mod order_by_util_test;
 
-#[expect(dead_code)]
+#[cfg_attr(not(test), expect(dead_code))]
 pub(crate) mod join_util;

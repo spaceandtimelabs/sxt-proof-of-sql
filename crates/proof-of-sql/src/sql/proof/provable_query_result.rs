@@ -17,7 +17,7 @@ pub struct ProvableQueryResult {
     data: Vec<u8>,
 }
 
-// TODO: Handle truncation properly. The `allow(clippy::cast_possible_truncation)` is a temporary fix and should be replaced with proper logic to manage possible truncation scenarios.
+// TODO: Handle truncation properly. The `expect(clippy::cast_possible_truncation)` is a temporary fix and should be replaced with proper logic to manage possible truncation scenarios.
 impl ProvableQueryResult {
     #[expect(clippy::cast_possible_truncation)]
     /// The number of columns in the result

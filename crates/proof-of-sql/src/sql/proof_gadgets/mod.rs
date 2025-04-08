@@ -3,7 +3,7 @@
 mod divide_and_modulo_expr;
 mod membership_check;
 mod monotonic;
-#[expect(dead_code)]
+#[cfg_attr(not(test), expect(dead_code))]
 mod permutation_check;
 mod shift;
 pub(crate) use membership_check::{
@@ -24,7 +24,7 @@ pub(crate) use sign_expr::{
     final_round_evaluate_sign, first_round_evaluate_sign, verifier_evaluate_sign,
 };
 #[cfg(feature = "blitzar")]
-#[expect(dead_code)]
+#[cfg_attr(not(test), expect(dead_code))]
 mod range_check;
 #[cfg(all(test, feature = "blitzar"))]
 mod range_check_test;
