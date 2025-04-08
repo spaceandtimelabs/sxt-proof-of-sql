@@ -1,4 +1,4 @@
-use super::{error::Error, exprs::Expr};
+use super::{EVMDynProofExpr, EVMProofPlanError, EVMProofPlanResult};
 use crate::{
     base::{
         database::{ColumnRef, TableRef},
@@ -6,7 +6,7 @@ use crate::{
     },
     sql::{
         proof_exprs::{AliasedDynProofExpr, TableExpr},
-        proof_plans::{self, DynProofPlan},
+        proof_plans::{DynProofPlan, FilterExec},
     },
 };
 use alloc::{string::String, vec::Vec};
@@ -15,23 +15,23 @@ use sqlparser::ast::Ident;
 
 /// Represents a plan that can be serialized for EVM.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub(crate) enum Plan {
-    Filter(FilterExec),
+pub(crate) enum EVMDynProofPlan {
+    Filter(EVMFilterExec),
 }
 
-impl Plan {
-    /// Try to create a `Plan` from a `DynProofPlan`.
+impl EVMDynProofPlan {
+    /// Try to create a `EVMDynProofPlan` from a `DynProofPlan`.
     pub(crate) fn try_from_proof_plan(
         plan: &DynProofPlan,
         table_refs: &IndexSet<TableRef>,
         column_refs: &IndexSet<ColumnRef>,
-    ) -> Result<Self, Error> {
+    ) -> EVMProofPlanResult<Self> {
         match plan {
             DynProofPlan::Filter(filter_exec) => {
-                FilterExec::try_from_proof_plan(filter_exec, table_refs, column_refs)
+                EVMFilterExec::try_from_proof_plan(filter_exec, table_refs, column_refs)
                     .map(Self::Filter)
             }
-            _ => Err(Error::NotSupported),
+            _ => Err(EVMProofPlanError::NotSupported),
         }
     }
 
@@ -40,40 +40,40 @@ impl Plan {
         table_refs: &IndexSet<TableRef>,
         column_refs: &IndexSet<ColumnRef>,
         output_column_names: &IndexSet<String>,
-    ) -> Result<DynProofPlan, Error> {
+    ) -> EVMProofPlanResult<DynProofPlan> {
         match self {
-            Plan::Filter(filter_exec) => Ok(DynProofPlan::Filter(
+            EVMDynProofPlan::Filter(filter_exec) => Ok(DynProofPlan::Filter(
                 filter_exec.try_into_proof_plan(table_refs, column_refs, output_column_names)?,
             )),
         }
     }
 }
 
-/// Represents a filter execution plan.
+/// Represents a filter execution plan in EVM.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub(crate) struct FilterExec {
+pub(crate) struct EVMFilterExec {
     table_number: usize,
-    where_clause: Expr,
-    results: Vec<Expr>,
+    where_clause: EVMDynProofExpr,
+    results: Vec<EVMDynProofExpr>,
 }
 
-impl FilterExec {
+impl EVMFilterExec {
     /// Try to create a `FilterExec` from a `proof_plans::FilterExec`.
     pub(crate) fn try_from_proof_plan(
-        plan: &proof_plans::FilterExec,
+        plan: &FilterExec,
         table_refs: &IndexSet<TableRef>,
         column_refs: &IndexSet<ColumnRef>,
-    ) -> Result<Self, Error> {
+    ) -> EVMProofPlanResult<Self> {
         Ok(Self {
             table_number: table_refs
                 .get_index_of(&plan.table.table_ref)
-                .ok_or(Error::TableNotFound)?,
+                .ok_or(EVMProofPlanError::TableNotFound)?,
             results: plan
                 .aliased_results
                 .iter()
-                .map(|result| Expr::try_from_proof_expr(&result.expr, column_refs))
+                .map(|result| EVMDynProofExpr::try_from_proof_expr(&result.expr, column_refs))
                 .collect::<Result<_, _>>()?,
-            where_clause: Expr::try_from_proof_expr(&plan.where_clause, column_refs)?,
+            where_clause: EVMDynProofExpr::try_from_proof_expr(&plan.where_clause, column_refs)?,
         })
     }
 
@@ -82,8 +82,8 @@ impl FilterExec {
         table_refs: &IndexSet<TableRef>,
         column_refs: &IndexSet<ColumnRef>,
         output_column_names: &IndexSet<String>,
-    ) -> Result<proof_plans::FilterExec, Error> {
-        Ok(proof_plans::FilterExec::new(
+    ) -> EVMProofPlanResult<FilterExec> {
+        Ok(FilterExec::new(
             self.results
                 .iter()
                 .zip(output_column_names.iter())
@@ -98,7 +98,7 @@ impl FilterExec {
                 table_ref: table_refs
                     .get_index(self.table_number)
                     .cloned()
-                    .ok_or(Error::TableNotFound)?,
+                    .ok_or(EVMProofPlanError::TableNotFound)?,
             },
             self.where_clause.try_into_proof_expr(column_refs)?,
         ))
@@ -114,8 +114,8 @@ mod tests {
             map::indexset,
         },
         sql::{
-            evm_proof_plan::exprs::{ColumnExpr, EqualsExpr, LiteralExpr},
-            proof_exprs::{self, AliasedDynProofExpr, DynProofExpr},
+            evm_proof_plan::exprs::{EVMColumnExpr, EVMEqualsExpr, EVMLiteralExpr},
+            proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, EqualsExpr, LiteralExpr},
             proof_plans::DynProofPlan,
         },
     };
@@ -130,44 +130,42 @@ mod tests {
         let column_ref_a = ColumnRef::new(table_ref.clone(), identifier_a, ColumnType::BigInt);
         let column_ref_b = ColumnRef::new(table_ref.clone(), identifier_b, ColumnType::BigInt);
 
-        let filter_exec = proof_plans::FilterExec::new(
+        let filter_exec = FilterExec::new(
             vec![AliasedDynProofExpr {
-                expr: DynProofExpr::Column(proof_exprs::ColumnExpr::new(column_ref_b.clone())),
+                expr: DynProofExpr::Column(ColumnExpr::new(column_ref_b.clone())),
                 alias: Ident::new(alias.clone()),
             }],
             TableExpr {
                 table_ref: table_ref.clone(),
             },
-            DynProofExpr::Equals(proof_exprs::EqualsExpr::new(
-                Box::new(DynProofExpr::Column(proof_exprs::ColumnExpr::new(
-                    column_ref_a.clone(),
-                ))),
-                Box::new(DynProofExpr::Literal(proof_exprs::LiteralExpr::new(
+            DynProofExpr::Equals(EqualsExpr::new(
+                Box::new(DynProofExpr::Column(ColumnExpr::new(column_ref_a.clone()))),
+                Box::new(DynProofExpr::Literal(LiteralExpr::new(
                     LiteralValue::BigInt(5),
                 ))),
             )),
         );
 
-        let evm_filter_exec = FilterExec::try_from_proof_plan(
+        let evm_filter_exec = EVMFilterExec::try_from_proof_plan(
             &filter_exec,
             &indexset![table_ref.clone()],
             &indexset![column_ref_a.clone(), column_ref_b.clone()],
         )
         .unwrap();
 
-        let expected_evm_filter_exec = FilterExec {
+        let expected_evm_filter_exec = EVMFilterExec {
             table_number: 0,
-            where_clause: Expr::Equals(EqualsExpr::new(
-                Expr::Column(ColumnExpr::new(0)),
-                Expr::Literal(LiteralExpr::BigInt(5)),
+            where_clause: EVMDynProofExpr::Equals(EVMEqualsExpr::new(
+                EVMDynProofExpr::Column(EVMColumnExpr::new(0)),
+                EVMDynProofExpr::Literal(EVMLiteralExpr::BigInt(5)),
             )),
-            results: vec![Expr::Column(ColumnExpr::new(1))],
+            results: vec![EVMDynProofExpr::Column(EVMColumnExpr::new(1))],
         };
 
         assert_eq!(evm_filter_exec, expected_evm_filter_exec);
 
         // Roundtrip
-        let roundtripped_filter_exec = FilterExec::try_into_proof_plan(
+        let roundtripped_filter_exec = EVMFilterExec::try_into_proof_plan(
             &evm_filter_exec,
             &indexset![table_ref.clone()],
             &indexset![column_ref_a.clone(), column_ref_b.clone()],
@@ -183,8 +181,8 @@ mod tests {
         let table_refs = indexset![];
         let column_refs = indexset![];
         assert!(matches!(
-            Plan::try_from_proof_plan(&plan, &table_refs, &column_refs),
-            Err(Error::NotSupported)
+            EVMDynProofPlan::try_from_proof_plan(&plan, &table_refs, &column_refs),
+            Err(EVMProofPlanError::NotSupported)
         ));
     }
 }
