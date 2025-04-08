@@ -1,6 +1,6 @@
 //! Decimal integration tests for the proof-of-sql crate.
 #![cfg(feature = "test")]
-#![cfg_attr(test, allow(clippy::missing_panics_doc))]
+#![cfg_attr(test, expect(clippy::missing_panics_doc))]
 #[cfg(feature = "blitzar")]
 use blitzar::proof::InnerProductProof;
 #[cfg(feature = "blitzar")]

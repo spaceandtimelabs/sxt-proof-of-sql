@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![no_std]
-#![cfg_attr(test, allow(clippy::missing_panics_doc))]
+#![cfg_attr(test, expect(clippy::missing_panics_doc))]
 extern crate alloc;
 
 /// Module for handling an intermediate timestamp type received from the lexer.
@@ -35,7 +35,7 @@ pub use resource_id::ResourceId;
 pub mod sqlparser;
 
 // lalrpop-generated code is not clippy-compliant
-lalrpop_mod!(#[allow(clippy::all, missing_docs, clippy::missing_docs_in_private_items, clippy::pedantic, clippy::missing_panics_doc, clippy::allow_attributes)] pub sql);
+lalrpop_mod!(#[expect(clippy::all, missing_docs, clippy::pedantic, clippy::missing_panics_doc, clippy::allow_attributes, reason = "lalrpop-generated code can not be expected to be clippy-compliant or use expect")] pub sql);
 
 /// Implement [`Deserialize`](serde::Deserialize) through [`FromStr`](core::str::FromStr) to avoid invalid identifiers.
 #[macro_export]

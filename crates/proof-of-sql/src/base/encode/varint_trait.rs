@@ -72,13 +72,13 @@ fn zigzag_decode(from: u64) -> i64 {
 macro_rules! impl_varint {
     ($t:ty, unsigned) => {
         impl VarInt for $t {
-            #[expect(clippy::cast_lossless)]
+            #[allow(clippy::cast_lossless, clippy::allow_attributes, reason = "In a macro different instances can differ hence allow can not be replaced with expect")]
             fn required_space(self) -> usize {
                 (self as u64).required_space()
             }
 
             #[expect(clippy::cast_possible_truncation)]
-            #[expect(clippy::cast_lossless)]
+            #[allow(clippy::cast_lossless, clippy::allow_attributes, reason = "In a macro different instances can differ hence allow can not be replaced with expect")]
             fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
                 let (n, s) = u64::decode_var(src)?;
                 // This check is required to ensure that we actually return `None` when `src` has a value that would overflow `Self`.
@@ -89,7 +89,7 @@ macro_rules! impl_varint {
                 }
             }
 
-            #[expect(clippy::cast_lossless)]
+            #[allow(clippy::cast_lossless, clippy::allow_attributes, reason = "In a macro different instances can differ hence allow can not be replaced with expect")]
             fn encode_var(self, dst: &mut [u8]) -> usize {
                 (self as u64).encode_var(dst)
             }
@@ -97,13 +97,13 @@ macro_rules! impl_varint {
     };
     ($t:ty, signed) => {
         impl VarInt for $t {
-            #[expect(clippy::cast_lossless)]
+            #[allow(clippy::cast_lossless, clippy::allow_attributes, reason = "In a macro different instances can differ hence allow can not be replaced with expect")]
             fn required_space(self) -> usize {
                 (self as i64).required_space()
             }
 
             #[expect(clippy::cast_possible_truncation)]
-            #[expect(clippy::cast_lossless)]
+            #[allow(clippy::cast_lossless, clippy::allow_attributes, reason = "In a macro different instances can differ hence allow can not be replaced with expect")]
             fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
                 let (n, s) = i64::decode_var(src)?;
                 // This check is required to ensure that we actually return `None` when `src` has a value that would overflow `Self`.
@@ -114,7 +114,7 @@ macro_rules! impl_varint {
                 }
             }
 
-            #[expect(clippy::cast_lossless)]
+            #[allow(clippy::cast_lossless, clippy::allow_attributes, reason = "In a macro different instances can differ hence allow can not be replaced with expect")]
             fn encode_var(self, dst: &mut [u8]) -> usize {
                 (self as i64).encode_var(dst)
             }

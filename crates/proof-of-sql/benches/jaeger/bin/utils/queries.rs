@@ -1,4 +1,4 @@
-#![allow(clippy::cast_possible_wrap)]
+#![expect(clippy::cast_possible_wrap)]
 use super::OptionalRandBound;
 use proof_of_sql::base::database::ColumnType;
 
@@ -185,7 +185,6 @@ pub const QUERIES: &[QueryEntry] = &[
 /// # Returns
 /// * `Some((&str, &str, &[(&str, ColumnType, OptionalRandBound)]))` if the query is found.
 /// * `None` if no query with the given title exists.
-#[expect(dead_code)]
 pub fn get_query(title: &str) -> Option<QueryEntry> {
     QUERIES
         .iter()
