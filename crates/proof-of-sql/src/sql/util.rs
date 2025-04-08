@@ -84,3 +84,40 @@ pub(crate) fn check_dtypes(
         },
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::type_check_binary_operation;
+    use crate::base::{database::ColumnType, math::decimal::Precision};
+    use sqlparser::ast::BinaryOperator;
+
+    #[test]
+    fn we_can_return_none_if_decimal_has_too_high_of_precision() {
+        assert!(type_check_binary_operation(
+            ColumnType::Int,
+            ColumnType::Decimal75(Precision::new(40).unwrap(), 0),
+            &BinaryOperator::Gt
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn we_can_return_none_for_unsupported_operation() {
+        assert!(type_check_binary_operation(
+            ColumnType::Int,
+            ColumnType::Decimal75(Precision::new(40).unwrap(), 0),
+            &BinaryOperator::BitwiseXor
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn we_can_return_value_for_divide() {
+        assert!(type_check_binary_operation(
+            ColumnType::Int,
+            ColumnType::Decimal75(Precision::new(40).unwrap(), 0),
+            &BinaryOperator::Divide
+        )
+        .is_some());
+    }
+}
