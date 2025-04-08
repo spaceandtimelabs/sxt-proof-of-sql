@@ -211,24 +211,7 @@ impl QueryContextBuilder<'_> {
     ) -> ConversionResult<ColumnType> {
         let left_dtype = self.visit_expr(left)?;
         let right_dtype = self.visit_expr(right)?;
-        check_dtypes(left_dtype, right_dtype, op)?;
-        match op {
-            BinaryOperator::And
-            | BinaryOperator::Or
-            | BinaryOperator::Eq
-            | BinaryOperator::Gt
-            | BinaryOperator::Lt => Ok(ColumnType::Boolean),
-            BinaryOperator::Multiply
-            | BinaryOperator::Divide
-            | BinaryOperator::Minus
-            | BinaryOperator::Plus => Ok(left_dtype),
-            _ => {
-                // Handle unsupported binary operations
-                Err(ConversionError::UnsupportedOperation {
-                    message: format!("{op:?}"),
-                })
-            }
-        }
+        Ok(check_dtypes(left_dtype, right_dtype, op)?)
     }
 
     fn visit_unary_expr(

@@ -87,7 +87,7 @@ impl DynProofExpr {
     pub fn try_new_equals(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Eq) {
+        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Eq).is_some() {
             Ok(Self::Equals(EqualsExpr::new(Box::new(lhs), Box::new(rhs))))
         } else {
             Err(AnalyzeError::DataTypeMismatch {
@@ -104,7 +104,7 @@ impl DynProofExpr {
     ) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Lt) {
+        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Lt).is_some() {
             Ok(Self::Inequality(InequalityExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
@@ -122,7 +122,8 @@ impl DynProofExpr {
     pub fn try_new_add(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Plus) {
+        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Plus).is_some()
+        {
             Ok(Self::AddSubtract(AddSubtractExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
@@ -140,7 +141,8 @@ impl DynProofExpr {
     pub fn try_new_subtract(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Minus) {
+        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Minus).is_some()
+        {
             Ok(Self::AddSubtract(AddSubtractExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
@@ -158,7 +160,9 @@ impl DynProofExpr {
     pub fn try_new_multiply(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Multiply) {
+        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Multiply)
+            .is_some()
+        {
             Ok(Self::Multiply(MultiplyExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
