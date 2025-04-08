@@ -324,3 +324,48 @@ impl QueryContextBuilder<'_> {
         Ok(column_type)
     }
 }
+
+#[cfg(all(test, feature = "blitzar"))]
+mod tests {
+    use super::QueryContextBuilder;
+    use crate::{
+        base::{
+            database::{ColumnType, TableRef},
+            map::indexmap,
+        },
+        sql::parse::query_expr_tests::schema_accessor_from_table_ref_with_schema,
+    };
+    use proof_of_sql_parser::{
+        intermediate_ast::{Expression, TableExpression},
+        Identifier,
+    };
+    use sqlparser::ast::{BinaryOperator, Ident};
+
+    #[test]
+    fn we_can_correctly_visit_binary_expr_for_bigger_right_type() {
+        let t = TableRef::new("sxt", "tab");
+        let accessor = schema_accessor_from_table_ref_with_schema(
+            &t,
+            indexmap! {
+                "a".into() => ColumnType::Int,
+                "b".into() => ColumnType::BigInt,
+            },
+        );
+        let query_context_builder = QueryContextBuilder::new(&accessor);
+        let res = query_context_builder
+            .visit_table_expr(
+                &[Box::new(TableExpression::Named {
+                    table: "tab".parse().unwrap(),
+                    schema: None,
+                })],
+                Ident::new("sxt"),
+            )
+            .visit_binary_expr(
+                &BinaryOperator::Plus,
+                &Expression::Column(Identifier::try_new("a").unwrap()),
+                &Expression::Column(Identifier::try_new("b").unwrap()),
+            )
+            .unwrap();
+        assert_eq!(res, ColumnType::BigInt);
+    }
+}
