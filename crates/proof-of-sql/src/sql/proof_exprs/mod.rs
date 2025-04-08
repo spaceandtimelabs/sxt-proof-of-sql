@@ -81,3 +81,5 @@ mod cast_expr;
 mod cast_expr_test;
 
 mod decimal_scaling_cast_expr;
+#[cfg(all(test, feature = "blitzar"))]
+mod decimal_scaling_cast_expr_test;
