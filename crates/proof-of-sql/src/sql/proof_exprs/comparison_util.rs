@@ -5,7 +5,7 @@ use crate::{
         scalar::{Scalar, ScalarExt},
         slice_ops,
     },
-    sql::{util::type_check_binary_operation, AnalyzeError, AnalyzeResult},
+    sql::{util::try_binary_operation_type, AnalyzeError, AnalyzeResult},
 };
 use alloc::string::ToString;
 use bumpalo::Bump;
@@ -33,7 +33,7 @@ pub fn scale_and_subtract_literal<S: Scalar>(
     } else {
         BinaryOperator::Lt
     };
-    if type_check_binary_operation(lhs_type, rhs_type, &operator).is_none() {
+    if try_binary_operation_type(lhs_type, rhs_type, &operator).is_none() {
         return Err(AnalyzeError::DataTypeMismatch {
             left_type: lhs_type.to_string(),
             right_type: rhs_type.to_string(),
@@ -106,7 +106,7 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     } else {
         BinaryOperator::Lt
     };
-    if type_check_binary_operation(lhs_type, rhs_type, &operator).is_none() {
+    if try_binary_operation_type(lhs_type, rhs_type, &operator).is_none() {
         return Err(AnalyzeError::DataTypeMismatch {
             left_type: lhs_type.to_string(),
             right_type: rhs_type.to_string(),

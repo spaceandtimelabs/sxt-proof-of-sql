@@ -14,7 +14,7 @@ use sqlparser::ast::BinaryOperator;
 /// # Returns
 ///
 /// * `Some(result_type)` if the operation is valid, `None` otherwise.
-pub(crate) fn type_check_binary_operation(
+pub(crate) fn try_binary_operation_type(
     left_dtype: ColumnType,
     right_dtype: ColumnType,
     binary_operator: &BinaryOperator,
@@ -77,7 +77,7 @@ pub(crate) fn check_dtypes(
     right_dtype: ColumnType,
     binary_operator: &BinaryOperator,
 ) -> AnalyzeResult<ColumnType> {
-    type_check_binary_operation(left_dtype, right_dtype, binary_operator).ok_or(
+    try_binary_operation_type(left_dtype, right_dtype, binary_operator).ok_or(
         AnalyzeError::DataTypeMismatch {
             left_type: left_dtype.to_string(),
             right_type: right_dtype.to_string(),
@@ -87,13 +87,13 @@ pub(crate) fn check_dtypes(
 
 #[cfg(test)]
 mod tests {
-    use super::type_check_binary_operation;
+    use super::try_binary_operation_type;
     use crate::base::{database::ColumnType, math::decimal::Precision};
     use sqlparser::ast::BinaryOperator;
 
     #[test]
     fn we_can_return_none_if_decimal_has_too_high_of_precision() {
-        assert!(type_check_binary_operation(
+        assert!(try_binary_operation_type(
             ColumnType::Int,
             ColumnType::Decimal75(Precision::new(40).unwrap(), 0),
             &BinaryOperator::Gt
@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn we_can_return_none_for_unsupported_operation() {
-        assert!(type_check_binary_operation(
+        assert!(try_binary_operation_type(
             ColumnType::Int,
             ColumnType::Decimal75(Precision::new(40).unwrap(), 0),
             &BinaryOperator::BitwiseXor
@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn we_can_return_value_for_divide() {
-        assert!(type_check_binary_operation(
+        assert!(try_binary_operation_type(
             ColumnType::Int,
             ColumnType::Decimal75(Precision::new(40).unwrap(), 0),
             &BinaryOperator::Divide
