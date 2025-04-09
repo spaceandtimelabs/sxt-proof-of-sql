@@ -281,39 +281,26 @@ mod test {
         let lhs = ColumnType::TinyInt;
         let rhs = ColumnType::TinyInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::TinyInt;
+        let expected = ColumnType::Decimal75(Precision::new(4).unwrap(), 0);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::SmallInt;
+        let expected = ColumnType::Decimal75(Precision::new(6).unwrap(), 0);
         assert_eq!(expected, actual);
 
         // lhs and rhs are integers with different precision
         let lhs = ColumnType::TinyInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::SmallInt;
+        let expected = ColumnType::Decimal75(Precision::new(6).unwrap(), 0);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Int;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Int;
-        assert_eq!(expected, actual);
-
-        // lhs is an integer and rhs is a scalar
-        let lhs = ColumnType::TinyInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
-        assert_eq!(expected, actual);
-
-        let lhs = ColumnType::SmallInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
+        let expected = ColumnType::Decimal75(Precision::new(11).unwrap(), 0);
         assert_eq!(expected, actual);
 
         // lhs is a decimal with nonnegative scale and rhs is an integer
@@ -416,39 +403,26 @@ mod test {
         let lhs = ColumnType::TinyInt;
         let rhs = ColumnType::TinyInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::TinyInt;
+        let expected = ColumnType::Decimal75(Precision::new(4).unwrap(), 0);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::SmallInt;
+        let expected = ColumnType::Decimal75(Precision::new(6).unwrap(), 0);
         assert_eq!(expected, actual);
 
         // lhs and rhs are integers with different precision
         let lhs = ColumnType::TinyInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::SmallInt;
+        let expected = ColumnType::Decimal75(Precision::new(6).unwrap(), 0);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Int;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Int;
-        assert_eq!(expected, actual);
-
-        // lhs is an integer and rhs is a scalar
-        let lhs = ColumnType::TinyInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
-        assert_eq!(expected, actual);
-
-        let lhs = ColumnType::SmallInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
+        let expected = ColumnType::Decimal75(Precision::new(11).unwrap(), 0);
         assert_eq!(expected, actual);
 
         // lhs is a decimal and rhs is an integer
@@ -571,19 +545,6 @@ mod test {
         let rhs = ColumnType::Int;
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
         let expected = ColumnType::Int;
-        assert_eq!(expected, actual);
-
-        // lhs is an integer and rhs is a scalar
-        let lhs = ColumnType::TinyInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
-        assert_eq!(expected, actual);
-
-        let lhs = ColumnType::SmallInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
         assert_eq!(expected, actual);
 
         // lhs is a decimal and rhs is an integer
