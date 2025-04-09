@@ -284,7 +284,7 @@ pub fn decimal75<S: Scalar>(
     (
         name.into(),
         OwnedColumn::Decimal75(
-            crate::base::math::decimal::Precision::new(precision).unwrap(),
+            crate::base::math::decimal::precision,
             scale,
             data.into_iter().map(Into::into).collect(),
         ),

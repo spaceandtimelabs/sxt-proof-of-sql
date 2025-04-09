@@ -89,16 +89,12 @@ pub(crate) fn scalar_value_to_literal_value(value: ScalarValue) -> PlannerResult
             PoSQLTimeZone::utc(),
             v,
         )),
-        ScalarValue::Decimal128(Some(v), precision, scale) => Ok(LiteralValue::Decimal75(
-            Precision::new(precision)?,
-            scale,
-            v.into(),
-        )),
-        ScalarValue::Decimal256(Some(v), precision, scale) => Ok(LiteralValue::Decimal75(
-            Precision::new(precision)?,
-            scale,
-            v.into(),
-        )),
+        ScalarValue::Decimal128(Some(v), precision, scale) => {
+            Ok(LiteralValue::Decimal75(precision, scale, v.into()))
+        }
+        ScalarValue::Decimal256(Some(v), precision, scale) => {
+            Ok(LiteralValue::Decimal75(precision, scale, v.into()))
+        }
         _ => Err(PlannerError::UnsupportedDataType {
             data_type: value.data_type().clone(),
         }),
@@ -412,11 +408,7 @@ mod tests {
         let value = ScalarValue::Decimal128(Some(0), 38, 0);
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
-            LiteralValue::Decimal75(
-                38_u8,
-                0,
-                proof_of_sql::base::math::i256::I256::from(0i128)
-            )
+            LiteralValue::Decimal75(38_u8, 0, proof_of_sql::base::math::i256::I256::from(0i128))
         );
 
         // Decimal256
@@ -457,11 +449,7 @@ mod tests {
         let value = ScalarValue::Decimal256(Some(arrow::datatypes::i256::ZERO), 75, 0);
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
-            LiteralValue::Decimal75(
-                75_u8,
-                0,
-                proof_of_sql::base::math::i256::I256::from(0i128)
-            )
+            LiteralValue::Decimal75(75_u8, 0, proof_of_sql::base::math::i256::I256::from(0i128))
         );
     }
 

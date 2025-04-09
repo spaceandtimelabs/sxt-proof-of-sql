@@ -427,8 +427,7 @@ mod tests {
     #[test]
     fn we_can_get_type_and_length_of_decimal_column() {
         // empty case
-        let decimal_committable_column =
-            CommittableColumn::Decimal75(1_u8, 0, [].to_vec());
+        let decimal_committable_column = CommittableColumn::Decimal75(1_u8, 0, [].to_vec());
         assert_eq!(decimal_committable_column.len(), 0);
         assert!(decimal_committable_column.is_empty());
         assert_eq!(
@@ -956,8 +955,7 @@ mod tests {
     #[test]
     fn we_can_commit_to_decimal_column_through_committable_column() {
         // empty case
-        let committable_column =
-            CommittableColumn::Decimal75(1_u8, 0, [].to_vec());
+        let committable_column = CommittableColumn::Decimal75(1_u8, 0, [].to_vec());
         let sequence = Sequence::from(&committable_column);
         let mut commitment_buffer = [CompressedRistretto::default()];
         compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
@@ -970,8 +968,7 @@ mod tests {
             TestScalar::from(56),
         ]
         .map(<[u64; 4]>::from);
-        let committable_column =
-            CommittableColumn::Decimal75(1_u8, 0, (values).to_vec());
+        let committable_column = CommittableColumn::Decimal75(1_u8, 0, (values).to_vec());
 
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(values.as_slice());

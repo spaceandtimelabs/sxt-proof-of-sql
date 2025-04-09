@@ -3,7 +3,6 @@ use crate::base::{
         owned_table_utility::*, ColumnOperationError, ExpressionEvaluationError, OwnedColumn,
         OwnedTable,
     },
-    math::decimal::Precision,
     scalar::test_scalar::TestScalar,
 };
 use bigdecimal::BigDecimal;

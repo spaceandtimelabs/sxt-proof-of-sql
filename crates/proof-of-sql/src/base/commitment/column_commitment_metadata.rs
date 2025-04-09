@@ -186,7 +186,6 @@ mod tests {
     use crate::base::{
         commitment::column_bounds::Bounds,
         database::OwnedColumn,
-        math::decimal::Precision,
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         scalar::test_scalar::TestScalar,
     };

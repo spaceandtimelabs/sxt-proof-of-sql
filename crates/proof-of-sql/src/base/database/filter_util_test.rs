@@ -28,11 +28,7 @@ fn we_can_filter_columns() {
             Column::Int128(&[1, 3, 5]),
             Column::VarChar((&["1", "3", "5"], &["1".into(), "3".into(), "5".into()])),
             Column::Scalar(&[1.into(), 3.into(), 5.into()]),
-            Column::Decimal75(
-                75_u8,
-                0,
-                &[1.into(), 3.into(), 5.into()]
-            )
+            Column::Decimal75(75_u8, 0, &[1.into(), 3.into(), 5.into()])
         ]
     );
 }

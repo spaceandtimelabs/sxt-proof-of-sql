@@ -130,11 +130,7 @@ pub fn const_scalar<S: Scalar, T: Into<S>>(val: T) -> DynProofExpr {
 /// Panics if:
 /// - `Precision::new(precision)` fails, meaning the provided precision is invalid.
 pub fn const_decimal75<T: Into<I256>>(precision: u8, scale: i8, val: T) -> DynProofExpr {
-    DynProofExpr::new_literal(LiteralValue::Decimal75(
-        Precision::new(precision).unwrap(),
-        scale,
-        val.into(),
-    ))
+    DynProofExpr::new_literal(LiteralValue::Decimal75(precision, scale, val.into()))
 }
 
 /// Aliased placeholder expression

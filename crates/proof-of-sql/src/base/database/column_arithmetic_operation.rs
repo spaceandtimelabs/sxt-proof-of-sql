@@ -11,7 +11,6 @@ use crate::base::{
         },
         ColumnType, OwnedColumn,
     },
-    math::decimal::Precision,
     scalar::Scalar,
 };
 use alloc::{string::ToString, vec::Vec};
@@ -28,7 +27,7 @@ pub trait ArithmeticOp {
         rhs: &[T1],
         left_column_type: ColumnType,
         right_column_type: ColumnType,
-    ) -> ColumnOperationResult<(Precision, i8, Vec<S>)>
+    ) -> ColumnOperationResult<(u8, i8, Vec<S>)>
     where
         S: Scalar + From<T0> + From<T1>,
         T0: Copy + Debug + Into<BigInt>,
@@ -242,7 +241,7 @@ impl ArithmeticOp for AddOp {
         rhs: &[T1],
         left_column_type: ColumnType,
         right_column_type: ColumnType,
-    ) -> ColumnOperationResult<(Precision, i8, Vec<S>)>
+    ) -> ColumnOperationResult<(u8, i8, Vec<S>)>
     where
         S: Scalar + From<T0> + From<T1>,
         T0: Copy,
@@ -266,7 +265,7 @@ impl ArithmeticOp for SubOp {
         rhs: &[T1],
         left_column_type: ColumnType,
         right_column_type: ColumnType,
-    ) -> ColumnOperationResult<(Precision, i8, Vec<S>)>
+    ) -> ColumnOperationResult<(u8, i8, Vec<S>)>
     where
         S: Scalar + From<T0> + From<T1>,
         T0: Copy,
@@ -290,7 +289,7 @@ impl ArithmeticOp for MulOp {
         rhs: &[T1],
         left_column_type: ColumnType,
         right_column_type: ColumnType,
-    ) -> ColumnOperationResult<(Precision, i8, Vec<S>)>
+    ) -> ColumnOperationResult<(u8, i8, Vec<S>)>
     where
         S: Scalar + From<T0> + From<T1>,
         T0: Copy,
@@ -314,7 +313,7 @@ impl ArithmeticOp for DivOp {
         rhs: &[T1],
         left_column_type: ColumnType,
         right_column_type: ColumnType,
-    ) -> ColumnOperationResult<(Precision, i8, Vec<S>)>
+    ) -> ColumnOperationResult<(u8, i8, Vec<S>)>
     where
         S: Scalar + From<T0> + From<T1>,
         T0: Copy + Debug + Into<BigInt>,

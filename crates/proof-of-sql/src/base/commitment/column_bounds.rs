@@ -318,7 +318,6 @@ mod tests {
     use super::*;
     use crate::base::{
         database::OwnedColumn,
-        math::decimal::Precision,
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         scalar::test_scalar::TestScalar,
     };

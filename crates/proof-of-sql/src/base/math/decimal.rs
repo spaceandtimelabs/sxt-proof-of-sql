@@ -119,8 +119,7 @@ pub(crate) fn try_convert_intermediate_decimal_to_scalar<S: Scalar>(
 }
 
 #[cfg(test)]
-mod scale_adjust_test {
-
+mod tests {
     use super::*;
     use crate::base::scalar::test_scalar::TestScalar;
     use num_bigint::BigInt;
@@ -135,7 +134,7 @@ mod scale_adjust_test {
 
         assert!(try_convert_intermediate_decimal_to_scalar::<TestScalar>(
             &decimal,
-            Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX)).unwrap(),
+            u8::try_from(decimal.precision()).unwrap_or(u8::MAX),
             target_scale
         )
         .is_err());
@@ -159,7 +158,7 @@ mod scale_adjust_test {
         let expected = [12, 0, 0, 0];
         let result = try_convert_intermediate_decimal_to_scalar::<TestScalar>(
             &decimal,
-            Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
+            MAX_SUPPORTED_PRECISION,
             target_scale,
         )
         .unwrap();
@@ -174,7 +173,7 @@ mod scale_adjust_test {
 
         let limbs = try_convert_intermediate_decimal_to_scalar::<TestScalar>(
             &decimal,
-            Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX)).unwrap(),
+            u8::try_from(decimal.precision()).unwrap_or(u8::MAX),
             target_scale,
         )
         .unwrap();
@@ -189,7 +188,7 @@ mod scale_adjust_test {
         let expected_limbs = [12345, 0, 0, 0];
         let limbs = try_convert_intermediate_decimal_to_scalar::<TestScalar>(
             &decimal,
-            Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX)).unwrap(),
+            u8::try_from(decimal.precision()).unwrap_or(u8::MAX),
             target_scale,
         )
         .unwrap();
@@ -206,7 +205,7 @@ mod scale_adjust_test {
         let target_scale = 6; // now precision exceeds maximum
         assert!(try_convert_intermediate_decimal_to_scalar::<TestScalar>(
             &decimal,
-            Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX),).unwrap(),
+            u8::try_from(decimal.precision()).unwrap_or(u8::MAX),
             target_scale
         )
         .is_err());
@@ -219,7 +218,7 @@ mod scale_adjust_test {
         let target_scale = 1;
         assert!(try_convert_intermediate_decimal_to_scalar::<TestScalar>(
             &decimal,
-            Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
+            MAX_SUPPORTED_PRECISION,
             target_scale
         )
         .is_ok());
@@ -232,7 +231,7 @@ mod scale_adjust_test {
         let target_scale = 1;
         assert!(try_convert_intermediate_decimal_to_scalar::<TestScalar>(
             &decimal,
-            Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
+            MAX_SUPPORTED_PRECISION,
             target_scale
         )
         .is_err());
@@ -245,7 +244,7 @@ mod scale_adjust_test {
         let target_scale = MAX_SUPPORTED_PRECISION as i8;
         assert!(try_convert_intermediate_decimal_to_scalar::<TestScalar>(
             &decimal,
-            Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX),).unwrap(),
+            u8::try_from(decimal.precision()).unwrap_or(u8::MAX),
             target_scale
         )
         .is_ok());
@@ -255,7 +254,7 @@ mod scale_adjust_test {
         let target_scale = MAX_SUPPORTED_PRECISION as i8;
         assert!(try_convert_intermediate_decimal_to_scalar::<TestScalar>(
             &decimal,
-            Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
+            MAX_SUPPORTED_PRECISION,
             target_scale
         )
         .is_ok());
@@ -265,7 +264,7 @@ mod scale_adjust_test {
         let target_scale = 75;
         assert!(try_convert_intermediate_decimal_to_scalar::<TestScalar>(
             &decimal,
-            Precision::new(u8::try_from(decimal.precision()).unwrap_or(u8::MAX),).unwrap(),
+            u8::try_from(decimal.precision()).unwrap_or(u8::MAX),
             target_scale
         )
         .is_err());
@@ -275,7 +274,7 @@ mod scale_adjust_test {
         let target_scale = 74;
         assert!(try_convert_intermediate_decimal_to_scalar::<TestScalar>(
             &decimal,
-            Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
+            MAX_SUPPORTED_PRECISION,
             target_scale
         )
         .is_ok());

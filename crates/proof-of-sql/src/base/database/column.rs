@@ -1,6 +1,5 @@
 use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
-    math::decimal::Precision,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::{Scalar, ScalarExt},
     slice_ops::slice_cast_with,
@@ -40,7 +39,7 @@ pub enum Column<'a, S: Scalar> {
     Int128(&'a [i128]),
     /// Decimal columns with a max width of 252 bits
     ///  - the backing store maps to the type `S`
-    Decimal75(Precision, i8, &'a [S]),
+    Decimal75(u8, i8, &'a [S]),
     /// Scalar columns
     Scalar(&'a [S]),
     /// String columns
@@ -377,7 +376,7 @@ pub enum ColumnType {
     VarChar,
     /// Mapped to i256
     #[serde(rename = "Decimal75", alias = "DECIMAL75", alias = "decimal75")]
-    Decimal75(Precision, i8),
+    Decimal75(u8, i8),
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
     #[cfg_attr(test, proptest(skip))]
@@ -803,8 +802,7 @@ mod tests {
         let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[75, 127]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type =
-            ColumnType::Decimal75(Precision::new(u8::MIN + 1).unwrap(), i8::MIN);
+        let expected_column_type = ColumnType::Decimal75(u8::MIN + 1, i8::MIN);
         let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[1, -128]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
@@ -1058,7 +1056,7 @@ mod tests {
             TestScalar::from(3),
         ];
 
-        let precision = Precision::new(precision).unwrap();
+        let precision = precision;
         let column = Column::Decimal75(precision, scale, &decimal_data);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
@@ -1143,10 +1141,7 @@ mod tests {
         let owned_col: OwnedColumn<TestScalar> =
             OwnedColumn::Decimal75(75_u8, 127, scalars.clone());
         let col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
-        assert_eq!(
-            col,
-            Column::Decimal75(75_u8, 127, &scalars)
-        );
+        assert_eq!(col, Column::Decimal75(75_u8, 127, &scalars));
         let new_owned_col = (&col).into();
         assert_eq!(owned_col, new_owned_col);
     }
@@ -1199,7 +1194,7 @@ mod tests {
             TestScalar::from(3),
         ];
 
-        let precision = Precision::new(precision).unwrap();
+        let precision = precision;
         let column = Column::Decimal75(precision, scale, &decimal_data);
         assert_eq!(column.column_type().byte_size(), 32);
         assert_eq!(column.column_type().bit_size(), 256);

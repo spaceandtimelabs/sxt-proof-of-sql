@@ -2,7 +2,7 @@ use super::{ExpressionEvaluationError, ExpressionEvaluationResult};
 use crate::base::{
     database::{OwnedColumn, OwnedTable},
     math::{
-        decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError, Precision},
+        decimal::{try_convert_intermediate_decimal_to_scalar, DecimalError},
         BigDecimalExt,
     },
     scalar::Scalar,
@@ -50,7 +50,14 @@ impl<S: Scalar> OwnedTable<S> {
                     .map_err(|_| DecimalError::InvalidScale {
                         scale: raw_scale.to_string(),
                     })?;
-                let precision = Precision::try_from(d.precision())?;
+                let precision = d.precision();
+                if precision > MAX_DECIMAL_PRECISION {
+                    return Err(ExpressionEvaluationError::DecimalConversionError {
+                        source: DecimalError::InvalidPrecision {
+                            precision: precision.to_string(),
+                        },
+                    });
+                }
                 let scalar = try_convert_intermediate_decimal_to_scalar(d, precision, scale)?;
                 Ok(OwnedColumn::Decimal75(precision, scale, vec![scalar; len]))
             }

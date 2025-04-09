@@ -1,7 +1,7 @@
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::ColumnType,
-    math::decimal::{DecimalError, Precision},
+    math::decimal::{DecimalError, MAX_SUPPORTED_PRECISION},
 };
 use alloc::{format, string::ToString};
 // For decimal type manipulation please refer to
@@ -44,19 +44,22 @@ pub fn try_add_subtract_column_types(
             + (left_precision_value - i16::from(left_scale))
                 .max(right_precision_value - i16::from(right_scale))
             + 1_i16;
-        let precision = u8::try_from(precision_value)
-            .map_err(|_| ColumnOperationError::DecimalConversionError {
+        let precision = u8::try_from(precision_value).map_err(|_| {
+            ColumnOperationError::DecimalConversionError {
                 source: DecimalError::InvalidPrecision {
                     error: precision_value.to_string(),
                 },
-            })
-            .and_then(|p| {
-                Precision::new(p).map_err(|_| ColumnOperationError::DecimalConversionError {
-                    source: DecimalError::InvalidPrecision {
-                        error: p.to_string(),
-                    },
-                })
-            })?;
+            }
+        })?;
+        if precision > MAX_SUPPORTED_PRECISION {
+            return Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision {
+                    error: format!(
+                        "Required precision {precision_value} is beyond what we can support"
+                    ),
+                },
+            });
+        }
         Ok(ColumnType::Decimal75(precision, scale))
     }
 }
@@ -90,15 +93,22 @@ pub fn try_multiply_column_types(
         let left_precision_value = lhs.precision_value().expect("Numeric types have precision");
         let right_precision_value = rhs.precision_value().expect("Numeric types have precision");
         let precision_value = left_precision_value + right_precision_value + 1;
-        let precision = Precision::new(precision_value).map_err(|_| {
+        let precision = u8::try_from(precision_value).map_err(|_| {
             ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision {
+                    error: precision_value.to_string(),
+                },
+            }
+        })?;
+        if precision > MAX_SUPPORTED_PRECISION {
+            return Err(ColumnOperationError::DecimalConversionError {
                 source: DecimalError::InvalidPrecision {
                     error: format!(
                         "Required precision {precision_value} is beyond what we can support"
                     ),
                 },
-            }
-        })?;
+            });
+        }
         let left_scale = lhs.scale().expect("Numeric types have scale");
         let right_scale = rhs.scale().expect("Numeric types have scale");
         let scale = left_scale.checked_add(right_scale).ok_or(
@@ -172,19 +182,22 @@ pub fn try_divide_column_types(
                 scale: raw_scale.to_string(),
             },
         })?;
-    let precision = u8::try_from(precision_value)
-        .map_err(|_| ColumnOperationError::DecimalConversionError {
+    let precision = u8::try_from(precision_value).map_err(|_| {
+        ColumnOperationError::DecimalConversionError {
             source: DecimalError::InvalidPrecision {
                 error: precision_value.to_string(),
             },
-        })
-        .and_then(|p| {
-            Precision::new(p).map_err(|_| ColumnOperationError::DecimalConversionError {
-                source: DecimalError::InvalidPrecision {
-                    error: p.to_string(),
-                },
-            })
-        })?;
+        }
+    })?;
+    if precision > MAX_SUPPORTED_PRECISION {
+        return Err(ColumnOperationError::DecimalConversionError {
+            source: DecimalError::InvalidPrecision {
+                error: format!(
+                    "Required precision {precision_value} is beyond what we can support"
+                ),
+            },
+        });
+    }
     Ok(ColumnType::Decimal75(precision, scale))
 }
 
@@ -926,7 +939,7 @@ mod test {
             try_cast_types(from, ColumnType::Decimal75(60_u8, 0)).unwrap();
             try_cast_types(
                 from,
-                ColumnType::Decimal75(Precision::new(from.precision_value().unwrap()).unwrap(), 0),
+                ColumnType::Decimal75(from.precision_value().unwrap(), 0),
             )
             .unwrap();
             try_cast_types(from, ColumnType::Decimal75(2_u8, 0)).unwrap_err();
@@ -1014,7 +1027,7 @@ mod test {
             ColumnType::BigInt,
             ColumnType::Int128,
         ] {
-            let from_precision = Precision::new(from.precision_value().unwrap()).unwrap();
+            let from_precision = from.precision_value().unwrap();
             let two_prec = 2_u8;
             let forty_prec = 40_u8;
             try_decimal_scale_cast_types(from, ColumnType::Decimal75(two_prec, 0)).unwrap_err();

@@ -319,11 +319,7 @@ pub fn borrowed_decimal75<S: Scalar>(
     let alloc_data = alloc.alloc_slice_copy(&transformed_data);
     (
         name.into(),
-        Column::Decimal75(
-            crate::base::math::decimal::Precision::new(precision).unwrap(),
-            scale,
-            alloc_data,
-        ),
+        Column::Decimal75(crate::base::math::decimal::precision, scale, alloc_data),
     )
 }
 

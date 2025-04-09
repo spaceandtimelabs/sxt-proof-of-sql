@@ -303,10 +303,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
         ColumnField::new("a1".into(), ColumnType::BigInt),
         ColumnField::new("a2".into(), ColumnType::Int128),
         ColumnField::new("a3".into(), ColumnType::VarChar),
-        ColumnField::new(
-            "a4".into(),
-            ColumnType::Decimal75(75_u8, 0),
-        ),
+        ColumnField::new("a4".into(), ColumnType::Decimal75(75_u8, 0)),
     ];
     let res =
         RecordBatch::try_from(res.to_owned_table::<TestScalar>(&column_fields).unwrap()).unwrap();
