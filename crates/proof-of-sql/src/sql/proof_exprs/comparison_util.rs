@@ -1,80 +1,16 @@
 use crate::{
     base::{
-        database::{Column, ColumnarValue, LiteralValue},
+        database::Column,
         math::decimal::{DecimalError, Precision},
-        scalar::{Scalar, ScalarExt},
+        scalar::Scalar,
         slice_ops,
     },
     sql::{util::try_binary_operation_type, AnalyzeError, AnalyzeResult},
 };
 use alloc::string::ToString;
 use bumpalo::Bump;
-use core::cmp::{max, Ordering};
+use core::cmp::max;
 use sqlparser::ast::BinaryOperator;
-
-/// Scale LHS and RHS to the same scale if at least one of them is decimal
-/// and take the difference. This function is used for comparisons.
-///
-/// # Panics
-/// This function will panic if `lhs` and `rhs` have [`ColumnType`]s that are not comparable
-/// or if we have precision overflow issues.
-#[expect(clippy::cast_sign_loss)]
-pub fn scale_and_subtract_literal<S: Scalar>(
-    lhs: &LiteralValue,
-    rhs: &LiteralValue,
-    lhs_scale: i8,
-    rhs_scale: i8,
-    is_equal: bool,
-) -> AnalyzeResult<S> {
-    let lhs_type = lhs.column_type();
-    let rhs_type = rhs.column_type();
-    let operator = if is_equal {
-        BinaryOperator::Eq
-    } else {
-        BinaryOperator::Lt
-    };
-    if try_binary_operation_type(lhs_type, rhs_type, &operator).is_none() {
-        return Err(AnalyzeError::DataTypeMismatch {
-            left_type: lhs_type.to_string(),
-            right_type: rhs_type.to_string(),
-        });
-    }
-    let max_scale = max(lhs_scale, rhs_scale);
-    let lhs_upscale = max_scale - lhs_scale;
-    let rhs_upscale = max_scale - rhs_scale;
-    // Only check precision overflow issues if at least one side is decimal
-    if max_scale != 0 {
-        let lhs_precision_value = lhs_type
-            .precision_value()
-            .expect("If scale is set, precision must be set");
-        let rhs_precision_value = rhs_type
-            .precision_value()
-            .expect("If scale is set, precision must be set");
-        let max_precision_value = max(
-            lhs_precision_value + (max_scale - lhs_scale) as u8,
-            rhs_precision_value + (max_scale - rhs_scale) as u8,
-        );
-        // Check if the precision is valid
-        let _max_precision = Precision::new(max_precision_value).map_err(|_| {
-            AnalyzeError::DecimalConversionError {
-                source: DecimalError::InvalidPrecision {
-                    error: max_precision_value.to_string(),
-                },
-            }
-        })?;
-    }
-    match lhs_scale.cmp(&rhs_scale) {
-        Ordering::Less => {
-            let upscale_factor = S::pow10(rhs_upscale as u8);
-            Ok(lhs.to_scalar::<S>() * upscale_factor - rhs.to_scalar())
-        }
-        Ordering::Equal => Ok(lhs.to_scalar::<S>() - rhs.to_scalar()),
-        Ordering::Greater => {
-            let upscale_factor = S::pow10(lhs_upscale as u8);
-            Ok(lhs.to_scalar::<S>() - rhs.to_scalar::<S>() * upscale_factor)
-        }
-    }
-}
 
 #[expect(
     clippy::missing_panics_doc,
@@ -143,49 +79,4 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
         &rhs.to_scalar_with_scaling(rhs_upscale),
     );
     Ok(result)
-}
-
-#[expect(dead_code)]
-/// Scale LHS and RHS to the same scale if at least one of them is decimal
-/// and take the difference. This function is used for comparisons.
-pub(crate) fn scale_and_subtract_columnar_value<'a, S: Scalar>(
-    alloc: &'a Bump,
-    lhs: ColumnarValue<'a, S>,
-    rhs: ColumnarValue<'a, S>,
-    lhs_scale: i8,
-    rhs_scale: i8,
-    is_equal: bool,
-) -> AnalyzeResult<ColumnarValue<'a, S>> {
-    match (lhs, rhs) {
-        (ColumnarValue::Column(lhs), ColumnarValue::Column(rhs)) => {
-            Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(
-                alloc, lhs, rhs, lhs_scale, rhs_scale, is_equal,
-            )?)))
-        }
-        (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(
-                alloc,
-                Column::from_literal_with_length(&lhs, rhs.len(), alloc),
-                rhs,
-                lhs_scale,
-                rhs_scale,
-                is_equal,
-            )?)))
-        }
-        (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
-            Ok(ColumnarValue::Column(Column::Scalar(scale_and_subtract(
-                alloc,
-                lhs,
-                Column::from_literal_with_length(&rhs, lhs.len(), alloc),
-                lhs_scale,
-                rhs_scale,
-                is_equal,
-            )?)))
-        }
-        (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
-            Ok(ColumnarValue::Literal(LiteralValue::Scalar(
-                scale_and_subtract_literal::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_equal)?.into(),
-            )))
-        }
-    }
 }

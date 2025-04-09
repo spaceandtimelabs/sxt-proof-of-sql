@@ -1,7 +1,6 @@
 use crate::base::{
     database::{
         try_cast_types, try_decimal_scale_cast_types, Column, ColumnOperationResult, ColumnType,
-        ColumnarValue, LiteralValue,
     },
     math::decimal::Precision,
     scalar::{Scalar, ScalarExt},
@@ -9,36 +8,9 @@ use crate::base::{
 use alloc::format;
 use bnum::types::U256;
 use bumpalo::Bump;
-use core::{cmp::Ordering, convert::TryInto, ops::Neg};
+use core::{convert::TryInto, ops::Neg};
 use itertools::izip;
 use num_traits::{NumCast, PrimInt};
-
-#[expect(clippy::cast_sign_loss)]
-/// Add or subtract two literals together.
-pub(crate) fn add_subtract_literals<S: Scalar>(
-    lhs: &LiteralValue,
-    rhs: &LiteralValue,
-    lhs_scale: i8,
-    rhs_scale: i8,
-    is_subtract: bool,
-) -> S {
-    let (lhs_scaled, rhs_scaled) = match lhs_scale.cmp(&rhs_scale) {
-        Ordering::Less => {
-            let scaling_factor = S::pow10((rhs_scale - lhs_scale) as u8);
-            (lhs.to_scalar::<S>() * scaling_factor, rhs.to_scalar())
-        }
-        Ordering::Equal => (lhs.to_scalar(), rhs.to_scalar()),
-        Ordering::Greater => {
-            let scaling_factor = S::pow10((lhs_scale - rhs_scale) as u8);
-            (lhs.to_scalar(), rhs.to_scalar::<S>() * scaling_factor)
-        }
-    };
-    if is_subtract {
-        lhs_scaled - rhs_scaled
-    } else {
-        lhs_scaled + rhs_scaled
-    }
-}
 
 #[expect(
     clippy::missing_panics_doc,
@@ -72,55 +44,6 @@ pub(crate) fn add_subtract_columns<'a, S: Scalar>(
     result
 }
 
-/// Add or subtract two [`ColumnarValues`] together.
-#[expect(dead_code)]
-pub(crate) fn add_subtract_columnar_values<'a, S: Scalar>(
-    lhs: ColumnarValue<'a, S>,
-    rhs: ColumnarValue<'a, S>,
-    lhs_scale: i8,
-    rhs_scale: i8,
-    alloc: &'a Bump,
-    is_subtract: bool,
-) -> ColumnarValue<'a, S> {
-    match (lhs, rhs) {
-        (ColumnarValue::Column(lhs), ColumnarValue::Column(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
-                lhs,
-                rhs,
-                lhs_scale,
-                rhs_scale,
-                alloc,
-                is_subtract,
-            )))
-        }
-        (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
-                Column::from_literal_with_length(&lhs, rhs.len(), alloc),
-                rhs,
-                lhs_scale,
-                rhs_scale,
-                alloc,
-                is_subtract,
-            )))
-        }
-        (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
-                lhs,
-                Column::from_literal_with_length(&rhs, lhs.len(), alloc),
-                lhs_scale,
-                rhs_scale,
-                alloc,
-                is_subtract,
-            )))
-        }
-        (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
-            ColumnarValue::Literal(LiteralValue::Scalar(
-                add_subtract_literals::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_subtract).into(),
-            ))
-        }
-    }
-}
-
 /// Multiply two columns together.
 /// # Panics
 /// Panics if: `lhs` and `rhs` are not of the same length.
@@ -138,38 +61,6 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
     alloc.alloc_slice_fill_with(lhs_len, |i| {
         lhs.scalar_at(i).unwrap() * rhs.scalar_at(i).unwrap()
     })
-}
-
-#[expect(dead_code)]
-/// Multiply two [`ColumnarValues`] together.
-/// # Panics
-/// Panics if: `lhs` and `rhs` are not of the same length.
-pub(crate) fn multiply_columnar_values<'a, S: Scalar>(
-    lhs: &ColumnarValue<'a, S>,
-    rhs: &ColumnarValue<'a, S>,
-    alloc: &'a Bump,
-) -> ColumnarValue<'a, S> {
-    match (lhs, rhs) {
-        (ColumnarValue::Column(lhs), ColumnarValue::Column(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(multiply_columns(lhs, rhs, alloc)))
-        }
-        (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            let lhs_scalar = lhs.to_scalar::<S>();
-            let result =
-                alloc.alloc_slice_fill_with(rhs.len(), |i| lhs_scalar * rhs.scalar_at(i).unwrap());
-            ColumnarValue::Column(Column::Scalar(result))
-        }
-        (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
-            let rhs_scalar = rhs.to_scalar();
-            let result =
-                alloc.alloc_slice_fill_with(lhs.len(), |i| lhs.scalar_at(i).unwrap() * rhs_scalar);
-            ColumnarValue::Column(Column::Scalar(result))
-        }
-        (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
-            let result = lhs.to_scalar::<S>() * rhs.to_scalar();
-            ColumnarValue::Literal(LiteralValue::Scalar(result.into()))
-        }
-    }
 }
 
 /// The counterpart of `add_subtract_columns` for evaluating decimal expressions.
