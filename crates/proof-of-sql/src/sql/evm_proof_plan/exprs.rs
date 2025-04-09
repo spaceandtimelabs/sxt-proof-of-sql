@@ -4,7 +4,7 @@ use crate::{
         database::{ColumnRef, LiteralValue},
         map::IndexSet,
     },
-    sql::proof_exprs::{ColumnExpr, DynProofExpr, EqualsExpr, LiteralExpr},
+    sql::proof_exprs::{AddExpr, ColumnExpr, DynProofExpr, EqualsExpr, LiteralExpr, SubtractExpr},
 };
 use alloc::boxed::Box;
 use serde::{Deserialize, Serialize};
@@ -15,6 +15,8 @@ pub(crate) enum EVMDynProofExpr {
     Column(EVMColumnExpr),
     Literal(EVMLiteralExpr),
     Equals(EVMEqualsExpr),
+    Add(EVMAddExpr),
+    Subtract(EVMSubtractExpr),
 }
 impl EVMDynProofExpr {
     /// Try to create an `EVMDynProofExpr` from a `DynProofExpr`.
@@ -31,6 +33,12 @@ impl EVMDynProofExpr {
             }
             DynProofExpr::Equals(equals_expr) => {
                 EVMEqualsExpr::try_from_proof_expr(equals_expr, column_refs).map(Self::Equals)
+            }
+            DynProofExpr::Add(add_expr) => {
+                EVMAddExpr::try_from_proof_expr(add_expr, column_refs).map(Self::Add)
+            }
+            DynProofExpr::Subtract(subtract_expr) => {
+                EVMSubtractExpr::try_from_proof_expr(subtract_expr, column_refs).map(Self::Subtract)
             }
             _ => Err(EVMProofPlanError::NotSupported),
         }
@@ -50,6 +58,12 @@ impl EVMDynProofExpr {
             EVMDynProofExpr::Literal(literal_expr) => {
                 Ok(DynProofExpr::Literal(literal_expr.to_proof_expr()))
             }
+            EVMDynProofExpr::Add(add_expr) => Ok(DynProofExpr::Add(
+                add_expr.try_into_proof_expr(column_refs)?,
+            )),
+            EVMDynProofExpr::Subtract(subtract_expr) => Ok(DynProofExpr::Subtract(
+                subtract_expr.try_into_proof_expr(column_refs)?,
+            )),
         }
     }
 }
@@ -155,6 +169,94 @@ impl EVMEqualsExpr {
         column_refs: &IndexSet<ColumnRef>,
     ) -> EVMProofPlanResult<EqualsExpr> {
         Ok(EqualsExpr {
+            lhs: Box::new(self.lhs.try_into_proof_expr(column_refs)?),
+            rhs: Box::new(self.rhs.try_into_proof_expr(column_refs)?),
+        })
+    }
+}
+
+/// Represents an addition expression.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub(crate) struct EVMAddExpr {
+    lhs: Box<EVMDynProofExpr>,
+    rhs: Box<EVMDynProofExpr>,
+}
+
+impl EVMAddExpr {
+    #[cfg_attr(not(test), expect(dead_code))]
+    pub(crate) fn new(lhs: EVMDynProofExpr, rhs: EVMDynProofExpr) -> Self {
+        Self {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    }
+
+    /// Try to create an `EVMAddExpr` from a `AddExpr`.
+    pub(crate) fn try_from_proof_expr(
+        expr: &AddExpr,
+        column_refs: &IndexSet<ColumnRef>,
+    ) -> EVMProofPlanResult<Self> {
+        Ok(EVMAddExpr {
+            lhs: Box::new(EVMDynProofExpr::try_from_proof_expr(
+                &expr.lhs,
+                column_refs,
+            )?),
+            rhs: Box::new(EVMDynProofExpr::try_from_proof_expr(
+                &expr.rhs,
+                column_refs,
+            )?),
+        })
+    }
+
+    pub(crate) fn try_into_proof_expr(
+        &self,
+        column_refs: &IndexSet<ColumnRef>,
+    ) -> EVMProofPlanResult<AddExpr> {
+        Ok(AddExpr {
+            lhs: Box::new(self.lhs.try_into_proof_expr(column_refs)?),
+            rhs: Box::new(self.rhs.try_into_proof_expr(column_refs)?),
+        })
+    }
+}
+
+/// Represents a subtraction expression.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub(crate) struct EVMSubtractExpr {
+    lhs: Box<EVMDynProofExpr>,
+    rhs: Box<EVMDynProofExpr>,
+}
+
+impl EVMSubtractExpr {
+    #[cfg_attr(not(test), expect(dead_code))]
+    pub(crate) fn new(lhs: EVMDynProofExpr, rhs: EVMDynProofExpr) -> Self {
+        Self {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    }
+
+    /// Try to create an `EVMSubtractExpr` from a `SubtractExpr`.
+    pub(crate) fn try_from_proof_expr(
+        expr: &SubtractExpr,
+        column_refs: &IndexSet<ColumnRef>,
+    ) -> EVMProofPlanResult<Self> {
+        Ok(EVMSubtractExpr {
+            lhs: Box::new(EVMDynProofExpr::try_from_proof_expr(
+                &expr.lhs,
+                column_refs,
+            )?),
+            rhs: Box::new(EVMDynProofExpr::try_from_proof_expr(
+                &expr.rhs,
+                column_refs,
+            )?),
+        })
+    }
+
+    pub(crate) fn try_into_proof_expr(
+        &self,
+        column_refs: &IndexSet<ColumnRef>,
+    ) -> EVMProofPlanResult<SubtractExpr> {
+        Ok(SubtractExpr {
             lhs: Box::new(self.lhs.try_into_proof_expr(column_refs)?),
             rhs: Box::new(self.rhs.try_into_proof_expr(column_refs)?),
         })
@@ -272,6 +374,74 @@ mod tests {
         assert_eq!(roundtripped_equals_expr, equals_expr);
     }
 
+    // EVMAddExpr
+    #[test]
+    fn we_can_put_an_add_expr_in_evm() {
+        let table_ref: TableRef = TableRef::try_from("namespace.table").unwrap();
+        let ident_a = "a".into();
+        let ident_b = "b".into();
+        let column_ref_a = ColumnRef::new(table_ref.clone(), ident_a, ColumnType::BigInt);
+        let column_ref_b = ColumnRef::new(table_ref.clone(), ident_b, ColumnType::BigInt);
+
+        let add_expr = AddExpr::new(
+            Box::new(DynProofExpr::new_column(column_ref_b.clone())),
+            Box::new(DynProofExpr::new_literal(LiteralValue::BigInt(5))),
+        );
+
+        let evm_add_expr = EVMAddExpr::try_from_proof_expr(
+            &add_expr,
+            &indexset! {column_ref_a.clone(), column_ref_b.clone()},
+        )
+        .unwrap();
+        assert_eq!(
+            evm_add_expr,
+            EVMAddExpr::new(
+                EVMDynProofExpr::Column(EVMColumnExpr { column_number: 1 }),
+                EVMDynProofExpr::Literal(EVMLiteralExpr::BigInt(5))
+            )
+        );
+
+        // Roundtrip
+        let roundtripped_add_expr = evm_add_expr
+            .try_into_proof_expr(&indexset! {column_ref_a.clone(), column_ref_b.clone()})
+            .unwrap();
+        assert_eq!(roundtripped_add_expr, add_expr);
+    }
+
+    // EVMSubtractExpr
+    #[test]
+    fn we_can_put_a_subtract_expr_in_evm() {
+        let table_ref: TableRef = TableRef::try_from("namespace.table").unwrap();
+        let ident_a = "a".into();
+        let ident_b = "b".into();
+        let column_ref_a = ColumnRef::new(table_ref.clone(), ident_a, ColumnType::BigInt);
+        let column_ref_b = ColumnRef::new(table_ref.clone(), ident_b, ColumnType::BigInt);
+
+        let subtract_expr = SubtractExpr::new(
+            Box::new(DynProofExpr::new_column(column_ref_b.clone())),
+            Box::new(DynProofExpr::new_literal(LiteralValue::BigInt(5))),
+        );
+
+        let evm_subtract_expr = EVMSubtractExpr::try_from_proof_expr(
+            &subtract_expr,
+            &indexset! {column_ref_a.clone(), column_ref_b.clone()},
+        )
+        .unwrap();
+        assert_eq!(
+            evm_subtract_expr,
+            EVMSubtractExpr::new(
+                EVMDynProofExpr::Column(EVMColumnExpr { column_number: 1 }),
+                EVMDynProofExpr::Literal(EVMLiteralExpr::BigInt(5))
+            )
+        );
+
+        // Roundtrip
+        let roundtripped_subtract_expr = evm_subtract_expr
+            .try_into_proof_expr(&indexset! {column_ref_a.clone(), column_ref_b.clone()})
+            .unwrap();
+        assert_eq!(roundtripped_subtract_expr, subtract_expr);
+    }
+
     // EVMDynProofExpr
     #[test]
     fn we_can_put_a_proof_expr_in_evm() {
@@ -303,17 +473,18 @@ mod tests {
         assert_eq!(roundtripped_expr, expr);
     }
 
+    // Unsupported expressions
     #[test]
     fn we_cannot_put_a_proof_expr_in_evm_if_not_supported() {
         let table_ref: TableRef = TableRef::try_from("namespace.table").unwrap();
         let ident_a = "a".into();
         let ident_b = "b".into();
-        let column_ref_a = ColumnRef::new(table_ref.clone(), ident_a, ColumnType::BigInt);
-        let column_ref_b = ColumnRef::new(table_ref.clone(), ident_b, ColumnType::BigInt);
+        let column_ref_a = ColumnRef::new(table_ref.clone(), ident_a, ColumnType::Boolean);
+        let column_ref_b = ColumnRef::new(table_ref.clone(), ident_b, ColumnType::Boolean);
 
         assert!(matches!(
             EVMDynProofExpr::try_from_proof_expr(
-                &DynProofExpr::try_new_add(
+                &DynProofExpr::try_new_and(
                     DynProofExpr::new_column(column_ref_a.clone()),
                     DynProofExpr::new_column(column_ref_b.clone())
                 )
