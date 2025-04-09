@@ -2,17 +2,15 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, OwnedTableTestAccessor, TableRef,
+            owned_table_utility::*, table_utility::*, OwnedTableTestAccessor, TableRef,
             TableTestAccessor,
         },
-        scalar::test_scalar::TestScalar,
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
-        proof::{exercise_verification, QueryError, VerifiableQueryResult},
+        proof::{exercise_verification, VerifiableQueryResult},
         proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
-        proof_plans::{test_utility::*, DynProofPlan},
-        AnalyzeError,
+        proof_plans::test_utility::*,
     },
 };
 use bumpalo::Bump;
@@ -57,7 +55,7 @@ fn we_can_prove_a_typical_add_subtract_query() {
     let expected_res = owned_table([
         smallint("a", [3_i16, 4]),
         bigint("c", [2_i16, 0]),
-        bigint("res", [4_i64, 5]),
+        decimal75("res", 20, 0, [4_i64, 5]),
         varchar("d", ["efg", "g"]),
     ]);
     assert_eq!(res, expected_res);
@@ -110,133 +108,6 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
     assert_eq!(res, expected_res);
 }
 
-// Column type issue tests
-#[test]
-fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
-    let data = owned_table([decimal75("a", 75, 2, [1_i16, 2, 3, 4])]);
-    let t = TableRef::new("sxt", "t");
-    let accessor =
-        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
-    assert!(matches!(
-        DynProofExpr::try_new_add(column(&t, "a", &accessor), const_bigint(1)),
-        Err(AnalyzeError::DataTypeMismatch { .. })
-    ));
-}
-
-// Overflow tests
-// select a + b as c from sxt.t where b = 1
-#[test]
-fn result_expr_can_overflow() {
-    let data = owned_table([
-        smallint("a", [i16::MAX, i16::MIN]),
-        smallint("b", [1_i16, 0]),
-    ]);
-    let t = TableRef::new("sxt", "t");
-    let accessor =
-        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
-    let ast: DynProofPlan = filter(
-        vec![aliased_plan(
-            add(column(&t, "a", &accessor), column(&t, "b", &accessor)),
-            "c",
-        )],
-        tab(&t),
-        equal(column(&t, "b", &accessor), const_bigint(1)),
-    );
-    let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
-    assert!(matches!(
-        verifiable_res.verify(&ast, &accessor, &(), &[]),
-        Err(QueryError::Overflow)
-    ));
-}
-
-// select a + b as c from sxt.t where b == 0
-#[test]
-fn overflow_in_nonselected_rows_doesnt_error_out() {
-    let data = owned_table([
-        smallint("a", [i16::MAX, i16::MIN + 1]),
-        smallint("b", [1_i16, 0]),
-    ]);
-    let t = TableRef::new("sxt", "t");
-    let accessor =
-        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
-    let ast: DynProofPlan = filter(
-        vec![aliased_plan(
-            add(column(&t, "a", &accessor), column(&t, "b", &accessor)),
-            "c",
-        )],
-        tab(&t),
-        equal(column(&t, "b", &accessor), const_bigint(0)),
-    );
-    let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
-    exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res
-        .verify(&ast, &accessor, &(), &[])
-        .unwrap()
-        .table;
-    let expected_res = owned_table([smallint("c", [i16::MIN + 1])]);
-    assert_eq!(res, expected_res);
-}
-
-// select a, b from sxt.t where a + b >= 0
-#[test]
-fn overflow_in_where_clause_doesnt_error_out() {
-    let data = owned_table([bigint("a", [i64::MAX, i64::MIN]), smallint("b", [1_i16, 0])]);
-    let t = TableRef::new("sxt", "t");
-    let accessor =
-        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
-    let ast: DynProofPlan = filter(
-        cols_expr_plan(&t, &["a", "b"], &accessor),
-        tab(&t),
-        gte(
-            add(column(&t, "a", &accessor), column(&t, "b", &accessor)),
-            const_bigint(0),
-        ),
-    );
-    let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
-    exercise_verification(&verifiable_res, &ast, &accessor, &t);
-    let res = verifiable_res
-        .verify(&ast, &accessor, &(), &[])
-        .unwrap()
-        .table;
-    let expected_res = owned_table([bigint("a", [i64::MAX]), smallint("b", [1_i16])]);
-    assert_eq!(res, expected_res);
-}
-
-// select a + b as c, a - b as d from sxt.t
-#[test]
-fn result_expr_can_overflow_more() {
-    let data = owned_table([
-        bigint("a", [i64::MAX, i64::MIN, i64::MAX, i64::MIN]),
-        bigint("b", [i64::MAX, i64::MAX, i64::MIN, i64::MIN]),
-    ]);
-    let t = TableRef::new("sxt", "t");
-    let accessor =
-        OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
-    let ast: DynProofPlan = filter(
-        vec![
-            aliased_plan(
-                add(column(&t, "a", &accessor), column(&t, "b", &accessor)),
-                "c",
-            ),
-            aliased_plan(
-                subtract(column(&t, "a", &accessor), column(&t, "b", &accessor)),
-                "d",
-            ),
-        ],
-        tab(&t),
-        const_bool(true),
-    );
-    let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
-    assert!(matches!(
-        verifiable_res.verify(&ast, &accessor, &(), &[]),
-        Err(QueryError::Overflow)
-    ));
-}
-
 fn test_random_tables_with_given_offset(offset: usize) {
     let dist = Uniform::new(-3, 4);
     let mut rng = StdRng::from_seed([0u8; 32]);
@@ -283,11 +154,11 @@ fn test_random_tables_with_given_offset(offset: usize) {
             and(
                 equal(
                     column(&t, "b", &accessor),
-                    const_scalar::<TestScalar, _>(filter_val1.as_str()),
+                    const_scalar::<Curve25519Scalar, _>(filter_val1.as_str()),
                 ),
                 equal(
                     column(&t, "c", &accessor),
-                    const_scalar::<TestScalar, _>(filter_val2),
+                    const_scalar::<Curve25519Scalar, _>(filter_val2),
                 ),
             ),
         );
@@ -307,13 +178,14 @@ fn test_random_tables_with_given_offset(offset: usize) {
         ))
         .filter_map(|(a, b, c, d)| {
             if b == &filter_val1 && c == &filter_val2 {
-                Some((i128::from(*a + *c - 4), d.clone()))
+                Some((Curve25519Scalar::from(*a + *c - 4), d.clone()))
             } else {
                 None
             }
         })
         .multiunzip();
-        let expected_result = owned_table([varchar("d", expected_d), int128("f", expected_f)]);
+        let expected_result =
+            owned_table([varchar("d", expected_d), decimal75("f", 40, 0, expected_f)]);
 
         assert_eq!(expected_result, res);
     }
@@ -349,10 +221,6 @@ fn we_can_compute_the_correct_output_of_an_add_subtract_expr_using_first_round_e
     let res = add_subtract_expr
         .first_round_evaluate(&alloc, &data, &[])
         .unwrap();
-    let expected_res_scalar = [0, 2, 2, 4]
-        .iter()
-        .map(|v| Curve25519Scalar::from(*v))
-        .collect::<Vec<_>>();
-    let expected_res = Column::Scalar(&expected_res_scalar);
+    let expected_res = borrowed_decimal75("res", 21, 0, [0_i64, 2, 2, 4], &alloc).1;
     assert_eq!(res, expected_res);
 }

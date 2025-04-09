@@ -44,9 +44,7 @@ impl ProofExpr for EqualsExpr {
 
         let lhs_column = self.lhs.first_round_evaluate(alloc, table, params)?;
         let rhs_column = self.rhs.first_round_evaluate(alloc, table, params)?;
-        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
-        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
+        let res = scale_and_subtract(alloc, lhs_column, rhs_column, true)
             .expect("Failed to scale and subtract");
         let res = Column::Boolean(first_round_evaluate_equals_zero(
             table.num_rows(),
@@ -75,11 +73,8 @@ impl ProofExpr for EqualsExpr {
         let rhs_column = self
             .rhs
             .final_round_evaluate(builder, alloc, table, params)?;
-        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
-        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let scale_and_subtract_res =
-            scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
-                .expect("Failed to scale and subtract");
+        let scale_and_subtract_res = scale_and_subtract(alloc, lhs_column, rhs_column, true)
+            .expect("Failed to scale and subtract");
         let res = Column::Boolean(final_round_evaluate_equals_zero(
             table.num_rows(),
             builder,

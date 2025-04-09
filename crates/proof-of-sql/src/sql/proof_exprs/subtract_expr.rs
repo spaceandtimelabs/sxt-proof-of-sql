@@ -1,4 +1,6 @@
-use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
+use super::{
+    add_subtract_columns, scale_and_add_subtract_eval, DecimalProofExpr, DynProofExpr, ProofExpr,
+};
 use crate::{
     base::{
         database::{
@@ -43,14 +45,8 @@ impl ProofExpr for SubtractExpr {
     ) -> PlaceholderResult<Column<'a, S>> {
         let lhs_column: Column<'a, S> = self.lhs.first_round_evaluate(alloc, table, params)?;
         let rhs_column: Column<'a, S> = self.rhs.first_round_evaluate(alloc, table, params)?;
-        Ok(Column::Scalar(add_subtract_columns(
-            lhs_column,
-            rhs_column,
-            self.lhs.data_type().scale().unwrap_or(0),
-            self.rhs.data_type().scale().unwrap_or(0),
-            alloc,
-            true,
-        )))
+        let res = add_subtract_columns(lhs_column, rhs_column, alloc, true);
+        Ok(Column::Decimal75(self.precision(), self.scale(), res))
     }
 
     #[tracing::instrument(
@@ -73,18 +69,11 @@ impl ProofExpr for SubtractExpr {
         let rhs_column: Column<'a, S> = self
             .rhs
             .final_round_evaluate(builder, alloc, table, params)?;
-        let res = Column::Scalar(add_subtract_columns(
-            lhs_column,
-            rhs_column,
-            self.lhs.data_type().scale().unwrap_or(0),
-            self.rhs.data_type().scale().unwrap_or(0),
-            alloc,
-            true,
-        ));
+        let res = add_subtract_columns(lhs_column, rhs_column, alloc, true);
 
         log::log_memory_usage("End");
 
-        Ok(res)
+        Ok(Column::Decimal75(self.precision(), self.scale(), res))
     }
 
     fn verifier_evaluate<S: Scalar>(
@@ -111,3 +100,5 @@ impl ProofExpr for SubtractExpr {
         self.rhs.get_column_references(columns);
     }
 }
+
+impl DecimalProofExpr for SubtractExpr {}

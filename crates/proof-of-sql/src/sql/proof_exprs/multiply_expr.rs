@@ -1,4 +1,4 @@
-use super::{DynProofExpr, ProofExpr};
+use super::{DecimalProofExpr, DynProofExpr, ProofExpr};
 use crate::{
     base::{
         database::{try_multiply_column_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
@@ -44,8 +44,8 @@ impl ProofExpr for MultiplyExpr {
     ) -> PlaceholderResult<Column<'a, S>> {
         let lhs_column: Column<'a, S> = self.lhs.first_round_evaluate(alloc, table, params)?;
         let rhs_column: Column<'a, S> = self.rhs.first_round_evaluate(alloc, table, params)?;
-        let scalars = multiply_columns(&lhs_column, &rhs_column, alloc);
-        Ok(Column::Scalar(scalars))
+        let res = multiply_columns(&lhs_column, &rhs_column, alloc);
+        Ok(Column::Decimal75(self.precision(), self.scale(), res))
     }
 
     #[tracing::instrument(
@@ -81,7 +81,7 @@ impl ProofExpr for MultiplyExpr {
                 (-S::one(), vec![Box::new(lhs_column), Box::new(rhs_column)]),
             ],
         );
-        let res = Column::Scalar(lhs_times_rhs);
+        let res = Column::Decimal75(self.precision(), self.scale(), lhs_times_rhs);
 
         log::log_memory_usage("End");
 
@@ -121,3 +121,5 @@ impl ProofExpr for MultiplyExpr {
         self.rhs.get_column_references(columns);
     }
 }
+
+impl DecimalProofExpr for MultiplyExpr {}
