@@ -86,57 +86,8 @@ impl From<DecimalError> for String {
     }
 }
 
-#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Copy)]
-/// limit-enforced precision
-#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-pub struct Precision(#[cfg_attr(test, proptest(strategy = "1..76u8"))] u8);
-pub(crate) const MAX_SUPPORTED_PRECISION: u8 = 75;
-
-impl Precision {
-    /// Constructor for creating a Precision instance
-    pub fn new(value: u8) -> Result<Self, DecimalError> {
-        if value > MAX_SUPPORTED_PRECISION || value == 0 {
-            Err(DecimalError::InvalidPrecision {
-                error: value.to_string(),
-            })
-        } else {
-            Ok(Precision(value))
-        }
-    }
-
-    /// Gets the precision as a u8 for this decimal
-    #[must_use]
-    pub fn value(&self) -> u8 {
-        self.0
-    }
-}
-
-impl TryFrom<u64> for Precision {
-    type Error = DecimalError;
-    fn try_from(value: u64) -> Result<Self, Self::Error> {
-        Precision::new(
-            value
-                .try_into()
-                .map_err(|_| DecimalError::InvalidPrecision {
-                    error: value.to_string(),
-                })?,
-        )
-    }
-}
-
-// Custom deserializer for precision since we need to limit its value to 75
-impl<'de> Deserialize<'de> for Precision {
-    fn deserialize<D>(deserializer: D) -> Result<Precision, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        // Deserialize as a u8
-        let value = u8::deserialize(deserializer)?;
-
-        // Use the Precision::new method to ensure the value is within the allowed range
-        Precision::new(value).map_err(serde::de::Error::custom)
-    }
-}
+/// The maximum precision supported by Proof of SQL.
+pub const MAX_SUPPORTED_PRECISION: u8 = 75;
 
 /// Fallibly attempts to convert an `IntermediateDecimal` into the
 /// native proof-of-sql [Scalar] backing store. This function adjusts
@@ -157,7 +108,7 @@ impl<'de> Deserialize<'de> for Precision {
 /// `target_scale`, or if the target precision is zero.
 pub(crate) fn try_convert_intermediate_decimal_to_scalar<S: Scalar>(
     d: &BigDecimal,
-    target_precision: Precision,
+    target_precision: u8,
     target_scale: i8,
 ) -> DecimalResult<S> {
     d.try_into_bigint_with_precision_and_scale(target_precision.value(), target_scale)?
