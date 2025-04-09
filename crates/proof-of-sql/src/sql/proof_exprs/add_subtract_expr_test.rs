@@ -9,7 +9,7 @@ use crate::{
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
-        proof::{exercise_verification, QueryError, VerifiableQueryResult},
+        proof::{exercise_verification, VerifiableQueryResult},
         proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
         proof_plans::{test_utility::*, DynProofPlan},
         AnalyzeError,
@@ -126,7 +126,7 @@ fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
 // Overflow tests
 // select a + b as c from sxt.t where b = 1
 #[test]
-fn result_expr_can_overflow() {
+fn result_expr_cannot_overflow() {
     let data = owned_table([
         smallint("a", [i16::MAX, i16::MIN]),
         smallint("b", [1_i16, 0]),
@@ -142,12 +142,14 @@ fn result_expr_can_overflow() {
         tab(&t),
         equal(column(&t, "b", &accessor), const_bigint(1)),
     );
-    let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
-    assert!(matches!(
-        verifiable_res.verify(&ast, &accessor, &(), &[]),
-        Err(QueryError::Overflow)
-    ));
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
+    exercise_verification(&verifiable_res, &ast, &accessor, &t);
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
+    let expected_res = owned_table([decimal75("c", 6, 0, [32767])]);
+    assert_eq!(res, expected_res);
 }
 
 // select a + b as c from sxt.t where b == 0
@@ -175,7 +177,7 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
         .verify(&ast, &accessor, &(), &[])
         .unwrap()
         .table;
-    let expected_res = owned_table([decimal75("c", 4, 0, [i16::MIN + 1])]);
+    let expected_res = owned_table([decimal75("c", 6, 0, [i16::MIN + 1])]);
     assert_eq!(res, expected_res);
 }
 
@@ -207,7 +209,7 @@ fn overflow_in_where_clause_doesnt_error_out() {
 
 // select a + b as c, a - b as d from sxt.t
 #[test]
-fn result_expr_can_overflow_more() {
+fn result_expr_cannot_overflow_more() {
     let data = owned_table([
         bigint("a", [i64::MAX, i64::MIN, i64::MAX, i64::MIN]),
         bigint("b", [i64::MAX, i64::MAX, i64::MIN, i64::MIN]),
@@ -229,12 +231,32 @@ fn result_expr_can_overflow_more() {
         tab(&t),
         const_bool(true),
     );
-    let verifiable_res: VerifiableQueryResult<InnerProductProof> =
-        VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
-    assert!(matches!(
-        verifiable_res.verify(&ast, &accessor, &(), &[]),
-        Err(QueryError::Overflow)
-    ));
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
+    exercise_verification(&verifiable_res, &ast, &accessor, &t);
+    let res = verifiable_res
+        .verify(&ast, &accessor, &(), &[])
+        .unwrap()
+        .table;
+    let expected_res = owned_table([
+        decimal75(
+            "c",
+            20,
+            0,
+            [i128::from(i64::MAX) * 2, -1, -1, i128::from(i64::MIN) * 2],
+        ),
+        decimal75(
+            "d",
+            20,
+            0,
+            [
+                0i128,
+                i128::from(i64::MIN) - i128::from(i64::MAX),
+                i128::from(i64::MAX) - i128::from(i64::MIN),
+                0,
+            ],
+        ),
+    ]);
+    assert_eq!(res, expected_res);
 }
 
 fn test_random_tables_with_given_offset(offset: usize) {
