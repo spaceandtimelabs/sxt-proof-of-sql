@@ -15,26 +15,21 @@ use alloc::boxed::Box;
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
-/// Provable numerical `+` / `-` expression
+/// Provable numerical `-` expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct AddSubtractExpr {
+pub struct SubtractExpr {
     lhs: Box<DynProofExpr>,
     rhs: Box<DynProofExpr>,
-    is_subtract: bool,
 }
 
-impl AddSubtractExpr {
-    /// Create numerical `+` / `-` expression
-    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>, is_subtract: bool) -> Self {
-        Self {
-            lhs,
-            rhs,
-            is_subtract,
-        }
+impl SubtractExpr {
+    /// Create numerical `-` expression
+    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
+        Self { lhs, rhs }
     }
 }
 
-impl ProofExpr for AddSubtractExpr {
+impl ProofExpr for SubtractExpr {
     fn data_type(&self) -> ColumnType {
         try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type())
             .expect("Failed to add/subtract column types")
@@ -54,12 +49,12 @@ impl ProofExpr for AddSubtractExpr {
             self.lhs.data_type().scale().unwrap_or(0),
             self.rhs.data_type().scale().unwrap_or(0),
             alloc,
-            self.is_subtract,
+            true,
         )))
     }
 
     #[tracing::instrument(
-        name = "proofs.sql.ast.add_subtract_expr.final_round_evaluate",
+        name = "proofs.sql.ast.subtract_expr.final_round_evaluate",
         level = "info",
         skip_all
     )]
@@ -84,7 +79,7 @@ impl ProofExpr for AddSubtractExpr {
             self.lhs.data_type().scale().unwrap_or(0),
             self.rhs.data_type().scale().unwrap_or(0),
             alloc,
-            self.is_subtract,
+            true,
         ));
 
         log::log_memory_usage("End");
@@ -107,8 +102,7 @@ impl ProofExpr for AddSubtractExpr {
             .verifier_evaluate(builder, accessor, chi_eval, params)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let res =
-            scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, self.is_subtract);
+        let res = scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, true);
         Ok(res)
     }
 
