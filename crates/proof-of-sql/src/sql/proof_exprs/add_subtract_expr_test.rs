@@ -57,7 +57,7 @@ fn we_can_prove_a_typical_add_subtract_query() {
     let expected_res = owned_table([
         smallint("a", [3_i16, 4]),
         bigint("c", [2_i16, 0]),
-        bigint("res", [4_i64, 5]),
+        decimal75("res", 20, 0, [4_i64, 5]),
         varchar("d", ["efg", "g"]),
     ]);
     assert_eq!(res, expected_res);
@@ -335,7 +335,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
             }
         })
         .multiunzip();
-        let expected_result = owned_table([varchar("d", expected_d), int128("f", expected_f)]);
+        let expected_result = owned_table([varchar("d", expected_d), decimal75("f", 20, 0, expected_f)]);
 
         assert_eq!(expected_result, res);
     }
