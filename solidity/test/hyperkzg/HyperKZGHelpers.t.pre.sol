@@ -254,8 +254,7 @@ contract HyperKZGHelpersTest is Test {
     }
 
     function testComputeGLMSMWithAllZeros() public view {
-        uint256[2][] memory com = new uint256[2][](1);
-        com[0] = [uint256(0), 0];
+        uint256[2][] memory com = new uint256[2][](0);
         uint256[2][3] memory w;
         w[0] = [uint256(0), 0];
         w[1] = [uint256(0), 0];
@@ -272,6 +271,78 @@ contract HyperKZGHelpersTest is Test {
         });
         assert(scratch[0] == 0);
         assert(scratch[1] == 0);
+    }
+
+    function testComputeGLMSMWith0Length() public view {
+        uint256[2][] memory com = new uint256[2][](0);
+        uint256[2][3] memory w;
+        {
+            (uint256 w0x, uint256 w0y) = ECPrecompilesTestHelper.ecBasePower(2);
+            (uint256 w1x, uint256 w1y) = ECPrecompilesTestHelper.ecBasePower(3);
+            (uint256 w2x, uint256 w2y) = ECPrecompilesTestHelper.ecBasePower(5);
+            w = [[w0x, w0y], [w1x, w1y], [w2x, w2y]];
+        }
+        uint256[2] memory commitment;
+        {
+            (uint256 commitmentx, uint256 commitmenty) = ECPrecompilesTestHelper.ecBasePower(7);
+            commitment = [commitmentx, commitmenty];
+        }
+        uint256[4] memory rqdb = [uint256(11), 13, 17, 19];
+        uint256[5] memory scratch = [uint256(23), 29, 31, 37, 41];
+
+        uint256 expectedGLPower = (17 ** 2 + 17 + 1) * 7 + 11 * 2 - 11 * 17 * 3 + (11 * 17) ** 2 * 5 - 19 * 1;
+        (uint256 expectedGLx, uint256 expectedGLy) = ECPrecompilesTestHelper.ecBasePower(expectedGLPower);
+        scratch = HyperKZGHelpers.__computeGLMSM({
+            __com: com,
+            __w: w,
+            __commitment: commitment,
+            __rqdb: rqdb,
+            __scratch: scratch
+        });
+        assert(scratch[0] == expectedGLx);
+        assert(scratch[1] == expectedGLy);
+    }
+
+    function testFuzzComputeGLMSMWith0Length(
+        uint256[4] memory rqdb,
+        uint256[5] memory scratch,
+        uint256[3] memory wPow,
+        uint256 commitmentPow
+    ) public view {
+        uint256[2][] memory com = new uint256[2][](0);
+        uint256[2][3] memory w;
+        {
+            (uint256 w0x, uint256 w0y) = ECPrecompilesTestHelper.ecBasePower(wPow[0]);
+            (uint256 w1x, uint256 w1y) = ECPrecompilesTestHelper.ecBasePower(wPow[1]);
+            (uint256 w2x, uint256 w2y) = ECPrecompilesTestHelper.ecBasePower(wPow[2]);
+            w = [[w0x, w0y], [w1x, w1y], [w2x, w2y]];
+        }
+        uint256[2] memory commitment;
+        {
+            (uint256 commitmentx, uint256 commitmenty) = ECPrecompilesTestHelper.ecBasePower(commitmentPow);
+            commitment = [commitmentx, commitmenty];
+        }
+
+        uint256 expectedGLPower;
+        {
+            FF r = F.from(rqdb[0]);
+            FF d = F.from(rqdb[2]);
+            FF b = F.from(rqdb[3]);
+            FF[3] memory wP = [F.from(wPow[0]), F.from(wPow[1]), F.from(wPow[2])];
+            FF commitmentP = F.from(commitmentPow);
+            expectedGLPower =
+                ((d * d + d + F.ONE) * commitmentP + r * wP[0] - r * d * wP[1] + r * d * r * d * wP[2] - b).into();
+        }
+        (uint256 expectedGLx, uint256 expectedGLy) = ECPrecompilesTestHelper.ecBasePower(expectedGLPower);
+        scratch = HyperKZGHelpers.__computeGLMSM({
+            __com: com,
+            __w: w,
+            __commitment: commitment,
+            __rqdb: rqdb,
+            __scratch: scratch
+        });
+        assert(scratch[0] == expectedGLx);
+        assert(scratch[1] == expectedGLy);
     }
 
     function testComputeGLMSMWithSimpleValues() public view {
