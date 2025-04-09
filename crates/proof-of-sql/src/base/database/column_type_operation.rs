@@ -19,46 +19,55 @@ pub fn try_add_subtract_column_types(
     lhs: ColumnType,
     rhs: ColumnType,
 ) -> ColumnOperationResult<ColumnType> {
-    if !lhs.is_numeric() || !rhs.is_numeric() {
+    if !lhs.is_valid_arithmetic_type() || !rhs.is_valid_arithmetic_type() {
         return Err(ColumnOperationError::BinaryOperationInvalidColumnType {
             operator: "+/-".to_string(),
             left_type: lhs,
             right_type: rhs,
         });
     }
-    if lhs.is_integer() && rhs.is_integer() {
-        // We can unwrap here because we know that both types are integers
-        return Ok(lhs.max_integer_type(&rhs).unwrap());
-    }
-    if lhs == ColumnType::Scalar || rhs == ColumnType::Scalar {
-        Ok(ColumnType::Scalar)
-    } else {
-        let left_precision_value =
-            i16::from(lhs.precision_value().expect("Numeric types have precision"));
-        let right_precision_value =
-            i16::from(rhs.precision_value().expect("Numeric types have precision"));
-        let left_scale = lhs.scale().expect("Numeric types have scale");
-        let right_scale = rhs.scale().expect("Numeric types have scale");
-        let scale = left_scale.max(right_scale);
-        let precision_value: i16 = i16::from(scale)
-            + (left_precision_value - i16::from(left_scale))
-                .max(right_precision_value - i16::from(right_scale))
-            + 1_i16;
-        let precision = u8::try_from(precision_value)
-            .map_err(|_| ColumnOperationError::DecimalConversionError {
+    let left_precision_value =
+        i16::from(lhs.precision_value().expect("Numeric types have precision"));
+    let right_precision_value =
+        i16::from(rhs.precision_value().expect("Numeric types have precision"));
+    let left_scale = lhs.scale().expect("Numeric types have scale");
+    let right_scale = rhs.scale().expect("Numeric types have scale");
+    let scale = left_scale.max(right_scale);
+    let precision_value: i16 = i16::from(scale)
+        + (left_precision_value - i16::from(left_scale))
+            .max(right_precision_value - i16::from(right_scale))
+        + 1_i16;
+    let precision = u8::try_from(precision_value)
+        .map_err(|_| ColumnOperationError::DecimalConversionError {
+            source: DecimalError::InvalidPrecision {
+                error: precision_value.to_string(),
+            },
+        })
+        .and_then(|p| {
+            Precision::new(p).map_err(|_| ColumnOperationError::DecimalConversionError {
                 source: DecimalError::InvalidPrecision {
-                    error: precision_value.to_string(),
+                    error: p.to_string(),
                 },
             })
-            .and_then(|p| {
-                Precision::new(p).map_err(|_| ColumnOperationError::DecimalConversionError {
-                    source: DecimalError::InvalidPrecision {
-                        error: p.to_string(),
-                    },
-                })
-            })?;
-        Ok(ColumnType::Decimal75(precision, scale))
-    }
+        })?;
+    Ok(ColumnType::Decimal75(precision, scale))
+}
+
+/// Determines if two types are the same and can be added and subtracted
+pub fn try_add_subtract_column_types_of_same_decimal_type(
+    lhs: ColumnType,
+    rhs: ColumnType,
+) -> ColumnOperationResult<ColumnType> {
+    (matches!(
+        (lhs, rhs),
+        (ColumnType::Decimal75(_, _), ColumnType::Decimal75(_, _))
+    ) && lhs == rhs)
+        .then_some(lhs)
+        .ok_or(ColumnOperationError::BinaryOperationInvalidColumnType {
+            operator: "+/-".to_string(),
+            left_type: lhs,
+            right_type: rhs,
+        })
 }
 
 /// Determine the output type of a multiplication operation if it is possible
@@ -73,7 +82,7 @@ pub fn try_multiply_column_types(
     lhs: ColumnType,
     rhs: ColumnType,
 ) -> ColumnOperationResult<ColumnType> {
-    if !lhs.is_numeric() || !rhs.is_numeric() {
+    if !lhs.is_valid_arithmetic_type() || !rhs.is_valid_arithmetic_type() {
         return Err(ColumnOperationError::BinaryOperationInvalidColumnType {
             operator: "*".to_string(),
             left_type: lhs,
@@ -143,8 +152,8 @@ pub fn try_divide_column_types(
     lhs: ColumnType,
     rhs: ColumnType,
 ) -> ColumnOperationResult<ColumnType> {
-    if !lhs.is_numeric()
-        || !rhs.is_numeric()
+    if !lhs.is_valid_arithmetic_type()
+        || !rhs.is_valid_arithmetic_type()
         || lhs == ColumnType::Scalar
         || rhs == ColumnType::Scalar
     {
@@ -272,39 +281,26 @@ mod test {
         let lhs = ColumnType::TinyInt;
         let rhs = ColumnType::TinyInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::TinyInt;
+        let expected = ColumnType::Decimal75(Precision::new(4).unwrap(), 0);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::SmallInt;
+        let expected = ColumnType::Decimal75(Precision::new(6).unwrap(), 0);
         assert_eq!(expected, actual);
 
         // lhs and rhs are integers with different precision
         let lhs = ColumnType::TinyInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::SmallInt;
+        let expected = ColumnType::Decimal75(Precision::new(6).unwrap(), 0);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Int;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Int;
-        assert_eq!(expected, actual);
-
-        // lhs is an integer and rhs is a scalar
-        let lhs = ColumnType::TinyInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
-        assert_eq!(expected, actual);
-
-        let lhs = ColumnType::SmallInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
+        let expected = ColumnType::Decimal75(Precision::new(11).unwrap(), 0);
         assert_eq!(expected, actual);
 
         // lhs is a decimal with nonnegative scale and rhs is an integer
@@ -407,39 +403,26 @@ mod test {
         let lhs = ColumnType::TinyInt;
         let rhs = ColumnType::TinyInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::TinyInt;
+        let expected = ColumnType::Decimal75(Precision::new(4).unwrap(), 0);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::SmallInt;
+        let expected = ColumnType::Decimal75(Precision::new(6).unwrap(), 0);
         assert_eq!(expected, actual);
 
         // lhs and rhs are integers with different precision
         let lhs = ColumnType::TinyInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::SmallInt;
+        let expected = ColumnType::Decimal75(Precision::new(6).unwrap(), 0);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Int;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Int;
-        assert_eq!(expected, actual);
-
-        // lhs is an integer and rhs is a scalar
-        let lhs = ColumnType::TinyInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
-        assert_eq!(expected, actual);
-
-        let lhs = ColumnType::SmallInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
+        let expected = ColumnType::Decimal75(Precision::new(11).unwrap(), 0);
         assert_eq!(expected, actual);
 
         // lhs is a decimal and rhs is an integer
@@ -562,19 +545,6 @@ mod test {
         let rhs = ColumnType::Int;
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
         let expected = ColumnType::Int;
-        assert_eq!(expected, actual);
-
-        // lhs is an integer and rhs is a scalar
-        let lhs = ColumnType::TinyInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
-        assert_eq!(expected, actual);
-
-        let lhs = ColumnType::SmallInt;
-        let rhs = ColumnType::Scalar;
-        let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Scalar;
         assert_eq!(expected, actual);
 
         // lhs is a decimal and rhs is an integer

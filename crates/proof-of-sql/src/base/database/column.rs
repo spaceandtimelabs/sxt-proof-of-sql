@@ -394,7 +394,7 @@ pub enum ColumnType {
 impl ColumnType {
     /// Returns true if this column is numeric and false otherwise
     #[must_use]
-    pub fn is_numeric(&self) -> bool {
+    pub fn is_valid_arithmetic_type(&self) -> bool {
         matches!(
             self,
             ColumnType::Uint8
@@ -403,7 +403,6 @@ impl ColumnType {
                 | ColumnType::Int
                 | ColumnType::BigInt
                 | ColumnType::Int128
-                | ColumnType::Scalar
                 | ColumnType::Decimal75(_, _)
         )
     }

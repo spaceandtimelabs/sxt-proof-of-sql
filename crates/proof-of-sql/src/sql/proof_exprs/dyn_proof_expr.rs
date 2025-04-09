@@ -5,7 +5,10 @@ use super::{
 };
 use crate::{
     base::{
-        database::{try_cast_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{
+            try_add_subtract_column_types, try_cast_types, Column, ColumnRef, ColumnType,
+            LiteralValue, Table,
+        },
         map::{IndexMap, IndexSet},
         proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
@@ -123,38 +126,46 @@ impl DynProofExpr {
 
     /// Create a new add expression
     pub fn try_new_add(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
-        let lhs_datatype = lhs.data_type();
-        let rhs_datatype = rhs.data_type();
-        if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Plus).is_some() {
-            Ok(Self::AddSubtract(AddSubtractExpr::new(
-                Box::new(lhs),
-                Box::new(rhs),
-                false,
-            )))
-        } else {
-            Err(AnalyzeError::DataTypeMismatch {
-                left_type: lhs_datatype.to_string(),
-                right_type: rhs_datatype.to_string(),
-            })
-        }
+        DynProofExpr::try_new_add_or_subtract(lhs, rhs, false)
     }
 
     /// Create a new subtract expression
     pub fn try_new_subtract(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
+        DynProofExpr::try_new_add_or_subtract(lhs, rhs, true)
+    }
+
+    fn try_new_add_or_subtract(
+        lhs: DynProofExpr,
+        rhs: DynProofExpr,
+        is_subtract: bool,
+    ) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Minus).is_some() {
-            Ok(Self::AddSubtract(AddSubtractExpr::new(
-                Box::new(lhs),
-                Box::new(rhs),
-                true,
-            )))
+        let result_type =
+            try_add_subtract_column_types(lhs_datatype, rhs_datatype).map_err(|_| {
+                AnalyzeError::DataTypeMismatch {
+                    left_type: lhs_datatype.to_string(),
+                    right_type: rhs_datatype.to_string(),
+                }
+            })?;
+        let lhs = if lhs_datatype == result_type {
+            lhs
         } else {
-            Err(AnalyzeError::DataTypeMismatch {
+            DynProofExpr::try_new_decimal_scaling_cast(lhs, result_type)?
+        };
+        let rhs = if rhs_datatype == result_type {
+            rhs
+        } else {
+            DynProofExpr::try_new_decimal_scaling_cast(rhs, result_type)?
+        };
+        let add_subtract_expr = AddSubtractExpr::try_new(Box::new(lhs), Box::new(rhs), is_subtract)
+            .map(Self::AddSubtract)
+            .map_err(|_| AnalyzeError::DataTypeMismatch {
                 left_type: lhs_datatype.to_string(),
                 right_type: rhs_datatype.to_string(),
-            })
-        }
+            })?;
+        // Casting to account for returned scalars
+        DynProofExpr::try_new_cast(add_subtract_expr, result_type)
     }
 
     /// Create a new multiply expression

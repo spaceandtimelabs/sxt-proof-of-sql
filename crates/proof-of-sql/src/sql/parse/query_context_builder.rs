@@ -315,6 +315,7 @@ mod tests {
         base::{
             database::{ColumnType, TableRef},
             map::indexmap,
+            math::decimal::Precision,
         },
         sql::parse::query_expr_tests::schema_accessor_from_table_ref_with_schema,
     };
@@ -349,6 +350,6 @@ mod tests {
                 &Expression::Column(Identifier::try_new("b").unwrap()),
             )
             .unwrap();
-        assert_eq!(res, ColumnType::BigInt);
+        assert_eq!(res, ColumnType::Decimal75(Precision::new(20).unwrap(), 0));
     }
 }

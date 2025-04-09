@@ -175,7 +175,7 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
         .verify(&ast, &accessor, &(), &[])
         .unwrap()
         .table;
-    let expected_res = owned_table([smallint("c", [i16::MIN + 1])]);
+    let expected_res = owned_table([decimal75("c", 4, 0, [i16::MIN + 1])]);
     assert_eq!(res, expected_res);
 }
 
