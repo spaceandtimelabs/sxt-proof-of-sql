@@ -18,8 +18,8 @@ use serde::{Deserialize, Serialize};
 /// Provable numerical `-` expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SubtractExpr {
-    lhs: Box<DynProofExpr>,
-    rhs: Box<DynProofExpr>,
+    pub(crate) lhs: Box<DynProofExpr>,
+    pub(crate) rhs: Box<DynProofExpr>,
 }
 
 impl SubtractExpr {
