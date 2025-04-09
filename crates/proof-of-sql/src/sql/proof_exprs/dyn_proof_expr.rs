@@ -1,7 +1,6 @@
 use super::{
-    cast_expr::CastExpr, decimal_scaling_cast_expr::DecimalScalingCastExpr, AddSubtractExpr,
-    AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr, MultiplyExpr, NotExpr, OrExpr,
-    PlaceholderExpr, ProofExpr,
+    AddExpr, AndExpr, CastExpr, ColumnExpr, DecimalScalingCastExpr, EqualsExpr, InequalityExpr,
+    LiteralExpr, MultiplyExpr, NotExpr, OrExpr, PlaceholderExpr, ProofExpr, SubtractExpr,
 };
 use crate::{
     base::{
@@ -42,8 +41,10 @@ pub enum DynProofExpr {
     Equals(EqualsExpr),
     /// Provable AST expression for an inequality expression
     Inequality(InequalityExpr),
-    /// Provable numeric `+` / `-` expression
-    AddSubtract(AddSubtractExpr),
+    /// Provable numeric `+` expression
+    Add(AddExpr),
+    /// Provable numeric `-` expression
+    Subtract(SubtractExpr),
     /// Provable numeric `*` expression
     Multiply(MultiplyExpr),
     /// Provable CAST expression
@@ -126,11 +127,7 @@ impl DynProofExpr {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Plus).is_some() {
-            Ok(Self::AddSubtract(AddSubtractExpr::new(
-                Box::new(lhs),
-                Box::new(rhs),
-                false,
-            )))
+            Ok(Self::Add(AddExpr::new(Box::new(lhs), Box::new(rhs))))
         } else {
             Err(AnalyzeError::DataTypeMismatch {
                 left_type: lhs_datatype.to_string(),
@@ -144,10 +141,9 @@ impl DynProofExpr {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Minus).is_some() {
-            Ok(Self::AddSubtract(AddSubtractExpr::new(
+            Ok(Self::Subtract(SubtractExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
-                true,
             )))
         } else {
             Err(AnalyzeError::DataTypeMismatch {

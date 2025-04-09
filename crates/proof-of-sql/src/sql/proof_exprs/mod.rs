@@ -7,8 +7,10 @@ mod proof_expr_test;
 mod aliased_dyn_proof_expr;
 pub use aliased_dyn_proof_expr::AliasedDynProofExpr;
 
-mod add_subtract_expr;
-pub(crate) use add_subtract_expr::AddSubtractExpr;
+mod add_expr;
+pub(crate) use add_expr::AddExpr;
+mod subtract_expr;
+pub(crate) use subtract_expr::SubtractExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod add_subtract_expr_test;
 
@@ -77,9 +79,11 @@ pub use column_expr::ColumnExpr;
 mod column_expr_test;
 
 mod cast_expr;
+pub(crate) use cast_expr::CastExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod cast_expr_test;
 
 mod decimal_scaling_cast_expr;
+pub(crate) use decimal_scaling_cast_expr::DecimalScalingCastExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod decimal_scaling_cast_expr_test;
