@@ -1,8 +1,9 @@
-use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
+use super::{add_subtract_columns, DynProofExpr, ProofExpr};
 use crate::{
     base::{
         database::{
-            try_add_subtract_column_types, Column, ColumnRef, ColumnType, LiteralValue, Table,
+            try_add_subtract_column_types_of_same_decimal_type, Column, ColumnOperationResult,
+            ColumnRef, ColumnType, LiteralValue, Table,
         },
         map::{IndexMap, IndexSet},
         proof::{PlaceholderResult, ProofError},
@@ -25,19 +26,23 @@ pub struct AddSubtractExpr {
 
 impl AddSubtractExpr {
     /// Create numerical `+` / `-` expression
-    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>, is_subtract: bool) -> Self {
-        Self {
+    pub fn try_new(
+        lhs: Box<DynProofExpr>,
+        rhs: Box<DynProofExpr>,
+        is_subtract: bool,
+    ) -> ColumnOperationResult<Self> {
+        try_add_subtract_column_types_of_same_decimal_type(lhs.data_type(), rhs.data_type())?;
+        Ok(Self {
             lhs,
             rhs,
             is_subtract,
-        }
+        })
     }
 }
 
 impl ProofExpr for AddSubtractExpr {
     fn data_type(&self) -> ColumnType {
-        try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type())
-            .expect("Failed to add/subtract column types")
+        self.lhs.data_type()
     }
 
     fn first_round_evaluate<'a, S: Scalar>(
@@ -51,8 +56,6 @@ impl ProofExpr for AddSubtractExpr {
         Ok(Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,
-            self.lhs.data_type().scale().unwrap_or(0),
-            self.rhs.data_type().scale().unwrap_or(0),
             alloc,
             self.is_subtract,
         )))
@@ -81,8 +84,6 @@ impl ProofExpr for AddSubtractExpr {
         let res = Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,
-            self.lhs.data_type().scale().unwrap_or(0),
-            self.rhs.data_type().scale().unwrap_or(0),
             alloc,
             self.is_subtract,
         ));
@@ -105,11 +106,11 @@ impl ProofExpr for AddSubtractExpr {
         let rhs_eval = self
             .rhs
             .verifier_evaluate(builder, accessor, chi_eval, params)?;
-        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
-        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let res =
-            scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, self.is_subtract);
-        Ok(res)
+        Ok(if self.is_subtract {
+            lhs_eval - rhs_eval
+        } else {
+            lhs_eval + rhs_eval
+        })
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

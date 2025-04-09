@@ -1,5 +1,8 @@
 use super::{AnalyzeError, AnalyzeResult};
-use crate::base::database::{try_add_subtract_column_types, try_multiply_column_types, ColumnType};
+use crate::base::database::{
+    try_add_subtract_column_types, try_decimal_scale_cast_types, try_multiply_column_types,
+    ColumnType,
+};
 use alloc::string::ToString;
 use sqlparser::ast::BinaryOperator;
 
@@ -33,7 +36,8 @@ pub(crate) fn try_binary_operation_type(
                 | (ColumnType::Boolean, ColumnType::Boolean)
                 | (_, ColumnType::Scalar)
                 | (ColumnType::Scalar, _)
-        ) || (left_dtype.is_numeric() && right_dtype.is_numeric()))
+        ) || (left_dtype.is_valid_arithmetic_type()
+            && right_dtype.is_valid_arithmetic_type()))
         .then_some(ColumnType::Boolean),
         BinaryOperator::Gt | BinaryOperator::Lt => {
             if left_dtype == ColumnType::VarChar || right_dtype == ColumnType::VarChar {
@@ -50,7 +54,7 @@ pub(crate) fn try_binary_operation_type(
                     return None;
                 }
             }
-            (left_dtype.is_numeric() && right_dtype.is_numeric()
+            (left_dtype.is_valid_arithmetic_type() && right_dtype.is_valid_arithmetic_type()
                 || matches!(
                     (left_dtype, right_dtype),
                     (ColumnType::Boolean, ColumnType::Boolean)
@@ -59,12 +63,18 @@ pub(crate) fn try_binary_operation_type(
             .then_some(ColumnType::Boolean)
         }
         BinaryOperator::Plus | BinaryOperator::Minus => {
-            try_add_subtract_column_types(left_dtype, right_dtype).ok()
+            try_add_subtract_column_types(left_dtype, right_dtype)
+                .and_then(|result_type| {
+                    try_decimal_scale_cast_types(left_dtype, result_type)?;
+                    try_decimal_scale_cast_types(right_dtype, result_type)?;
+                    Ok(result_type)
+                })
+                .ok()
         }
         BinaryOperator::Multiply => try_multiply_column_types(left_dtype, right_dtype).ok(),
-        BinaryOperator::Divide => {
-            (left_dtype.is_numeric() && right_dtype.is_numeric()).then_some(left_dtype)
-        }
+        BinaryOperator::Divide => (left_dtype.is_valid_arithmetic_type()
+            && right_dtype.is_valid_arithmetic_type())
+        .then_some(left_dtype),
         _ => {
             // Handle unsupported binary operations
             None

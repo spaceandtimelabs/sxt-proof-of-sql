@@ -14,6 +14,7 @@ use itertools::izip;
 use num_traits::{NumCast, PrimInt};
 
 #[expect(clippy::cast_sign_loss)]
+#[expect(dead_code)]
 /// Add or subtract two literals together.
 pub(crate) fn add_subtract_literals<S: Scalar>(
     lhs: &LiteralValue,
@@ -48,8 +49,6 @@ pub(crate) fn add_subtract_literals<S: Scalar>(
 pub(crate) fn add_subtract_columns<'a, S: Scalar>(
     lhs: Column<'a, S>,
     rhs: Column<'a, S>,
-    lhs_scale: i8,
-    rhs_scale: i8,
     alloc: &'a Bump,
     is_subtract: bool,
 ) -> &'a [S] {
@@ -59,9 +58,8 @@ pub(crate) fn add_subtract_columns<'a, S: Scalar>(
         lhs_len == rhs_len,
         "lhs and rhs should have the same length"
     );
-    let max_scale = lhs_scale.max(rhs_scale);
-    let lhs_scalar = lhs.to_scalar_with_scaling(max_scale - lhs_scale);
-    let rhs_scalar = rhs.to_scalar_with_scaling(max_scale - rhs_scale);
+    let lhs_scalar = lhs.to_scalar_with_scaling(0);
+    let rhs_scalar = rhs.to_scalar_with_scaling(0);
     let result = alloc.alloc_slice_fill_with(lhs_len, |i| {
         if is_subtract {
             lhs_scalar[i] - rhs_scalar[i]
@@ -70,55 +68,6 @@ pub(crate) fn add_subtract_columns<'a, S: Scalar>(
         }
     });
     result
-}
-
-/// Add or subtract two [`ColumnarValues`] together.
-#[expect(dead_code)]
-pub(crate) fn add_subtract_columnar_values<'a, S: Scalar>(
-    lhs: ColumnarValue<'a, S>,
-    rhs: ColumnarValue<'a, S>,
-    lhs_scale: i8,
-    rhs_scale: i8,
-    alloc: &'a Bump,
-    is_subtract: bool,
-) -> ColumnarValue<'a, S> {
-    match (lhs, rhs) {
-        (ColumnarValue::Column(lhs), ColumnarValue::Column(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
-                lhs,
-                rhs,
-                lhs_scale,
-                rhs_scale,
-                alloc,
-                is_subtract,
-            )))
-        }
-        (ColumnarValue::Literal(lhs), ColumnarValue::Column(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
-                Column::from_literal_with_length(&lhs, rhs.len(), alloc),
-                rhs,
-                lhs_scale,
-                rhs_scale,
-                alloc,
-                is_subtract,
-            )))
-        }
-        (ColumnarValue::Column(lhs), ColumnarValue::Literal(rhs)) => {
-            ColumnarValue::Column(Column::Scalar(add_subtract_columns(
-                lhs,
-                Column::from_literal_with_length(&rhs, lhs.len(), alloc),
-                lhs_scale,
-                rhs_scale,
-                alloc,
-                is_subtract,
-            )))
-        }
-        (ColumnarValue::Literal(lhs), ColumnarValue::Literal(rhs)) => {
-            ColumnarValue::Literal(LiteralValue::Scalar(
-                add_subtract_literals::<S>(&lhs, &rhs, lhs_scale, rhs_scale, is_subtract).into(),
-            ))
-        }
-    }
 }
 
 /// Multiply two columns together.
@@ -732,7 +681,6 @@ pub fn try_get_scaling_factor_with_precision_and_scale(
 ///
 /// # Panics
 /// Panics if casting is invalid between the two types
-#[cfg_attr(not(test), expect(dead_code))]
 pub fn cast_column_to_decimal_with_scaling<'a, S: Scalar>(
     alloc: &'a Bump,
     from_column: Column<'a, S>,
