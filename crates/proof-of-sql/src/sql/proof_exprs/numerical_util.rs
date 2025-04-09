@@ -991,7 +991,7 @@ mod tests {
     fn we_can_cast_numeric_types_to_numeric_types_when_castable() {
         let alloc = Bump::new();
         let small_decimal_column =
-            Column::<TestScalar>::Decimal75(Precision::new(2).unwrap(), 0, &[TestScalar::ONE]);
+            Column::<TestScalar>::Decimal75(2_u8, 0, &[TestScalar::ONE]);
         let uint8_column = Column::<TestScalar>::Uint8(&[1u8]);
         let tiny_int_column = Column::<TestScalar>::TinyInt(&[1i8]);
         let small_int_column = Column::<TestScalar>::SmallInt(&[1i16]);
@@ -999,7 +999,7 @@ mod tests {
         let big_int_column = Column::<TestScalar>::BigInt(&[1i64]);
         let int_128_column = Column::<TestScalar>::Int128(&[1i128]);
         let big_decimal_column =
-            Column::<TestScalar>::Decimal75(Precision::new(2).unwrap(), 0, &[TestScalar::ONE]);
+            Column::<TestScalar>::Decimal75(2_u8, 0, &[TestScalar::ONE]);
         for (from_column, to_column) in iproduct!(
             [
                 small_decimal_column,
@@ -1041,10 +1041,10 @@ mod tests {
         let big_int_column = Column::<TestScalar>::BigInt(&[1i64]);
         let int_128_column = Column::<TestScalar>::Int128(&[1i128]);
         let big_decimal_column =
-            Column::<TestScalar>::Decimal75(Precision::new(2).unwrap(), 0, &[TestScalar::ONE]);
+            Column::<TestScalar>::Decimal75(2_u8, 0, &[TestScalar::ONE]);
         for (from_type, to_column) in iproduct!(
             [
-                ColumnType::Decimal75(Precision::new(2).unwrap(), 0),
+                ColumnType::Decimal75(2_u8, 0),
                 ColumnType::Uint8,
                 ColumnType::TinyInt,
                 ColumnType::SmallInt,
@@ -1076,16 +1076,16 @@ mod tests {
     fn we_can_cast_decimal_column_to_decimal_column_with_same_scale() {
         let alloc = Bump::new();
         let decimal_column_with_scale =
-            Column::<TestScalar>::Decimal75(Precision::new(2).unwrap(), 1, &[TestScalar::ONE]);
+            Column::<TestScalar>::Decimal75(2_u8, 1, &[TestScalar::ONE]);
         let res = cast_column(
             &alloc,
             decimal_column_with_scale,
-            ColumnType::Decimal75(Precision::new(2).unwrap(), 1),
-            ColumnType::Decimal75(Precision::new(3).unwrap(), 1),
+            ColumnType::Decimal75(2_u8, 1),
+            ColumnType::Decimal75(3_u8, 1),
         );
         assert_eq!(
             res,
-            Column::<TestScalar>::Decimal75(Precision::new(3).unwrap(), 1, &[TestScalar::ONE])
+            Column::<TestScalar>::Decimal75(3_u8, 1, &[TestScalar::ONE])
         );
     }
 
@@ -1096,12 +1096,12 @@ mod tests {
         let res = cast_column(
             &alloc,
             scalar_column,
-            ColumnType::Decimal75(Precision::new(2).unwrap(), 1),
-            ColumnType::Decimal75(Precision::new(3).unwrap(), 1),
+            ColumnType::Decimal75(2_u8, 1),
+            ColumnType::Decimal75(3_u8, 1),
         );
         assert_eq!(
             res,
-            Column::<TestScalar>::Decimal75(Precision::new(3).unwrap(), 1, &[TestScalar::ONE])
+            Column::<TestScalar>::Decimal75(3_u8, 1, &[TestScalar::ONE])
         );
     }
 
@@ -1167,7 +1167,7 @@ mod tests {
             ColumnType::Int128,
         ] {
             let from_precision = Precision::new(from.precision_value().unwrap()).unwrap();
-            let forty_prec = Precision::new(40).unwrap();
+            let forty_prec = 40_u8;
             let triple = try_get_scaling_factor_with_precision_and_scale(
                 from,
                 ColumnType::Decimal75(from_precision, 0),
@@ -1193,7 +1193,7 @@ mod tests {
 
     #[test]
     fn we_can_properly_determine_scaling_factors_for_decimals() {
-        let twenty_prec = Precision::new(20).unwrap();
+        let twenty_prec = 20_u8;
 
         // from_with_negative_scale
         let neg_scale = ColumnType::Decimal75(twenty_prec, -3);
@@ -1205,7 +1205,7 @@ mod tests {
         .unwrap();
         assert_eq!(triple, (U256::ONE, twenty_prec.value(), -3));
 
-        let twenty_one_prec = Precision::new(21).unwrap();
+        let twenty_one_prec = 21_u8;
         let triple = try_get_scaling_factor_with_precision_and_scale(
             neg_scale,
             ColumnType::Decimal75(twenty_one_prec, -3),
@@ -1271,7 +1271,7 @@ mod tests {
     fn we_can_get_scaling_factor_for_min_and_max_types() {
         let triple = try_get_scaling_factor_with_precision_and_scale(
             ColumnType::Uint8,
-            ColumnType::Decimal75(Precision::new(75).unwrap(), 72),
+            ColumnType::Decimal75(75_u8, 72),
         )
         .unwrap();
         assert_eq!(triple, (U256::TEN.pow(72), 75, 72));
@@ -1290,7 +1290,7 @@ mod tests {
         // tiny int
         let tiny_int_slice = [i8::MAX, i8::MIN, 0];
         let tiny_int_column = Column::<TestScalar>::TinyInt(&tiny_int_slice);
-        let prec = Precision::new(5).unwrap();
+        let prec = 5_u8;
         let scale = 1i8;
         let scalar_slice = tiny_int_slice
             .map(TestScalar::from)
@@ -1307,7 +1307,7 @@ mod tests {
         // uint8
         let uint8_slice = [u8::MAX, u8::MIN];
         let uint8_column = Column::<TestScalar>::Uint8(&uint8_slice);
-        let prec = Precision::new(4).unwrap();
+        let prec = 4_u8;
         let scale = 1i8;
         let scalar_slice = uint8_slice
             .map(TestScalar::from)
@@ -1324,7 +1324,7 @@ mod tests {
         // small int
         let small_int_slice = [i16::MAX, i16::MIN, 0];
         let small_int_column = Column::<TestScalar>::SmallInt(&small_int_slice);
-        let prec = Precision::new(10).unwrap();
+        let prec = 10_u8;
         let scale = 0i8;
         let scalar_slice = small_int_slice.map(TestScalar::from);
         assert_eq!(
@@ -1339,7 +1339,7 @@ mod tests {
         // int
         let int_slice = [i32::MAX, i32::MIN, 0];
         let int_column = Column::<TestScalar>::Int(&int_slice);
-        let prec = Precision::new(10).unwrap();
+        let prec = 10_u8;
         let scale = 0i8;
         let scalar_slice = int_slice.map(TestScalar::from);
         assert_eq!(
@@ -1354,7 +1354,7 @@ mod tests {
         // big int
         let big_int_slice = [i64::MAX, i64::MIN, 0];
         let big_int_column = Column::<TestScalar>::BigInt(&big_int_slice);
-        let prec = Precision::new(21).unwrap();
+        let prec = 21_u8;
         let scale = 2i8;
         let scalar_slice = big_int_slice
             .map(TestScalar::from)
@@ -1371,7 +1371,7 @@ mod tests {
         // int 128
         let int_128_slice = [i128::MAX, i128::MIN, 0];
         let int_128_column = Column::<TestScalar>::Int128(&int_128_slice);
-        let prec = Precision::new(40).unwrap();
+        let prec = 40_u8;
         let scale = 1i8;
         let scalar_slice = int_128_slice
             .map(TestScalar::from)
@@ -1393,8 +1393,8 @@ mod tests {
         // negative to negative
         let decimal_slice = [TestScalar::ONE, TestScalar::TEN];
         let decimal_column =
-            Column::<TestScalar>::Decimal75(Precision::new(2).unwrap(), -2, &decimal_slice);
-        let prec = Precision::new(3).unwrap();
+            Column::<TestScalar>::Decimal75(2_u8, -2, &decimal_slice);
+        let prec = 3_u8;
         let scale = -1i8;
         let scalar_slice = decimal_slice.map(|s| s * TestScalar::TEN);
         assert_eq!(
@@ -1409,8 +1409,8 @@ mod tests {
         // negative to positive
         let decimal_slice = [TestScalar::ONE, TestScalar::TEN];
         let decimal_column =
-            Column::<TestScalar>::Decimal75(Precision::new(2).unwrap(), -2, &decimal_slice);
-        let prec = Precision::new(5).unwrap();
+            Column::<TestScalar>::Decimal75(2_u8, -2, &decimal_slice);
+        let prec = 5_u8;
         let scale = 1i8;
         let scalar_slice = decimal_slice.map(|s| s * TestScalar::from(1_000));
         assert_eq!(
@@ -1425,8 +1425,8 @@ mod tests {
         // positive to positive
         let decimal_slice = [TestScalar::ONE, TestScalar::TEN];
         let decimal_column =
-            Column::<TestScalar>::Decimal75(Precision::new(2).unwrap(), 1, &decimal_slice);
-        let prec = Precision::new(3).unwrap();
+            Column::<TestScalar>::Decimal75(2_u8, 1, &decimal_slice);
+        let prec = 3_u8;
         let scale = 2i8;
         let scalar_slice = decimal_slice.map(|s| s * TestScalar::TEN);
         assert_eq!(

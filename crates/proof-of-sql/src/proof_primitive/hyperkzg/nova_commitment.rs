@@ -203,7 +203,7 @@ mod tests {
             CommittableColumn::Int128(&[8, 9]),
             CommittableColumn::Boolean(&[true, true]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![[10, 0, 0, 0], [11, 0, 0, 0], [12, 0, 0, 0], [13, 0, 0, 0]],
             ),

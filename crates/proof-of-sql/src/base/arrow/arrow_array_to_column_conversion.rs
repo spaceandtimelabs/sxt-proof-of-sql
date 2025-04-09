@@ -510,7 +510,7 @@ mod tests {
         ];
         assert_eq!(
             result.unwrap(),
-            Column::Decimal75(Precision::new(75).unwrap(), 0, expected_scalars.as_slice())
+            Column::Decimal75(75_u8, 0, expected_scalars.as_slice())
         );
     }
 
@@ -526,7 +526,7 @@ mod tests {
         let result = array.to_column::<TestScalar>(&alloc, &(1..1), None);
         assert_eq!(
             result.unwrap(),
-            Column::Decimal75(Precision::new(75).unwrap(), 0, &[])
+            Column::Decimal75(75_u8, 0, &[])
         );
     }
 

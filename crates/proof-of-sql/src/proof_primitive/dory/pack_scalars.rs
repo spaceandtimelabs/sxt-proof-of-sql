@@ -481,7 +481,7 @@ mod tests {
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![
                     [1, 0, 0, 0],
@@ -516,7 +516,7 @@ mod tests {
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![
                     [1, 0, 0, 0],
@@ -551,7 +551,7 @@ mod tests {
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![
                     [1, 0, 0, 0],
@@ -591,7 +591,7 @@ mod tests {
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![
                     [1, 0, 0, 0],
@@ -631,7 +631,7 @@ mod tests {
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![
                     [1, 0, 0, 0],
@@ -671,7 +671,7 @@ mod tests {
             CommittableColumn::BigInt(&[1, 2, 3]),
             CommittableColumn::Int128(&[1, 2, 3, 4]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![
                     [1, 0, 0, 0],
@@ -1011,7 +1011,7 @@ mod tests {
             CommittableColumn::BigInt(&[1, 2, 3, 4, 5, 6, 7]),
             CommittableColumn::Int128(&[1, 2, 3, 4, 5, 6, 7, 8]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![
                     [1, 0, 0, 0],
@@ -1050,7 +1050,7 @@ mod tests {
             CommittableColumn::BigInt(&[1, 2, 3, 4, 5, 6, 7]),
             CommittableColumn::Int128(&[1, 2, 3, 4, 5, 6, 7, 8]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![
                     [1, 0, 0, 0],

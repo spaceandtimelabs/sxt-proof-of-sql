@@ -382,7 +382,7 @@ mod tests {
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
             LiteralValue::Decimal75(
-                Precision::new(38).unwrap(),
+                38_u8,
                 0,
                 proof_of_sql::base::math::i256::I256::from(123i128)
             )
@@ -393,7 +393,7 @@ mod tests {
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
             LiteralValue::Decimal75(
-                Precision::new(38).unwrap(),
+                38_u8,
                 10,
                 proof_of_sql::base::math::i256::I256::from(i128::MIN)
             )
@@ -403,7 +403,7 @@ mod tests {
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
             LiteralValue::Decimal75(
-                Precision::new(28).unwrap(),
+                28_u8,
                 -5,
                 proof_of_sql::base::math::i256::I256::from(i128::MAX)
             )
@@ -413,7 +413,7 @@ mod tests {
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
             LiteralValue::Decimal75(
-                Precision::new(38).unwrap(),
+                38_u8,
                 0,
                 proof_of_sql::base::math::i256::I256::from(0i128)
             )
@@ -424,7 +424,7 @@ mod tests {
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
             LiteralValue::Decimal75(
-                Precision::new(75).unwrap(),
+                75_u8,
                 120,
                 proof_of_sql::base::math::i256::I256::from(-456i128)
             )
@@ -435,7 +435,7 @@ mod tests {
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
             LiteralValue::Decimal75(
-                Precision::new(75).unwrap(),
+                75_u8,
                 127,
                 proof_of_sql::base::math::i256::I256::new([0, 0, 0, i64::MIN as u64])
             )
@@ -444,7 +444,7 @@ mod tests {
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
             LiteralValue::Decimal75(
-                Precision::new(75).unwrap(),
+                75_u8,
                 -128,
                 proof_of_sql::base::math::i256::I256::new([
                     u64::MAX,
@@ -458,7 +458,7 @@ mod tests {
         assert_eq!(
             scalar_value_to_literal_value(value).unwrap(),
             LiteralValue::Decimal75(
-                Precision::new(75).unwrap(),
+                75_u8,
                 0,
                 proof_of_sql::base::math::i256::I256::from(0i128)
             )

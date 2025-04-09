@@ -560,7 +560,7 @@ mod tests {
         );
 
         let decimal75_column = OwnedColumn::<TestScalar>::Decimal75(
-            Precision::new(1).unwrap(),
+            1_u8,
             0,
             vec![
                 -TestScalar::from([1, 0, 0, 0]),

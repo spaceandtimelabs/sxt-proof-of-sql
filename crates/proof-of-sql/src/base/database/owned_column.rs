@@ -531,11 +531,11 @@ mod test {
         // Decimals
         let scalars: Vec<TestScalar> = [1, 2, 3, 4, 5].iter().map(TestScalar::from).collect();
         let col: Column<'_, TestScalar> =
-            Column::Decimal75(Precision::new(75).unwrap(), -128, &scalars);
+            Column::Decimal75(75_u8, -128, &scalars);
         let owned_col: OwnedColumn<TestScalar> = (&col).into();
         assert_eq!(
             owned_col,
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), -128, scalars.clone())
+            OwnedColumn::Decimal75(75_u8, -128, scalars.clone())
         );
         let new_col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);
@@ -569,11 +569,11 @@ mod test {
             .iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Decimal75(Precision::new(75).unwrap(), -128);
+        let column_type = ColumnType::Decimal75(75_u8, -128);
         let owned_col = OwnedColumn::try_from_scalars(&scalars, column_type).unwrap();
         assert_eq!(
             owned_col,
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), -128, scalars)
+            OwnedColumn::Decimal75(75_u8, -128, scalars)
         );
     }
 
@@ -647,11 +647,11 @@ mod test {
             .iter()
             .map(|&i| TestScalar::from(i))
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Decimal75(Precision::new(75).unwrap(), 127);
+        let column_type = ColumnType::Decimal75(75_u8, 127);
         let owned_col = OwnedColumn::try_from_option_scalars(&option_scalars, column_type).unwrap();
         assert_eq!(
             owned_col,
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), 127, scalars)
+            OwnedColumn::Decimal75(75_u8, 127, scalars)
         );
     }
 
@@ -773,11 +773,11 @@ mod test {
         // Coerce to Decimal75
         let coerced_col = col
             .clone()
-            .try_coerce_scalar_to_numeric(ColumnType::Decimal75(Precision::new(75).unwrap(), 0))
+            .try_coerce_scalar_to_numeric(ColumnType::Decimal75(75_u8, 0))
             .unwrap();
         assert_eq!(
             coerced_col,
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), 0, scalars)
+            OwnedColumn::Decimal75(75_u8, 0, scalars)
         );
     }
 

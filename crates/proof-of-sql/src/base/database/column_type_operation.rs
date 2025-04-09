@@ -308,51 +308,51 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is a decimal with nonnegative scale and rhs is an integer
-        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(10_u8, 2);
         let rhs = ColumnType::TinyInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(11).unwrap(), 2);
+        let expected = ColumnType::Decimal75(11_u8, 2);
         assert_eq!(expected, actual);
 
-        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(10_u8, 2);
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(11).unwrap(), 2);
+        let expected = ColumnType::Decimal75(11_u8, 2);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with nonnegative scale
-        let lhs = ColumnType::Decimal75(Precision::new(20).unwrap(), 3);
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(20_u8, 3);
+        let rhs = ColumnType::Decimal75(10_u8, 2);
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(21).unwrap(), 3);
+        let expected = ColumnType::Decimal75(21_u8, 3);
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with negative scale
         let lhs = ColumnType::TinyInt;
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(10_u8, -2);
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(13).unwrap(), 0);
+        let expected = ColumnType::Decimal75(13_u8, 0);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(10_u8, -2);
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(13).unwrap(), 0);
+        let expected = ColumnType::Decimal75(13_u8, 0);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals one of which has negative scale
-        let lhs = ColumnType::Decimal75(Precision::new(40).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(Precision::new(15).unwrap(), 5);
+        let lhs = ColumnType::Decimal75(40_u8, -13);
+        let rhs = ColumnType::Decimal75(15_u8, 5);
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(59).unwrap(), 5);
+        let expected = ColumnType::Decimal75(59_u8, 5);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals both with negative scale
         // and with result having maximum precision
-        let lhs = ColumnType::Decimal75(Precision::new(74).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(Precision::new(15).unwrap(), -14);
+        let lhs = ColumnType::Decimal75(74_u8, -13);
+        let rhs = ColumnType::Decimal75(15_u8, -14);
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(75).unwrap(), -13);
+        let expected = ColumnType::Decimal75(75_u8, -13);
         assert_eq!(expected, actual);
     }
 
@@ -382,8 +382,8 @@ mod test {
 
     #[test]
     fn we_cannot_add_some_numeric_types_due_to_decimal_issues() {
-        let lhs = ColumnType::Decimal75(Precision::new(75).unwrap(), 4);
-        let rhs = ColumnType::Decimal75(Precision::new(73).unwrap(), 4);
+        let lhs = ColumnType::Decimal75(75_u8, 4);
+        let rhs = ColumnType::Decimal75(73_u8, 4);
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -392,7 +392,7 @@ mod test {
         ));
 
         let lhs = ColumnType::Int;
-        let rhs = ColumnType::Decimal75(Precision::new(75).unwrap(), 10);
+        let rhs = ColumnType::Decimal75(75_u8, 10);
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -443,51 +443,51 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is a decimal and rhs is an integer
-        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(10_u8, 2);
         let rhs = ColumnType::TinyInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(11).unwrap(), 2);
+        let expected = ColumnType::Decimal75(11_u8, 2);
         assert_eq!(expected, actual);
 
-        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(10_u8, 2);
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(11).unwrap(), 2);
+        let expected = ColumnType::Decimal75(11_u8, 2);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with nonnegative scale
-        let lhs = ColumnType::Decimal75(Precision::new(20).unwrap(), 3);
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(20_u8, 3);
+        let rhs = ColumnType::Decimal75(10_u8, 2);
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(21).unwrap(), 3);
+        let expected = ColumnType::Decimal75(21_u8, 3);
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with negative scale
         let lhs = ColumnType::TinyInt;
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(10_u8, -2);
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(13).unwrap(), 0);
+        let expected = ColumnType::Decimal75(13_u8, 0);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(10_u8, -2);
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(13).unwrap(), 0);
+        let expected = ColumnType::Decimal75(13_u8, 0);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals one of which has negative scale
-        let lhs = ColumnType::Decimal75(Precision::new(40).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(Precision::new(15).unwrap(), 5);
+        let lhs = ColumnType::Decimal75(40_u8, -13);
+        let rhs = ColumnType::Decimal75(15_u8, 5);
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(59).unwrap(), 5);
+        let expected = ColumnType::Decimal75(59_u8, 5);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals both with negative scale
         // and with result having maximum precision
-        let lhs = ColumnType::Decimal75(Precision::new(61).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(Precision::new(73).unwrap(), -14);
+        let lhs = ColumnType::Decimal75(61_u8, -13);
+        let rhs = ColumnType::Decimal75(73_u8, -14);
         let actual = try_add_subtract_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(75).unwrap(), -13);
+        let expected = ColumnType::Decimal75(75_u8, -13);
         assert_eq!(expected, actual);
     }
 
@@ -517,8 +517,8 @@ mod test {
 
     #[test]
     fn we_cannot_subtract_some_numeric_types_due_to_decimal_issues() {
-        let lhs = ColumnType::Decimal75(Precision::new(75).unwrap(), 0);
-        let rhs = ColumnType::Decimal75(Precision::new(73).unwrap(), 1);
+        let lhs = ColumnType::Decimal75(75_u8, 0);
+        let rhs = ColumnType::Decimal75(73_u8, 1);
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -527,7 +527,7 @@ mod test {
         ));
 
         let lhs = ColumnType::Int128;
-        let rhs = ColumnType::Decimal75(Precision::new(75).unwrap(), 12);
+        let rhs = ColumnType::Decimal75(75_u8, 12);
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -578,51 +578,51 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is a decimal and rhs is an integer
-        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(10_u8, 2);
         let rhs = ColumnType::TinyInt;
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(14).unwrap(), 2);
+        let expected = ColumnType::Decimal75(14_u8, 2);
         assert_eq!(expected, actual);
 
-        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(10_u8, 2);
         let rhs = ColumnType::SmallInt;
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(16).unwrap(), 2);
+        let expected = ColumnType::Decimal75(16_u8, 2);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with nonnegative scale
-        let lhs = ColumnType::Decimal75(Precision::new(20).unwrap(), 3);
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(20_u8, 3);
+        let rhs = ColumnType::Decimal75(10_u8, 2);
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(31).unwrap(), 5);
+        let expected = ColumnType::Decimal75(31_u8, 5);
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with negative scale
         let lhs = ColumnType::TinyInt;
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(10_u8, -2);
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(14).unwrap(), -2);
+        let expected = ColumnType::Decimal75(14_u8, -2);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(10_u8, -2);
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(16).unwrap(), -2);
+        let expected = ColumnType::Decimal75(16_u8, -2);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals one of which has negative scale
-        let lhs = ColumnType::Decimal75(Precision::new(40).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(Precision::new(15).unwrap(), 5);
+        let lhs = ColumnType::Decimal75(40_u8, -13);
+        let rhs = ColumnType::Decimal75(15_u8, 5);
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(56).unwrap(), -8);
+        let expected = ColumnType::Decimal75(56_u8, -8);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals both with negative scale
         // and with result having maximum precision
-        let lhs = ColumnType::Decimal75(Precision::new(61).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(Precision::new(13).unwrap(), -14);
+        let lhs = ColumnType::Decimal75(61_u8, -13);
+        let rhs = ColumnType::Decimal75(13_u8, -14);
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(75).unwrap(), -27);
+        let expected = ColumnType::Decimal75(75_u8, -27);
         assert_eq!(expected, actual);
     }
 
@@ -653,8 +653,8 @@ mod test {
     #[test]
     fn we_cannot_multiply_some_numeric_types_due_to_decimal_issues() {
         // Invalid precision
-        let lhs = ColumnType::Decimal75(Precision::new(38).unwrap(), 4);
-        let rhs = ColumnType::Decimal75(Precision::new(37).unwrap(), 4);
+        let lhs = ColumnType::Decimal75(38_u8, 4);
+        let rhs = ColumnType::Decimal75(37_u8, 4);
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -663,7 +663,7 @@ mod test {
         ));
 
         let lhs = ColumnType::Int;
-        let rhs = ColumnType::Decimal75(Precision::new(65).unwrap(), 0);
+        let rhs = ColumnType::Decimal75(65_u8, 0);
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -672,8 +672,8 @@ mod test {
         ));
 
         // Invalid scale
-        let lhs = ColumnType::Decimal75(Precision::new(5).unwrap(), -64_i8);
-        let rhs = ColumnType::Decimal75(Precision::new(5).unwrap(), -65_i8);
+        let lhs = ColumnType::Decimal75(5_u8, -64_i8);
+        let rhs = ColumnType::Decimal75(5_u8, -65_i8);
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -681,8 +681,8 @@ mod test {
             })
         ));
 
-        let lhs = ColumnType::Decimal75(Precision::new(5).unwrap(), 64_i8);
-        let rhs = ColumnType::Decimal75(Precision::new(5).unwrap(), 64_i8);
+        let lhs = ColumnType::Decimal75(5_u8, 64_i8);
+        let rhs = ColumnType::Decimal75(5_u8, 64_i8);
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -720,64 +720,64 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is a decimal with nonnegative scale and rhs is an integer
-        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(10_u8, 2);
         let rhs = ColumnType::TinyInt;
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(14).unwrap(), 6);
+        let expected = ColumnType::Decimal75(14_u8, 6);
         assert_eq!(expected, actual);
 
-        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(10_u8, 2);
         let rhs = ColumnType::SmallInt;
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(16).unwrap(), 8);
+        let expected = ColumnType::Decimal75(16_u8, 8);
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with nonnegative scale
         let lhs = ColumnType::TinyInt;
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let rhs = ColumnType::Decimal75(10_u8, 2);
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(16).unwrap(), 11);
+        let expected = ColumnType::Decimal75(16_u8, 11);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let rhs = ColumnType::Decimal75(10_u8, 2);
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(18).unwrap(), 11);
+        let expected = ColumnType::Decimal75(18_u8, 11);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with nonnegative scale
-        let lhs = ColumnType::Decimal75(Precision::new(20).unwrap(), 3);
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let lhs = ColumnType::Decimal75(20_u8, 3);
+        let rhs = ColumnType::Decimal75(10_u8, 2);
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(33).unwrap(), 14);
+        let expected = ColumnType::Decimal75(33_u8, 14);
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with negative scale
         let lhs = ColumnType::TinyInt;
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(10_u8, -2);
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(12).unwrap(), 11);
+        let expected = ColumnType::Decimal75(12_u8, 11);
         assert_eq!(expected, actual);
 
         let lhs = ColumnType::SmallInt;
-        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let rhs = ColumnType::Decimal75(10_u8, -2);
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(14).unwrap(), 11);
+        let expected = ColumnType::Decimal75(14_u8, 11);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals one of which has negative scale
-        let lhs = ColumnType::Decimal75(Precision::new(40).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(Precision::new(15).unwrap(), 5);
+        let lhs = ColumnType::Decimal75(40_u8, -13);
+        let rhs = ColumnType::Decimal75(15_u8, 5);
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(64).unwrap(), 6);
+        let expected = ColumnType::Decimal75(64_u8, 6);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals both with negative scale
         // and with result having maximum precision
-        let lhs = ColumnType::Decimal75(Precision::new(70).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(Precision::new(13).unwrap(), -14);
+        let lhs = ColumnType::Decimal75(70_u8, -13);
+        let rhs = ColumnType::Decimal75(13_u8, -14);
         let actual = try_divide_column_types(lhs, rhs).unwrap();
-        let expected = ColumnType::Decimal75(Precision::new(75).unwrap(), 6);
+        let expected = ColumnType::Decimal75(75_u8, 6);
         assert_eq!(expected, actual);
     }
 
@@ -815,8 +815,8 @@ mod test {
     #[test]
     fn we_cannot_divide_some_numeric_types_due_to_decimal_issues() {
         // Invalid precision
-        let lhs = ColumnType::Decimal75(Precision::new(71).unwrap(), -13);
-        let rhs = ColumnType::Decimal75(Precision::new(13).unwrap(), -14);
+        let lhs = ColumnType::Decimal75(71_u8, -13);
+        let rhs = ColumnType::Decimal75(13_u8, -14);
         assert!(matches!(
             try_divide_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -825,7 +825,7 @@ mod test {
         ));
 
         let lhs = ColumnType::Int;
-        let rhs = ColumnType::Decimal75(Precision::new(68).unwrap(), 67);
+        let rhs = ColumnType::Decimal75(68_u8, 67);
         assert!(matches!(
             try_divide_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -834,8 +834,8 @@ mod test {
         ));
 
         // Invalid scale
-        let lhs = ColumnType::Decimal75(Precision::new(15).unwrap(), 53_i8);
-        let rhs = ColumnType::Decimal75(Precision::new(75).unwrap(), 40_i8);
+        let lhs = ColumnType::Decimal75(15_u8, 53_i8);
+        let rhs = ColumnType::Decimal75(75_u8, 40_i8);
         assert!(matches!(
             try_divide_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError {
@@ -863,7 +863,7 @@ mod test {
             ColumnType::Boolean,
             ColumnType::VarBinary,
             ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::new(1)),
-            ColumnType::Decimal75(Precision::new(1).unwrap(), 1),
+            ColumnType::Decimal75(1_u8, 1),
             ColumnType::VarChar,
         ];
         for (left_type, right_type) in iproduct!(eligible_columns, ineligible_columns)
@@ -903,10 +903,10 @@ mod test {
             ColumnType::Int,
             ColumnType::BigInt,
             ColumnType::Int128,
-            ColumnType::Decimal75(Precision::new(60).unwrap(), 0),
+            ColumnType::Decimal75(60_u8, 0),
         ] {
             assert!(matches!(
-                try_cast_types(from, ColumnType::Decimal75(Precision::new(2).unwrap(), 0)),
+                try_cast_types(from, ColumnType::Decimal75(2_u8, 0)),
                 Err(ColumnOperationError::CastingError { .. })
             ));
         }
@@ -921,28 +921,28 @@ mod test {
             ColumnType::Int,
             ColumnType::BigInt,
             ColumnType::Int128,
-            ColumnType::Decimal75(Precision::new(60).unwrap(), 0),
+            ColumnType::Decimal75(60_u8, 0),
         ] {
-            try_cast_types(from, ColumnType::Decimal75(Precision::new(60).unwrap(), 0)).unwrap();
+            try_cast_types(from, ColumnType::Decimal75(60_u8, 0)).unwrap();
             try_cast_types(
                 from,
                 ColumnType::Decimal75(Precision::new(from.precision_value().unwrap()).unwrap(), 0),
             )
             .unwrap();
-            try_cast_types(from, ColumnType::Decimal75(Precision::new(2).unwrap(), 0)).unwrap_err();
+            try_cast_types(from, ColumnType::Decimal75(2_u8, 0)).unwrap_err();
         }
     }
 
     #[test]
     fn we_can_cast_decimal_to_decimal_with_same_scale() {
         try_cast_types(
-            ColumnType::Decimal75(Precision::new(2).unwrap(), 1),
-            ColumnType::Decimal75(Precision::new(3).unwrap(), 1),
+            ColumnType::Decimal75(2_u8, 1),
+            ColumnType::Decimal75(3_u8, 1),
         )
         .unwrap();
         try_cast_types(
-            ColumnType::Decimal75(Precision::new(2).unwrap(), 1),
-            ColumnType::Decimal75(Precision::new(3).unwrap(), 2),
+            ColumnType::Decimal75(2_u8, 1),
+            ColumnType::Decimal75(3_u8, 2),
         )
         .unwrap_err();
     }
@@ -1015,8 +1015,8 @@ mod test {
             ColumnType::Int128,
         ] {
             let from_precision = Precision::new(from.precision_value().unwrap()).unwrap();
-            let two_prec = Precision::new(2).unwrap();
-            let forty_prec = Precision::new(40).unwrap();
+            let two_prec = 2_u8;
+            let forty_prec = 40_u8;
             try_decimal_scale_cast_types(from, ColumnType::Decimal75(two_prec, 0)).unwrap_err();
             try_decimal_scale_cast_types(from, ColumnType::Decimal75(two_prec, -1)).unwrap_err();
             try_decimal_scale_cast_types(from, ColumnType::Decimal75(two_prec, 1)).unwrap_err();
@@ -1030,7 +1030,7 @@ mod test {
             try_decimal_scale_cast_types(from, ColumnType::Decimal75(forty_prec, 1)).unwrap();
         }
 
-        let twenty_prec = Precision::new(20).unwrap();
+        let twenty_prec = 20_u8;
 
         // from_with_negative_scale
         let neg_scale = ColumnType::Decimal75(twenty_prec, -3);
@@ -1043,7 +1043,7 @@ mod test {
         try_decimal_scale_cast_types(neg_scale, ColumnType::Decimal75(twenty_prec, 0)).unwrap_err();
         try_decimal_scale_cast_types(neg_scale, ColumnType::Decimal75(twenty_prec, 1)).unwrap_err();
 
-        let nineteen_prec = Precision::new(19).unwrap();
+        let nineteen_prec = 19_u8;
         try_decimal_scale_cast_types(neg_scale, ColumnType::Decimal75(nineteen_prec, -4))
             .unwrap_err();
         try_decimal_scale_cast_types(neg_scale, ColumnType::Decimal75(nineteen_prec, -3))
@@ -1055,7 +1055,7 @@ mod test {
         try_decimal_scale_cast_types(neg_scale, ColumnType::Decimal75(nineteen_prec, 1))
             .unwrap_err();
 
-        let twenty_one_prec = Precision::new(21).unwrap();
+        let twenty_one_prec = 21_u8;
         try_decimal_scale_cast_types(neg_scale, ColumnType::Decimal75(twenty_one_prec, -4))
             .unwrap_err();
         try_decimal_scale_cast_types(neg_scale, ColumnType::Decimal75(twenty_one_prec, -3))

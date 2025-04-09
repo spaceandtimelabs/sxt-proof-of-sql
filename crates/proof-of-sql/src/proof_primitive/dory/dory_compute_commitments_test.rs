@@ -429,7 +429,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_fewer_ro
             CommittableColumn::Int128(&[8, 9]),
             CommittableColumn::Boolean(&[true, true]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![[10, 0, 0, 0], [11, 0, 0, 0], [12, 0, 0, 0], [13, 0, 0, 0]],
             ),
@@ -506,7 +506,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
             CommittableColumn::Int128(&[8, 9]),
             CommittableColumn::Boolean(&[true, true]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![[10, 0, 0, 0], [11, 0, 0, 0], [12, 0, 0, 0], [13, 0, 0, 0]],
             ),
@@ -582,7 +582,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_signed_v
             CommittableColumn::Int128(&[-9, -8, 8, 9]),
             CommittableColumn::Boolean(&[true, true]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![[10, 0, 0, 0], [11, 0, 0, 0], [12, 0, 0, 0], [13, 0, 0, 0]],
             ),
@@ -671,7 +671,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
             CommittableColumn::Int128(&[-9, -8, 8, 9]),
             CommittableColumn::Boolean(&[true, true]),
             CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
+                1_u8,
                 0,
                 vec![[10, 0, 0, 0], [11, 0, 0, 0], [12, 0, 0, 0], [13, 0, 0, 0]],
             ),

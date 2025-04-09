@@ -120,21 +120,21 @@ fn we_can_prove_a_simple_cast_expr_from_int_to_other_numeric_type() {
             aliased_plan(
                 cast(
                     column(&t, "e", &accessor),
-                    ColumnType::Decimal75(Precision::new(42).unwrap(), 0),
+                    ColumnType::Decimal75(42_u8, 0),
                 ),
                 "e_cast",
             ),
             aliased_plan(
                 cast(
                     column(&t, "f", &accessor),
-                    ColumnType::Decimal75(Precision::new(42).unwrap(), 0),
+                    ColumnType::Decimal75(42_u8, 0),
                 ),
                 "f_cast",
             ),
             aliased_plan(
                 cast(
                     column(&t, "g", &accessor),
-                    ColumnType::Decimal75(Precision::new(42).unwrap(), 0),
+                    ColumnType::Decimal75(42_u8, 0),
                 ),
                 "g_cast",
             ),

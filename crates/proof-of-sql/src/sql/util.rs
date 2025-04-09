@@ -95,7 +95,7 @@ mod tests {
     fn we_can_return_none_if_decimal_has_too_high_of_precision() {
         assert!(try_binary_operation_type(
             ColumnType::Int,
-            ColumnType::Decimal75(Precision::new(40).unwrap(), 0),
+            ColumnType::Decimal75(40_u8, 0),
             &BinaryOperator::Gt
         )
         .is_none());
@@ -105,7 +105,7 @@ mod tests {
     fn we_can_return_none_for_unsupported_operation() {
         assert!(try_binary_operation_type(
             ColumnType::Int,
-            ColumnType::Decimal75(Precision::new(40).unwrap(), 0),
+            ColumnType::Decimal75(40_u8, 0),
             &BinaryOperator::BitwiseXor
         )
         .is_none());
@@ -115,7 +115,7 @@ mod tests {
     fn we_can_return_value_for_divide() {
         assert!(try_binary_operation_type(
             ColumnType::Int,
-            ColumnType::Decimal75(Precision::new(40).unwrap(), 0),
+            ColumnType::Decimal75(40_u8, 0),
             &BinaryOperator::Divide
         )
         .is_some());

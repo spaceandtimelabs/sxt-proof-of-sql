@@ -742,7 +742,7 @@ mod tests {
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Scalar""#);
 
-        let column_type = ColumnType::Decimal75(Precision::new(1).unwrap(), 0);
+        let column_type = ColumnType::Decimal75(1_u8, 0);
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#"{"Decimal75":[1,0]}"#);
     }
@@ -799,7 +799,7 @@ mod tests {
         let deserialized: ColumnType = serde_json::from_str(r#""SCALAR""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::Decimal75(Precision::new(75).unwrap(), i8::MAX);
+        let expected_column_type = ColumnType::Decimal75(75_u8, i8::MAX);
         let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[75, 127]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
@@ -808,7 +808,7 @@ mod tests {
         let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[1, -128]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type = ColumnType::Decimal75(Precision::new(1).unwrap(), 0);
+        let expected_column_type = ColumnType::Decimal75(1_u8, 0);
         let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[1, 0]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
     }
@@ -884,21 +884,21 @@ mod tests {
         );
         assert_eq!(
             serde_json::from_str::<ColumnType>(r#"{"decimal75":[1,0]}"#).unwrap(),
-            ColumnType::Decimal75(Precision::new(1).unwrap(), 0)
+            ColumnType::Decimal75(1_u8, 0)
         );
         assert_eq!(
             serde_json::from_str::<ColumnType>(r#"{"DECIMAL75":[1,0]}"#).unwrap(),
-            ColumnType::Decimal75(Precision::new(1).unwrap(), 0)
+            ColumnType::Decimal75(1_u8, 0)
         );
 
         assert_eq!(
             serde_json::from_str::<ColumnType>(r#"{"decimal75":[10,5]}"#).unwrap(),
-            ColumnType::Decimal75(Precision::new(10).unwrap(), 5)
+            ColumnType::Decimal75(10_u8, 5)
         );
 
         assert_eq!(
             serde_json::from_str::<ColumnType>(r#"{"DECIMAL75":[1,-128]}"#).unwrap(),
-            ColumnType::Decimal75(Precision::new(1).unwrap(), -128)
+            ColumnType::Decimal75(1_u8, -128)
         );
     }
 
@@ -999,7 +999,7 @@ mod tests {
             scalar
         );
 
-        let decimal75 = ColumnType::Decimal75(Precision::new(75).unwrap(), 0);
+        let decimal75 = ColumnType::Decimal75(75_u8, 0);
         let decimal75_json = serde_json::to_string(&decimal75).unwrap();
         assert_eq!(decimal75_json, r#"{"Decimal75":[75,0]}"#);
         assert_eq!(
@@ -1141,11 +1141,11 @@ mod tests {
         // Decimals
         let scalars: Vec<TestScalar> = [1, 2, 3, 4, 5].iter().map(TestScalar::from).collect();
         let owned_col: OwnedColumn<TestScalar> =
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), 127, scalars.clone());
+            OwnedColumn::Decimal75(75_u8, 127, scalars.clone());
         let col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(
             col,
-            Column::Decimal75(Precision::new(75).unwrap(), 127, &scalars)
+            Column::Decimal75(75_u8, 127, &scalars)
         );
         let new_owned_col = (&col).into();
         assert_eq!(owned_col, new_owned_col);
@@ -1278,7 +1278,7 @@ mod tests {
             None
         );
         assert_eq!(
-            ColumnType::Decimal75(Precision::new(1).unwrap(), 1).min_scalar::<TestScalar>(),
+            ColumnType::Decimal75(1_u8, 1).min_scalar::<TestScalar>(),
             None
         );
         assert_eq!(ColumnType::VarChar.min_scalar::<TestScalar>(), None);
@@ -1307,7 +1307,7 @@ mod tests {
             ColumnType::Boolean,
             ColumnType::VarBinary,
             ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::new(1)),
-            ColumnType::Decimal75(Precision::new(1).unwrap(), 1),
+            ColumnType::Decimal75(1_u8, 1),
             ColumnType::VarChar,
         ] {
             assert_eq!(column_type.sqrt_negative_min(), None);
