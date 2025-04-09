@@ -4,10 +4,7 @@
 /// This is the analog of an arrow Array.
 use super::{Column, ColumnCoercionError, ColumnType, OwnedColumnError, OwnedColumnResult};
 use crate::base::{
-    math::{
-        decimal::Precision,
-        permutation::{Permutation, PermutationError},
-    },
+    math::permutation::{Permutation, PermutationError},
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::Scalar,
     slice_ops::{inner_product_ref_cast, inner_product_with_bytes},
@@ -44,7 +41,7 @@ pub enum OwnedColumn<S: Scalar> {
     Int128(Vec<i128>),
     /// Decimal columns
     #[cfg_attr(test, proptest(skip))]
-    Decimal75(Precision, i8, Vec<S>),
+    Decimal75(u8, i8, Vec<S>),
     /// Scalar columns
     #[cfg_attr(test, proptest(skip))]
     Scalar(Vec<S>),
@@ -462,10 +459,7 @@ impl<S: Scalar> OwnedColumn<S> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::base::{
-        math::decimal::Precision,
-        scalar::{test_scalar::TestScalar, ScalarExt},
-    };
+    use crate::base::scalar::{test_scalar::TestScalar, ScalarExt};
     use alloc::vec;
     use bumpalo::Bump;
 
@@ -530,12 +524,11 @@ mod test {
 
         // Decimals
         let scalars: Vec<TestScalar> = [1, 2, 3, 4, 5].iter().map(TestScalar::from).collect();
-        let col: Column<'_, TestScalar> =
-            Column::Decimal75(Precision::new(75).unwrap(), -128, &scalars);
+        let col: Column<'_, TestScalar> = Column::Decimal75(75_u8, -128, &scalars);
         let owned_col: OwnedColumn<TestScalar> = (&col).into();
         assert_eq!(
             owned_col,
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), -128, scalars.clone())
+            OwnedColumn::Decimal75(75_u8, -128, scalars.clone())
         );
         let new_col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);
@@ -569,12 +562,9 @@ mod test {
             .iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Decimal75(Precision::new(75).unwrap(), -128);
+        let column_type = ColumnType::Decimal75(75_u8, -128);
         let owned_col = OwnedColumn::try_from_scalars(&scalars, column_type).unwrap();
-        assert_eq!(
-            owned_col,
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), -128, scalars)
-        );
+        assert_eq!(owned_col, OwnedColumn::Decimal75(75_u8, -128, scalars));
     }
 
     #[test]
@@ -647,12 +637,9 @@ mod test {
             .iter()
             .map(|&i| TestScalar::from(i))
             .collect::<Vec<_>>();
-        let column_type = ColumnType::Decimal75(Precision::new(75).unwrap(), 127);
+        let column_type = ColumnType::Decimal75(75_u8, 127);
         let owned_col = OwnedColumn::try_from_option_scalars(&option_scalars, column_type).unwrap();
-        assert_eq!(
-            owned_col,
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), 127, scalars)
-        );
+        assert_eq!(owned_col, OwnedColumn::Decimal75(75_u8, 127, scalars));
     }
 
     #[test]
@@ -773,12 +760,9 @@ mod test {
         // Coerce to Decimal75
         let coerced_col = col
             .clone()
-            .try_coerce_scalar_to_numeric(ColumnType::Decimal75(Precision::new(75).unwrap(), 0))
+            .try_coerce_scalar_to_numeric(ColumnType::Decimal75(75_u8, 0))
             .unwrap();
-        assert_eq!(
-            coerced_col,
-            OwnedColumn::Decimal75(Precision::new(75).unwrap(), 0, scalars)
-        );
+        assert_eq!(coerced_col, OwnedColumn::Decimal75(75_u8, 0, scalars));
     }
 
     #[test]

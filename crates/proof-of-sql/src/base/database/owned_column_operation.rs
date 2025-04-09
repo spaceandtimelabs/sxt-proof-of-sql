@@ -287,8 +287,8 @@ mod test {
         // Decimals
         let lhs_scalars = [10, 2, 30].iter().map(TestScalar::from).collect();
         let rhs_scalars = [1, 2, -3].iter().map(TestScalar::from).collect();
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 3, lhs_scalars);
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 3, lhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_eq(&rhs);
         assert_eq!(
             result,
@@ -298,7 +298,7 @@ mod test {
         // Decimals and integers
         let lhs_scalars = [10, 2, 30].iter().map(TestScalar::from).collect();
         let rhs = OwnedColumn::<TestScalar>::TinyInt(vec![1, -2, 3]);
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 1, lhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 1, lhs_scalars);
         let result = lhs.element_wise_eq(&rhs);
         assert_eq!(
             result,
@@ -307,7 +307,7 @@ mod test {
 
         let lhs_scalars = [10, 2, 30].iter().map(TestScalar::from).collect();
         let rhs = OwnedColumn::<TestScalar>::Int(vec![1, -2, 3]);
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 1, lhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 1, lhs_scalars);
         let result = lhs.element_wise_eq(&rhs);
         assert_eq!(
             result,
@@ -346,8 +346,8 @@ mod test {
         // Decimals
         let lhs_scalars = [10, 2, 30].iter().map(TestScalar::from).collect();
         let rhs_scalars = [1, 24, -3].iter().map(TestScalar::from).collect();
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 3, lhs_scalars);
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 3, lhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_lt(&rhs);
         assert_eq!(
             result,
@@ -357,7 +357,7 @@ mod test {
         // Decimals and integers
         let lhs_scalars = [10, -2, -30].iter().map(TestScalar::from).collect();
         let rhs = OwnedColumn::<TestScalar>::TinyInt(vec![1, -20, 3]);
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, -1, lhs_scalars);
         let result = lhs.element_wise_lt(&rhs);
         assert_eq!(
             result,
@@ -366,7 +366,7 @@ mod test {
 
         let lhs_scalars = [10, -2, -30].iter().map(TestScalar::from).collect();
         let rhs = OwnedColumn::<TestScalar>::Int(vec![1, -20, 3]);
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, -1, lhs_scalars);
         let result = lhs.element_wise_lt(&rhs);
         assert_eq!(
             result,
@@ -405,8 +405,8 @@ mod test {
         // Decimals
         let lhs_scalars = [10, 2, 30].iter().map(TestScalar::from).collect();
         let rhs_scalars = [1, 24, -3].iter().map(TestScalar::from).collect();
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 3, lhs_scalars);
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 3, lhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_gt(&rhs);
         assert_eq!(
             result,
@@ -416,7 +416,7 @@ mod test {
         // Decimals and integers
         let lhs_scalars = [10, -2, -30].iter().map(TestScalar::from).collect();
         let rhs = OwnedColumn::<TestScalar>::TinyInt(vec![1_i8, -20, 3]);
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, -1, lhs_scalars);
         let result = lhs.element_wise_gt(&rhs);
         assert_eq!(
             result,
@@ -425,7 +425,7 @@ mod test {
 
         let lhs_scalars = [10, -2, -30].iter().map(TestScalar::from).collect();
         let rhs = OwnedColumn::<TestScalar>::BigInt(vec![1_i64, -20, 3]);
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, -1, lhs_scalars);
         let result = lhs.element_wise_gt(&rhs);
         assert_eq!(
             result,
@@ -591,46 +591,46 @@ mod test {
         // lhs and rhs have the same precision and scale
         let lhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
         let rhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, lhs_scalars);
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, lhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_add(&rhs).unwrap();
         let expected_scalars = [2, 4, 6].iter().map(TestScalar::from).collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(6).unwrap(), 2, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(6_u8, 2, expected_scalars)
         );
 
         // lhs and rhs have different precisions and scales
         let lhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
         let rhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, lhs_scalars);
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(51).unwrap(), 3, rhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, lhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(51_u8, 3, rhs_scalars);
         let result = lhs.element_wise_add(&rhs).unwrap();
         let expected_scalars = [11, 22, 33].iter().map(TestScalar::from).collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(52).unwrap(), 3, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(52_u8, 3, expected_scalars)
         );
 
         // lhs is integer and rhs is decimal
         let lhs = OwnedColumn::<TestScalar>::TinyInt(vec![1, 2, 3]);
         let rhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_add(&rhs).unwrap();
         let expected_scalars = [101, 202, 303].iter().map(TestScalar::from).collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(6).unwrap(), 2, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(6_u8, 2, expected_scalars)
         );
 
         let lhs = OwnedColumn::<TestScalar>::Int(vec![1, 2, 3]);
         let rhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_add(&rhs).unwrap();
         let expected_scalars = [101, 202, 303].iter().map(TestScalar::from).collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(13).unwrap(), 2, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(13_u8, 2, expected_scalars)
         );
     }
 
@@ -673,46 +673,46 @@ mod test {
         // lhs and rhs have the same precision and scale
         let lhs_scalars = [4, 5, 2].iter().map(TestScalar::from).collect();
         let rhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, lhs_scalars);
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, lhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_sub(&rhs).unwrap();
         let expected_scalars = [3, 3, -1].iter().map(TestScalar::from).collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(6).unwrap(), 2, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(6_u8, 2, expected_scalars)
         );
 
         // lhs and rhs have different precisions and scales
         let lhs_scalars = [4, 5, 2].iter().map(TestScalar::from).collect();
         let rhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(25).unwrap(), 2, lhs_scalars);
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(51).unwrap(), 3, rhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(25_u8, 2, lhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(51_u8, 3, rhs_scalars);
         let result = lhs.element_wise_sub(&rhs).unwrap();
         let expected_scalars = [39, 48, 17].iter().map(TestScalar::from).collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(52).unwrap(), 3, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(52_u8, 3, expected_scalars)
         );
 
         // lhs is integer and rhs is decimal
         let lhs = OwnedColumn::<TestScalar>::TinyInt(vec![4, 5, 2]);
         let rhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_sub(&rhs).unwrap();
         let expected_scalars = [399, 498, 197].iter().map(TestScalar::from).collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(6).unwrap(), 2, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(6_u8, 2, expected_scalars)
         );
 
         let lhs = OwnedColumn::<TestScalar>::Int(vec![4, 5, 2]);
         let rhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_sub(&rhs).unwrap();
         let expected_scalars = [399, 498, 197].iter().map(TestScalar::from).collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(13).unwrap(), 2, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(13_u8, 2, expected_scalars)
         );
     }
 
@@ -757,35 +757,35 @@ mod test {
     fn we_can_multiply_decimal_columns() {
         // lhs and rhs are both decimals
         let lhs_scalars = [4, 5, 2].iter().map(TestScalar::from).collect();
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, lhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, lhs_scalars);
         let rhs_scalars = [-1, 2, 3].iter().map(TestScalar::from).collect();
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_mul(&rhs).unwrap();
         let expected_scalars = [-4, 10, 6].iter().map(TestScalar::from).collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(11).unwrap(), 4, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(11_u8, 4, expected_scalars)
         );
 
         // lhs is integer and rhs is decimal
         let lhs = OwnedColumn::<TestScalar>::TinyInt(vec![4, 5, 2]);
         let rhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_mul(&rhs).unwrap();
         let expected_scalars = [4, 10, 6].iter().map(TestScalar::from).collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(9).unwrap(), 2, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(9_u8, 2, expected_scalars)
         );
 
         let lhs = OwnedColumn::<TestScalar>::Int(vec![4, 5, 2]);
         let rhs_scalars = [1, 2, 3].iter().map(TestScalar::from).collect();
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_mul(&rhs).unwrap();
         let expected_scalars = [4, 10, 6].iter().map(TestScalar::from).collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(16).unwrap(), 2, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(16_u8, 2, expected_scalars)
         );
     }
 
@@ -824,9 +824,9 @@ mod test {
     fn we_can_try_divide_decimal_columns() {
         // lhs and rhs are both decimals
         let lhs_scalars = [4, 5, 3].iter().map(TestScalar::from).collect();
-        let lhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, lhs_scalars);
+        let lhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, lhs_scalars);
         let rhs_scalars = [-1, 2, 4].iter().map(TestScalar::from).collect();
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(5_u8, 2, rhs_scalars);
         let result = lhs.element_wise_div(&rhs).unwrap();
         let expected_scalars = [-400_000_000_i128, 250_000_000, 75_000_000]
             .iter()
@@ -834,13 +834,13 @@ mod test {
             .collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(13).unwrap(), 8, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(13_u8, 8, expected_scalars)
         );
 
         // lhs is integer and rhs is decimal
         let lhs = OwnedColumn::<TestScalar>::TinyInt(vec![4, 5, 3]);
         let rhs_scalars = [-1, 2, 3].iter().map(TestScalar::from).collect();
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(3).unwrap(), 2, rhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(3_u8, 2, rhs_scalars);
         let result = lhs.element_wise_div(&rhs).unwrap();
         let expected_scalars = [-400_000_000, 250_000_000, 100_000_000]
             .iter()
@@ -848,12 +848,12 @@ mod test {
             .collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(11).unwrap(), 6, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(11_u8, 6, expected_scalars)
         );
 
         let lhs = OwnedColumn::<TestScalar>::SmallInt(vec![4, 5, 3]);
         let rhs_scalars = [-1, 2, 3].iter().map(TestScalar::from).collect();
-        let rhs = OwnedColumn::<TestScalar>::Decimal75(Precision::new(3).unwrap(), 2, rhs_scalars);
+        let rhs = OwnedColumn::<TestScalar>::Decimal75(3_u8, 2, rhs_scalars);
         let result = lhs.element_wise_div(&rhs).unwrap();
         let expected_scalars = [-400_000_000, 250_000_000, 100_000_000]
             .iter()
@@ -861,7 +861,7 @@ mod test {
             .collect();
         assert_eq!(
             result,
-            OwnedColumn::<TestScalar>::Decimal75(Precision::new(13).unwrap(), 6, expected_scalars)
+            OwnedColumn::<TestScalar>::Decimal75(13_u8, 6, expected_scalars)
         );
     }
 }

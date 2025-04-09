@@ -1,6 +1,6 @@
 use crate::base::{
     database::ColumnType,
-    math::{decimal::Precision, i256::I256},
+    math::{i256::I256},
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::{Scalar, ScalarExt},
 };
@@ -39,7 +39,7 @@ pub enum LiteralValue {
     Int128(i128),
     /// Decimal literals with a max width of 252 bits
     ///  - the backing store maps to the type [`crate::base::scalar::Curve25519Scalar`]
-    Decimal75(Precision, i8, I256),
+    Decimal75(u8, i8, I256),
     /// Scalar literals. The underlying `[u64; 4]` is the limbs of the canonical form of the literal
     Scalar([u64; 4]),
     /// `TimeStamp` defined over a unit (s, ms, ns, etc) and timezone with backing store

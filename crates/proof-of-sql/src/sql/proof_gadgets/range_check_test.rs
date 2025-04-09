@@ -254,7 +254,7 @@ mod tests {
         check_range(
             t.clone(),
             "decimal75",
-            ColumnType::Decimal75(Precision::new(74).unwrap(), 0),
+            ColumnType::Decimal75(74_u8, 0),
             &accessor,
         );
         check_range(

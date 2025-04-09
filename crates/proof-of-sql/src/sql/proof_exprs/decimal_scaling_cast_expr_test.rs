@@ -35,45 +35,27 @@ fn we_can_prove_a_simple_decimal_scale_cast_expr_from_int_to_decimal() {
     let ast = filter(
         vec![
             aliased_plan(
-                decimal_scaling_cast(
-                    column(&t, "a", &accessor),
-                    ColumnType::Decimal75(Precision::new(4).unwrap(), 1),
-                ),
+                decimal_scaling_cast(column(&t, "a", &accessor), ColumnType::Decimal75(4_u8, 1)),
                 "a_cast",
             ),
             aliased_plan(
-                decimal_scaling_cast(
-                    column(&t, "b", &accessor),
-                    ColumnType::Decimal75(Precision::new(4).unwrap(), 1),
-                ),
+                decimal_scaling_cast(column(&t, "b", &accessor), ColumnType::Decimal75(4_u8, 1)),
                 "b_cast",
             ),
             aliased_plan(
-                decimal_scaling_cast(
-                    column(&t, "c", &accessor),
-                    ColumnType::Decimal75(Precision::new(6).unwrap(), 1),
-                ),
+                decimal_scaling_cast(column(&t, "c", &accessor), ColumnType::Decimal75(6_u8, 1)),
                 "c_cast",
             ),
             aliased_plan(
-                decimal_scaling_cast(
-                    column(&t, "d", &accessor),
-                    ColumnType::Decimal75(Precision::new(11).unwrap(), 1),
-                ),
+                decimal_scaling_cast(column(&t, "d", &accessor), ColumnType::Decimal75(11_u8, 1)),
                 "d_cast",
             ),
             aliased_plan(
-                decimal_scaling_cast(
-                    column(&t, "e", &accessor),
-                    ColumnType::Decimal75(Precision::new(20).unwrap(), 1),
-                ),
+                decimal_scaling_cast(column(&t, "e", &accessor), ColumnType::Decimal75(20_u8, 1)),
                 "e_cast",
             ),
             aliased_plan(
-                decimal_scaling_cast(
-                    column(&t, "f", &accessor),
-                    ColumnType::Decimal75(Precision::new(40).unwrap(), 1),
-                ),
+                decimal_scaling_cast(column(&t, "f", &accessor), ColumnType::Decimal75(40_u8, 1)),
                 "f_cast",
             ),
         ],
@@ -110,24 +92,15 @@ fn we_can_prove_a_simple_decimal_scale_cast_expr_from_decimal_to_decimal() {
     let ast = filter(
         vec![
             aliased_plan(
-                decimal_scaling_cast(
-                    column(&t, "a", &accessor),
-                    ColumnType::Decimal75(Precision::new(5).unwrap(), -1),
-                ),
+                decimal_scaling_cast(column(&t, "a", &accessor), ColumnType::Decimal75(5_u8, -1)),
                 "a_cast",
             ),
             aliased_plan(
-                decimal_scaling_cast(
-                    column(&t, "b", &accessor),
-                    ColumnType::Decimal75(Precision::new(5).unwrap(), 2),
-                ),
+                decimal_scaling_cast(column(&t, "b", &accessor), ColumnType::Decimal75(5_u8, 2)),
                 "b_cast",
             ),
             aliased_plan(
-                decimal_scaling_cast(
-                    column(&t, "c", &accessor),
-                    ColumnType::Decimal75(Precision::new(7).unwrap(), 0),
-                ),
+                decimal_scaling_cast(column(&t, "c", &accessor), ColumnType::Decimal75(7_u8, 0)),
                 "c_cast",
             ),
         ],

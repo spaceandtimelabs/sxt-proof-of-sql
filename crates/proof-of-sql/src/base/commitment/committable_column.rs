@@ -316,11 +316,11 @@ mod tests {
             TestScalar::from(1),
             TestScalar::from(2),
         ];
-        let decimal_column = OwnedColumn::Decimal75(Precision::new(75).unwrap(), -1, decimals);
+        let decimal_column = OwnedColumn::Decimal75(75_u8, -1, decimals);
 
         let res_committable_column: CommittableColumn = (&decimal_column).into();
         let test_committable_column: CommittableColumn = CommittableColumn::Decimal75(
-            Precision::new(75).unwrap(),
+            75_u8,
             -1,
             [-1, 1, 2]
                 .map(<TestScalar>::from)
@@ -427,16 +427,15 @@ mod tests {
     #[test]
     fn we_can_get_type_and_length_of_decimal_column() {
         // empty case
-        let decimal_committable_column =
-            CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, [].to_vec());
+        let decimal_committable_column = CommittableColumn::Decimal75(1_u8, 0, [].to_vec());
         assert_eq!(decimal_committable_column.len(), 0);
         assert!(decimal_committable_column.is_empty());
         assert_eq!(
             decimal_committable_column.column_type(),
-            ColumnType::Decimal75(Precision::new(1).unwrap(), 0)
+            ColumnType::Decimal75(1_u8, 0)
         );
         let decimal_committable_column = CommittableColumn::Decimal75(
-            Precision::new(10).unwrap(),
+            10_u8,
             10,
             vec![[12, 0, 0, 0], [34, 0, 0, 0], [56, 0, 0, 0]],
         );
@@ -444,7 +443,7 @@ mod tests {
         assert!(!decimal_committable_column.is_empty());
         assert_eq!(
             decimal_committable_column.column_type(),
-            ColumnType::Decimal75(Precision::new(10).unwrap(), 10)
+            ColumnType::Decimal75(10_u8, 10)
         );
     }
 
@@ -619,7 +618,7 @@ mod tests {
             TestScalar::from(56),
         ];
 
-        let precision = Precision::new(75).unwrap();
+        let precision = 75_u8;
         let from_borrowed_column =
             CommittableColumn::from(&Column::Decimal75(precision, 0, &binding));
 
@@ -630,7 +629,7 @@ mod tests {
 
         assert_eq!(
             from_borrowed_column,
-            CommittableColumn::Decimal75(Precision::new(75).unwrap(), 0, expected_decimals)
+            CommittableColumn::Decimal75(75_u8, 0, expected_decimals)
         );
     }
 
@@ -956,8 +955,7 @@ mod tests {
     #[test]
     fn we_can_commit_to_decimal_column_through_committable_column() {
         // empty case
-        let committable_column =
-            CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, [].to_vec());
+        let committable_column = CommittableColumn::Decimal75(1_u8, 0, [].to_vec());
         let sequence = Sequence::from(&committable_column);
         let mut commitment_buffer = [CompressedRistretto::default()];
         compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
@@ -970,8 +968,7 @@ mod tests {
             TestScalar::from(56),
         ]
         .map(<[u64; 4]>::from);
-        let committable_column =
-            CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, (values).to_vec());
+        let committable_column = CommittableColumn::Decimal75(1_u8, 0, (values).to_vec());
 
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(values.as_slice());

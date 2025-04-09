@@ -38,7 +38,7 @@ fn we_can_fold_columns_with_scalars() {
     assert_eq!(result, expected);
 
     columns.pop();
-    columns.push(Column::Decimal75(Precision::new(75).unwrap(), -1, &scalars));
+    columns.push(Column::Decimal75(75_u8, -1, &scalars));
 
     let alloc = Bump::new();
     let result = alloc.alloc_slice_fill_copy(5, 77.into());
@@ -81,7 +81,7 @@ fn we_can_fold_columns_with_that_get_padded() {
     assert_eq!(result, expected);
 
     columns.pop();
-    columns.push(Column::Decimal75(Precision::new(75).unwrap(), -1, &scalars));
+    columns.push(Column::Decimal75(75_u8, -1, &scalars));
 
     let alloc = Bump::new();
     let result = alloc.alloc_slice_fill_copy(11, 77.into());
@@ -97,7 +97,7 @@ fn we_can_fold_empty_columns() {
         Column::Int128(&[]),
         Column::VarChar((&[], &[])),
         Column::Scalar(&[]),
-        Column::Decimal75(Precision::new(75).unwrap(), -1, &[]),
+        Column::Decimal75(75_u8, -1, &[]),
     ];
     let alloc = Bump::new();
     let result = alloc.alloc_slice_fill_copy(0, 77.into());

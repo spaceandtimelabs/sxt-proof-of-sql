@@ -258,7 +258,7 @@ fn we_can_compare_columns_with_direction() {
             .collect(),
     );
     let col3: OwnedColumn<TestScalar> = OwnedColumn::Decimal75(
-        Precision::new(70).unwrap(),
+        70_u8,
         20,
         [-3, 2, 2, -3, 2]
             .iter()

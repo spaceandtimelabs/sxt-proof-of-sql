@@ -45,7 +45,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Ident, ColumnRef> {
         ColumnRef::new(
             tab_ref.clone(),
             "decimal_column".into(),
-            ColumnType::Decimal75(Precision::new(7).unwrap(), 2),
+            ColumnType::Decimal75(7_u8, 2),
         ),
     );
     column_mapping.insert(

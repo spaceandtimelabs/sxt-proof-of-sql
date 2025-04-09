@@ -131,12 +131,12 @@ fn we_can_evaluate_a_literal() {
     // Decimal128
     let expr = Expr::Literal(ScalarValue::Decimal128(Some(57.into()), 2, 2));
     let actual_column = evaluate_expr(&table, &expr).unwrap();
-    let expected_column = OwnedColumn::Decimal75(Precision::new(2).unwrap(), 2, vec![57.into(); 5]);
+    let expected_column = OwnedColumn::Decimal75(2_u8, 2, vec![57.into(); 5]);
     assert_eq!(actual_column, expected_column);
     // Decimal256
     let expr = Expr::Literal(ScalarValue::Decimal256(Some(i256::from_i128(57)), 2, 2));
     let actual_column = evaluate_expr(&table, &expr).unwrap();
-    let expected_column = OwnedColumn::Decimal75(Precision::new(2).unwrap(), 2, vec![57.into(); 5]);
+    let expected_column = OwnedColumn::Decimal75(2_u8, 2, vec![57.into(); 5]);
     assert_eq!(actual_column, expected_column);
 }
 
@@ -334,7 +334,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
         .iter()
         .map(|&x| x.into())
         .collect();
-    let expected_column = OwnedColumn::Decimal75(Precision::new(9).unwrap(), 3, expected_scalars);
+    let expected_column = OwnedColumn::Decimal75(9_u8, 3, expected_scalars);
     assert_eq!(actual_column, expected_column);
 
     // Decimals over 2.5 plus int128s
@@ -346,7 +346,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
         .iter()
         .map(|&x| x.into())
         .collect();
-    let expected_column = OwnedColumn::Decimal75(Precision::new(46).unwrap(), 6, expected_scalars);
+    let expected_column = OwnedColumn::Decimal75(46_u8, 6, expected_scalars);
     assert_eq!(actual_column, expected_column);
 }
 

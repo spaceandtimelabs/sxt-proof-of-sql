@@ -218,7 +218,7 @@ mod tests {
         accessor: &TableTestAccessor<InnerProductProof>,
         shall_error: bool,
     ) {
-        let precision = Precision::new(50).unwrap();
+        let precision = 50_u8;
         check_monotonic::<STRICT, ASC>(
             table_ref.clone(),
             accessor,

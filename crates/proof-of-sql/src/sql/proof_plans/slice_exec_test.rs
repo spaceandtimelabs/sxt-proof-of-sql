@@ -115,10 +115,7 @@ fn we_can_get_an_empty_result_from_a_slice_on_an_empty_table_using_first_round_e
         ColumnField::new("b".into(), ColumnType::BigInt),
         ColumnField::new("c".into(), ColumnType::Int128),
         ColumnField::new("d".into(), ColumnType::VarChar),
-        ColumnField::new(
-            "e".into(),
-            ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
-        ),
+        ColumnField::new("e".into(), ColumnType::Decimal75(75_u8, 0)),
     ];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
@@ -169,10 +166,7 @@ fn we_can_get_an_empty_result_from_a_slice_using_first_round_evaluate() {
         ColumnField::new("b".into(), ColumnType::BigInt),
         ColumnField::new("c".into(), ColumnType::Int128),
         ColumnField::new("d".into(), ColumnType::VarChar),
-        ColumnField::new(
-            "e".into(),
-            ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
-        ),
+        ColumnField::new("e".into(), ColumnType::Decimal75(1_u8, 0)),
     ];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(
@@ -257,10 +251,7 @@ fn we_can_get_the_correct_result_from_a_slice_using_first_round_evaluate() {
         ColumnField::new("b".into(), ColumnType::BigInt),
         ColumnField::new("c".into(), ColumnType::Int128),
         ColumnField::new("d".into(), ColumnType::VarChar),
-        ColumnField::new(
-            "e".into(),
-            ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
-        ),
+        ColumnField::new("e".into(), ColumnType::Decimal75(1_u8, 0)),
     ];
     let first_round_builder = &mut FirstRoundBuilder::new(data_length);
     let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::from(

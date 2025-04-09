@@ -6,7 +6,6 @@ use crate::base::{
         },
         ColumnType,
     },
-    math::decimal::Precision,
     scalar::{Scalar, ScalarExt},
 };
 use alloc::vec::Vec;
@@ -266,7 +265,7 @@ pub(super) fn try_add_decimal_columns<S, T0, T1>(
     rhs: &[T1],
     left_column_type: ColumnType,
     right_column_type: ColumnType,
-) -> ColumnOperationResult<(Precision, i8, Vec<S>)>
+) -> ColumnOperationResult<(u8, i8, Vec<S>)>
 where
     S: Scalar + core::convert::From<T0> + core::convert::From<T1>,
     T0: Copy,
@@ -307,7 +306,7 @@ where
             .collect()
     };
     Ok((
-        Precision::new(new_precision_value).expect("Precision value is valid"),
+        new_precision_value,
         new_scale,
         scalars,
     ))
@@ -324,7 +323,7 @@ pub(super) fn try_subtract_decimal_columns<S, T0, T1>(
     rhs: &[T1],
     left_column_type: ColumnType,
     right_column_type: ColumnType,
-) -> ColumnOperationResult<(Precision, i8, Vec<S>)>
+) -> ColumnOperationResult<(u8, i8, Vec<S>)>
 where
     S: Scalar + core::convert::From<T0> + core::convert::From<T1>,
     T0: Copy,
@@ -365,7 +364,7 @@ where
             .collect()
     };
     Ok((
-        Precision::new(new_precision_value).expect("Precision value is valid"),
+        new_precision_value,
         new_scale,
         scalars,
     ))
@@ -382,7 +381,7 @@ pub(super) fn try_multiply_decimal_columns<S, T0, T1>(
     rhs: &[T1],
     left_column_type: ColumnType,
     right_column_type: ColumnType,
-) -> ColumnOperationResult<(Precision, i8, Vec<S>)>
+) -> ColumnOperationResult<(u8, i8, Vec<S>)>
 where
     S: Scalar + core::convert::From<T0> + core::convert::From<T1>,
     T0: Copy,
@@ -399,7 +398,7 @@ where
         .map(|(l, r)| S::from(*l) * S::from(*r))
         .collect();
     Ok((
-        Precision::new(new_precision_value).expect("Precision value is valid"),
+        new_precision_value,
         new_scale,
         scalars,
     ))
@@ -420,7 +419,7 @@ pub(crate) fn try_divide_decimal_columns<S, T0, T1>(
     rhs: &[T1],
     left_column_type: ColumnType,
     right_column_type: ColumnType,
-) -> ColumnOperationResult<(Precision, i8, Vec<S>)>
+) -> ColumnOperationResult<(u8, i8, Vec<S>)>
 where
     S: Scalar,
     T0: Copy + Debug + Into<BigInt>,
@@ -457,7 +456,7 @@ where
         })
         .collect::<ColumnOperationResult<Vec<_>>>()?;
     Ok((
-        Precision::new(new_precision_value).expect("Precision value is valid"),
+        new_precision_value,
         new_scale,
         result,
     ))
@@ -477,7 +476,7 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, false];
         assert_eq!(expected, actual);
@@ -488,7 +487,7 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, false];
         assert_eq!(expected, actual);
@@ -500,7 +499,7 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::BigInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let right_column_type = ColumnType::Decimal75(10_u8, -2);
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
@@ -514,8 +513,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(10_u8, 3);
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -529,8 +528,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(10_u8, -2);
+        let right_column_type = ColumnType::Decimal75(40_u8, 2);
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -544,8 +543,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(40_u8, 2);
+        let right_column_type = ColumnType::Decimal75(10_u8, -2);
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -559,8 +558,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), -46);
+        let left_column_type = ColumnType::Decimal75(10_u8, -50);
+        let right_column_type = ColumnType::Decimal75(40_u8, -46);
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -574,8 +573,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 26);
+        let left_column_type = ColumnType::Decimal75(10_u8, -50);
+        let right_column_type = ColumnType::Decimal75(40_u8, 26);
         let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, false];
         assert_eq!(expected, actual);
@@ -590,7 +589,7 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -601,7 +600,7 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -613,7 +612,7 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::BigInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let right_column_type = ColumnType::Decimal75(10_u8, -2);
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -627,8 +626,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(10_u8, 3);
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -642,8 +641,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(10_u8, -2);
+        let right_column_type = ColumnType::Decimal75(40_u8, 2);
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, false];
         assert_eq!(expected, actual);
@@ -657,8 +656,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(40_u8, 2);
+        let right_column_type = ColumnType::Decimal75(10_u8, -2);
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -672,8 +671,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), -46);
+        let left_column_type = ColumnType::Decimal75(10_u8, -50);
+        let right_column_type = ColumnType::Decimal75(40_u8, -46);
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, false];
         assert_eq!(expected, actual);
@@ -687,8 +686,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 26);
+        let left_column_type = ColumnType::Decimal75(10_u8, -50);
+        let right_column_type = ColumnType::Decimal75(40_u8, 26);
         let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, false, false, true, true, false, true, true, true];
         assert_eq!(expected, actual);
@@ -703,7 +702,7 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
@@ -714,7 +713,7 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
@@ -726,7 +725,7 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::BigInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let right_column_type = ColumnType::Decimal75(10_u8, -2);
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, false, true];
         assert_eq!(expected, actual);
@@ -740,8 +739,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(10_u8, 3);
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -755,8 +754,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
+        let left_column_type = ColumnType::Decimal75(10_u8, -2);
+        let right_column_type = ColumnType::Decimal75(40_u8, 2);
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -770,8 +769,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(40_u8, 2);
+        let right_column_type = ColumnType::Decimal75(10_u8, -2);
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -785,8 +784,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), -46);
+        let left_column_type = ColumnType::Decimal75(10_u8, -50);
+        let right_column_type = ColumnType::Decimal75(40_u8, -46);
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![false, true, true];
         assert_eq!(expected, actual);
@@ -800,8 +799,8 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
-        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 26);
+        let left_column_type = ColumnType::Decimal75(10_u8, -50);
+        let right_column_type = ColumnType::Decimal75(40_u8, 26);
         let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
         let expected = vec![true, true, true, false, true, true, false, false, false];
         assert_eq!(expected, actual);
@@ -817,15 +816,15 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(104),
             TestScalar::from(-195),
             TestScalar::from(298),
         ];
-        let expected = (Precision::new(11).unwrap(), 2, expected_scalars);
+        let expected = (11_u8, 2, expected_scalars);
         assert_eq!(expected, actual);
 
         let lhs = [1_i16, -2, 3];
@@ -834,15 +833,15 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(104),
             TestScalar::from(-195),
             TestScalar::from(298),
         ];
-        let expected = (Precision::new(11).unwrap(), 2, expected_scalars);
+        let expected = (11_u8, 2, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs is decimal with negative scale and rhs is integer
@@ -851,16 +850,16 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(10_u8, -2);
         let right_column_type = ColumnType::BigInt;
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(471),
             TestScalar::from(1418),
             TestScalar::from(-177),
         ];
-        let expected = (Precision::new(20).unwrap(), 0, expected_scalars);
+        let expected = (20_u8, 0, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with nonnegative scale
@@ -872,16 +871,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(12).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(12_u8, 2);
+        let right_column_type = ColumnType::Decimal75(10_u8, 3);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(111),
             TestScalar::from(68),
             TestScalar::from(3),
         ];
-        let expected = (Precision::new(14).unwrap(), 3, expected_scalars);
+        let expected = (14_u8, 3, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals one of which has negative scale
@@ -894,16 +893,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(69).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(50).unwrap(), 3);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(69_u8, -2);
+        let right_column_type = ColumnType::Decimal75(50_u8, 3);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(400_071),
             TestScalar::from(1_499_918),
             TestScalar::from(-199_977),
         ];
-        let expected = (Precision::new(75).unwrap(), 3, expected_scalars);
+        let expected = (75_u8, 3, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with negative scale
@@ -916,16 +915,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(74).unwrap(), -128);
-        let right_column_type = ColumnType::Decimal75(Precision::new(74).unwrap(), -128);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(74_u8, -128);
+        let right_column_type = ColumnType::Decimal75(74_u8, -128);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(75),
             TestScalar::from(-67),
             TestScalar::from(21),
         ];
-        let expected = (Precision::new(75).unwrap(), -128, expected_scalars);
+        let expected = (75_u8, -128, expected_scalars);
         assert_eq!(expected, actual);
     }
 
@@ -939,15 +938,15 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(96),
             TestScalar::from(-205),
             TestScalar::from(302),
         ];
-        let expected = (Precision::new(11).unwrap(), 2, expected_scalars);
+        let expected = (11_u8, 2, expected_scalars);
         assert_eq!(expected, actual);
 
         let lhs = [1_i16, -2, 3];
@@ -956,15 +955,15 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(96),
             TestScalar::from(-205),
             TestScalar::from(302),
         ];
-        let expected = (Precision::new(11).unwrap(), 2, expected_scalars);
+        let expected = (11_u8, 2, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs is decimal with negative scale and rhs is integer
@@ -973,16 +972,16 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(10_u8, -2);
         let right_column_type = ColumnType::BigInt;
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(329),
             TestScalar::from(1582),
             TestScalar::from(-223),
         ];
-        let expected = (Precision::new(20).unwrap(), 0, expected_scalars);
+        let expected = (20_u8, 0, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with nonnegative scale
@@ -994,16 +993,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(12).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(12_u8, 2);
+        let right_column_type = ColumnType::Decimal75(10_u8, 3);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(-31),
             TestScalar::from(232),
             TestScalar::from(-43),
         ];
-        let expected = (Precision::new(14).unwrap(), 3, expected_scalars);
+        let expected = (14_u8, 3, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals one of which has negative scale
@@ -1016,16 +1015,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(69).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(50).unwrap(), 3);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(69_u8, -2);
+        let right_column_type = ColumnType::Decimal75(50_u8, 3);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(399_929),
             TestScalar::from(1_500_082),
             TestScalar::from(-200_023),
         ];
-        let expected = (Precision::new(75).unwrap(), 3, expected_scalars);
+        let expected = (75_u8, 3, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with negative scale
@@ -1038,16 +1037,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(74).unwrap(), -128);
-        let right_column_type = ColumnType::Decimal75(Precision::new(74).unwrap(), -128);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(74_u8, -128);
+        let right_column_type = ColumnType::Decimal75(74_u8, -128);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(-67),
             TestScalar::from(97),
             TestScalar::from(-25),
         ];
-        let expected = (Precision::new(75).unwrap(), -128, expected_scalars);
+        let expected = (75_u8, -128, expected_scalars);
         assert_eq!(expected, actual);
     }
 
@@ -1061,15 +1060,15 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(4),
             TestScalar::from(-10),
             TestScalar::from(-6),
         ];
-        let expected = (Precision::new(14).unwrap(), 2, expected_scalars);
+        let expected = (14_u8, 2, expected_scalars);
         assert_eq!(expected, actual);
 
         let lhs = [1_i16, -2, 3];
@@ -1078,15 +1077,15 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let right_column_type = ColumnType::Decimal75(10_u8, 2);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(4),
             TestScalar::from(-10),
             TestScalar::from(-6),
         ];
-        let expected = (Precision::new(16).unwrap(), 2, expected_scalars);
+        let expected = (16_u8, 2, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs is decimal with negative scale and rhs is integer
@@ -1095,16 +1094,16 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(10_u8, -2);
         let right_column_type = ColumnType::BigInt;
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(284),
             TestScalar::from(-1230),
             TestScalar::from(-46),
         ];
-        let expected = (Precision::new(30).unwrap(), -2, expected_scalars);
+        let expected = (30_u8, -2, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with nonnegative scale
@@ -1117,16 +1116,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(42).unwrap(), 72);
-        let right_column_type = ColumnType::Decimal75(Precision::new(32).unwrap(), 55);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(42_u8, 72);
+        let right_column_type = ColumnType::Decimal75(32_u8, 55);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(284),
             TestScalar::from(-2050),
             TestScalar::from(-46),
         ];
-        let expected = (Precision::new(75).unwrap(), 127, expected_scalars);
+        let expected = (75_u8, 127, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals one of which has negative scale
@@ -1139,16 +1138,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(69).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(5).unwrap(), 3);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(69_u8, -2);
+        let right_column_type = ColumnType::Decimal75(5_u8, 3);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(284),
             TestScalar::from(-1230),
             TestScalar::from(-46),
         ];
-        let expected = (Precision::new(75).unwrap(), 1, expected_scalars);
+        let expected = (75_u8, 1, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with negative scale
@@ -1161,16 +1160,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(34).unwrap(), -64);
-        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), -64);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(34_u8, -64);
+        let right_column_type = ColumnType::Decimal75(40_u8, -64);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(284),
             TestScalar::from(-1230),
             TestScalar::from(-46),
         ];
-        let expected = (Precision::new(75).unwrap(), -128, expected_scalars);
+        let expected = (75_u8, -128, expected_scalars);
         assert_eq!(expected, actual);
     }
 
@@ -1184,15 +1183,15 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::TinyInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), 2);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let right_column_type = ColumnType::Decimal75(3_u8, 2);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(0_i64),
             TestScalar::from(40_000_000_i64),
             TestScalar::from(150_000_000_i64),
         ];
-        let expected = (Precision::new(11).unwrap(), 6, expected_scalars);
+        let expected = (11_u8, 6, expected_scalars);
         assert_eq!(expected, actual);
 
         let lhs = [0_i16, 2, 3];
@@ -1201,15 +1200,15 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
-        let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), 2);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let right_column_type = ColumnType::Decimal75(3_u8, 2);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(0_i64),
             TestScalar::from(40_000_000_i64),
             TestScalar::from(150_000_000_i64),
         ];
-        let expected = (Precision::new(13).unwrap(), 6, expected_scalars);
+        let expected = (13_u8, 6, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs is decimal with negative scale and rhs is integer
@@ -1218,16 +1217,16 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(10_u8, -2);
         let right_column_type = ColumnType::TinyInt;
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(5_633_802),
             TestScalar::from(-18_292_682),
             TestScalar::from(-8_695_652),
         ];
-        let expected = (Precision::new(18).unwrap(), 6, expected_scalars);
+        let expected = (18_u8, 6, expected_scalars);
         assert_eq!(expected, actual);
 
         let lhs = [4_i16, 15, -2]
@@ -1235,16 +1234,16 @@ mod test {
             .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
-        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let left_column_type = ColumnType::Decimal75(10_u8, -2);
         let right_column_type = ColumnType::SmallInt;
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(5_633_802),
             TestScalar::from(-18_292_682),
             TestScalar::from(-8_695_652),
         ];
-        let expected = (Precision::new(18).unwrap(), 6, expected_scalars);
+        let expected = (18_u8, 6, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with nonnegative scale
@@ -1256,16 +1255,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(4).unwrap(), 2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), 2);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(4_u8, 2);
+        let right_column_type = ColumnType::Decimal75(3_u8, 2);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(1_333_333),
             TestScalar::from(-400_000),
             TestScalar::from(-285_714),
         ];
-        let expected = (Precision::new(10).unwrap(), 6, expected_scalars);
+        let expected = (10_u8, 6, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals one of which has negative scale
@@ -1277,16 +1276,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(2).unwrap(), -2);
-        let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), 3);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(2_u8, -2);
+        let right_column_type = ColumnType::Decimal75(3_u8, 3);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(5_633_802_816_i128),
             TestScalar::from(-18_292_682_926_i128),
             TestScalar::from(-8_695_652_173_i128),
         ];
-        let expected = (Precision::new(13).unwrap(), 6, expected_scalars);
+        let expected = (13_u8, 6, expected_scalars);
         assert_eq!(expected, actual);
 
         // lhs and rhs are both decimals with negative scale
@@ -1298,16 +1297,16 @@ mod test {
             .into_iter()
             .map(TestScalar::from)
             .collect::<Vec<_>>();
-        let left_column_type = ColumnType::Decimal75(Precision::new(2).unwrap(), -3);
-        let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), -2);
-        let actual: (Precision, i8, Vec<TestScalar>) =
+        let left_column_type = ColumnType::Decimal75(2_u8, -3);
+        let right_column_type = ColumnType::Decimal75(3_u8, -2);
+        let actual: ((u8, i8, Vec<TestScalar>)) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             TestScalar::from(563_380),
             TestScalar::from(-1_829_268),
             TestScalar::from(-869_565),
         ];
-        let expected = (Precision::new(9).unwrap(), 6, expected_scalars);
+        let expected = (9_u8, 6, expected_scalars);
         assert_eq!(expected, actual);
     }
 }

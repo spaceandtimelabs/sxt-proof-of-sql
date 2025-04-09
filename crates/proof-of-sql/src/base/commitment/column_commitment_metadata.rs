@@ -186,7 +186,6 @@ mod tests {
     use crate::base::{
         commitment::column_bounds::Bounds,
         database::OwnedColumn,
-        math::decimal::Precision,
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         scalar::test_scalar::TestScalar,
     };
@@ -249,12 +248,12 @@ mod tests {
 
         assert_eq!(
             ColumnCommitmentMetadata::try_new(
-                ColumnType::Decimal75(Precision::new(10).unwrap(), 0),
+                ColumnType::Decimal75(10_u8, 0),
                 ColumnBounds::NoOrder,
             )
             .unwrap(),
             ColumnCommitmentMetadata {
-                column_type: ColumnType::Decimal75(Precision::new(10).unwrap(), 0),
+                column_type: ColumnType::Decimal75(10_u8, 0),
                 bounds: ColumnBounds::NoOrder,
             }
         );
@@ -311,14 +310,14 @@ mod tests {
 
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
-                ColumnType::Decimal75(Precision::new(10).unwrap(), 10),
+                ColumnType::Decimal75(10_u8, 10),
                 ColumnBounds::Int128(Bounds::Empty)
             ),
             Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
-                ColumnType::Decimal75(Precision::new(10).unwrap(), 10),
+                ColumnType::Decimal75(10_u8, 10),
                 ColumnBounds::BigInt(Bounds::Empty)
             ),
             Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
@@ -389,7 +388,7 @@ mod tests {
         assert_eq!(boolean_metadata.bounds(), &ColumnBounds::NoOrder);
 
         let decimal_column = OwnedColumn::<TestScalar>::Decimal75(
-            Precision::new(10).unwrap(),
+            10_u8,
             0,
             [1, 2, 3, 4, 5].map(TestScalar::from).to_vec(),
         );
@@ -397,7 +396,7 @@ mod tests {
         let decimal_metadata = ColumnCommitmentMetadata::from_column(&committable_decimal_column);
         assert_eq!(
             decimal_metadata.column_type(),
-            &ColumnType::Decimal75(Precision::new(10).unwrap(), 0)
+            &ColumnType::Decimal75(10_u8, 0)
         );
         assert_eq!(decimal_metadata.bounds(), &ColumnBounds::NoOrder);
 
@@ -503,7 +502,7 @@ mod tests {
         );
 
         let decimal_metadata = ColumnCommitmentMetadata {
-            column_type: ColumnType::Decimal75(Precision::new(12).unwrap(), 0),
+            column_type: ColumnType::Decimal75(12_u8, 0),
             bounds: ColumnBounds::NoOrder,
         };
         assert_eq!(
@@ -829,7 +828,7 @@ mod tests {
             bounds: ColumnBounds::Int128(Bounds::Empty),
         };
         let decimal75_metadata = ColumnCommitmentMetadata {
-            column_type: ColumnType::Decimal75(Precision::new(4).unwrap(), 8),
+            column_type: ColumnType::Decimal75(4_u8, 8),
             bounds: ColumnBounds::Int128(Bounds::Empty),
         };
 
@@ -945,7 +944,7 @@ mod tests {
         assert!(scalar_metadata.try_difference(boolean_metadata).is_err());
 
         let different_decimal75_metadata = ColumnCommitmentMetadata {
-            column_type: ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
+            column_type: ColumnType::Decimal75(75_u8, 0),
             bounds: ColumnBounds::Int128(Bounds::Empty),
         };
 
