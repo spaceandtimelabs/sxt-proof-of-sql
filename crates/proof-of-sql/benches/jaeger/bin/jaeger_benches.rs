@@ -220,6 +220,8 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
                 VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &(), &[]).unwrap();
             let generate_proof_elapsed = time.elapsed().as_millis();
 
+            let num_query_results = result.result.num_rows();
+
             // Verify the proof
             let time = Instant::now();
             result
@@ -244,6 +246,7 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
 
             // Print results to console
             if !cli.silence {
+                eprintln!("Number of query results: {num_query_results}");
                 eprintln!("Inner Product Proof - generate proof: {generate_proof_elapsed} ms");
                 eprintln!("Inner Product Proof - verify proof: {verify_elapsed} ms");
                 println!(
@@ -345,6 +348,8 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
             .unwrap();
             let generate_proof_elapsed = time.elapsed().as_millis();
 
+            let num_query_results = result.result.num_rows();
+
             // Verify the proof
             let time = Instant::now();
             result
@@ -374,6 +379,7 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
 
             // Print results to console
             if !cli.silence {
+                eprintln!("Number of query results: {num_query_results}");
                 eprintln!("Dory - generate proof: {generate_proof_elapsed} ms");
                 eprintln!("Dory - verify proof: {verify_elapsed} ms");
                 println!(
@@ -422,6 +428,8 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
                     .unwrap();
             let generate_proof_elapsed = time.elapsed().as_millis();
 
+            let num_query_results = result.result.num_rows();
+
             // Verify the proof
             let time = Instant::now();
             result
@@ -446,6 +454,7 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
 
             // Print results to console
             if !cli.silence {
+                eprintln!("Number of query results: {num_query_results}");
                 eprintln!("Dynamic Dory - generate proof: {generate_proof_elapsed} ms");
                 eprintln!("Dynamic Dory - verify proof: {verify_elapsed} ms");
                 println!(
@@ -521,6 +530,8 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
                 .unwrap();
             let generate_proof_elapsed = time.elapsed().as_millis();
 
+            let num_query_results = result.result.num_rows();
+
             // Verify the proof
             let time = Instant::now();
             result
@@ -545,6 +556,7 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
 
             // Print results to console
             if !cli.silence {
+                eprintln!("Number of query results: {num_query_results}");
                 eprintln!("HyperKZG - generate proof: {generate_proof_elapsed} ms");
                 eprintln!("HyperKZG - verify proof: {verify_elapsed} ms");
                 println!(
