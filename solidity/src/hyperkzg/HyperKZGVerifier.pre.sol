@@ -99,6 +99,7 @@ library HyperKZGVerifier {
     /// * `commitment_ptr` - the memory pointer to the commitment point
     /// * `x` - the memory pointer to the array of x coordinates
     /// * `y` - the y value being verified
+    /// @dev NOTE: the method will always revert if `x` is empty, or if the proof is invalid.
     /// @dev This function verifies a HyperKZG proof by:*
     /// 1. Running a Fiat-Shamir transcript to generate challenges r, q, d
     /// WARNING: The public inputs (x, y, the commitments, digest of the KZG SRS, degree bound, etc) are
