@@ -266,6 +266,39 @@ fn test_projection() {
     );
 }
 
+/// Test projection operation with scale casts
+#[test]
+fn test_projection_scaling() {
+    let alloc = Bump::new();
+    let sql = r"SELECT a + b as res FROM tab;";
+
+    let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {
+        TableRef::from_names(None, "tab") => table(
+            vec![
+                borrowed_decimal75("a", 5, 1, [1, 2, 3, 4], &alloc),
+                borrowed_decimal75("b", 3, 2, [5, 6, 7, 8], &alloc),
+            ]
+        )
+    };
+
+    let expected_results: Vec<OwnedTable<DoryScalar>> =
+        vec![owned_table([decimal75("res", 7, 2, [15, 26, 37, 48])])];
+
+    // Create public parameters for DynamicDoryEvaluationProof
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+
+    posql_end_to_end_test::<DynamicDoryEvaluationProof>(
+        sql,
+        tables,
+        &expected_results,
+        &prover_setup,
+        &verifier_setup,
+        &[],
+    );
+}
+
 /// Test slicing/limit operation - retrieving only a subset of rows
 #[test]
 fn test_slicing_limit() {
