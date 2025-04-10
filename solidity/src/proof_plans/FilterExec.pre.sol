@@ -156,12 +156,14 @@ library FilterExec {
                 mstore(evaluations_ptr, column_count)
                 evaluations_ptr := add(evaluations_ptr, WORD_SIZE)
 
+                c_fold := 0
                 for { let i := column_count } i { i := sub(i, 1) } {
                     let c
                     plan_ptr, c := proof_expr_evaluate(plan_ptr, builder_ptr, input_chi_eval)
                     c_fold := addmod(mulmod(c_fold, beta, MODULUS), c, MODULUS)
                 }
 
+                d_fold := 0
                 for { let i := column_count } i { i := sub(i, 1) } {
                     let d := builder_consume_final_round_mle(builder_ptr)
                     d_fold := addmod(mulmod(d_fold, beta, MODULUS), d, MODULUS)

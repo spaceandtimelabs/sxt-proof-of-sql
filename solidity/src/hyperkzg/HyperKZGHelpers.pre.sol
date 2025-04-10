@@ -83,6 +83,7 @@ library HyperKZGHelpers {
     {
         assembly {
             function bivariate_evaluation(v_ptr, q, d, ell) -> b {
+                b := 0
                 let v_stack := add(v_ptr, mul(WORDX3_SIZE, ell))
                 for {} ell { ell := sub(ell, 1) } {
                     // tmp = v2i
