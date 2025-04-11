@@ -1,6 +1,6 @@
 use super::{
-    AddExpr, AndExpr, CastExpr, ColumnExpr, DecimalScalingCastExpr, EqualsExpr, InequalityExpr,
-    LiteralExpr, MultiplyExpr, NotExpr, OrExpr, PlaceholderExpr, ProofExpr, SubtractExpr,
+    AddExpr, AndExpr, CastExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr, MultiplyExpr,
+    NotExpr, OrExpr, PlaceholderExpr, ProofExpr, ScalingCastExpr, SubtractExpr,
 };
 use crate::{
     base::{
@@ -50,7 +50,7 @@ pub enum DynProofExpr {
     /// Provable CAST expression
     Cast(CastExpr),
     /// Provable expression for casting numeric expressions to decimal expressions
-    DecimalScalingCast(DecimalScalingCastExpr),
+    ScalingCast(ScalingCastExpr),
 }
 impl DynProofExpr {
     /// Create column expression
@@ -184,13 +184,13 @@ impl DynProofExpr {
     }
 
     /// Create a new decimal scale cast expression
-    pub fn try_new_decimal_scaling_cast(
+    pub fn try_new_scaling_cast(
         from_expr: DynProofExpr,
         to_datatype: ColumnType,
     ) -> AnalyzeResult<Self> {
         let from_datatype = from_expr.data_type();
-        DecimalScalingCastExpr::try_new(Box::new(from_expr), to_datatype)
-            .map(DynProofExpr::DecimalScalingCast)
+        ScalingCastExpr::try_new(Box::new(from_expr), to_datatype)
+            .map(DynProofExpr::ScalingCast)
             .map_err(|_| AnalyzeError::DataTypeMismatch {
                 left_type: from_datatype.to_string(),
                 right_type: to_datatype.to_string(),

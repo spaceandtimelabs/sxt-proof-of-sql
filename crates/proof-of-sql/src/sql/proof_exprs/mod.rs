@@ -84,7 +84,7 @@ pub(crate) use cast_expr::CastExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod cast_expr_test;
 
-mod decimal_scaling_cast_expr;
-pub(crate) use decimal_scaling_cast_expr::DecimalScalingCastExpr;
+mod scaling_cast_expr;
+pub(crate) use scaling_cast_expr::ScalingCastExpr;
 #[cfg(all(test, feature = "blitzar"))]
-mod decimal_scaling_cast_expr_test;
+mod scaling_cast_expr_test;

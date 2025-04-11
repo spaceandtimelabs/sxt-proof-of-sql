@@ -27,7 +27,7 @@ fn decimal_scale_cast_expr(
         i16::from(from_precision_value) + i16::from(to_scale - from_scale).min(75_i16),
     )
     .expect("Precision is definitely valid");
-    DynProofExpr::try_new_decimal_scaling_cast(
+    DynProofExpr::try_new_scaling_cast(
         from_proof_expr,
         ColumnType::Decimal75(
             Precision::new(to_precision_value).expect("Precision is definitely valid"),
@@ -142,7 +142,7 @@ mod tests {
         let proof_expr = decimal_scale_cast_expr(expr, scale, to_scale).unwrap();
         assert_eq!(
             proof_expr,
-            DynProofExpr::try_new_decimal_scaling_cast(
+            DynProofExpr::try_new_scaling_cast(
                 COLUMN1_SMALLINT(),
                 ColumnType::Decimal75(
                     Precision::new(10).expect("Precision is definitely valid"),
@@ -179,7 +179,7 @@ mod tests {
             assert_eq!(
                 proof_exprs,
                 (
-                    DynProofExpr::try_new_decimal_scaling_cast(
+                    DynProofExpr::try_new_scaling_cast(
                         left,
                         ColumnType::Decimal75(
                             Precision::new(15).expect("Precision is definitely valid"),
@@ -207,7 +207,7 @@ mod tests {
                 proof_exprs,
                 (
                     COLUMN3_DECIMAL_75_10(),
-                    DynProofExpr::try_new_decimal_scaling_cast(
+                    DynProofExpr::try_new_scaling_cast(
                         right,
                         ColumnType::Decimal75(
                             Precision::new(15).expect("Precision is definitely valid"),
