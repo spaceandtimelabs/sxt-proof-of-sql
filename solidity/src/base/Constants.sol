@@ -58,6 +58,9 @@ uint32 constant LITERAL_EXPR_VARIANT = 1;
 /// @dev Equals variant constant for proof expressions
 uint32 constant EQUALS_EXPR_VARIANT = 2;
 
+/// @dev Filter variant constant for proof plans
+uint32 constant FILTER_EXEC_VARIANT = 0;
+
 /// @dev BigInt variant constant for literal expressions
 uint32 constant LITERAL_BIGINT_VARIANT = 0;
 /// @dev BigInt variant constant for result columns

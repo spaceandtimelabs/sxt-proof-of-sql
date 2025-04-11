@@ -1,4 +1,4 @@
-use super::{error::Error, plans::Plan};
+use super::{plans::EVMDynProofPlan, EVMProofPlanError};
 use crate::{
     base::{
         database::{
@@ -58,11 +58,11 @@ struct CompactPlan {
     tables: Vec<String>,
     columns: Vec<(usize, String, ColumnType)>,
     output_column_names: Vec<String>,
-    plan: Plan,
+    plan: EVMDynProofPlan,
 }
 
 impl TryFrom<&EVMProofPlan> for CompactPlan {
-    type Error = Error;
+    type Error = EVMProofPlanError;
 
     fn try_from(value: &EVMProofPlan) -> Result<Self, Self::Error> {
         let table_refs = value.get_table_references();
@@ -73,13 +73,13 @@ impl TryFrom<&EVMProofPlan> for CompactPlan {
             .map(|field| field.name().to_string())
             .collect();
 
-        let plan = Plan::try_from_proof_plan(value.inner(), &table_refs, &column_refs)?;
+        let plan = EVMDynProofPlan::try_from_proof_plan(value.inner(), &table_refs, &column_refs)?;
         let columns = column_refs
             .into_iter()
             .map(|column_ref| {
                 let table_index = table_refs
                     .get_index_of(&column_ref.table_ref())
-                    .ok_or(Error::TableNotFound)?;
+                    .ok_or(EVMProofPlanError::TableNotFound)?;
                 Ok((
                     table_index,
                     column_ref.column_id().to_string(),
@@ -99,13 +99,13 @@ impl TryFrom<&EVMProofPlan> for CompactPlan {
 }
 
 impl TryFrom<CompactPlan> for EVMProofPlan {
-    type Error = Error;
+    type Error = EVMProofPlanError;
 
     fn try_from(value: CompactPlan) -> Result<Self, Self::Error> {
         let table_refs: IndexSet<TableRef> = value
             .tables
             .iter()
-            .map(|table| TableRef::from_str(table).map_err(|_| Error::InvalidTableName))
+            .map(|table| TableRef::from_str(table).map_err(|_| EVMProofPlanError::InvalidTableName))
             .try_collect()?;
         let table_refs_clone = table_refs.clone();
         let column_refs: IndexSet<ColumnRef> = value
@@ -115,7 +115,7 @@ impl TryFrom<CompactPlan> for EVMProofPlan {
                 let table_ref = table_refs_clone
                     .get_index(*i)
                     .cloned()
-                    .ok_or(Error::TableNotFound)?;
+                    .ok_or(EVMProofPlanError::TableNotFound)?;
                 Ok(ColumnRef::new(table_ref, Ident::new(ident), *column_type))
             })
             .try_collect()?;

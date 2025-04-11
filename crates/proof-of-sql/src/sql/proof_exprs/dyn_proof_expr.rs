@@ -1,6 +1,6 @@
 use super::{
-    cast_expr::CastExpr, AddSubtractExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr,
-    LiteralExpr, MultiplyExpr, NotExpr, OrExpr, PlaceholderExpr, ProofExpr,
+    AddExpr, AndExpr, CastExpr, ColumnExpr, DecimalScalingCastExpr, EqualsExpr, InequalityExpr,
+    LiteralExpr, MultiplyExpr, NotExpr, OrExpr, PlaceholderExpr, ProofExpr, SubtractExpr,
 };
 use crate::{
     base::{
@@ -11,7 +11,7 @@ use crate::{
     },
     sql::{
         proof::{FinalRoundBuilder, VerificationBuilder},
-        util::type_check_binary_operation,
+        util::try_binary_operation_type,
         AnalyzeError, AnalyzeResult,
     },
 };
@@ -41,12 +41,16 @@ pub enum DynProofExpr {
     Equals(EqualsExpr),
     /// Provable AST expression for an inequality expression
     Inequality(InequalityExpr),
-    /// Provable numeric `+` / `-` expression
-    AddSubtract(AddSubtractExpr),
+    /// Provable numeric `+` expression
+    Add(AddExpr),
+    /// Provable numeric `-` expression
+    Subtract(SubtractExpr),
     /// Provable numeric `*` expression
     Multiply(MultiplyExpr),
     /// Provable CAST expression
     Cast(CastExpr),
+    /// Provable expression for casting numeric expressions to decimal expressions
+    DecimalScalingCast(DecimalScalingCastExpr),
 }
 impl DynProofExpr {
     /// Create column expression
@@ -87,7 +91,7 @@ impl DynProofExpr {
     pub fn try_new_equals(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Eq) {
+        if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Eq).is_some() {
             Ok(Self::Equals(EqualsExpr::new(Box::new(lhs), Box::new(rhs))))
         } else {
             Err(AnalyzeError::DataTypeMismatch {
@@ -104,7 +108,7 @@ impl DynProofExpr {
     ) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Lt) {
+        if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Lt).is_some() {
             Ok(Self::Inequality(InequalityExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
@@ -122,12 +126,8 @@ impl DynProofExpr {
     pub fn try_new_add(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Plus) {
-            Ok(Self::AddSubtract(AddSubtractExpr::new(
-                Box::new(lhs),
-                Box::new(rhs),
-                false,
-            )))
+        if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Plus).is_some() {
+            Ok(Self::Add(AddExpr::new(Box::new(lhs), Box::new(rhs))))
         } else {
             Err(AnalyzeError::DataTypeMismatch {
                 left_type: lhs_datatype.to_string(),
@@ -140,11 +140,10 @@ impl DynProofExpr {
     pub fn try_new_subtract(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Minus) {
-            Ok(Self::AddSubtract(AddSubtractExpr::new(
+        if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Minus).is_some() {
+            Ok(Self::Subtract(SubtractExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
-                true,
             )))
         } else {
             Err(AnalyzeError::DataTypeMismatch {
@@ -158,7 +157,9 @@ impl DynProofExpr {
     pub fn try_new_multiply(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if type_check_binary_operation(lhs_datatype, rhs_datatype, &BinaryOperator::Multiply) {
+        if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Multiply)
+            .is_some()
+        {
             Ok(Self::Multiply(MultiplyExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
@@ -176,6 +177,20 @@ impl DynProofExpr {
         let from_datatype = from_column.data_type();
         try_cast_types(from_datatype, to_datatype)
             .map(|()| Self::Cast(CastExpr::new(Box::new(from_column), to_datatype)))
+            .map_err(|_| AnalyzeError::DataTypeMismatch {
+                left_type: from_datatype.to_string(),
+                right_type: to_datatype.to_string(),
+            })
+    }
+
+    /// Create a new decimal scale cast expression
+    pub fn try_new_decimal_scaling_cast(
+        from_expr: DynProofExpr,
+        to_datatype: ColumnType,
+    ) -> AnalyzeResult<Self> {
+        let from_datatype = from_expr.data_type();
+        DecimalScalingCastExpr::try_new(Box::new(from_expr), to_datatype)
+            .map(DynProofExpr::DecimalScalingCast)
             .map_err(|_| AnalyzeError::DataTypeMismatch {
                 left_type: from_datatype.to_string(),
                 right_type: to_datatype.to_string(),

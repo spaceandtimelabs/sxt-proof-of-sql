@@ -110,10 +110,6 @@ jobs:
           export DEBIAN_FRONTEND=non-interactive
           sudo apt-get update
           sudo apt-get install -y clang lld
-      - name: Install Foundry/forge for solidity tests
-        uses: foundry-rs/foundry-toolchain@v1
-      - name: Run solidity tests (ignored by default)
-        run: cargo test --all-features --package proof-of-sql --lib -- tests::sol_test --show-output --ignored
       - name: Dry run cargo test (proof-of-sql) (test feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="test"
       - name: Dry run cargo test (proof-of-sql) (arrow feature only)

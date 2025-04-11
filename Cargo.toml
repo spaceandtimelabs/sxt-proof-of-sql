@@ -82,6 +82,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)
 [workspace.lints.clippy]
 missing_errors_doc = "allow"
 pedantic = { level = "warn", priority = -1 }
+allow_attributes = "warn"
 
 [patch.crates-io]
 # patch for sqlparser no_std compatibility with the serde feature enabled.

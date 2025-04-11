@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use super::{pairings, DoryMessages, ProverState, VerifierSetup, VerifierState};
 use crate::{base::proof::Transcript, utils::log};
 
@@ -33,7 +32,7 @@ pub fn scalar_product_prove(
     let E_2 = state.v2[0];
     messages.prover_send_G1_message(transcript, E_1);
     messages.prover_send_G2_message(transcript, E_2);
-    let (d, d_inv) = messages.verifier_F_message(transcript);
+    let (_d, _d_inv) = messages.verifier_F_message(transcript);
 }
 
 /// This is the verifier side of the Scalar-Product algorithm in section 3.1 of https://eprint.iacr.org/2020/1274.pdf.

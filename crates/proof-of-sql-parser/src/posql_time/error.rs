@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
 /// Errors related to time operations, including timezone and timestamp conversions.
-#[allow(clippy::module_name_repetitions)]
 #[derive(Snafu, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum PoSQLTimestampError {
     /// Error when the timezone string provided cannot be parsed into a valid timezone.
