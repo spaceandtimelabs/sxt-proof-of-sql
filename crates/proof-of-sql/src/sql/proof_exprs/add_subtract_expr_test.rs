@@ -2,9 +2,10 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, OwnedTableTestAccessor, TableRef,
+            owned_table_utility::*, table_utility::*, ColumnType, OwnedTableTestAccessor, TableRef,
             TableTestAccessor,
         },
+        math::decimal::Precision,
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
@@ -90,8 +91,14 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
         ],
         tab(&t),
         equal(
-            subtract(column(&t, "a", &accessor), column(&t, "b", &accessor)),
-            const_decimal75(12, 4, 3500),
+            subtract(
+                decimal_scaling_cast(
+                    column(&t, "a", &accessor),
+                    ColumnType::Decimal75(Precision::new(13).unwrap(), 2),
+                ),
+                column(&t, "b", &accessor),
+            ),
+            const_decimal75(12, 2, 35),
         ),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();

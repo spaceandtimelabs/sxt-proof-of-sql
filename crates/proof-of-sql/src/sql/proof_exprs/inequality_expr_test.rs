@@ -67,9 +67,9 @@ fn we_can_compare_columns_with_small_timestamp_values_gte() {
 fn we_can_compare_columns_with_small_timestamp_values_lte() {
     let data: OwnedTable<Curve25519Scalar> = owned_table([timestamptz(
         "a",
-        PoSQLTimeUnit::Second,
+        PoSQLTimeUnit::Nanosecond,
         PoSQLTimeZone::utc(),
-        vec![-1, 0, 1],
+        vec![-1_000_000_000, 0, 1_000_000_000],
     )]);
     let t = TableRef::new("sxt", "t");
     let accessor =
@@ -95,9 +95,9 @@ fn we_can_compare_columns_with_small_timestamp_values_lte() {
         .table;
     let expected_res = owned_table([timestamptz(
         "a",
-        PoSQLTimeUnit::Second,
+        PoSQLTimeUnit::Nanosecond,
         PoSQLTimeZone::utc(),
-        vec![-1, 0],
+        vec![-1_000_000_000, 0],
     )]);
     assert_eq!(res, expected_res);
 }
