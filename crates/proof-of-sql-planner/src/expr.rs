@@ -307,7 +307,7 @@ mod tests {
         assert_eq!(
             expr_to_proof_expr(&expr, &schema).unwrap(),
             DynProofExpr::try_new_equals(
-                DynProofExpr::try_new_decimal_scaling_cast(
+                DynProofExpr::try_new_scaling_cast(
                     COLUMN1_SMALLINT(),
                     ColumnType::Decimal75(
                         Precision::new(10).expect("Precision is definitely valid"),
@@ -326,7 +326,7 @@ mod tests {
         assert_eq!(
             expr_to_proof_expr(&expr, &schema).unwrap(),
             DynProofExpr::try_new_inequality(
-                DynProofExpr::try_new_decimal_scaling_cast(
+                DynProofExpr::try_new_scaling_cast(
                     COLUMN1_SMALLINT(),
                     ColumnType::Decimal75(
                         Precision::new(10).expect("Precision is definitely valid"),
@@ -346,7 +346,7 @@ mod tests {
         assert_eq!(
             expr_to_proof_expr(&expr, &schema).unwrap(),
             DynProofExpr::try_new_inequality(
-                DynProofExpr::try_new_decimal_scaling_cast(
+                DynProofExpr::try_new_scaling_cast(
                     COLUMN1_SMALLINT(),
                     ColumnType::Decimal75(
                         Precision::new(10).expect("Precision is definitely valid"),
@@ -367,7 +367,7 @@ mod tests {
             expr_to_proof_expr(&expr, &schema).unwrap(),
             DynProofExpr::try_new_not(
                 DynProofExpr::try_new_inequality(
-                    DynProofExpr::try_new_decimal_scaling_cast(
+                    DynProofExpr::try_new_scaling_cast(
                         COLUMN1_SMALLINT(),
                         ColumnType::Decimal75(
                             Precision::new(10).expect("Precision is definitely valid"),
@@ -390,7 +390,7 @@ mod tests {
             expr_to_proof_expr(&expr, &schema).unwrap(),
             DynProofExpr::try_new_not(
                 DynProofExpr::try_new_inequality(
-                    DynProofExpr::try_new_decimal_scaling_cast(
+                    DynProofExpr::try_new_scaling_cast(
                         COLUMN1_SMALLINT(),
                         ColumnType::Decimal75(
                             Precision::new(10).expect("Precision is definitely valid"),
@@ -465,7 +465,7 @@ mod tests {
         assert_eq!(
             expr_to_proof_expr(&expr, &schema).unwrap(),
             DynProofExpr::try_new_add(
-                DynProofExpr::try_new_decimal_scaling_cast(
+                DynProofExpr::try_new_scaling_cast(
                     COLUMN1_SMALLINT(),
                     ColumnType::Decimal75(
                         Precision::new(10).expect("Precision is definitely valid"),
@@ -484,7 +484,7 @@ mod tests {
         assert_eq!(
             expr_to_proof_expr(&expr, &schema).unwrap(),
             DynProofExpr::try_new_subtract(
-                DynProofExpr::try_new_decimal_scaling_cast(
+                DynProofExpr::try_new_scaling_cast(
                     COLUMN1_SMALLINT(),
                     ColumnType::Decimal75(
                         Precision::new(10).expect("Precision is definitely valid"),
@@ -688,5 +688,12 @@ mod tests {
             expr_to_proof_expr(&expr, &schema),
             Err(PlannerError::UnsupportedLogicalExpression { .. })
         ));
+    }
+
+    #[test]
+    fn we_can_get_proof_expr_for_timestamps_of_different_scale() {
+        let lhs = Expr::Literal(ScalarValue::TimestampSecond(Some(1), None));
+        let rhs = Expr::Literal(ScalarValue::TimestampNanosecond(Some(1), None));
+        binary_expr_to_proof_expr(&lhs, &rhs, Operator::Gt, &DFSchema::empty()).unwrap();
     }
 }

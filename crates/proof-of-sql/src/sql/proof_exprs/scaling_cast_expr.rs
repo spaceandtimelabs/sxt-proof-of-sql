@@ -1,7 +1,5 @@
 use super::{
-    numerical_util::{
-        cast_column_to_decimal_with_scaling, try_get_scaling_factor_with_precision_and_scale,
-    },
+    numerical_util::{cast_column_with_scaling, try_get_scaling_factor_with_precision_and_scale},
     DynProofExpr, ProofExpr,
 };
 use crate::{
@@ -18,13 +16,13 @@ use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub struct DecimalScalingCastExpr {
+pub struct ScalingCastExpr {
     from_expr: Box<DynProofExpr>,
     to_type: ColumnType,
     scaling_factor: [u64; 4],
 }
 
-impl DecimalScalingCastExpr {
+impl ScalingCastExpr {
     /// Creates a new `CastExpr`
     pub fn try_new(
         from_expr: Box<DynProofExpr>,
@@ -40,7 +38,7 @@ impl DecimalScalingCastExpr {
     }
 }
 
-impl ProofExpr for DecimalScalingCastExpr {
+impl ProofExpr for ScalingCastExpr {
     fn data_type(&self) -> ColumnType {
         self.to_type
     }
@@ -52,7 +50,7 @@ impl ProofExpr for DecimalScalingCastExpr {
         params: &[LiteralValue],
     ) -> PlaceholderResult<Column<'a, S>> {
         let uncasted_result = self.from_expr.first_round_evaluate(alloc, table, params)?;
-        Ok(cast_column_to_decimal_with_scaling(
+        Ok(cast_column_with_scaling(
             alloc,
             uncasted_result,
             self.to_type,
@@ -69,7 +67,7 @@ impl ProofExpr for DecimalScalingCastExpr {
         let uncasted_result = self
             .from_expr
             .final_round_evaluate(builder, alloc, table, params)?;
-        Ok(cast_column_to_decimal_with_scaling(
+        Ok(cast_column_with_scaling(
             alloc,
             uncasted_result,
             self.to_type,

@@ -88,8 +88,8 @@ pub fn cast(left: DynProofExpr, right: ColumnType) -> DynProofExpr {
     DynProofExpr::try_new_cast(left, right).unwrap()
 }
 
-pub fn decimal_scaling_cast(left: DynProofExpr, right: ColumnType) -> DynProofExpr {
-    DynProofExpr::try_new_decimal_scaling_cast(left, right).unwrap()
+pub fn scaling_cast(left: DynProofExpr, right: ColumnType) -> DynProofExpr {
+    DynProofExpr::try_new_scaling_cast(left, right).unwrap()
 }
 
 pub fn const_bool(val: bool) -> DynProofExpr {
