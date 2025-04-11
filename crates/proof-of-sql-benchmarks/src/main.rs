@@ -105,6 +105,8 @@ enum Query {
     LargeColumnSet,
     /// Complex condition query
     ComplexCondition,
+    /// Sum count query
+    SumCount,
 }
 
 impl Query {
@@ -120,6 +122,7 @@ impl Query {
             Query::BooleanFilter => "Boolean Filter",
             Query::LargeColumnSet => "Large Column Set",
             Query::ComplexCondition => "Complex Condition",
+            Query::SumCount => "Sum Count",
         }
     }
 }

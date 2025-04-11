@@ -250,6 +250,39 @@ impl BaseEntry for ComplexCondition {
     }
 }
 
+/// Sum Count query.
+pub struct SumCount;
+impl BaseEntry for SumCount {
+    fn title(&self) -> &'static str {
+        "Sum Count"
+    }
+
+    fn sql(&self) -> &'static str {
+        "SELECT SUM(a*b*c) as foo, SUM(a*b) as bar, COUNT(1) FROM table WHERE a = 0 OR c-b = 2 AND d = 'a'"
+    }
+
+    fn columns(&self) -> &'static [ColumnDefinition] {
+        &[
+            (
+                "a",
+                ColumnType::BigInt,
+                Some(|size| (size / 10).max(10) as i64),
+            ),
+            (
+                "b",
+                ColumnType::BigInt,
+                Some(|size| (size / 10).max(10) as i64),
+            ),
+            (
+                "c",
+                ColumnType::BigInt,
+                Some(|size| (size / 10).max(10) as i64),
+            ),
+            ("d", ColumnType::VarChar, None),
+        ]
+    }
+}
+
 /// Retrieves all available queries.
 pub fn all_queries() -> Vec<QueryEntry> {
     vec![
@@ -261,6 +294,7 @@ pub fn all_queries() -> Vec<QueryEntry> {
         BooleanFilter.entry(),
         LargeColumnSet.entry(),
         ComplexCondition.entry(),
+        SumCount.entry(),
     ]
 }
 
