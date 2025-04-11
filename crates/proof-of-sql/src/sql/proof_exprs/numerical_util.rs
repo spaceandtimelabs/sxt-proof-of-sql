@@ -634,11 +634,19 @@ pub fn cast_column_with_scaling<'a, S: Scalar>(
     let cast_scalars = alloc.alloc_slice_fill_with(from_column.len(), |i| {
         S::from_wrapping(scaling_factor) * from_column.scalar_at(i).unwrap()
     });
-    Column::Decimal75(
-        Precision::new(precision).unwrap(),
-        scale,
-        cast_scalars as &[_],
-    )
+    match to_type {
+        ColumnType::Decimal75(_, _) => Column::Decimal75(
+            Precision::new(precision).unwrap(),
+            scale,
+            cast_scalars as &[_],
+        ),
+        ColumnType::TimestampTZ(po_sqltime_unit, po_sqltime_zone) => Column::TimestampTZ(
+            po_sqltime_unit,
+            po_sqltime_zone,
+            cast_scalar_slice_to_int_slice(alloc, cast_scalars),
+        ),
+        _ => unreachable!(),
+    }
 }
 
 #[cfg(test)]

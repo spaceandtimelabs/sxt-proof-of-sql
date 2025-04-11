@@ -51,12 +51,20 @@ pub fn scale_cast_binary_op(
     let scale = left_scale.max(right_scale);
     match left_scale.cmp(&right_scale) {
         Ordering::Less => Ok((
-            decimal_scale_cast_expr(left_proof_expr, left_scale, scale)?,
+            if matches!(left_type, ColumnType::TimestampTZ(_, _)) {
+                DynProofExpr::try_new_scaling_cast(left_proof_expr, right_type)?
+            } else {
+                decimal_scale_cast_expr(left_proof_expr, left_scale, scale)?
+            },
             right_proof_expr,
         )),
         Ordering::Greater => Ok((
             left_proof_expr,
-            decimal_scale_cast_expr(right_proof_expr, right_scale, scale)?,
+            if matches!(right_type, ColumnType::TimestampTZ(_, _)) {
+                DynProofExpr::try_new_scaling_cast(right_proof_expr, left_type)?
+            } else {
+                decimal_scale_cast_expr(right_proof_expr, right_scale, scale)?
+            },
         )),
         Ordering::Equal => Ok((left_proof_expr, right_proof_expr)),
     }

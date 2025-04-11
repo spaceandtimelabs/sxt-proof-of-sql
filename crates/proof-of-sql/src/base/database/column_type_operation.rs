@@ -216,6 +216,9 @@ pub fn try_scale_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperation
             let to_scale = i16::from(scale);
             to_scale >= from_scale && (to_precision - to_scale) >= (from_precision - from_scale)
         }
+        (ColumnType::TimestampTZ(_, _), ColumnType::TimestampTZ(_, _)) => {
+            to.scale().unwrap() >= from.scale().unwrap()
+        }
         _ => false,
     }
     .then_some(())
