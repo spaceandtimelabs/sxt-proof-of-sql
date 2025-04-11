@@ -21,7 +21,6 @@ indexmap = { version = "2.8", default-features = false }
 nova-snark = { version = "0.41.0" }
 opentelemetry = { version = "0.23.0" }
 opentelemetry-jaeger = { version = "0.20.0" }
-plotters = { version = "0.3.7" }
 proof-of-sql = { version = "0.91.23", features = ["hyperkzg_proof"] }
 rand = { version = "0.8", default-features = false }
 sqlparser = { version = "0.45.0", default-features = false }

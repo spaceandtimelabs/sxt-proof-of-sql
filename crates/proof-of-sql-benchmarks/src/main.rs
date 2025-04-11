@@ -66,7 +66,7 @@ use utils::{
     jaeger_setup::{setup_jaeger_tracing, stop_jaeger_tracing},
     queries::{all_queries, get_query, QueryEntry},
     random_util::generate_random_columns,
-    results_io::{append_to_csv, draw_chart_from_csv},
+    results_io::append_to_csv,
 };
 
 #[derive(ValueEnum, Clone, Debug)]
@@ -623,12 +623,6 @@ fn main() {
         }
         CommitmentScheme::HyperKZG => {
             bench_hyperkzg(&cli, &queries);
-        }
-    }
-
-    if let Some(csv_path) = &cli.csv_path {
-        if let Some(chart_path) = &cli.chart_path {
-            let _ = draw_chart_from_csv(csv_path, chart_path);
         }
     }
 
