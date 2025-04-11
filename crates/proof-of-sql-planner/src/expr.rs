@@ -689,4 +689,11 @@ mod tests {
             Err(PlannerError::UnsupportedLogicalExpression { .. })
         ));
     }
+
+    #[test]
+    fn we_can_get_proof_expr_for_timestamps_of_different_scale() {
+        let lhs = Expr::Literal(ScalarValue::TimestampSecond(Some(1), None));
+        let rhs = Expr::Literal(ScalarValue::TimestampNanosecond(Some(1), None));
+        binary_expr_to_proof_expr(&lhs, &rhs, Operator::Gt, &DFSchema::empty()).unwrap();
+    }
 }
