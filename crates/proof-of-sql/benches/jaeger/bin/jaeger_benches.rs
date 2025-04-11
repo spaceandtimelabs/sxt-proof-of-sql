@@ -57,7 +57,7 @@ mod utils;
 use utils::{
     benchmark_accessor::BenchmarkAccessor,
     jaeger_setup::{setup_jaeger_tracing, stop_jaeger_tracing},
-    queries::{get_query, QueryEntry, QUERIES},
+    queries::{all_queries, get_query, QueryEntry},
     random_util::generate_random_columns,
 };
 
@@ -403,30 +403,30 @@ fn main() {
     let cli = Cli::parse();
 
     let queries = if cli.query == Query::All {
-        QUERIES
+        all_queries()
     } else {
         let query = get_query(cli.query.to_string()).expect("Invalid query type specified.");
-        &[query]
+        [query].to_vec()
     };
 
     match cli.scheme {
         CommitmentScheme::All => {
-            bench_inner_product_proof(&cli, queries);
-            bench_dory(&cli, queries);
-            bench_dynamic_dory(&cli, queries);
-            bench_hyperkzg(&cli, queries);
+            bench_inner_product_proof(&cli, &queries);
+            bench_dory(&cli, &queries);
+            bench_dynamic_dory(&cli, &queries);
+            bench_hyperkzg(&cli, &queries);
         }
         CommitmentScheme::InnerProductProof => {
-            bench_inner_product_proof(&cli, queries);
+            bench_inner_product_proof(&cli, &queries);
         }
         CommitmentScheme::Dory => {
-            bench_dory(&cli, queries);
+            bench_dory(&cli, &queries);
         }
         CommitmentScheme::DynamicDory => {
-            bench_dynamic_dory(&cli, queries);
+            bench_dynamic_dory(&cli, &queries);
         }
         CommitmentScheme::HyperKZG => {
-            bench_hyperkzg(&cli, queries);
+            bench_hyperkzg(&cli, &queries);
         }
     }
 
