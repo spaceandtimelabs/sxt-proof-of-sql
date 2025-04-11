@@ -274,6 +274,45 @@ contract HyperKZGHelpersTest is Test {
         assert(scratch[1] == 0);
     }
 
+    function testComputeGLMSMWithLenOneRevertsWhenAnInputIsAnInvalidECPoint() public {
+        uint256[2][] memory com = new uint256[2][](1);
+        com[0] = [G1_NEG_GEN_X, G1_NEG_GEN_Y];
+        uint256[2][3] memory w;
+        w[0] = [uint256(0), 1];
+        w[1] = [uint256(0), 2];
+        w[2] = [uint256(0), 3];
+        uint256[2] memory commitment = [uint256(0), 0];
+        uint256[4] memory rqdb = [uint256(1), 1, 1, 1];
+        uint256[5] memory scratch;
+        vm.expectRevert(Errors.InvalidECMulInputs.selector);
+        scratch = HyperKZGHelpers.__computeGLMSM({
+            __com: com,
+            __w: w,
+            __commitment: commitment,
+            __rqdb: rqdb,
+            __scratch: scratch
+        });
+    }
+
+    function testComputeGLMSMWithLenOneDoesNotRevertWithValidInputs() public view {
+        uint256[2][] memory com = new uint256[2][](1);
+        com[0] = [G1_NEG_GEN_X, G1_NEG_GEN_Y];
+        uint256[2][3] memory w;
+        w[0] = [uint256(1), 2];
+        w[1] = [uint256(0), 0];
+        w[2] = [uint256(G1_GEN_X), G1_GEN_Y];
+        uint256[2] memory commitment = [uint256(0), 0];
+        uint256[4] memory rqdb = [uint256(1), 1, 1, 1];
+        uint256[5] memory scratch;
+        scratch = HyperKZGHelpers.__computeGLMSM({
+            __com: com,
+            __w: w,
+            __commitment: commitment,
+            __rqdb: rqdb,
+            __scratch: scratch
+        });
+    }
+
     function testComputeGLMSMWithSimpleValues() public view {
         uint256[2][] memory com = new uint256[2][](2);
         (uint256 comx, uint256 comy) = ECPrecompilesTestHelper.ecBasePower(2);

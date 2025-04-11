@@ -270,6 +270,7 @@ library HyperKZGHelpers {
     /// \\[ g_L := \left(d^2 + d + 1\right)\cdot \left(\mathbf{C} + \sum_{i=0}^{m-1} q^{i+1}\cdot \mathbf{com}_i\right)+
     ///     r\cdot\mathbf{w}_0 - dr \cdot\mathbf{w}_1 + (dr)^2\cdot\mathbf{w}_2 + b\cdot (-\mathbf{G}) \\]
     /// @dev The computation is performed using EC operations via precompiles in a specific order to optimize gas usage
+    /// @dev NOTE: this function's will revert if any of the EC inputs are invalid.
     /// @param __com Array of commitment points
     /// @param __w Array of witness points
     /// @param __commitment The commitment point C

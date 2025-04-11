@@ -119,6 +119,12 @@ contract ECPrecompilesTest is Test {
         assert(argsPtr[2] == e);
     }
 
+    function testFuzz01IsInvalidECPoint(uint256 e) public {
+        uint256[3] memory argsPtr = [uint256(0), 1, e];
+        vm.expectRevert(Errors.InvalidECMulInputs.selector);
+        ECPrecompilesTestWrapper.ecMul(argsPtr);
+    }
+
     function testRevertWhenECMulInvalidInput() public {
         uint256[3] memory argsPtr = [uint256(2), 3, 4];
         vm.expectRevert(Errors.InvalidECMulInputs.selector);
