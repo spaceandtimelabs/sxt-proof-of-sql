@@ -60,6 +60,7 @@ use proof_of_sql::{
 };
 use rand::{rngs::StdRng, SeedableRng};
 use std::{path::PathBuf, time::Instant};
+use tracing::{span, Level};
 mod utils;
 use utils::{
     benchmark_accessor::BenchmarkAccessor,
@@ -223,6 +224,7 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
         for i in 0..cli.iterations {
+            let span = span!(Level::DEBUG, "Inner Product Proof commitment scheme").entered();
             // Generate the proof
             let time = Instant::now();
             let result: VerifiableQueryResult<InnerProductProof> =
@@ -237,6 +239,7 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
                 .verify(query_expr.proof_expr(), &accessor, &(), &[])
                 .unwrap();
             let verify_elapsed = time.elapsed().as_millis();
+            span.exit();
 
             // Append results to CSV file
             if let Some(csv_path) = &cli.csv_path {
@@ -346,6 +349,7 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
         for i in 0..cli.iterations {
+            let span = span!(Level::DEBUG, "Dory commitment scheme").entered();
             // Generate the proof
             let time = Instant::now();
             let result: VerifiableQueryResult<DoryEvaluationProof> = VerifiableQueryResult::new(
@@ -370,6 +374,7 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
                 )
                 .unwrap();
             let verify_elapsed = time.elapsed().as_millis();
+            span.exit();
 
             // Append results to CSV file
             if let Some(csv_path) = &cli.csv_path {
@@ -430,6 +435,7 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
         for i in 0..cli.iterations {
+            let span = span!(Level::DEBUG, "Dynamic Dory commitment scheme").entered();
             // Generate the proof
             let time = Instant::now();
             let result: VerifiableQueryResult<DynamicDoryEvaluationProof> =
@@ -445,6 +451,7 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
                 .verify(query_expr.proof_expr(), &accessor, &&verifier_setup, &[])
                 .unwrap();
             let verify_elapsed = time.elapsed().as_millis();
+            span.exit();
 
             // Append results to CSV file
             if let Some(csv_path) = &cli.csv_path {
@@ -527,6 +534,7 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
         for i in 0..cli.iterations {
+            let span = span!(Level::DEBUG, "HyperKZG commitment scheme").entered();
             // Generate the proof
             let time = Instant::now();
             let result: VerifiableQueryResult<HyperKZGCommitmentEvaluationProof> =
@@ -547,6 +555,7 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
                 .verify(query_expr.proof_expr(), &accessor, &&vk, &[])
                 .unwrap();
             let verify_elapsed = time.elapsed().as_millis();
+            span.exit();
 
             // Append results to CSV file
             if let Some(csv_path) = &cli.csv_path {
