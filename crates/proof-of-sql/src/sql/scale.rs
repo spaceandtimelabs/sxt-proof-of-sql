@@ -85,6 +85,54 @@ mod tests {
         ))
     }
 
+    #[expect(non_snake_case)]
+    fn COLUMN1_DECIMAL_3_MINUS2() -> DynProofExpr {
+        DynProofExpr::new_column(ColumnRef::new(
+            TableRef::from_names(Some("namespace"), "table_name"),
+            "column1".into(),
+            ColumnType::Decimal75(
+                Precision::new(3).expect("Precision is definitely valid"),
+                -2,
+            ),
+        ))
+    }
+
+    #[expect(non_snake_case)]
+    fn COLUMN1_DECIMAL_10_5() -> DynProofExpr {
+        DynProofExpr::new_column(ColumnRef::new(
+            TableRef::from_names(Some("namespace"), "table_name"),
+            "column1".into(),
+            ColumnType::Decimal75(
+                Precision::new(10).expect("Precision is definitely valid"),
+                5,
+            ),
+        ))
+    }
+
+    #[expect(non_snake_case)]
+    fn COLUMN3_DECIMAL_75_10() -> DynProofExpr {
+        DynProofExpr::new_column(ColumnRef::new(
+            TableRef::from_names(Some("namespace"), "table_name"),
+            "column3".into(),
+            ColumnType::Decimal75(
+                Precision::new(75).expect("Precision is definitely valid"),
+                10,
+            ),
+        ))
+    }
+
+    #[expect(non_snake_case)]
+    fn COLUMN2_DECIMAL_25_5() -> DynProofExpr {
+        DynProofExpr::new_column(ColumnRef::new(
+            TableRef::from_names(Some("namespace"), "table_name"),
+            "column2".into(),
+            ColumnType::Decimal75(
+                Precision::new(25).expect("Precision is definitely valid"),
+                5,
+            ),
+        ))
+    }
+
     // decimal_scale_cast_expr
     #[test]
     fn we_can_convert_decimal_scale_cast_expr() {
@@ -115,5 +163,68 @@ mod tests {
             proof_expr,
             Err(AnalyzeError::DataTypeMismatch { .. })
         ));
+    }
+
+    // scale_cast_binary_op
+    #[test]
+    fn we_can_convert_scale_cast_binary_op_upcasting_left() {
+        let left_array = [
+            COLUMN1_SMALLINT(),
+            COLUMN1_DECIMAL_10_5(),
+            COLUMN1_DECIMAL_3_MINUS2(),
+        ];
+        let right = COLUMN3_DECIMAL_75_10();
+        for left in left_array {
+            let proof_exprs = scale_cast_binary_op(left.clone(), right.clone()).unwrap();
+            assert_eq!(
+                proof_exprs,
+                (
+                    DynProofExpr::try_new_decimal_scaling_cast(
+                        left,
+                        ColumnType::Decimal75(
+                            Precision::new(15).expect("Precision is definitely valid"),
+                            10
+                        )
+                    )
+                    .unwrap(),
+                    COLUMN3_DECIMAL_75_10()
+                )
+            );
+        }
+    }
+
+    #[test]
+    fn we_can_convert_scale_cast_binary_op_upcasting_right() {
+        let left = COLUMN3_DECIMAL_75_10();
+        let right_array = [
+            COLUMN1_SMALLINT(),
+            COLUMN1_DECIMAL_10_5(),
+            COLUMN1_DECIMAL_3_MINUS2(),
+        ];
+        for right in right_array {
+            let proof_exprs = scale_cast_binary_op(left.clone(), right.clone()).unwrap();
+            assert_eq!(
+                proof_exprs,
+                (
+                    COLUMN3_DECIMAL_75_10(),
+                    DynProofExpr::try_new_decimal_scaling_cast(
+                        right,
+                        ColumnType::Decimal75(
+                            Precision::new(15).expect("Precision is definitely valid"),
+                            10
+                        )
+                    )
+                    .unwrap()
+                )
+            );
+        }
+    }
+
+    #[test]
+    fn we_can_convert_scale_cast_binary_op_equal() {
+        let left = COLUMN1_DECIMAL_10_5();
+        let right = COLUMN2_DECIMAL_25_5();
+        let proof_exprs = scale_cast_binary_op(left.clone(), right.clone()).unwrap();
+        assert_eq!(proof_exprs, (left, right));
     }
 }
