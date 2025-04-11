@@ -114,12 +114,34 @@ pub fn expr_to_proof_expr(expr: &Expr, schema: &DFSchema) -> PlannerResult<DynPr
                 }
                 _ => {
                     let from_expr = expr_to_proof_expr(&cast.expr, schema)?;
-                    let to_type = cast.data_type.clone().try_into().map_err(|_| {
+                    let from_type = from_expr.data_type();
+                    // Never do scale cast for timestamp
+                    let is_timestamp_cast = match from_type {
+                        ColumnType::TimestampTZ(_, _) => true,
+                        _ => false,
+                    };
+                    let to_type: ColumnType = cast.data_type.clone().try_into().map_err(|_| {
                         PlannerError::UnsupportedDataType {
                             data_type: cast.data_type.clone(),
                         }
                     })?;
-                    Ok(DynProofExpr::try_new_cast(from_expr, to_type)?)
+                    let from_type_scale = from_type.scale().unwrap_or(0);
+                    let to_type_scale = to_type.scale().unwrap_or(0);
+                    if is_timestamp_cast || from_type_scale == to_type_scale {
+                        Ok(DynProofExpr::try_new_cast(from_expr, to_type)?)
+                    } else if from_type_scale < to_type_scale {
+                        Ok(DynProofExpr::try_new_decimal_scaling_cast(
+                            from_expr,
+                            to_type
+                        )?)
+                    } else {
+                        Err(PlannerError::AnalyzeError {
+                            source: AnalyzeError::CastingError {
+                                from_type,
+                                to_type
+                            }
+                        })
+                    }
                 }
             }
         }
@@ -595,6 +617,24 @@ mod tests {
             DynProofExpr::try_new_cast(
                 DynProofExpr::new_literal(LiteralValue::Boolean(true)),
                 ColumnType::Int
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn we_can_convert_cast_expr_to_proof_expr_with_scaling() {
+        let expr = Expr::Cast(Cast::new(
+            Box::new(Expr::Literal(ScalarValue::Int32(Some(12)))),
+            DataType::Decimal256(75, 4),
+        ));
+        let schema = df_schema("namespace.table_name", vec![]);
+        let expression = expr_to_proof_expr(&expr, &schema).unwrap();
+        assert_eq!(
+            expression,
+            DynProofExpr::try_new_decimal_scaling_cast(
+                DynProofExpr::new_literal(LiteralValue::Int(12)),
+                ColumnType::Decimal75(Precision::new(75).unwrap(), 4)
             )
             .unwrap()
         );

@@ -163,22 +163,6 @@ pub fn aliased_plan(expr: DynProofExpr, alias: &str) -> AliasedDynProofExpr {
 
 /// # Panics
 /// Panics if:
-/// - `old_name.parse()` or `new_name.parse()` fails to parse the provided column names.
-/// - `col_ref()` fails to find the referenced column, leading to a panic in the column accessor.
-pub fn aliased_col_expr_plan(
-    tab: &TableRef,
-    old_name: &str,
-    new_name: &str,
-    accessor: &impl SchemaAccessor,
-) -> AliasedDynProofExpr {
-    AliasedDynProofExpr {
-        expr: DynProofExpr::Column(ColumnExpr::new(col_ref(tab, old_name, accessor))),
-        alias: new_name.into(),
-    }
-}
-
-/// # Panics
-/// Panics if:
 /// - `name.parse()` fails to parse the provided column name.
 /// - `col_ref()` fails to find the referenced column, leading to a panic in the column accessor.
 pub fn col_expr_plan(
@@ -190,17 +174,6 @@ pub fn col_expr_plan(
         expr: DynProofExpr::Column(ColumnExpr::new(col_ref(tab, name, accessor))),
         alias: name.into(),
     }
-}
-
-pub fn aliased_cols_expr_plan(
-    tab: &TableRef,
-    names: &[(&str, &str)],
-    accessor: &impl SchemaAccessor,
-) -> Vec<AliasedDynProofExpr> {
-    names
-        .iter()
-        .map(|(old_name, new_name)| aliased_col_expr_plan(tab, old_name, new_name, accessor))
-        .collect()
 }
 
 pub fn cols_expr_plan(

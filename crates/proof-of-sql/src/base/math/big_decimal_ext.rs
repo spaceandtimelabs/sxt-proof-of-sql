@@ -11,6 +11,7 @@ pub trait BigDecimalExt {
         scale: i8,
     ) -> Result<BigInt, IntermediateDecimalError>;
 }
+
 impl BigDecimalExt for BigDecimal {
     /// Get the precision of the fixed-point representation of this intermediate decimal.
     #[must_use]
