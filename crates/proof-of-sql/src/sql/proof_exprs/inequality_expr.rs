@@ -1,4 +1,4 @@
-use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
+use super::{add_subtract_columns, DynProofExpr, ProofExpr};
 use crate::{
     base::{
         database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
@@ -55,11 +55,9 @@ impl ProofExpr for InequalityExpr {
         let rhs_column = self.rhs.first_round_evaluate(alloc, table, params)?;
         let table_length = table.num_rows();
         let diff = if self.is_lt {
-            scale_and_subtract(alloc, lhs_column, rhs_column, false)
-                .expect("Failed to scale and subtract")
+            add_subtract_columns(lhs_column, rhs_column, alloc, true)
         } else {
-            scale_and_subtract(alloc, rhs_column, lhs_column, false)
-                .expect("Failed to scale and subtract")
+            add_subtract_columns(rhs_column, lhs_column, alloc, true)
         };
 
         // (sign(diff) == -1)
@@ -91,11 +89,9 @@ impl ProofExpr for InequalityExpr {
             .rhs
             .final_round_evaluate(builder, alloc, table, params)?;
         let diff = if self.is_lt {
-            scale_and_subtract(alloc, lhs_column, rhs_column, false)
-                .expect("Failed to scale and subtract")
+            add_subtract_columns(lhs_column, rhs_column, alloc, true)
         } else {
-            scale_and_subtract(alloc, rhs_column, lhs_column, false)
-                .expect("Failed to scale and subtract")
+            add_subtract_columns(rhs_column, lhs_column, alloc, true)
         };
 
         // (sign(diff) == -1)
@@ -119,12 +115,10 @@ impl ProofExpr for InequalityExpr {
         let rhs_eval = self
             .rhs
             .verifier_evaluate(builder, accessor, chi_eval, params)?;
-        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
-        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let diff_eval = if self.is_lt {
-            scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, true)
+            lhs_eval - rhs_eval
         } else {
-            scale_and_add_subtract_eval(rhs_eval, lhs_eval, rhs_scale, lhs_scale, true)
+            rhs_eval - lhs_eval
         };
 
         // sign(diff) == -1

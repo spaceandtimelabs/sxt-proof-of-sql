@@ -53,13 +53,8 @@ use not_expr::NotExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod not_expr_test;
 
-mod comparison_util;
-pub(crate) use comparison_util::scale_and_subtract;
-
 mod numerical_util;
-pub(crate) use numerical_util::{
-    add_subtract_columns, multiply_columns, scale_and_add_subtract_eval,
-};
+pub(crate) use numerical_util::{add_subtract_columns, multiply_columns};
 #[cfg(test)]
 pub(crate) use numerical_util::{divide_columns, modulo_columns};
 
