@@ -173,14 +173,15 @@ fn we_can_prove_and_get_the_correct_result_from_a_nontrivial_projection() {
         .unwrap()
         .table;
     let expected = owned_table([
-        bigint("b", [2_i64, 3, 4, 5, 6]),
-        bigint("prod", [1_i64, 8, 15, 8, 25]),
+        decimal75("b", 20, 0, [2_i64, 3, 4, 5, 6]),
+        decimal75("prod", 39, 0, [1_i64, 8, 15, 8, 25]),
     ]);
     assert_eq!(res, expected);
 }
 
 #[test]
 fn we_can_prove_and_get_the_correct_result_from_a_composed_projection() {
+    //TODO: Remove `ColumnType` from `ColumnRef` so that we don't need an intermediate accessor
     let data = owned_table([
         bigint("a", [1_i64, 4_i64, 5_i64, 2_i64, 5_i64]),
         bigint("b", [1_i64, 2, 3, 4, 5]),
@@ -188,11 +189,24 @@ fn we_can_prove_and_get_the_correct_result_from_a_composed_projection() {
     let t = TableRef::new("sxt", "t");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t.clone(), data, 0);
+    let intermediate_data = owned_table([
+        decimal75("a", 20, 0, [8_i64, 10]),
+        decimal75("b", 20, 0, [4_i64, 6]),
+    ]);
+    let mut intermediate_accessor =
+        OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    intermediate_accessor.add_table(t.clone(), intermediate_data, 0);
     let ast = projection(
         vec![
-            aliased_plan(add(column(&t, "b", &accessor), const_bigint(1)), "b"),
             aliased_plan(
-                multiply(column(&t, "a", &accessor), column(&t, "b", &accessor)),
+                add(column(&t, "b", &intermediate_accessor), const_bigint(1)),
+                "b",
+            ),
+            aliased_plan(
+                multiply(
+                    column(&t, "a", &intermediate_accessor),
+                    column(&t, "b", &intermediate_accessor),
+                ),
                 "prod",
             ),
         ],
@@ -214,7 +228,10 @@ fn we_can_prove_and_get_the_correct_result_from_a_composed_projection() {
         .verify(&ast, &accessor, &(), &[])
         .unwrap()
         .table;
-    let expected = owned_table([bigint("b", [5_i64, 7]), bigint("prod", [32_i64, 60])]);
+    let expected = owned_table([
+        decimal75("b", 21, 0, [5_i64, 7]),
+        decimal75("prod", 41, 0, [32_i64, 60]),
+    ]);
     assert_eq!(res, expected);
 }
 
@@ -417,8 +434,8 @@ fn we_can_prove_a_projection_on_an_empty_table() {
     let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &(), &[]).unwrap();
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
-        bigint("b", [3; 0]),
-        int128("prod", [3; 0]),
+        decimal75("b", 20, 0, [3; 0]),
+        decimal75("prod", 59, 0, [3; 0]),
         varchar("d", ["3"; 0]),
         decimal75("e", 1, 0, [3; 0]),
     ]);

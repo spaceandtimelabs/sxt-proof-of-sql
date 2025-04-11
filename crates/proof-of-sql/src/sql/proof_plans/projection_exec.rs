@@ -86,7 +86,6 @@ impl ProofPlan for ProjectionExec {
                 )
             })
             .collect::<IndexMap<_, _>>();
-
         let output_column_evals = self
             .aliased_results
             .iter()

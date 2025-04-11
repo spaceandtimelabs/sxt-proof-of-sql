@@ -183,7 +183,8 @@ fn test_simple_filter_queries() {
     let alloc = Bump::new();
     let sql = "select id, name from cats where age > 2;
     select * from cats;
-    select name == $1 as name_eq from cats;";
+    select name == $1 as name_eq from cats;
+    select 2 * age as double_age from cats";
     let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {
         TableRef::from_names(None, "cats") => table(
             vec![
@@ -204,6 +205,7 @@ fn test_simple_filter_queries() {
             tinyint("age", [13_i8, 2, 0, 4, 4]),
         ]),
         owned_table([boolean("name_eq", [false, false, true, false, false])]),
+        owned_table([decimal75("double_age", 39, 0, [26_i8, 4, 0, 8, 8])]),
     ];
 
     // Create public parameters for DynamicDoryEvaluationProof
@@ -449,14 +451,14 @@ fn test_coin() {
             vec![
                 borrowed_varchar("from_address", ["0x1", "0x2", "0x3", "0x2", "0x1"], &alloc),
                 borrowed_varchar("to_address", ["0x2", "0x3", "0x1", "0x3", "0x2"], &alloc),
-                borrowed_decimal75("value", 20, 0, [100, 200, 300, 400, 500], &alloc),
+                borrowed_decimal75("value", 75, 0, [100, 200, 300, 400, 500], &alloc),
                 borrowed_timestamptz("timestamp", PoSQLTimeUnit::Second, PoSQLTimeZone::utc(), [1, 2, 3, 4, 4], &alloc),
             ]
         )
     };
     let expected_results: Vec<OwnedTable<DoryScalar>> = vec![owned_table([
-        decimal75("weighted_value", 62, 0, [100]),
-        decimal75("total_balance", 41, 0, [0]),
+        decimal75("weighted_value", 75, 0, [100]),
+        decimal75("total_balance", 75, 0, [0]),
         bigint("num_transactions", [5_i64]),
     ])];
 

@@ -2,6 +2,7 @@ use crate::{
     base::{
         database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
+        math::decimal::Precision,
         proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
@@ -51,4 +52,28 @@ pub trait ProofExpr: Debug + Send + Sync {
     /// references in the `BoolExpr` or forwards the call to some
     /// subsequent `bool_expr`
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>);
+}
+
+/// A trait for `ProofExpr`s that always return a decimal type
+pub(crate) trait DecimalProofExpr: ProofExpr {
+    /// Get the precision of the expression
+    ///
+    /// # Panics
+    /// This panics if the precision is invalid
+    fn precision(&self) -> Precision {
+        Precision::new(
+            self.data_type()
+                .precision_value()
+                .expect("Precision should be valid"),
+        )
+        .expect("Precision should be valid")
+    }
+
+    /// Get the scale of the expression
+    ///
+    /// # Panics
+    /// This panics if the scale is invalid
+    fn scale(&self) -> i8 {
+        self.data_type().scale().expect("Scale should be valid")
+    }
 }

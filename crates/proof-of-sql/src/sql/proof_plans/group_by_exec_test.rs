@@ -97,7 +97,7 @@ fn we_can_prove_a_group_by_with_bigint_columns() {
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("a", [1, 2]),
-        bigint("sum_c", [(101 + 104) * 2 + 2, (102 + 103) * 2 + 2]),
+        decimal75("sum_c", 40, 0, [(101 + 104) * 2 + 2, (102 + 103) * 2 + 2]),
         bigint("__count__", [2, 2]),
     ]);
     assert_eq!(res, expected);
@@ -221,8 +221,8 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
         scalar("scalar_group", [4, 4, 4]),
         int128("int128_group", [8, 8, 9]),
         bigint("bigint_group", [6, 7, 6]),
-        bigint("sum_int", [1409, 929, 638]),
-        int128("sum_128", [64, -335, 124]),
+        decimal75("sum_int", 20, 0, [1409, 929, 638]),
+        decimal75("sum_128", 40, 0, [64, -335, 124]),
         scalar("sum_scal", [1116, 1033, 375]),
         bigint("__count__", [3, 2, 1]),
     ]);
@@ -252,7 +252,7 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
     let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
     let expected = owned_table([
         bigint("sum_int", [1406 + 927 + 637]),
-        int128("sum_128", [(1342 + 1262 + 513) * 4]),
+        decimal75("sum_128", 59, 0, [(1342 + 1262 + 513) * 4]),
         scalar("sum_scal", [1116 + 1033 + 375]),
         bigint("__count__", [3 + 2 + 1]),
     ]);

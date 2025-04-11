@@ -20,10 +20,7 @@ use proof_of_sql::{
         inner_product::curve_25519_scalar::Curve25519Scalar,
     },
     sql::{
-        parse::{ConversionError, QueryExpr},
-        postprocessing::apply_postprocessing_steps,
-        proof::{QueryError, VerifiableQueryResult},
-        AnalyzeError,
+        parse::QueryExpr, postprocessing::apply_postprocessing_steps, proof::VerifiableQueryResult,
     },
 };
 
@@ -468,25 +465,6 @@ fn we_can_prove_a_basic_inequality_query_with_dory() {
 
 #[test]
 #[cfg(feature = "blitzar")]
-fn decimal_type_issues_should_cause_provable_ast_to_fail() {
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(
-        TableRef::new("sxt", "table"),
-        owned_table([decimal75("d0", 12, 0, [10])]),
-        0,
-    );
-    let large_decimal = format!("0.{}", "1".repeat(75));
-    let query_string = format!("SELECT d0 + {large_decimal} as res FROM table;");
-    assert!(matches!(
-        QueryExpr::try_new(query_string.parse().unwrap(), "sxt".into(), &accessor,),
-        Err(ConversionError::AnalyzeError {
-            source: AnalyzeError::DataTypeMismatch { .. }
-        })
-    ));
-}
-
-#[test]
-#[cfg(feature = "blitzar")]
 fn we_can_prove_a_complex_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
@@ -518,7 +496,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        bigint("t", [-5]),
+        decimal75("t", 32, 0, [-5]),
         decimal75("g", 3, 1, [457]),
         boolean("h", [true]),
         decimal75("dr", 26, 6, [1_400_006]),
@@ -570,10 +548,10 @@ fn we_can_prove_a_complex_query_with_dory() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        decimal75("res", 22, 1, [25]),
+        decimal75("res", 39, 1, [25]),
         bigint("g", [32]),
         boolean("h", [true]),
-        decimal75("res2", 46, 4, [129_402]),
+        decimal75("res2", 50, 4, [129_402]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -640,7 +618,7 @@ fn we_can_prove_a_basic_group_by_query_with_curve25519() {
         .table;
     let expected_result = owned_table([
         bigint("a", [1, 2, 3]),
-        bigint("d", [1, 16, 5]),
+        decimal75("d", 40, 0, [1, 16, 5]),
         bigint("e", [1, 2, 1]),
     ]);
     assert_eq!(owned_table_result, expected_result);
@@ -824,7 +802,7 @@ fn we_can_prove_a_basic_group_by_query_with_dory() {
         .table;
     let expected_result = owned_table([
         bigint("a", [1, 2, 3]),
-        bigint("d", [1, 16, 5]),
+        decimal75("d", 40, 0, [1, 16, 5]),
         bigint("e", [1, 2, 1]),
     ]);
     assert_eq!(owned_table_result, expected_result);
@@ -861,14 +839,13 @@ fn we_can_prove_a_varbinary_equality_query_with_hex_literal() {
     assert_eq!(owned_table_result, expected_result);
 }
 
-// Overflow checks
 #[test]
 #[cfg(feature = "blitzar")]
-fn we_can_prove_a_query_with_overflow_with_curve25519() {
+fn we_can_prove_a_query_with_precision_cap_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         TableRef::new("sxt", "table"),
-        owned_table([smallint("a", [i16::MAX]), smallint("b", [1_i16])]),
+        owned_table([decimal75("a", 75, 0, [i16::MAX]), smallint("b", [1_i16])]),
         0,
     );
     let query = QueryExpr::try_new(
@@ -880,14 +857,16 @@ fn we_can_prove_a_query_with_overflow_with_curve25519() {
     let verifiable_result =
         VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &(), &[])
             .unwrap();
-    assert!(matches!(
-        verifiable_result.verify(query.proof_expr(), &accessor, &(), &[]),
-        Err(QueryError::Overflow)
-    ));
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &(), &[])
+        .unwrap()
+        .table;
+    let expected_result = owned_table([decimal75("c", 75, 0, [i32::from(i16::MAX) + 1])]);
+    assert_eq!(owned_table_result, expected_result);
 }
 
 #[test]
-fn we_can_prove_a_query_with_overflow_with_dory() {
+fn we_can_prove_a_query_with_precision_cap_with_dory() {
     let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
@@ -898,7 +877,7 @@ fn we_can_prove_a_query_with_overflow_with_dory() {
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         TableRef::new("sxt", "table"),
-        owned_table([bigint("a", [i64::MIN]), smallint("b", [1_i16])]),
+        owned_table([decimal75("a", 75, 0, [i64::MIN]), smallint("b", [1_i16])]),
         0,
     );
     let query = QueryExpr::try_new(
@@ -914,10 +893,12 @@ fn we_can_prove_a_query_with_overflow_with_dory() {
         &[],
     )
     .unwrap();
-    assert!(matches!(
-        verifiable_result.verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[]),
-        Err(QueryError::Overflow)
-    ));
+    let owned_table_result = verifiable_result
+        .verify(query.proof_expr(), &accessor, &dory_verifier_setup, &[])
+        .unwrap()
+        .table;
+    let expected_result = owned_table([decimal75("c", 75, 0, [i128::from(i64::MIN) - 1])]);
+    assert_eq!(owned_table_result, expected_result);
 }
 
 #[test]
@@ -948,7 +929,7 @@ fn we_can_perform_arithmetic_and_conditional_operations_on_tinyint() {
         .verify(query.proof_expr(), &accessor, &(), &[])
         .unwrap()
         .table;
-    let expected_result = owned_table([tinyint("result", [9_i8, 10])]);
+    let expected_result = owned_table([decimal75("result", 9, 0, [9_i8, 10])]);
     assert_eq!(owned_table_result, expected_result);
 }
 

@@ -20,8 +20,6 @@ use num_traits::{NumCast, PrimInt};
 pub(crate) fn add_subtract_columns<'a, S: Scalar>(
     lhs: Column<'a, S>,
     rhs: Column<'a, S>,
-    lhs_scale: i8,
-    rhs_scale: i8,
     alloc: &'a Bump,
     is_subtract: bool,
 ) -> &'a [S] {
@@ -31,6 +29,8 @@ pub(crate) fn add_subtract_columns<'a, S: Scalar>(
         lhs_len == rhs_len,
         "lhs and rhs should have the same length"
     );
+    let lhs_scale = lhs.column_type().scale().unwrap_or(0);
+    let rhs_scale = rhs.column_type().scale().unwrap_or(0);
     let max_scale = lhs_scale.max(rhs_scale);
     let lhs_scalar = lhs.to_scalar_with_scaling(max_scale - lhs_scale);
     let rhs_scalar = rhs.to_scalar_with_scaling(max_scale - rhs_scale);

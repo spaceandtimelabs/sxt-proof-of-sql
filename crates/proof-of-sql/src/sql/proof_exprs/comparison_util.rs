@@ -23,8 +23,6 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     alloc: &'a Bump,
     lhs: Column<'a, S>,
     rhs: Column<'a, S>,
-    lhs_scale: i8,
-    rhs_scale: i8,
     is_equal: bool,
 ) -> AnalyzeResult<&'a [S]> {
     let lhs_len = lhs.len();
@@ -48,6 +46,8 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
             right_type: rhs_type.to_string(),
         });
     }
+    let lhs_scale = lhs_type.scale().unwrap_or(0);
+    let rhs_scale = rhs_type.scale().unwrap_or(0);
     let max_scale = max(lhs_scale, rhs_scale);
     let lhs_upscale = max_scale - lhs_scale;
     let rhs_upscale = max_scale - rhs_scale;
