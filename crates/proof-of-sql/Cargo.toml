@@ -48,9 +48,6 @@ merlin = { workspace = true, optional = true }
 nova-snark = { workspace = true, optional = true }
 num-traits = { workspace = true }
 num-bigint = { workspace = true, default-features = false }
-opentelemetry = { workspace = true, optional = true  }
-opentelemetry-jaeger = { workspace = true, optional = true }
-plotters = { workspace = true, optional = true }
 postcard = { workspace = true, features = ["alloc"] }
 proof-of-sql-parser = { workspace = true }
 rand = { workspace = true, default-features = false, optional = true }
@@ -65,13 +62,10 @@ sysinfo = {workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 tiny-keccak = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
-tracing-opentelemetry = { workspace = true, optional = true }
-tracing-subscriber = { workspace = true, optional = true }
 zerocopy = { workspace = true }
 
 [dev-dependencies]
 arrow-csv = { workspace = true }
-criterion = { workspace = true, features = ["html_reports"] }
 hex = { workspace = true }
 merlin = { workspace = true }
 rand = { workspace = true, default-features = false, features = ["std"] }
@@ -83,13 +77,12 @@ proptest = { workspace = true }
 proptest-derive = { workspace = true }
 
 [package.metadata.cargo-udeps.ignore]
-development = ["arrow-csv", "criterion", "opentelemetry", "opentelemetry-jaeger", "tracing-opentelemetry", "tracing-subscriber"]
+development = ["arrow-csv"]
 
 [features]
 default = ["arrow", "perf"]
 utils = ["dep:indicatif", "dep:rand_chacha", "dep:sha2", "dep:clap", "dep:tempfile"]
 arrow = ["dep:arrow", "std"]
-bench = ["blitzar", "dep:clap", "csv", "dep:rand", "hyperkzg_proof", "opentelemetry", "opentelemetry-jaeger", "plotters", "std", "tracing-opentelemetry", "tracing-subscriber" ]
 blitzar = ["dep:blitzar", "dep:merlin", "std"]
 hyperkzg_proof = ["dep:nova-snark", "std", "dep:ff", "dep:halo2curves", "blitzar"]
 test = ["dep:rand", "std"]
@@ -110,11 +103,6 @@ required-features = [ "std", "blitzar", "utils" ]
 name = "commitment-utility"
 path = "utils/commitment-utility/main.rs"
 required-features = [ "std", "blitzar", "utils" ]
-
-[[bin]]
-name = "jaeger_benches"
-path = "benches/jaeger/bin/jaeger_benches.rs"
-required-features = [ "bench" ]
 
 [[example]]
 name = "hello_world"
@@ -191,8 +179,3 @@ required-features = [ "arrow" ]
 [[example]]
 name = "rockets"
 required-features = [ "arrow" ]
-
-[[bench]]
-name = "bench_append_rows"
-harness = false
-required-features = ["test"]
