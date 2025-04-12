@@ -224,7 +224,12 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
         for i in 0..cli.iterations {
-            let span = span!(Level::DEBUG, "Inner Product Proof commitment scheme").entered();
+            let span = span!(
+                Level::DEBUG,
+                "Inner Product Proof commitment scheme",
+                table_size = cli.table_size
+            )
+            .entered();
             // Generate the proof
             let time = Instant::now();
             let result: VerifiableQueryResult<InnerProductProof> =
@@ -349,7 +354,12 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
         for i in 0..cli.iterations {
-            let span = span!(Level::DEBUG, "Dory commitment scheme").entered();
+            let span = span!(
+                Level::DEBUG,
+                "Dory commitment scheme",
+                table_size = cli.table_size
+            )
+            .entered();
             // Generate the proof
             let time = Instant::now();
             let result: VerifiableQueryResult<DoryEvaluationProof> = VerifiableQueryResult::new(
@@ -435,7 +445,12 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
         for i in 0..cli.iterations {
-            let span = span!(Level::DEBUG, "Dynamic Dory commitment scheme").entered();
+            let span = span!(
+                Level::DEBUG,
+                "Dynamic Dory commitment scheme",
+                table_size = cli.table_size
+            )
+            .entered();
             // Generate the proof
             let time = Instant::now();
             let result: VerifiableQueryResult<DynamicDoryEvaluationProof> =
@@ -534,7 +549,12 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
             QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
 
         for i in 0..cli.iterations {
-            let span = span!(Level::DEBUG, "HyperKZG commitment scheme").entered();
+            let span = span!(
+                Level::DEBUG,
+                "HyperKZG commitment scheme",
+                table_size = cli.table_size
+            )
+            .entered();
             // Generate the proof
             let time = Instant::now();
             let result: VerifiableQueryResult<HyperKZGCommitmentEvaluationProof> =
