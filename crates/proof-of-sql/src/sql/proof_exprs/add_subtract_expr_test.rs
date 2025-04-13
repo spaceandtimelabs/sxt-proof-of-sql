@@ -79,23 +79,20 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
             col_expr_plan(&t, "a", &accessor),
             aliased_plan(
                 add(
-                    scaling_cast(
-                        add(
-                            scaling_cast(
-                                add(
-                                    scaling_cast(
-                                        column(&t, "a", &accessor),
-                                        ColumnType::Decimal75(Precision::new(13).unwrap(), 2),
-                                    ),
-                                    column(&t, "b", &accessor),
+                    add(
+                        scaling_cast(
+                            add(
+                                scaling_cast(
+                                    column(&t, "a", &accessor),
+                                    ColumnType::Decimal75(Precision::new(13).unwrap(), 2),
                                 ),
-                                ColumnType::Decimal75(Precision::new(15).unwrap(), 3),
+                                column(&t, "b", &accessor),
                             ),
-                            column(&t, "c", &accessor),
+                            ColumnType::Decimal75(Precision::new(15).unwrap(), 3),
                         ),
-                        ColumnType::Decimal75(Precision::new(17).unwrap(), 4),
+                        column(&t, "c", &accessor),
                     ),
-                    const_decimal75(2, 1, 4),
+                    const_decimal75(4, 3, 400),
                 ),
                 "c",
             ),
@@ -121,7 +118,7 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
         .table;
     let expected_res = owned_table([
         decimal75("a", 12, 1, [4_i64, 2]),
-        decimal75("c", 18, 3, [1040_i64, 477]),
+        decimal75("c", 17, 3, [1040_i64, 477]),
         varchar("d", ["ab", "t"]),
     ]);
     assert_eq!(res, expected_res);
