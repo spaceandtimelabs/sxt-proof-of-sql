@@ -322,23 +322,21 @@ impl<'a, S: Scalar> Column<'a, S> {
         })
     }
 
-    /// Convert a column to a vector of Scalar values with scaling
-    #[expect(clippy::missing_panics_doc)]
-    pub(crate) fn to_scalar_with_scaling(self, scale: i8) -> Vec<S> {
-        let scale_factor = S::pow10(u8::try_from(scale).expect("Upscale factor is nonnegative"));
+    /// Convert a column to a vector of Scalar values
+    pub(crate) fn to_scalar(self) -> Vec<S> {
         match self {
-            Self::Boolean(col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
-            Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
-            Self::VarChar((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
-            Self::VarBinary((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
-            Self::Uint8(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::TinyInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::Int(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::BigInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
-            Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Boolean(col) => slice_cast_with(col, |b| S::from(b)),
+            Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s),
+            Self::VarChar((_, values)) => slice_cast_with(values, |s| *s),
+            Self::VarBinary((_, values)) => slice_cast_with(values, |s| *s),
+            Self::Uint8(col) => slice_cast_with(col, |i| S::from(i)),
+            Self::TinyInt(col) => slice_cast_with(col, |i| S::from(i)),
+            Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i)),
+            Self::Int(col) => slice_cast_with(col, |i| S::from(i)),
+            Self::BigInt(col) => slice_cast_with(col, |i| S::from(i)),
+            Self::Int128(col) => slice_cast_with(col, |i| S::from(i)),
+            Self::Scalar(col) => slice_cast_with(col, |i| S::from(i)),
+            Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i)),
         }
     }
 }

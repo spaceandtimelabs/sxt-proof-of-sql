@@ -1,4 +1,4 @@
-use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
+use super::{add_subtract_columns, DynProofExpr, ProofExpr};
 use crate::{
     base::{
         database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
@@ -44,8 +44,7 @@ impl ProofExpr for EqualsExpr {
 
         let lhs_column = self.lhs.first_round_evaluate(alloc, table, params)?;
         let rhs_column = self.rhs.first_round_evaluate(alloc, table, params)?;
-        let res = scale_and_subtract(alloc, lhs_column, rhs_column, true)
-            .expect("Failed to scale and subtract");
+        let res = add_subtract_columns(lhs_column, rhs_column, alloc, true);
         let res = Column::Boolean(first_round_evaluate_equals_zero(
             table.num_rows(),
             alloc,
@@ -73,8 +72,7 @@ impl ProofExpr for EqualsExpr {
         let rhs_column = self
             .rhs
             .final_round_evaluate(builder, alloc, table, params)?;
-        let scale_and_subtract_res = scale_and_subtract(alloc, lhs_column, rhs_column, true)
-            .expect("Failed to scale and subtract");
+        let scale_and_subtract_res = add_subtract_columns(lhs_column, rhs_column, alloc, true);
         let res = Column::Boolean(final_round_evaluate_equals_zero(
             table.num_rows(),
             builder,
@@ -100,10 +98,7 @@ impl ProofExpr for EqualsExpr {
         let rhs_eval = self
             .rhs
             .verifier_evaluate(builder, accessor, chi_eval, params)?;
-        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
-        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let res = scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, true);
-        verifier_evaluate_equals_zero(builder, res, chi_eval)
+        verifier_evaluate_equals_zero(builder, lhs_eval - rhs_eval, chi_eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, Column, LiteralValue, OwnedTable,
+            owned_table_utility::*, table_utility::*, Column, ColumnType, LiteralValue, OwnedTable,
             OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
         },
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
@@ -78,7 +78,10 @@ fn we_can_compare_columns_with_small_timestamp_values_lte() {
         cols_expr_plan(&t, &["a"], &accessor),
         tab(&t),
         lte(
-            column(&t, "a", &accessor),
+            scaling_cast(
+                column(&t, "a", &accessor),
+                ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::utc()),
+            ),
             DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
                 PoSQLTimeUnit::Nanosecond,
                 PoSQLTimeZone::utc(),

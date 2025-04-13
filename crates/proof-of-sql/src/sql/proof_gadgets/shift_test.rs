@@ -62,7 +62,7 @@ impl ProverEvaluate for ShiftTestPlan {
             .inner_table()
             .get(&self.column.column_id())
             .expect("Column not found in table")
-            .to_scalar_with_scaling(0);
+            .to_scalar();
         let alloc_source_column = alloc.alloc_slice_copy(&source_column);
         builder.produce_intermediate_mle(alloc_source_column as &[_]);
 
@@ -73,7 +73,7 @@ impl ProverEvaluate for ShiftTestPlan {
             .inner_table()
             .get(&self.candidate_shifted_column.column_id())
             .expect("Column not found in table")
-            .to_scalar_with_scaling(0);
+            .to_scalar();
         let alloc_candidate_column = alloc.alloc_slice_copy(&candidate_column);
         builder.produce_intermediate_mle(alloc_candidate_column as &[_]);
         let alpha = builder.consume_post_result_challenge();

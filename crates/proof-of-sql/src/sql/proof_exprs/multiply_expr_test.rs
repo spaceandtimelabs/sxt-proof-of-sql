@@ -2,9 +2,10 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, OwnedTableTestAccessor, TableRef,
+            owned_table_utility::*, table_utility::*, ColumnType, OwnedTableTestAccessor, TableRef,
             TableTestAccessor,
         },
+        math::decimal::Precision,
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
@@ -245,7 +246,13 @@ fn we_can_compute_the_correct_output_of_a_multiply_expr_using_first_round_evalua
         TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
     let arithmetic_expr: DynProofExpr = multiply(
         column(&t, "b", &accessor),
-        subtract(column(&t, "a", &accessor), const_decimal75(2, 1, 15)),
+        subtract(
+            scaling_cast(
+                column(&t, "a", &accessor),
+                ColumnType::Decimal75(Precision::new(6).unwrap(), 1),
+            ),
+            const_decimal75(2, 1, 15),
+        ),
     );
     let res = arithmetic_expr
         .first_round_evaluate(&alloc, &data, &[])
