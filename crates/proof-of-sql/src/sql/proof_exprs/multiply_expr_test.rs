@@ -10,8 +10,9 @@ use crate::{
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
-        proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
+        proof_exprs::{multiply_expr::MultiplyExpr, test_utility::*, DynProofExpr, ProofExpr},
         proof_plans::{test_utility::*, DynProofPlan},
+        AnalyzeError,
     },
 };
 use bumpalo::Bump;
@@ -259,4 +260,26 @@ fn we_can_compute_the_correct_output_of_a_multiply_expr_using_first_round_evalua
         .unwrap();
     let expected_res = borrowed_decimal75("f", 18, 1, [0_i64, 5, 75, 25], &alloc).1;
     assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_cannot_multiply_mismatching_types() {
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_smallint("a", [1_i16, 2, 3, 4], &alloc),
+        borrowed_varchar("b", ["a", "b", "s", "z"], &alloc),
+    ]);
+    let t = TableRef::new("sxt", "t");
+    let accessor =
+        TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
+    let lhs = Box::new(column(&t, "a", &accessor));
+    let rhs = Box::new(column(&t, "b", &accessor));
+    let multiply_err = MultiplyExpr::try_new(lhs.clone(), rhs.clone()).unwrap_err();
+    assert!(matches!(
+        multiply_err,
+        AnalyzeError::DataTypeMismatch {
+            left_type: _,
+            right_type: _
+        }
+    ));
 }
