@@ -5,6 +5,7 @@ use crate::{
             owned_table_utility::*, table_utility::*, Column, ColumnType, LiteralValue, OwnedTable,
             OwnedTableTestAccessor, TableRef, TableTestAccessor, TestAccessor,
         },
+        math::decimal::Precision,
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         scalar::{Scalar, ScalarExt},
     },
@@ -39,7 +40,11 @@ fn we_can_compare_columns_with_small_timestamp_values_gte() {
         cols_expr_plan(&t, &["a"], &accessor),
         tab(&t),
         gte(
-            column(&t, "a", &accessor),
+            DynProofExpr::try_new_scaling_cast(
+                column(&t, "a", &accessor),
+                ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::utc()),
+            )
+            .unwrap(),
             DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
                 PoSQLTimeUnit::Nanosecond,
                 PoSQLTimeZone::utc(),
@@ -227,7 +232,7 @@ fn we_can_compare_columns_with_small_decimal_values_with_scale() {
         bigint("b", [55, -53]),
         varchar("d", ["abc", "de"]),
         decimal75("e", 38, 0, [scalar_pos, scalar_neg]),
-        decimal75("f", 38, 38, [scalar_neg, scalar_pos]),
+        decimal75("f", 38, 19, [scalar_neg, scalar_pos]),
     ]);
     let t = TableRef::new("sxt", "t");
     let accessor =
@@ -235,7 +240,14 @@ fn we_can_compare_columns_with_small_decimal_values_with_scale() {
     let ast = filter(
         cols_expr_plan(&t, &["a", "d", "e", "f"], &accessor),
         tab(&t),
-        lte(column(&t, "f", &accessor), const_bigint(0_i64)),
+        lte(
+            column(&t, "f", &accessor),
+            DynProofExpr::try_new_scaling_cast(
+                const_bigint(0_i64),
+                ColumnType::Decimal75(Precision::new(38).unwrap(), 19),
+            )
+            .unwrap(),
+        ),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
@@ -247,7 +259,7 @@ fn we_can_compare_columns_with_small_decimal_values_with_scale() {
         bigint("a", [123]),
         varchar("d", ["abc"]),
         decimal75("e", 38, 0, [scalar_pos]),
-        decimal75("f", 38, 38, [scalar_neg]),
+        decimal75("f", 38, 19, [scalar_neg]),
     ]);
     assert_eq!(res, expected_res);
 }
@@ -261,7 +273,7 @@ fn we_can_compare_columns_with_small_decimal_values_with_differing_scale_gte() {
         bigint("b", [55, -53]),
         varchar("d", ["abc", "de"]),
         decimal75("e", 38, 0, [scalar_pos, scalar_neg]),
-        decimal75("f", 38, 38, [scalar_neg, scalar_pos]),
+        decimal75("f", 38, 19, [scalar_neg, scalar_pos]),
     ]);
     let t = TableRef::new("sxt", "t");
     let accessor =
@@ -269,7 +281,14 @@ fn we_can_compare_columns_with_small_decimal_values_with_differing_scale_gte() {
     let ast = filter(
         cols_expr_plan(&t, &["a", "d", "e", "f"], &accessor),
         tab(&t),
-        gte(column(&t, "f", &accessor), const_bigint(0_i64)),
+        gte(
+            column(&t, "f", &accessor),
+            DynProofExpr::try_new_scaling_cast(
+                const_bigint(0_i64),
+                ColumnType::Decimal75(Precision::new(38).unwrap(), 19),
+            )
+            .unwrap(),
+        ),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
     exercise_verification(&verifiable_res, &ast, &accessor, &t);
@@ -281,7 +300,7 @@ fn we_can_compare_columns_with_small_decimal_values_with_differing_scale_gte() {
         bigint("a", [25]),
         varchar("d", ["de"]),
         decimal75("e", 38, 0, [scalar_neg]),
-        decimal75("f", 38, 38, [scalar_pos]),
+        decimal75("f", 38, 19, [scalar_pos]),
     ]);
     assert_eq!(res, expected_res);
 }

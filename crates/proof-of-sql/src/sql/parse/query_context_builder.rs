@@ -1,14 +1,15 @@
 use super::{ConversionError, ConversionResult, QueryContext};
-use crate::{
-    base::{
-        database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
-        map::IndexSet,
-        math::{
-            decimal::{DecimalError, Precision},
-            BigDecimalExt,
-        },
+use crate::base::{
+    database::{
+        try_add_subtract_column_types_with_scaling, try_equals_types_with_scaling,
+        try_inequality_types_with_scaling, try_multiply_column_types, ColumnRef, ColumnType,
+        SchemaAccessor, TableRef,
     },
-    sql::util::check_dtypes,
+    map::IndexSet,
+    math::{
+        decimal::{DecimalError, Precision},
+        BigDecimalExt,
+    },
 };
 use alloc::{boxed::Box, format, string::ToString, vec::Vec};
 use proof_of_sql_parser::{
@@ -211,7 +212,39 @@ impl QueryContextBuilder<'_> {
     ) -> ConversionResult<ColumnType> {
         let left_dtype = self.visit_expr(left)?;
         let right_dtype = self.visit_expr(right)?;
-        Ok(check_dtypes(left_dtype, right_dtype, op)?)
+        match *op {
+            BinaryOperator::And | BinaryOperator::Or => Ok(matches!(
+                (left_dtype, right_dtype),
+                (ColumnType::Boolean, ColumnType::Boolean)
+            )
+            .then_some(ColumnType::Boolean)
+            .ok_or(ConversionError::InvalidDataType {
+                expected: ColumnType::Boolean,
+                actual: left_dtype,
+            })?),
+            BinaryOperator::Eq => Ok(try_equals_types_with_scaling(left_dtype, right_dtype)
+                .map(|()| ColumnType::Boolean)?),
+            BinaryOperator::Gt | BinaryOperator::Lt => {
+                Ok(try_inequality_types_with_scaling(left_dtype, right_dtype)
+                    .map(|()| ColumnType::Boolean)?)
+            }
+            BinaryOperator::Plus | BinaryOperator::Minus => Ok(
+                try_add_subtract_column_types_with_scaling(left_dtype, right_dtype)?,
+            ),
+            BinaryOperator::Multiply => Ok(try_multiply_column_types(left_dtype, right_dtype)?),
+            BinaryOperator::Divide => (left_dtype.is_numeric() && right_dtype.is_numeric())
+                .then_some(left_dtype)
+                .ok_or_else(|| ConversionError::DataTypeMismatch {
+                    left_type: left_dtype.to_string(),
+                    right_type: right_dtype.to_string(),
+                }),
+            _ => {
+                // Handle unsupported binary operations
+                Err(ConversionError::UnsupportedOperation {
+                    message: format!("{op:?}"),
+                })
+            }
+        }
     }
 
     fn visit_unary_expr(

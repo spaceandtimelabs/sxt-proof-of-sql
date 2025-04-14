@@ -1,7 +1,7 @@
 use super::ConversionError;
 use crate::{
     base::{
-        database::{ColumnType, TableRef, TestSchemaAccessor},
+        database::{ColumnOperationError, ColumnType, TableRef, TestSchemaAccessor},
         map::{indexmap, IndexMap, IndexSet},
     },
     sql::{
@@ -9,7 +9,6 @@ use crate::{
         postprocessing::{test_utility::*, PostprocessingError},
         proof_exprs::test_utility::*,
         proof_plans::{test_utility::*, DynProofPlan},
-        AnalyzeError,
     },
 };
 use itertools::Itertools;
@@ -1658,8 +1657,8 @@ fn varchar_column_is_not_compatible_with_integer_column() {
 
         assert!(matches!(
             result,
-            Err(ConversionError::AnalyzeError {
-                source: AnalyzeError::DataTypeMismatch { .. }
+            Err(ConversionError::ColumnOperationError {
+                source: ColumnOperationError::BinaryOperationInvalidColumnType { .. }
             })
         ));
     }
@@ -1671,8 +1670,8 @@ fn varchar_column_is_not_compatible_with_integer_column() {
 
         assert!(matches!(
             result,
-            Err(ConversionError::AnalyzeError {
-                source: AnalyzeError::DataTypeMismatch { .. }
+            Err(ConversionError::ColumnOperationError {
+                source: ColumnOperationError::BinaryOperationInvalidColumnType { .. }
             })
         ));
     }
@@ -1695,8 +1694,8 @@ fn arithmetic_operations_are_not_allowed_with_varchar_column() {
 
     assert!(matches!(
         result,
-        Err(ConversionError::AnalyzeError {
-            source: AnalyzeError::DataTypeMismatch { .. }
+        Err(ConversionError::ColumnOperationError {
+            source: ColumnOperationError::BinaryOperationInvalidColumnType { .. }
         })
     ));
 }

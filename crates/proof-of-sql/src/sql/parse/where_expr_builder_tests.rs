@@ -1,13 +1,14 @@
 use crate::{
     base::{
-        database::{ColumnRef, ColumnType, LiteralValue, TableRef, TestSchemaAccessor},
+        database::{
+            ColumnOperationError, ColumnRef, ColumnType, LiteralValue, TableRef, TestSchemaAccessor,
+        },
         map::{indexmap, IndexMap},
         math::decimal::Precision,
     },
     sql::{
         parse::{ConversionError, QueryExpr, WhereExprBuilder},
         proof_exprs::{ColumnExpr, DynProofExpr, LiteralExpr},
-        AnalyzeError,
     },
 };
 use bigdecimal::BigDecimal;
@@ -337,8 +338,8 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
             t.schema_id().cloned().unwrap(),
             &accessor,
         ),
-        Err(ConversionError::AnalyzeError {
-            source: AnalyzeError::DataTypeMismatch { .. }
+        Err(ConversionError::ColumnOperationError {
+            source: ColumnOperationError::BinaryOperationInvalidColumnType { .. }
         })
     ));
 }
@@ -358,8 +359,8 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
             t.schema_id().cloned().unwrap(),
             &accessor,
         ),
-        Err(ConversionError::AnalyzeError {
-            source: AnalyzeError::DataTypeMismatch { .. }
+        Err(ConversionError::ColumnOperationError {
+            source: ColumnOperationError::BinaryOperationInvalidColumnType { .. }
         })
     ));
 }
