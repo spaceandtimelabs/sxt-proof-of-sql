@@ -2,8 +2,7 @@ use super::{add_subtract_columns, DecimalProofExpr, DynProofExpr, ProofExpr};
 use crate::{
     base::{
         database::{
-            try_add_subtract_column_types_with_scaling, Column, ColumnRef, ColumnType,
-            LiteralValue, Table,
+            try_add_subtract_column_types, Column, ColumnRef, ColumnType, LiteralValue, Table,
         },
         map::{IndexMap, IndexSet},
         proof::{PlaceholderResult, ProofError},
@@ -42,7 +41,7 @@ impl AddExpr {
 
 impl ProofExpr for AddExpr {
     fn data_type(&self) -> ColumnType {
-        try_add_subtract_column_types_with_scaling(self.lhs.data_type(), self.rhs.data_type())
+        try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type())
             .expect("Failed to add/subtract column types")
     }
 
