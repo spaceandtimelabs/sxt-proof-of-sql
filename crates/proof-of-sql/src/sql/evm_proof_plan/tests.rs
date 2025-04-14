@@ -39,12 +39,15 @@ fn we_can_generate_serialized_proof_plan_for_simple_filter() {
             alias: identifier_alias,
         }],
         TableExpr { table_ref },
-        DynProofExpr::Equals(EqualsExpr::new(
-            Box::new(DynProofExpr::Column(ColumnExpr::new(column_ref_a))),
-            Box::new(DynProofExpr::Literal(LiteralExpr::new(
-                LiteralValue::BigInt(5),
-            ))),
-        )),
+        DynProofExpr::Equals(
+            EqualsExpr::try_new(
+                Box::new(DynProofExpr::Column(ColumnExpr::new(column_ref_a))),
+                Box::new(DynProofExpr::Literal(LiteralExpr::new(
+                    LiteralValue::BigInt(5),
+                ))),
+            )
+            .unwrap(),
+        ),
     ));
 
     let bytes = bincode::serde::encode_to_vec(
@@ -104,12 +107,15 @@ fn we_can_deserialize_proof_plan_for_simple_filter() {
             alias: identifier_alias,
         }],
         TableExpr { table_ref },
-        DynProofExpr::Equals(EqualsExpr::new(
-            Box::new(DynProofExpr::Column(ColumnExpr::new(column_ref_a))),
-            Box::new(DynProofExpr::Literal(LiteralExpr::new(
-                LiteralValue::BigInt(5),
-            ))),
-        )),
+        DynProofExpr::Equals(
+            EqualsExpr::try_new(
+                Box::new(DynProofExpr::Column(ColumnExpr::new(column_ref_a))),
+                Box::new(DynProofExpr::Literal(LiteralExpr::new(
+                    LiteralValue::BigInt(5),
+                ))),
+            )
+            .unwrap(),
+        ),
     ));
 
     let serialized: Vec<_> = iter::empty()

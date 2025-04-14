@@ -1,5 +1,7 @@
 use super::{AnalyzeError, AnalyzeResult};
-use crate::base::database::{try_add_subtract_column_types, try_multiply_column_types, ColumnType};
+use crate::base::database::{
+    try_add_subtract_column_types, try_equals_types, try_multiply_column_types, ColumnType,
+};
 use alloc::string::ToString;
 use sqlparser::ast::BinaryOperator;
 
@@ -25,16 +27,9 @@ pub(crate) fn try_binary_operation_type(
             (ColumnType::Boolean, ColumnType::Boolean)
         )
         .then_some(ColumnType::Boolean),
-        BinaryOperator::Eq => (matches!(
-            (left_dtype, right_dtype),
-            (ColumnType::VarChar, ColumnType::VarChar)
-                | (ColumnType::VarBinary, ColumnType::VarBinary)
-                | (ColumnType::TimestampTZ(_, _), ColumnType::TimestampTZ(_, _))
-                | (ColumnType::Boolean, ColumnType::Boolean)
-                | (_, ColumnType::Scalar)
-                | (ColumnType::Scalar, _)
-        ) || (left_dtype.is_numeric() && right_dtype.is_numeric()))
-        .then_some(ColumnType::Boolean),
+        BinaryOperator::Eq => try_equals_types(left_dtype, right_dtype)
+            .ok()
+            .map(|()| ColumnType::Boolean),
         BinaryOperator::Gt | BinaryOperator::Lt => {
             if left_dtype == ColumnType::VarChar || right_dtype == ColumnType::VarChar {
                 return None;

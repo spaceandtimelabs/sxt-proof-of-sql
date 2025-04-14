@@ -89,16 +89,7 @@ impl DynProofExpr {
     }
     /// Create a new equals expression
     pub fn try_new_equals(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
-        let lhs_datatype = lhs.data_type();
-        let rhs_datatype = rhs.data_type();
-        if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Eq).is_some() {
-            Ok(Self::Equals(EqualsExpr::new(Box::new(lhs), Box::new(rhs))))
-        } else {
-            Err(AnalyzeError::DataTypeMismatch {
-                left_type: lhs_datatype.to_string(),
-                right_type: rhs_datatype.to_string(),
-            })
-        }
+        EqualsExpr::try_new(Box::new(lhs), Box::new(rhs)).map(DynProofExpr::Equals)
     }
     /// Create a new inequality expression
     pub fn try_new_inequality(
