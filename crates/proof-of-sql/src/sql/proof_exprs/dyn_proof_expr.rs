@@ -11,7 +11,6 @@ use crate::{
     },
     sql::{
         proof::{FinalRoundBuilder, VerificationBuilder},
-        util::try_binary_operation_type,
         AnalyzeError, AnalyzeResult,
     },
 };
@@ -19,7 +18,6 @@ use alloc::{boxed::Box, string::ToString};
 use bumpalo::Bump;
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::BinaryOperator;
 
 /// Enum of AST column expression types that implement `ProofExpr`. Is itself a `ProofExpr`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -112,21 +110,7 @@ impl DynProofExpr {
 
     /// Create a new multiply expression
     pub fn try_new_multiply(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
-        let lhs_datatype = lhs.data_type();
-        let rhs_datatype = rhs.data_type();
-        if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Multiply)
-            .is_some()
-        {
-            Ok(Self::Multiply(MultiplyExpr::new(
-                Box::new(lhs),
-                Box::new(rhs),
-            )))
-        } else {
-            Err(AnalyzeError::DataTypeMismatch {
-                left_type: lhs_datatype.to_string(),
-                right_type: rhs_datatype.to_string(),
-            })
-        }
+        MultiplyExpr::try_new(Box::new(lhs), Box::new(rhs)).map(DynProofExpr::Multiply)
     }
 
     /// Create a new cast expression
