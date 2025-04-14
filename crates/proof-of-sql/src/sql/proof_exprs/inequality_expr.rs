@@ -1,7 +1,7 @@
 use super::{add_subtract_columns, DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{try_inequality_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
@@ -11,10 +11,11 @@ use crate::{
         proof_gadgets::{
             final_round_evaluate_sign, first_round_evaluate_sign, verifier_evaluate_sign,
         },
+        AnalyzeError, AnalyzeResult,
     },
     utils::log,
 };
-use alloc::boxed::Box;
+use alloc::{boxed::Box, string::ToString};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -28,8 +29,19 @@ pub struct InequalityExpr {
 
 impl InequalityExpr {
     /// Create a new less than or equal
-    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>, is_lt: bool) -> Self {
-        Self { lhs, rhs, is_lt }
+    pub fn try_new(
+        lhs: Box<DynProofExpr>,
+        rhs: Box<DynProofExpr>,
+        is_lt: bool,
+    ) -> AnalyzeResult<Self> {
+        let left_datatype = lhs.data_type();
+        let right_datatype = rhs.data_type();
+        try_inequality_types(left_datatype, right_datatype)
+            .map(|()| Self { lhs, rhs, is_lt })
+            .map_err(|_| AnalyzeError::DataTypeMismatch {
+                left_type: left_datatype.to_string(),
+                right_type: right_datatype.to_string(),
+            })
     }
 }
 

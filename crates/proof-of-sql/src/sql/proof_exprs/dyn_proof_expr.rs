@@ -97,20 +97,7 @@ impl DynProofExpr {
         rhs: DynProofExpr,
         is_lt: bool,
     ) -> AnalyzeResult<Self> {
-        let lhs_datatype = lhs.data_type();
-        let rhs_datatype = rhs.data_type();
-        if try_binary_operation_type(lhs_datatype, rhs_datatype, &BinaryOperator::Lt).is_some() {
-            Ok(Self::Inequality(InequalityExpr::new(
-                Box::new(lhs),
-                Box::new(rhs),
-                is_lt,
-            )))
-        } else {
-            Err(AnalyzeError::DataTypeMismatch {
-                left_type: lhs_datatype.to_string(),
-                right_type: rhs_datatype.to_string(),
-            })
-        }
+        InequalityExpr::try_new(Box::new(lhs), Box::new(rhs), is_lt).map(DynProofExpr::Inequality)
     }
 
     /// Create a new add expression
