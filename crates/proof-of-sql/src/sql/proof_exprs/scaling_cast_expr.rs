@@ -4,14 +4,17 @@ use super::{
 };
 use crate::{
     base::{
-        database::{Column, ColumnOperationResult, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, VerificationBuilder},
+        AnalyzeError, AnalyzeResult,
+    },
 };
-use alloc::boxed::Box;
+use alloc::{boxed::Box, string::ToString};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -23,18 +26,19 @@ pub struct ScalingCastExpr {
 }
 
 impl ScalingCastExpr {
-    /// Creates a new `CastExpr`
-    pub fn try_new(
-        from_expr: Box<DynProofExpr>,
-        to_type: ColumnType,
-    ) -> ColumnOperationResult<Self> {
-        let scaling_factor =
-            try_get_scaling_factor_with_precision_and_scale(from_expr.data_type(), to_type)?.0;
-        Ok(Self {
-            from_expr,
-            to_type,
-            scaling_factor: scaling_factor.into(),
-        })
+    /// Creates a new `ScalingCastExpr`
+    pub fn try_new(from_expr: Box<DynProofExpr>, to_type: ColumnType) -> AnalyzeResult<Self> {
+        let from_datatype = from_expr.data_type();
+        try_get_scaling_factor_with_precision_and_scale(from_datatype, to_type)
+            .map(|(scaling_factor, _, _)| Self {
+                from_expr,
+                to_type,
+                scaling_factor: scaling_factor.into(),
+            })
+            .map_err(|_| AnalyzeError::DataTypeMismatch {
+                left_type: from_datatype.to_string(),
+                right_type: to_type.to_string(),
+            })
     }
 }
 

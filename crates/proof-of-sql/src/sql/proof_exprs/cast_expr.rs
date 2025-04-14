@@ -6,9 +6,12 @@ use crate::{
         proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, VerificationBuilder},
+        AnalyzeError, AnalyzeResult,
+    },
 };
-use alloc::boxed::Box;
+use alloc::{boxed::Box, string::ToString};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -21,15 +24,19 @@ pub struct CastExpr {
 
 impl CastExpr {
     /// Creates a new `CastExpr`
-    pub fn new(from_expr: Box<DynProofExpr>, to_type: ColumnType) -> Self {
-        Self { from_expr, to_type }
+    pub fn try_new(from_expr: Box<DynProofExpr>, to_type: ColumnType) -> AnalyzeResult<Self> {
+        let from_datatype = from_expr.data_type();
+        try_cast_types(from_datatype, to_type)
+            .map(|()| Self { from_expr, to_type })
+            .map_err(|_| AnalyzeError::DataTypeMismatch {
+                left_type: from_datatype.to_string(),
+                right_type: to_type.to_string(),
+            })
     }
 }
 
 impl ProofExpr for CastExpr {
     fn data_type(&self) -> ColumnType {
-        try_cast_types(self.from_expr.data_type(), self.to_type)
-            .expect("Failed to cast column type");
         self.to_type
     }
 
