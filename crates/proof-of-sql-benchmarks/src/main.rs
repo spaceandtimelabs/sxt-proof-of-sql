@@ -227,6 +227,7 @@ fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
             let span = span!(
                 Level::DEBUG,
                 "Inner Product Proof commitment scheme",
+                query = title,
                 table_size = cli.table_size
             )
             .entered();
@@ -357,6 +358,7 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
             let span = span!(
                 Level::DEBUG,
                 "Dory commitment scheme",
+                query = title,
                 table_size = cli.table_size
             )
             .entered();
@@ -448,6 +450,7 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
             let span = span!(
                 Level::DEBUG,
                 "Dynamic Dory commitment scheme",
+                query = title,
                 table_size = cli.table_size
             )
             .entered();
@@ -552,6 +555,7 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
             let span = span!(
                 Level::DEBUG,
                 "HyperKZG commitment scheme",
+                query = title,
                 table_size = cli.table_size
             )
             .entered();
