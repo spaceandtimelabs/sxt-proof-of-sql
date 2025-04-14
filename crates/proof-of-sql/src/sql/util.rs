@@ -1,6 +1,6 @@
 use super::{AnalyzeError, AnalyzeResult};
 use crate::base::database::{
-    try_add_subtract_column_types, try_equals_types, try_inequality_types,
+    try_add_subtract_column_types_with_scaling, try_equals_types, try_inequality_types,
     try_multiply_column_types, ColumnType,
 };
 use alloc::string::ToString;
@@ -35,7 +35,7 @@ fn try_binary_operation_type(
             .ok()
             .map(|()| ColumnType::Boolean),
         BinaryOperator::Plus | BinaryOperator::Minus => {
-            try_add_subtract_column_types(left_dtype, right_dtype).ok()
+            try_add_subtract_column_types_with_scaling(left_dtype, right_dtype).ok()
         }
         BinaryOperator::Multiply => try_multiply_column_types(left_dtype, right_dtype).ok(),
         BinaryOperator::Divide => {
