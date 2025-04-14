@@ -8,10 +8,13 @@ use crate::{
         proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, VerificationBuilder},
+        AnalyzeError, AnalyzeResult,
+    },
     utils::log,
 };
-use alloc::boxed::Box;
+use alloc::{boxed::Box, string::ToString};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -24,8 +27,15 @@ pub struct AddExpr {
 
 impl AddExpr {
     /// Create numerical `+` expression
-    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
-        Self { lhs, rhs }
+    pub fn try_new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> AnalyzeResult<Self> {
+        let left_datatype = lhs.data_type();
+        let right_datatype = rhs.data_type();
+        try_add_subtract_column_types(left_datatype, right_datatype)
+            .map(|_| Self { lhs, rhs })
+            .map_err(|_| AnalyzeError::DataTypeMismatch {
+                left_type: left_datatype.to_string(),
+                right_type: right_datatype.to_string(),
+            })
     }
 }
 

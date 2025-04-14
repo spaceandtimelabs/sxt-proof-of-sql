@@ -383,10 +383,11 @@ mod tests {
         let column_ref_a = ColumnRef::new(table_ref.clone(), ident_a, ColumnType::BigInt);
         let column_ref_b = ColumnRef::new(table_ref.clone(), ident_b, ColumnType::BigInt);
 
-        let add_expr = AddExpr::new(
+        let add_expr = AddExpr::try_new(
             Box::new(DynProofExpr::new_column(column_ref_b.clone())),
             Box::new(DynProofExpr::new_literal(LiteralValue::BigInt(5))),
-        );
+        )
+        .unwrap();
 
         let evm_add_expr = EVMAddExpr::try_from_proof_expr(
             &add_expr,
@@ -417,10 +418,11 @@ mod tests {
         let column_ref_a = ColumnRef::new(table_ref.clone(), ident_a, ColumnType::BigInt);
         let column_ref_b = ColumnRef::new(table_ref.clone(), ident_b, ColumnType::BigInt);
 
-        let subtract_expr = SubtractExpr::new(
+        let subtract_expr = SubtractExpr::try_new(
             Box::new(DynProofExpr::new_column(column_ref_b.clone())),
             Box::new(DynProofExpr::new_literal(LiteralValue::BigInt(5))),
-        );
+        )
+        .unwrap();
 
         let evm_subtract_expr = EVMSubtractExpr::try_from_proof_expr(
             &subtract_expr,
