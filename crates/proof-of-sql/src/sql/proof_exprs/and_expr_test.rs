@@ -17,6 +17,7 @@ use crate::{
         },
         proof_exprs::{test_utility::*, AndExpr, ColumnExpr, DynProofExpr, ProofExpr},
         proof_plans::test_utility::*,
+        AnalyzeError,
     },
 };
 use bumpalo::Bump;
@@ -207,10 +208,11 @@ fn we_can_verify_a_simple_proof() {
     .unwrap();
     let a = ColumnRef::new(t.clone(), Ident::from("a"), ColumnType::Boolean);
     let b = ColumnRef::new(t, Ident::from("b"), ColumnType::Boolean);
-    let and_expr = AndExpr::new(
+    let and_expr = AndExpr::try_new(
         Box::new(DynProofExpr::Column(ColumnExpr::new(a.clone()))),
         Box::new(DynProofExpr::Column(ColumnExpr::new(b.clone()))),
-    );
+    )
+    .unwrap();
 
     let first_round_builder: FirstRoundBuilder<'_, _> = FirstRoundBuilder::new(4);
     let mut final_round_builder: FinalRoundBuilder<'_, TestScalar> =
@@ -249,10 +251,11 @@ fn we_can_reject_a_simple_tampered_proof() {
     let rhs = &[true, false, true, false];
     let a = ColumnRef::new(t.clone(), Ident::from("a"), ColumnType::Boolean);
     let b = ColumnRef::new(t, Ident::from("b"), ColumnType::Boolean);
-    let and_expr = AndExpr::new(
+    let and_expr = AndExpr::try_new(
         Box::new(DynProofExpr::Column(ColumnExpr::new(a.clone()))),
         Box::new(DynProofExpr::Column(ColumnExpr::new(b.clone()))),
-    );
+    )
+    .unwrap();
 
     let evaluation_points = (0..4).map(|i| {
         alloc.alloc_slice_fill_with(4, |j| {
@@ -298,4 +301,26 @@ fn we_can_reject_a_simple_tampered_proof() {
             zero_vec
         ]
     );
+}
+
+#[test]
+fn we_cannot_and_mismatching_types() {
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_smallint("a", [1_i16, 2, 3, 4], &alloc),
+        borrowed_varchar("b", ["a", "b", "s", "z"], &alloc),
+    ]);
+    let t = TableRef::new("sxt", "t");
+    let accessor =
+        TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
+    let lhs = Box::new(column(&t, "a", &accessor));
+    let rhs = Box::new(column(&t, "b", &accessor));
+    let and_err = AndExpr::try_new(lhs.clone(), rhs.clone()).unwrap_err();
+    assert!(matches!(
+        and_err,
+        AnalyzeError::DataTypeMismatch {
+            left_type: _,
+            right_type: _
+        }
+    ));
 }

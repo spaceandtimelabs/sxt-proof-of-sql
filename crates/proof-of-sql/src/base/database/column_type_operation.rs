@@ -362,6 +362,18 @@ pub fn try_inequality_types_with_scaling(
     })
 }
 
+/// Verifies that two types can be used in a logical AND or OR expressions
+#[must_use]
+pub fn can_and_or_types(lhs: ColumnType, rhs: ColumnType) -> bool {
+    lhs == ColumnType::Boolean && rhs == ColumnType::Boolean
+}
+
+/// Verifies that the NOT expr can be used on an expression
+#[must_use]
+pub fn can_not_type(datatype: ColumnType) -> bool {
+    datatype == ColumnType::Boolean
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
