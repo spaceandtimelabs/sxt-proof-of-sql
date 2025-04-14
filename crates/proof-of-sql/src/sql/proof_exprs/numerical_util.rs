@@ -27,11 +27,8 @@ pub(crate) fn add_subtract_columns<'a, S: Scalar>(
         lhs_len == rhs_len,
         "lhs and rhs should have the same length"
     );
-    let lhs_scale = lhs.column_type().scale().unwrap_or(0);
-    let rhs_scale = rhs.column_type().scale().unwrap_or(0);
-    let max_scale = lhs_scale.max(rhs_scale);
-    let lhs_scalar = lhs.to_scalar_with_scaling(max_scale - lhs_scale);
-    let rhs_scalar = rhs.to_scalar_with_scaling(max_scale - rhs_scale);
+    let lhs_scalar = lhs.to_scalar();
+    let rhs_scalar = rhs.to_scalar();
     let result = alloc.alloc_slice_fill_with(lhs_len, |i| {
         if is_subtract {
             lhs_scalar[i] - rhs_scalar[i]
@@ -59,24 +56,6 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
     alloc.alloc_slice_fill_with(lhs_len, |i| {
         lhs.scalar_at(i).unwrap() * rhs.scalar_at(i).unwrap()
     })
-}
-
-/// The counterpart of `add_subtract_columns` for evaluating decimal expressions.
-pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
-    lhs_eval: S,
-    rhs_eval: S,
-    lhs_scale: i8,
-    rhs_scale: i8,
-    is_subtract: bool,
-) -> S {
-    let max_scale = lhs_scale.max(rhs_scale);
-    let left_scaled_eval = lhs_eval * S::pow10(max_scale.abs_diff(lhs_scale));
-    let right_scaled_eval = rhs_eval * S::pow10(max_scale.abs_diff(rhs_scale));
-    if is_subtract {
-        left_scaled_eval - right_scaled_eval
-    } else {
-        left_scaled_eval + right_scaled_eval
-    }
 }
 
 /// Divides two columns of data, where the data types are some signed int type(s).

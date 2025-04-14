@@ -65,7 +65,7 @@ impl<const STRICT: bool, const ASC: bool> ProverEvaluate for MonotonicTestPlan<S
             .inner_table()
             .get(&self.column.column_id())
             .expect("Column not found in table")
-            .to_scalar_with_scaling(0);
+            .to_scalar();
         let alloc_column = alloc.alloc_slice_copy(&raw_column);
         builder.produce_intermediate_mle(alloc_column as &[_]);
         let alpha = builder.consume_post_result_challenge();

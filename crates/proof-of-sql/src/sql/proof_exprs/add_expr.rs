@@ -1,6 +1,4 @@
-use super::{
-    add_subtract_columns, scale_and_add_subtract_eval, DecimalProofExpr, DynProofExpr, ProofExpr,
-};
+use super::{add_subtract_columns, DecimalProofExpr, DynProofExpr, ProofExpr};
 use crate::{
     base::{
         database::{
@@ -88,10 +86,7 @@ impl ProofExpr for AddExpr {
         let rhs_eval = self
             .rhs
             .verifier_evaluate(builder, accessor, chi_eval, params)?;
-        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
-        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let res = scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, false);
-        Ok(res)
+        Ok(lhs_eval + rhs_eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

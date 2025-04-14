@@ -2,9 +2,10 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, table_utility::*, OwnedTableTestAccessor, TableRef,
+            owned_table_utility::*, table_utility::*, ColumnType, OwnedTableTestAccessor, TableRef,
             TableTestAccessor,
         },
+        math::decimal::Precision,
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
@@ -79,10 +80,19 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
             aliased_plan(
                 add(
                     add(
-                        add(column(&t, "a", &accessor), column(&t, "b", &accessor)),
+                        scaling_cast(
+                            add(
+                                scaling_cast(
+                                    column(&t, "a", &accessor),
+                                    ColumnType::Decimal75(Precision::new(13).unwrap(), 2),
+                                ),
+                                column(&t, "b", &accessor),
+                            ),
+                            ColumnType::Decimal75(Precision::new(15).unwrap(), 3),
+                        ),
                         column(&t, "c", &accessor),
                     ),
-                    const_decimal75(2, 1, 4),
+                    const_decimal75(4, 3, 400),
                 ),
                 "c",
             ),
@@ -90,8 +100,14 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
         ],
         tab(&t),
         equal(
-            subtract(column(&t, "a", &accessor), column(&t, "b", &accessor)),
-            const_decimal75(12, 4, 3500),
+            subtract(
+                scaling_cast(
+                    column(&t, "a", &accessor),
+                    ColumnType::Decimal75(Precision::new(13).unwrap(), 2),
+                ),
+                column(&t, "b", &accessor),
+            ),
+            const_decimal75(12, 2, 35),
         ),
     );
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &(), &[]).unwrap();
