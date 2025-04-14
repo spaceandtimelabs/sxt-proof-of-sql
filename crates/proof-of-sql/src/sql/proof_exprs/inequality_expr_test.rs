@@ -11,7 +11,7 @@ use crate::{
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
-        proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
+        proof_exprs::{inequality_expr::InequalityExpr, test_utility::*, DynProofExpr, ProofExpr},
         proof_plans::test_utility::*,
         AnalyzeError,
     },
@@ -673,4 +673,26 @@ fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_first_round_
     let res = gte_expr.first_round_evaluate(&alloc, &data, &[]).unwrap();
     let expected_res = Column::Boolean(&[false, true, true]);
     assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_cannot_inequality_mismatching_types() {
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_smallint("a", [1_i16, 2, 3, 4], &alloc),
+        borrowed_varchar("b", ["a", "b", "s", "z"], &alloc),
+    ]);
+    let t = TableRef::new("sxt", "t");
+    let accessor =
+        TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
+    let lhs = Box::new(column(&t, "a", &accessor));
+    let rhs = Box::new(column(&t, "b", &accessor));
+    let inequality_err = InequalityExpr::try_new(lhs.clone(), rhs.clone(), true).unwrap_err();
+    assert!(matches!(
+        inequality_err,
+        AnalyzeError::DataTypeMismatch {
+            left_type: _,
+            right_type: _
+        }
+    ));
 }
