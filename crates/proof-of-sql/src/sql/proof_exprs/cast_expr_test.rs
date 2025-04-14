@@ -9,19 +9,21 @@ use crate::{
                 bigint, boolean, decimal75, int, int128, owned_table, smallint, timestamptz,
                 tinyint, uint8,
             },
-            ColumnType, LiteralValue, OwnedTableTestAccessor, TableRef,
+            table_utility::{borrowed_smallint, table},
+            ColumnType, LiteralValue, OwnedTableTestAccessor, TableRef, TableTestAccessor,
         },
         math::decimal::Precision,
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
-        proof_exprs::DynProofExpr,
+        proof_exprs::{CastExpr, DynProofExpr},
         proof_plans::test_utility::filter,
         AnalyzeError,
     },
 };
 use blitzar::proof::InnerProductProof;
+use bumpalo::Bump;
 
 #[test]
 fn we_can_prove_a_simple_cast_expr() {
@@ -169,5 +171,23 @@ fn we_get_error_if_we_cast_uncastable_type() {
     assert!(matches!(
         DynProofExpr::try_new_cast(column(&t, "a", &accessor), ColumnType::BigInt),
         Err(AnalyzeError::DataTypeMismatch { .. })
+    ));
+}
+
+#[test]
+fn we_cannot_cast_mismatching_types() {
+    let alloc = Bump::new();
+    let data = table([borrowed_smallint("a", [1_i16, 2, 3, 4], &alloc)]);
+    let t = TableRef::new("sxt", "t");
+    let accessor =
+        TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
+    let lhs = Box::new(column(&t, "a", &accessor));
+    let cast_err = CastExpr::try_new(lhs.clone(), ColumnType::TinyInt).unwrap_err();
+    assert!(matches!(
+        cast_err,
+        AnalyzeError::DataTypeMismatch {
+            left_type: _,
+            right_type: _
+        }
     ));
 }

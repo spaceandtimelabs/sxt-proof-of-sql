@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     base::{
-        database::{try_cast_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
@@ -14,7 +14,7 @@ use crate::{
         AnalyzeError, AnalyzeResult,
     },
 };
-use alloc::{boxed::Box, string::ToString};
+use alloc::boxed::Box;
 use bumpalo::Bump;
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
@@ -115,13 +115,7 @@ impl DynProofExpr {
 
     /// Create a new cast expression
     pub fn try_new_cast(from_column: DynProofExpr, to_datatype: ColumnType) -> AnalyzeResult<Self> {
-        let from_datatype = from_column.data_type();
-        try_cast_types(from_datatype, to_datatype)
-            .map(|()| Self::Cast(CastExpr::new(Box::new(from_column), to_datatype)))
-            .map_err(|_| AnalyzeError::DataTypeMismatch {
-                left_type: from_datatype.to_string(),
-                right_type: to_datatype.to_string(),
-            })
+        CastExpr::try_new(Box::new(from_column), to_datatype).map(DynProofExpr::Cast)
     }
 
     /// Create a new decimal scale cast expression
@@ -129,13 +123,7 @@ impl DynProofExpr {
         from_expr: DynProofExpr,
         to_datatype: ColumnType,
     ) -> AnalyzeResult<Self> {
-        let from_datatype = from_expr.data_type();
-        ScalingCastExpr::try_new(Box::new(from_expr), to_datatype)
-            .map(DynProofExpr::ScalingCast)
-            .map_err(|_| AnalyzeError::DataTypeMismatch {
-                left_type: from_datatype.to_string(),
-                right_type: to_datatype.to_string(),
-            })
+        ScalingCastExpr::try_new(Box::new(from_expr), to_datatype).map(DynProofExpr::ScalingCast)
     }
 
     /// Check that the plan has the correct data type
