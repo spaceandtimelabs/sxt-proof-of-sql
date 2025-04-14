@@ -138,12 +138,15 @@ mod tests {
             TableExpr {
                 table_ref: table_ref.clone(),
             },
-            DynProofExpr::Equals(EqualsExpr::new(
-                Box::new(DynProofExpr::Column(ColumnExpr::new(column_ref_a.clone()))),
-                Box::new(DynProofExpr::Literal(LiteralExpr::new(
-                    LiteralValue::BigInt(5),
-                ))),
-            )),
+            DynProofExpr::Equals(
+                EqualsExpr::try_new(
+                    Box::new(DynProofExpr::Column(ColumnExpr::new(column_ref_a.clone()))),
+                    Box::new(DynProofExpr::Literal(LiteralExpr::new(
+                        LiteralValue::BigInt(5),
+                    ))),
+                )
+                .unwrap(),
+            ),
         );
 
         let evm_filter_exec = EVMFilterExec::try_from_proof_plan(

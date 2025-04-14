@@ -349,10 +349,11 @@ mod tests {
         let column_ref_a = ColumnRef::new(table_ref.clone(), ident_a, ColumnType::BigInt);
         let column_ref_b = ColumnRef::new(table_ref.clone(), ident_b, ColumnType::BigInt);
 
-        let equals_expr = EqualsExpr::new(
+        let equals_expr = EqualsExpr::try_new(
             Box::new(DynProofExpr::new_column(column_ref_b.clone())),
             Box::new(DynProofExpr::new_literal(LiteralValue::BigInt(5))),
-        );
+        )
+        .unwrap();
 
         let evm_equals_expr = EVMEqualsExpr::try_from_proof_expr(
             &equals_expr,

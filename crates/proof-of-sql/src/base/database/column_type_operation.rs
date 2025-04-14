@@ -228,6 +228,25 @@ pub fn try_scale_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperation
     })
 }
 
+/// Verfies that the equality operator can be used on the two types
+pub fn try_equals_types(lhs: ColumnType, rhs: ColumnType) -> ColumnOperationResult<()> {
+    (matches!(
+        (lhs, rhs),
+        (ColumnType::VarChar, ColumnType::VarChar)
+            | (ColumnType::VarBinary, ColumnType::VarBinary)
+            | (ColumnType::TimestampTZ(_, _), ColumnType::TimestampTZ(_, _))
+            | (ColumnType::Boolean, ColumnType::Boolean)
+            | (_, ColumnType::Scalar)
+            | (ColumnType::Scalar, _)
+    ) || (lhs.is_numeric() && rhs.is_numeric()))
+    .then_some(())
+    .ok_or(ColumnOperationError::BinaryOperationInvalidColumnType {
+        operator: "=".to_string(),
+        left_type: lhs,
+        right_type: rhs,
+    })
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

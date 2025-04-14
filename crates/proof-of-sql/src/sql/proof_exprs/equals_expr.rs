@@ -1,16 +1,19 @@
 use super::{add_subtract_columns, DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{try_equals_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
         slice_ops,
     },
-    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+        AnalyzeError, AnalyzeResult,
+    },
     utils::log,
 };
-use alloc::{boxed::Box, vec};
+use alloc::{boxed::Box, string::ToString, vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -23,8 +26,15 @@ pub struct EqualsExpr {
 
 impl EqualsExpr {
     /// Create a new equals expression
-    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
-        Self { lhs, rhs }
+    pub fn try_new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> AnalyzeResult<Self> {
+        let left_datatype = lhs.data_type();
+        let right_datatype = rhs.data_type();
+        try_equals_types(left_datatype, right_datatype)
+            .map(|()| Self { lhs, rhs })
+            .map_err(|_| AnalyzeError::DataTypeMismatch {
+                left_type: left_datatype.to_string(),
+                right_type: right_datatype.to_string(),
+            })
     }
 }
 

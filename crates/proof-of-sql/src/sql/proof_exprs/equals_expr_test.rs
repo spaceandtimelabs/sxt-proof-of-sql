@@ -10,8 +10,9 @@ use crate::{
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
-        proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
+        proof_exprs::{test_utility::*, DynProofExpr, EqualsExpr, ProofExpr},
         proof_plans::test_utility::*,
+        AnalyzeError,
     },
 };
 use bumpalo::Bump;
@@ -499,4 +500,26 @@ fn we_can_query_with_varbinary_equality() {
     let expected_res = owned_table([bigint("a", [4567]), varbinary("b", [&[4, 5, 6, 7]])]);
 
     assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_cannot_equals_mismatching_types() {
+    let alloc = Bump::new();
+    let data = table([
+        borrowed_smallint("a", [1_i16, 2, 3, 4], &alloc),
+        borrowed_varchar("b", ["a", "b", "s", "z"], &alloc),
+    ]);
+    let t = TableRef::new("sxt", "t");
+    let accessor =
+        TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
+    let lhs = Box::new(column(&t, "a", &accessor));
+    let rhs = Box::new(column(&t, "b", &accessor));
+    let equals_err = EqualsExpr::try_new(lhs.clone(), rhs.clone()).unwrap_err();
+    assert!(matches!(
+        equals_err,
+        AnalyzeError::DataTypeMismatch {
+            left_type: _,
+            right_type: _
+        }
+    ));
 }
