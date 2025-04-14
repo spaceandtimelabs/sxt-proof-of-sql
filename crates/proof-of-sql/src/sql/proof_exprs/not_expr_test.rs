@@ -9,8 +9,9 @@ use crate::{
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
-        proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
+        proof_exprs::{not_expr::NotExpr, test_utility::*, DynProofExpr, ProofExpr},
         proof_plans::test_utility::*,
+        AnalyzeError,
     },
 };
 use bumpalo::Bump;
@@ -132,4 +133,19 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_first_round_evaluate() 
     let res = not_expr.first_round_evaluate(&alloc, &data, &[]).unwrap();
     let expected_res = Column::Boolean(&[true, false]);
     assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_cannot_not_nonbool_type() {
+    let alloc = Bump::new();
+    let data = table([borrowed_smallint("a", [1_i16, 2, 3, 4], &alloc)]);
+    let t = TableRef::new("sxt", "t");
+    let accessor =
+        TableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data.clone(), 0, ());
+    let expr = Box::new(column(&t, "a", &accessor));
+    let not_err = NotExpr::try_new(expr.clone()).unwrap_err();
+    assert!(matches!(
+        not_err,
+        AnalyzeError::InvalidDataType { expr_type: _ }
+    ));
 }

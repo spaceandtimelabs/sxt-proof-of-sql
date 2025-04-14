@@ -11,7 +11,7 @@ use crate::{
     },
     sql::{
         proof::{FinalRoundBuilder, VerificationBuilder},
-        AnalyzeError, AnalyzeResult,
+        AnalyzeResult,
     },
 };
 use alloc::boxed::Box;
@@ -58,20 +58,15 @@ impl DynProofExpr {
     }
     /// Create logical AND expression
     pub fn try_new_and(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
-        lhs.check_data_type(ColumnType::Boolean)?;
-        rhs.check_data_type(ColumnType::Boolean)?;
-        Ok(Self::And(AndExpr::new(Box::new(lhs), Box::new(rhs))))
+        AndExpr::try_new(Box::new(lhs), Box::new(rhs)).map(DynProofExpr::And)
     }
     /// Create logical OR expression
     pub fn try_new_or(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {
-        lhs.check_data_type(ColumnType::Boolean)?;
-        rhs.check_data_type(ColumnType::Boolean)?;
-        Ok(Self::Or(OrExpr::new(Box::new(lhs), Box::new(rhs))))
+        OrExpr::try_new(Box::new(lhs), Box::new(rhs)).map(DynProofExpr::Or)
     }
     /// Create logical NOT expression
     pub fn try_new_not(expr: DynProofExpr) -> AnalyzeResult<Self> {
-        expr.check_data_type(ColumnType::Boolean)?;
-        Ok(Self::Not(NotExpr::new(Box::new(expr))))
+        NotExpr::try_new(Box::new(expr)).map(DynProofExpr::Not)
     }
     /// Create CONST expression
     #[must_use]
@@ -124,17 +119,5 @@ impl DynProofExpr {
         to_datatype: ColumnType,
     ) -> AnalyzeResult<Self> {
         ScalingCastExpr::try_new(Box::new(from_expr), to_datatype).map(DynProofExpr::ScalingCast)
-    }
-
-    /// Check that the plan has the correct data type
-    fn check_data_type(&self, data_type: ColumnType) -> AnalyzeResult<()> {
-        if self.data_type() == data_type {
-            Ok(())
-        } else {
-            Err(AnalyzeError::InvalidDataType {
-                actual: self.data_type(),
-                expected: data_type,
-            })
-        }
     }
 }

@@ -1,15 +1,18 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{can_and_or_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+        AnalyzeError, AnalyzeResult,
+    },
     utils::log,
 };
-use alloc::{boxed::Box, vec};
+use alloc::{boxed::Box, string::ToString, vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
@@ -22,8 +25,15 @@ pub struct OrExpr {
 
 impl OrExpr {
     /// Create logical OR expression
-    pub fn new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> Self {
-        Self { lhs, rhs }
+    pub fn try_new(lhs: Box<DynProofExpr>, rhs: Box<DynProofExpr>) -> AnalyzeResult<Self> {
+        let left_datatype = lhs.data_type();
+        let right_datatype = rhs.data_type();
+        can_and_or_types(left_datatype, right_datatype)
+            .then_some(Self { lhs, rhs })
+            .ok_or_else(|| AnalyzeError::DataTypeMismatch {
+                left_type: left_datatype.to_string(),
+                right_type: right_datatype.to_string(),
+            })
     }
 }
 

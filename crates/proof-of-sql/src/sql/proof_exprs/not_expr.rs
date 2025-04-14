@@ -1,12 +1,15 @@
 use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{can_not_type, Column, ColumnRef, ColumnType, LiteralValue, Table},
         map::{IndexMap, IndexSet},
         proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
     },
-    sql::proof::{FinalRoundBuilder, VerificationBuilder},
+    sql::{
+        proof::{FinalRoundBuilder, VerificationBuilder},
+        AnalyzeError, AnalyzeResult,
+    },
     utils::log,
 };
 use alloc::boxed::Box;
@@ -21,8 +24,11 @@ pub struct NotExpr {
 
 impl NotExpr {
     /// Create logical NOT expression
-    pub fn new(expr: Box<DynProofExpr>) -> Self {
-        Self { expr }
+    pub fn try_new(expr: Box<DynProofExpr>) -> AnalyzeResult<Self> {
+        let expr_type = expr.data_type();
+        can_not_type(expr_type)
+            .then_some(Self { expr })
+            .ok_or(AnalyzeError::InvalidDataType { expr_type })
     }
 }
 

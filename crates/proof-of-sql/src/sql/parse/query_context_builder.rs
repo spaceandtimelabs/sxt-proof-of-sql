@@ -1,9 +1,9 @@
 use super::{ConversionError, ConversionResult, QueryContext};
 use crate::base::{
     database::{
-        try_add_subtract_column_types_with_scaling, try_equals_types_with_scaling,
-        try_inequality_types_with_scaling, try_multiply_column_types, ColumnRef, ColumnType,
-        SchemaAccessor, TableRef,
+        can_and_or_types, try_add_subtract_column_types_with_scaling,
+        try_equals_types_with_scaling, try_inequality_types_with_scaling,
+        try_multiply_column_types, ColumnRef, ColumnType, SchemaAccessor, TableRef,
     },
     map::IndexSet,
     math::{
@@ -213,15 +213,12 @@ impl QueryContextBuilder<'_> {
         let left_dtype = self.visit_expr(left)?;
         let right_dtype = self.visit_expr(right)?;
         match *op {
-            BinaryOperator::And | BinaryOperator::Or => Ok(matches!(
-                (left_dtype, right_dtype),
-                (ColumnType::Boolean, ColumnType::Boolean)
-            )
-            .then_some(ColumnType::Boolean)
-            .ok_or(ConversionError::InvalidDataType {
-                expected: ColumnType::Boolean,
-                actual: left_dtype,
-            })?),
+            BinaryOperator::And | BinaryOperator::Or => can_and_or_types(left_dtype, right_dtype)
+                .then_some(ColumnType::Boolean)
+                .ok_or(ConversionError::DataTypeMismatch {
+                    left_type: left_dtype.to_string(),
+                    right_type: right_dtype.to_string(),
+                }),
             BinaryOperator::Eq => Ok(try_equals_types_with_scaling(left_dtype, right_dtype)
                 .map(|()| ColumnType::Boolean)?),
             BinaryOperator::Gt | BinaryOperator::Lt => {

@@ -11,13 +11,11 @@ use snafu::Snafu;
 /// Will be replaced once we fully switch to the planner.
 #[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum AnalyzeError {
-    #[snafu(display("Expected '{expected}' but found '{actual}'"))]
+    #[snafu(display("Expression has datatype {expr_type}, which was not valid"))]
     /// Invalid data type received
     InvalidDataType {
-        /// Expected data type
-        expected: ColumnType,
-        /// Actual data type found
-        actual: ColumnType,
+        /// data type found
+        expr_type: ColumnType,
     },
 
     #[snafu(display("Left side has '{left_type}' type but right side has '{right_type}' type"))]
