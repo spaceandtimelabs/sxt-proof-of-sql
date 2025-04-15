@@ -162,6 +162,46 @@ fn we_can_verify_a_simple_filter_with_negative_literal_using_the_evm() {
 
 #[ignore = "This test requires the forge binary to be present"]
 #[test]
+fn we_can_verify_a_filter_with_arithmetic_using_the_evm() {
+    let (ps, vk) = hyperkzg::load_small_setup_for_testing();
+
+    let accessor = OwnedTableTestAccessor::<HyperKZGCommitmentEvaluationProof>::new_from_table(
+        "namespace.table".parse().unwrap(),
+        owned_table([
+            bigint("a", [5, 3, 2, 5, 3, 2]),
+            bigint("b", [0, 1, 2, 3, 4, 5]),
+        ]),
+        0,
+        &ps[..],
+    );
+    let query = QueryExpr::try_new(
+        "SELECT a, b FROM table WHERE a + b = a - b"
+            .parse()
+            .unwrap(),
+        "namespace".into(),
+        &accessor,
+    )
+    .unwrap();
+    let plan = query.proof_expr();
+
+    let verifiable_result = VerifiableQueryResult::<HyperKZGCommitmentEvaluationProof>::new(
+        &EVMProofPlan::new(plan.clone()),
+        &accessor,
+        &&ps[..],
+        &[],
+    )
+    .unwrap();
+
+    verifiable_result
+        .clone()
+        .verify(&EVMProofPlan::new(plan.clone()), &accessor, &&vk, &[])
+        .unwrap();
+
+    assert!(evm_verifier_all(plan, &verifiable_result, &accessor));
+}
+
+#[ignore = "This test requires the forge binary to be present"]
+#[test]
 fn we_can_verify_a_complex_filter_using_the_evm() {
     let (ps, vk) = hyperkzg::load_small_setup_for_testing();
 
