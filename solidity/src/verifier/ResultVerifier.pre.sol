@@ -48,6 +48,8 @@ library ResultVerifier {
             }
 
             function verify_result_evaluations(result_ptr, evaluation_point_ptr, evaluations_ptr) {
+                let result_ptr_end := add(result_ptr, calldataload(sub(result_ptr, WORD_SIZE)))
+
                 let num_columns := shr(UINT64_PADDING_BITS, calldataload(result_ptr))
                 result_ptr := add(result_ptr, UINT64_SIZE)
                 if sub(num_columns, mload(evaluations_ptr)) { err(ERR_RESULT_COLUMN_COUNT_MISMATCH) }
@@ -98,6 +100,8 @@ library ResultVerifier {
                     }
                     if value { err(ERR_INCORRECT_RESULT) }
                 }
+
+                if sub(result_ptr_end, result_ptr) { err(0) }
             }
             verify_result_evaluations(__result.offset, __evaluationPoint, __evaluations)
         }
