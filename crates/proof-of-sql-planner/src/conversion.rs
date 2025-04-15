@@ -11,9 +11,17 @@ use datafusion::{
     optimizer::{Analyzer, Optimizer, OptimizerContext, OptimizerRule},
     sql::planner::{ContextProvider, SqlToRel},
 };
-use indexmap::IndexMap;
-use proof_of_sql::sql::proof_plans::DynProofPlan;
-use sqlparser::{dialect::GenericDialect, parser::Parser};
+use indexmap::{IndexMap, IndexSet};
+use proof_of_sql::{
+    base::database::{ParseError, TableRef},
+    sql::proof_plans::DynProofPlan,
+};
+use sqlparser::{
+    ast::{visit_relations, Statement},
+    dialect::GenericDialect,
+    parser::Parser,
+};
+use std::ops::ControlFlow;
 
 /// Get [`Optimizer`]
 ///
@@ -110,4 +118,73 @@ pub fn sql_to_proof_plans_with_postprocessing<S: ContextProvider>(
         config,
         logical_plan_to_proof_plan_with_postprocessing,
     )
+}
+
+/// Given a `Statement` retrieves all unique tables in the query
+pub fn get_table_refs_from_statement(
+    statement: &Statement,
+) -> Result<IndexSet<TableRef>, ParseError> {
+    let mut table_refs: IndexSet<TableRef> = IndexSet::<TableRef>::new();
+    visit_relations(statement, |object_name| {
+        match object_name.to_string().as_str().try_into() {
+            Ok(table_ref) => {
+                table_refs.insert(table_ref);
+                ControlFlow::Continue(())
+            }
+            e => ControlFlow::Break(e),
+        }
+    })
+    .break_value()
+    .transpose()?;
+    Ok(table_refs)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::get_table_refs_from_statement;
+    use indexmap::IndexSet;
+    use proof_of_sql::base::database::TableRef;
+    use sqlparser::{dialect::GenericDialect, parser::Parser};
+
+    #[test]
+    fn we_can_get_table_references() {
+        let statement = Parser::parse_sql(
+            &GenericDialect {},
+            "SELECT e.employee_id, e.employee_name, d.department_name, p.project_name, s.salary
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+JOIN management.projects p ON e.employee_id = p.employee_id
+JOIN internal.salaries s ON e.employee_id = s.employee_id
+WHERE e.department_id IN (
+    SELECT department_id
+    FROM departments
+    WHERE department_name = 'Sales'
+)
+AND p.project_id IN (
+    SELECT project_id
+    FROM project_assignments
+    WHERE employee_id = e.employee_id
+)
+AND s.salary > (
+    SELECT AVG(salary)
+    FROM internal.salaries
+    WHERE department_id = e.department_id
+);
+",
+        )
+        .unwrap()[0]
+            .clone();
+        let table_refs = get_table_refs_from_statement(&statement).unwrap();
+        let expected_table_refs: IndexSet<TableRef> = [
+            ("", "departments"),
+            ("", "employees"),
+            ("management", "projects"),
+            ("", "project_assignments"),
+            ("internal", "salaries"),
+        ]
+        .map(|(s, t)| TableRef::new(s, t))
+        .into_iter()
+        .collect();
+        assert_eq!(table_refs, expected_table_refs);
+    }
 }
