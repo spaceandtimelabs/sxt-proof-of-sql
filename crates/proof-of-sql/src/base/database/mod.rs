@@ -45,6 +45,7 @@ mod literal_value;
 pub use literal_value::LiteralValue;
 
 mod error;
+pub use error::ParseError;
 
 mod table_ref;
 #[cfg(feature = "arrow")]
