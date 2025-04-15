@@ -16,3 +16,4 @@ sed -i 's/path = "[^"]*"/version = "'${NEW_VERSION}'"/g' Cargo.toml
 
 cargo publish -p proof-of-sql-parser --token ${CRATES_TOKEN}
 cargo publish -p proof-of-sql --token ${CRATES_TOKEN}
+cargo publish -p proof-of-sql-planner --token ${CRATES_TOKEN}
