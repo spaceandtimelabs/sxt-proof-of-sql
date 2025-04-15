@@ -35,7 +35,9 @@ use blitzar::{compute::init_backend, proof::InnerProductProof};
 use bumpalo::Bump;
 use clap::{ArgAction, Parser, ValueEnum};
 use curve25519_dalek::RistrettoPoint;
+use datafusion::{catalog::TableReference, common::DFSchema, config::ConfigOptions};
 use halo2curves::bn256::G2Affine;
+use indexmap::{indexmap, IndexMap};
 use nova_snark::{
     provider::{
         bn256_grumpkin::bn256::Affine,
@@ -44,6 +46,16 @@ use nova_snark::{
     traits::{commitment::CommitmentEngineTrait, evaluation::EvaluationEngineTrait},
 };
 use proof_of_sql::{
+    base::{
+        commitment::{Commitment, CommitmentEvaluationProof},
+        database::{
+            owned_table_utility::{bigint, decimal75, owned_table},
+            table_utility::{borrowed_decimal75, borrowed_timestamptz, borrowed_varchar, table},
+            ColumnType, LiteralValue, OwnedTable, Table, TableRef, TableTestAccessor, TestAccessor,
+        },
+        math::decimal::Precision,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    },
     proof_primitive::{
         dory::{
             DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
@@ -52,11 +64,14 @@ use proof_of_sql::{
         },
         hyperkzg::{
             deserialize_flat_compressed_hyperkzg_public_setup_from_reader,
-            nova_commitment_key_to_hyperkzg_public_setup, HyperKZGCommitment,
+            nova_commitment_key_to_hyperkzg_public_setup, BNScalar, HyperKZGCommitment,
             HyperKZGCommitmentEvaluationProof, HyperKZGEngine,
         },
     },
-    sql::{parse::QueryExpr, proof::VerifiableQueryResult},
+    sql::{parse::QueryExpr, proof::VerifiableQueryResult, proof_plans::DynProofPlan},
+};
+use proof_of_sql_planner::{
+    column_fields_to_schema, sql_to_proof_plans, PlannerResult, PoSqlContextProvider,
 };
 use rand::{rngs::StdRng, SeedableRng};
 use std::{path::PathBuf, time::Instant};
@@ -66,7 +81,7 @@ use utils::{
     benchmark_accessor::BenchmarkAccessor,
     jaeger_setup::{setup_jaeger_tracing, stop_jaeger_tracing},
     queries::{all_queries, get_query, QueryEntry},
-    random_util::generate_random_columns,
+    random_util::{generate_non_random_table, generate_random_columns, generate_random_table},
     results_io::append_to_csv,
 };
 
@@ -83,6 +98,8 @@ enum CommitmentScheme {
     DynamicDory,
     /// `HyperKZG` commitment scheme
     HyperKZG,
+    /// `HyperKZGCoin` commitment scheme
+    HyperKZGCoin,
 }
 
 #[derive(ValueEnum, Clone, Debug, PartialEq)]
@@ -197,6 +214,99 @@ fn get_rng(cli: &Cli) -> StdRng {
     }
 }
 
+/// Benchmarks the specified commitment scheme.
+///
+/// # Panics
+/// * The table reference cannot be parsed from the string.
+/// * The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
+/// * The query string cannot be parsed into a `QueryExpr`.
+/// * The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
+/// * If the verification of the `VerifiableQueryResult` fails.
+fn bench_by_schema<'a, C, CP>(
+    schema: &str,
+    cli: &Cli,
+    queries: &[QueryEntry],
+    public_setup: &'a C::PublicSetup<'a>,
+    prover_setup: CP::ProverPublicSetup<'a>,
+    verifier_setup: CP::VerifierPublicSetup<'_>,
+    params: &[LiteralValue],
+) where
+    C: Commitment,
+    CP: CommitmentEvaluationProof<Commitment = C, Scalar = C::Scalar>,
+{
+    let mut accessor: BenchmarkAccessor<'_, C> = BenchmarkAccessor::default();
+    let mut rng = get_rng(cli);
+    let alloc = Bump::new();
+
+    for (title, query, columns) in queries {
+        accessor.insert_table(
+            "bench.table".parse().unwrap(),
+            &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
+            public_setup,
+        );
+        let query_expr =
+            QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
+
+        for i in 0..cli.iterations {
+            let span = span!(
+                Level::DEBUG,
+                "{schema} commitment scheme",
+                query = title,
+                table_size = cli.table_size
+            )
+            .entered();
+
+            // Generate the proof
+            let time = Instant::now();
+            let result: VerifiableQueryResult<CP> = VerifiableQueryResult::new(
+                query_expr.proof_expr(),
+                &accessor,
+                &prover_setup,
+                params,
+            )
+            .unwrap();
+            let generate_proof_elapsed = time.elapsed().as_millis();
+
+            let num_query_results = result.result.num_rows();
+
+            // Verify the proof
+            let time = Instant::now();
+            result
+                .verify(query_expr.proof_expr(), &accessor, &verifier_setup, params)
+                .unwrap();
+            let verify_elapsed = time.elapsed().as_millis();
+
+            span.exit();
+
+            // Append results to CSV file
+            if let Some(csv_path) = &cli.csv_path {
+                append_to_csv(
+                    csv_path,
+                    &[
+                        schema.to_string(),
+                        (*title).to_string(),
+                        cli.table_size.to_string(),
+                        generate_proof_elapsed.to_string(),
+                        verify_elapsed.to_string(),
+                        i.to_string(),
+                    ],
+                );
+            }
+
+            // Print results to console
+            if !cli.silence {
+                eprintln!("Number of query results: {num_query_results}");
+                eprintln!("{schema} - generate proof: {generate_proof_elapsed} ms");
+                eprintln!("{schema} - verify proof: {verify_elapsed} ms");
+                println!(
+                    "{schema},{title},{},{generate_proof_elapsed},{verify_elapsed},{i}",
+                    cli.table_size
+                );
+            }
+        }
+    }
+}
+
 /// Benchmarks the `InnerProductProof` scheme.
 ///
 /// # Arguments
@@ -210,70 +320,15 @@ fn get_rng(cli: &Cli) -> StdRng {
 /// * The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
 /// * If the verification of the `VerifiableQueryResult` fails.
 fn bench_inner_product_proof(cli: &Cli, queries: &[QueryEntry]) {
-    let mut accessor: BenchmarkAccessor<'_, RistrettoPoint> = BenchmarkAccessor::default();
-    let mut rng = get_rng(cli);
-    let alloc = Bump::new();
-
-    for (title, query, columns) in queries {
-        accessor.insert_table(
-            "bench.table".parse().unwrap(),
-            &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
-            &(),
-        );
-        let query_expr =
-            QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
-
-        for i in 0..cli.iterations {
-            let span = span!(
-                Level::DEBUG,
-                "Inner Product Proof commitment scheme",
-                query = title,
-                table_size = cli.table_size
-            )
-            .entered();
-            // Generate the proof
-            let time = Instant::now();
-            let result: VerifiableQueryResult<InnerProductProof> =
-                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &(), &[]).unwrap();
-            let generate_proof_elapsed = time.elapsed().as_millis();
-
-            let num_query_results = result.result.num_rows();
-
-            // Verify the proof
-            let time = Instant::now();
-            result
-                .verify(query_expr.proof_expr(), &accessor, &(), &[])
-                .unwrap();
-            let verify_elapsed = time.elapsed().as_millis();
-            span.exit();
-
-            // Append results to CSV file
-            if let Some(csv_path) = &cli.csv_path {
-                append_to_csv(
-                    csv_path,
-                    &[
-                        "Inner Product Proof".to_string(),
-                        (*title).to_string(),
-                        cli.table_size.to_string(),
-                        generate_proof_elapsed.to_string(),
-                        verify_elapsed.to_string(),
-                        i.to_string(),
-                    ],
-                );
-            }
-
-            // Print results to console
-            if !cli.silence {
-                eprintln!("Number of query results: {num_query_results}");
-                eprintln!("Inner Product Proof - generate proof: {generate_proof_elapsed} ms");
-                eprintln!("Inner Product Proof - verify proof: {verify_elapsed} ms");
-                println!(
-                    "Inner Product Proof,{title},{},{generate_proof_elapsed},{verify_elapsed},{i}",
-                    cli.table_size
-                );
-            }
-        }
-    }
+    bench_by_schema::<RistrettoPoint, InnerProductProof>(
+        "Inner Product Proof",
+        cli,
+        queries,
+        &(),
+        (),
+        (),
+        &[],
+    );
 }
 
 /// Loads the Dory public parameters.
@@ -341,80 +396,15 @@ fn bench_dory(cli: &Cli, queries: &[QueryEntry]) {
     let prover_public_setup = DoryProverPublicSetup::new(&prover_setup, cli.nu_sigma);
     let verifier_public_setup = DoryVerifierPublicSetup::new(&verifier_setup, cli.nu_sigma);
 
-    let mut accessor: BenchmarkAccessor<'_, DoryCommitment> = BenchmarkAccessor::default();
-    let mut rng = get_rng(cli);
-    let alloc = Bump::new();
-
-    for (title, query, columns) in queries {
-        accessor.insert_table(
-            "bench.table".parse().unwrap(),
-            &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
-            &prover_public_setup,
-        );
-        let query_expr =
-            QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
-
-        for i in 0..cli.iterations {
-            let span = span!(
-                Level::DEBUG,
-                "Dory commitment scheme",
-                query = title,
-                table_size = cli.table_size
-            )
-            .entered();
-            // Generate the proof
-            let time = Instant::now();
-            let result: VerifiableQueryResult<DoryEvaluationProof> = VerifiableQueryResult::new(
-                query_expr.proof_expr(),
-                &accessor,
-                &prover_public_setup,
-                &[],
-            )
-            .unwrap();
-            let generate_proof_elapsed = time.elapsed().as_millis();
-
-            let num_query_results = result.result.num_rows();
-
-            // Verify the proof
-            let time = Instant::now();
-            result
-                .verify(
-                    query_expr.proof_expr(),
-                    &accessor,
-                    &verifier_public_setup,
-                    &[],
-                )
-                .unwrap();
-            let verify_elapsed = time.elapsed().as_millis();
-            span.exit();
-
-            // Append results to CSV file
-            if let Some(csv_path) = &cli.csv_path {
-                append_to_csv(
-                    csv_path,
-                    &[
-                        "Dory".to_string(),
-                        (*title).to_string(),
-                        cli.table_size.to_string(),
-                        generate_proof_elapsed.to_string(),
-                        verify_elapsed.to_string(),
-                        i.to_string(),
-                    ],
-                );
-            }
-
-            // Print results to console
-            if !cli.silence {
-                eprintln!("Number of query results: {num_query_results}");
-                eprintln!("Dory - generate proof: {generate_proof_elapsed} ms");
-                eprintln!("Dory - verify proof: {verify_elapsed} ms");
-                println!(
-                    "Dory,{title},{},{generate_proof_elapsed},{verify_elapsed},{i}",
-                    cli.table_size
-                );
-            }
-        }
-    }
+    bench_by_schema::<DoryCommitment, DoryEvaluationProof>(
+        "Dory",
+        cli,
+        queries,
+        &prover_public_setup,
+        prover_public_setup,
+        verifier_public_setup,
+        &[],
+    );
 }
 
 /// Benchmarks the `DynamicDory` scheme.
@@ -433,71 +423,15 @@ fn bench_dynamic_dory(cli: &Cli, queries: &[QueryEntry]) {
     let public_parameters = load_dory_public_parameters(cli);
     let (prover_setup, verifier_setup) = load_dory_setup(&public_parameters, cli);
 
-    let mut accessor: BenchmarkAccessor<'_, DynamicDoryCommitment> = BenchmarkAccessor::default();
-    let mut rng = get_rng(cli);
-    let alloc = Bump::new();
-
-    for (title, query, columns) in queries {
-        accessor.insert_table(
-            "bench.table".parse().unwrap(),
-            &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
-            &&prover_setup,
-        );
-        let query_expr =
-            QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
-
-        for i in 0..cli.iterations {
-            let span = span!(
-                Level::DEBUG,
-                "Dynamic Dory commitment scheme",
-                query = title,
-                table_size = cli.table_size
-            )
-            .entered();
-            // Generate the proof
-            let time = Instant::now();
-            let result: VerifiableQueryResult<DynamicDoryEvaluationProof> =
-                VerifiableQueryResult::new(query_expr.proof_expr(), &accessor, &&prover_setup, &[])
-                    .unwrap();
-            let generate_proof_elapsed = time.elapsed().as_millis();
-
-            let num_query_results = result.result.num_rows();
-
-            // Verify the proof
-            let time = Instant::now();
-            result
-                .verify(query_expr.proof_expr(), &accessor, &&verifier_setup, &[])
-                .unwrap();
-            let verify_elapsed = time.elapsed().as_millis();
-            span.exit();
-
-            // Append results to CSV file
-            if let Some(csv_path) = &cli.csv_path {
-                append_to_csv(
-                    csv_path,
-                    &[
-                        "Dynamic Dory".to_string(),
-                        (*title).to_string(),
-                        cli.table_size.to_string(),
-                        generate_proof_elapsed.to_string(),
-                        verify_elapsed.to_string(),
-                        i.to_string(),
-                    ],
-                );
-            }
-
-            // Print results to console
-            if !cli.silence {
-                eprintln!("Number of query results: {num_query_results}");
-                eprintln!("Dynamic Dory - generate proof: {generate_proof_elapsed} ms");
-                eprintln!("Dynamic Dory - verify proof: {verify_elapsed} ms");
-                println!(
-                    "Dynamic Dory,{title},{},{generate_proof_elapsed},{verify_elapsed},{i}",
-                    cli.table_size
-                );
-            }
-        }
-    }
+    bench_by_schema::<DynamicDoryCommitment, DynamicDoryEvaluationProof>(
+        "Dynamic Dory",
+        cli,
+        queries,
+        &&prover_setup,
+        &prover_setup,
+        &verifier_setup,
+        &[],
+    );
 }
 
 /// Benchmarks the `HyperKZG` scheme.
@@ -538,47 +472,102 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
         (prover_setup, vk)
     };
 
-    let mut accessor: BenchmarkAccessor<'_, HyperKZGCommitment> = BenchmarkAccessor::default();
-    let mut rng = get_rng(cli);
-    let alloc = Bump::new();
+    bench_by_schema::<HyperKZGCommitment, HyperKZGCommitmentEvaluationProof>(
+        "HyperKZG",
+        cli,
+        queries,
+        &prover_setup.as_slice(),
+        prover_setup.as_slice(),
+        &vk,
+        &[],
+    );
+}
 
-    for (title, query, columns) in queries {
-        accessor.insert_table(
-            "bench.table".parse().unwrap(),
-            &generate_random_columns(&alloc, &mut rng, columns, cli.table_size),
-            &prover_setup.as_slice(),
-        );
-        let query_expr =
-            QueryExpr::try_new(query.parse().unwrap(), "bench".into(), &accessor).unwrap();
+/// Get a new `TableTestAccessor` with the provided tables
+fn new_test_accessor<'a, CP: CommitmentEvaluationProof>(
+    tables: &IndexMap<TableRef, Table<'a, CP::Scalar>>,
+    prover_setup: CP::ProverPublicSetup<'a>,
+) -> TableTestAccessor<'a, CP> {
+    let mut accessor = TableTestAccessor::<CP>::new_empty_with_setup(prover_setup);
+    for (table_ref, table) in tables {
+        accessor.add_table(table_ref.clone(), table.clone(), 0);
+    }
+    accessor
+}
 
+/// Get the schemas of the provided tables
+fn get_schemas<CP: CommitmentEvaluationProof>(
+    tables: &IndexMap<TableRef, Table<'_, CP::Scalar>>,
+) -> PlannerResult<IndexMap<TableReference, DFSchema>> {
+    tables
+        .iter()
+        .map(
+            |(table_ref, table)| -> PlannerResult<(TableReference, DFSchema)> {
+                let table_reference = TableReference::from(table_ref.to_string().as_str());
+                let schema = column_fields_to_schema(table.schema());
+                let df_schema =
+                    DFSchema::try_from_qualified_schema(table_reference.clone(), &schema)?;
+                Ok((table_reference, df_schema))
+            },
+        )
+        .collect::<PlannerResult<IndexMap<_, _>>>()
+}
+
+/// Test setup
+///
+/// # Panics
+/// This function will panic if anything goes wrong
+fn generate_proof_plan<CP: CommitmentEvaluationProof>(
+    sql: &str,
+    tables: IndexMap<TableRef, Table<'_, CP::Scalar>>,
+) -> Vec<DynProofPlan> {
+    let schemas = get_schemas::<CP>(&tables).unwrap();
+    let context_provider = PoSqlContextProvider::new(tables);
+    let config = ConfigOptions::default();
+    sql_to_proof_plans(sql, &context_provider, &schemas, &config).unwrap()
+}
+
+/// # Panics
+/// This function will panic if anything goes wrong
+#[expect(clippy::too_many_arguments)]
+fn run_new_bench<'a, CP: CommitmentEvaluationProof>(
+    schema: &str,
+    query: &str,
+    cli: &Cli,
+    plans: &[DynProofPlan],
+    tables: &IndexMap<TableRef, Table<'a, CP::Scalar>>,
+    prover_setup: CP::ProverPublicSetup<'a>,
+    verifier_setup: CP::VerifierPublicSetup<'_>,
+    params: &[LiteralValue],
+) {
+    // Get accessor
+    let accessor: TableTestAccessor<'a, CP> = new_test_accessor(tables, prover_setup);
+
+    // Prove and verify the plans
+    for plan in plans {
         for i in 0..cli.iterations {
             let span = span!(
                 Level::DEBUG,
-                "HyperKZG commitment scheme",
-                query = title,
+                "{schema} commitment scheme",
+                query = query,
                 table_size = cli.table_size
             )
             .entered();
+
             // Generate the proof
             let time = Instant::now();
-            let result: VerifiableQueryResult<HyperKZGCommitmentEvaluationProof> =
-                VerifiableQueryResult::new(
-                    query_expr.proof_expr(),
-                    &accessor,
-                    &prover_setup.as_slice(),
-                    &[],
-                )
-                .unwrap();
+            let res =
+                VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup, params).unwrap();
             let generate_proof_elapsed = time.elapsed().as_millis();
 
-            let num_query_results = result.result.num_rows();
+            let num_query_results = res.result.num_rows();
 
             // Verify the proof
             let time = Instant::now();
-            result
-                .verify(query_expr.proof_expr(), &accessor, &&vk, &[])
+            res.verify(plan, &accessor, &verifier_setup, params)
                 .unwrap();
             let verify_elapsed = time.elapsed().as_millis();
+
             span.exit();
 
             // Append results to CSV file
@@ -586,8 +575,8 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
                 append_to_csv(
                     csv_path,
                     &[
-                        "HyperKZG".to_string(),
-                        (*title).to_string(),
+                        schema.to_string(),
+                        query.to_string(),
                         cli.table_size.to_string(),
                         generate_proof_elapsed.to_string(),
                         verify_elapsed.to_string(),
@@ -599,15 +588,104 @@ fn bench_hyperkzg(cli: &Cli, queries: &[QueryEntry]) {
             // Print results to console
             if !cli.silence {
                 eprintln!("Number of query results: {num_query_results}");
-                eprintln!("HyperKZG - generate proof: {generate_proof_elapsed} ms");
-                eprintln!("HyperKZG - verify proof: {verify_elapsed} ms");
+                eprintln!("{schema} - generate proof: {generate_proof_elapsed} ms");
+                eprintln!("{schema} - verify proof: {verify_elapsed} ms");
                 println!(
-                    "HyperKZG,{title},{},{generate_proof_elapsed},{verify_elapsed},{i}",
+                    "{schema},{query},{},{generate_proof_elapsed},{verify_elapsed},{i}",
                     cli.table_size
                 );
             }
         }
     }
+}
+
+/// # Panics
+/// This function will panic if anything goes wrong
+fn bench_coin(cli: &Cli) {
+    // Load the prover setup and verification key
+    let (prover_setup, vk) = if let Some(ppot_file_path) = &cli.ppot_path {
+        let file = std::fs::File::open(ppot_file_path).unwrap();
+        let prover_setup =
+            deserialize_flat_compressed_hyperkzg_public_setup_from_reader(&file, Validate::Yes)
+                .unwrap();
+
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentKey::new(
+            prover_setup
+                .iter()
+                .map(blitzar::compute::convert_to_halo2_bn256_g1_affine)
+                .collect(),
+            Affine::default(),
+            G2Affine::default(),
+        );
+        let (_, vk): (
+            nova_snark::provider::hyperkzg::ProverKey<HyperKZGEngine>,
+            nova_snark::provider::hyperkzg::VerifierKey<HyperKZGEngine>,
+        ) = EvaluationEngine::setup(&ck);
+
+        (prover_setup, vk)
+    } else {
+        let ck: CommitmentKey<HyperKZGEngine> = CommitmentEngine::setup(b"bench", cli.table_size);
+        let (_, vk) = EvaluationEngine::setup(&ck);
+        let prover_setup = nova_commitment_key_to_hyperkzg_public_setup(&ck);
+        (prover_setup, vk)
+    };
+
+    let alloc = Bump::new();
+    let mut rng = get_rng(cli);
+
+    let sql = "SELECT 
+    SUM( 
+      (
+        CAST (to_address = $1 as bigint)
+        - CAST (from_address = $1 as bigint)
+      )
+      * value
+      * CAST(timestamp AS bigint)
+    ) AS weighted_value,
+    SUM( 
+      (
+        CAST (to_address = $1 as bigint)
+        - CAST (from_address = $1 as bigint)
+      )
+      * value
+    ) AS total_balance,
+    COUNT(1) AS num_transactions
+    FROM transactions;";
+
+    let columns = [
+        ("from_address", ColumnType::VarChar, None),
+        ("to_address", ColumnType::VarChar, None),
+        (
+            "value",
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
+            None,
+        ),
+        (
+            "timestamp",
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::utc()),
+            None,
+        ),
+    ];
+    let tables = generate_random_table::<BNScalar>(
+        "transactions",
+        &alloc,
+        &mut rng,
+        &columns,
+        cli.table_size,
+    );
+
+    let plans = generate_proof_plan::<HyperKZGCommitmentEvaluationProof>(sql, tables.clone());
+
+    run_new_bench::<HyperKZGCommitmentEvaluationProof>(
+        "HyperKZG",
+        "Coin",
+        cli,
+        &plans,
+        &tables,
+        &prover_setup,
+        &vk,
+        &[LiteralValue::VarChar("a".to_string())],
+    );
 }
 
 /// The main function wrapping the traces.
@@ -659,6 +737,9 @@ fn main() {
         }
         CommitmentScheme::HyperKZG => {
             bench_hyperkzg(&cli, &queries);
+        }
+        CommitmentScheme::HyperKZGCoin => {
+            bench_coin(&cli);
         }
     }
 

@@ -15,13 +15,15 @@ clap = { version = "4.5.4", features = ["derive", "env"] }
 criterion = { version = "0.5.1", features = ["html_reports"] }
 csv = { version = "1.3.1" }
 curve25519-dalek = { version = "4", features = ["rand_core"] }
+datafusion = { version = '38.0.0', default-features = false }
 ff = { version = "0.13.0"}
 halo2curves = { version = "0.8.0", default-features = false }
 indexmap = { version = "2.8", default-features = false }
 nova-snark = { version = "0.41.0" }
 opentelemetry = { version = "0.23.0" }
 opentelemetry-jaeger = { version = "0.20.0" }
-proof-of-sql = { version = "0.91.23", features = ["hyperkzg_proof"] }
+proof-of-sql = { path = "../proof-of-sql", default-features = false, features = ["arrow", "hyperkzg_proof"] }
+proof-of-sql-planner = { path = "../proof-of-sql-planner" }
 rand = { version = "0.8", default-features = false }
 sqlparser = { version = "0.45.0", default-features = false }
 tracing = { version = "0.1.36", default-features = false }
