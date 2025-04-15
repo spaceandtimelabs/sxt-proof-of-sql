@@ -1,5 +1,6 @@
 [package]
 name = "proof-of-sql-planner"
+publish = true
 edition.workspace = true
 exclude.workspace = true
 repository.workspace = true
