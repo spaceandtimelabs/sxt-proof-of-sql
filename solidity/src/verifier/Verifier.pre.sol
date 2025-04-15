@@ -378,7 +378,7 @@ library Verifier {
 
                 append_calldata(transcript_ptr, proof_ptr_init, sub(proof_ptr, proof_ptr_init))
             }
-            // IMPORT-YUL PlanUtil.sol
+            // IMPORT-YUL PlanUtil.pre.sol
             function skip_plan_names(plan_ptr) -> plan_ptr_out {
                 revert(0, 0)
             }

@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import "../../src/base/Constants.sol";
-import {PlanUtil} from "../../src/verifier/PlanUtil.sol";
+import {PlanUtil} from "../../src/verifier/PlanUtil.pre.sol";
 
 contract PlanUtilTest is Test {
     struct ColumnMetadata {
