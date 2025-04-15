@@ -153,7 +153,7 @@ struct Cli {
     #[arg(short='x', long, env, action=ArgAction::SetTrue)]
     silence: bool,
 
-    /// Write CVS header to console
+    /// Write CSV header to console
     #[arg(short, long, env, action=ArgAction::SetTrue)]
     write_header: bool,
 
