@@ -49,8 +49,7 @@ impl ProofPlan for TableExec {
             .schema
             .iter()
             .map(|field| {
-                let column_ref =
-                    ColumnRef::new(self.table_ref.clone(), field.name(), field.data_type());
+                let column_ref = ColumnRef::new(self.table_ref.clone(), field.name());
                 *accessor.get(&column_ref).expect("Column does not exist")
             })
             .collect::<Vec<_>>();
@@ -67,7 +66,7 @@ impl ProofPlan for TableExec {
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         self.schema
             .iter()
-            .map(|field| ColumnRef::new(self.table_ref.clone(), field.name(), field.data_type()))
+            .map(|field| ColumnRef::new(self.table_ref.clone(), field.name()))
             .collect()
     }
 

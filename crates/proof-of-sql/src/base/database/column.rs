@@ -633,11 +633,41 @@ impl Display for ColumnType {
 pub struct ColumnRef {
     column_id: Ident,
     table_ref: TableRef,
-    column_type: ColumnType,
 }
 
 impl ColumnRef {
-    /// Create a new `ColumnRef` from a table, column identifier and column type
+    /// Create a new `ColumnRef` from a table and column identifier
+    #[must_use]
+    pub fn new(table_ref: TableRef, column_id: Ident) -> Self {
+        Self {
+            column_id,
+            table_ref,
+        }
+    }
+
+    /// Returns the table reference of this column
+    #[must_use]
+    pub fn table_ref(&self) -> TableRef {
+        self.table_ref.clone()
+    }
+
+    /// Returns the column identifier of this column
+    #[must_use]
+    pub fn column_id(&self) -> Ident {
+        self.column_id.clone()
+    }
+}
+
+/// Column field with resolved table reference
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
+pub struct ResolvedColumnField {
+    column_id: Ident,
+    table_ref: TableRef,
+    column_type: ColumnType,
+}
+
+impl ResolvedColumnField {
+    /// Create a new `ResolvedColumnField` from a table, column identifier and column type
     #[must_use]
     pub fn new(table_ref: TableRef, column_id: Ident, column_type: ColumnType) -> Self {
         Self {

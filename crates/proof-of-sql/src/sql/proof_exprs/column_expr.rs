@@ -17,13 +17,17 @@ use sqlparser::ast::Ident;
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct ColumnExpr {
     pub(crate) column_ref: ColumnRef,
+    pub(crate) column_type: ColumnType,
 }
 
 impl ColumnExpr {
     /// Create a new column expression
     #[must_use]
-    pub fn new(column_ref: ColumnRef) -> Self {
-        Self { column_ref }
+    pub fn new(column_ref: ColumnRef, column_type: ColumnType) -> Self {
+        Self {
+            column_ref,
+            column_type,
+        }
     }
 
     /// Return the column referenced by this [`ColumnExpr`]
@@ -35,7 +39,7 @@ impl ColumnExpr {
     /// Wrap the column output name and its type within the [`ColumnField`]
     #[must_use]
     pub fn get_column_field(&self) -> ColumnField {
-        ColumnField::new(self.column_ref.column_id(), *self.column_ref.column_type())
+        ColumnField::new(self.column_ref.column_id(), self.column_type)
     }
 
     /// Get the column identifier
@@ -61,7 +65,7 @@ impl ColumnExpr {
 impl ProofExpr for ColumnExpr {
     /// Get the data type of the expression
     fn data_type(&self) -> ColumnType {
-        *self.get_column_reference().column_type()
+        self.column_type
     }
 
     /// Evaluate the column expression and

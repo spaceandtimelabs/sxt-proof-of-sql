@@ -1,6 +1,9 @@
 use crate::{
     base::{
-        database::{order_by_util::OrderIndexDirectionPairs, ColumnRef, LiteralValue, TableRef},
+        database::{
+            order_by_util::OrderIndexDirectionPairs, ColumnRef, LiteralValue, ResolvedColumnField,
+            TableRef,
+        },
         map::{IndexMap, IndexSet},
     },
     sql::{
@@ -29,7 +32,7 @@ pub struct QueryContext {
     where_expr: Option<Box<Expression>>,
     result_column_set: IndexSet<Ident>,
     res_aliased_exprs: Vec<AliasedResultExpr>,
-    column_mapping: IndexMap<Ident, ColumnRef>,
+    column_mapping: IndexMap<Ident, ResolvedColumnField>,
     first_result_col_out_agg_scope: Option<Ident>,
 }
 
@@ -101,10 +104,14 @@ impl QueryContext {
         self.agg_counter > 0 || !self.group_by_exprs.is_empty()
     }
 
-    pub fn push_column_ref(&mut self, column: Ident, column_ref: ColumnRef) {
+    pub fn push_resolved_column_field(
+        &mut self,
+        column: Ident,
+        resolved_column_field: ResolvedColumnField,
+    ) {
         self.col_ref_counter += 1;
         self.push_result_column_ref(column.clone());
-        self.column_mapping.insert(column, column_ref);
+        self.column_mapping.insert(column, resolved_column_field);
     }
 
     fn push_result_column_ref(&mut self, column: Ident) {
@@ -213,7 +220,7 @@ impl QueryContext {
         self.result_column_set.clone()
     }
 
-    pub fn get_column_mapping(&self) -> IndexMap<Ident, ColumnRef> {
+    pub fn get_column_mapping(&self) -> IndexMap<Ident, ResolvedColumnField> {
         self.column_mapping.clone()
     }
 }
@@ -250,7 +257,13 @@ impl TryFrom<&QueryContext> for Option<GroupByExec> {
                         identifier: Box::new(expr.clone()),
                         table_ref: table.table_ref.clone(),
                     })
-                    .map(|column_ref| ColumnExpr::new(column_ref.clone()))
+                    .map(|resolved_column_field| {
+                        let column_ref = ColumnRef::new(
+                            resolved_column_field.table_ref(),
+                            resolved_column_field.column_id(),
+                        );
+                        ColumnExpr::new(column_ref, *resolved_column_field.column_type())
+                    })
             })
             .collect::<Result<Vec<ColumnExpr>, ConversionError>>()?;
         // For a query to be provable the result columns must be of one of three kinds below:

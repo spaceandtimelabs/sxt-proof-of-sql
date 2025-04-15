@@ -1,7 +1,7 @@
 use super::{ConversionError, DynProofExprBuilder};
 use crate::{
     base::{
-        database::{ColumnRef, ColumnType},
+        database::{ColumnType, ResolvedColumnField},
         map::IndexMap,
     },
     sql::proof_exprs::{DynProofExpr, ProofExpr},
@@ -17,7 +17,7 @@ pub struct WhereExprBuilder<'a> {
 }
 impl<'a> WhereExprBuilder<'a> {
     /// Creates a new `WhereExprBuilder` with the given column mapping.
-    pub fn new(column_mapping: &'a IndexMap<Ident, ColumnRef>) -> Self {
+    pub fn new(column_mapping: &'a IndexMap<Ident, ResolvedColumnField>) -> Self {
         Self {
             builder: DynProofExprBuilder::new(column_mapping),
         }

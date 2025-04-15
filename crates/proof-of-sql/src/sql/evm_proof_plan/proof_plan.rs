@@ -111,12 +111,12 @@ impl TryFrom<CompactPlan> for EVMProofPlan {
         let column_refs: IndexSet<ColumnRef> = value
             .columns
             .iter()
-            .map(|(i, ident, column_type)| {
+            .map(|(i, ident, _)| {
                 let table_ref = table_refs_clone
                     .get_index(*i)
                     .cloned()
                     .ok_or(EVMProofPlanError::TableNotFound)?;
-                Ok(ColumnRef::new(table_ref, Ident::new(ident), *column_type))
+                Ok(ColumnRef::new(table_ref, Ident::new(ident)))
             })
             .try_collect()?;
         let output_column_names: IndexSet<String> = value.output_column_names.into_iter().collect();

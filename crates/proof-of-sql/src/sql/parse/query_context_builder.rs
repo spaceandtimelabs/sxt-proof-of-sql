@@ -3,7 +3,7 @@ use crate::base::{
     database::{
         can_and_or_types, try_add_subtract_column_types_with_scaling,
         try_equals_types_with_scaling, try_inequality_types_with_scaling,
-        try_multiply_column_types, ColumnRef, ColumnType, SchemaAccessor, TableRef,
+        try_multiply_column_types, ColumnType, ResolvedColumnField, SchemaAccessor, TableRef,
     },
     map::IndexSet,
     math::{
@@ -330,9 +330,10 @@ impl QueryContextBuilder<'_> {
             table_ref: table_ref.clone(),
         })?;
 
-        let column = ColumnRef::new(table_ref.clone(), column_name.clone(), column_type);
+        let column = ResolvedColumnField::new(table_ref.clone(), column_name.clone(), column_type);
 
-        self.context.push_column_ref(column_name.clone(), column);
+        self.context
+            .push_resolved_column_field(column_name.clone(), column);
 
         Ok(column_type)
     }

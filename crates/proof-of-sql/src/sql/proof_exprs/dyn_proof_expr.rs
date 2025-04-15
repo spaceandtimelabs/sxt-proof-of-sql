@@ -53,8 +53,8 @@ pub enum DynProofExpr {
 impl DynProofExpr {
     /// Create column expression
     #[must_use]
-    pub fn new_column(column_ref: ColumnRef) -> Self {
-        Self::Column(ColumnExpr::new(column_ref))
+    pub fn new_column(column_ref: ColumnRef, column_type: ColumnType) -> Self {
+        Self::Column(ColumnExpr::new(column_ref, column_type))
     }
     /// Create logical AND expression
     pub fn try_new_and(lhs: DynProofExpr, rhs: DynProofExpr) -> AnalyzeResult<Self> {

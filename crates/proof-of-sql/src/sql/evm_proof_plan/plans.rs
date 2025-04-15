@@ -1,8 +1,8 @@
 use super::{EVMDynProofExpr, EVMProofPlanError, EVMProofPlanResult};
 use crate::{
     base::{
-        database::{ColumnRef, TableRef},
-        map::IndexSet,
+        database::{ColumnRef, ColumnType, TableRef},
+        map::{IndexMap, IndexSet},
     },
     sql::{
         proof_exprs::{AliasedDynProofExpr, TableExpr},
@@ -39,12 +39,18 @@ impl EVMDynProofPlan {
         &self,
         table_refs: &IndexSet<TableRef>,
         column_refs: &IndexSet<ColumnRef>,
+        column_type_map: &IndexMap<ColumnRef, ColumnType>,
         output_column_names: &IndexSet<String>,
     ) -> EVMProofPlanResult<DynProofPlan> {
         match self {
-            EVMDynProofPlan::Filter(filter_exec) => Ok(DynProofPlan::Filter(
-                filter_exec.try_into_proof_plan(table_refs, column_refs, output_column_names)?,
-            )),
+            EVMDynProofPlan::Filter(filter_exec) => {
+                Ok(DynProofPlan::Filter(filter_exec.try_into_proof_plan(
+                    table_refs,
+                    column_refs,
+                    column_type_map,
+                    output_column_names,
+                )?))
+            }
         }
     }
 }
@@ -81,6 +87,7 @@ impl EVMFilterExec {
         &self,
         table_refs: &IndexSet<TableRef>,
         column_refs: &IndexSet<ColumnRef>,
+        column_type_map: &IndexMap<ColumnRef, ColumnType>,
         output_column_names: &IndexSet<String>,
     ) -> EVMProofPlanResult<FilterExec> {
         Ok(FilterExec::new(
@@ -89,7 +96,7 @@ impl EVMFilterExec {
                 .zip(output_column_names.iter())
                 .map(|(expr, name)| {
                     Ok(AliasedDynProofExpr {
-                        expr: expr.try_into_proof_expr(column_refs)?,
+                        expr: expr.try_into_proof_expr(column_refs, column_type_map)?,
                         alias: Ident::new(name),
                     })
                 })
@@ -100,7 +107,8 @@ impl EVMFilterExec {
                     .cloned()
                     .ok_or(EVMProofPlanError::TableNotFound)?,
             },
-            self.where_clause.try_into_proof_expr(column_refs)?,
+            self.where_clause
+                .try_into_proof_expr(column_refs, column_type_map)?,
         ))
     }
 }

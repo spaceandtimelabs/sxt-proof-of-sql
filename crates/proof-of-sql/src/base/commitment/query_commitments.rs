@@ -1,8 +1,8 @@
 use super::{Commitment, TableCommitment};
 use crate::base::{
     database::{
-        ColumnField, ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor, SchemaAccessor,
-        TableRef,
+        ColumnField, ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor,
+        ResolvedColumnField, SchemaAccessor, TableRef,
     },
     map::IndexMap,
 };
@@ -24,14 +24,14 @@ where
 {
     /// Create a new `QueryCommitments` from a collection of columns and an accessor.
     fn from_accessor_with_max_bounds(
-        columns: impl IntoIterator<Item = ColumnRef>,
+        columns: impl IntoIterator<Item = ResolvedColumnField>,
         accessor: &(impl CommitmentAccessor<C> + SchemaAccessor),
     ) -> Self;
 }
 
 impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
     fn from_accessor_with_max_bounds(
-        columns: impl IntoIterator<Item = ColumnRef>,
+        columns: impl IntoIterator<Item = ResolvedColumnField>,
         accessor: &(impl CommitmentAccessor<C> + SchemaAccessor),
     ) -> Self {
         columns
@@ -96,11 +96,7 @@ impl<C: Commitment> CommitmentAccessor<C> for QueryCommitments<C> {
 }
 
 impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
-    fn lookup_column(
-        &self,
-        table_ref: crate::base::database::TableRef,
-        column_id: Ident,
-    ) -> Option<ColumnType> {
+    fn lookup_column(&self, table_ref: TableRef, column_id: Ident) -> Option<ColumnType> {
         let table_commitment = self.get(&table_ref)?;
 
         table_commitment
@@ -112,10 +108,7 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
     /// # Panics
     ///
     /// Panics if the column metadata cannot be found.
-    fn lookup_schema(
-        &self,
-        table_ref: crate::base::database::TableRef,
-    ) -> Vec<(Ident, ColumnType)> {
+    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Ident, ColumnType)> {
         let table_commitment = self.get(&table_ref).unwrap();
 
         table_commitment
@@ -231,27 +224,16 @@ mod tests {
         ]);
 
         assert_eq!(
-            query_commitments.get_commitment(ColumnRef::new(
-                table_a_id.clone(),
-                column_a_id.clone(),
-                ColumnType::BigInt
-            )),
+            query_commitments
+                .get_commitment(ColumnRef::new(table_a_id.clone(), column_a_id.clone(),)),
             table_a_commitment.column_commitments().commitments()[0]
         );
         assert_eq!(
-            query_commitments.get_commitment(ColumnRef::new(
-                table_a_id,
-                column_b_id,
-                ColumnType::VarChar
-            )),
+            query_commitments.get_commitment(ColumnRef::new(table_a_id, column_b_id,)),
             table_a_commitment.column_commitments().commitments()[1]
         );
         assert_eq!(
-            query_commitments.get_commitment(ColumnRef::new(
-                table_b_id,
-                column_a_id,
-                ColumnType::Scalar
-            )),
+            query_commitments.get_commitment(ColumnRef::new(table_b_id, column_a_id,)),
             table_b_commitment.column_commitments().commitments()[0]
         );
     }
@@ -389,10 +371,14 @@ mod tests {
 
         let query_commitments = QueryCommitments::<DoryCommitment>::from_accessor_with_max_bounds(
             [
-                ColumnRef::new(table_a_id.clone(), column_a_id.clone(), ColumnType::BigInt),
-                ColumnRef::new(table_b_id.clone(), column_a_id, ColumnType::Scalar),
-                ColumnRef::new(table_a_id, column_b_id.clone(), ColumnType::VarChar),
-                ColumnRef::new(table_b_id, column_b_id, ColumnType::Int128),
+                ResolvedColumnField::new(
+                    table_a_id.clone(),
+                    column_a_id.clone(),
+                    ColumnType::BigInt,
+                ),
+                ResolvedColumnField::new(table_b_id.clone(), column_a_id, ColumnType::Scalar),
+                ResolvedColumnField::new(table_a_id, column_b_id.clone(), ColumnType::VarChar),
+                ResolvedColumnField::new(table_b_id, column_b_id, ColumnType::Int128),
             ],
             &accessor,
         );

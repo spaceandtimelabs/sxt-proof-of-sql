@@ -5,7 +5,7 @@ mod accessor;
 pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor};
 
 mod column;
-pub use column::{Column, ColumnField, ColumnRef, ColumnType};
+pub use column::{Column, ColumnField, ColumnRef, ColumnType, ResolvedColumnField};
 
 #[cfg_attr(not(test), expect(dead_code))]
 pub(crate) mod slice_operation;

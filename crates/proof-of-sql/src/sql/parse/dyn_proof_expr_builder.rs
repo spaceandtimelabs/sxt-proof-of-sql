@@ -1,7 +1,7 @@
 use super::ConversionError;
 use crate::{
     base::{
-        database::{ColumnRef, LiteralValue},
+        database::{ColumnRef, LiteralValue, ResolvedColumnField},
         map::IndexMap,
         math::{
             decimal::{DecimalError, Precision},
@@ -28,12 +28,12 @@ use sqlparser::ast::{BinaryOperator, Ident, UnaryOperator};
 /// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
 /// a `proof_of_sql_parser::intermediate_ast::Expression`.
 pub struct DynProofExprBuilder<'a> {
-    column_mapping: &'a IndexMap<Ident, ColumnRef>,
+    column_mapping: &'a IndexMap<Ident, ResolvedColumnField>,
 }
 
 impl<'a> DynProofExprBuilder<'a> {
     /// Creates a new `DynProofExprBuilder` with the given column mapping.
-    pub fn new(column_mapping: &'a IndexMap<Ident, ColumnRef>) -> Self {
+    pub fn new(column_mapping: &'a IndexMap<Ident, ResolvedColumnField>) -> Self {
         Self { column_mapping }
     }
     /// Builds a `proofs::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression`
@@ -59,13 +59,20 @@ impl DynProofExprBuilder<'_> {
     }
 
     fn visit_column(&self, identifier: Ident) -> Result<DynProofExpr, ConversionError> {
+        let resolved_column_field = self
+            .column_mapping
+            .get(&identifier)
+            .ok_or(ConversionError::MissingColumnWithoutTable {
+                identifier: Box::new(identifier),
+            })?
+            .clone();
+        let column_ref = ColumnRef::new(
+            resolved_column_field.table_ref(),
+            resolved_column_field.column_id(),
+        );
         Ok(DynProofExpr::Column(ColumnExpr::new(
-            self.column_mapping
-                .get(&identifier)
-                .ok_or(ConversionError::MissingColumnWithoutTable {
-                    identifier: Box::new(identifier),
-                })?
-                .clone(),
+            column_ref,
+            *resolved_column_field.column_type(),
         )))
     }
 

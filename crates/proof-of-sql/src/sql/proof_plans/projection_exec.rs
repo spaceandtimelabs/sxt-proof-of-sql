@@ -77,11 +77,7 @@ impl ProofPlan for ProjectionExec {
             .zip(input_eval.column_evals())
             .map(|(field, eval)| {
                 (
-                    ColumnRef::new(
-                        input_table_ref.clone(),
-                        field.name().clone(),
-                        field.data_type(),
-                    ),
+                    ColumnRef::new(input_table_ref.clone(), field.name().clone()),
                     *eval,
                 )
             })

@@ -1,8 +1,8 @@
 use super::{EVMProofPlanError, EVMProofPlanResult};
 use crate::{
     base::{
-        database::{ColumnRef, LiteralValue},
-        map::IndexSet,
+        database::{ColumnRef, ColumnType, LiteralValue},
+        map::{IndexMap, IndexSet},
     },
     sql::proof_exprs::{AddExpr, ColumnExpr, DynProofExpr, EqualsExpr, LiteralExpr, SubtractExpr},
 };
@@ -47,22 +47,23 @@ impl EVMDynProofExpr {
     pub(crate) fn try_into_proof_expr(
         &self,
         column_refs: &IndexSet<ColumnRef>,
+        column_type_map: &IndexMap<ColumnRef, ColumnType>,
     ) -> EVMProofPlanResult<DynProofExpr> {
         match self {
             EVMDynProofExpr::Column(column_expr) => Ok(DynProofExpr::Column(
-                column_expr.try_into_proof_expr(column_refs)?,
+                column_expr.try_into_proof_expr(column_refs, column_type_map)?,
             )),
             EVMDynProofExpr::Equals(equals_expr) => Ok(DynProofExpr::Equals(
-                equals_expr.try_into_proof_expr(column_refs)?,
+                equals_expr.try_into_proof_expr(column_refs, column_type_map)?,
             )),
             EVMDynProofExpr::Literal(literal_expr) => {
                 Ok(DynProofExpr::Literal(literal_expr.to_proof_expr()))
             }
             EVMDynProofExpr::Add(add_expr) => Ok(DynProofExpr::Add(
-                add_expr.try_into_proof_expr(column_refs)?,
+                add_expr.try_into_proof_expr(column_refs, column_type_map)?,
             )),
             EVMDynProofExpr::Subtract(subtract_expr) => Ok(DynProofExpr::Subtract(
-                subtract_expr.try_into_proof_expr(column_refs)?,
+                subtract_expr.try_into_proof_expr(column_refs, column_type_map)?,
             )),
         }
     }
@@ -95,13 +96,17 @@ impl EVMColumnExpr {
     pub(crate) fn try_into_proof_expr(
         &self,
         column_refs: &IndexSet<ColumnRef>,
+        column_types: &IndexMap<ColumnRef, ColumnType>,
     ) -> EVMProofPlanResult<ColumnExpr> {
-        Ok(ColumnExpr::new(
-            column_refs
-                .get_index(self.column_number)
-                .ok_or(EVMProofPlanError::ColumnNotFound)?
-                .clone(),
-        ))
+        let column_ref = column_refs
+            .get_index(self.column_number)
+            .ok_or(EVMProofPlanError::ColumnNotFound)?
+            .clone();
+        let column_type = column_types
+            .get(&column_ref)
+            .ok_or(EVMProofPlanError::ColumnNotFound)?
+            .clone();
+        Ok(ColumnExpr::new(column_ref, column_type))
     }
 }
 
@@ -167,10 +172,11 @@ impl EVMEqualsExpr {
     pub(crate) fn try_into_proof_expr(
         &self,
         column_refs: &IndexSet<ColumnRef>,
+        column_type_map: &IndexMap<ColumnRef, ColumnType>,
     ) -> EVMProofPlanResult<EqualsExpr> {
         Ok(EqualsExpr {
-            lhs: Box::new(self.lhs.try_into_proof_expr(column_refs)?),
-            rhs: Box::new(self.rhs.try_into_proof_expr(column_refs)?),
+            lhs: Box::new(self.lhs.try_into_proof_expr(column_refs, column_type_map)?),
+            rhs: Box::new(self.rhs.try_into_proof_expr(column_refs, column_type_map)?),
         })
     }
 }
@@ -211,10 +217,11 @@ impl EVMAddExpr {
     pub(crate) fn try_into_proof_expr(
         &self,
         column_refs: &IndexSet<ColumnRef>,
+        column_type_map: &IndexMap<ColumnRef, ColumnType>,
     ) -> EVMProofPlanResult<AddExpr> {
         Ok(AddExpr {
-            lhs: Box::new(self.lhs.try_into_proof_expr(column_refs)?),
-            rhs: Box::new(self.rhs.try_into_proof_expr(column_refs)?),
+            lhs: Box::new(self.lhs.try_into_proof_expr(column_refs, column_type_map)?),
+            rhs: Box::new(self.rhs.try_into_proof_expr(column_refs, column_type_map)?),
         })
     }
 }
@@ -255,10 +262,11 @@ impl EVMSubtractExpr {
     pub(crate) fn try_into_proof_expr(
         &self,
         column_refs: &IndexSet<ColumnRef>,
+        column_type_map: &IndexMap<ColumnRef, ColumnType>,
     ) -> EVMProofPlanResult<SubtractExpr> {
         Ok(SubtractExpr {
-            lhs: Box::new(self.lhs.try_into_proof_expr(column_refs)?),
-            rhs: Box::new(self.rhs.try_into_proof_expr(column_refs)?),
+            lhs: Box::new(self.lhs.try_into_proof_expr(column_refs, column_type_map)?),
+            rhs: Box::new(self.rhs.try_into_proof_expr(column_refs, column_type_map)?),
         })
     }
 }

@@ -1,7 +1,7 @@
 use super::{where_expr_builder::WhereExprBuilder, ConversionError, EnrichedExpr};
 use crate::{
     base::{
-        database::{ColumnRef, LiteralValue, TableRef},
+        database::{ColumnRef, LiteralValue, ResolvedColumnField, TableRef},
         map::IndexMap,
     },
     sql::{
@@ -17,12 +17,12 @@ pub struct FilterExecBuilder {
     table_expr: Option<TableExpr>,
     where_expr: Option<DynProofExpr>,
     filter_result_expr_list: Vec<AliasedDynProofExpr>,
-    column_mapping: IndexMap<Ident, ColumnRef>,
+    column_mapping: IndexMap<Ident, ResolvedColumnField>,
 }
 
 // Public interface
 impl FilterExecBuilder {
-    pub fn new(column_mapping: IndexMap<Ident, ColumnRef>) -> Self {
+    pub fn new(column_mapping: IndexMap<Ident, ResolvedColumnField>) -> Self {
         Self {
             table_expr: None,
             where_expr: None,
@@ -66,9 +66,16 @@ impl FilterExecBuilder {
         if has_nonprovable_column {
             // Has to keep them sorted to have deterministic order for tests
             for alias in self.column_mapping.keys().sorted() {
-                let column_ref = self.column_mapping.get(alias).unwrap();
+                let resolved_column_field = self.column_mapping.get(alias).unwrap();
+                let column_ref = ColumnRef::new(
+                    resolved_column_field.table_ref(),
+                    resolved_column_field.column_id(),
+                );
                 self.filter_result_expr_list.push(AliasedDynProofExpr {
-                    expr: DynProofExpr::new_column(column_ref.clone()),
+                    expr: DynProofExpr::new_column(
+                        column_ref,
+                        *resolved_column_field.column_type(),
+                    ),
                     alias: alias.clone(),
                 });
             }
