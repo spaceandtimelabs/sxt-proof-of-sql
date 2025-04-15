@@ -826,4 +826,29 @@ library VerificationBuilder {
             __values := builder_get_table_chi_evaluations(__builder)
         }
     }
+
+    /// @notice Checks if the aggregate evaluation is non-zero and triggers an error if so
+    /// @custom:as-yul-wrapper
+    /// #### Wrapped Yul Function
+    /// ##### Signature
+    /// ```yul
+    /// builder_check_aggregate_evaluation(builder_ptr)
+    /// ```
+    /// ##### Parameters
+    /// * `builder_ptr` - memory pointer to the builder struct region
+    /// @param __builder The builder struct
+    function __checkAggregateEvaluation(Builder memory __builder) internal pure {
+        assembly {
+            // IMPORT-YUL ../base/Errors.sol
+            function err(code) {
+                revert(0, 0)
+            }
+            function builder_check_aggregate_evaluation(builder_ptr) {
+                if mload(add(builder_ptr, BUILDER_AGGREGATE_EVALUATION_OFFSET)) {
+                    err(ERR_AGGREGATE_EVALUATION_MISMATCH)
+                }
+            }
+            builder_check_aggregate_evaluation(__builder)
+        }
+    }
 }

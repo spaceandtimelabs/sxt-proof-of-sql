@@ -921,4 +921,18 @@ contract VerificationBuilderTest is Test {
             assert(result[i] == values[i]);
         }
     }
+
+    function testCheckAggregateEvaluationZero() public pure {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.aggregateEvaluation = 0;
+        VerificationBuilder.__checkAggregateEvaluation(builder);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function testCheckAggregateEvaluationNonZero() public {
+        VerificationBuilder.Builder memory builder = VerificationBuilder.__builderNew();
+        builder.aggregateEvaluation = 42;
+        vm.expectRevert(Errors.AggregateEvaluationMismatch.selector);
+        VerificationBuilder.__checkAggregateEvaluation(builder);
+    }
 }
