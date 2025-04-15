@@ -50,23 +50,34 @@ fn test_random_ipa_with_length_1() {
     );
 }
 
-#[test]
-fn test_random_ipa_with_various_lengths() {
+fn test_random_ipa_with_various_lengths(setup_p: (usize, usize)) {
     let lengths = [128, 100, 64, 50, 32, 20, 16, 10, 8, 5, 4, 3, 2];
-    let setup_setup = [(4, 4), (4, 3), (6, 2)];
-    for setup_p in setup_setup {
-        let public_parameters = PublicParameters::test_rand(setup_p.0, &mut test_rng());
-        let prover_setup = ProverSetup::from(&public_parameters);
-        let verifier_setup = VerifierSetup::from(&public_parameters);
-        for length in lengths {
-            test_random_commitment_evaluation_proof::<DoryEvaluationProof>(
-                length,
-                0,
-                &DoryProverPublicSetup::new(&prover_setup, setup_p.1),
-                &DoryVerifierPublicSetup::new(&verifier_setup, setup_p.1),
-            );
-        }
+    let public_parameters = PublicParameters::test_rand(setup_p.0, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    for length in lengths {
+        test_random_commitment_evaluation_proof::<DoryEvaluationProof>(
+            length,
+            0,
+            &DoryProverPublicSetup::new(&prover_setup, setup_p.1),
+            &DoryVerifierPublicSetup::new(&verifier_setup, setup_p.1),
+        );
     }
+}
+
+#[test]
+fn test_random_ipa_with_various_lengths_4_4() {
+    test_random_ipa_with_various_lengths((4, 4));
+}
+
+#[test]
+fn test_random_ipa_with_various_lengths_4_3() {
+    test_random_ipa_with_various_lengths((4, 3));
+}
+
+#[test]
+fn test_random_ipa_with_various_lengths_6_2() {
+    test_random_ipa_with_various_lengths((6, 2));
 }
 
 #[test]

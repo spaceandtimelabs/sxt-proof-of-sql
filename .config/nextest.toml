@@ -1,0 +1,102 @@
+[store]
+dir = "target/nextest"
+
+[profile.default]
+default-filter = "all()"
+retries = 0
+threads-required = 1
+
+[[profile.default.overrides]]
+filter = 'test(/proof_primitive::dory::/)'
+threads-required = 2
+priority = -90
+
+[[profile.default.overrides]]
+filter = 'test(/proof_primitive::hyperkzg::/)'
+threads-required = 2
+priority = -60
+
+[[profile.default.overrides]]
+filter = 'test(/proof-of-sql::integration_tests/)'
+threads-required = 2
+priority = -85
+
+[[profile.default.overrides]]
+filter = 'test(/proof-of-sql::timestamp_integration_tests/)'
+threads-required = 2
+priority = -85
+
+[[profile.default.overrides]]
+filter = 'test(/proof-of-sql::decimal_integration_tests/)'
+threads-required = 2
+priority = -85
+
+[[profile.default.overrides]]
+filter = 'test(/proof-of-sql::e2e_tests/)'
+threads-required = 4
+priority = -100
+
+[[profile.default.overrides]]
+filter = 'test(/sql::proof_exprs::/)'
+threads-required = 2
+priority = -30
+
+[[profile.default.overrides]]
+filter = 'test(/sql::proof_gadgets::/)'
+threads-required = 2
+priority = -40
+
+[[profile.default.overrides]]
+filter = 'test(/sql::proof_plans::/)'
+threads-required = 2
+priority = -50
+
+[profile.ci]
+default-filter = "all()"
+retries = 0
+threads-required = 16
+
+[[profile.ci.overrides]]
+filter = 'test(/proof_primitive::dory::/)'
+threads-required = 16
+priority = -90
+
+[[profile.ci.overrides]]
+filter = 'test(/proof_primitive::hyperkzg::/)'
+threads-required = 16
+priority = -60
+
+[[profile.ci.overrides]]
+filter = 'test(/proof-of-sql::integration_tests/)'
+threads-required = 16
+priority = -85
+
+[[profile.ci.overrides]]
+filter = 'test(/proof-of-sql::timestamp_integration_tests/)'
+threads-required = 16
+priority = -85
+
+[[profile.ci.overrides]]
+filter = 'test(/proof-of-sql::decimal_integration_tests/)'
+threads-required = 16
+priority = -85
+
+[[profile.ci.overrides]]
+filter = 'test(/proof-of-sql::e2e_tests/)'
+threads-required = 16
+priority = -100
+
+[[profile.ci.overrides]]
+filter = 'test(/sql::proof_exprs::/)'
+threads-required = 16
+priority = -30
+
+[[profile.ci.overrides]]
+filter = 'test(/sql::proof_gadgets::/)'
+threads-required = 16
+priority = -40
+
+[[profile.ci.overrides]]
+filter = 'test(/sql::proof_plans::/)'
+threads-required = 16
+priority = -50
