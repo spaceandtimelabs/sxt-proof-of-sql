@@ -1,5 +1,5 @@
 use super::{
-    Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedColumn,
+    Column, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedColumn,
     OwnedTable, SchemaAccessor, TableRef, TestAccessor,
 };
 use crate::base::{
@@ -77,18 +77,18 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
 ///
 /// # Panics
 ///
-/// Will panic if the `column.table_ref()` is not found in `self.tables`, or if
-/// the `column.column_id()` is not found in the inner table for that reference,
+/// Will panic if the `table_ref` is not found in `self.tables`, or if
+/// the `column_id` is not found in the inner table for that reference,
 /// indicating that an invalid column reference was provided.
 impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestAccessor<'_, CP> {
-    fn get_column(&self, column: ColumnRef) -> Column<CP::Scalar> {
+    fn get_column(&self, table_ref: &TableRef, column_id: &Ident) -> Column<CP::Scalar> {
         match self
             .tables
-            .get(&column.table_ref())
+            .get(table_ref)
             .unwrap()
             .0
             .inner_table()
-            .get(&column.column_id())
+            .get(column_id)
             .unwrap()
         {
             OwnedColumn::Boolean(col) => Column::Boolean(col),
@@ -134,13 +134,13 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
 ///
 /// # Panics
 ///
-/// Will panic if the `column.table_ref()` is not found in `self.tables`, or if the `column.column_id()` is not found in the inner table for that reference,indicating that an invalid column reference was provided.
+/// Will panic if the `table_ref` is not found in `self.tables`, or if the `column_id` is not found in the inner table for that reference,indicating that an invalid column reference was provided.
 impl<CP: CommitmentEvaluationProof> CommitmentAccessor<CP::Commitment>
     for OwnedTableTestAccessor<'_, CP>
 {
-    fn get_commitment(&self, column: ColumnRef) -> CP::Commitment {
-        let (table, offset) = self.tables.get(&column.table_ref()).unwrap();
-        let owned_column = table.inner_table().get(&column.column_id()).unwrap();
+    fn get_commitment(&self, table_ref: &TableRef, column_id: &Ident) -> CP::Commitment {
+        let (table, offset) = self.tables.get(table_ref).unwrap();
+        let owned_column = table.inner_table().get(column_id).unwrap();
         Vec::<CP::Commitment>::from_columns_with_offset(
             [owned_column],
             *offset,
@@ -166,13 +166,13 @@ impl<CP: CommitmentEvaluationProof> MetadataAccessor for OwnedTableTestAccessor<
     }
 }
 impl<CP: CommitmentEvaluationProof> SchemaAccessor for OwnedTableTestAccessor<'_, CP> {
-    fn lookup_column(&self, table_ref: TableRef, column_id: Ident) -> Option<ColumnType> {
+    fn lookup_column(&self, table_ref: &TableRef, column_id: &Ident) -> Option<ColumnType> {
         Some(
             self.tables
-                .get(&table_ref)?
+                .get(table_ref)?
                 .0
                 .inner_table()
-                .get(&column_id)?
+                .get(column_id)?
                 .column_type(),
         )
     }
@@ -180,9 +180,9 @@ impl<CP: CommitmentEvaluationProof> SchemaAccessor for OwnedTableTestAccessor<'_
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
-    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Ident, ColumnType)> {
+    fn lookup_schema(&self, table_ref: &TableRef) -> Vec<(Ident, ColumnType)> {
         self.tables
-            .get(&table_ref)
+            .get(table_ref)
             .unwrap()
             .0
             .inner_table()

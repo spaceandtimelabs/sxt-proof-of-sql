@@ -25,6 +25,7 @@ use core::cmp;
 use itertools::Itertools;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 /// Return the row number range of tables referenced in the Query
 ///
@@ -113,12 +114,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .get_table_references()
             .into_iter()
             .map(|table_ref| {
-                let col_refs: IndexSet<ColumnRef> = total_col_refs
+                let idents: IndexSet<Ident> = total_col_refs
                     .iter()
                     .filter(|col_ref| col_ref.table_ref() == table_ref)
-                    .cloned()
+                    .map(ColumnRef::column_id)
                     .collect();
-                (table_ref.clone(), accessor.get_table(table_ref, &col_refs))
+                (table_ref.clone(), accessor.get_table(&table_ref, &idents))
             })
             .collect();
 
@@ -158,7 +159,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &expr
                 .get_column_references()
                 .into_iter()
-                .map(|col| CommittableColumn::from(accessor.get_column(col)))
+                .map(|col| {
+                    CommittableColumn::from(accessor.get_column(&col.table_ref(), &col.column_id()))
+                })
                 .collect_vec(),
             min_row_num,
             setup,
@@ -237,7 +240,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .iter()
             .map(|col_ref| {
                 accessor
-                    .get_column(col_ref.clone())
+                    .get_column(&col_ref.table_ref(), &col_ref.column_id())
                     .inner_product(&evaluation_vec)
             })
             .collect();
@@ -266,7 +269,10 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let mut folded_mle = vec![Zero::zero(); range_length];
         let column_ref_mles: Vec<_> = total_col_refs
             .into_iter()
-            .map(|c| Box::new(accessor.get_column(c)) as Box<dyn MultilinearExtension<_>>)
+            .map(|c| {
+                Box::new(accessor.get_column(&c.table_ref(), &c.column_id()))
+                    as Box<dyn MultilinearExtension<_>>
+            })
             .collect();
         for (multiplier, evaluator) in random_scalars.iter().zip(
             first_round_builder
@@ -349,7 +355,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         for commitment in expr
             .get_column_references()
             .into_iter()
-            .map(|col| accessor.get_commitment(col))
+            .map(|col| accessor.get_commitment(&col.table_ref(), &col.column_id()))
         {
             transcript.extend_serialize_as_le(&commitment);
         }
@@ -455,7 +461,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             .chain(
                 column_references
                     .iter()
-                    .map(|col| accessor.get_commitment(col.clone())),
+                    .map(|col| accessor.get_commitment(&col.table_ref(), &col.column_id())),
             )
             .chain(self.final_round_message.round_commitments.iter().cloned())
             .collect();

@@ -3,9 +3,10 @@ use arrow::{datatypes::Schema, record_batch::RecordBatch};
 use arrow_csv::{ReaderBuilder, WriterBuilder};
 use core::error::Error;
 use proof_of_sql::base::{
-    database::{Column, ColumnRef, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef},
+    database::{Column, ColumnType, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef},
     scalar::Scalar,
 };
+use sqlparser::ast::Ident;
 use std::{
     fs::{File, OpenOptions},
     path::{Path, PathBuf},
@@ -80,8 +81,8 @@ impl CsvDataAccessor {
     }
 }
 impl<S: Scalar> DataAccessor<S> for CsvDataAccessor {
-    fn get_column(&self, column: ColumnRef) -> Column<S> {
-        self.inner.get_column(column)
+    fn get_column(&self, table_ref: &TableRef, column_id: &Ident) -> Column<S> {
+        self.inner.get_column(table_ref, column_id)
     }
 }
 impl MetadataAccessor for CsvDataAccessor {
@@ -93,20 +94,10 @@ impl MetadataAccessor for CsvDataAccessor {
     }
 }
 impl SchemaAccessor for CsvDataAccessor {
-    fn lookup_column(
-        &self,
-        table_ref: TableRef,
-        column_id: sqlparser::ast::Ident,
-    ) -> Option<proof_of_sql::base::database::ColumnType> {
+    fn lookup_column(&self, table_ref: &TableRef, column_id: &Ident) -> Option<ColumnType> {
         self.inner.lookup_column(table_ref, column_id)
     }
-    fn lookup_schema(
-        &self,
-        table_ref: TableRef,
-    ) -> Vec<(
-        sqlparser::ast::Ident,
-        proof_of_sql::base::database::ColumnType,
-    )> {
+    fn lookup_schema(&self, table_ref: &TableRef) -> Vec<(Ident, ColumnType)> {
         self.inner.lookup_schema(table_ref)
     }
 }

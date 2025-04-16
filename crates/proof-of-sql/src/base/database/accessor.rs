@@ -1,6 +1,6 @@
 use crate::base::{
     commitment::Commitment,
-    database::{Column, ColumnRef, ColumnType, Table, TableOptions, TableRef},
+    database::{Column, ColumnType, Table, TableOptions, TableRef},
     map::{IndexMap, IndexSet},
     scalar::Scalar,
 };
@@ -51,7 +51,7 @@ pub trait MetadataAccessor {
 /// will only be accessing information about columns that exist in the database.
 pub trait CommitmentAccessor<C: Commitment>: MetadataAccessor {
     /// Return the full table column commitment
-    fn get_commitment(&self, column: ColumnRef) -> C;
+    fn get_commitment(&self, table_ref: &TableRef, column_id: &Ident) -> C;
 }
 
 /// Access database columns of an in-memory table span.
@@ -85,25 +85,25 @@ pub trait CommitmentAccessor<C: Commitment>: MetadataAccessor {
 /// will only be accessing information about columns that exist in the database.
 pub trait DataAccessor<S: Scalar>: MetadataAccessor {
     /// Return the data span in the table (not the full-table data)
-    fn get_column(&self, column: ColumnRef) -> Column<S>;
+    fn get_column(&self, table_ref: &TableRef, column_id: &Ident) -> Column<S>;
 
-    /// Creates a new [`Table`] from a [`TableRef`] and [`ColumnRef`]s.
+    /// Creates a new [`Table`] from a [`TableRef`] and [`Ident`]s.
     ///
-    /// Columns are retrieved from the [`DataAccessor`] using the provided [`TableRef`] and [`ColumnRef`]s.
-    /// The only reason why [`table_ref`] is needed is because [`column_refs`] can be empty.
+    /// Columns are retrieved from the [`DataAccessor`] using the provided [`TableRef`] and [`Ident`]s.
+    /// The only reason why [`table_ref`] is needed is because [`column_ids`] can be empty.
     /// # Panics
     /// Column length mismatches can occur in theory. In practice, this should not happen.
-    fn get_table(&self, table_ref: TableRef, column_refs: &IndexSet<ColumnRef>) -> Table<S> {
-        if column_refs.is_empty() {
-            let input_length = self.get_length(&table_ref);
+    fn get_table(&self, table_ref: &TableRef, column_ids: &IndexSet<Ident>) -> Table<S> {
+        if column_ids.is_empty() {
+            let input_length = self.get_length(table_ref);
             Table::<S>::try_new_with_options(
                 IndexMap::default(),
                 TableOptions::new(Some(input_length)),
             )
         } else {
-            Table::<S>::try_from_iter(column_refs.into_iter().map(|column_ref| {
-                let column = self.get_column(column_ref.clone());
-                (column_ref.column_id(), column)
+            Table::<S>::try_from_iter(column_ids.into_iter().map(|column_id| {
+                let column = self.get_column(table_ref, column_id);
+                (column_id.clone(), column)
             }))
         }
         .expect("Failed to create table from table and column references")
@@ -124,7 +124,7 @@ pub trait SchemaAccessor {
     ///
     /// Precondition 1: the table must exist and be tamperproof.
     /// Precondition 2: `table_ref` and `column_id` must always be lowercase.
-    fn lookup_column(&self, table_ref: TableRef, column_id: Ident) -> Option<ColumnType>;
+    fn lookup_column(&self, table_ref: &TableRef, column_id: &Ident) -> Option<ColumnType>;
 
     /// Lookup all the column names and their data types in the specified table
     ///
@@ -133,5 +133,5 @@ pub trait SchemaAccessor {
     ///
     /// Precondition 1: the table must exist and be tamperproof.
     /// Precondition 2: `table_name` must be lowercase.
-    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Ident, ColumnType)>;
+    fn lookup_schema(&self, table_ref: &TableRef) -> Vec<(Ident, ColumnType)>;
 }

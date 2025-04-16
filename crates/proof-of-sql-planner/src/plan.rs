@@ -63,7 +63,7 @@ fn table_scan_to_projection(
 ) -> PlannerResult<DynProofPlan> {
     // Check if the table exists
     let table_ref = table_reference_to_table_ref(table_name)?;
-    let input_schema = schemas.lookup_schema(table_ref.clone());
+    let input_schema = schemas.lookup_schema(&table_ref);
     // Get aliased expressions
     let aliased_dyn_proof_exprs =
         get_aliased_dyn_proof_exprs(&table_ref, projection, &input_schema, projected_schema)?;
@@ -88,7 +88,7 @@ fn table_scan_to_filter(
 ) -> PlannerResult<DynProofPlan> {
     // Check if the table exists
     let table_ref = table_reference_to_table_ref(table_name)?;
-    let input_schema = schemas.lookup_schema(table_ref.clone());
+    let input_schema = schemas.lookup_schema(&table_ref);
     // Get aliased expressions
     let aliased_dyn_proof_exprs =
         get_aliased_dyn_proof_exprs(&table_ref, projection, &input_schema, projected_schema)?;
@@ -179,7 +179,7 @@ fn aggregate_to_proof_plan(
             ..
         }) => {
             let table_ref = table_reference_to_table_ref(table_name)?;
-            let input_schema = schemas.lookup_schema(table_ref.clone());
+            let input_schema = schemas.lookup_schema(&table_ref);
             let table_expr = TableExpr { table_ref };
             // Filter
             let consolidated_filter_proof_expr = filters

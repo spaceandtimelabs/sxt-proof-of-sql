@@ -204,7 +204,7 @@ fn main() {
             let mut table_commitment = commit_accessor.get_commit(&table_name).unwrap().clone();
             let schema = Schema::new(
                 commit_accessor
-                    .lookup_schema(table_name.clone())
+                    .lookup_schema(&table_name)
                     .iter()
                     .map(|(i, t)| Field::new(i.value.as_str(), t.into(), false))
                     .collect::<Vec<_>>(),
@@ -234,7 +234,7 @@ fn main() {
                     .expect("Failed to load commit");
                 let schema = Schema::new(
                     commit_accessor
-                        .lookup_schema(table.clone())
+                        .lookup_schema(&table)
                         .iter()
                         .map(|(i, t)| Field::new(i.value.as_str(), t.into(), false))
                         .collect::<Vec<_>>(),
