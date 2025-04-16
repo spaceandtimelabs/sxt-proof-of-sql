@@ -2,14 +2,15 @@ use super::{
     column_to_column_ref, placeholder_to_placeholder_expr, scalar_value_to_literal_value,
     PlannerError, PlannerResult,
 };
-use datafusion::{
-    common::DFSchema,
-    logical_expr::{
-        expr::{Alias, Placeholder},
-        BinaryExpr, Expr, Operator,
-    },
+use datafusion::logical_expr::{
+    expr::{Alias, Placeholder},
+    BinaryExpr, Expr, Operator,
 };
-use proof_of_sql::sql::{proof_exprs::DynProofExpr, scale_cast_binary_op};
+use proof_of_sql::{
+    base::database::ColumnType,
+    sql::{proof_exprs::DynProofExpr, scale_cast_binary_op},
+};
+use sqlparser::ast::Ident;
 
 /// Convert a [`BinaryExpr`] to [`DynProofExpr`]
 #[expect(
@@ -20,7 +21,7 @@ fn binary_expr_to_proof_expr(
     left: &Expr,
     right: &Expr,
     op: Operator,
-    schema: &DFSchema,
+    schema: &[(Ident, ColumnType)],
 ) -> PlannerResult<DynProofExpr> {
     let left_proof_expr = expr_to_proof_expr(left, schema)?;
     let right_proof_expr = expr_to_proof_expr(right, schema)?;
@@ -89,7 +90,10 @@ fn binary_expr_to_proof_expr(
 ///
 /// # Panics
 /// The function should not panic if Proof of SQL is working correctly
-pub fn expr_to_proof_expr(expr: &Expr, schema: &DFSchema) -> PlannerResult<DynProofExpr> {
+pub fn expr_to_proof_expr(
+    expr: &Expr,
+    schema: &[(Ident, ColumnType)],
+) -> PlannerResult<DynProofExpr> {
     match expr {
         Expr::Alias(Alias { expr, .. }) => expr_to_proof_expr(expr, schema),
         Expr::Column(col) => Ok(DynProofExpr::new_column(column_to_column_ref(col, schema)?)),
@@ -219,7 +223,7 @@ mod tests {
     fn we_can_convert_alias_to_proof_expr() {
         // Column
         let expr = df_column("namespace.table_name", "column").alias("alias");
-        let schema = df_schema("namespace.table_name", vec![("column", DataType::Int32)]);
+        let schema = vec![("column".into(), ColumnType::Int)];
         assert_eq!(expr_to_proof_expr(&expr, &schema).unwrap(), COLUMN_INT());
     }
 
@@ -228,17 +232,17 @@ mod tests {
     fn we_can_convert_column_expr_to_proof_expr() {
         // Column
         let expr = df_column("namespace.table_name", "column");
-        let schema = df_schema("namespace.table_name", vec![("column", DataType::Int32)]);
+        let schema = vec![("column".into(), ColumnType::Int)];
         assert_eq!(expr_to_proof_expr(&expr, &schema).unwrap(), COLUMN_INT());
     }
 
     // BinaryExpr
     #[test]
     fn we_can_convert_comparison_binary_expr_to_proof_expr() {
-        let schema = df_schema(
-            "namespace.table_name",
-            vec![("column1", DataType::Int16), ("column2", DataType::Int64)],
-        );
+        let schema = vec![
+            ("column1".into(), ColumnType::SmallInt),
+            ("column2".into(), ColumnType::BigInt),
+        ];
 
         // Eq
         let expr = df_column("namespace.table_name", "column1")
@@ -292,14 +296,17 @@ mod tests {
     #[expect(clippy::too_many_lines)]
     #[test]
     fn we_can_convert_comparison_binary_expr_to_proof_expr_with_scale_cast() {
-        let schema = df_schema(
-            "namespace.table_name",
-            vec![
-                ("column1", DataType::Int16),
-                ("column2", DataType::Decimal256(25, 5)),
-                ("column3", DataType::Decimal256(75, 5)),
-            ],
-        );
+        let schema = vec![
+            ("column1".into(), ColumnType::SmallInt),
+            (
+                "column2".into(),
+                ColumnType::Decimal75(Precision::new(25).unwrap(), 5),
+            ),
+            (
+                "column3".into(),
+                ColumnType::Decimal75(Precision::new(75).unwrap(), 5),
+            ),
+        ];
 
         // Eq
         let expr = df_column("namespace.table_name", "column1")
@@ -409,10 +416,10 @@ mod tests {
 
     #[test]
     fn we_can_convert_arithmetic_binary_expr_to_proof_expr() {
-        let schema = df_schema(
-            "namespace.table_name",
-            vec![("column1", DataType::Int16), ("column2", DataType::Int64)],
-        );
+        let schema = vec![
+            ("column1".into(), ColumnType::SmallInt),
+            ("column2".into(), ColumnType::BigInt),
+        ];
 
         // Plus
         let expr = Expr::BinaryExpr(BinaryExpr {
@@ -450,14 +457,17 @@ mod tests {
 
     #[test]
     fn we_can_convert_arithmetic_binary_expr_to_proof_expr_with_scale_cast() {
-        let schema = df_schema(
-            "namespace.table_name",
-            vec![
-                ("column1", DataType::Int16),
-                ("column2", DataType::Decimal256(25, 5)),
-                ("column3", DataType::Decimal256(75, 5)),
-            ],
-        );
+        let schema = vec![
+            ("column1".into(), ColumnType::SmallInt),
+            (
+                "column2".into(),
+                ColumnType::Decimal75(Precision::new(25).unwrap(), 5),
+            ),
+            (
+                "column3".into(),
+                ColumnType::Decimal75(Precision::new(75).unwrap(), 5),
+            ),
+        ];
 
         // Add
         let expr = df_column("namespace.table_name", "column1")
@@ -508,13 +518,10 @@ mod tests {
 
     #[test]
     fn we_can_convert_logical_binary_expr_to_proof_expr() {
-        let schema = df_schema(
-            "namespace.table_name",
-            vec![
-                ("column1", DataType::Boolean),
-                ("column2", DataType::Boolean),
-            ],
-        );
+        let schema = vec![
+            ("column1".into(), ColumnType::Boolean),
+            ("column2".into(), ColumnType::Boolean),
+        ];
 
         // And
         let expr = df_column("namespace.table_name", "column1")
@@ -541,13 +548,10 @@ mod tests {
             right: Box::new(df_column("namespace.table_name", "column2")),
             op: Operator::AtArrow,
         });
-        let schema = df_schema(
-            "namespace.table_name",
-            vec![
-                ("column1", DataType::Boolean),
-                ("column2", DataType::Boolean),
-            ],
-        );
+        let schema = vec![
+            ("column1".into(), ColumnType::Boolean),
+            ("column2".into(), ColumnType::Boolean),
+        ];
         assert!(matches!(
             expr_to_proof_expr(&expr, &schema),
             Err(PlannerError::UnsupportedBinaryOperator { .. })
@@ -558,9 +562,8 @@ mod tests {
     #[test]
     fn we_can_convert_literal_expr_to_proof_expr() {
         let expr = Expr::Literal(ScalarValue::Int32(Some(1)));
-        let schema = df_schema("namespace.table_name", vec![]);
         assert_eq!(
-            expr_to_proof_expr(&expr, &schema).unwrap(),
+            expr_to_proof_expr(&expr, &Vec::new()).unwrap(),
             DynProofExpr::new_literal(LiteralValue::Int(1))
         );
     }
@@ -569,7 +572,7 @@ mod tests {
     #[test]
     fn we_can_convert_not_expr_to_proof_expr() {
         let expr = Expr::Not(Box::new(df_column("table_name", "column")));
-        let schema = df_schema("table_name", vec![("column", DataType::Boolean)]);
+        let schema = vec![("column".into(), ColumnType::Boolean)];
         assert_eq!(
             expr_to_proof_expr(&expr, &schema).unwrap(),
             DynProofExpr::try_new_not(DynProofExpr::new_column(ColumnRef::new(
@@ -588,8 +591,7 @@ mod tests {
             Box::new(Expr::Literal(ScalarValue::Boolean(Some(true)))),
             DataType::Int32,
         ));
-        let schema = df_schema("namespace.table_name", vec![]);
-        let expression = expr_to_proof_expr(&expr, &schema).unwrap();
+        let expression = expr_to_proof_expr(&expr, &Vec::new()).unwrap();
         assert_eq!(
             expression,
             DynProofExpr::try_new_cast(
@@ -607,8 +609,7 @@ mod tests {
             Box::new(Expr::Literal(ScalarValue::UInt64(Some(100)))),
             DataType::Int16,
         ));
-        let schema = df_schema("namespace.table_name", vec![]);
-        let expression = expr_to_proof_expr(&expr, &schema).unwrap_err();
+        let expression = expr_to_proof_expr(&expr, &Vec::new()).unwrap_err();
         assert!(matches!(
             expression,
             PlannerError::UnsupportedDataType { data_type: _ }
@@ -622,8 +623,7 @@ mod tests {
             Box::new(Expr::Literal(ScalarValue::Boolean(Some(true)))),
             DataType::UInt16,
         ));
-        let schema = df_schema("namespace.table_name", vec![]);
-        let expression = expr_to_proof_expr(&expr, &schema).unwrap_err();
+        let expression = expr_to_proof_expr(&expr, &Vec::new()).unwrap_err();
         assert!(matches!(
             expression,
             PlannerError::UnsupportedDataType { data_type: _ }
@@ -638,8 +638,7 @@ mod tests {
             Box::new(Expr::Literal(ScalarValue::Int16(Some(100)))),
             DataType::Boolean,
         ));
-        let schema = df_schema("namespace.table_name", vec![]);
-        let expression = expr_to_proof_expr(&expr, &schema).unwrap_err();
+        let expression = expr_to_proof_expr(&expr, &Vec::new()).unwrap_err();
         assert!(matches!(
             expression,
             PlannerError::AnalyzeError { source: _ }
@@ -653,8 +652,7 @@ mod tests {
             id: "$1".to_string(),
             data_type: Some(DataType::Int32),
         });
-        let schema = df_schema("namespace.table_name", vec![]);
-        let expression = expr_to_proof_expr(&expr, &schema).unwrap();
+        let expression = expr_to_proof_expr(&expr, &Vec::new()).unwrap();
         assert_eq!(
             expression,
             DynProofExpr::try_new_placeholder(1, ColumnType::Int).unwrap()
@@ -671,8 +669,7 @@ mod tests {
             })),
             DataType::Int32,
         ));
-        let schema = df_schema("namespace.table_name", vec![]);
-        let expression = expr_to_proof_expr(&expr, &schema).unwrap();
+        let expression = expr_to_proof_expr(&expr, &Vec::new()).unwrap();
         assert_eq!(
             expression,
             DynProofExpr::try_new_placeholder(1, ColumnType::Int).unwrap()
@@ -683,9 +680,8 @@ mod tests {
     #[test]
     fn we_cannot_convert_unsupported_expr_to_proof_expr() {
         let expr = Expr::Unnest(Unnest::new(Expr::Literal(ScalarValue::Int32(Some(100)))));
-        let schema = df_schema("namespace.table_name", vec![]);
         assert!(matches!(
-            expr_to_proof_expr(&expr, &schema),
+            expr_to_proof_expr(&expr, &Vec::new()),
             Err(PlannerError::UnsupportedLogicalExpression { .. })
         ));
     }
@@ -694,6 +690,6 @@ mod tests {
     fn we_can_get_proof_expr_for_timestamps_of_different_scale() {
         let lhs = Expr::Literal(ScalarValue::TimestampSecond(Some(1), None));
         let rhs = Expr::Literal(ScalarValue::TimestampNanosecond(Some(1), None));
-        binary_expr_to_proof_expr(&lhs, &rhs, Operator::Gt, &DFSchema::empty()).unwrap();
+        binary_expr_to_proof_expr(&lhs, &rhs, Operator::Gt, &Vec::new()).unwrap();
     }
 }

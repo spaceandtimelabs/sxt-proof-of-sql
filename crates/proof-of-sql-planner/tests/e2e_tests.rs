@@ -1,7 +1,7 @@
 //! In this file we run end-to-end tests for Proof of SQL.
 use ark_std::test_rng;
 use bumpalo::Bump;
-use datafusion::{catalog::TableReference, common::DFSchema, config::ConfigOptions};
+use datafusion::config::ConfigOptions;
 use indexmap::{indexmap, IndexMap};
 use proof_of_sql::{
     base::{
@@ -18,8 +18,8 @@ use proof_of_sql::{
     sql::proof::VerifiableQueryResult,
 };
 use proof_of_sql_planner::{
-    column_fields_to_schema, postprocessing::PostprocessingStep, sql_to_proof_plans,
-    sql_to_proof_plans_with_postprocessing, PlannerResult, PoSqlContextProvider,
+    postprocessing::PostprocessingStep, sql_to_proof_plans, sql_to_proof_plans_with_postprocessing,
+    PoSqlContextProvider,
 };
 use sqlparser::{dialect::GenericDialect, parser::Parser};
 
@@ -33,24 +33,6 @@ fn new_test_accessor<'a, CP: CommitmentEvaluationProof>(
         accessor.add_table(table_ref.clone(), table.clone(), 0);
     }
     accessor
-}
-
-/// Get the schemas of the provided tables
-fn get_schemas<CP: CommitmentEvaluationProof>(
-    tables: &IndexMap<TableRef, Table<'_, CP::Scalar>>,
-) -> PlannerResult<IndexMap<TableReference, DFSchema>> {
-    tables
-        .iter()
-        .map(
-            |(table_ref, table)| -> PlannerResult<(TableReference, DFSchema)> {
-                let table_reference = TableReference::from(table_ref.to_string().as_str());
-                let schema = column_fields_to_schema(table.schema());
-                let df_schema =
-                    DFSchema::try_from_qualified_schema(table_reference.clone(), &schema)?;
-                Ok((table_reference, df_schema))
-            },
-        )
-        .collect::<PlannerResult<IndexMap<_, _>>>()
 }
 
 /// Test setup
@@ -67,11 +49,10 @@ fn posql_end_to_end_test<'a, CP: CommitmentEvaluationProof>(
 ) {
     // Get accessor
     let accessor: TableTestAccessor<'a, CP> = new_test_accessor(&tables, prover_setup);
-    let schemas = get_schemas::<CP>(&tables).unwrap();
     let context_provider = PoSqlContextProvider::new(tables);
     let config = ConfigOptions::default();
     let statements = Parser::parse_sql(&GenericDialect {}, sql).unwrap();
-    let plans = sql_to_proof_plans(&statements, &context_provider, &schemas, &config).unwrap();
+    let plans = sql_to_proof_plans(&statements, &context_provider, &accessor, &config).unwrap();
     // Prove and verify the plans
     for (plan, expected) in plans.iter().zip(expected_results.iter()) {
         let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup, params).unwrap();
@@ -95,12 +76,11 @@ fn posql_end_to_end_test_with_postprocessing<'a, CP: CommitmentEvaluationProof>(
 ) {
     // Get accessor
     let accessor: TableTestAccessor<'a, CP> = new_test_accessor(&tables, prover_setup);
-    let schemas = get_schemas::<CP>(&tables).unwrap();
     let context_provider = PoSqlContextProvider::new(tables);
     let config = ConfigOptions::default();
     let statements = Parser::parse_sql(&GenericDialect {}, sql).unwrap();
     let plan_with_postprocessings =
-        sql_to_proof_plans_with_postprocessing(&statements, &context_provider, &schemas, &config)
+        sql_to_proof_plans_with_postprocessing(&statements, &context_provider, &accessor, &config)
             .unwrap();
     for (plan_with_postprocessing, expected) in plan_with_postprocessings
         .iter()

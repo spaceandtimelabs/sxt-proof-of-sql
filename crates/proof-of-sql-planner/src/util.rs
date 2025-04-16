@@ -2,7 +2,7 @@ use super::{PlannerError, PlannerResult};
 use arrow::datatypes::{Field, Schema};
 use datafusion::{
     catalog::TableReference,
-    common::{Column, DFSchema, ScalarValue},
+    common::{Column, ScalarValue},
     logical_expr::expr::Placeholder,
 };
 use proof_of_sql::{
@@ -109,23 +109,22 @@ pub(crate) fn scalar_value_to_literal_value(value: ScalarValue) -> PlannerResult
 ///
 /// Note that the table name must be provided in the column which resolved logical plans do
 /// Otherwise we error out
-pub(crate) fn column_to_column_ref(column: &Column, schema: &DFSchema) -> PlannerResult<ColumnRef> {
+pub(crate) fn column_to_column_ref(
+    column: &Column,
+    schema: &[(Ident, ColumnType)],
+) -> PlannerResult<ColumnRef> {
     let relation = column
         .relation
         .as_ref()
         .ok_or_else(|| PlannerError::UnresolvedLogicalPlan)?;
-    let field = schema.field_with_name(Some(relation), &column.name)?;
     let table_ref = table_reference_to_table_ref(relation)?;
-    let column_type = ColumnType::try_from(field.data_type().clone()).map_err(|_e| {
-        PlannerError::UnsupportedDataType {
-            data_type: field.data_type().clone(),
-        }
-    })?;
-    Ok(ColumnRef::new(
-        table_ref,
-        column.name.as_str().into(),
-        column_type,
-    ))
+    let ident: Ident = column.name.as_str().into();
+    let column_type = schema
+        .iter()
+        .find(|(i, _t)| *i == ident)
+        .ok_or(PlannerError::ColumnNotFound)?
+        .1;
+    Ok(ColumnRef::new(table_ref, ident, column_type))
 }
 
 /// Convert a Vec<ColumnField> to a Schema
@@ -146,19 +145,11 @@ pub fn column_fields_to_schema(column_fields: Vec<ColumnField>) -> Schema {
 /// Convert a [`DFSchema`] to a Vec<ColumnField>
 ///
 /// Note that this returns an error if any column has an unsupported `DataType`
-pub(crate) fn df_schema_to_column_fields(schema: &DFSchema) -> PlannerResult<Vec<ColumnField>> {
+pub(crate) fn schema_to_column_fields(schema: Vec<(Ident, ColumnType)>) -> Vec<ColumnField> {
     schema
-        .fields()
-        .iter()
-        .map(|field| -> PlannerResult<ColumnField> {
-            let column_type = ColumnType::try_from(field.data_type().clone()).map_err(|_e| {
-                PlannerError::UnsupportedDataType {
-                    data_type: field.data_type().clone(),
-                }
-            })?;
-            Ok(ColumnField::new(Ident::new(field.name()), column_type))
-        })
-        .collect::<PlannerResult<Vec<ColumnField>>>()
+        .into_iter()
+        .map(|(name, column_type)| ColumnField::new(name, column_type))
+        .collect()
 }
 
 #[cfg(test)]
@@ -479,11 +470,9 @@ mod tests {
     #[test]
     fn we_can_convert_column_to_column_ref() {
         let column = Column::new(Some("namespace.table"), "a");
-        let arrow_schema = Schema::new(vec![Field::new("a", DataType::Int32, false)]);
-        let df_schema =
-            DFSchema::try_from_qualified_schema("namespace.table", &arrow_schema).unwrap();
+        let schema = vec![("a".into(), ColumnType::Int)];
         assert_eq!(
-            column_to_column_ref(&column, &df_schema).unwrap(),
+            column_to_column_ref(&column, &schema).unwrap(),
             ColumnRef::new(
                 TableRef::from_names(Some("namespace"), "table"),
                 "a".into(),
@@ -495,10 +484,9 @@ mod tests {
     #[test]
     fn we_cannot_convert_column_to_column_ref_without_relation() {
         let column = Column::new(None::<&str>, "a");
-        let arrow_schema = Schema::new(vec![Field::new("a", DataType::Int32, false)]);
-        let df_schema = DFSchema::try_from(arrow_schema).unwrap();
+        let schema = vec![("a".into(), ColumnType::Int)];
         assert!(matches!(
-            column_to_column_ref(&column, &df_schema),
+            column_to_column_ref(&column, &schema),
             Err(PlannerError::UnresolvedLogicalPlan)
         ));
     }
@@ -506,24 +494,10 @@ mod tests {
     #[test]
     fn we_cannot_convert_column_to_column_ref_with_invalid_column_name() {
         let column = Column::new(Some("namespace.table"), "b");
-        let arrow_schema = Schema::new(vec![Field::new("a", DataType::Int32, false)]);
-        let df_schema =
-            DFSchema::try_from_qualified_schema("namespace.table", &arrow_schema).unwrap();
+        let schema = vec![("a".into(), ColumnType::Int)];
         assert!(matches!(
-            column_to_column_ref(&column, &df_schema),
-            Err(PlannerError::DataFusionError { .. })
-        ));
-    }
-
-    #[test]
-    fn we_cannot_convert_column_to_column_ref_with_unsupported_data_type() {
-        let column = Column::new(Some("namespace.table"), "a");
-        let arrow_schema = Schema::new(vec![Field::new("a", DataType::Float32, false)]);
-        let df_schema =
-            DFSchema::try_from_qualified_schema("namespace.table", &arrow_schema).unwrap();
-        assert!(matches!(
-            column_to_column_ref(&column, &df_schema),
-            Err(PlannerError::UnsupportedDataType { .. })
+            column_to_column_ref(&column, &schema),
+            Err(PlannerError::ColumnNotFound)
         ));
     }
 
@@ -554,18 +528,15 @@ mod tests {
     #[test]
     fn we_can_convert_df_schema_to_column_fields() {
         // Empty
-        let arrow_schema = Schema::new(Vec::<Field>::new());
-        let df_schema = DFSchema::try_from(arrow_schema).unwrap();
-        let column_fields = df_schema_to_column_fields(&df_schema).unwrap();
+        let column_fields = schema_to_column_fields(Vec::new());
         assert_eq!(column_fields, Vec::<ColumnField>::new());
 
         // Non-empty
-        let arrow_schema = Schema::new(vec![
-            Field::new("a", DataType::Int16, false),
-            Field::new("b", DataType::Utf8, false),
-        ]);
-        let df_schema = DFSchema::try_from(arrow_schema).unwrap();
-        let column_fields = df_schema_to_column_fields(&df_schema).unwrap();
+        let schema = vec![
+            ("a".into(), ColumnType::SmallInt),
+            ("b".into(), ColumnType::VarChar),
+        ];
+        let column_fields = schema_to_column_fields(schema);
         assert_eq!(
             column_fields,
             vec![
@@ -573,15 +544,5 @@ mod tests {
                 ColumnField::new("b".into(), ColumnType::VarChar),
             ]
         );
-    }
-
-    #[test]
-    fn we_cannot_convert_df_schema_to_column_fields_with_unsupported_data_type() {
-        let arrow_schema = Schema::new(vec![Field::new("a", DataType::Float32, false)]);
-        let df_schema = DFSchema::try_from(arrow_schema).unwrap();
-        assert!(matches!(
-            df_schema_to_column_fields(&df_schema),
-            Err(PlannerError::UnsupportedDataType { .. })
-        ));
     }
 }
