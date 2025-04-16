@@ -6,11 +6,9 @@ use datafusion::{
 };
 
 /// Create a `Expr::Column` from full table name and column
-pub(crate) fn df_column(table_name: &str, column: &str) -> Expr {
-    Expr::Column(Column::new(
-        Some(TableReference::from(table_name)),
-        column.to_string(),
-    ))
+pub(crate) fn df_column(table_name: &'static str, column: &str) -> Expr {
+    let test = TableReference::from(table_name);
+    Expr::Column(Column::new(Some(test), column.to_string()))
 }
 
 /// Create a `DFSchema` from table name, column name and data type pairs

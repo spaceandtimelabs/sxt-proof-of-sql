@@ -6,7 +6,7 @@ use alloc::{sync::Arc, vec::Vec};
 use datafusion::{
     config::ConfigOptions,
     logical_expr::LogicalPlan,
-    optimizer::{Analyzer, Optimizer, OptimizerContext, OptimizerRule},
+    optimizer::{analyzer::Analyzer, optimizer::Optimizer, OptimizerContext, OptimizerRule},
     sql::planner::SqlToRel,
 };
 use indexmap::IndexSet;
@@ -65,12 +65,12 @@ where
             // 3. Analyze the `LogicalPlan` using `Analyzer`
             let analyzer = Analyzer::new();
             let analyzed_logical_plan =
-                analyzer.execute_and_check(raw_logical_plan, config, |_, _| {})?;
+                analyzer.execute_and_check(&raw_logical_plan, config, |_, _| {})?;
             // 4. Optimize the `LogicalPlan` using `Optimizer`
             let optimizer = optimizer();
             let optimizer_context = OptimizerContext::default();
             let optimized_logical_plan =
-                optimizer.optimize(analyzed_logical_plan, &optimizer_context, |_, _| {})?;
+                optimizer.optimize(&analyzed_logical_plan, &optimizer_context, |_, _| {})?;
             // 5. Convert the optimized `LogicalPlan` into a Proof of SQL plan
             planner_converter(&optimized_logical_plan, schemas)
         })

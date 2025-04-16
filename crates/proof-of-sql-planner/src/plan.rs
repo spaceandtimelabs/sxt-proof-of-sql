@@ -110,9 +110,8 @@ fn try_get_schema_as_vec_from_df_schema(
     df_schema: &DFSchema,
 ) -> PlannerResult<Vec<(Ident, ColumnType)>> {
     df_schema
-        .inner()
         .fields()
-        .into_iter()
+        .iter()
         .map(|f| {
             ColumnType::try_from(f.data_type().clone())
                 .map_err(|_| PlannerError::UnsupportedDataType {
@@ -134,7 +133,7 @@ fn projection_to_proof_plan(
     let input_schema = try_get_schema_as_vec_from_df_schema(input.schema())?;
     let aliased_exprs = expr
         .iter()
-        .zip(output_schema.fields().into_iter())
+        .zip(output_schema.fields().iter())
         .map(|(e, field)| -> PlannerResult<AliasedDynProofExpr> {
             let proof_expr = expr_to_proof_expr(e, &input_schema)?;
             let alias = field.name().as_str().into();

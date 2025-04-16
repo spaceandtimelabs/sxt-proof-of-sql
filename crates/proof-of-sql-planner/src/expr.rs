@@ -679,7 +679,9 @@ mod tests {
     // Unsupported logical expression
     #[test]
     fn we_cannot_convert_unsupported_expr_to_proof_expr() {
-        let expr = Expr::Unnest(Unnest::new(Expr::Literal(ScalarValue::Int32(Some(100)))));
+        let expr = Expr::Unnest(Unnest {
+            exprs: vec![Expr::Literal(ScalarValue::Int32(Some(100)))],
+        });
         assert!(matches!(
             expr_to_proof_expr(&expr, &Vec::new()),
             Err(PlannerError::UnsupportedLogicalExpression { .. })
