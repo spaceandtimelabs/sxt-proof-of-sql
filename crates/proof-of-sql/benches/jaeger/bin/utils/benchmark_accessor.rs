@@ -2,16 +2,16 @@ use indexmap::IndexMap;
 use proof_of_sql::base::{
     commitment::Commitment,
     database::{
-        Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
-        SchemaAccessor, TableRef,
+        Column, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor,
+        TableRef,
     },
 };
 use sqlparser::ast::Ident;
 #[derive(Default)]
 pub struct BenchmarkAccessor<'a, C: Commitment> {
-    columns: IndexMap<ColumnRef, Column<'a, C::Scalar>>,
+    columns: IndexMap<(TableRef, Ident), Column<'a, C::Scalar>>,
     lengths: IndexMap<TableRef, usize>,
-    commitments: IndexMap<ColumnRef, C>,
+    commitments: IndexMap<(TableRef, Ident), C>,
     column_types: IndexMap<(TableRef, Ident), ColumnType>,
     table_schemas: IndexMap<TableRef, Vec<(Ident, ColumnType)>>,
 }
@@ -43,14 +43,10 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
 
         let mut length = None;
         for (column, commitment) in columns.iter().zip(commitments) {
-            self.columns.insert(
-                ColumnRef::new(table_ref.clone(), column.0.clone(), column.1.column_type()),
-                column.1,
-            );
-            self.commitments.insert(
-                ColumnRef::new(table_ref.clone(), column.0.clone(), column.1.column_type()),
-                commitment,
-            );
+            self.columns
+                .insert((table_ref.clone(), column.0.clone()), column.1);
+            self.commitments
+                .insert((table_ref.clone(), column.0.clone()), commitment);
             self.column_types.insert(
                 (table_ref.clone(), column.0.clone()),
                 column.1.column_type(),
@@ -69,9 +65,12 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
 impl<C: Commitment> DataAccessor<C::Scalar> for BenchmarkAccessor<'_, C> {
     /// # Panics
     ///
-    /// Will panic if the column reference does not exist in the accessor.
-    fn get_column(&self, column: ColumnRef) -> Column<C::Scalar> {
-        *self.columns.get(&column).unwrap()
+    /// Will panic if the [`TableRef`]-[`Ident`] pair does not exist in the accessor.
+    fn get_column(&self, table_ref: &TableRef, column_id: &Ident) -> Column<C::Scalar> {
+        *self
+            .columns
+            .get(&(table_ref.clone(), column_id.clone()))
+            .unwrap()
     }
 }
 impl<C: Commitment> MetadataAccessor for BenchmarkAccessor<'_, C> {
@@ -88,19 +87,24 @@ impl<C: Commitment> MetadataAccessor for BenchmarkAccessor<'_, C> {
 impl<C: Commitment> CommitmentAccessor<C> for BenchmarkAccessor<'_, C> {
     /// # Panics
     ///
-    /// Will panic if the column reference does not exist in the commitments map.
-    fn get_commitment(&self, column: ColumnRef) -> C {
-        self.commitments.get(&column).unwrap().clone()
+    /// Will panic if the [`TableRef`]-[`Ident`] pair does not exist in the commitments map.
+    fn get_commitment(&self, table_ref: &TableRef, column_id: &Ident) -> C {
+        self.commitments
+            .get(&(table_ref.clone(), column_id.clone()))
+            .unwrap()
+            .clone()
     }
 }
 impl<C: Commitment> SchemaAccessor for BenchmarkAccessor<'_, C> {
-    fn lookup_column(&self, table_ref: TableRef, column_id: Ident) -> Option<ColumnType> {
-        self.column_types.get(&(table_ref, column_id)).copied()
+    fn lookup_column(&self, table_ref: &TableRef, column_id: &Ident) -> Option<ColumnType> {
+        self.column_types
+            .get(&(table_ref.clone(), column_id.clone()))
+            .copied()
     }
     /// # Panics
     ///
     /// Will panic if the table reference does not exist in the table schemas map.
-    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Ident, ColumnType)> {
+    fn lookup_schema(&self, table_ref: &TableRef) -> Vec<(Ident, ColumnType)> {
         self.table_schemas.get(&table_ref).unwrap().clone()
     }
 }

@@ -155,7 +155,7 @@ impl QueryContextBuilder<'_> {
     )]
     fn lookup_schema(&self) -> Vec<(Ident, ColumnType)> {
         let table_ref = self.context.get_table_ref();
-        let columns = self.schema_accessor.lookup_schema(table_ref.clone());
+        let columns = self.schema_accessor.lookup_schema(table_ref);
         assert!(!columns.is_empty(), "At least one column must exist");
         columns
     }
@@ -321,9 +321,7 @@ impl QueryContextBuilder<'_> {
 
     fn visit_column_identifier(&mut self, column_name: &Ident) -> ConversionResult<ColumnType> {
         let table_ref = self.context.get_table_ref();
-        let column_type = self
-            .schema_accessor
-            .lookup_column(table_ref.clone(), column_name.clone());
+        let column_type = self.schema_accessor.lookup_column(table_ref, column_name);
 
         let column_type = column_type.ok_or_else(|| ConversionError::MissingColumn {
             identifier: Box::new(column_name.clone()),

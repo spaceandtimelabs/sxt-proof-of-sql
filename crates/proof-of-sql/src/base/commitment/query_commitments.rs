@@ -49,7 +49,7 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
             .into_iter()
             .map(|(table_ref, column_fields)| {
                 let selected_column_fields = accessor
-                    .lookup_schema(table_ref.clone())
+                    .lookup_schema(&table_ref)
                     .into_iter()
                     .filter_map(|(ident, _)| {
                         column_fields
@@ -85,38 +85,31 @@ impl<C: Commitment> MetadataAccessor for QueryCommitments<C> {
 ///
 /// Panics if the commitment for the table or column cannot be found.
 impl<C: Commitment> CommitmentAccessor<C> for QueryCommitments<C> {
-    fn get_commitment(&self, column: ColumnRef) -> C {
-        let table_commitment = self.get(&column.table_ref()).unwrap();
+    fn get_commitment(&self, table_ref: &TableRef, column_id: &Ident) -> C {
+        let table_commitment = self.get(table_ref).unwrap();
 
         table_commitment
             .column_commitments()
-            .get_commitment(&column.column_id())
+            .get_commitment(column_id)
             .unwrap()
     }
 }
 
 impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
-    fn lookup_column(
-        &self,
-        table_ref: crate::base::database::TableRef,
-        column_id: Ident,
-    ) -> Option<ColumnType> {
-        let table_commitment = self.get(&table_ref)?;
+    fn lookup_column(&self, table_ref: &TableRef, column_id: &Ident) -> Option<ColumnType> {
+        let table_commitment = self.get(table_ref)?;
 
         table_commitment
             .column_commitments()
-            .get_metadata(&column_id)
+            .get_metadata(column_id)
             .map(|column_metadata| *column_metadata.column_type())
     }
 
     /// # Panics
     ///
     /// Panics if the column metadata cannot be found.
-    fn lookup_schema(
-        &self,
-        table_ref: crate::base::database::TableRef,
-    ) -> Vec<(Ident, ColumnType)> {
-        let table_commitment = self.get(&table_ref).unwrap();
+    fn lookup_schema(&self, table_ref: &TableRef) -> Vec<(Ident, ColumnType)> {
+        let table_commitment = self.get(table_ref).unwrap();
 
         table_commitment
             .column_commitments()
@@ -231,27 +224,15 @@ mod tests {
         ]);
 
         assert_eq!(
-            query_commitments.get_commitment(ColumnRef::new(
-                table_a_id.clone(),
-                column_a_id.clone(),
-                ColumnType::BigInt
-            )),
+            query_commitments.get_commitment(&table_a_id, &column_a_id,),
             table_a_commitment.column_commitments().commitments()[0]
         );
         assert_eq!(
-            query_commitments.get_commitment(ColumnRef::new(
-                table_a_id,
-                column_b_id,
-                ColumnType::VarChar
-            )),
+            query_commitments.get_commitment(&table_a_id, &column_b_id,),
             table_a_commitment.column_commitments().commitments()[1]
         );
         assert_eq!(
-            query_commitments.get_commitment(ColumnRef::new(
-                table_b_id,
-                column_a_id,
-                ColumnType::Scalar
-            )),
+            query_commitments.get_commitment(&table_b_id, &column_a_id,),
             table_b_commitment.column_commitments().commitments()[0]
         );
     }
@@ -295,18 +276,18 @@ mod tests {
 
         assert_eq!(
             query_commitments
-                .lookup_column(table_a_id.clone(), column_a_id.clone())
+                .lookup_column(&table_a_id, &column_a_id)
                 .unwrap(),
             ColumnType::BigInt
         );
         assert_eq!(
             query_commitments
-                .lookup_column(table_a_id.clone(), column_b_id.clone())
+                .lookup_column(&table_a_id, &column_b_id)
                 .unwrap(),
             ColumnType::VarChar
         );
         assert_eq!(
-            query_commitments.lookup_schema(table_a_id),
+            query_commitments.lookup_schema(&table_a_id),
             vec![
                 (column_a_id.clone(), ColumnType::BigInt),
                 (column_b_id.clone(), ColumnType::VarChar)
@@ -315,24 +296,24 @@ mod tests {
 
         assert_eq!(
             query_commitments
-                .lookup_column(table_b_id.clone(), column_a_id.clone())
+                .lookup_column(&table_b_id, &column_a_id)
                 .unwrap(),
             ColumnType::Scalar
         );
         assert_eq!(
-            query_commitments.lookup_column(table_b_id.clone(), column_b_id),
+            query_commitments.lookup_column(&table_b_id, &column_b_id),
             None
         );
         assert_eq!(
-            query_commitments.lookup_schema(table_b_id),
+            query_commitments.lookup_schema(&table_b_id),
             vec![(column_a_id.clone(), ColumnType::Scalar),]
         );
 
         assert_eq!(
-            query_commitments.lookup_column(no_columns_id.clone(), column_a_id),
+            query_commitments.lookup_column(&no_columns_id, &column_a_id),
             None
         );
-        assert_eq!(query_commitments.lookup_schema(no_columns_id), vec![]);
+        assert_eq!(query_commitments.lookup_schema(&no_columns_id), vec![]);
     }
 
     #[expect(clippy::similar_names)]

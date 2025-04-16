@@ -3,9 +3,7 @@ use bumpalo::Bump;
 use indexmap::IndexMap;
 use proof_of_sql::base::{
     arrow::arrow_array_to_column_conversion::ArrayRefExt,
-    database::{
-        Column, ColumnRef, ColumnType, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef,
-    },
+    database::{Column, ColumnType, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef},
     scalar::Scalar,
 };
 use sqlparser::ast::Ident;
@@ -24,22 +22,14 @@ impl RecordBatchAccessor {
     }
 }
 impl<S: Scalar> DataAccessor<S> for RecordBatchAccessor {
-    fn get_column(&self, column: ColumnRef) -> Column<S> {
-        let table = self
-            .tables
-            .get(&column.table_ref())
-            .expect("Table not found.");
+    fn get_column(&self, table_ref: &TableRef, column_id: &Ident) -> Column<S> {
+        let table = self.tables.get(table_ref).expect("Table not found.");
         let arrow_column = table
-            .column_by_name(column.column_id().value.as_str())
+            .column_by_name(column_id.value.as_str())
             .expect("Column not found.");
         let result = arrow_column
             .to_column(&self.alloc, &(0..table.num_rows()), None)
             .expect("Failed to convert arrow column.");
-        assert_eq!(
-            &result.column_type(),
-            column.column_type(),
-            "Type mismatch."
-        );
         result
     }
 }
@@ -57,9 +47,9 @@ impl MetadataAccessor for RecordBatchAccessor {
     }
 }
 impl SchemaAccessor for RecordBatchAccessor {
-    fn lookup_column(&self, table_ref: TableRef, column_id: Ident) -> Option<ColumnType> {
+    fn lookup_column(&self, table_ref: &TableRef, column_id: &Ident) -> Option<ColumnType> {
         self.tables
-            .get(&table_ref)
+            .get(table_ref)
             .expect("Table not found.")
             .schema()
             .column_with_name(column_id.value.as_str())
@@ -71,9 +61,9 @@ impl SchemaAccessor for RecordBatchAccessor {
             })
     }
 
-    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Ident, ColumnType)> {
+    fn lookup_schema(&self, table_ref: &TableRef) -> Vec<(Ident, ColumnType)> {
         self.tables
-            .get(&table_ref)
+            .get(table_ref)
             .expect("Table not found.")
             .schema()
             .fields()

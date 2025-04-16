@@ -8,7 +8,7 @@ use sqlparser::ast::Ident;
 
 pub fn col_ref(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name: Ident = name.into();
-    let type_col = accessor.lookup_column(tab.clone(), name.clone()).unwrap();
+    let type_col = accessor.lookup_column(tab, &name).unwrap();
     ColumnRef::new(tab.clone(), name, type_col)
 }
 
@@ -17,7 +17,7 @@ pub fn col_ref(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> Co
 /// - `accessor.lookup_column()` returns `None`, indicating the column is not found.
 pub fn column(tab: &TableRef, name: &str, accessor: &impl SchemaAccessor) -> DynProofExpr {
     let name: Ident = name.into();
-    let type_col = accessor.lookup_column(tab.clone(), name.clone()).unwrap();
+    let type_col = accessor.lookup_column(tab, &name).unwrap();
     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(tab.clone(), name, type_col)))
 }
 

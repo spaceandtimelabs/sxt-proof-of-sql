@@ -42,7 +42,7 @@ impl<A: SchemaAccessor> ContextProvider for PoSqlContextProvider<A> {
     ) -> Result<Arc<dyn TableSource>, DataFusionError> {
         let table_ref = table_reference_to_table_ref(&name)
             .map_err(|err| DataFusionError::External(Box::new(err)))?;
-        let schema = self.accessor.lookup_schema(table_ref);
+        let schema = self.accessor.lookup_schema(&table_ref);
         let column_fields = schema_to_column_fields(schema);
         Ok(Arc::new(PoSqlTableSource::new(column_fields)) as Arc<dyn TableSource>)
     }
