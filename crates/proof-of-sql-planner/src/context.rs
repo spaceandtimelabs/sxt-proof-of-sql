@@ -1,11 +1,12 @@
-use super::{column_fields_to_schema, table_reference_to_table_ref, PlannerResult};
-use alloc::{format, sync::Arc};
+use super::table_reference_to_table_ref;
+use crate::schema_to_column_fields;
+use alloc::sync::Arc;
 use arrow::datatypes::{Field, Schema};
 use core::any::Any;
 use datafusion::{
     common::{
         arrow::datatypes::{DataType, SchemaRef},
-        DFSchema, DataFusionError,
+        DataFusionError,
     },
     config::ConfigOptions,
     logical_expr::{
@@ -13,67 +14,37 @@ use datafusion::{
     },
     sql::{planner::ContextProvider, TableReference},
 };
-use indexmap::IndexMap;
-use proof_of_sql::base::{
-    database::{ColumnField, Table, TableRef},
-    scalar::Scalar,
-};
+use proof_of_sql::base::database::{ColumnField, SchemaAccessor};
 
 /// A [`ContextProvider`] implementation for Proof of SQL
 ///
 /// This provider is used to provide tables to the Proof of SQL planner
-pub struct PoSqlContextProvider<'a, S: Scalar> {
-    tables: IndexMap<TableRef, Table<'a, S>>,
+pub struct PoSqlContextProvider<A: SchemaAccessor> {
+    accessor: A,
     options: ConfigOptions,
 }
 
-impl<S: Scalar> Default for PoSqlContextProvider<'_, S> {
-    fn default() -> Self {
-        Self::new(IndexMap::new())
-    }
-}
-
-impl<'a, S: Scalar> PoSqlContextProvider<'a, S> {
+impl<A: SchemaAccessor> PoSqlContextProvider<A> {
     /// Create a new `PoSqlContextProvider`
     #[must_use]
-    pub fn new(tables: IndexMap<TableRef, Table<'a, S>>) -> Self {
+    pub fn new(accessor: A) -> Self {
         Self {
-            tables,
+            accessor,
             options: ConfigOptions::default(),
         }
     }
-
-    /// Get the [`DFSchemas`] of the tables in this provider
-    pub fn try_get_df_schemas(&self) -> PlannerResult<IndexMap<TableReference, DFSchema>> {
-        self.tables
-            .iter()
-            .map(|(table_ref, table)| {
-                let table_reference = TableReference::from(table_ref.to_string());
-                Ok((
-                    table_reference.clone(),
-                    DFSchema::try_from_qualified_schema(
-                        table_reference.clone(),
-                        &column_fields_to_schema(table.schema()),
-                    )?,
-                ))
-            })
-            .collect::<PlannerResult<IndexMap<_, _>>>()
-    }
 }
 
-impl<S: Scalar> ContextProvider for PoSqlContextProvider<'_, S> {
+impl<A: SchemaAccessor> ContextProvider for PoSqlContextProvider<A> {
     fn get_table_source(
         &self,
         name: TableReference,
     ) -> Result<Arc<dyn TableSource>, DataFusionError> {
         let table_ref = table_reference_to_table_ref(&name)
             .map_err(|err| DataFusionError::External(Box::new(err)))?;
-        self.tables
-            .get(&table_ref)
-            .ok_or_else(|| {
-                DataFusionError::Plan(format!("Table {} not found", name.to_quoted_string()))
-            })
-            .map(|table| Arc::new(PoSqlTableSource::new(table.schema())) as Arc<dyn TableSource>)
+        let schema = self.accessor.lookup_schema(table_ref);
+        let column_fields = schema_to_column_fields(schema);
+        Ok(Arc::new(PoSqlTableSource::new(column_fields)) as Arc<dyn TableSource>)
     }
     fn get_function_meta(&self, _name: &str) -> Option<Arc<ScalarUDF>> {
         None
@@ -146,14 +117,11 @@ impl TableSource for PoSqlTableSource {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ahash::AHasher;
     use alloc::vec;
-    use bumpalo::Bump;
     use core::any::TypeId;
-    use indexmap::indexmap;
-    use proof_of_sql::{
-        base::database::{table_utility::*, ColumnType},
-        proof_primitive::dory::DoryScalar,
-    };
+    use indexmap::indexmap_with_default;
+    use proof_of_sql::base::database::{ColumnType, TableRef, TestSchemaAccessor};
 
     // PoSqlTableSource
     #[test]
@@ -189,12 +157,8 @@ mod tests {
     #[test]
     fn we_can_create_a_posql_context_provider() {
         // Empty
-        let context_provider = PoSqlContextProvider::<DoryScalar>::default();
-        assert_eq!(context_provider.tables, IndexMap::new());
-        assert_eq!(
-            context_provider.try_get_df_schemas().unwrap(),
-            IndexMap::new()
-        );
+        let accessor = TestSchemaAccessor::new(indexmap_with_default! {AHasher;});
+        let context_provider = PoSqlContextProvider::new(accessor);
         assert_eq!(context_provider.udfs_names(), Vec::<String>::new());
         assert_eq!(context_provider.udafs_names(), Vec::<String>::new());
         assert_eq!(context_provider.udwfs_names(), Vec::<String>::new());
@@ -202,52 +166,26 @@ mod tests {
         assert_eq!(context_provider.get_function_meta(""), None);
         assert_eq!(context_provider.get_aggregate_meta(""), None);
         assert_eq!(context_provider.get_window_meta(""), None);
-        assert!(matches!(
-            context_provider.get_table_source(TableReference::from("namespace.table")),
-            Err(DataFusionError::Plan(_))
-        ));
+        assert_eq!(
+            context_provider
+                .get_table_source(TableReference::from("namespace.table"))
+                .unwrap()
+                .schema(),
+            PoSqlTableSource::new(Vec::new()).schema()
+        );
 
         // Non-empty
-        let alloc = Bump::new();
-        let tables = indexmap! {
-                TableRef::new("namespace", "a") =>
-                table(
-                    vec![
-                        borrowed_smallint("a", [1_i16, 2, 3], &alloc),
-                        borrowed_varchar("b", ["Space", "and", "Time"], &alloc),
-                    ]
-                ),
-                TableRef::new("namespace", "b") =>
-                table(
-                    vec![
-                        borrowed_int("c", [1, 2, 3], &alloc),
-                        borrowed_bigint("d", [1_i64, 2, 3], &alloc),
-                    ]
-                )
-        };
-        let context_provider = PoSqlContextProvider::<DoryScalar>::new(tables.clone());
-        let schema_a = Schema::new(vec![
-            Field::new("a", DataType::Int16, false),
-            Field::new("b", DataType::Utf8, false),
-        ]);
-        let schema_b = Schema::new(vec![
-            Field::new("c", DataType::Int32, false),
-            Field::new("d", DataType::Int64, false),
-        ]);
-        assert_eq!(context_provider.tables, tables);
-        assert_eq!(
-            context_provider.try_get_df_schemas().unwrap(),
-            indexmap! {
-                TableReference::from("namespace.a") => DFSchema::try_from_qualified_schema(
-                    "namespace.a",
-                    &schema_a
-                ).unwrap(),
-                TableReference::from("namespace.b") => DFSchema::try_from_qualified_schema(
-                    "namespace.b",
-                    &schema_b
-                ).unwrap(),
-            }
-        );
+        let accessor = TestSchemaAccessor::new(indexmap_with_default! {AHasher;
+            TableRef::new("namespace", "a") => indexmap_with_default! {AHasher;
+                "a".into() => ColumnType::SmallInt,
+                "b".into() => ColumnType::VarChar
+            },
+            TableRef::new("namespace", "b") => indexmap_with_default! {AHasher;
+                "c".into() => ColumnType::Int,
+                "d".into() => ColumnType::BigInt
+            },
+        });
+        let context_provider = PoSqlContextProvider::new(accessor);
         assert_eq!(context_provider.udfs_names(), Vec::<String>::new());
         assert_eq!(context_provider.udafs_names(), Vec::<String>::new());
         assert_eq!(context_provider.udwfs_names(), Vec::<String>::new());
@@ -255,15 +193,23 @@ mod tests {
         assert_eq!(context_provider.get_function_meta(""), None);
         assert_eq!(context_provider.get_aggregate_meta(""), None);
         assert_eq!(context_provider.get_window_meta(""), None);
-        assert!(matches!(
-            context_provider.get_table_source(TableReference::from("namespace.table")),
-            Err(DataFusionError::Plan(_))
-        ));
+        assert_eq!(
+            context_provider
+                .get_table_source(TableReference::from("namespace.a"))
+                .unwrap()
+                .schema(),
+            Arc::new(PoSqlTableSource::new(vec![
+                ColumnField::new("a".into(), ColumnType::SmallInt),
+                ColumnField::new("b".into(), ColumnType::VarChar)
+            ]))
+            .schema()
+        );
     }
 
     #[test]
     fn we_cannot_create_a_posql_context_provider_if_catalog_provided() {
-        let context_provider = PoSqlContextProvider::<DoryScalar>::new(IndexMap::new());
+        let accessor = TestSchemaAccessor::new(indexmap_with_default! {AHasher;});
+        let context_provider = PoSqlContextProvider::new(accessor);
         assert!(matches!(
             context_provider.get_table_source(TableReference::from("catalog.namespace.table")),
             Err(DataFusionError::External(_))
