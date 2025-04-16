@@ -14,6 +14,14 @@ fi
 sed -i 's/version = "*.*.*" # DO NOT CHANGE THIS LINE! This will be automatically updated/version = "'${NEW_VERSION}'"/' Cargo.toml
 sed -i 's/path = "[^"]*"/version = "'${NEW_VERSION}'"/g' Cargo.toml
 
-cargo publish -p proof-of-sql-parser --token ${CRATES_TOKEN}
-cargo publish -p proof-of-sql --token ${CRATES_TOKEN}
-cargo publish -p proof-of-sql-planner --token ${CRATES_TOKEN}
+CRATES=("proof-of-sql-parser" "proof-of-sql" "proof-of-sql-planner")
+
+for crate in "${CRATES[@]}"; do
+  echo "Attempting to see if ${crate}@${NEW_VERSION} is published already..." 
+  if cargo info "${crate}@${NEW_VERSION}" >/dev/null 2>&1; then
+    echo "The version ${NEW_VERSION} for ${crate} is already on crates.io. Skipping publish."
+  else
+    echo "${crate}@${NEW_VERSION} not found, publishing..."
+    cargo publish -p "${crate}" --token "${CRATES_TOKEN}"
+  fi
+done

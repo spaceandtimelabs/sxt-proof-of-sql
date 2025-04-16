@@ -1,11 +1,12 @@
 [package]
-name = "proof-of-sql-planner"
 publish = true
-edition.workspace = true
-exclude.workspace = true
-repository.workspace = true
-version.workspace = true
-license-file.workspace = true
+name = "proof-of-sql-planner"
+version = { workspace = true }
+edition = { workspace = true }
+repository = { workspace = true }
+description = "SQL query planner for proof-of-sql."
+exclude = { workspace = true }
+license-file = { workspace = true }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
