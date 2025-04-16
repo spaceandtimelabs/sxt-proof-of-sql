@@ -19,7 +19,6 @@ use proof_of_sql::{
 };
 use proof_of_sql_planner::{
     postprocessing::PostprocessingStep, sql_to_proof_plans, sql_to_proof_plans_with_postprocessing,
-    PoSqlContextProvider,
 };
 use sqlparser::{dialect::GenericDialect, parser::Parser};
 
@@ -41,18 +40,17 @@ fn new_test_accessor<'a, CP: CommitmentEvaluationProof>(
 /// This function will panic if anything goes wrong
 fn posql_end_to_end_test<'a, CP: CommitmentEvaluationProof>(
     sql: &str,
-    tables: IndexMap<TableRef, Table<'a, CP::Scalar>>,
+    tables: &IndexMap<TableRef, Table<'a, CP::Scalar>>,
     expected_results: &[OwnedTable<CP::Scalar>],
     prover_setup: CP::ProverPublicSetup<'a>,
     verifier_setup: CP::VerifierPublicSetup<'_>,
     params: &[LiteralValue],
 ) {
     // Get accessor
-    let accessor: TableTestAccessor<'a, CP> = new_test_accessor(&tables, prover_setup);
-    let context_provider = PoSqlContextProvider::new(tables);
+    let accessor: TableTestAccessor<'a, CP> = new_test_accessor(tables, prover_setup);
     let config = ConfigOptions::default();
     let statements = Parser::parse_sql(&GenericDialect {}, sql).unwrap();
-    let plans = sql_to_proof_plans(&statements, &context_provider, &accessor, &config).unwrap();
+    let plans = sql_to_proof_plans(&statements, &accessor, &config).unwrap();
     // Prove and verify the plans
     for (plan, expected) in plans.iter().zip(expected_results.iter()) {
         let res = VerifiableQueryResult::<CP>::new(plan, &accessor, &prover_setup, params).unwrap();
@@ -68,20 +66,18 @@ fn posql_end_to_end_test<'a, CP: CommitmentEvaluationProof>(
 /// This function will panic if anything goes wrong
 fn posql_end_to_end_test_with_postprocessing<'a, CP: CommitmentEvaluationProof>(
     sql: &str,
-    tables: IndexMap<TableRef, Table<'a, CP::Scalar>>,
+    tables: &IndexMap<TableRef, Table<'a, CP::Scalar>>,
     expected_results: &[OwnedTable<CP::Scalar>],
     prover_setup: CP::ProverPublicSetup<'a>,
     verifier_setup: CP::VerifierPublicSetup<'_>,
     params: &[LiteralValue],
 ) {
     // Get accessor
-    let accessor: TableTestAccessor<'a, CP> = new_test_accessor(&tables, prover_setup);
-    let context_provider = PoSqlContextProvider::new(tables);
+    let accessor: TableTestAccessor<'a, CP> = new_test_accessor(tables, prover_setup);
     let config = ConfigOptions::default();
     let statements = Parser::parse_sql(&GenericDialect {}, sql).unwrap();
     let plan_with_postprocessings =
-        sql_to_proof_plans_with_postprocessing(&statements, &context_provider, &accessor, &config)
-            .unwrap();
+        sql_to_proof_plans_with_postprocessing(&statements, &accessor, &config).unwrap();
     for (plan_with_postprocessing, expected) in plan_with_postprocessings
         .iter()
         .zip(expected_results.iter())
@@ -113,7 +109,7 @@ fn test_empty_sql() {
 
     posql_end_to_end_test::<DynamicDoryEvaluationProof>(
         "",
-        indexmap! {},
+        &indexmap! {},
         &[],
         &prover_setup,
         &verifier_setup,
@@ -150,7 +146,7 @@ fn test_tableless_queries() {
 
     posql_end_to_end_test::<DynamicDoryEvaluationProof>(
         sql,
-        tables,
+        &tables,
         &expected_results,
         &prover_setup,
         &verifier_setup,
@@ -199,7 +195,7 @@ fn test_simple_filter_queries() {
 
     posql_end_to_end_test::<DynamicDoryEvaluationProof>(
         sql,
-        tables,
+        &tables,
         &expected_results,
         &prover_setup,
         &verifier_setup,
@@ -244,7 +240,7 @@ fn test_projection() {
 
     posql_end_to_end_test::<DynamicDoryEvaluationProof>(
         sql,
-        tables,
+        &tables,
         &expected_results,
         &prover_setup,
         &verifier_setup,
@@ -277,7 +273,7 @@ fn test_projection_scaling() {
 
     posql_end_to_end_test::<DynamicDoryEvaluationProof>(
         sql,
-        tables,
+        &tables,
         &expected_results,
         &prover_setup,
         &verifier_setup,
@@ -314,7 +310,7 @@ fn test_slicing_limit() {
 
     posql_end_to_end_test::<DynamicDoryEvaluationProof>(
         sql,
-        tables,
+        &tables,
         &expected_results,
         &prover_setup,
         &verifier_setup,
@@ -401,7 +397,7 @@ fn test_group_by() {
 
     posql_end_to_end_test::<DynamicDoryEvaluationProof>(
         sql,
-        tables,
+        &tables,
         &expected_results,
         &prover_setup,
         &verifier_setup,
@@ -453,7 +449,7 @@ fn test_coin() {
 
     posql_end_to_end_test::<DynamicDoryEvaluationProof>(
         sql,
-        tables,
+        &tables,
         &expected_results,
         &prover_setup,
         &verifier_setup,
@@ -494,7 +490,7 @@ fn test_group_by_with_postprocessing() {
 
     posql_end_to_end_test_with_postprocessing::<DynamicDoryEvaluationProof>(
         sql,
-        tables,
+        &tables,
         &expected_results,
         &prover_setup,
         &verifier_setup,
