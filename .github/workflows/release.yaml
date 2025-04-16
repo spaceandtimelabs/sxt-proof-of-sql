@@ -28,6 +28,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "20.x"
+      - name: Install cargo info
+        run: |
+          cargo install cargo-info
       - name: Semantic Release
         run: |
           npm install semantic-release
