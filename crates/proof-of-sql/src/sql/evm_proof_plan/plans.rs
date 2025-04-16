@@ -93,7 +93,7 @@ impl EVMFilterExec {
                         alias: Ident::new(name),
                     })
                 })
-                .collect::<Result<Vec<_>, _>>()?,
+                .collect::<EVMProofPlanResult<Vec<_>>>()?,
             TableExpr {
                 table_ref: table_refs
                     .get_index(self.table_number)

@@ -1,4 +1,4 @@
-use super::{plans::EVMDynProofPlan, EVMProofPlanError};
+use super::{plans::EVMDynProofPlan, EVMProofPlanError, EVMProofPlanResult};
 use crate::{
     base::{
         database::{
@@ -76,7 +76,7 @@ impl TryFrom<&EVMProofPlan> for CompactPlan {
         let plan = EVMDynProofPlan::try_from_proof_plan(value.inner(), &table_refs, &column_refs)?;
         let columns = column_refs
             .into_iter()
-            .map(|column_ref| {
+            .map(|column_ref| -> EVMProofPlanResult<_> {
                 let table_index = table_refs
                     .get_index_of(&column_ref.table_ref())
                     .ok_or(EVMProofPlanError::TableNotFound)?;
@@ -111,7 +111,7 @@ impl TryFrom<CompactPlan> for EVMProofPlan {
         let column_refs: IndexSet<ColumnRef> = value
             .columns
             .iter()
-            .map(|(i, ident, column_type)| {
+            .map(|(i, ident, column_type)| -> EVMProofPlanResult<_> {
                 let table_ref = table_refs_clone
                     .get_index(*i)
                     .cloned()

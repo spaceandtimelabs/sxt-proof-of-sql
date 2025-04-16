@@ -30,6 +30,11 @@ impl NotExpr {
             .then_some(Self { expr })
             .ok_or(AnalyzeError::InvalidDataType { expr_type })
     }
+
+    /// Get the input expression
+    pub fn input(&self) -> &DynProofExpr {
+        &self.expr
+    }
 }
 
 impl ProofExpr for NotExpr {

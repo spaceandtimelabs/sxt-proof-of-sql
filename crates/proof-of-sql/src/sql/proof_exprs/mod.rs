@@ -16,7 +16,7 @@ pub(crate) use subtract_expr::SubtractExpr;
 mod add_subtract_expr_test;
 
 mod multiply_expr;
-use multiply_expr::MultiplyExpr;
+pub(crate) use multiply_expr::MultiplyExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod multiply_expr_test;
 
@@ -44,12 +44,12 @@ use inequality_expr::InequalityExpr;
 mod inequality_expr_test;
 
 mod or_expr;
-use or_expr::OrExpr;
+pub(crate) use or_expr::OrExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod or_expr_test;
 
 mod not_expr;
-use not_expr::NotExpr;
+pub(crate) use not_expr::NotExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod not_expr_test;
 
