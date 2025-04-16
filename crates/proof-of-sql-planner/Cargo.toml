@@ -13,15 +13,15 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ahash = { workspace = true }
 arrow = { workspace = true }
-datafusion = { version = '38.0.0', default-features = false }
+datafusion = { workspace = true }
 # getrandom and uuid must be compiled with js feature
-getrandom = { version = "0.2.15", features = ["js"] }
+getrandom = { workspace = true, features = ["js"] }
 indexmap = { workspace = true }
-proof-of-sql = { path = "../proof-of-sql", default-features = false, features = ["arrow"] }
+proof-of-sql = { workspace = true, features = ["arrow"] }
 serde = { workspace = true }
 snafu = { workspace = true }
 sqlparser = { workspace = true }
-uuid = { version = "1.15.1", default-features = false, features = ["js"] }
+uuid = { workspace = true, features = ["js"] }
 
 [dev-dependencies]
 ark-std = { workspace = true }

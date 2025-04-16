@@ -35,8 +35,10 @@ clap = { version = "4.5.4" }
 criterion = { version = "0.5.1" }
 chrono = { version = "=0.4.39", default-features = false }
 curve25519-dalek = { version = "4", features = ["rand_core"] }
+datafusion = { version = "38.0.0", default-features = false }
 derive_more = { version = "0.99" }
 enum_dispatch = { version = "0.3.13" }
+getrandom = { version = "0.2.15", default-features = false }
 ff = { version = "0.13.0"}
 flexbuffers = { version = "2.0.0" }
 halo2curves = { version = "0.8.0", default-features = false }
@@ -53,7 +55,7 @@ num-bigint = { version = "0.4.4", default-features = false }
 opentelemetry = { version = "0.23.0" }
 opentelemetry-jaeger = { version = "0.20.0" }
 postcard = { version = "1.0" }
-proof-of-sql = { path = "crates/proof-of-sql" } # We automatically update this line during release. So do not modify it!
+proof-of-sql = { path = "crates/proof-of-sql", default-features = false } # We automatically update this line during release. So do not modify it!
 proof-of-sql-parser = { path = "crates/proof-of-sql-parser" } # We automatically update this line during release. So do not modify it!
 proptest = { version = "1.6.0" }
 proptest-derive = { version = "0.5.1" }
@@ -72,6 +74,7 @@ tempfile = { version = "3.13.0", default-features = false }
 tracing = { version = "0.1.36", default-features = false }
 tracing-opentelemetry = { version = "0.22.0" }
 tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
+uuid = { version = "1.15.1", default-features = false }
 wasm-bindgen = { version = "0.2.92" }
 zerocopy = { version = "0.7.34" }
 
