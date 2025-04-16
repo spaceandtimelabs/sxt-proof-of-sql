@@ -4,16 +4,14 @@ use crate::{
 };
 use alloc::{sync::Arc, vec::Vec};
 use datafusion::{
-    catalog::TableReference,
-    common::DFSchema,
     config::ConfigOptions,
     logical_expr::LogicalPlan,
     optimizer::{Analyzer, Optimizer, OptimizerContext, OptimizerRule},
     sql::planner::{ContextProvider, SqlToRel},
 };
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use proof_of_sql::{
-    base::database::{ParseError, TableRef},
+    base::database::{ParseError, SchemaAccessor, TableRef},
     sql::proof_plans::DynProofPlan,
 };
 use sqlparser::ast::{visit_relations, Statement};
@@ -46,16 +44,17 @@ pub fn optimizer() -> Optimizer {
 /// 3. Analyze the `LogicalPlan` using `Analyzer`
 /// 4. Optimize the `LogicalPlan` using `Optimizer`
 /// 5. Convert the optimized `LogicalPlan` into a Proof of SQL plan
-fn sql_to_posql_plans<S, T, F>(
+fn sql_to_posql_plans<S, T, F, A>(
     statements: &[Statement],
     context_provider: &S,
-    schemas: &IndexMap<TableReference, DFSchema>,
+    schemas: &A,
     config: &ConfigOptions,
     planner_converter: F,
 ) -> PlannerResult<Vec<T>>
 where
     S: ContextProvider,
-    F: Fn(&LogicalPlan, &IndexMap<TableReference, DFSchema>) -> PlannerResult<T>,
+    F: Fn(&LogicalPlan, &A) -> PlannerResult<T>,
+    A: SchemaAccessor,
 {
     // 1. Parse the SQL query into AST using sqlparser
     statements
@@ -82,10 +81,10 @@ where
 /// Convert a SQL query to a `DynProofPlan` using schema from provided tables
 ///
 /// See `sql_to_posql_plans` for more details
-pub fn sql_to_proof_plans<S: ContextProvider>(
+pub fn sql_to_proof_plans<S: ContextProvider, A: SchemaAccessor>(
     statements: &[Statement],
     context_provider: &S,
-    schemas: &IndexMap<TableReference, DFSchema>,
+    schemas: &A,
     config: &ConfigOptions,
 ) -> PlannerResult<Vec<DynProofPlan>> {
     sql_to_posql_plans(
@@ -100,10 +99,10 @@ pub fn sql_to_proof_plans<S: ContextProvider>(
 /// Convert a SQL query to a `ProofPlanWithPostprocessing` using schema from provided tables
 ///
 /// See `sql_to_posql_plans` for more details
-pub fn sql_to_proof_plans_with_postprocessing<S: ContextProvider>(
+pub fn sql_to_proof_plans_with_postprocessing<S: ContextProvider, A: SchemaAccessor>(
     statements: &[Statement],
     context_provider: &S,
-    schemas: &IndexMap<TableReference, DFSchema>,
+    schemas: &A,
     config: &ConfigOptions,
 ) -> PlannerResult<Vec<ProofPlanWithPostprocessing>> {
     sql_to_posql_plans(

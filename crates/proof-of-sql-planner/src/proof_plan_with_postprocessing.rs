@@ -1,13 +1,8 @@
 use super::{
     logical_plan_to_proof_plan, postprocessing::SelectPostprocessing, PlannerError, PlannerResult,
 };
-use datafusion::{
-    common::DFSchema,
-    logical_expr::{LogicalPlan, Projection},
-    sql::TableReference,
-};
-use indexmap::IndexMap;
-use proof_of_sql::sql::proof_plans::DynProofPlan;
+use datafusion::logical_expr::{LogicalPlan, Projection};
+use proof_of_sql::{base::database::SchemaAccessor, sql::proof_plans::DynProofPlan};
 
 /// A [`DynProofPlan`] with optional postprocessing
 #[derive(Debug, Clone)]
@@ -42,7 +37,7 @@ impl ProofPlanWithPostprocessing {
 /// Visit a [`datafusion::logical_plan::LogicalPlan`] and return a [`DynProofPlan`] with optional postprocessing
 pub fn logical_plan_to_proof_plan_with_postprocessing(
     plan: &LogicalPlan,
-    schemas: &IndexMap<TableReference, DFSchema>,
+    schemas: &impl SchemaAccessor,
 ) -> PlannerResult<ProofPlanWithPostprocessing> {
     let result_proof_plan = logical_plan_to_proof_plan(plan, schemas);
     match result_proof_plan {
@@ -69,25 +64,28 @@ pub fn logical_plan_to_proof_plan_with_postprocessing(
 mod tests {
     use super::*;
     use crate::{df_util::*, PoSqlTableSource};
+    use ahash::AHasher;
     use alloc::sync::Arc;
-    use arrow::datatypes::DataType;
     use core::ops::Mul;
     use datafusion::{
-        common::{Column, ScalarValue},
+        common::{Column, DFSchema, ScalarValue},
         logical_expr::{
             expr::{AggregateFunction, AggregateFunctionDefinition},
             Aggregate, EmptyRelation, Expr, LogicalPlan, Prepare, TableScan, TableSource,
         },
         physical_plan,
+        sql::TableReference,
     };
-    use indexmap::indexmap;
+    use indexmap::{indexmap_with_default, IndexMap};
     use proof_of_sql::{
-        base::database::{ColumnField, ColumnRef, ColumnType, TableRef},
+        base::database::{ColumnField, ColumnRef, ColumnType, TableRef, TestSchemaAccessor},
         sql::{
             proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
             proof_plans::DynProofPlan,
         },
     };
+    use sqlparser::ast::Ident;
+    use std::hash::BuildHasherDefault;
 
     const SUM: AggregateFunctionDefinition =
         AggregateFunctionDefinition::BuiltIn(physical_plan::aggregates::AggregateFunction::Sum);
@@ -100,22 +98,24 @@ mod tests {
     }
 
     #[expect(non_snake_case)]
-    fn SCHEMAS() -> IndexMap<TableReference, DFSchema> {
-        indexmap! {
-            TableReference::from("languages") => df_schema(
-                "languages",
-                vec![
-                    ("name", DataType::Utf8),
-                    ("language_family", DataType::Utf8),
-                    ("uses_abjad", DataType::Boolean),
-                    ("num_of_letters", DataType::Int64),
-                    ("grace", DataType::Utf8),
-                    ("love", DataType::Utf8),
-                    ("joy", DataType::Utf8),
-                    ("peace", DataType::Utf8),
-                ],
-            ),
-        }
+    fn SCHEMAS() -> impl SchemaAccessor {
+        let schema: IndexMap<Ident, ColumnType, BuildHasherDefault<AHasher>> = indexmap_with_default! {
+            AHasher;
+            "name".into() => ColumnType::VarChar,
+            "language_family".into() => ColumnType::VarChar,
+            "uses_abjad".into() => ColumnType::Boolean,
+            "num_of_letters".into() => ColumnType::BigInt,
+            "grace".into() => ColumnType::VarChar,
+            "love".into() => ColumnType::VarChar,
+            "joy".into() => ColumnType::VarChar,
+            "peace".into() => ColumnType::VarChar
+        };
+        let table_ref = TableRef::new("", "languages");
+        let schema_accessor = indexmap_with_default! {
+            AHasher;
+            table_ref => schema
+        };
+        TestSchemaAccessor::new(schema_accessor)
     }
 
     #[expect(non_snake_case)]

@@ -1,6 +1,7 @@
 use super::{
-    aggregate_function_to_proof_expr, column_to_column_ref, df_schema_to_column_fields,
-    expr_to_proof_expr, table_reference_to_table_ref, AggregateFunc, PlannerError, PlannerResult,
+    aggregate_function_to_proof_expr, column_to_column_ref, expr_to_proof_expr,
+    schema_to_column_fields, table_reference_to_table_ref, AggregateFunc, PlannerError,
+    PlannerResult,
 };
 use alloc::vec::Vec;
 use datafusion::{
@@ -12,7 +13,7 @@ use datafusion::{
 };
 use indexmap::IndexMap;
 use proof_of_sql::{
-    base::database::{ColumnRef, ColumnType, LiteralValue, TableRef},
+    base::database::{ColumnRef, ColumnType, LiteralValue, SchemaAccessor, TableRef},
     sql::{
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
         proof_plans::DynProofPlan,
@@ -29,7 +30,7 @@ use proof_of_sql::{
 fn get_aliased_dyn_proof_exprs(
     table_ref: &TableRef,
     projection: &[usize],
-    input_schema: &DFSchema,
+    input_schema: &[(Ident, ColumnType)],
     output_schema: &DFSchema,
 ) -> PlannerResult<Vec<AliasedDynProofExpr>> {
     projection
@@ -39,17 +40,13 @@ fn get_aliased_dyn_proof_exprs(
             |(output_index, input_index)| -> PlannerResult<AliasedDynProofExpr> {
                 // Get output column name / alias
                 let alias: Ident = output_schema.field(output_index).name().as_str().into();
-                let input_column_name: Ident =
-                    input_schema.field(*input_index).name().as_str().into();
-                let data_type = input_schema.field(*input_index).data_type();
+                let (input_column_name, data_type) = input_schema
+                    .get(*input_index)
+                    .ok_or(PlannerError::ColumnNotFound)?;
                 let expr = DynProofExpr::new_column(ColumnRef::new(
                     table_ref.clone(),
-                    input_column_name,
-                    ColumnType::try_from(data_type.clone()).map_err(|_e| {
-                        PlannerError::UnsupportedDataType {
-                            data_type: data_type.clone(),
-                        }
-                    })?,
+                    input_column_name.clone(),
+                    *data_type,
                 ));
                 Ok(AliasedDynProofExpr { expr, alias })
             },
@@ -60,21 +57,17 @@ fn get_aliased_dyn_proof_exprs(
 /// Convert a `TableScan` without filters or fetch limit to a `DynProofPlan`
 fn table_scan_to_projection(
     table_name: &TableReference,
-    schemas: &IndexMap<TableReference, DFSchema>,
+    schemas: &impl SchemaAccessor,
     projection: &[usize],
     projected_schema: &DFSchema,
 ) -> PlannerResult<DynProofPlan> {
     // Check if the table exists
     let table_ref = table_reference_to_table_ref(table_name)?;
-    let input_schema = schemas
-        .get(table_name)
-        .ok_or_else(|| PlannerError::TableNotFound {
-            table_name: table_name.to_string(),
-        })?;
+    let input_schema = schemas.lookup_schema(table_ref.clone());
     // Get aliased expressions
     let aliased_dyn_proof_exprs =
-        get_aliased_dyn_proof_exprs(&table_ref, projection, input_schema, projected_schema)?;
-    let input_column_fields = df_schema_to_column_fields(input_schema)?;
+        get_aliased_dyn_proof_exprs(&table_ref, projection, &input_schema, projected_schema)?;
+    let input_column_fields = schema_to_column_fields(input_schema);
     let table_exec = DynProofPlan::new_table(table_ref, input_column_fields);
     Ok(DynProofPlan::new_projection(
         aliased_dyn_proof_exprs,
@@ -88,26 +81,22 @@ fn table_scan_to_projection(
 /// Panics if there are no filters which should not happen if called from `logical_plan_to_proof_plan`
 fn table_scan_to_filter(
     table_name: &TableReference,
-    schemas: &IndexMap<TableReference, DFSchema>,
+    schemas: &impl SchemaAccessor,
     projection: &[usize],
     projected_schema: &DFSchema,
     filters: &[Expr],
 ) -> PlannerResult<DynProofPlan> {
     // Check if the table exists
     let table_ref = table_reference_to_table_ref(table_name)?;
-    let input_schema = schemas
-        .get(table_name)
-        .ok_or_else(|| PlannerError::TableNotFound {
-            table_name: table_name.to_string(),
-        })?;
+    let input_schema = schemas.lookup_schema(table_ref.clone());
     // Get aliased expressions
     let aliased_dyn_proof_exprs =
-        get_aliased_dyn_proof_exprs(&table_ref, projection, input_schema, projected_schema)?;
+        get_aliased_dyn_proof_exprs(&table_ref, projection, &input_schema, projected_schema)?;
     let table_expr = TableExpr { table_ref };
     // Filter
     let consolidated_filter_proof_expr = filters
         .iter()
-        .map(|f| expr_to_proof_expr(f, input_schema))
+        .map(|f| expr_to_proof_expr(f, &input_schema))
         .reduce(|a, b| Ok(DynProofExpr::try_new_and(a?, b?)?))
         .expect("At least one filter expression is required")?;
     Ok(DynProofPlan::new_filter(
@@ -117,20 +106,37 @@ fn table_scan_to_filter(
     ))
 }
 
+fn try_get_schema_as_vec_from_df_schema(
+    df_schema: &DFSchema,
+) -> PlannerResult<Vec<(Ident, ColumnType)>> {
+    df_schema
+        .inner()
+        .fields()
+        .into_iter()
+        .map(|f| {
+            ColumnType::try_from(f.data_type().clone())
+                .map_err(|_| PlannerError::UnsupportedDataType {
+                    data_type: f.data_type().clone(),
+                })
+                .map(|t| (Ident::from(f.name().as_ref()), t))
+        })
+        .collect::<Result<Vec<_>, _>>()
+}
+
 /// Converts a [`datafusion::logical_expr::Projection`] to a [`DynProofPlan`]
 fn projection_to_proof_plan(
     expr: &[Expr],
     input: &LogicalPlan,
     output_schema: &DFSchema,
-    schemas: &IndexMap<TableReference, DFSchema>,
+    schemas: &impl SchemaAccessor,
 ) -> PlannerResult<DynProofPlan> {
     let input_plan = logical_plan_to_proof_plan(input, schemas)?;
-    let input_schema = input.schema();
+    let input_schema = try_get_schema_as_vec_from_df_schema(input.schema())?;
     let aliased_exprs = expr
         .iter()
         .zip(output_schema.fields().into_iter())
         .map(|(e, field)| -> PlannerResult<AliasedDynProofExpr> {
-            let proof_expr = expr_to_proof_expr(e, input_schema)?;
+            let proof_expr = expr_to_proof_expr(e, &input_schema)?;
             let alias = field.name().as_str().into();
             Ok(AliasedDynProofExpr {
                 expr: proof_expr,
@@ -151,7 +157,7 @@ fn aggregate_to_proof_plan(
     input: &LogicalPlan,
     group_expr: &[Expr],
     aggr_expr: &[Expr],
-    schemas: &IndexMap<TableReference, DFSchema>,
+    schemas: &impl SchemaAccessor,
     alias_map: &IndexMap<&str, &str>,
 ) -> PlannerResult<DynProofPlan> {
     // Check that all of `group_expr` are columns and get their names
@@ -173,17 +179,12 @@ fn aggregate_to_proof_plan(
             ..
         }) => {
             let table_ref = table_reference_to_table_ref(table_name)?;
-            let input_schema =
-                schemas
-                    .get(table_name)
-                    .ok_or_else(|| PlannerError::TableNotFound {
-                        table_name: table_name.to_string(),
-                    })?;
+            let input_schema = schemas.lookup_schema(table_ref.clone());
             let table_expr = TableExpr { table_ref };
             // Filter
             let consolidated_filter_proof_expr = filters
                 .iter()
-                .map(|f| expr_to_proof_expr(f, input_schema))
+                .map(|f| expr_to_proof_expr(f, &input_schema))
                 .reduce(|a, b| Ok(DynProofExpr::try_new_and(a?, b?)?))
                 .unwrap_or_else(|| Ok(DynProofExpr::new_literal(LiteralValue::Boolean(true))))?;
             // Aggregate
@@ -208,7 +209,7 @@ fn aggregate_to_proof_plan(
                             }
                         })?;
                         Ok((
-                            aggregate_function_to_proof_expr(&agg, input_schema)?,
+                            aggregate_function_to_proof_expr(&agg, &input_schema)?,
                             (*alias).into(),
                         ))
                     }
@@ -239,7 +240,12 @@ fn aggregate_to_proof_plan(
             // `group_by_exprs`
             let group_by_exprs = group_columns
                 .iter()
-                .map(|column| Ok(ColumnExpr::new(column_to_column_ref(column, input_schema)?)))
+                .map(|column| {
+                    Ok(ColumnExpr::new(column_to_column_ref(
+                        column,
+                        &input_schema,
+                    )?))
+                })
                 .collect::<PlannerResult<Vec<_>>>()?;
             // `sum_expr`
             let sum_expr = sum_tuples
@@ -266,7 +272,7 @@ fn aggregate_to_proof_plan(
 /// Visit a [`datafusion::logical_plan::LogicalPlan`] and return a [`DynProofPlan`]
 pub fn logical_plan_to_proof_plan(
     plan: &LogicalPlan,
-    schemas: &IndexMap<TableReference, DFSchema>,
+    schemas: &impl SchemaAccessor,
 ) -> PlannerResult<DynProofPlan> {
     match plan {
         LogicalPlan::EmptyRelation { .. } => Ok(DynProofPlan::new_empty()),
@@ -359,7 +365,8 @@ pub fn logical_plan_to_proof_plan(
                 .iter()
                 .map(|input| logical_plan_to_proof_plan(input, schemas))
                 .collect::<PlannerResult<Vec<_>>>()?;
-            let column_fields = df_schema_to_column_fields(schema)?;
+            let column_fields =
+                schema_to_column_fields(try_get_schema_as_vec_from_df_schema(schema)?);
             Ok(DynProofPlan::new_union(input_plans, column_fields))
         }
         _ => Err(PlannerError::UnsupportedLogicalPlan { plan: plan.clone() }),
@@ -370,6 +377,7 @@ pub fn logical_plan_to_proof_plan(
 mod tests {
     use super::*;
     use crate::{df_util::*, PoSqlTableSource};
+    use ahash::AHasher;
     use alloc::{sync::Arc, vec};
     use arrow::datatypes::DataType;
     use core::ops::Add;
@@ -381,8 +389,12 @@ mod tests {
         },
         physical_plan,
     };
-    use indexmap::indexmap;
-    use proof_of_sql::base::database::ColumnField;
+    use indexmap::{indexmap, indexmap_with_default};
+    use proof_of_sql::base::{
+        database::{ColumnField, TestSchemaAccessor},
+        math::decimal::Precision,
+    };
+    use std::hash::BuildHasherDefault;
 
     const SUM: AggregateFunctionDefinition =
         AggregateFunctionDefinition::BuiltIn(physical_plan::aggregates::AggregateFunction::Sum);
@@ -397,50 +409,43 @@ mod tests {
     }
 
     #[expect(non_snake_case)]
-    fn SCHEMAS() -> IndexMap<TableReference, DFSchema> {
-        indexmap! {
-            TableReference::from("table") => df_schema(
-                "table",
-                vec![
-                    ("a", DataType::Int64),
-                    ("b", DataType::Int32),
-                    ("c", DataType::Utf8),
-                    ("d", DataType::Boolean),
-                ],
-            ),
-        }
+    fn SCHEMAS() -> impl SchemaAccessor {
+        let schema: IndexMap<Ident, ColumnType, BuildHasherDefault<AHasher>> = indexmap_with_default! {
+            AHasher;
+            "a".into() => ColumnType::BigInt,
+            "b".into() => ColumnType::Int,
+            "c".into() => ColumnType::VarChar,
+            "d".into() => ColumnType::Boolean
+        };
+        let table_ref = TableRef::new("", "table");
+        let schema_accessor = indexmap_with_default! {
+            AHasher;
+            table_ref => schema
+        };
+        TestSchemaAccessor::new(schema_accessor)
     }
 
     #[expect(non_snake_case)]
-    fn UNION_SCHEMAS() -> IndexMap<TableReference, DFSchema> {
-        indexmap! {
-            TableReference::from("table1") => df_schema(
-                "table1",
-                vec![
-                    ("a1", DataType::Int64),
-                    ("b1", DataType::Int32),
-                ],
-            ),
-            TableReference::from("table2") => df_schema(
-                "table2",
-                vec![
-                    ("a2", DataType::Int64),
-                    ("b2", DataType::Int32),
-                ],
-            ),
-            TableReference::from("schema.table3") => df_schema(
-                "table3",
-                vec![
-                    ("a3", DataType::Int64),
-                    ("b3", DataType::Int32),
-                ],
-            ),
-        }
+    fn UNION_SCHEMAS() -> impl SchemaAccessor {
+        TestSchemaAccessor::new(indexmap_with_default! {AHasher;
+            TableRef::new("", "table1") => indexmap_with_default! {AHasher;
+                "a1".into() => ColumnType::BigInt,
+                "b1".into() => ColumnType::Int
+            },
+            TableRef::new("", "table2") => indexmap_with_default! {AHasher;
+                "a2".into() => ColumnType::BigInt,
+                "b2".into() => ColumnType::Int
+            },
+            TableRef::new("schema", "table3") => indexmap_with_default! {AHasher;
+                "a3".into() => ColumnType::BigInt,
+                "b3".into() => ColumnType::Int
+            },
+        })
     }
 
     #[expect(non_snake_case)]
-    fn EMPTY_SCHEMAS() -> IndexMap<TableReference, DFSchema> {
-        indexmap! {}
+    fn EMPTY_SCHEMAS() -> impl SchemaAccessor {
+        TestSchemaAccessor::new(indexmap_with_default! {AHasher;})
     }
 
     #[expect(non_snake_case)]
@@ -542,15 +547,15 @@ mod tests {
     fn we_can_get_aliased_proof_expr_with_specified_projection_columns() {
         // Unused columns can be of unsupported types
         let table_ref = TABLE_REF_TABLE();
-        let input_schema = df_schema(
-            "table",
-            vec![
-                ("a", DataType::Int64),
-                ("b", DataType::Int32),
-                ("c", DataType::Utf8),
-                ("d", DataType::Float32), // Unused column
-            ],
-        );
+        let input_schema = vec![
+            ("a".into(), ColumnType::BigInt),
+            ("b".into(), ColumnType::Int),
+            ("c".into(), ColumnType::VarChar),
+            (
+                "d".into(),
+                ColumnType::Decimal75(Precision::new(5).unwrap(), 1),
+            ), // Unused column
+        ];
         let output_schema = df_schema("table", vec![("b", DataType::Int32), ("c", DataType::Utf8)]);
         let result =
             get_aliased_dyn_proof_exprs(&table_ref, &[1, 2], &input_schema, &output_schema)
@@ -562,15 +567,12 @@ mod tests {
     #[test]
     fn we_can_get_aliased_proof_expr_without_specified_projection_columns() {
         let table_ref = TABLE_REF_TABLE();
-        let input_schema = df_schema(
-            "table",
-            vec![
-                ("a", DataType::Int64),
-                ("b", DataType::Int32),
-                ("c", DataType::Utf8),
-                ("d", DataType::Boolean),
-            ],
-        );
+        let input_schema = vec![
+            ("a".into(), ColumnType::BigInt),
+            ("b".into(), ColumnType::Int),
+            ("c".into(), ColumnType::VarChar),
+            ("d".into(), ColumnType::Boolean),
+        ];
         let output_schema = df_schema(
             "table",
             vec![
@@ -585,32 +587,6 @@ mod tests {
                 .unwrap();
         let expected = vec![ALIASED_A(), ALIASED_B(), ALIASED_C(), ALIASED_D()];
         assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn we_cannot_get_aliased_proof_expr_if_unsupported_data_types_are_included() {
-        let table_ref = TABLE_REF_TABLE();
-        let input_schema = df_schema(
-            "table",
-            vec![
-                ("a", DataType::Int64),
-                ("b", DataType::Float64),
-                ("c", DataType::Utf8),
-                ("d", DataType::Boolean),
-            ],
-        );
-        let output_schema = df_schema(
-            "table",
-            vec![
-                ("b", DataType::Float64),
-                ("c", DataType::Utf8),
-                ("d", DataType::Date32),
-            ],
-        );
-        assert!(matches!(
-            get_aliased_dyn_proof_exprs(&table_ref, &[1, 2, 3], &input_schema, &output_schema,),
-            Err(PlannerError::UnsupportedDataType { .. })
-        ));
     }
 
     // aggregate_to_proof_plan
@@ -1211,8 +1187,7 @@ mod tests {
             produce_one_row: false,
             schema: Arc::new(DFSchema::empty()),
         });
-        let schemas = indexmap! {};
-        let result = logical_plan_to_proof_plan(&empty_plan, &schemas).unwrap();
+        let result = logical_plan_to_proof_plan(&empty_plan, &EMPTY_SCHEMAS()).unwrap();
         assert_eq!(result, DynProofPlan::new_empty());
     }
 
@@ -1254,7 +1229,7 @@ mod tests {
         );
         let schemas = EMPTY_SCHEMAS();
         let result = logical_plan_to_proof_plan(&plan, &schemas);
-        assert!(matches!(result, Err(PlannerError::TableNotFound { .. })));
+        assert!(matches!(result, Err(PlannerError::ColumnNotFound)));
     }
 
     #[test]
@@ -1324,7 +1299,7 @@ mod tests {
         );
         let schemas = EMPTY_SCHEMAS();
         let result = logical_plan_to_proof_plan(&plan, &schemas);
-        assert!(matches!(result, Err(PlannerError::TableNotFound { .. })));
+        assert!(matches!(result, Err(PlannerError::ColumnNotFound)));
     }
 
     #[test]

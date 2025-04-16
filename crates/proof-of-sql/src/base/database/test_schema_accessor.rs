@@ -1,5 +1,6 @@
 use super::{ColumnType, SchemaAccessor, TableRef};
 use crate::base::map::IndexMap;
+use alloc::vec::Vec;
 use sqlparser::ast::Ident;
 /// A simple in-memory `SchemaAccessor` for testing intermediate AST -> Provable AST conversion.
 pub struct TestSchemaAccessor {
@@ -8,6 +9,7 @@ pub struct TestSchemaAccessor {
 
 impl TestSchemaAccessor {
     /// Create a new `TestSchemaAccessor` with the given schema.
+    #[must_use]
     pub fn new(schemas: IndexMap<TableRef, IndexMap<Ident, ColumnType>>) -> Self {
         Self { schemas }
     }

@@ -38,6 +38,9 @@ pub enum PlannerError {
         /// Underlying datafusion error
         source: DataFusionError,
     },
+    /// Returned if a column is not found
+    #[snafu(display("Column not found"))]
+    ColumnNotFound,
     /// Returned if a table is not found
     #[snafu(display("Table not found: {}", table_name))]
     TableNotFound {
