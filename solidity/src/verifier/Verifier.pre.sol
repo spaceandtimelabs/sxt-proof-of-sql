@@ -304,6 +304,10 @@ library Verifier {
             function proof_plan_evaluate(plan_ptr, builder_ptr) -> plan_ptr_out, evaluations_ptr {
                 revert(0, 0)
             }
+            // IMPORT-YUL ../verifier/PlanUtil.pre.sol
+            function full_proof_plan_evaluate(plan_ptr, builder_ptr) -> evaluations_ptr {
+                revert(0, 0)
+            }
 
             function read_first_round_message(proof_ptr_init, transcript_ptr, builder_ptr) ->
                 proof_ptr,
@@ -378,7 +382,7 @@ library Verifier {
 
                 append_calldata(transcript_ptr, proof_ptr_init, sub(proof_ptr, proof_ptr_init))
             }
-            // IMPORT-YUL PlanUtil.sol
+            // IMPORT-YUL PlanUtil.pre.sol
             function skip_plan_names(plan_ptr) -> plan_ptr_out {
                 revert(0, 0)
             }
@@ -500,8 +504,7 @@ library Verifier {
                     )
                 )
 
-                plan_ptr := skip_plan_names(plan_ptr)
-                plan_ptr, evaluations_ptr := proof_plan_evaluate(plan_ptr, builder_ptr)
+                evaluations_ptr := full_proof_plan_evaluate(plan_ptr, builder_ptr)
                 builder_check_aggregate_evaluation(builder_ptr)
             }
 
