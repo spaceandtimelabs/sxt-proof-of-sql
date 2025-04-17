@@ -177,7 +177,7 @@ jobs:
       - name: Clean Previous Coverage Artifacts
         run: cargo llvm-cov clean --workspace
       - name: Run Tests to Generate Coverage Data (All Features)
-        run: cargo llvm-cov --no-report --all-features --workspace --exclude proof-of-sql-benches
+        run: cargo llvm-cov --no-report --all-features --workspace --exclude proof-of-sql-benches --ignore-filename-regex evm_tests
       #- name: Run Tests to Generate Coverage Data (Rayon Only)
       #  run: cargo llvm-cov --no-report --no-default-features --features="rayon"
       #- name: Run Tests to Generate Coverage Data (Blitzar Only)
