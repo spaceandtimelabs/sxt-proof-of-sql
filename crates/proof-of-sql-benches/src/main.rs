@@ -3,7 +3,7 @@
 //! To run, execute the following commands:
 //! ```bash
 //! docker run --rm -d --name jaeger -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one:1.62.0
-//! cargo run --release --bin jaeger_benches --features="bench" -- --help
+//! cargo run --release --bin proof-of-sql-benches -- --help
 //! ```
 //! Then, navigate to <http://localhost:16686> to view the traces.
 //!
