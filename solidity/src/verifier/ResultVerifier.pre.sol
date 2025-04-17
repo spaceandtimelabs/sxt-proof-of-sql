@@ -72,7 +72,10 @@ library ResultVerifier {
 
                     switch column_variant
                     case 0 { case_const(0, COLUMN_BIGINT_VARIANT) }
-                    default { err(ERR_UNSUPPORTED_LITERAL_VARIANT) }
+                    case 1 { case_const(1, COLUMN_INT_VARIANT) }
+                    case 2 { case_const(2, COLUMN_SMALLINT_VARIANT) }
+                    case 3 { case_const(3, COLUMN_TINYINT_VARIANT) }
+                    default { err(ERR_UNSUPPORTED_COLUMN_VARIANT) }
 
                     if first {
                         first := 0
@@ -93,6 +96,33 @@ library ResultVerifier {
                                     signextend(INT64_SIZE_MINUS_ONE, shr(INT64_PADDING_BITS, calldataload(result_ptr)))
                                 )
                             result_ptr := add(result_ptr, INT64_SIZE)
+                        }
+                        case 1 {
+                            case_const(1, COLUMN_INT_VARIANT)
+                            entry :=
+                                add(
+                                    MODULUS,
+                                    signextend(INT32_SIZE_MINUS_ONE, shr(INT32_PADDING_BITS, calldataload(result_ptr)))
+                                )
+                            result_ptr := add(result_ptr, INT32_SIZE)
+                        }
+                        case 2 {
+                            case_const(2, COLUMN_SMALLINT_VARIANT)
+                            entry :=
+                                add(
+                                    MODULUS,
+                                    signextend(INT16_SIZE_MINUS_ONE, shr(INT16_PADDING_BITS, calldataload(result_ptr)))
+                                )
+                            result_ptr := add(result_ptr, INT16_SIZE)
+                        }
+                        case 3 {
+                            case_const(3, COLUMN_TINYINT_VARIANT)
+                            entry :=
+                                add(
+                                    MODULUS,
+                                    signextend(INT8_SIZE_MINUS_ONE, shr(INT8_PADDING_BITS, calldataload(result_ptr)))
+                                )
+                            result_ptr := add(result_ptr, INT8_SIZE)
                         }
                         value := addmod(value, mulmod(entry, mload(add(eval_vec, mul(i, WORD_SIZE))), MODULUS), MODULUS)
                     }
