@@ -210,14 +210,16 @@ fn we_can_verify_a_complex_filter_using_the_evm() {
         owned_table([
             bigint("a", [5, 3, 2, 5, 3, 2, 102, 104, 107, 108]),
             bigint("b", [0, 1, 2, 3, 4, 5, 33, 44, 55, 6]),
-            bigint("c", [6, 7, 8, 9, 10, 11, 14, 15, 73, 23]),
+            bigint("c", [0, 7, 8, 9, 10, 11, 14, 15, 73, 23]),
             bigint("d", [5, 7, 2, 5, 4, 1, 12, 22, 22, 22]),
         ]),
         0,
         &ps[..],
     );
     let query = QueryExpr::try_new(
-        "SELECT b,c FROM table WHERE a = d".parse().unwrap(),
+        "SELECT b,c FROM table WHERE a + b = d and b = a * c"
+            .parse()
+            .unwrap(),
         "namespace".into(),
         &accessor,
     )

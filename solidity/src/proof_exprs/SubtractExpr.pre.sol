@@ -77,6 +77,22 @@ library SubtractExpr {
             function add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
+            // IMPORT-YUL MultiplyExpr.pre.sol
+            function multiply_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+                revert(0, 0)
+            }
+            // IMPORT-YUL AndExpr.pre.sol
+            function and_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+                revert(0, 0)
+            }
+            // IMPORT-YUL OrExpr.pre.sol
+            function or_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+                revert(0, 0)
+            }
+            // IMPORT-YUL NotExpr.pre.sol
+            function not_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+                revert(0, 0)
+            }
             // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_consume_final_round_mle(builder_ptr) -> value {
                 revert(0, 0)

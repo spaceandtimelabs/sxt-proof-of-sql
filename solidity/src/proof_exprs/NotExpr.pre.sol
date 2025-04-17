@@ -6,35 +6,34 @@ import "../base/Constants.sol";
 import "../base/Errors.sol";
 import {VerificationBuilder} from "../builder/VerificationBuilder.pre.sol";
 
-/// @title AddExpr
-/// @dev Library for handling adding two proof expressions
-library AddExpr {
-    /// @notice Evaluates an add expression by adding two sub-expressions
+/// @title NotExpr
+/// @dev Library for handling inverting a boolean proof expression
+library NotExpr {
+    /// @notice Evaluates an not expression by inverting the input sub-expression
     /// @custom:as-yul-wrapper
     /// #### Wrapped Yul Function
     /// ##### Signature
     /// ```yul
-    /// add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval
+    /// not_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval
     /// ```
     /// ##### Parameters
     /// * `expr_ptr` - calldata pointer to the expression data
     /// * `builder_ptr` - memory pointer to the verification builder
     /// * `chi_eval` - the chi value for evaluation
     /// ##### Return Values
-    /// * `expr_ptr_out` - pointer to the remaining expression after consuming both sub-expressions
+    /// * `expr_ptr_out` - pointer to the remaining expression after consuming the sub-expression
     /// * `eval` - the evaluation result from the builder's final round MLE
-    /// @notice Evaluates two sub-expressions and adds them together
+    /// @notice Evaluates the input sub-expression and inverts it
     /// ##### Proof Plan Encoding
-    /// The add expression is encoded as follows:
-    /// 1. The left hand side expression
-    /// 2. The right hand side expression
-    /// @param __expr The add expression data
+    /// The not expression is encoded as follows:
+    /// 1. The input expression
+    /// @param __expr The not expression data
     /// @param __builder The verification builder
     /// @param __chiEval The chi value for evaluation
     /// @return __exprOut The remaining expression after processing
     /// @return __builderOut The verification builder result
     /// @return __eval The evaluated result
-    function __addExprEvaluate( // solhint-disable-line gas-calldata-parameters
+    function __notExprEvaluate( // solhint-disable-line gas-calldata-parameters
     bytes calldata __expr, VerificationBuilder.Builder memory __builder, uint256 __chiEval)
         external
         pure
@@ -73,6 +72,10 @@ library AddExpr {
             function equals_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
+            // IMPORT-YUL AddExpr.pre.sol
+            function add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+                revert(0, 0)
+            }
             // IMPORT-YUL SubtractExpr.pre.sol
             function subtract_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
@@ -89,10 +92,6 @@ library AddExpr {
             function or_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
-            // IMPORT-YUL NotExpr.pre.sol
-            function not_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
-                revert(0, 0)
-            }
             // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
             function builder_consume_final_round_mle(builder_ptr) -> value {
                 revert(0, 0)
@@ -106,19 +105,16 @@ library AddExpr {
                 revert(0, 0)
             }
 
-            function add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
-                let lhs_eval
-                expr_ptr, lhs_eval := proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
+            function not_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
+                let input_eval
+                expr_ptr, input_eval := proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
 
-                let rhs_eval
-                expr_ptr, rhs_eval := proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
-
-                result_eval := addmod(lhs_eval, rhs_eval, MODULUS)
+                result_eval := addmod(chi_eval, mulmod(MODULUS_MINUS_ONE, input_eval, MODULUS), MODULUS)
                 expr_ptr_out := expr_ptr
             }
 
             let __exprOutOffset
-            __exprOutOffset, __eval := add_expr_evaluate(__expr.offset, __builder, __chiEval)
+            __exprOutOffset, __eval := not_expr_evaluate(__expr.offset, __builder, __chiEval)
             __exprOut.offset := __exprOutOffset
             // slither-disable-next-line write-after-write
             __exprOut.length := sub(__expr.length, sub(__exprOutOffset, __expr.offset))
