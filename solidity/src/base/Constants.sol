@@ -57,6 +57,10 @@ uint32 constant COLUMN_EXPR_VARIANT = 0;
 uint32 constant LITERAL_EXPR_VARIANT = 1;
 /// @dev Equals variant constant for proof expressions
 uint32 constant EQUALS_EXPR_VARIANT = 2;
+/// @dev Add variant constant for proof expressions
+uint32 constant ADD_EXPR_VARIANT = 3;
+/// @dev Subtract variant constant for proof expressions
+uint32 constant SUBTRACT_EXPR_VARIANT = 4;
 
 /// @dev Filter variant constant for proof plans
 uint32 constant FILTER_EXEC_VARIANT = 0;
