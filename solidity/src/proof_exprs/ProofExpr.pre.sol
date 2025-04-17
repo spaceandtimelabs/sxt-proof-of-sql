@@ -14,7 +14,8 @@ library ProofExpr {
         Literal,
         Equals,
         Add,
-        Subtract
+        Subtract,
+        Cast
     }
 
     /// @notice Evaluates a proof expression
@@ -100,6 +101,10 @@ library ProofExpr {
             function subtract_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
                 revert(0, 0)
             }
+            // IMPORT-YUL CastExpr.pre.sol
+            function cast_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
+                revert(0, 0)
+            }
 
             function proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 let proof_expr_variant := shr(UINT32_PADDING_BITS, calldataload(expr_ptr))
@@ -125,6 +130,10 @@ library ProofExpr {
                 case 4 {
                     case_const(4, SUBTRACT_EXPR_VARIANT)
                     expr_ptr_out, eval := subtract_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
+                }
+                case 5 {
+                    case_const(5, CAST_EXPR_VARIANT)
+                    expr_ptr_out, eval := cast_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
                 }
                 default { err(ERR_UNSUPPORTED_PROOF_EXPR_VARIANT) }
             }

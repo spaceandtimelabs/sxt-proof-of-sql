@@ -33,6 +33,16 @@ impl CastExpr {
                 right_type: to_type.to_string(),
             })
     }
+
+    /// Returns the from expression
+    pub fn get_from_expr(&self) -> &DynProofExpr {
+        &self.from_expr
+    }
+
+    /// Returns the to type
+    pub fn to_type(&self) -> &ColumnType {
+        &self.to_type
+    }
 }
 
 impl ProofExpr for CastExpr {

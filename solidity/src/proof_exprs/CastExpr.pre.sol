@@ -6,35 +6,34 @@ import "../base/Constants.sol";
 import "../base/Errors.sol";
 import {VerificationBuilder} from "../builder/VerificationBuilder.pre.sol";
 
-/// @title SubtractExpr
-/// @dev Library for handling subtracting two proof expressions
-library SubtractExpr {
-    /// @notice Evaluates an subtract expression by subtracting one sub-expression from the other
+/// @title CastExpr
+/// @dev Library for handling casting a proof expression
+library CastExpr {
+    /// @notice Evaluates an cast expression by casting a sub-expression
     /// @custom:as-yul-wrapper
     /// #### Wrapped Yul Function
     /// ##### Signature
     /// ```yul
-    /// subtract_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval
+    /// cast_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval
     /// ```
     /// ##### Parameters
     /// * `expr_ptr` - calldata pointer to the expression data
     /// * `builder_ptr` - memory pointer to the verification builder
     /// * `chi_eval` - the chi value for evaluation
     /// ##### Return Values
-    /// * `expr_ptr_out` - pointer to the remaining expression after consuming both sub-expressions
+    /// * `expr_ptr_out` - pointer to the remaining expression after consuming the sub-expression
     /// * `eval` - the evaluation result from the builder's final round MLE
-    /// @notice Evaluates two sub-expressions and subtract one from the other
+    /// @notice Evaluates a sub-expression and casts it
     /// ##### Proof Plan Encoding
-    /// The subtract expression is encoded as follows:
-    /// 1. The left hand side expression
-    /// 2. The right hand side expression
-    /// @param __expr The subtract expression data
+    /// The cast expression is encoded as follows:
+    /// 1. The input expression
+    /// @param __expr The cast expression data
     /// @param __builder The verification builder
     /// @param __chiEval The chi value for evaluation
     /// @return __exprOut The remaining expression after processing
     /// @return __builderOut The verification builder result
     /// @return __eval The evaluated result
-    function __subtractExprEvaluate( // solhint-disable-line gas-calldata-parameters
+    function __castExprEvaluate( // solhint-disable-line gas-calldata-parameters
     bytes calldata __expr, VerificationBuilder.Builder memory __builder, uint256 __chiEval)
         external
         pure
@@ -77,8 +76,8 @@ library SubtractExpr {
             function add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
-            // IMPORT-YUL CastExpr.pre.sol
-            function cast_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+            // IMPORT-YUL SubtractExpr.pre.sol
+            function subtract_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
             // IMPORT-YUL ../builder/VerificationBuilder.pre.sol
@@ -94,19 +93,12 @@ library SubtractExpr {
                 revert(0, 0)
             }
 
-            function subtract_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
-                let lhs_eval
-                expr_ptr, lhs_eval := proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
-
-                let rhs_eval
-                expr_ptr, rhs_eval := proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
-
-                result_eval := addmod(lhs_eval, mulmod(MODULUS_MINUS_ONE, rhs_eval, MODULUS), MODULUS)
-                expr_ptr_out := expr_ptr
+            function cast_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
+                expr_ptr_out, result_eval := proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
             }
 
             let __exprOutOffset
-            __exprOutOffset, __eval := subtract_expr_evaluate(__expr.offset, __builder, __chiEval)
+            __exprOutOffset, __eval := cast_expr_evaluate(__expr.offset, __builder, __chiEval)
             __exprOut.offset := __exprOutOffset
             // slither-disable-next-line write-after-write
             __exprOut.length := sub(__expr.length, sub(__exprOutOffset, __expr.offset))

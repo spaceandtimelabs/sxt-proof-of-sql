@@ -117,10 +117,28 @@ contract ProofExprTest is Test {
         }
     }
 
+    function testCastExprVariant() public pure {
+        VerificationBuilder.Builder memory builder;
+        bytes memory expr = abi.encodePacked(
+            CAST_EXPR_VARIANT, abi.encodePacked(LITERAL_EXPR_VARIANT, LITERAL_BIGINT_VARIANT, int64(2)), hex"abcdef"
+        );
+        bytes memory expectedExprOut = hex"abcdef";
+
+        uint256 eval;
+        (expr, builder, eval) = ProofExpr.__proofExprEvaluate(expr, builder, 3);
+
+        assert(eval == 6); // 2 * 3
+        assert(expr.length == expectedExprOut.length);
+        uint256 exprOutLength = expr.length;
+        for (uint256 i = 0; i < exprOutLength; ++i) {
+            assert(expr[i] == expectedExprOut[i]);
+        }
+    }
+
     /// forge-config: default.allow_internal_expect_revert = true
     function testUnsupportedVariant() public {
         VerificationBuilder.Builder memory builder;
-        bytes memory exprIn = abi.encodePacked(uint32(5), hex"abcdef");
+        bytes memory exprIn = abi.encodePacked(uint32(6), hex"abcdef");
         vm.expectRevert(Errors.UnsupportedProofExprVariant.selector);
         ProofExpr.__proofExprEvaluate(exprIn, builder, 0);
     }
@@ -131,5 +149,6 @@ contract ProofExprTest is Test {
         assert(uint32(ProofExpr.ExprVariant.Equals) == EQUALS_EXPR_VARIANT);
         assert(uint32(ProofExpr.ExprVariant.Add) == ADD_EXPR_VARIANT);
         assert(uint32(ProofExpr.ExprVariant.Subtract) == SUBTRACT_EXPR_VARIANT);
+        assert(uint32(ProofExpr.ExprVariant.Cast) == CAST_EXPR_VARIANT);
     }
 }
