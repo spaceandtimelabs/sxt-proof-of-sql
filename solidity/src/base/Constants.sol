@@ -61,6 +61,14 @@ uint32 constant EQUALS_EXPR_VARIANT = 2;
 uint32 constant ADD_EXPR_VARIANT = 3;
 /// @dev Subtract variant constant for proof expressions
 uint32 constant SUBTRACT_EXPR_VARIANT = 4;
+/// @dev Multiply variant constant for proof expressions
+uint32 constant MULTIPLY_EXPR_VARIANT = 5;
+/// @dev And variant constant for proof expressions
+uint32 constant AND_EXPR_VARIANT = 6;
+/// @dev Or variant constant for proof expressions
+uint32 constant OR_EXPR_VARIANT = 7;
+/// @dev Not variant constant for proof expressions
+uint32 constant NOT_EXPR_VARIANT = 8;
 
 /// @dev Filter variant constant for proof plans
 uint32 constant FILTER_EXEC_VARIANT = 0;

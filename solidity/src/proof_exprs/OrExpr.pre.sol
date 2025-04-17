@@ -6,15 +6,15 @@ import "../base/Constants.sol";
 import "../base/Errors.sol";
 import {VerificationBuilder} from "../builder/VerificationBuilder.pre.sol";
 
-/// @title AddExpr
-/// @dev Library for handling adding two proof expressions
-library AddExpr {
-    /// @notice Evaluates an add expression by adding two sub-expressions
+/// @title OrExpr
+/// @dev Library for handling running OR on two proof expressions
+library OrExpr {
+    /// @notice Evaluates an or expression by running OR on two sub-expressions
     /// @custom:as-yul-wrapper
     /// #### Wrapped Yul Function
     /// ##### Signature
     /// ```yul
-    /// add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval
+    /// or_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval
     /// ```
     /// ##### Parameters
     /// * `expr_ptr` - calldata pointer to the expression data
@@ -23,18 +23,18 @@ library AddExpr {
     /// ##### Return Values
     /// * `expr_ptr_out` - pointer to the remaining expression after consuming both sub-expressions
     /// * `eval` - the evaluation result from the builder's final round MLE
-    /// @notice Evaluates two sub-expressions and adds them together
+    /// @notice Evaluates two sub-expressions or multiplies them together
     /// ##### Proof Plan Encoding
-    /// The add expression is encoded as follows:
+    /// The or expression is encoded as follows:
     /// 1. The left hand side expression
     /// 2. The right hand side expression
-    /// @param __expr The add expression data
+    /// @param __expr The or expression data
     /// @param __builder The verification builder
     /// @param __chiEval The chi value for evaluation
     /// @return __exprOut The remaining expression after processing
     /// @return __builderOut The verification builder result
     /// @return __eval The evaluated result
-    function __addExprEvaluate( // solhint-disable-line gas-calldata-parameters
+    function __orExprEvaluate( // solhint-disable-line gas-calldata-parameters
     bytes calldata __expr, VerificationBuilder.Builder memory __builder, uint256 __chiEval)
         external
         pure
@@ -73,6 +73,10 @@ library AddExpr {
             function equals_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
+            // IMPORT-YUL AddExpr.pre.sol
+            function add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+                revert(0, 0)
+            }
             // IMPORT-YUL SubtractExpr.pre.sol
             function subtract_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
@@ -83,10 +87,6 @@ library AddExpr {
             }
             // IMPORT-YUL AndExpr.pre.sol
             function and_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
-                revert(0, 0)
-            }
-            // IMPORT-YUL OrExpr.pre.sol
-            function or_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
             // IMPORT-YUL NotExpr.pre.sol
@@ -106,19 +106,33 @@ library AddExpr {
                 revert(0, 0)
             }
 
-            function add_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
+            function or_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, result_eval {
                 let lhs_eval
                 expr_ptr, lhs_eval := proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
 
                 let rhs_eval
                 expr_ptr, rhs_eval := proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval)
 
-                result_eval := addmod(lhs_eval, rhs_eval, MODULUS)
+                let lhs_times_rhs_eval := builder_consume_final_round_mle(builder_ptr)
+                result_eval :=
+                    addmod(
+                        addmod(lhs_eval, rhs_eval, MODULUS), mulmod(MODULUS_MINUS_ONE, lhs_times_rhs_eval, MODULUS), MODULUS
+                    )
+                builder_produce_identity_constraint(
+                    builder_ptr,
+                    addmod(
+                        lhs_times_rhs_eval,
+                        mulmod(MODULUS_MINUS_ONE, mulmod(lhs_eval, rhs_eval, MODULUS), MODULUS),
+                        MODULUS
+                    ),
+                    2
+                )
+
                 expr_ptr_out := expr_ptr
             }
 
             let __exprOutOffset
-            __exprOutOffset, __eval := add_expr_evaluate(__expr.offset, __builder, __chiEval)
+            __exprOutOffset, __eval := or_expr_evaluate(__expr.offset, __builder, __chiEval)
             __exprOut.offset := __exprOutOffset
             // slither-disable-next-line write-after-write
             __exprOut.length := sub(__expr.length, sub(__exprOutOffset, __expr.offset))

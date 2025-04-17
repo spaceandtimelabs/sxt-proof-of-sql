@@ -140,6 +140,22 @@ library FilterExec {
             function subtract_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
             }
+            // IMPORT-YUL ../proof_exprs/MultiplyExpr.pre.sol
+            function multiply_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../proof_exprs/AndExpr.pre.sol
+            function and_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../proof_exprs/OrExpr.pre.sol
+            function or_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+                revert(0, 0)
+            }
+            // IMPORT-YUL ../proof_exprs/NotExpr.pre.sol
+            function not_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
+                revert(0, 0)
+            }
             // IMPORT-YUL ../proof_exprs/ProofExpr.pre.sol
             function proof_expr_evaluate(expr_ptr, builder_ptr, chi_eval) -> expr_ptr_out, eval {
                 revert(0, 0)
