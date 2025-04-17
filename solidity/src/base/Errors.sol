@@ -26,6 +26,8 @@ uint32 constant ERR_CONSTRAINT_DEGREE_TOO_HIGH = 0x8568ae69;
 uint32 constant ERR_INCORRECT_CASE_CONST = 0x9324fb03;
 /// @dev Error code for when a literal variant is unsupported.
 uint32 constant ERR_UNSUPPORTED_LITERAL_VARIANT = 0xed9d5b00;
+/// @dev Error code for when a column variant is unsupported.
+uint32 constant ERR_UNSUPPORTED_COLUMN_VARIANT = 0xf2ab0581;
 /// @dev Error code for when an index is invalid.
 uint32 constant ERR_INVALID_INDEX = 0x63df8171;
 /// @dev Error code for when a proof expression variant is unsupported.
@@ -76,6 +78,8 @@ library Errors {
     error IncorrectCaseConst();
     /// @notice Error thrown when a literal variant is unsupported.
     error UnsupportedLiteralVariant();
+    /// @notice Error thrown when a column variant is unsupported.
+    error UnsupportedColumnVariant();
     /// @notice Error thrown when an index is invalid.
     error InvalidIndex();
     /// @notice Error thrown when a proof expression variant is unsupported.

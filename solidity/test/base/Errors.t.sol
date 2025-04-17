@@ -91,6 +91,13 @@ contract ErrorsTest is Test {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
+    function testErrorUnsupportedColumnVariant() public {
+        assert(Errors.UnsupportedColumnVariant.selector == bytes4(ERR_UNSUPPORTED_COLUMN_VARIANT));
+        vm.expectRevert(Errors.UnsupportedColumnVariant.selector);
+        Errors.__err(ERR_UNSUPPORTED_COLUMN_VARIANT);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
     function testErrorInvalidIndex() public {
         assert(Errors.InvalidIndex.selector == bytes4(ERR_INVALID_INDEX));
         vm.expectRevert(Errors.InvalidIndex.selector);

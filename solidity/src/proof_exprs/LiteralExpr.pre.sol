@@ -9,7 +9,11 @@ import "../base/Errors.sol";
 /// @dev Library for handling literal expressions
 library LiteralExpr {
     enum LiteralVariant {
-        BigInt
+        BigInt,
+        Int,
+        SmallInt,
+        TinyInt,
+        Boolean
     }
 
     /// @notice Evaluates a literal expression
@@ -62,6 +66,24 @@ library LiteralExpr {
                     eval :=
                         add(signextend(INT64_SIZE_MINUS_ONE, shr(INT64_PADDING_BITS, calldataload(expr_ptr))), MODULUS)
                     expr_ptr := add(expr_ptr, INT64_SIZE)
+                }
+                case 1 {
+                    case_const(1, LITERAL_INT_VARIANT)
+                    eval :=
+                        add(signextend(INT32_SIZE_MINUS_ONE, shr(INT32_PADDING_BITS, calldataload(expr_ptr))), MODULUS)
+                    expr_ptr := add(expr_ptr, INT32_SIZE)
+                }
+                case 2 {
+                    case_const(2, LITERAL_SMALLINT_VARIANT)
+                    eval :=
+                        add(signextend(INT16_SIZE_MINUS_ONE, shr(INT16_PADDING_BITS, calldataload(expr_ptr))), MODULUS)
+                    expr_ptr := add(expr_ptr, INT16_SIZE)
+                }
+                case 3 {
+                    case_const(3, LITERAL_TINYINT_VARIANT)
+                    eval :=
+                        add(signextend(INT8_SIZE_MINUS_ONE, shr(INT8_PADDING_BITS, calldataload(expr_ptr))), MODULUS)
+                    expr_ptr := add(expr_ptr, INT8_SIZE)
                 }
                 default { err(ERR_UNSUPPORTED_LITERAL_VARIANT) }
                 eval := mulmod(eval, chi_eval, MODULUS)

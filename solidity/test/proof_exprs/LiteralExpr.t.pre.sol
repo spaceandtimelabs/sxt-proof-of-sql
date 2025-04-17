@@ -32,8 +32,44 @@ contract LiteralExprTest is Test {
         }
     }
 
+    function testFuzzIntLiteralExpr(int32 literalValue, uint256 chiInEval, bytes memory trailingExpr) public pure {
+        bytes memory exprIn = abi.encodePacked(LITERAL_INT_VARIANT, literalValue, trailingExpr);
+        (bytes memory exprOut, uint256 eval) = LiteralExpr.__literalExprEvaluate(exprIn, chiInEval);
+        assert(eval == (F.from(literalValue) * F.from(chiInEval)).into());
+        assert(exprOut.length == trailingExpr.length);
+        uint256 exprOutLength = exprOut.length;
+        for (uint256 i = 0; i < exprOutLength; ++i) {
+            assert(exprOut[i] == trailingExpr[i]);
+        }
+    }
+
+    function testFuzzSmallIntLiteralExpr(int16 literalValue, uint256 chiInEval, bytes memory trailingExpr)
+        public
+        pure
+    {
+        bytes memory exprIn = abi.encodePacked(LITERAL_SMALLINT_VARIANT, literalValue, trailingExpr);
+        (bytes memory exprOut, uint256 eval) = LiteralExpr.__literalExprEvaluate(exprIn, chiInEval);
+        assert(eval == (F.from(literalValue) * F.from(chiInEval)).into());
+        assert(exprOut.length == trailingExpr.length);
+        uint256 exprOutLength = exprOut.length;
+        for (uint256 i = 0; i < exprOutLength; ++i) {
+            assert(exprOut[i] == trailingExpr[i]);
+        }
+    }
+
+    function testFuzzTinyIntLiteralExpr(int8 literalValue, uint256 chiInEval, bytes memory trailingExpr) public pure {
+        bytes memory exprIn = abi.encodePacked(LITERAL_TINYINT_VARIANT, literalValue, trailingExpr);
+        (bytes memory exprOut, uint256 eval) = LiteralExpr.__literalExprEvaluate(exprIn, chiInEval);
+        assert(eval == (F.from(literalValue) * F.from(chiInEval)).into());
+        assert(exprOut.length == trailingExpr.length);
+        uint256 exprOutLength = exprOut.length;
+        for (uint256 i = 0; i < exprOutLength; ++i) {
+            assert(exprOut[i] == trailingExpr[i]);
+        }
+    }
+
     function testFuzzInvalidLiteralVariant(uint32 variant) public {
-        vm.assume(variant > 0);
+        vm.assume(variant > 4);
         bytes memory exprIn = abi.encodePacked(variant, int64(2), hex"abcdef");
         vm.expectRevert(Errors.UnsupportedLiteralVariant.selector);
         LiteralExpr.__literalExprEvaluate(exprIn, 3);

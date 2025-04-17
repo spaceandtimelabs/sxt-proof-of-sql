@@ -37,6 +37,24 @@ contract ConstantsTest is Test {
         assert(WORDX12_SIZE == 12 * WORD_SIZE);
     }
 
+    function testInt8SizesAreCorrect() public pure {
+        assert(INT8_SIZE * 8 == 8);
+        assert(INT8_PADDING_BITS == 256 - 8);
+        assert(INT8_SIZE_MINUS_ONE == INT8_SIZE - 1);
+    }
+
+    function testInt16SizesAreCorrect() public pure {
+        assert(INT16_SIZE * 8 == 16);
+        assert(INT16_PADDING_BITS == 256 - 16);
+        assert(INT16_SIZE_MINUS_ONE == INT16_SIZE - 1);
+    }
+
+    function testInt32SizesAreCorrect() public pure {
+        assert(INT32_SIZE * 8 == 32);
+        assert(INT32_PADDING_BITS == 256 - 32);
+        assert(INT32_SIZE_MINUS_ONE == INT32_SIZE - 1);
+    }
+
     function testUint32SizesAreCorrect() public pure {
         assert(UINT32_SIZE * 8 == 32);
         assert(UINT32_PADDING_BITS == 256 - 32);
