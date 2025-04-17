@@ -35,6 +35,16 @@ impl AndExpr {
                 right_type: right_datatype.to_string(),
             })
     }
+
+    /// Get the left-hand side expression
+    pub fn lhs(&self) -> &DynProofExpr {
+        &self.lhs
+    }
+
+    /// Get the right-hand side expression
+    pub fn rhs(&self) -> &DynProofExpr {
+        &self.rhs
+    }
 }
 
 impl ProofExpr for AndExpr {

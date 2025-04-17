@@ -1,3 +1,4 @@
+use crate::sql::AnalyzeError;
 use snafu::Snafu;
 
 /// Represents errors that can occur in the EVM proof plan module.
@@ -15,6 +16,12 @@ pub(crate) enum EVMProofPlanError {
     /// Error indicating that table name can not be parsed into `TableRef`.
     #[snafu(display("table name can not be parsed into TableRef"))]
     InvalidTableName,
+    /// Analyze error
+    #[snafu(transparent)]
+    AnalyzeError {
+        /// The underlying source error
+        source: AnalyzeError,
+    },
 }
 
 /// Result type for EVM proof plan operations.
