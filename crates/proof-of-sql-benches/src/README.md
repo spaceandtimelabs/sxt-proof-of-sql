@@ -10,7 +10,7 @@ The Jaeger benchmarks/tracing is wrapped by a binary. The motivation of the wrap
     ```
 2. See all the options to run a benchmark.
     ```bash
-    cargo run --release --bin jaeger_benches --features="bench" -- --help
+    cargo run --release --bin proof-of-sql-benches -- --help
     ```
 3. Navigate to http://localhost:16686/ to see the results.
 4. To end the Jaeger service, run
@@ -18,14 +18,14 @@ The Jaeger benchmarks/tracing is wrapped by a binary. The motivation of the wrap
     docker kill jaeger
     ```
 
-All the options are outlined in the help and `jaeger_benches.rs` module.
+All the options are outlined in the help and `main.rs` module.
 
 ### Example
 
 To run a benchmark on the `HyperKZG` commitment scheme using the `Single Column Filter` query with a table size of `1_000_000` for `3` iterations, your command would be the following.
 
 ```bash
-cargo run --release --bin jaeger_benches --features="bench" -- --s hyper-kzg -i 3 -t 1000000 -q single-column-filter
+cargo run --release --bin proof-of-sql-benches -- --s hyper-kzg -i 3 -t 1000000 -q single-column-filter
 ```
 
 ### Memory logging (optional)
@@ -34,7 +34,7 @@ Jaeger benchmarks default to logging any traces at `DEBUG` level and above. Memo
 
 Example
 ```
-RUST_LOG=trace cargo bench -p proof-of-sql --bench jaeger_benches DynamicDory
+RUST_LOG=trace cargo run --release --bin proof-of-sql-benches
 ```
 
 ## Criterion benchmarking
@@ -43,6 +43,6 @@ To run benchmarks with Criterion, you need to do the following
 
 1. Run the benchmarks. (Warning: this takes a very long time.)
     ```bash
-    cargo bench -p proof-of-sql --bench bench_append_rows --features="test"
+    cargo bench -p proof-of-sql-benches --bench bench_append_rows --features="test"
     ```
 2. Navigate to `target/criterion/report/index.html` to see the results.
