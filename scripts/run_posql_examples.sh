@@ -36,7 +36,7 @@ cargo_commands=$(
 if [ -z "$cargo_commands" ]; then
   echo "No cargo commands were found in the 'examples:' job block."
   echo "Nothing to run."
-
+  exit 0
 fi
 
 echo "Commands extracted from the 'examples:' job:"
