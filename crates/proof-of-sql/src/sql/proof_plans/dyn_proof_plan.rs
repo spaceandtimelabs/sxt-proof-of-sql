@@ -26,6 +26,10 @@ use sqlparser::ast::Ident;
 /// The query plan for proving a query
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[enum_dispatch::enum_dispatch]
+#[serde(
+    from = "crate::sql::evm_proof_plan::EVMProofPlan",
+    into = "crate::sql::evm_proof_plan::EVMProofPlan"
+)]
 pub enum DynProofPlan {
     /// Source [`ProofPlan`] for (sub)queries without table source such as `SELECT "No table here" as msg;`
     Empty(EmptyExec),

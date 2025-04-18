@@ -35,6 +35,17 @@ pub struct EVMProofPlan {
     inner: DynProofPlan,
 }
 
+impl From<DynProofPlan> for EVMProofPlan {
+    fn from(plan: DynProofPlan) -> Self {
+        Self { inner: plan }
+    }
+}
+impl From<EVMProofPlan> for DynProofPlan {
+    fn from(plan: EVMProofPlan) -> Self {
+        plan.inner
+    }
+}
+
 impl EVMProofPlan {
     /// Create a new `EVMProofPlan` from a `DynProofPlan`.
     #[must_use]

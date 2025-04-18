@@ -108,7 +108,7 @@ fn we_can_verify_a_simple_filter_using_the_evm() {
     let plan = query.proof_expr();
 
     let verifiable_result = VerifiableQueryResult::<HyperKZGCommitmentEvaluationProof>::new(
-        &EVMProofPlan::new(plan.clone()),
+        plan,
         &accessor,
         &&ps[..],
         &[],
