@@ -50,6 +50,8 @@ mod or_expr_test;
 
 mod not_expr;
 pub(crate) use not_expr::NotExpr;
+#[cfg(test)]
+mod boolean_expr_no_blitzar_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod not_expr_test;
 
