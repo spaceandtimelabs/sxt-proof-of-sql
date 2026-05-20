@@ -38,3 +38,35 @@ impl From<PoSQLTimestampError> for String {
         error.to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn timestamp_errors_convert_to_display_strings() {
+        let invalid_timezone: String = PoSQLTimestampError::InvalidTimezone {
+            timezone: "Mars/Phobos".to_string(),
+        }
+        .into();
+        assert_eq!(invalid_timezone, "invalid timezone string: Mars/Phobos");
+
+        let invalid_offset: String = PoSQLTimestampError::InvalidTimezoneOffset.into();
+        assert_eq!(invalid_offset, "invalid timezone offset");
+
+        let invalid_unit: String = PoSQLTimestampError::InvalidTimeUnit {
+            error: "fortnight".to_string(),
+        }
+        .into();
+        assert_eq!(invalid_unit, "Invalid time unit");
+
+        let unsupported_precision: String = PoSQLTimestampError::UnsupportedPrecision {
+            error: "weeks".to_string(),
+        }
+        .into();
+        assert_eq!(
+            unsupported_precision,
+            "Unsupported precision for timestamp: weeks"
+        );
+    }
+}

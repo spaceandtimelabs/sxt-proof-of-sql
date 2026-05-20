@@ -69,3 +69,51 @@ pub struct QueryData<S: Scalar> {
 
 /// The result of a query -- either an error or a table.
 pub type QueryResult<S> = Result<QueryData<S>, QueryError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn table_coercion_errors_map_to_query_errors() {
+        assert!(matches!(
+            QueryError::from(TableCoercionError::ColumnCoercionError {
+                source: ColumnCoercionError::Overflow,
+            }),
+            QueryError::Overflow
+        ));
+
+        assert!(matches!(
+            QueryError::from(TableCoercionError::ColumnCoercionError {
+                source: ColumnCoercionError::InvalidTypeCoercion,
+            }),
+            QueryError::ProofError {
+                source: ProofError::InvalidTypeCoercion
+            }
+        ));
+
+        assert!(matches!(
+            QueryError::from(TableCoercionError::NameMismatch),
+            QueryError::ProofError {
+                source: ProofError::FieldNamesMismatch
+            }
+        ));
+
+        assert!(matches!(
+            QueryError::from(TableCoercionError::ColumnCountMismatch),
+            QueryError::ProofError {
+                source: ProofError::FieldCountMismatch
+            }
+        ));
+    }
+
+    #[test]
+    fn query_error_display_messages_are_stable() {
+        assert_eq!(QueryError::Overflow.to_string(), "Overflow error");
+        assert_eq!(QueryError::InvalidString.to_string(), "String decode error");
+        assert_eq!(
+            QueryError::InvalidColumnCount.to_string(),
+            "Invalid number of columns"
+        );
+    }
+}

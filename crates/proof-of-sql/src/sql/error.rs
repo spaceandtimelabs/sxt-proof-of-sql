@@ -71,3 +71,37 @@ impl From<IntermediateDecimalError> for AnalyzeError {
 
 /// Result type for analyze errors
 pub type AnalyzeResult<T> = Result<T, AnalyzeError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn analyze_errors_convert_to_display_strings() {
+        let text: String = AnalyzeError::DataTypeMismatch {
+            left_type: "BIGINT".to_string(),
+            right_type: "VARCHAR".to_string(),
+        }
+        .into();
+
+        assert_eq!(
+            text,
+            "Left side has 'BIGINT' type but right side has 'VARCHAR' type"
+        );
+    }
+
+    #[test]
+    fn intermediate_decimal_errors_convert_to_analyze_errors() {
+        let err = AnalyzeError::from(IntermediateDecimalError::LossyCast);
+
+        assert!(matches!(
+            err,
+            AnalyzeError::DecimalConversionError {
+                source: DecimalError::IntermediateDecimalConversionError {
+                    source: IntermediateDecimalError::LossyCast
+                }
+            }
+        ));
+        assert_eq!(err.to_string(), "Fractional part of decimal is non-zero");
+    }
+}
