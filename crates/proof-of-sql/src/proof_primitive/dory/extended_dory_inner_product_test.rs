@@ -238,7 +238,7 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_the_setups_differ() {
     let nu = 3;
     let pp = PublicParameters::test_rand(nu, &mut rng);
     let prover_setup = (&pp).into();
-    let pp_wrong = PublicParameters::test_rand(nu, &mut rng);
+    let pp_wrong = PublicParameters::test_rand_uncached(nu, &mut rng);
     let verifier_setup = (&pp_wrong).into();
     let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);

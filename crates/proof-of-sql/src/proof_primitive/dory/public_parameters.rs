@@ -18,6 +18,7 @@ use std::{
 /// Note: even though `H_1` and `H_2` are marked as blue, they are still needed.
 ///
 /// Note: `Gamma_1_fin` is unused, so we leave it out.
+#[derive(Clone)]
 pub struct PublicParameters {
     /// This is the vector of G1 elements that are used in the Dory protocol. That is, `Γ_1,0` in the Dory paper.
     pub(super) Gamma_1: Vec<G1Affine>,
@@ -40,6 +41,27 @@ impl PublicParameters {
     }
     /// Generate random public parameters for testing.
     pub fn test_rand<R: Rng + ?Sized>(max_nu: usize, rng: &mut R) -> Self {
+        #[cfg(not(feature = "std"))]
+        {
+            Self::rand_impl(max_nu, rng)
+        }
+        #[cfg(feature = "std")]
+        {
+            use std::sync::{Mutex, OnceLock};
+            static CACHE: OnceLock<Mutex<alloc::vec::Vec<PublicParameters>>> = OnceLock::new();
+            let cache = CACHE.get_or_init(|| Mutex::new(alloc::vec::Vec::new()));
+            let mut cache = cache.lock().unwrap();
+            if let Some(params) = cache.iter().find(|p| p.max_nu == max_nu) {
+                params.clone()
+            } else {
+                let params = Self::rand_impl(max_nu, rng);
+                cache.push(params.clone());
+                params
+            }
+        }
+    }
+    /// Generate random public parameters for testing (uncached).
+    pub fn test_rand_uncached<R: Rng + ?Sized>(max_nu: usize, rng: &mut R) -> Self {
         Self::rand_impl(max_nu, rng)
     }
     fn rand_impl<R: Rng + ?Sized>(max_nu: usize, rng: &mut R) -> Self {

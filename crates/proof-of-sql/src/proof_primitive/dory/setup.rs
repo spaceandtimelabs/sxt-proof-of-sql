@@ -308,13 +308,61 @@ impl VerifierSetup {
 
 impl From<&PublicParameters> for VerifierSetup {
     fn from(value: &PublicParameters) -> Self {
-        Self::new(
-            &value.Gamma_1,
-            &value.Gamma_2,
-            value.H_1,
-            value.H_2,
-            value.Gamma_2_fin,
-            value.max_nu,
-        )
+        #[cfg(not(feature = "std"))]
+        {
+            Self::new(
+                &value.Gamma_1,
+                &value.Gamma_2,
+                value.H_1,
+                value.H_2,
+                value.Gamma_2_fin,
+                value.max_nu,
+            )
+        }
+        #[cfg(feature = "std")]
+        {
+            use std::sync::{Mutex, OnceLock};
+            struct CacheEntry {
+                Gamma_1: Vec<G1Affine>,
+                Gamma_2: Vec<G2Affine>,
+                H_1: G1Affine,
+                H_2: G2Affine,
+                Gamma_2_fin: G2Affine,
+                max_nu: usize,
+                setup: VerifierSetup,
+            }
+            static CACHE: OnceLock<Mutex<alloc::vec::Vec<CacheEntry>>> = OnceLock::new();
+            let cache = CACHE.get_or_init(|| Mutex::new(alloc::vec::Vec::new()));
+            let mut cache = cache.lock().unwrap();
+            if let Some(entry) = cache.iter().find(|entry| {
+                entry.max_nu == value.max_nu
+                    && entry.H_1 == value.H_1
+                    && entry.H_2 == value.H_2
+                    && entry.Gamma_2_fin == value.Gamma_2_fin
+                    && entry.Gamma_1 == value.Gamma_1
+                    && entry.Gamma_2 == value.Gamma_2
+            }) {
+                entry.setup.clone()
+            } else {
+                let setup = Self::new(
+                    &value.Gamma_1,
+                    &value.Gamma_2,
+                    value.H_1,
+                    value.H_2,
+                    value.Gamma_2_fin,
+                    value.max_nu,
+                );
+                cache.push(CacheEntry {
+                    Gamma_1: value.Gamma_1.clone(),
+                    Gamma_2: value.Gamma_2.clone(),
+                    H_1: value.H_1,
+                    H_2: value.H_2,
+                    Gamma_2_fin: value.Gamma_2_fin,
+                    max_nu: value.max_nu,
+                    setup: setup.clone(),
+                });
+                setup
+            }
+        }
     }
 }

@@ -158,7 +158,7 @@ fn we_fail_to_verify_an_eval_vmv_re_when_the_setups_differ() {
     let nu = 3;
     let pp = PublicParameters::test_rand(nu, &mut rng);
     let prover_setup = (&pp).into();
-    let pp_wrong = PublicParameters::test_rand(nu, &mut rng);
+    let pp_wrong = PublicParameters::test_rand_uncached(nu, &mut rng);
     let verifier_setup = (&pp_wrong).into();
     let vmv = VMV::rand(nu, &mut rng);
     let prover_state = vmv.calculate_prover_state(&prover_setup);

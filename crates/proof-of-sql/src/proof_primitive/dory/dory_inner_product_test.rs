@@ -216,7 +216,7 @@ fn we_fail_to_verify_a_dory_inner_product_when_the_setups_differ() {
     let nu = 3;
     let pp = PublicParameters::test_rand(nu, &mut rng);
     let prover_setup = (&pp).into();
-    let pp_wrong = PublicParameters::test_rand(nu, &mut rng);
+    let pp_wrong = PublicParameters::test_rand_uncached(nu, &mut rng);
     let verifier_setup = (&pp_wrong).into();
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
     let prover_state = ProverState::new(v1, v2, nu);
