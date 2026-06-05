@@ -35,3 +35,40 @@ impl<T: MontConfig<4>> From<&U256> for MontScalar<T> {
         MontScalar::<T>::from_le_bytes_mod_order(&bytes)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::base::scalar::test_scalar::TestScalar;
+
+    #[test]
+    fn test_u256_from_words() {
+        let u256 = U256::from_words(12345, 67890);
+        assert_eq!(u256.low, 12345);
+        assert_eq!(u256.high, 67890);
+    }
+
+    #[test]
+    fn test_u256_scalar_conversions() {
+        let val = 42u64;
+        let scalar = TestScalar::from(val);
+        let u256 = U256::from(&scalar);
+        assert_eq!(u256.low, val as u128);
+        assert_eq!(u256.high, 0);
+
+        let roundtrip: TestScalar = (&u256).into();
+        assert_eq!(roundtrip, scalar);
+    }
+
+    #[test]
+    fn test_u256_scalar_large_value_roundtrip() {
+        let low = u128::MAX >> 2;
+        let high = 0u128;
+        let u256 = U256::from_words(low, high);
+
+        let scalar: TestScalar = (&u256).into();
+        let roundtrip = U256::from(&scalar);
+        assert_eq!(roundtrip.low, low);
+        assert_eq!(roundtrip.high, high);
+    }
+}

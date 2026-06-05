@@ -69,3 +69,51 @@ impl<'a, T: ProvableResultElement<'a>, const N: usize> ProvableResultColumn for 
         (&self[..]).write(out, length)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::base::scalar::test_scalar::TestScalar;
+    use bumpalo::Bump;
+
+    #[test]
+    fn test_provable_result_column_slice_i64() {
+        let data: &[i64] = &[1, 2, 3, 4];
+        let length = 4;
+
+        let num_bytes = data.num_bytes(length);
+        assert!(num_bytes > 0);
+
+        let mut buf = vec![0u8; num_bytes];
+        let written = data.write(&mut buf, length);
+        assert_eq!(written, num_bytes);
+    }
+
+    #[test]
+    fn test_provable_result_column_slice_string() {
+        let data: &[String] = &[String::from("hello"), String::from("world")];
+        let length = 2;
+
+        let num_bytes = data.num_bytes(length);
+        assert!(num_bytes > 0);
+
+        let mut buf = vec![0u8; num_bytes];
+        let written = data.write(&mut buf, length);
+        assert_eq!(written, num_bytes);
+    }
+
+    #[test]
+    fn test_provable_result_column_boolean_column() {
+        let alloc = Bump::new();
+        let bool_data = alloc.alloc_slice_copy(&[true, false, true]);
+        let col = Column::<TestScalar>::Boolean(bool_data);
+        let length = 3;
+
+        let num_bytes = col.num_bytes(length);
+        assert!(num_bytes > 0);
+
+        let mut buf = vec![0u8; num_bytes];
+        let written = col.write(&mut buf, length);
+        assert_eq!(written, num_bytes);
+    }
+}

@@ -183,3 +183,36 @@ impl DynProofPlan {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::base::database::{ColumnField, ColumnType};
+
+    #[test]
+    fn test_dyn_proof_plan_builders() {
+        let empty = DynProofPlan::new_empty();
+        assert!(matches!(empty, DynProofPlan::Empty(_)));
+
+        let table_ref = TableRef::new("namespace", "table_name");
+        let fields = vec![ColumnField::new("col".into(), ColumnType::BigInt)];
+        let table_plan = DynProofPlan::new_table(table_ref.clone(), fields);
+        assert!(matches!(table_plan, DynProofPlan::Table(_)));
+
+        let slice = DynProofPlan::new_slice(table_plan, 10, Some(20));
+        assert!(matches!(slice, DynProofPlan::Slice(_)));
+    }
+
+    #[test]
+    fn test_get_column_result_fields_as_references() {
+        let table_ref = TableRef::new("namespace", "table_name");
+        let fields = vec![ColumnField::new("a".into(), ColumnType::BigInt)];
+        let table_plan = DynProofPlan::new_table(table_ref, fields);
+
+        let refs = table_plan.get_column_result_fields_as_references();
+        assert_eq!(refs.len(), 1);
+        let ref_col = refs.get_index(0).unwrap();
+        assert_eq!(ref_col.column_id(), Ident::new("a"));
+        assert_eq!(ref_col.column_type(), &ColumnType::BigInt);
+    }
+}

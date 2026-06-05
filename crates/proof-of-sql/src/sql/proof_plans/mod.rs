@@ -1,6 +1,8 @@
 //! This module proves provable execution plans.
 mod empty_exec;
 pub use empty_exec::EmptyExec;
+#[cfg(all(test, feature = "blitzar"))]
+mod empty_exec_test;
 
 mod table_exec;
 pub use table_exec::TableExec;

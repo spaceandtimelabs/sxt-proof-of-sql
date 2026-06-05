@@ -71,3 +71,38 @@ impl From<IntermediateDecimalError> for AnalyzeError {
 
 /// Result type for analyze errors
 pub type AnalyzeResult<T> = Result<T, AnalyzeError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_analyze_error_display_and_conversions() {
+        let err = AnalyzeError::DataTypeMismatch {
+            left_type: "Int".to_string(),
+            right_type: "VarChar".to_string(),
+        };
+
+        let display = err.to_string();
+        assert_eq!(
+            display,
+            "Left side has 'Int' type but right side has 'VarChar' type"
+        );
+
+        let string_converted: String = err.into();
+        assert_eq!(
+            string_converted,
+            "Left side has 'Int' type but right side has 'VarChar' type"
+        );
+    }
+
+    #[test]
+    fn test_analyze_error_from_intermediate_decimal_error() {
+        let intermediate_err = IntermediateDecimalError::OutOfRange;
+        let analyze_err: AnalyzeError = intermediate_err.into();
+        assert!(matches!(
+            analyze_err,
+            AnalyzeError::DecimalConversionError { .. }
+        ));
+    }
+}

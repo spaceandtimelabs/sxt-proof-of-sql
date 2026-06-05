@@ -122,3 +122,45 @@ impl DynProofExpr {
         ScalingCastExpr::try_new(Box::new(from_expr), to_datatype).map(DynProofExpr::ScalingCast)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::base::database::{ColumnRef, ColumnType, TableRef};
+    use crate::sql::proof_exprs::AliasedDynProofExpr;
+    use serde_json;
+
+    #[test]
+    fn test_dyn_proof_expr_builders() {
+        let table_ref = TableRef::new("ns", "tbl");
+        let column_ref = ColumnRef::new(table_ref, Ident::new("col"), ColumnType::BigInt);
+
+        let col_expr = DynProofExpr::new_column(column_ref.clone());
+        assert!(matches!(col_expr, DynProofExpr::Column(_)));
+
+        let lit_expr = DynProofExpr::new_literal(LiteralValue::BigInt(10));
+        assert!(matches!(lit_expr, DynProofExpr::Literal(_)));
+
+        let and_expr = DynProofExpr::try_new_and(col_expr.clone(), col_expr.clone());
+        assert!(and_expr.is_err());
+    }
+
+    #[test]
+    fn test_aliased_dyn_proof_expr_serde() {
+        let table_ref = TableRef::new("ns", "tbl");
+        let column_ref = ColumnRef::new(table_ref, Ident::new("col"), ColumnType::BigInt);
+        let col_expr = DynProofExpr::new_column(column_ref);
+
+        let aliased = AliasedDynProofExpr {
+            expr: col_expr,
+            alias: Ident::new("my_alias"),
+        };
+
+        let cloned = aliased.clone();
+        assert_eq!(aliased, cloned);
+
+        let serialized = serde_json::to_string(&aliased).unwrap();
+        let deserialized: AliasedDynProofExpr = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(aliased, deserialized);
+    }
+}

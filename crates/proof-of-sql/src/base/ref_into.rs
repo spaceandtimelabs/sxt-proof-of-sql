@@ -23,3 +23,24 @@ where
         self.into()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Clone, Copy)]
+    struct Wrapper(i32);
+
+    impl From<&Wrapper> for i32 {
+        fn from(val: &Wrapper) -> Self {
+            val.0
+        }
+    }
+
+    #[test]
+    fn test_ref_into_blanket_implementation() {
+        let wrapper = Wrapper(123);
+        let val: i32 = wrapper.ref_into();
+        assert_eq!(val, 123);
+    }
+}

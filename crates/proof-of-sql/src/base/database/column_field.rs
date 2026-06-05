@@ -31,3 +31,26 @@ impl ColumnField {
         self.data_type
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_column_field_getters() {
+        let ident = Ident::new("my_column");
+        let field = ColumnField::new(ident.clone(), ColumnType::BigInt);
+
+        assert_eq!(field.name(), ident);
+        assert_eq!(field.data_type(), ColumnType::BigInt);
+    }
+
+    #[test]
+    fn test_column_field_serde_roundtrip() {
+        let field = ColumnField::new(Ident::new("my_column"), ColumnType::BigInt);
+        let serialized = serde_json::to_string(&field).unwrap();
+        let deserialized: ColumnField = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(field, deserialized);
+    }
+}

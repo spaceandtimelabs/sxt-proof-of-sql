@@ -25,7 +25,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize, Serializer};
 use sqlparser::ast::Ident;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 /// An implementation of `ProofPlan` that allows for EVM compatible serialization.
 /// Serialization should be done using bincode with fixint, big-endian encoding in order to be compatible with EVM.
 ///
@@ -189,5 +189,35 @@ impl ProverEvaluate for EVMProofPlan {
     ) -> PlaceholderResult<Table<'a, S>> {
         self.inner()
             .final_round_evaluate(builder, alloc, table_map, params)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::sql::proof_plans::EmptyExec;
+
+    #[test]
+    fn test_evm_proof_plan_getters_and_delegation() {
+        let dyn_plan = DynProofPlan::Empty(EmptyExec::new());
+        let evm_plan = EVMProofPlan::new(dyn_plan.clone());
+
+        assert_eq!(evm_plan.inner(), &dyn_plan);
+        assert_eq!(evm_plan.clone().into_inner(), dyn_plan);
+
+        assert_eq!(evm_plan.get_column_result_fields(), Vec::new());
+        assert!(evm_plan.get_column_references().is_empty());
+        assert!(evm_plan.get_table_references().is_empty());
+    }
+
+    #[test]
+    fn test_evm_proof_plan_serde_roundtrip() {
+        let dyn_plan = DynProofPlan::Empty(EmptyExec::new());
+        let evm_plan = EVMProofPlan::new(dyn_plan);
+
+        let serialized = serde_json::to_string(&evm_plan).unwrap();
+        let deserialized: EVMProofPlan = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(evm_plan.inner(), deserialized.inner());
     }
 }
