@@ -216,7 +216,9 @@ fn we_fail_to_verify_a_dory_inner_product_when_the_setups_differ() {
     let nu = 3;
     let pp = PublicParameters::test_rand(nu, &mut rng);
     let prover_setup = (&pp).into();
-    let pp_wrong = PublicParameters::test_rand_uncached(nu, &mut rng);
+    let mut wrong_rng = test_rng();
+    let _ = G1Affine::rand(&mut wrong_rng);
+    let pp_wrong = PublicParameters::test_rand_uncached(nu, &mut wrong_rng);
     let verifier_setup = (&pp_wrong).into();
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
     let prover_state = ProverState::new(v1, v2, nu);
@@ -225,8 +227,6 @@ fn we_fail_to_verify_a_dory_inner_product_when_the_setups_differ() {
     let mut transcript = Transcript::new(b"dory_inner_product_test");
     let mut messages = DoryMessages::default();
     dory_inner_product_prove(&mut messages, &mut transcript, prover_state, &prover_setup);
-
-    messages.GT_messages[0] = GT::rand(&mut rng);
 
     let mut transcript = Transcript::new(b"dory_inner_product_test");
     assert!(!dory_inner_product_verify(

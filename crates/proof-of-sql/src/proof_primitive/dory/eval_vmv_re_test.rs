@@ -158,7 +158,9 @@ fn we_fail_to_verify_an_eval_vmv_re_when_the_setups_differ() {
     let nu = 3;
     let pp = PublicParameters::test_rand(nu, &mut rng);
     let prover_setup = (&pp).into();
-    let pp_wrong = PublicParameters::test_rand_uncached(nu, &mut rng);
+    let mut wrong_rng = test_rng();
+    let _ = F::rand(&mut wrong_rng);
+    let pp_wrong = PublicParameters::test_rand_uncached(nu, &mut wrong_rng);
     let verifier_setup = (&pp_wrong).into();
     let vmv = VMV::rand(nu, &mut rng);
     let prover_state = vmv.calculate_prover_state(&prover_setup);
@@ -168,8 +170,6 @@ fn we_fail_to_verify_an_eval_vmv_re_when_the_setups_differ() {
     let mut messages = DoryMessages::default();
     let extended_prover_state =
         eval_vmv_re_prove(&mut messages, &mut transcript, prover_state, &prover_setup);
-
-    messages.GT_messages[0] = GT::rand(&mut rng);
 
     let mut transcript = Transcript::new(b"eval_vmv_re_test");
 
