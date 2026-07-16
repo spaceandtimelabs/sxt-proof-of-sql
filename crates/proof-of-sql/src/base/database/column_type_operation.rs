@@ -296,19 +296,13 @@ pub fn try_equals_types(lhs: ColumnType, rhs: ColumnType) -> ColumnOperationResu
 pub fn try_inequality_types(lhs: ColumnType, rhs: ColumnType) -> ColumnOperationResult<()> {
     (lhs != ColumnType::VarChar
         && rhs != ColumnType::VarChar
-        // Due to constraints in bitwise_verification we limit the precision of decimal types to 38
-        && !matches!(lhs, ColumnType::Decimal75(precision, _) if precision.value() > 38)
-        && !matches!(rhs, ColumnType::Decimal75(precision, _) if precision.value() > 38)
         && (lhs.is_numeric() && rhs.is_numeric() && lhs.scale() == rhs.scale()
+            || matches!((lhs, rhs), (ColumnType::Boolean, ColumnType::Boolean))
             || matches!(
-                (lhs, rhs),
-                (ColumnType::Boolean, ColumnType::Boolean)
-            )
-            || matches!(
-                (lhs, rhs),
-                (ColumnType::TimestampTZ(left_tu, _), ColumnType::TimestampTZ(right_tu, _)) if
-                left_tu == right_tu
-        )))
+                    (lhs, rhs),
+                    (ColumnType::TimestampTZ(left_tu, _), ColumnType::TimestampTZ(right_tu, _)) if
+                    left_tu == right_tu
+            )))
     .then_some(())
     .ok_or(ColumnOperationError::BinaryOperationInvalidColumnType {
         operator: "</>".to_string(),

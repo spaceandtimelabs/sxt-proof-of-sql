@@ -409,7 +409,10 @@ fn we_can_compare_columns_returning_extreme_decimal_values() {
 }
 
 #[test]
-fn we_cannot_compare_columns_filtering_on_extreme_decimal_values() {
+fn we_can_compare_columns_filtering_on_extreme_decimal_values() {
+    // `Decimal75(75, 0)` is no longer rejected by `try_inequality_types` on precision
+    // alone, so comparing it against a `Scalar` literal (same scale, both numeric) now
+    // succeeds at construction time instead of returning `DataTypeMismatch`.
     let scalar_min_signed = -Curve25519Scalar::MAX_SIGNED - Curve25519Scalar::ONE;
     let data: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("a", [123, 25]),
@@ -425,14 +428,12 @@ fn we_cannot_compare_columns_filtering_on_extreme_decimal_values() {
     let t = TableRef::new("sxt", "t");
     let accessor =
         OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t.clone(), data, 0, ());
-    assert!(matches!(
-        DynProofExpr::try_new_inequality(
-            column(&t, "e", &accessor),
-            const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ONE),
-            false
-        ),
-        Err(AnalyzeError::DataTypeMismatch { .. })
-    ));
+    assert!(DynProofExpr::try_new_inequality(
+        column(&t, "e", &accessor),
+        const_scalar::<Curve25519Scalar, _>(Curve25519Scalar::ONE),
+        false
+    )
+    .is_ok());
 }
 
 #[test]

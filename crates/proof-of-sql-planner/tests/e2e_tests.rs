@@ -923,3 +923,84 @@ fn test_between_combined_with_other_filters() {
         &[],
     );
 }
+
+/// Test BETWEEN using the product-form rewrite `(expr - low) * (expr - high) <= 0`, which
+/// is used for narrow-enough numeric types (here `Int`). Covers negative values and
+/// inclusive boundaries, which exercise the sign logic of the product form directly.
+#[test]
+fn test_between_operator_product_form() {
+    let alloc = Bump::new();
+    let sql = "SELECT id, score FROM measurements WHERE score BETWEEN -10 AND 10;
+    SELECT id, score FROM measurements WHERE score NOT BETWEEN -10 AND 10;";
+
+    let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {
+        TableRef::from_names(None, "measurements") => table(
+            vec![
+                borrowed_int("id", [1, 2, 3, 4, 5], &alloc),
+                borrowed_int("score", [-20, -10, 0, 10, 20], &alloc),
+            ]
+        )
+    };
+
+    let expected_results: Vec<OwnedTable<DoryScalar>> = vec![
+        // score >= -10 AND score <= 10  →  rows 2, 3, 4
+        owned_table([int("id", [2, 3, 4]), int("score", [-10, 0, 10])]),
+        // score < -10 OR score > 10  →  rows 1, 5
+        owned_table([int("id", [1, 5]), int("score", [-20, 20])]),
+    ];
+
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+
+    posql_end_to_end_test::<DynamicDoryEvaluationProof>(
+        sql,
+        &tables,
+        &expected_results,
+        &prover_setup,
+        &verifier_setup,
+        &[],
+    );
+}
+
+/// Test BETWEEN on a decimal column too wide (`Decimal75(50, 0)`) for the product-sign
+/// rewrite's precision bound, exercising the resulting `NOT ((expr - low) * (expr - high) > 0)`
+/// form end-to-end (prove + verify), rather than just checking the query plan.
+#[test]
+fn test_between_operator_wide_decimal() {
+    let alloc = Bump::new();
+    let sql = "SELECT id, score FROM measurements WHERE score BETWEEN 10 AND 20;
+    SELECT id, score FROM measurements WHERE score NOT BETWEEN 10 AND 20;";
+
+    let tables: IndexMap<TableRef, Table<DoryScalar>> = indexmap! {
+        TableRef::from_names(None, "measurements") => table(
+            vec![
+                borrowed_int("id", [1, 2, 3, 4, 5], &alloc),
+                borrowed_decimal75("score", 50, 0, [5_i64, 10, 15, 20, 25], &alloc),
+            ]
+        )
+    };
+
+    let expected_results: Vec<OwnedTable<DoryScalar>> = vec![
+        // score >= 10 AND score <= 20  →  rows 2, 3, 4
+        owned_table([
+            int("id", [2, 3, 4]),
+            decimal75("score", 50, 0, [10_i64, 15, 20]),
+        ]),
+        // score < 10 OR score > 20  →  rows 1, 5
+        owned_table([int("id", [1, 5]), decimal75("score", 50, 0, [5_i64, 25])]),
+    ];
+
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+
+    posql_end_to_end_test::<DynamicDoryEvaluationProof>(
+        sql,
+        &tables,
+        &expected_results,
+        &prover_setup,
+        &verifier_setup,
+        &[],
+    );
+}

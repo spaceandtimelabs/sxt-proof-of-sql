@@ -268,6 +268,34 @@ pub fn expr_to_proof_expr(
     }
 }
 
+/// Build `(expr - low) * (expr - high) <= 0` (or `> 0` when `negated`), the product-sign
+/// rewrite of `BETWEEN`: the product is <= 0 iff `expr` lies between `low` and `high`
+/// (inclusive), regardless of whether `low <= high` or `high <= low`. `>` is one of the
+/// most expensive proof primitives, so this collapses the two inequalities `BETWEEN` would
+/// otherwise need into a single one.
+///
+/// Returns `Err` when the operand types don't fit — subtraction/multiplication grow
+/// precision, and the final comparison needs the product to stay within the inequality
+/// gadget's ~126-bit bound (roughly `u64`-and-below integers and `DECIMAL(37, _)`-and-below
+/// decimals). The caller falls back to the `OR`-of-inequalities form in that case.
+fn between_product_proof_expr(
+    expr_proof: DynProofExpr,
+    low_proof: DynProofExpr,
+    high_proof: DynProofExpr,
+    negated: bool,
+) -> PlannerResult<DynProofExpr> {
+    let diff_low =
+        binary_proof_exprs_to_proof_expr(expr_proof.clone(), low_proof, Operator::Minus)?;
+    let diff_high = binary_proof_exprs_to_proof_expr(expr_proof, high_proof, Operator::Minus)?;
+    let product = DynProofExpr::try_new_multiply(diff_low, diff_high)?;
+    let zero = DynProofExpr::new_literal(LiteralValue::BigInt(0));
+    if negated {
+        binary_proof_exprs_to_proof_expr(product, zero, Operator::Gt)
+    } else {
+        binary_proof_exprs_to_proof_expr(product, zero, Operator::LtEq)
+    }
+}
+
 /// Convert a [`Between`] expression to [`DynProofExpr`]
 fn between_to_proof_expr(
     expr: &Expr,
@@ -279,7 +307,17 @@ fn between_to_proof_expr(
     let expr_proof = expr_to_proof_expr(expr, schema)?;
     let low_proof = expr_to_proof_expr(low, schema)?;
     let high_proof = expr_to_proof_expr(high, schema)?;
-    // expr < low OR expr > high
+
+    if let Ok(result) = between_product_proof_expr(
+        expr_proof.clone(),
+        low_proof.clone(),
+        high_proof.clone(),
+        negated,
+    ) {
+        return Ok(result);
+    }
+
+    // Fallback: expr < low OR expr > high
     let out_of_range = binary_proof_exprs_to_proof_expr(
         binary_proof_exprs_to_proof_expr(expr_proof.clone(), low_proof, Operator::Lt)?,
         binary_proof_exprs_to_proof_expr(expr_proof, high_proof, Operator::Gt)?,
@@ -941,6 +979,8 @@ mod tests {
     // Between
     #[test]
     fn we_can_convert_between_expr_to_proof_expr() {
+        // `column1` is `BigInt`, so this uses the product-sign rewrite,
+        // i.e. NOT ((expr - low) * (expr - high) > 0).
         let schema = vec![("column1".into(), ColumnType::BigInt)];
 
         let col = df_column("namespace.table_name", "column1");
@@ -956,12 +996,14 @@ mod tests {
         let low_expr = DynProofExpr::new_literal(LiteralValue::BigInt(10));
         let high_expr = DynProofExpr::new_literal(LiteralValue::BigInt(20));
 
+        let product = DynProofExpr::try_new_multiply(
+            DynProofExpr::try_new_subtract(col_expr.clone(), low_expr).unwrap(),
+            DynProofExpr::try_new_subtract(col_expr, high_expr).unwrap(),
+        )
+        .unwrap();
+        let zero = DynProofExpr::new_literal(LiteralValue::BigInt(0));
         let expected = DynProofExpr::try_new_not(
-            DynProofExpr::try_new_or(
-                DynProofExpr::try_new_inequality(col_expr.clone(), low_expr, true).unwrap(),
-                DynProofExpr::try_new_inequality(col_expr, high_expr, false).unwrap(),
-            )
-            .unwrap(),
+            DynProofExpr::try_new_inequality(product, zero, false).unwrap(),
         )
         .unwrap();
 
@@ -970,6 +1012,7 @@ mod tests {
 
     #[test]
     fn we_can_convert_not_between_expr_to_proof_expr() {
+        // Same product-sign rewrite as above, for `NOT BETWEEN`.
         let schema = vec![("column1".into(), ColumnType::BigInt)];
 
         let col = df_column("namespace.table_name", "column1");
@@ -985,11 +1028,120 @@ mod tests {
         let low_expr = DynProofExpr::new_literal(LiteralValue::BigInt(10));
         let high_expr = DynProofExpr::new_literal(LiteralValue::BigInt(20));
 
-        let expected = DynProofExpr::try_new_or(
-            DynProofExpr::try_new_inequality(col_expr.clone(), low_expr, true).unwrap(),
-            DynProofExpr::try_new_inequality(col_expr, high_expr, false).unwrap(),
+        let product = DynProofExpr::try_new_multiply(
+            DynProofExpr::try_new_subtract(col_expr.clone(), low_expr).unwrap(),
+            DynProofExpr::try_new_subtract(col_expr, high_expr).unwrap(),
         )
         .unwrap();
+        let zero = DynProofExpr::new_literal(LiteralValue::BigInt(0));
+        let expected = DynProofExpr::try_new_inequality(product, zero, false).unwrap();
+
+        assert_eq!(expr_to_proof_expr(&expr, &schema).unwrap(), expected);
+    }
+
+    #[test]
+    fn we_can_convert_between_expr_to_proof_expr_for_too_wide_decimal() {
+        // `Decimal(50, 0)` is converted via the product-sign rewrite,
+        // i.e. NOT ((expr - low) * (expr - high) > 0).
+        let schema = vec![(
+            "column1".into(),
+            ColumnType::Decimal75(Precision::new(50).unwrap(), 0),
+        )];
+
+        let col = df_column("namespace.table_name", "column1");
+        let low = Expr::Literal(ScalarValue::Decimal128(Some(10), 50, 0));
+        let high = Expr::Literal(ScalarValue::Decimal128(Some(20), 50, 0));
+        let expr = col.between(low, high);
+
+        let col_expr = DynProofExpr::new_column(ColumnRef::new(
+            TableRef::from_names(Some("namespace"), "table_name"),
+            "column1".into(),
+            ColumnType::Decimal75(Precision::new(50).unwrap(), 0),
+        ));
+        let low_expr = DynProofExpr::new_literal(LiteralValue::Decimal75(
+            Precision::new(50).unwrap(),
+            0,
+            10.into(),
+        ));
+        let high_expr = DynProofExpr::new_literal(LiteralValue::Decimal75(
+            Precision::new(50).unwrap(),
+            0,
+            20.into(),
+        ));
+
+        let product = DynProofExpr::try_new_multiply(
+            DynProofExpr::try_new_subtract(col_expr.clone(), low_expr).unwrap(),
+            DynProofExpr::try_new_subtract(col_expr, high_expr).unwrap(),
+        )
+        .unwrap();
+        let zero = DynProofExpr::new_literal(LiteralValue::BigInt(0));
+        let expected = DynProofExpr::try_new_not(
+            DynProofExpr::try_new_inequality(product, zero, false).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(expr_to_proof_expr(&expr, &schema).unwrap(), expected);
+    }
+
+    #[test]
+    fn we_can_convert_between_expr_to_product_form_proof_expr() {
+        // `column1` is narrow enough (`Int`) that (expr - low) * (expr - high) stays
+        // within the inequality gadget's precision bound, so the product-sign form is used.
+        let schema = vec![("column1".into(), ColumnType::Int)];
+
+        let col = df_column("namespace.table_name", "column1");
+        let low = Expr::Literal(ScalarValue::Int32(Some(10)));
+        let high = Expr::Literal(ScalarValue::Int32(Some(20)));
+        let expr = col.between(low, high);
+
+        let col_expr = DynProofExpr::new_column(ColumnRef::new(
+            TableRef::from_names(Some("namespace"), "table_name"),
+            "column1".into(),
+            ColumnType::Int,
+        ));
+        let low_expr = DynProofExpr::new_literal(LiteralValue::Int(10));
+        let high_expr = DynProofExpr::new_literal(LiteralValue::Int(20));
+
+        let product = DynProofExpr::try_new_multiply(
+            DynProofExpr::try_new_subtract(col_expr.clone(), low_expr).unwrap(),
+            DynProofExpr::try_new_subtract(col_expr, high_expr).unwrap(),
+        )
+        .unwrap();
+        let zero = DynProofExpr::new_literal(LiteralValue::BigInt(0));
+        // (expr - low) * (expr - high) <= 0, i.e. NOT ((expr - low) * (expr - high) > 0)
+        let expected = DynProofExpr::try_new_not(
+            DynProofExpr::try_new_inequality(product, zero, false).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(expr_to_proof_expr(&expr, &schema).unwrap(), expected);
+    }
+
+    #[test]
+    fn we_can_convert_not_between_expr_to_product_form_proof_expr() {
+        let schema = vec![("column1".into(), ColumnType::Int)];
+
+        let col = df_column("namespace.table_name", "column1");
+        let low = Expr::Literal(ScalarValue::Int32(Some(10)));
+        let high = Expr::Literal(ScalarValue::Int32(Some(20)));
+        let expr = col.not_between(low, high);
+
+        let col_expr = DynProofExpr::new_column(ColumnRef::new(
+            TableRef::from_names(Some("namespace"), "table_name"),
+            "column1".into(),
+            ColumnType::Int,
+        ));
+        let low_expr = DynProofExpr::new_literal(LiteralValue::Int(10));
+        let high_expr = DynProofExpr::new_literal(LiteralValue::Int(20));
+
+        let product = DynProofExpr::try_new_multiply(
+            DynProofExpr::try_new_subtract(col_expr.clone(), low_expr).unwrap(),
+            DynProofExpr::try_new_subtract(col_expr, high_expr).unwrap(),
+        )
+        .unwrap();
+        let zero = DynProofExpr::new_literal(LiteralValue::BigInt(0));
+        // (expr - low) * (expr - high) > 0
+        let expected = DynProofExpr::try_new_inequality(product, zero, false).unwrap();
 
         assert_eq!(expr_to_proof_expr(&expr, &schema).unwrap(), expected);
     }
