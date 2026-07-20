@@ -84,11 +84,21 @@ jobs:
         run: |
           rustup target add thumbv7em-none-eabi
           cargo check -p proof-of-sql --target thumbv7em-none-eabi --no-default-features
+      - name: Install wasm-pack
+        run: |
+          cargo install wasm-pack
       - name: Check that we can compile `proof-of-sql-planner` to WebAssembly
         working-directory: ./crates/proof-of-sql-planner
         run: |
-          cargo install wasm-pack
           wasm-pack build --target deno
+      - name: Build the WebAssembly planner package
+        if: matrix.rust == 'stable'
+        working-directory: ./crates/proof-of-sql-planner-wasm
+        run: wasm-pack build --release --target web
+      - name: Test the planner package in WebAssembly
+        if: matrix.rust == 'stable'
+        working-directory: ./crates/proof-of-sql-planner-wasm
+        run: wasm-pack test --node
 
   test:
     name: Test Suite (${{ matrix.rust }})
