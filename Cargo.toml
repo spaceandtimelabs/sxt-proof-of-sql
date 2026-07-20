@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/powers-of-tau-util", "crates/proof-of-sql", "crates/proof-of-sql-benches", "crates/proof-of-sql-planner"]
+members = ["crates/powers-of-tau-util", "crates/proof-of-sql", "crates/proof-of-sql-benches", "crates/proof-of-sql-planner", "crates/proof-of-sql-planner-wasm"]
 
 [workspace.package]
 edition = "2021"
@@ -74,11 +74,12 @@ tracing-opentelemetry = { version = "0.22.0" }
 tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
 uuid = { version = "=1.12.1", default-features = false }
 wasm-bindgen = { version = "0.2.92" }
+wasm-bindgen-test = { version = "0.3.42" }
 zerocopy = { version = "0.7.34" }
 
 [workspace.lints.rust]
 missing_docs = "warn"
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)', 'cfg(wasm_bindgen_unstable_test_coverage)'] }
 
 [workspace.lints.clippy]
 missing_errors_doc = "allow"

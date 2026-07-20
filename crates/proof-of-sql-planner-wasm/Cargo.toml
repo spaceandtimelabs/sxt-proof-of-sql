@@ -1,0 +1,33 @@
+[package]
+publish = false
+name = "proof-of-sql-planner-wasm"
+version = { workspace = true }
+edition = { workspace = true }
+repository = { workspace = true }
+description = "WebAssembly validation wrapper for the Proof of SQL planner."
+exclude = { workspace = true }
+license-file = { workspace = true }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# `DataFusion`'s optimizer reads the current time; use Chrono's JavaScript clock in WASM.
+chrono = { workspace = true, features = ["wasmbind"] }
+indexmap = { workspace = true }
+proof-of-sql = { workspace = true }
+proof-of-sql-planner = { path = "../proof-of-sql-planner" }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sqlparser = { workspace = true }
+wasm-bindgen = { workspace = true }
+
+[dev-dependencies]
+datafusion = { workspace = true }
+wasm-bindgen-test = { workspace = true }
+
+[package.metadata.cargo-udeps.ignore]
+development = ["wasm-bindgen-test"]
+
+[lints]
+workspace = true
