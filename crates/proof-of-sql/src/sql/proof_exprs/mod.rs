@@ -23,6 +23,11 @@ mod multiply_expr_test;
 mod dyn_proof_expr;
 pub use dyn_proof_expr::DynProofExpr;
 
+mod case_expr;
+pub(crate) use case_expr::CaseExpr;
+#[cfg(all(test, feature = "blitzar"))]
+mod case_expr_test;
+
 mod literal_expr;
 pub(crate) use literal_expr::LiteralExpr;
 #[cfg(all(test, feature = "blitzar"))]

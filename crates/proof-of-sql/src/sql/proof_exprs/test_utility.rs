@@ -102,6 +102,15 @@ pub fn cast(left: DynProofExpr, right: ColumnType) -> DynProofExpr {
     DynProofExpr::try_new_cast(left, right).unwrap()
 }
 
+/// # Panics
+/// Panics if `DynProofExpr::try_new_case()` returns an error.
+pub fn case_when(
+    when_thens: Vec<(DynProofExpr, DynProofExpr)>,
+    else_expr: DynProofExpr,
+) -> DynProofExpr {
+    DynProofExpr::try_new_case(when_thens, else_expr).unwrap()
+}
+
 pub fn scaling_cast(left: DynProofExpr, right: ColumnType) -> DynProofExpr {
     DynProofExpr::try_new_scaling_cast(left, right).unwrap()
 }
