@@ -288,7 +288,7 @@ pub fn borrowed_varchar<'a, S: Scalar>(
         })
         .collect();
     let alloc_strings = alloc.alloc_slice_clone(&strings);
-    let scalars: Vec<S> = strings.iter().map(|s| (*s).into()).collect();
+    let scalars: Vec<S> = strings.iter().map(|s| S::from_str_via_hash(s)).collect();
     let alloc_scalars = alloc.alloc_slice_copy(&scalars);
     (name.into(), Column::VarChar((alloc_strings, alloc_scalars)))
 }

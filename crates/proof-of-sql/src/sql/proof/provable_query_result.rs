@@ -117,7 +117,12 @@ impl ProvableQueryResult {
                         decode_and_convert::<S, S>(&self.data[offset..])
                     }
 
-                    ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
+                    ColumnType::VarChar => {
+                        let (raw_str, used) =
+                            decode_and_convert::<&str, &str>(&self.data[offset..])?;
+                        let x = S::from_str_via_hash(raw_str);
+                        Ok((x, used))
+                    }
                     ColumnType::VarBinary => {
                         let (raw_bytes, used) =
                             decode_and_convert::<&[u8], &[u8]>(&self.data[offset..])?;

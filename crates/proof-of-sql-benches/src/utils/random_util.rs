@@ -99,7 +99,9 @@ pub fn generate_random_columns<'a, S: Scalar>(
                         });
                         Column::VarChar((
                             strs,
-                            alloc.alloc_slice_fill_iter(strs.iter().map(|&s| Into::into(s))),
+                            alloc.alloc_slice_fill_iter(
+                                strs.iter().map(|&s| S::from_str_via_hash(s)),
+                            ),
                         ))
                     }
                     (ColumnType::Scalar, _) => {
@@ -114,7 +116,9 @@ pub fn generate_random_columns<'a, S: Scalar>(
                             ) as &str
                         });
                         Column::Scalar(
-                            alloc.alloc_slice_fill_iter(strs.iter().map(|&s| Into::into(s))),
+                            alloc.alloc_slice_fill_iter(
+                                strs.iter().map(|&s| S::from_str_via_hash(s)),
+                            ),
                         )
                     }
                     (ColumnType::Decimal75(p, s), _) => {
@@ -131,7 +135,9 @@ pub fn generate_random_columns<'a, S: Scalar>(
                         Column::Decimal75(
                             *p,
                             *s,
-                            alloc.alloc_slice_fill_iter(strs.iter().map(|&s| Into::into(s))),
+                            alloc.alloc_slice_fill_iter(
+                                strs.iter().map(|&s| S::from_str_via_hash(s)),
+                            ),
                         )
                     }
                     (ColumnType::TimestampTZ(u, z), None) => Column::TimestampTZ(

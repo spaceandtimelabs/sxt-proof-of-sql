@@ -5,7 +5,7 @@ use super::{
 use crate::base::{
     commitment::{CommitmentEvaluationProof, VecCommitmentExt},
     map::IndexMap,
-    scalar::ScalarExt,
+    scalar::{Scalar, ScalarExt},
 };
 use alloc::{string::String, vec::Vec};
 use bumpalo::Bump;
@@ -108,7 +108,7 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
                     .alloc_slice_fill_iter(col.iter().map(String::as_str));
                 let scals: &mut [_] = self
                     .alloc
-                    .alloc_slice_fill_iter(col.iter().map(|s| (*s).into()));
+                    .alloc_slice_fill_iter(col.iter().map(|s| CP::Scalar::from_str_via_hash(s)));
                 Column::VarChar((col, scals))
             }
             OwnedColumn::VarBinary(col) => {

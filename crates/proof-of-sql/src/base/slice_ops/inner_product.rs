@@ -2,7 +2,7 @@ use crate::base::{
     if_rayon,
     scalar::{Scalar, ScalarExt},
 };
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use core::{iter::Sum, ops::Mul};
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -38,5 +38,13 @@ pub fn inner_product_with_bytes<S: Scalar>(a: &[Vec<u8>], b: &[S]) -> S {
     if_rayon!(a.par_iter().with_min_len(super::MIN_RAYON_LEN), a.iter())
         .zip(b)
         .map(|(lhs_bytes, &rhs)| S::from_byte_slice_via_hash(lhs_bytes) * rhs)
+        .sum()
+}
+
+/// Cannot use blanket impls for `String` because strings might have different embeddings as scalars
+pub fn inner_product_with_strings<S: Scalar>(a: &[String], b: &[S]) -> S {
+    if_rayon!(a.par_iter().with_min_len(super::MIN_RAYON_LEN), a.iter())
+        .zip(b)
+        .map(|(lhs_str, &rhs)| S::from_str_via_hash(lhs_str) * rhs)
         .sum()
 }

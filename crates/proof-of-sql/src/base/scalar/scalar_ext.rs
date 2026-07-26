@@ -111,6 +111,29 @@ mod tests {
     }
 
     #[test]
+    fn we_can_get_zero_from_empty_string() {
+        assert_eq!(TestScalar::from_str_via_hash(""), TestScalar::ZERO);
+    }
+
+    #[test]
+    fn we_can_get_scalar_from_hashed_string() {
+        assert_eq!(
+            TestScalar::from_str_via_hash("abc"),
+            TestScalar::from_byte_slice_via_hash(b"abc"),
+            "hashing a string must agree with hashing its UTF-8 bytes"
+        );
+    }
+
+    #[test]
+    fn we_can_get_scalar_from_hashed_multibyte_string() {
+        let multibyte = "âbĉ→";
+        assert_eq!(
+            TestScalar::from_str_via_hash(multibyte),
+            TestScalar::from_byte_slice_via_hash(multibyte.as_bytes())
+        );
+    }
+
+    #[test]
     fn we_can_compute_powers_of_10() {
         for i in 0..=u128::MAX.ilog10() {
             assert_eq!(
