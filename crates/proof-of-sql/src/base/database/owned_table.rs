@@ -146,6 +146,24 @@ impl<S: Scalar> OwnedTable<S> {
     }
 }
 
+impl<S: Scalar> IntoIterator for OwnedTable<S> {
+    type Item = (Ident, OwnedColumn<S>);
+
+    type IntoIter = indexmap::map::IntoIter<Ident, OwnedColumn<S>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.table.into_iter()
+    }
+}
+
+impl<S: Scalar> TryFrom<IndexMap<Ident, OwnedColumn<S>>> for OwnedTable<S> {
+    type Error = OwnedTableError;
+
+    fn try_from(value: IndexMap<Ident, OwnedColumn<S>>) -> Result<Self, Self::Error> {
+        Self::try_new(value)
+    }
+}
+
 // Note: we modify the default PartialEq for IndexMap to also check for column ordering.
 // This is to align with the behaviour of a `RecordBatch`.
 impl<S: Scalar> PartialEq for OwnedTable<S> {
@@ -196,12 +214,13 @@ mod tests {
     use super::OwnedTable;
     use crate::base::{
         database::{
-            owned_table_utility::*, table_utility::*, ColumnCoercionError, Table,
+            owned_table_utility::*, table_utility::*, ColumnCoercionError, OwnedColumn, Table,
             TableCoercionError, TableOptions,
         },
         map::indexmap,
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
         scalar::test_scalar::TestScalar,
+        IndexMap,
     };
     use bumpalo::Bump;
 
@@ -378,5 +397,19 @@ mod tests {
                 source: ColumnCoercionError::Overflow
             })
         ));
+    }
+
+    #[test]
+    fn test_try_from() {
+        let index_map = [
+            bigint("bigint", [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
+            scalar("scalar", [0, 1, 2, 3, 4, 5, 6, 7, i64::MAX]),
+        ]
+        .into_iter()
+        .collect::<IndexMap<_, OwnedColumn<TestScalar>>>();
+        let table = OwnedTable::try_from(index_map.clone()).unwrap();
+
+        let iter_value: IndexMap<_, _> = table.into_iter().collect();
+        assert_eq!(iter_value, index_map);
     }
 }

@@ -43,6 +43,7 @@ mod filter_exec_test;
 
 mod aggregate_exec;
 pub(crate) use aggregate_exec::AggregateExec;
+pub use aggregate_exec::AggregateExecError;
 
 #[cfg(all(test, feature = "blitzar"))]
 mod aggregate_exec_test;

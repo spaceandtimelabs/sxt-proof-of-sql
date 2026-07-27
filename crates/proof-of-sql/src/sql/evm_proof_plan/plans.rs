@@ -695,7 +695,7 @@ impl EVMAggregateExec {
             self.where_clause
                 .try_into_proof_expr(&input_result_column_refs)?,
         )
-        .ok_or(EVMProofPlanError::NotSupported)
+        .map_err(|_| EVMProofPlanError::NotSupported)
     }
 }
 

@@ -133,14 +133,13 @@ impl DynProofPlan {
     }
 
     /// Creates a new aggregate plan.
-    #[must_use]
     pub fn try_new_aggregate(
         group_by_exprs: Vec<AliasedDynProofExpr>,
         sum_expr: Vec<AliasedDynProofExpr>,
         count_alias: Ident,
         input: DynProofPlan,
         where_clause: DynProofExpr,
-    ) -> Option<Self> {
+    ) -> Result<Self, super::AggregateExecError> {
         AggregateExec::try_new(
             group_by_exprs,
             sum_expr,

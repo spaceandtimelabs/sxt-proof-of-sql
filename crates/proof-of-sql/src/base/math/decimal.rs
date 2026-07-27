@@ -9,7 +9,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use snafu::Snafu;
 
 /// Errors related to the processing of decimal values in proof-of-sql
-#[derive(Snafu, Debug, PartialEq)]
+#[derive(Snafu, Debug, PartialEq, Clone)]
 pub enum IntermediateDecimalError {
     /// Represents an error encountered during the parsing of a decimal string.
     #[snafu(display("{error}"))]
@@ -31,7 +31,7 @@ pub enum IntermediateDecimalError {
 impl Eq for IntermediateDecimalError {}
 
 /// Errors related to decimal operations.
-#[derive(Snafu, Debug, Eq, PartialEq)]
+#[derive(Snafu, Debug, Eq, PartialEq, Clone)]
 pub enum DecimalError {
     #[snafu(display("Invalid decimal format or value: {error}"))]
     /// Error when a decimal format or value is incorrect,

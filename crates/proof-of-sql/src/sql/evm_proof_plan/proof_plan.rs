@@ -25,7 +25,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize, Serializer};
 use sqlparser::ast::Ident;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 /// An implementation of `ProofPlan` that allows for EVM compatible serialization.
 /// Serialization should be done using bincode with fixint, big-endian encoding in order to be compatible with EVM.
 ///

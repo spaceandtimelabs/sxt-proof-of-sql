@@ -1,6 +1,8 @@
 use alloc::vec::Vec;
 use ark_bn254::G1Affine;
 use ark_serialize::{CanonicalDeserialize, Compress, SerializationError, Validate};
+#[cfg(feature = "hyperkzg_proof")]
+use std::path::Path;
 
 /// When borrowed, `PublicSetup` type associated with the `HyperKZG` commitment scheme.
 ///
@@ -56,12 +58,28 @@ pub fn deserialize_flat_compressed_hyperkzg_public_setup_from_slice(
 }
 
 #[cfg(feature = "hyperkzg_proof")]
+#[cfg(test)]
 #[must_use]
 /// Load a small setup for testing.
 /// This returns a public setup and a verifier key.
 /// # Panics
 /// Panics if bin file not found
-pub fn load_small_setup_for_testing() -> (
+pub(crate) fn load_small_setup_for_testing_internal() -> (
+    HyperKZGPublicSetupOwned,
+    nova_snark::provider::hyperkzg::VerifierKey<super::HyperKZGEngine>,
+) {
+    load_small_setup_for_testing("test_assets/ppot_0080_10.bin")
+}
+
+#[cfg(feature = "hyperkzg_proof")]
+#[must_use]
+/// Load a small setup for testing.
+/// This returns a public setup and a verifier key.
+/// # Panics
+/// Panics if bin file not found
+pub fn load_small_setup_for_testing(
+    setup_file: impl AsRef<Path>,
+) -> (
     HyperKZGPublicSetupOwned,
     nova_snark::provider::hyperkzg::VerifierKey<super::HyperKZGEngine>,
 ) {
@@ -108,7 +126,7 @@ pub fn load_small_setup_for_testing() -> (
     ));
 
     let mut ps = super::deserialize_flat_compressed_hyperkzg_public_setup_from_reader(
-        &std::fs::File::open("test_assets/ppot_0080_10.bin").unwrap(),
+        &std::fs::File::open(setup_file).unwrap(),
         ark_serialize::Validate::Yes,
     )
     .unwrap();

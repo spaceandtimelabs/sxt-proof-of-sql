@@ -16,6 +16,7 @@ ahash = { workspace = true }
 arrow = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"]}
 datafusion = { workspace = true }
+derive_more = { workspace = true }
 # getrandom and uuid must be compiled with js feature
 getrandom = { workspace = true, features = ["js"] }
 indexmap = { workspace = true }

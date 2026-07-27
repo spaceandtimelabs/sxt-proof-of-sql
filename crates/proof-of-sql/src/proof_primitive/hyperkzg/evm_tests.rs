@@ -8,7 +8,8 @@ use crate::{
         scalar::MontScalar,
     },
     proof_primitive::hyperkzg::{
-        public_setup::load_small_setup_for_testing, BNScalar, HyperKZGCommitmentEvaluationProof,
+        public_setup::load_small_setup_for_testing_internal, BNScalar,
+        HyperKZGCommitmentEvaluationProof,
     },
 };
 use ark_ff::{PrimeField, UniformRand};
@@ -81,7 +82,7 @@ fn run_evm_verify_hyperkzg_with_extra_args(
 #[ignore = "foundry must be installed in order to run this test"]
 #[test]
 fn we_can_create_small_valid_proof_for_use_in_solidity_tests() {
-    let (ps, vk) = load_small_setup_for_testing();
+    let (ps, vk) = load_small_setup_for_testing_internal();
 
     let a = [
         BNScalar::from(0),
@@ -112,7 +113,7 @@ fn we_can_create_small_valid_proof_for_use_in_solidity_tests() {
 #[ignore = "foundry must be installed in order to run this test"]
 #[test]
 fn we_can_generate_and_verify_random_hyperkzg_proofs() {
-    let (ps, vk) = load_small_setup_for_testing();
+    let (ps, vk) = load_small_setup_for_testing_internal();
 
     let mut rng = ark_std::test_rng();
 
@@ -148,7 +149,7 @@ fn we_can_generate_and_verify_random_hyperkzg_proofs() {
 #[ignore = "foundry must be installed in order to run this test"]
 #[test]
 fn we_can_generate_and_verify_random_hyperkzg_proofs_with_random_length() {
-    let (ps, vk) = load_small_setup_for_testing();
+    let (ps, vk) = load_small_setup_for_testing_internal();
 
     let mut rng = ark_std::test_rng();
 

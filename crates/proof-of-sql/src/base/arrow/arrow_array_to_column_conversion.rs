@@ -17,7 +17,7 @@ use bumpalo::Bump;
 use core::ops::Range;
 use snafu::Snafu;
 
-#[derive(Snafu, Debug, PartialEq)]
+#[derive(Snafu, Debug, PartialEq, Clone)]
 /// Errors caused by conversions between Arrow and owned types.
 pub enum ArrowArrayToColumnConversionError {
     /// This error occurs when an array contains a non-zero number of null elements

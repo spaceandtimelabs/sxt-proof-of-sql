@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
 /// Errors related to time operations, including timezone and timestamp conversions.
-#[derive(Snafu, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Snafu, Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub enum PoSQLTimestampError {
     /// Error when the timezone string provided cannot be parsed into a valid timezone.
     #[snafu(display("invalid timezone string: {timezone}"))]

@@ -18,6 +18,9 @@ pub use column_ref::ColumnRef;
 mod column_field;
 pub use column_field::ColumnField;
 
+mod data_accessor_impl;
+pub use data_accessor_impl::{DataAccessorImpl, TableDataAccessor};
+
 #[cfg_attr(not(test), expect(dead_code))]
 pub(crate) mod slice_operation;
 

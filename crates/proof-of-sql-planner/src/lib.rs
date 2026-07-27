@@ -17,7 +17,9 @@ mod expr;
 pub use expr::expr_to_proof_expr;
 pub(crate) use expr::get_column_idents_from_expr;
 mod error;
-pub use error::{PlannerError, PlannerResult};
+pub use error::{
+    AggregatePlanError, JoinPlanError, LogicalPlanNodeKind, PlannerError, PlannerResult,
+};
 mod plan;
 pub use plan::logical_plan_to_proof_plan;
 mod uppercase_column_visitor;

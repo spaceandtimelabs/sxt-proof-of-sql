@@ -1,6 +1,7 @@
 use super::{
     aggregate_function_to_proof_expr, expr_to_proof_expr, get_column_idents_from_expr,
-    table_reference_to_table_ref, AggregateFunc, PlannerError, PlannerResult,
+    table_reference_to_table_ref, AggregateFunc, AggregatePlanError, JoinPlanError,
+    LogicalPlanNodeKind, PlannerError, PlannerResult,
 };
 use alloc::vec::Vec;
 use datafusion::{
@@ -187,11 +188,11 @@ fn aggregate_to_proof_plan(
             let aggregate_alias: Ident = aggregate_alias.to_string().as_str().into();
             let aggregate_proof_expr = expr_to_proof_expr(e, &input_schema)?;
             let name_string = e.clone().unalias().display_name()?;
-            let alias = alias_map.get(&name_string).ok_or_else(|| {
-                PlannerError::UnsupportedLogicalPlan {
-                    plan: Box::new(input.clone()),
-                }
-            })?;
+            let alias = alias_map.get(&name_string).ok_or(
+                AggregatePlanError::MissingGroupExpressionAlias {
+                    expression: name_string,
+                },
+            )?;
             let proof_expr = DynProofExpr::new_column(ColumnRef::new(
                 dummy_table_ref.clone(),
                 aggregate_alias.clone(),
@@ -218,19 +219,20 @@ fn aggregate_to_proof_plan(
             match &expr {
                 Expr::AggregateFunction(agg) => {
                     let name_string = expr.display_name()?;
-                    let alias = alias_map.get(&name_string).ok_or_else(|| {
-                        PlannerError::UnsupportedLogicalPlan {
-                            plan: Box::new(input.clone()),
-                        }
-                    })?;
+                    let alias = alias_map.get(&name_string).ok_or(
+                        AggregatePlanError::MissingAggregateExpressionAlias {
+                            expression: name_string,
+                        },
+                    )?;
                     Ok((
                         aggregate_function_to_proof_expr(agg, &input_schema)?,
                         alias.as_str().into(),
                     ))
                 }
-                _ => Err(PlannerError::UnsupportedLogicalPlan {
-                    plan: Box::new(input.clone()),
-                }),
+                _ => Err(AggregatePlanError::UnexpectedAggregateExpression {
+                    expression: expr.to_string(),
+                }
+                .into()),
             }
         })
         .collect::<PlannerResult<Vec<_>>>()?;
@@ -290,9 +292,7 @@ fn aggregate_to_proof_plan(
         input_plan,
         DynProofExpr::new_literal(LiteralValue::Boolean(true)),
     )
-    .ok_or_else(|| PlannerError::UnsupportedLogicalPlan {
-        plan: Box::new(input.clone()),
-    })?;
+    .map_err(AggregatePlanError::from)?;
     Ok(DynProofPlan::new_projection(
         projection_exprs,
         inner_aggregate_plan,
@@ -302,12 +302,18 @@ fn aggregate_to_proof_plan(
 fn join_to_proof_plan(
     join: &Join,
     schema_accessor: &impl SchemaAccessor,
-    plan: &LogicalPlan,
 ) -> PlannerResult<DynProofPlan> {
-    if join.join_type != JoinType::Inner || join.join_constraint != JoinConstraint::On {
-        return Err(PlannerError::UnsupportedLogicalPlan {
-            plan: Box::new(plan.clone()),
-        });
+    if join.join_type != JoinType::Inner {
+        return Err(JoinPlanError::UnsupportedJoinType {
+            join_type: join.join_type,
+        }
+        .into());
+    }
+    if join.join_constraint != JoinConstraint::On {
+        return Err(JoinPlanError::UnsupportedJoinConstraint {
+            constraint: join.join_constraint,
+        }
+        .into());
     }
     let left_plan = Box::new(logical_plan_to_proof_plan(&join.left, schema_accessor)?);
     let right_plan = Box::new(logical_plan_to_proof_plan(&join.right, schema_accessor)?);
@@ -336,12 +342,14 @@ fn join_to_proof_plan(
                         column_id,
                     ))
                 }
-                _ => Err(PlannerError::UnsupportedLogicalPlan {
-                    plan: Box::new(plan.clone()),
-                }),
+                _ => Err(JoinPlanError::UnsupportedPredicate {
+                    left: left_expr.to_string(),
+                    right: right_expr.to_string(),
+                }
+                .into()),
             })
         })
-        .collect::<Result<Vec<_>, _>>()?;
+        .collect::<PlannerResult<Vec<_>>>()?;
     let (on_indices, join_idents): (Vec<(usize, usize)>, Vec<Ident>) =
         on_indices_and_idents.into_iter().unzip();
     let (left_indices, right_indices): (Vec<usize>, Vec<usize>) = on_indices.into_iter().unzip();
@@ -474,13 +482,49 @@ pub fn logical_plan_to_proof_plan(
                 .collect::<PlannerResult<Vec<_>>>()?;
             Ok(DynProofPlan::try_new_union(input_plans)?)
         }
-        LogicalPlan::Join(join) => join_to_proof_plan(join, schema_accessor, plan),
+        LogicalPlan::Join(join) => join_to_proof_plan(join, schema_accessor),
         LogicalPlan::SubqueryAlias(SubqueryAlias { input, .. }) => {
             logical_plan_to_proof_plan(input, schema_accessor)
         }
         _ => Err(PlannerError::UnsupportedLogicalPlan {
-            plan: Box::new(plan.clone()),
+            node: LogicalPlanNodeKind::from_unsupported_logical_plan(plan),
         }),
+    }
+}
+
+impl LogicalPlanNodeKind {
+    fn from_unsupported_logical_plan(plan: &LogicalPlan) -> Self {
+        match plan {
+            LogicalPlan::Window(_) => Self::Window,
+            LogicalPlan::Sort(_) => Self::Sort,
+            LogicalPlan::CrossJoin(_) => Self::CrossJoin,
+            LogicalPlan::Repartition(_) => Self::Repartition,
+            LogicalPlan::TableScan(_) => Self::TableScan,
+            LogicalPlan::Subquery(_) => Self::Subquery,
+            LogicalPlan::Statement(_) => Self::Statement,
+            LogicalPlan::Values(_) => Self::Values,
+            LogicalPlan::Explain(_) => Self::Explain,
+            LogicalPlan::Analyze(_) => Self::Analyze,
+            LogicalPlan::Extension(_) => Self::Extension,
+            LogicalPlan::Distinct(_) => Self::Distinct,
+            LogicalPlan::Prepare(_) => Self::Prepare,
+            LogicalPlan::Dml(_) => Self::Dml,
+            LogicalPlan::Ddl(_) => Self::Ddl,
+            LogicalPlan::Copy(_) => Self::Copy,
+            LogicalPlan::DescribeTable(_) => Self::DescribeTable,
+            LogicalPlan::Unnest(_) => Self::Unnest,
+            LogicalPlan::RecursiveQuery(_) => Self::RecursiveQuery,
+            LogicalPlan::Projection(_)
+            | LogicalPlan::Filter(_)
+            | LogicalPlan::Aggregate(_)
+            | LogicalPlan::Join(_)
+            | LogicalPlan::Union(_)
+            | LogicalPlan::EmptyRelation(_)
+            | LogicalPlan::SubqueryAlias(_)
+            | LogicalPlan::Limit(_) => {
+                unreachable!("supported logical plan nodes are handled before classification")
+            }
+        }
     }
 }
 
@@ -490,13 +534,15 @@ mod tests {
     use crate::{df_util::*, PoSqlTableSource};
     use ahash::AHasher;
     use alloc::{sync::Arc, vec};
-    use arrow::datatypes::DataType;
+    use arrow::datatypes::{DataType, Schema};
     use core::ops::Add;
     use datafusion::{
         common::{Column, ScalarValue},
         logical_expr::{
             expr::{AggregateFunction, AggregateFunctionDefinition, Alias},
-            not, BinaryExpr, EmptyRelation, Operator, Prepare, TableScan, TableSource,
+            lit, not, BinaryExpr, DescribeTable, EmptyRelation, LogicalPlanBuilder, Operator,
+            Partitioning, Prepare, RecursiveQuery, SetVariable, Statement, Subquery, TableScan,
+            TableSource,
         },
         physical_plan,
     };
@@ -506,7 +552,10 @@ mod tests {
             database::{ColumnField, SchemaAccessorImpl},
             math::decimal::Precision,
         },
-        sql::proof_exprs::{ColumnExpr, TableExpr},
+        sql::{
+            proof_exprs::{ColumnExpr, TableExpr},
+            proof_plans::AggregateExecError,
+        },
     };
 
     const SUM: AggregateFunctionDefinition =
@@ -971,8 +1020,8 @@ mod tests {
             .unwrap(),
         );
         let alias_map = indexmap! {
-            "a".to_string() => "a".to_string(),
-            "c".to_string() => "c".to_string(),
+            "table.a".to_string() => "a".to_string(),
+            "table.c".to_string() => "c".to_string(),
             "SUM(table.b)".to_string() => "sum_b".to_string(),
             "COUNT(Int64(1))".to_string() => "count_1".to_string(),
         };
@@ -983,7 +1032,12 @@ mod tests {
                 .unwrap_err();
         assert!(matches!(
             err,
-            PlannerError::UnsupportedLogicalPlan { plan: _ }
+            PlannerError::UnsupportedAggregatePlan {
+                source: AggregatePlanError::AggregateExec {
+                    source: AggregateExecError::UnsupportedGroupByExpressionCount { count: 2 }
+                },
+                ..
+            }
         ));
 
         // Expected result
@@ -1237,16 +1291,122 @@ mod tests {
             .unwrap(),
         );
         let alias_map = indexmap! {
-            "a+b".to_string() => "res".to_string(),
+            group_expr[0].clone().unalias().display_name().unwrap() => "res".to_string(),
             "COUNT(Int64(1))".to_string() => "count_1".to_string(),
         };
 
         // Test the function - should return an error
         let result =
             aggregate_to_proof_plan(&input_plan, &group_expr, &aggr_expr, &SCHEMAS(), &alias_map);
+        assert!(
+            matches!(
+                result,
+                Err(PlannerError::UnsupportedAggregatePlan {
+                    source: AggregatePlanError::UnexpectedAggregateExpression { .. },
+                    ..
+                })
+            ),
+            "{result:?}"
+        );
+    }
+
+    #[test]
+    fn we_report_unsupported_grouping_types() {
+        for data_type in [ColumnType::VarChar, ColumnType::VarBinary] {
+            let table_ref = TableRef::new("", "table");
+            let schemas = SchemaAccessorImpl::new(indexmap_with_default! {AHasher;
+                table_ref => vec![("value".into(), data_type)]
+            });
+            let source: Arc<dyn TableSource> =
+                Arc::new(PoSqlTableSource::new(vec![ColumnField::new(
+                    "value".into(),
+                    data_type,
+                )]));
+            let input_plan = LogicalPlan::TableScan(
+                TableScan::try_new("table", source, Some(vec![0]), vec![], None).unwrap(),
+            );
+            let group_expr = vec![df_column("table", "value")];
+            let alias_map = indexmap! {
+                "table.value".to_string() => "value".to_string(),
+            };
+
+            let err = aggregate_to_proof_plan(&input_plan, &group_expr, &[], &schemas, &alias_map)
+                .unwrap_err();
+
+            assert!(
+                matches!(
+                    err,
+                    PlannerError::UnsupportedAggregatePlan {
+                        source: AggregatePlanError::AggregateExec {
+                            source: AggregateExecError::UnsupportedGroupByExpressionType {
+                                data_type: actual_type
+                            }
+                        },
+                        ..
+                    } if actual_type == data_type
+                ),
+                "{err:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn we_report_missing_group_expression_alias() {
+        let input_plan = LogicalPlan::TableScan(
+            TableScan::try_new(
+                "table",
+                TABLE_SOURCE(),
+                Some(vec![0, 1, 2, 3]),
+                vec![],
+                None,
+            )
+            .unwrap(),
+        );
+        let group_expr = vec![df_column("table", "a")];
+        let aggr_expr = vec![COUNT_1()];
+        let alias_map = indexmap! {
+            "COUNT(Int64(1))".to_string() => "count_1".to_string(),
+        };
+
+        let err =
+            aggregate_to_proof_plan(&input_plan, &group_expr, &aggr_expr, &SCHEMAS(), &alias_map)
+                .unwrap_err();
+
         assert!(matches!(
-            result,
-            Err(PlannerError::UnsupportedLogicalPlan { .. })
+            err,
+            PlannerError::UnsupportedAggregatePlan {
+                source: AggregatePlanError::MissingGroupExpressionAlias { expression },
+            } if expression == "table.a"
+        ));
+    }
+
+    #[test]
+    fn we_report_missing_aggregate_expression_alias() {
+        let input_plan = LogicalPlan::TableScan(
+            TableScan::try_new(
+                "table",
+                TABLE_SOURCE(),
+                Some(vec![0, 1, 2, 3]),
+                vec![],
+                None,
+            )
+            .unwrap(),
+        );
+        let group_expr = vec![df_column("table", "a")];
+        let aggr_expr = vec![COUNT_1()];
+        let alias_map = indexmap! {
+            "table.a".to_string() => "a".to_string(),
+        };
+
+        let err =
+            aggregate_to_proof_plan(&input_plan, &group_expr, &aggr_expr, &SCHEMAS(), &alias_map)
+                .unwrap_err();
+
+        assert!(matches!(
+            err,
+            PlannerError::UnsupportedAggregatePlan {
+                source: AggregatePlanError::MissingAggregateExpressionAlias { expression },
+            } if expression == "COUNT(Int64(1))"
         ));
     }
 
@@ -1286,16 +1446,23 @@ mod tests {
             .unwrap(),
         );
         let alias_map = indexmap! {
-            "b+c".to_string() => "b_plus_c".to_string(),
+            "table.a".to_string() => "a".to_string(),
+            aggr_expr[0].clone().unalias().display_name().unwrap() => "b_plus_c".to_string(),
         };
 
         // Test the function - should return an error
         let result =
             aggregate_to_proof_plan(&input_plan, &group_expr, &aggr_expr, &SCHEMAS(), &alias_map);
-        assert!(matches!(
-            result,
-            Err(PlannerError::UnsupportedLogicalPlan { .. })
-        ));
+        assert!(
+            matches!(
+                result,
+                Err(PlannerError::UnsupportedAggregatePlan {
+                    source: AggregatePlanError::UnexpectedAggregateExpression { .. },
+                    ..
+                })
+            ),
+            "{result:?}"
+        );
     }
 
     #[test]
@@ -1338,7 +1505,7 @@ mod tests {
             .unwrap(),
         );
         let alias_map = indexmap! {
-            "a".to_string() => "a".to_string(),
+            "table.a".to_string() => "a".to_string(),
             "AVG(table.b)".to_string() => "avg_b".to_string(),
             "COUNT(Int64(1))".to_string() => "count_1".to_string(),
         };
@@ -1346,14 +1513,17 @@ mod tests {
         // Test the function - should return an error
         let result =
             aggregate_to_proof_plan(&input_plan, &group_expr, &aggr_expr, &SCHEMAS(), &alias_map);
-        assert!(matches!(
-            result,
-            Err(PlannerError::UnsupportedLogicalPlan { .. })
-        ));
+        assert!(
+            matches!(
+                result,
+                Err(PlannerError::UnsupportedAggregateOperation { .. })
+            ),
+            "{result:?}"
+        );
     }
 
     #[test]
-    fn we_cannot_aggregate_with_non_count_last_aggregate() {
+    fn we_can_aggregate_without_count_expression() {
         // Setup group expression
         let group_expr = vec![df_column("table", "a")];
 
@@ -1369,7 +1539,7 @@ mod tests {
 
         let sum_expr2 = Expr::AggregateFunction(AggregateFunction {
             func_def: SUM,
-            args: vec![df_column("table", "c")],
+            args: vec![df_column("table", "a")],
             distinct: false,
             filter: None,
             order_by: None,
@@ -1386,14 +1556,11 @@ mod tests {
         let aliased_sum2 = Expr::Alias(Alias {
             expr: Box::new(sum_expr2),
             relation: None,
-            name: "sum_c".to_string(),
+            name: "sum_a".to_string(),
         });
 
-        // Create the aggregate expressions with no COUNT at the end
-        let aggr_expr = vec![
-            aliased_sum1, // SUM
-            aliased_sum2, // Another SUM (should be COUNT)
-        ];
+        // Create aggregate expressions without an explicit COUNT result.
+        let aggr_expr = vec![aliased_sum1, aliased_sum2];
 
         // Create the input plan
         let input_plan = LogicalPlan::TableScan(
@@ -1407,22 +1574,27 @@ mod tests {
             .unwrap(),
         );
         let alias_map = indexmap! {
-            "a".to_string() => "a".to_string(),
+            "table.a".to_string() => "a".to_string(),
             "SUM(table.b)".to_string() => "sum_b".to_string(),
-            "SUM(c)".to_string() => "sum_c".to_string(),
+            "SUM(table.a)".to_string() => "sum_a".to_string(),
         };
 
-        // Test the function - should return an error
         let result =
-            aggregate_to_proof_plan(&input_plan, &group_expr, &aggr_expr, &SCHEMAS(), &alias_map);
-        assert!(matches!(
-            result,
-            Err(PlannerError::UnsupportedLogicalPlan { .. })
-        ));
+            aggregate_to_proof_plan(&input_plan, &group_expr, &aggr_expr, &SCHEMAS(), &alias_map)
+                .unwrap();
+        assert!(matches!(&result, DynProofPlan::Projection(_)));
+        assert_eq!(
+            result.get_column_result_fields(),
+            vec![
+                ColumnField::new("a".into(), ColumnType::BigInt),
+                ColumnField::new("sum_b".into(), ColumnType::Int),
+                ColumnField::new("sum_a".into(), ColumnType::BigInt),
+            ]
+        );
     }
 
     #[test]
-    fn we_cannot_aggregate_with_fetch_limit() {
+    fn we_can_aggregate_with_fetch_limit() {
         // Setup group expression
         let group_expr = vec![df_column("table", "a")];
 
@@ -1443,17 +1615,21 @@ mod tests {
             .unwrap(),
         );
         let alias_map = indexmap! {
-            "a".to_string() => "a".to_string(),
+            "table.a".to_string() => "a".to_string(),
             "COUNT(Int64(1))".to_string() => "count_1".to_string(),
         };
 
-        // Test the function - should return an error because fetch limit is not supported
         let result =
-            aggregate_to_proof_plan(&input_plan, &group_expr, &aggr_expr, &SCHEMAS(), &alias_map);
-        assert!(matches!(
-            result,
-            Err(PlannerError::UnsupportedLogicalPlan { .. })
-        ));
+            aggregate_to_proof_plan(&input_plan, &group_expr, &aggr_expr, &SCHEMAS(), &alias_map)
+                .unwrap();
+        assert!(matches!(&result, DynProofPlan::Projection(_)));
+        assert_eq!(
+            result.get_column_result_fields(),
+            vec![
+                ColumnField::new("a".into(), ColumnType::BigInt),
+                ColumnField::new("count_1".into(), ColumnType::BigInt),
+            ]
+        );
     }
 
     // EmptyRelation
@@ -2188,14 +2364,125 @@ mod tests {
         let schemas = SCHEMAS();
         assert!(matches!(
             logical_plan_to_proof_plan(&plan, &schemas),
-            Err(PlannerError::UnsupportedLogicalPlan { .. })
+            Err(PlannerError::UnsupportedLogicalPlan {
+                node: LogicalPlanNodeKind::Prepare,
+                ..
+            })
         ));
     }
 
     #[test]
+    #[expect(clippy::too_many_lines)]
+    fn we_classify_unsupported_logical_plan_nodes() {
+        let empty_plan = LogicalPlanBuilder::empty(false).build().unwrap();
+        let empty_schema = Arc::new(DFSchema::empty());
+        let plans = [
+            (
+                LogicalPlanBuilder::from(empty_plan.clone())
+                    .sort([lit(1).sort(true, false)])
+                    .unwrap()
+                    .build()
+                    .unwrap(),
+                LogicalPlanNodeKind::Sort,
+            ),
+            (
+                LogicalPlanBuilder::from(empty_plan.clone())
+                    .cross_join(empty_plan.clone())
+                    .unwrap()
+                    .build()
+                    .unwrap(),
+                LogicalPlanNodeKind::CrossJoin,
+            ),
+            (
+                LogicalPlanBuilder::from(empty_plan.clone())
+                    .repartition(Partitioning::RoundRobinBatch(2))
+                    .unwrap()
+                    .build()
+                    .unwrap(),
+                LogicalPlanNodeKind::Repartition,
+            ),
+            (
+                LogicalPlan::TableScan(
+                    TableScan::try_new("table", TABLE_SOURCE(), None, vec![], None).unwrap(),
+                ),
+                LogicalPlanNodeKind::TableScan,
+            ),
+            (
+                LogicalPlan::Subquery(Subquery {
+                    subquery: Arc::new(empty_plan.clone()),
+                    outer_ref_columns: vec![],
+                }),
+                LogicalPlanNodeKind::Subquery,
+            ),
+            (
+                LogicalPlan::Statement(Statement::SetVariable(SetVariable {
+                    variable: "key".to_string(),
+                    value: "value".to_string(),
+                    schema: empty_schema,
+                })),
+                LogicalPlanNodeKind::Statement,
+            ),
+            (
+                LogicalPlanBuilder::values(vec![vec![lit(1)]])
+                    .unwrap()
+                    .build()
+                    .unwrap(),
+                LogicalPlanNodeKind::Values,
+            ),
+            (
+                LogicalPlanBuilder::from(empty_plan.clone())
+                    .explain(false, false)
+                    .unwrap()
+                    .build()
+                    .unwrap(),
+                LogicalPlanNodeKind::Explain,
+            ),
+            (
+                LogicalPlanBuilder::from(empty_plan.clone())
+                    .explain(false, true)
+                    .unwrap()
+                    .build()
+                    .unwrap(),
+                LogicalPlanNodeKind::Analyze,
+            ),
+            (
+                LogicalPlanBuilder::from(empty_plan.clone())
+                    .distinct()
+                    .unwrap()
+                    .build()
+                    .unwrap(),
+                LogicalPlanNodeKind::Distinct,
+            ),
+            (
+                LogicalPlan::DescribeTable(DescribeTable {
+                    schema: Arc::new(Schema::empty()),
+                    output_schema: Arc::new(DFSchema::empty()),
+                }),
+                LogicalPlanNodeKind::DescribeTable,
+            ),
+            (
+                LogicalPlan::RecursiveQuery(RecursiveQuery {
+                    name: "recursive".to_string(),
+                    static_term: Arc::new(empty_plan.clone()),
+                    recursive_term: Arc::new(empty_plan),
+                    is_distinct: false,
+                }),
+                LogicalPlanNodeKind::RecursiveQuery,
+            ),
+        ];
+
+        for (plan, expected_node) in plans {
+            let err = logical_plan_to_proof_plan(&plan, &EMPTY_SCHEMAS()).unwrap_err();
+            assert!(matches!(
+                err,
+                PlannerError::UnsupportedLogicalPlan { node } if node == expected_node
+            ));
+        }
+    }
+
+    #[test]
     fn we_can_error_if_not_inner_join() {
-        // Most of the arguments here are bogus. The only thing that really matters is the join type.
-        let plan = LogicalPlan::Prepare(Prepare {
+        let input_plan = LogicalPlan::Prepare(Prepare {
             name: "not_a_real_plan".to_string(),
             data_types: vec![],
             input: Arc::new(LogicalPlan::EmptyRelation(EmptyRelation {
@@ -2203,25 +2490,80 @@ mod tests {
                 schema: Arc::new(DFSchema::empty()),
             })),
         });
+        let plan = LogicalPlan::Join(Join {
+            left: Arc::new(input_plan.clone()),
+            right: Arc::new(input_plan),
+            on: Vec::new(),
+            filter: None,
+            join_type: JoinType::Left,
+            join_constraint: JoinConstraint::On,
+            schema: Arc::new(DFSchema::empty()),
+            null_equals_null: false,
+        });
         let schemas = SCHEMAS();
-        let join_err = join_to_proof_plan(
-            &Join {
-                left: Arc::new(plan.clone()),
-                right: Arc::new(plan.clone()),
-                on: Vec::new(),
-                filter: None,
-                join_type: JoinType::Left,
-                join_constraint: JoinConstraint::On,
-                schema: Arc::new(DFSchema::empty()),
-                null_equals_null: false,
-            },
-            &schemas,
-            &plan,
-        )
-        .unwrap_err();
-        assert!(
-            matches!(join_err, PlannerError::UnsupportedLogicalPlan { plan: logical_plan } if *logical_plan == plan )
-        );
+        let join_err = logical_plan_to_proof_plan(&plan, &schemas).unwrap_err();
+        assert!(matches!(
+            join_err,
+            PlannerError::UnsupportedJoinPlan {
+                source: JoinPlanError::UnsupportedJoinType {
+                    join_type: JoinType::Left
+                },
+            }
+        ));
+    }
+
+    #[test]
+    fn we_report_unsupported_join_constraint() {
+        let input_plan = LogicalPlan::EmptyRelation(EmptyRelation {
+            produce_one_row: false,
+            schema: Arc::new(DFSchema::empty()),
+        });
+        let plan = LogicalPlan::Join(Join {
+            left: Arc::new(input_plan.clone()),
+            right: Arc::new(input_plan),
+            on: Vec::new(),
+            filter: None,
+            join_type: JoinType::Inner,
+            join_constraint: JoinConstraint::Using,
+            schema: Arc::new(DFSchema::empty()),
+            null_equals_null: false,
+        });
+        let join_err = logical_plan_to_proof_plan(&plan, &EMPTY_SCHEMAS()).unwrap_err();
+
+        assert!(matches!(
+            join_err,
+            PlannerError::UnsupportedJoinPlan {
+                source: JoinPlanError::UnsupportedJoinConstraint {
+                    constraint: JoinConstraint::Using
+                },
+            }
+        ));
+    }
+
+    #[test]
+    fn we_report_unsupported_join_predicate() {
+        let input_plan = LogicalPlan::EmptyRelation(EmptyRelation {
+            produce_one_row: false,
+            schema: Arc::new(DFSchema::empty()),
+        });
+        let plan = LogicalPlan::Join(Join {
+            left: Arc::new(input_plan.clone()),
+            right: Arc::new(input_plan),
+            on: vec![(df_column("left", "a"), df_column("right", "b"))],
+            filter: None,
+            join_type: JoinType::Inner,
+            join_constraint: JoinConstraint::On,
+            schema: Arc::new(DFSchema::empty()),
+            null_equals_null: false,
+        });
+        let join_err = logical_plan_to_proof_plan(&plan, &EMPTY_SCHEMAS()).unwrap_err();
+
+        assert!(matches!(
+            join_err,
+            PlannerError::UnsupportedJoinPlan {
+                source: JoinPlanError::UnsupportedPredicate { left, right },
+            } if left == "left.a" && right == "right.b"
+        ));
     }
 
     // Filter (LogicalPlan::Filter) tests - Happy paths

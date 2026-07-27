@@ -3,13 +3,16 @@ use super::{
     PlannerError, PlannerResult,
 };
 use datafusion::logical_expr::{
-    expr::{Alias, Cast, Placeholder},
+    expr::{Alias, Between, Cast, InList, Placeholder},
     BinaryExpr, Expr, Operator,
 };
 use indexmap::IndexSet;
 use proof_of_sql::{
-    base::database::ColumnType,
-    sql::{proof_exprs::DynProofExpr, scale_cast_binary_op},
+    base::database::{ColumnType, LiteralValue},
+    sql::{
+        proof_exprs::{DynProofExpr, ProofExpr},
+        scale_cast_binary_op,
+    },
 };
 use sqlparser::ast::Ident;
 
@@ -27,6 +30,13 @@ pub(crate) fn get_column_idents_from_expr(expr: &Expr) -> IndexSet<Ident> {
             left_idents
         }
         Expr::Not(inner) => get_column_idents_from_expr(inner),
+        Expr::InList(InList { expr, list, .. }) => {
+            let mut idents = get_column_idents_from_expr(expr);
+            for value in list {
+                idents.extend(get_column_idents_from_expr(value));
+            }
+            idents
+        }
         Expr::Alias(Alias { expr, .. }) | Expr::Cast(Cast { expr, .. }) => {
             get_column_idents_from_expr(expr)
         }
@@ -35,15 +45,19 @@ pub(crate) fn get_column_idents_from_expr(expr: &Expr) -> IndexSet<Ident> {
             .iter()
             .flat_map(get_column_idents_from_expr)
             .collect(),
+        Expr::Between(Between {
+            expr, low, high, ..
+        }) => {
+            let mut idents = get_column_idents_from_expr(expr);
+            idents.extend(get_column_idents_from_expr(low));
+            idents.extend(get_column_idents_from_expr(high));
+            idents
+        }
         _ => IndexSet::new(),
     }
 }
 
 /// Convert a [`BinaryExpr`] to [`DynProofExpr`]
-#[expect(
-    clippy::missing_panics_doc,
-    reason = "Output of comparisons is always boolean"
-)]
 fn binary_expr_to_proof_expr(
     left: &Expr,
     right: &Expr,
@@ -52,7 +66,22 @@ fn binary_expr_to_proof_expr(
 ) -> PlannerResult<DynProofExpr> {
     let left_proof_expr = expr_to_proof_expr(left, schema)?;
     let right_proof_expr = expr_to_proof_expr(right, schema)?;
+    binary_proof_exprs_to_proof_expr(left_proof_expr, right_proof_expr, op)
+}
 
+/// Apply a binary [`Operator`] to two already-converted [`DynProofExpr`]s.
+///
+/// Scale-casting is performed here for operators that require it, so callers
+/// that already hold `DynProofExpr`s can skip the `Expr` conversion step.
+#[expect(
+    clippy::missing_panics_doc,
+    reason = "Output of comparisons is always boolean"
+)]
+fn binary_proof_exprs_to_proof_expr(
+    left_proof_expr: DynProofExpr,
+    right_proof_expr: DynProofExpr,
+    op: Operator,
+) -> PlannerResult<DynProofExpr> {
     let (left_proof_expr, right_proof_expr) = match op {
         Operator::Eq
         | Operator::NotEq
@@ -114,15 +143,16 @@ fn binary_expr_to_proof_expr(
             left_proof_expr,
             right_proof_expr,
         )?),
-        // Any other operator is unsupported
         _ => Err(PlannerError::UnsupportedBinaryOperator { op }),
     }
 }
 
-/// Convert an [`datafusion::expr::Expr`] to [`DynProofExpr`]
+/// Convert a `DataFusion` [`Expr`] into a provable [`DynProofExpr`], using `schema`
+/// to resolve column references and their types.
 ///
-/// # Panics
-/// The function should not panic if Proof of SQL is working correctly
+/// # Errors
+/// Returns a [`PlannerError`] if the expression (or any subexpression) is unsupported,
+/// references an unknown column, or cannot be lowered to a `DynProofExpr`.
 pub fn expr_to_proof_expr(
     expr: &Expr,
     schema: &[(Ident, ColumnType)],
@@ -140,6 +170,67 @@ pub fn expr_to_proof_expr(
         Expr::Not(expr) => {
             let proof_expr = expr_to_proof_expr(expr, schema)?;
             Ok(DynProofExpr::try_new_not(proof_expr)?)
+        }
+        Expr::InList(InList {
+            expr,
+            list,
+            negated,
+        }) => {
+            // Lower `a IN (v_1, ..., v_k)`. The list length is uncapped in both branches.
+            //
+            //   - numeric `a`: use the product form `(a - v_1) * ... * (a - v_k) = 0`.
+            //     A field is an integral domain, so the product is zero iff some factor is.
+            //   - non-numeric `a` (e.g. varchar): the typed `-` operator rejects these, so
+            //     fall back to `a = v_1 OR ... OR a = v_k`. Equality subtracts the embedded
+            //     hashes internally, which is exactly what a membership zero-test needs.
+            let needle = expr_to_proof_expr(expr, schema)?;
+            // Split off the first value. `None` means `a IN ()`, which is always false;
+            // keeping that here (not an early return) lets the `negated` wrap below
+            // still apply, so `a NOT IN ()` correctly negates to `true`.
+            let comparison = match list.split_first() {
+                None => DynProofExpr::new_literal(LiteralValue::Boolean(false)),
+                Some((first, rest)) => {
+                    if needle.data_type().is_numeric() {
+                        // product form: (a - v_1) * ... * (a - v_k) = 0. `scale_cast_binary_op`
+                        // aligns the needle to each `v_i`'s scale before subtracting; this is a
+                        // numeric-only concern, so it stays out of the varchar branch.
+                        let term = |value: &Expr| -> PlannerResult<_> {
+                            let (n, v) = scale_cast_binary_op(
+                                needle.clone(),
+                                expr_to_proof_expr(value, schema)?,
+                            )?;
+                            Ok(DynProofExpr::try_new_subtract(n, v)?)
+                        };
+                        let product = rest.iter().try_fold(
+                            term(first)?,
+                            |acc, value| -> PlannerResult<_> {
+                                Ok(DynProofExpr::try_new_multiply(acc, term(value)?)?)
+                            },
+                        )?;
+                        let zero = DynProofExpr::new_literal(LiteralValue::BigInt(0));
+                        let (product, zero) = scale_cast_binary_op(product, zero)?;
+                        DynProofExpr::try_new_equals(product, zero)?
+                    } else {
+                        // a = v_1 OR ... OR a = v_k. The needle is non-numeric, so there is no
+                        // scale to align; `=` compares the lowered operands directly.
+                        let eq = |value: &Expr| -> PlannerResult<_> {
+                            Ok(DynProofExpr::try_new_equals(
+                                needle.clone(),
+                                expr_to_proof_expr(value, schema)?,
+                            )?)
+                        };
+                        rest.iter()
+                            .try_fold(eq(first)?, |acc, value| -> PlannerResult<_> {
+                                Ok(DynProofExpr::try_new_or(acc, eq(value)?)?)
+                            })?
+                    }
+                }
+            };
+            if *negated {
+                Ok(DynProofExpr::try_new_not(comparison)?)
+            } else {
+                Ok(comparison)
+            }
         }
         Expr::Cast(cast) => {
             match &*cast.expr {
@@ -165,9 +256,39 @@ pub fn expr_to_proof_expr(
                 }
             }
         }
+        Expr::Between(Between {
+            expr,
+            negated,
+            low,
+            high,
+        }) => between_to_proof_expr(expr, *negated, low, high, schema),
         _ => Err(PlannerError::UnsupportedLogicalExpression {
             expr: Box::new(expr.clone()),
         }),
+    }
+}
+
+/// Convert a [`Between`] expression to [`DynProofExpr`]
+fn between_to_proof_expr(
+    expr: &Expr,
+    negated: bool,
+    low: &Expr,
+    high: &Expr,
+    schema: &[(Ident, ColumnType)],
+) -> PlannerResult<DynProofExpr> {
+    let expr_proof = expr_to_proof_expr(expr, schema)?;
+    let low_proof = expr_to_proof_expr(low, schema)?;
+    let high_proof = expr_to_proof_expr(high, schema)?;
+    // expr < low OR expr > high
+    let out_of_range = binary_proof_exprs_to_proof_expr(
+        binary_proof_exprs_to_proof_expr(expr_proof.clone(), low_proof, Operator::Lt)?,
+        binary_proof_exprs_to_proof_expr(expr_proof, high_proof, Operator::Gt)?,
+        Operator::Or,
+    )?;
+    if negated {
+        Ok(out_of_range)
+    } else {
+        Ok(DynProofExpr::try_new_not(out_of_range)?)
     }
 }
 
@@ -180,7 +301,7 @@ mod tests {
     use datafusion::{
         catalog::TableReference,
         common::{Column, ScalarValue},
-        logical_expr::{expr::Placeholder, Cast},
+        logical_expr::{expr::Placeholder, lit, Cast},
     };
     use proof_of_sql::base::{
         database::{ColumnRef, ColumnType, LiteralValue, TableRef},
@@ -272,6 +393,66 @@ mod tests {
         let expr = df_column("namespace.table_name", "column");
         let schema = vec![("column".into(), ColumnType::Int)];
         assert_eq!(expr_to_proof_expr(&expr, &schema).unwrap(), COLUMN_INT());
+    }
+
+    // IN
+    #[test]
+    fn we_can_convert_in_list_to_proof_expr() {
+        // `a IN (...)` lowers to `(product of differences) = 0`, i.e. a top-level equals.
+        let expr = df_column("namespace.table_name", "column")
+            .in_list(vec![lit(1_i64), lit(2_i64), lit(3_i64)], false);
+        let schema = vec![("column".into(), ColumnType::BigInt)];
+        assert!(matches!(
+            expr_to_proof_expr(&expr, &schema).unwrap(),
+            DynProofExpr::Equals(_)
+        ));
+    }
+
+    #[test]
+    fn we_can_convert_not_in_list_to_proof_expr() {
+        // `NOT IN` wraps the lowered `IN` expression in a `NOT`.
+        let expr = df_column("namespace.table_name", "column").in_list(vec![lit(1_i64)], true);
+        let schema = vec![("column".into(), ColumnType::BigInt)];
+        assert!(matches!(
+            expr_to_proof_expr(&expr, &schema).unwrap(),
+            DynProofExpr::Not(_)
+        ));
+    }
+
+    #[test]
+    fn we_convert_an_empty_in_list_to_a_false_literal() {
+        // `a IN ()` is always false.
+        let expr = df_column("namespace.table_name", "column").in_list(vec![], false);
+        let schema = vec![("column".into(), ColumnType::BigInt)];
+        assert_eq!(
+            expr_to_proof_expr(&expr, &schema).unwrap(),
+            DynProofExpr::new_literal(LiteralValue::Boolean(false))
+        );
+    }
+
+    #[test]
+    fn we_convert_an_empty_not_in_list_to_a_true_literal() {
+        // `a NOT IN ()` is always true: the empty-list `false` must still flow
+        // through the `negated` NOT wrap rather than short-circuiting.
+        let expr = df_column("namespace.table_name", "column").in_list(vec![], true);
+        let schema = vec![("column".into(), ColumnType::BigInt)];
+        assert_eq!(
+            expr_to_proof_expr(&expr, &schema).unwrap(),
+            DynProofExpr::try_new_not(DynProofExpr::new_literal(LiteralValue::Boolean(false)))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn we_convert_a_varchar_in_list_to_an_or_chain() {
+        // `-` rejects varchar, so non-numeric `IN` falls back to `a = v_1 OR a = v_2`.
+        let expr =
+            df_column("namespace.table_name", "column").in_list(vec![lit("a"), lit("b")], false);
+        let schema = vec![("column".into(), ColumnType::VarChar)];
+        assert!(matches!(
+            expr_to_proof_expr(&expr, &schema).unwrap(),
+            DynProofExpr::Or(_)
+        ));
     }
 
     // BinaryExpr
@@ -757,6 +938,73 @@ mod tests {
         ));
     }
 
+    // Between
+    #[test]
+    fn we_can_convert_between_expr_to_proof_expr() {
+        let schema = vec![("column1".into(), ColumnType::BigInt)];
+
+        let col = df_column("namespace.table_name", "column1");
+        let low = Expr::Literal(ScalarValue::Int64(Some(10)));
+        let high = Expr::Literal(ScalarValue::Int64(Some(20)));
+        let expr = col.between(low, high);
+
+        let col_expr = DynProofExpr::new_column(ColumnRef::new(
+            TableRef::from_names(Some("namespace"), "table_name"),
+            "column1".into(),
+            ColumnType::BigInt,
+        ));
+        let low_expr = DynProofExpr::new_literal(LiteralValue::BigInt(10));
+        let high_expr = DynProofExpr::new_literal(LiteralValue::BigInt(20));
+
+        let expected = DynProofExpr::try_new_not(
+            DynProofExpr::try_new_or(
+                DynProofExpr::try_new_inequality(col_expr.clone(), low_expr, true).unwrap(),
+                DynProofExpr::try_new_inequality(col_expr, high_expr, false).unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(expr_to_proof_expr(&expr, &schema).unwrap(), expected);
+    }
+
+    #[test]
+    fn we_can_convert_not_between_expr_to_proof_expr() {
+        let schema = vec![("column1".into(), ColumnType::BigInt)];
+
+        let col = df_column("namespace.table_name", "column1");
+        let low = Expr::Literal(ScalarValue::Int64(Some(10)));
+        let high = Expr::Literal(ScalarValue::Int64(Some(20)));
+        let expr = col.not_between(low, high);
+
+        let col_expr = DynProofExpr::new_column(ColumnRef::new(
+            TableRef::from_names(Some("namespace"), "table_name"),
+            "column1".into(),
+            ColumnType::BigInt,
+        ));
+        let low_expr = DynProofExpr::new_literal(LiteralValue::BigInt(10));
+        let high_expr = DynProofExpr::new_literal(LiteralValue::BigInt(20));
+
+        let expected = DynProofExpr::try_new_or(
+            DynProofExpr::try_new_inequality(col_expr.clone(), low_expr, true).unwrap(),
+            DynProofExpr::try_new_inequality(col_expr, high_expr, false).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(expr_to_proof_expr(&expr, &schema).unwrap(), expected);
+    }
+
+    #[test]
+    fn we_can_extract_column_idents_from_between_expr() {
+        let col = df_column("table", "val");
+        let low = Expr::Literal(ScalarValue::Int64(Some(1)));
+        let high = Expr::Literal(ScalarValue::Int64(Some(100)));
+        let expr = col.between(low, high);
+        let result = get_column_idents_from_expr(&expr);
+        let expected: IndexSet<Ident> = ["val".into()].into_iter().collect();
+        assert_eq!(result, expected);
+    }
+
     #[test]
     fn we_can_get_proof_expr_for_timestamps_of_different_scale() {
         let lhs = Expr::Literal(ScalarValue::TimestampSecond(Some(1), None));
@@ -877,6 +1125,18 @@ mod tests {
         let expected: IndexSet<Ident> = ["a".into(), "b".into(), "c".into(), "d".into()]
             .into_iter()
             .collect();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn we_can_extract_column_idents_from_in_list_expr() {
+        // a IN (b, c) references the needle column and every column in the list.
+        let expr = df_column("table", "a").in_list(
+            vec![df_column("table", "b"), df_column("table", "c")],
+            false,
+        );
+        let result = get_column_idents_from_expr(&expr);
+        let expected: IndexSet<Ident> = ["a".into(), "b".into(), "c".into()].into_iter().collect();
         assert_eq!(result, expected);
     }
 

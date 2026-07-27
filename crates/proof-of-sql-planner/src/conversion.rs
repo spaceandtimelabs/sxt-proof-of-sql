@@ -113,14 +113,32 @@ pub fn get_table_refs_from_statement(
 #[cfg(test)]
 mod tests {
     use super::get_table_refs_from_statement;
-    use crate::{conversion::sql_to_posql_plans, PlannerResult};
+    use crate::{
+        conversion::sql_to_posql_plans, sql_to_proof_plans, AggregatePlanError,
+        LogicalPlanNodeKind, PlannerError, PlannerResult,
+    };
+    use ahash::AHasher;
     use datafusion::{config::ConfigOptions, logical_expr::LogicalPlan};
-    use indexmap::IndexSet;
+    use indexmap::{indexmap_with_default, IndexSet};
     use proof_of_sql::{
-        base::database::{TableRef, TableTestAccessor},
+        base::database::{
+            ColumnType, SchemaAccessor, SchemaAccessorImpl, TableRef, TableTestAccessor,
+        },
         proof_primitive::dory::DynamicDoryEvaluationProof,
+        sql::proof_plans::{AggregateExecError, DynProofPlan},
     };
     use sqlparser::{dialect::GenericDialect, parser::Parser};
+
+    #[expect(non_snake_case)]
+    fn SQL_SCHEMAS() -> impl SchemaAccessor + Clone {
+        SchemaAccessorImpl::new(indexmap_with_default! {AHasher;
+            TableRef::new("", "test_table") => vec![
+                ("id".into(), ColumnType::BigInt),
+                ("name".into(), ColumnType::VarChar),
+                ("payload".into(), ColumnType::VarBinary),
+            ],
+        })
+    }
 
     #[test]
     fn we_can_get_table_references() {
@@ -174,5 +192,80 @@ AND s.salary > (
             |a, _| -> PlannerResult<LogicalPlan> { Ok(a.clone()) },
         )
         .unwrap();
+    }
+
+    #[test]
+    fn sql_distinct_reports_aggregate_construction_error() {
+        let statements =
+            Parser::parse_sql(&GenericDialect {}, "SELECT DISTINCT name FROM test_table;").unwrap();
+
+        let err =
+            sql_to_proof_plans(&statements, &SQL_SCHEMAS(), &ConfigOptions::default()).unwrap_err();
+
+        assert!(matches!(
+            err,
+            PlannerError::UnsupportedAggregatePlan {
+                source: AggregatePlanError::AggregateExec {
+                    source: AggregateExecError::UnsupportedGroupByExpressionType {
+                        data_type: ColumnType::VarChar,
+                    },
+                },
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn sql_grouping_reports_aggregate_construction_error() {
+        let statements = Parser::parse_sql(
+            &GenericDialect {},
+            "SELECT payload FROM test_table GROUP BY payload;",
+        )
+        .unwrap();
+
+        let err =
+            sql_to_proof_plans(&statements, &SQL_SCHEMAS(), &ConfigOptions::default()).unwrap_err();
+
+        assert!(matches!(
+            err,
+            PlannerError::UnsupportedAggregatePlan {
+                source: AggregatePlanError::AggregateExec {
+                    source: AggregateExecError::UnsupportedGroupByExpressionType {
+                        data_type: ColumnType::VarBinary,
+                    },
+                },
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn sql_window_reports_unsupported_plan_node() {
+        let statements = Parser::parse_sql(
+            &GenericDialect {},
+            "SELECT ROW_NUMBER() OVER () FROM test_table;",
+        )
+        .unwrap();
+
+        let err =
+            sql_to_proof_plans(&statements, &SQL_SCHEMAS(), &ConfigOptions::default()).unwrap_err();
+
+        assert!(matches!(
+            err,
+            PlannerError::UnsupportedLogicalPlan {
+                node: LogicalPlanNodeKind::Window,
+            }
+        ));
+    }
+
+    #[test]
+    fn sql_distinct_on_supported_type_still_converts() {
+        let statements =
+            Parser::parse_sql(&GenericDialect {}, "SELECT DISTINCT id FROM test_table;").unwrap();
+
+        let plans =
+            sql_to_proof_plans(&statements, &SQL_SCHEMAS(), &ConfigOptions::default()).unwrap();
+
+        assert!(matches!(plans.as_slice(), [DynProofPlan::Projection(_)]));
     }
 }

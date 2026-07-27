@@ -162,7 +162,7 @@ mod tests {
         },
         proof_primitive::hyperkzg::{
             nova_commitment_key_to_hyperkzg_public_setup,
-            public_setup::load_small_setup_for_testing,
+            public_setup::load_small_setup_for_testing_internal,
         },
     };
     use nova_snark::{
@@ -269,7 +269,7 @@ mod tests {
 
     #[test]
     fn we_create_hyperkzg_proof_using_setup_from_file() {
-        let (pk, vk) = load_small_setup_for_testing();
+        let (pk, vk) = load_small_setup_for_testing_internal();
         test_random_commitment_evaluation_proof::<HyperKZGCommitmentEvaluationProof>(
             23,
             0,

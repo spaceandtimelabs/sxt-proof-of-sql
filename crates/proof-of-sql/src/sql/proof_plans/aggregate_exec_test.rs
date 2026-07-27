@@ -11,7 +11,7 @@ use crate::{
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
         proof_exprs::test_utility::*,
-        proof_plans::AggregateExec,
+        proof_plans::{AggregateExec, AggregateExecError},
     },
 };
 use bumpalo::Bump;
@@ -257,7 +257,10 @@ fn we_cannot_prove_a_complex_aggregate_query_with_many_columns() {
             equal(column(&t, "varchar_filter", &accessor), const_varchar("f2")),
         ),
     );
-    assert!(expr.is_none());
+    assert!(matches!(
+        expr,
+        Err(AggregateExecError::UnsupportedGroupByExpressionCount { count: 3 })
+    ));
     // let res = VerifiableQueryResult::new(&expr, &accessor, &(), &[]).unwrap();
     // exercise_verification(&res, &expr, &accessor, &t);
     // let res = res.verify(&expr, &accessor, &(), &[]).unwrap().table;
