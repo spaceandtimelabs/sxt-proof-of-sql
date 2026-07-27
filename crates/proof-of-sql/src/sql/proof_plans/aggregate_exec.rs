@@ -513,3 +513,152 @@ impl ProverEvaluate for AggregateExec {
         Ok(res)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        base::database::{ColumnRef, ColumnType, LiteralValue, TableRef},
+        sql::{
+            proof::ProofPlan,
+            proof_exprs::{AliasedDynProofExpr, DynProofExpr},
+            proof_plans::TableExec,
+        },
+    };
+    use alloc::{boxed::Box, vec, vec::Vec};
+    use sqlparser::ast::Ident;
+
+    fn column_ref(table_ref: &TableRef, name: &str, column_type: ColumnType) -> ColumnRef {
+        ColumnRef::new(table_ref.clone(), Ident::new(name), column_type)
+    }
+
+    fn column_expr(table_ref: &TableRef, name: &str, column_type: ColumnType) -> DynProofExpr {
+        DynProofExpr::new_column(column_ref(table_ref, name, column_type))
+    }
+
+    fn aliased_column(
+        table_ref: &TableRef,
+        name: &str,
+        column_type: ColumnType,
+        alias: &str,
+    ) -> AliasedDynProofExpr {
+        AliasedDynProofExpr {
+            expr: column_expr(table_ref, name, column_type),
+            alias: Ident::new(alias),
+        }
+    }
+
+    fn input_plan(table_ref: &TableRef) -> DynProofPlan {
+        DynProofPlan::Table(TableExec::new(
+            table_ref.clone(),
+            vec![
+                ColumnField::new(Ident::new("customer_id"), ColumnType::BigInt),
+                ColumnField::new(Ident::new("amount"), ColumnType::BigInt),
+                ColumnField::new(Ident::new("is_billable"), ColumnType::Boolean),
+            ],
+        ))
+    }
+
+    fn aggregate_plan(table_ref: &TableRef) -> AggregateExec {
+        AggregateExec::try_new(
+            vec![aliased_column(
+                table_ref,
+                "customer_id",
+                ColumnType::BigInt,
+                "customer_id",
+            )],
+            vec![AliasedDynProofExpr {
+                expr: column_expr(table_ref, "amount", ColumnType::BigInt),
+                alias: Ident::new("total_amount"),
+            }],
+            Ident::new("row_count"),
+            Box::new(input_plan(table_ref)),
+            column_expr(table_ref, "is_billable", ColumnType::Boolean),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn aggregate_accessors_and_reference_forwarding_work_without_blitzar() {
+        let table_ref = TableRef::new("sxt", "orders");
+        let plan = aggregate_plan(&table_ref);
+
+        assert_eq!(plan.group_by_exprs().len(), 1);
+        assert_eq!(plan.sum_expr().len(), 1);
+        assert_eq!(plan.count_alias(), &Ident::new("row_count"));
+        assert_eq!(plan.where_clause().data_type(), ColumnType::Boolean);
+        assert_eq!(plan.input().get_table_references().len(), 1);
+
+        let result_fields = plan.get_column_result_fields();
+        let field_names = result_fields
+            .iter()
+            .map(ColumnField::name)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            field_names,
+            vec![
+                Ident::new("customer_id"),
+                Ident::new("total_amount"),
+                Ident::new("row_count"),
+            ]
+        );
+        assert_eq!(result_fields[2].data_type(), ColumnType::BigInt);
+
+        let column_refs = plan.get_column_references();
+        assert!(column_refs.contains(&column_ref(&table_ref, "customer_id", ColumnType::BigInt)));
+        assert!(column_refs.contains(&column_ref(&table_ref, "amount", ColumnType::BigInt)));
+        assert!(column_refs.contains(&column_ref(&table_ref, "is_billable", ColumnType::Boolean)));
+
+        let table_refs = plan.get_table_references();
+        assert!(table_refs.contains(&table_ref));
+    }
+
+    #[test]
+    fn aggregate_uniqueness_gating_matches_supported_group_shapes() {
+        let table_ref = TableRef::new("sxt", "orders");
+
+        let ungrouped = AggregateExec::try_new(
+            vec![],
+            vec![aliased_column(
+                &table_ref,
+                "amount",
+                ColumnType::BigInt,
+                "total_amount",
+            )],
+            Ident::new("row_count"),
+            Box::new(input_plan(&table_ref)),
+            DynProofExpr::new_literal(LiteralValue::Boolean(true)),
+        )
+        .unwrap();
+        assert_eq!(ungrouped.try_get_is_uniqueness_provable(), Some(false));
+
+        let numeric_group = aggregate_plan(&table_ref);
+        assert_eq!(numeric_group.try_get_is_uniqueness_provable(), Some(true));
+
+        let varchar_group = AggregateExec::try_new(
+            vec![aliased_column(
+                &table_ref,
+                "customer_name",
+                ColumnType::VarChar,
+                "customer_name",
+            )],
+            vec![],
+            Ident::new("row_count"),
+            Box::new(input_plan(&table_ref)),
+            DynProofExpr::new_literal(LiteralValue::Boolean(true)),
+        );
+        assert!(varchar_group.is_none());
+
+        let multi_group = AggregateExec::try_new(
+            vec![
+                aliased_column(&table_ref, "customer_id", ColumnType::BigInt, "customer_id"),
+                aliased_column(&table_ref, "amount", ColumnType::BigInt, "amount"),
+            ],
+            vec![],
+            Ident::new("row_count"),
+            Box::new(input_plan(&table_ref)),
+            DynProofExpr::new_literal(LiteralValue::Boolean(true)),
+        );
+        assert!(multi_group.is_none());
+    }
+}
