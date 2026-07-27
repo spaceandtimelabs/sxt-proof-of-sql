@@ -1,6 +1,6 @@
 use super::{
-    AddExpr, AndExpr, CastExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr, MultiplyExpr,
-    NotExpr, OrExpr, PlaceholderExpr, ProofExpr, ScalingCastExpr, SubtractExpr,
+    AddExpr, AndExpr, CaseExpr, CastExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr,
+    MultiplyExpr, NotExpr, OrExpr, PlaceholderExpr, ProofExpr, ScalingCastExpr, SubtractExpr,
 };
 use crate::{
     base::{
@@ -14,7 +14,7 @@ use crate::{
         AnalyzeResult,
     },
 };
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec::Vec};
 use bumpalo::Bump;
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
@@ -50,6 +50,8 @@ pub enum DynProofExpr {
     Cast(CastExpr),
     /// Provable expression for casting numeric expressions to decimal expressions
     ScalingCast(ScalingCastExpr),
+    /// Provable CASE WHEN expression with first-match-wins semantics
+    Case(CaseExpr),
 }
 impl DynProofExpr {
     /// Create column expression
@@ -120,5 +122,14 @@ impl DynProofExpr {
         to_datatype: ColumnType,
     ) -> AnalyzeResult<Self> {
         ScalingCastExpr::try_new(Box::new(from_expr), to_datatype).map(DynProofExpr::ScalingCast)
+    }
+
+    /// Create a new CASE WHEN expression
+    /// (`CASE WHEN c_1 THEN v_1 ... ELSE v_else END`, first match wins)
+    pub fn try_new_case(
+        when_thens: Vec<(DynProofExpr, DynProofExpr)>,
+        else_expr: DynProofExpr,
+    ) -> AnalyzeResult<Self> {
+        CaseExpr::try_new(when_thens, Box::new(else_expr)).map(DynProofExpr::Case)
     }
 }

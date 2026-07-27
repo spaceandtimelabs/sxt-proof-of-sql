@@ -78,6 +78,9 @@ impl EVMDynProofExpr {
             DynProofExpr::Placeholder(placeholder_expr) => Ok(Self::Placeholder(
                 EVMPlaceholderExpr::from_proof_expr(placeholder_expr),
             )),
+            // The Solidity verifier does not support CASE yet; reject at
+            // serialization time rather than producing an unverifiable plan.
+            DynProofExpr::Case(_) => Err(EVMProofPlanError::NotSupported),
         }
     }
 
@@ -1650,5 +1653,15 @@ mod tests {
         assert_eq!(evm_literal_exprs_bytes, literal_values_bytes);
         assert_eq!(evm_literal_exprs_bytes,
             "000000000000000a000000000100000002020000000300030000000400000004000000050000000000000005000000070000000000000001360000000a0000000000000000000000000000000000000000000000000000000000000007000000080a0000000000000000000000000000000000000000000000000000000000000000080000000b000000000000000109000000090000000100000000000000000000000a".to_string());
+    }
+
+    // CaseExpr is not yet supported by the EVM verifier.
+    #[test]
+    fn we_cannot_put_a_case_expr_in_evm() {
+        let case_expr = case_when(vec![(const_bool(true), const_bigint(1))], const_bigint(0));
+        assert_eq!(
+            EVMDynProofExpr::try_from_proof_expr(&case_expr, &indexset! {}),
+            Err(EVMProofPlanError::NotSupported)
+        );
     }
 }
