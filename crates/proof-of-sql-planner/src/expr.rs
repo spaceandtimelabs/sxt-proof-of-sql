@@ -3,7 +3,7 @@ use super::{
     PlannerError, PlannerResult,
 };
 use datafusion::logical_expr::{
-    expr::{Alias, Between, Cast, InList, Placeholder},
+    expr::{Alias, Between, Case, Cast, InList, Placeholder},
     BinaryExpr, Expr, Operator,
 };
 use indexmap::IndexSet;
@@ -51,6 +51,24 @@ pub(crate) fn get_column_idents_from_expr(expr: &Expr) -> IndexSet<Ident> {
             let mut idents = get_column_idents_from_expr(expr);
             idents.extend(get_column_idents_from_expr(low));
             idents.extend(get_column_idents_from_expr(high));
+            idents
+        }
+        Expr::Case(Case {
+            expr,
+            when_then_expr,
+            else_expr,
+        }) => {
+            let mut idents = expr
+                .as_deref()
+                .map(get_column_idents_from_expr)
+                .unwrap_or_default();
+            for (when, then) in when_then_expr {
+                idents.extend(get_column_idents_from_expr(when));
+                idents.extend(get_column_idents_from_expr(then));
+            }
+            if let Some(else_expr) = else_expr {
+                idents.extend(get_column_idents_from_expr(else_expr));
+            }
             idents
         }
         _ => IndexSet::new(),
@@ -262,10 +280,56 @@ pub fn expr_to_proof_expr(
             low,
             high,
         }) => between_to_proof_expr(expr, *negated, low, high, schema),
+        Expr::Case(case) => case_to_proof_expr(case, expr, schema),
         _ => Err(PlannerError::UnsupportedLogicalExpression {
             expr: Box::new(expr.clone()),
         }),
     }
+}
+
+/// Convert a [`Case`] expression to [`DynProofExpr`]
+///
+/// `CASE WHEN c THEN v ... ELSE e END` lowers to the native `CaseExpr` proof
+/// primitive. A missing ELSE would make unmatched rows NULL, which has no
+/// representation here, so it is rejected; users can write an explicit
+/// `ELSE <value>`.
+fn case_to_proof_expr(
+    case: &Case,
+    original_expr: &Expr,
+    schema: &[(Ident, ColumnType)],
+) -> PlannerResult<DynProofExpr> {
+    let Case {
+        expr: base,
+        when_then_expr,
+        else_expr,
+    } = case;
+    let else_expr =
+        else_expr
+            .as_ref()
+            .ok_or_else(|| PlannerError::UnsupportedLogicalExpression {
+                expr: Box::new(original_expr.clone()),
+            })?;
+    let when_thens = when_then_expr
+        .iter()
+        .map(|(when, then)| -> PlannerResult<_> {
+            // The simple form `CASE x WHEN v THEN ...` compares x to each v.
+            let condition = match base {
+                Some(base) => {
+                    let (lhs, rhs) = scale_cast_binary_op(
+                        expr_to_proof_expr(base, schema)?,
+                        expr_to_proof_expr(when, schema)?,
+                    )?;
+                    DynProofExpr::try_new_equals(lhs, rhs)?
+                }
+                None => expr_to_proof_expr(when, schema)?,
+            };
+            Ok((condition, expr_to_proof_expr(then, schema)?))
+        })
+        .collect::<PlannerResult<Vec<_>>>()?;
+    Ok(DynProofExpr::try_new_case(
+        when_thens,
+        expr_to_proof_expr(else_expr, schema)?,
+    )?)
 }
 
 /// Convert a [`Between`] expression to [`DynProofExpr`]
