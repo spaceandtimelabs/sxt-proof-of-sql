@@ -51,6 +51,20 @@ pub trait ScalarExt: Scalar {
         let masked_val = hashed_val & Self::CHALLENGE_MASK;
         Self::from_wrapping(masked_val)
     }
+
+    /// Converts a string to a Scalar using a hash function, preventing collisions.
+    ///
+    /// Note that this is a hash, not a parse: `from_str_via_hash("1")` is *not*
+    /// `Self::ONE`. Strings have no natural embedding into the field, so this
+    /// conversion is deliberately explicit rather than a `From` implementation.
+    ///
+    /// WARNING: Only up to 31 bytes (2^248 bits) are supported by `PoSQL` cryptographic
+    /// objects. This function masks off the last byte of the hash to ensure the result
+    /// fits in this range.
+    #[must_use]
+    fn from_str_via_hash(val: &str) -> Self {
+        Self::from_byte_slice_via_hash(val.as_bytes())
+    }
 }
 
 impl<S: Scalar> ScalarExt for S {}
@@ -108,6 +122,44 @@ mod tests {
             scalar_from_bytes, scalar_from_ref,
             "The masked keccak v256 of 'abc' must match"
         );
+    }
+
+    #[test]
+    fn we_can_get_zero_from_an_empty_string() {
+        assert_eq!(TestScalar::from_str_via_hash(""), TestScalar::ZERO);
+    }
+
+    #[test]
+    fn we_can_get_scalar_from_hashed_string() {
+        // `from_str_via_hash` must agree with hashing the string's UTF-8 bytes directly.
+        assert_eq!(
+            TestScalar::from_str_via_hash("abc"),
+            TestScalar::from_byte_slice_via_hash(b"abc")
+        );
+    }
+
+    #[test]
+    fn we_can_get_different_scalars_from_different_strings() {
+        assert_ne!(
+            TestScalar::from_str_via_hash("abc"),
+            TestScalar::from_str_via_hash("abd")
+        );
+    }
+
+    #[test]
+    fn we_can_hash_multibyte_strings() {
+        // Non-ASCII input must hash its UTF-8 encoding, not its chars.
+        let s = "ありがとう";
+        assert_eq!(
+            TestScalar::from_str_via_hash(s),
+            TestScalar::from_byte_slice_via_hash(s.as_bytes())
+        );
+    }
+
+    #[test]
+    fn we_can_see_that_hashing_a_string_is_not_parsing_it() {
+        // `from_str_via_hash` is a hash, not a parse: "1" must not become ONE.
+        assert_ne!(TestScalar::from_str_via_hash("1"), TestScalar::ONE);
     }
 
     #[test]

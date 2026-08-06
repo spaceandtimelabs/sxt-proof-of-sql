@@ -10,7 +10,7 @@ use crate::base::{
     },
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     scalar::Scalar,
-    slice_ops::{inner_product_ref_cast, inner_product_with_bytes},
+    slice_ops::{inner_product_ref_cast, inner_product_with_bytes, inner_product_with_strings},
 };
 use alloc::{
     string::{String, ToString},
@@ -65,7 +65,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => {
                 inner_product_ref_cast(col, vec)
             }
-            OwnedColumn::VarChar(col) => inner_product_ref_cast(col, vec),
+            OwnedColumn::VarChar(col) => inner_product_with_strings(col, vec),
             OwnedColumn::VarBinary(col) => inner_product_with_bytes(col, vec),
             OwnedColumn::Int128(col) => inner_product_ref_cast(col, vec),
             OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => {
