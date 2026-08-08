@@ -1,7 +1,6 @@
 use super::{SumcheckMleEvaluations, SumcheckSubpolynomialType};
 use crate::base::{bit::BitDistribution, proof::ProofSizeMismatch, scalar::Scalar};
-use alloc::{collections::VecDeque, vec::Vec};
-use core::iter;
+use alloc::vec::Vec;
 
 pub trait VerificationBuilder<S: Scalar> {
     /// Consume the evaluation of a chi evaluation
@@ -70,12 +69,10 @@ pub struct VerificationBuilderImpl<'a, S: Scalar> {
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
-    ///
-    /// Note: this vector is treated as a stack and the first
-    /// challenge is the last entry in the vector.
-    post_result_challenges: VecDeque<S>,
-    chi_evaluation_length_queue: Vec<usize>,
-    rho_evaluation_length_queue: Vec<usize>,
+    post_result_challenges: &'a [S],
+    consumed_post_result_challenges: usize,
+    chi_evaluation_length_queue: &'a [usize],
+    rho_evaluation_length_queue: &'a [usize],
     subpolynomial_max_multiplicands: usize,
 }
 
@@ -84,9 +81,9 @@ impl<'a, S: Scalar> VerificationBuilderImpl<'a, S> {
         mle_evaluations: SumcheckMleEvaluations<'a, S>,
         bit_distributions: &'a [BitDistribution],
         subpolynomial_multipliers: &'a [S],
-        post_result_challenges: VecDeque<S>,
-        chi_evaluation_length_queue: Vec<usize>,
-        rho_evaluation_length_queue: Vec<usize>,
+        post_result_challenges: &'a [S],
+        chi_evaluation_length_queue: &'a [usize],
+        rho_evaluation_length_queue: &'a [usize],
         subpolynomial_max_multiplicands: usize,
     ) -> Self {
         Self {
@@ -100,6 +97,7 @@ impl<'a, S: Scalar> VerificationBuilderImpl<'a, S> {
             consumed_final_round_pcs_proof_mles: 0,
             produced_subpolynomials: 0,
             post_result_challenges,
+            consumed_post_result_challenges: 0,
             chi_evaluation_length_queue,
             rho_evaluation_length_queue,
             subpolynomial_max_multiplicands,
@@ -124,7 +122,7 @@ impl<'a, S: Scalar> VerificationBuilderImpl<'a, S> {
                 == self.mle_evaluations.first_round_pcs_proof_evaluations.len()
             && self.consumed_final_round_pcs_proof_mles
                 == self.mle_evaluations.final_round_pcs_proof_evaluations.len()
-            && self.post_result_challenges.is_empty()
+            && self.consumed_post_result_challenges == self.post_result_challenges.len()
     }
 }
 
@@ -176,9 +174,13 @@ impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
         &mut self,
         count: usize,
     ) -> Result<Vec<S>, ProofSizeMismatch> {
-        iter::repeat_with(|| self.try_consume_first_round_mle_evaluation())
-            .take(count)
-            .collect()
+        let start = self.consumed_first_round_pcs_proof_mles;
+        let end = start
+            .checked_add(count)
+            .filter(|&end| end <= self.mle_evaluations.first_round_pcs_proof_evaluations.len())
+            .ok_or(ProofSizeMismatch::TooFewMLEEvaluations)?;
+        self.consumed_first_round_pcs_proof_mles = end;
+        Ok(self.mle_evaluations.first_round_pcs_proof_evaluations[start..end].to_vec())
     }
 
     fn try_consume_final_round_mle_evaluation(&mut self) -> Result<S, ProofSizeMismatch> {
@@ -195,9 +197,13 @@ impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
         &mut self,
         count: usize,
     ) -> Result<Vec<S>, ProofSizeMismatch> {
-        iter::repeat_with(|| self.try_consume_final_round_mle_evaluation())
-            .take(count)
-            .collect()
+        let start = self.consumed_final_round_pcs_proof_mles;
+        let end = start
+            .checked_add(count)
+            .filter(|&end| end <= self.mle_evaluations.final_round_pcs_proof_evaluations.len())
+            .ok_or(ProofSizeMismatch::TooFewMLEEvaluations)?;
+        self.consumed_final_round_pcs_proof_mles = end;
+        Ok(self.mle_evaluations.final_round_pcs_proof_evaluations[start..end].to_vec())
     }
 
     fn try_consume_bit_distribution(&mut self) -> Result<BitDistribution, ProofSizeMismatch> {
@@ -239,16 +245,15 @@ impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
         Ok(())
     }
 
-    /// # Panics
-    /// This function will panic if there are no post-result challenges available to pop from the stack.
-    ///
-    /// # Panics
-    /// This function will panic if `post_result_challenges` is empty,
-    /// as it attempts to pop an element from the vector and unwraps the result.
     fn try_consume_post_result_challenge(&mut self) -> Result<S, ProofSizeMismatch> {
-        self.post_result_challenges
-            .pop_front()
-            .ok_or(ProofSizeMismatch::PostResultCountMismatch)
+        let index = self.consumed_post_result_challenges;
+        let challenge = self
+            .post_result_challenges
+            .get(index)
+            .copied()
+            .ok_or(ProofSizeMismatch::PostResultCountMismatch)?;
+        self.consumed_post_result_challenges += 1;
+        Ok(challenge)
     }
 
     fn singleton_chi_evaluation(&self) -> S {
@@ -259,3 +264,4 @@ impl<S: Scalar> VerificationBuilder<S> for VerificationBuilderImpl<'_, S> {
         self.mle_evaluations.rho_256_evaluation
     }
 }
+

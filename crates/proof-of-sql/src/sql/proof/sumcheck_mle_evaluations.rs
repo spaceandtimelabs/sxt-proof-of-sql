@@ -87,7 +87,7 @@ impl<'a, S: Scalar> SumcheckMleEvaluations<'a, S> {
         );
         let unique_chi_evaluation_lengths: IndexSet<usize> =
             chi_evaluation_lengths.into_iter().collect();
-        let chi_evaluations = unique_chi_evaluation_lengths
+        let chi_evaluations: IndexMap<usize, S> = unique_chi_evaluation_lengths
             .iter()
             .map(|&length| {
                 (
@@ -96,11 +96,16 @@ impl<'a, S: Scalar> SumcheckMleEvaluations<'a, S> {
                 )
             })
             .collect();
-        let rho_evaluations = rho_evaluation_lengths
-            .into_iter()
-            .map(|length| (length, compute_rho_eval(length, evaluation_point)))
+        let unique_rho_evaluation_lengths: IndexSet<usize> =
+            rho_evaluation_lengths.into_iter().collect();
+        let rho_evaluations = unique_rho_evaluation_lengths
+            .iter()
+            .map(|&length| (length, compute_rho_eval(length, evaluation_point)))
             .collect();
-        let singleton_chi_evaluation = compute_truncated_lagrange_basis_sum(1, evaluation_point);
+        let singleton_chi_evaluation = chi_evaluations
+            .get(&1)
+            .copied()
+            .unwrap_or_else(|| compute_truncated_lagrange_basis_sum(1, evaluation_point));
         Self {
             chi_evaluations,
             rho_evaluations,

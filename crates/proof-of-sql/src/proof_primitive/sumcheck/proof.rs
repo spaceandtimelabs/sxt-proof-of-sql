@@ -83,18 +83,16 @@ impl<S: Scalar> SumcheckProof<S> {
         let mut expected_evaluation = *claimed_sum;
         for round_index in 0..num_variables {
             let start_index = round_index * (max_multiplicands + 1);
-            transcript.extend_scalars_as_be(
-                &self.coefficients[start_index..=(start_index + max_multiplicands)],
-            );
+            let round_coeffs = &self.coefficients[start_index..=(start_index + max_multiplicands)];
+            transcript.extend_scalars_as_be(round_coeffs);
             let round_evaluation_point = transcript.scalar_challenge_as_be();
             evaluation_point.push(round_evaluation_point);
-            let mut round_evaluation = self.coefficients[start_index];
-            let mut actual_sum =
-                round_evaluation + self.coefficients[start_index + max_multiplicands];
-            for coefficient_index in (start_index + 1)..=(start_index + max_multiplicands) {
+            let mut round_evaluation = round_coeffs[0];
+            let mut actual_sum = round_coeffs[0] + round_coeffs[max_multiplicands];
+            for &coeff in &round_coeffs[1..] {
                 round_evaluation *= round_evaluation_point;
-                round_evaluation += self.coefficients[coefficient_index];
-                actual_sum += self.coefficients[coefficient_index];
+                round_evaluation += coeff;
+                actual_sum += coeff;
             }
             if actual_sum != expected_evaluation {
                 return Err(ProofError::VerificationError {

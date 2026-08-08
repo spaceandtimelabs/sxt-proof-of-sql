@@ -389,11 +389,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // Specifically, these are the challenges that the verifier sends to
         // the prover after the prover sends the result, but before the prover
         // send commitments to the intermediate witness columns.
-        // Note: the last challenge in the vec is the first one that is consumed.
-        let post_result_challenges =
-            core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
-                .take(self.first_round_message.post_result_challenge_count)
-                .collect();
+        let post_result_challenge_count = self.first_round_message.post_result_challenge_count;
+        let mut post_result_challenges = Vec::with_capacity(post_result_challenge_count);
+        for _ in 0..post_result_challenge_count {
+            post_result_challenges.push(transcript.scalar_challenge_as_be());
+        }
 
         // add the commitments and bit distributions to the proof
         transcript.challenge_as_le();
@@ -402,10 +402,10 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // draw the random scalars for sumcheck
         let num_random_scalars =
             num_sumcheck_variables + self.final_round_message.subpolynomial_constraint_count;
-        let random_scalars: Vec<_> =
-            core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
-                .take(num_random_scalars)
-                .collect();
+        let mut random_scalars = Vec::with_capacity(num_random_scalars);
+        for _ in 0..num_random_scalars {
+            random_scalars.push(transcript.scalar_challenge_as_be());
+        }
         let sumcheck_random_scalars = SumcheckRandomScalars::new(
             &random_scalars,
             self.first_round_message.range_length,
@@ -425,14 +425,13 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // draw the random scalars for the evaluation proof
         // (i.e. the folding/random linear combination of the pcs_proof_mles)
-        let evaluation_random_scalars: Vec<_> =
-            core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
-                .take(
-                    self.pcs_proof_evaluations.first_round.len()
-                        + self.pcs_proof_evaluations.column_ref.len()
-                        + self.pcs_proof_evaluations.final_round.len(),
-                )
-                .collect();
+        let eval_random_count = self.pcs_proof_evaluations.first_round.len()
+            + self.pcs_proof_evaluations.column_ref.len()
+            + self.pcs_proof_evaluations.final_round.len();
+        let mut evaluation_random_scalars = Vec::with_capacity(eval_random_count);
+        for _ in 0..eval_random_count {
+            evaluation_random_scalars.push(transcript.scalar_challenge_as_be());
+        }
 
         // Always prepend input lengths to the chi evaluation lengths
         let table_length_map = table_refs
@@ -452,7 +451,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
             self.first_round_message.range_length,
             chi_evaluation_lengths,
-            self.first_round_message.rho_evaluation_lengths.clone(),
+            self.first_round_message.rho_evaluation_lengths.iter().copied(),
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations.first_round,
@@ -471,24 +470,24 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             sumcheck_evaluations,
             &self.final_round_message.bit_distributions,
             sumcheck_random_scalars.subpolynomial_multipliers,
-            post_result_challenges,
-            self.first_round_message.chi_evaluation_lengths.clone(),
-            self.first_round_message.rho_evaluation_lengths.clone(),
+            &post_result_challenges,
+            &self.first_round_message.chi_evaluation_lengths,
+            &self.first_round_message.rho_evaluation_lengths,
             subclaim.max_multiplicands,
         );
 
-        let pcs_proof_commitments: Vec<_> = self
-            .first_round_message
-            .round_commitments
-            .iter()
-            .cloned()
-            .chain(
-                column_references
-                    .iter()
-                    .map(|col| accessor.get_commitment(&col.table_ref(), &col.column_id())),
-            )
-            .chain(self.final_round_message.round_commitments.iter().cloned())
-            .collect();
+        let total_commitments = self.first_round_message.round_commitments.len()
+            + column_references.len()
+            + self.final_round_message.round_commitments.len();
+        let mut pcs_proof_commitments = Vec::with_capacity(total_commitments);
+        pcs_proof_commitments.extend(self.first_round_message.round_commitments.iter().cloned());
+        pcs_proof_commitments.extend(
+            column_references
+                .iter()
+                .map(|col| accessor.get_commitment(&col.table_ref(), &col.column_id())),
+        );
+        pcs_proof_commitments.extend(self.final_round_message.round_commitments.iter().cloned());
+
         let evaluation_accessor: IndexMap<_, _> = column_references
             .into_iter()
             .zip(self.pcs_proof_evaluations.column_ref.iter().copied())
@@ -518,14 +517,10 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             })?;
         }
 
-        let pcs_proof_evaluations: Vec<_> = self
-            .pcs_proof_evaluations
-            .first_round
-            .iter()
-            .chain(self.pcs_proof_evaluations.column_ref.iter())
-            .chain(self.pcs_proof_evaluations.final_round.iter())
-            .copied()
-            .collect();
+        let mut pcs_proof_evaluations = Vec::with_capacity(eval_random_count);
+        pcs_proof_evaluations.extend_from_slice(&self.pcs_proof_evaluations.first_round);
+        pcs_proof_evaluations.extend_from_slice(&self.pcs_proof_evaluations.column_ref);
+        pcs_proof_evaluations.extend_from_slice(&self.pcs_proof_evaluations.final_round);
 
         // finally, check the MLE evaluations with the inner product proof
         self.evaluation_proof
