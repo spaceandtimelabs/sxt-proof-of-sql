@@ -1,7 +1,7 @@
 use crate::{
     base::{
         database::{order_by_util::*, Column, ColumnType, TableOperationError},
-        scalar::test_scalar::TestScalar,
+        scalar::{test_scalar::TestScalar, ScalarExt},
     },
     proof_primitive::dory::DoryScalar,
 };
@@ -50,7 +50,10 @@ fn we_can_compare_indexes_by_columns_for_mixed_columns() {
     let slice_a = &["55", "44", "66", "66", "66", "77", "66", "66", "66", "66"];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
-    let scals_a: Vec<TestScalar> = slice_a.iter().map(core::convert::Into::into).collect();
+    let scals_a: Vec<TestScalar> = slice_a
+        .iter()
+        .map(|s| TestScalar::from_str_via_hash(s))
+        .collect();
     let column_a = Column::VarChar((slice_a, &scals_a));
     let column_b = Column::Int128(slice_b);
     let column_c = Column::BigInt(slice_c);

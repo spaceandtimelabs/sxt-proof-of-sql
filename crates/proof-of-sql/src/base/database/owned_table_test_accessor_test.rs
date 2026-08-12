@@ -9,7 +9,7 @@ use crate::base::{
     },
     database::{owned_table_utility::*, TableRef},
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    scalar::test_scalar::TestScalar,
+    scalar::{test_scalar::TestScalar, ScalarExt},
 };
 
 #[test]
@@ -78,7 +78,7 @@ fn we_can_access_the_columns_of_a_table() {
     let col_slice: Vec<_> = vec!["a", "bc", "d", "e"];
     let col_scalars: Vec<_> = ["a", "bc", "d", "e"]
         .iter()
-        .map(core::convert::Into::into)
+        .map(|s| TestScalar::from_str_via_hash(s))
         .collect();
     match accessor.get_column(&table_ref_2, &"varchar".into()) {
         Column::VarChar((col, scals)) => {

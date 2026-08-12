@@ -125,7 +125,10 @@ pub fn decode_multiple_elements<'a, T: ProvableResultElement<'a>>(
 mod tests {
 
     use super::*;
-    use crate::proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar;
+    use crate::{
+        base::scalar::ScalarExt,
+        proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
+    };
     use rand::{
         distributions::{Distribution, Uniform},
         rngs::StdRng,
@@ -230,10 +233,10 @@ mod tests {
         let value = "test string";
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) =
-            decode_and_convert::<&str, Curve25519Scalar>(&out[..]).unwrap();
+        let (decoded_string, read_bytes) = <&str>::decode(&out[..]).unwrap();
+        let decoded_value = Curve25519Scalar::from_str_via_hash(decoded_string);
         assert_eq!(read_bytes, out.len());
-        assert_eq!(decoded_value, value.into());
+        assert_eq!(decoded_value, Curve25519Scalar::from_str_via_hash(value));
     }
 
     #[test]
@@ -311,10 +314,10 @@ mod tests {
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, str_slice);
 
-            let (decoded_value, read_bytes) =
-                decode_and_convert::<&str, Curve25519Scalar>(&out[..]).unwrap();
+            let (decoded_string, read_bytes) = <&str>::decode(&out[..]).unwrap();
+            let decoded_value = Curve25519Scalar::from_str_via_hash(decoded_string);
             assert_eq!(read_bytes, out.len());
-            assert_eq!(decoded_value, str_slice.into());
+            assert_eq!(decoded_value, Curve25519Scalar::from_str_via_hash(str_slice));
         }
     }
 

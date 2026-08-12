@@ -153,7 +153,7 @@ impl RepetitionOp for ElementwiseRepeatOp {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::scalar::test_scalar::TestScalar;
+    use crate::base::scalar::{test_scalar::TestScalar, ScalarExt};
 
     #[test]
     fn test_column_repetition_op() {
@@ -165,13 +165,16 @@ mod tests {
 
         // Varchar
         let strings = vec!["a", "b", "c"];
-        let scalars = strings.iter().map(TestScalar::from).collect::<Vec<_>>();
+        let scalars = strings
+            .iter()
+            .map(|s| TestScalar::from_str_via_hash(s))
+            .collect::<Vec<_>>();
         let column: Column<TestScalar> = Column::VarChar((&strings, &scalars));
         let result = ColumnRepeatOp::column_op::<TestScalar>(&column, &bump, 2);
         let doubled_strings = vec!["a", "b", "c", "a", "b", "c"];
         let doubled_scalars = doubled_strings
             .iter()
-            .map(TestScalar::from)
+            .map(|s| TestScalar::from_str_via_hash(s))
             .collect::<Vec<_>>();
         assert_eq!(
             result,
@@ -189,13 +192,16 @@ mod tests {
 
         // Varchar
         let strings = vec!["a", "b", "c"];
-        let scalars = strings.iter().map(TestScalar::from).collect::<Vec<_>>();
+        let scalars = strings
+            .iter()
+            .map(|s| TestScalar::from_str_via_hash(s))
+            .collect::<Vec<_>>();
         let column: Column<TestScalar> = Column::VarChar((&strings, &scalars));
         let result = ElementwiseRepeatOp::column_op::<TestScalar>(&column, &bump, 2);
         let doubled_strings = vec!["a", "a", "b", "b", "c", "c"];
         let doubled_scalars = doubled_strings
             .iter()
-            .map(TestScalar::from)
+            .map(|s| TestScalar::from_str_via_hash(s))
             .collect::<Vec<_>>();
         assert_eq!(
             result,

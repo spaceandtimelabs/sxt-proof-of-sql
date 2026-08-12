@@ -138,17 +138,6 @@ impl<T: MontConfig<4>> From<&[u8]> for MontScalar<T> {
     }
 }
 
-/// Implements `From<T>` for [`MontScalar`] for string-like types by hashing the bytes.
-macro_rules! impl_from_for_mont_scalar_for_string {
-    ($tt:ty) => {
-        impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {
-            fn from(x: $tt) -> Self {
-                x.as_bytes().into()
-            }
-        }
-    };
-}
-
 impl_from_for_mont_scalar_for_type_supported_by_from!(bool);
 impl_from_for_mont_scalar_for_type_supported_by_from!(u8);
 impl_from_for_mont_scalar_for_type_supported_by_from!(u16);
@@ -160,8 +149,6 @@ impl_from_for_mont_scalar_for_type_supported_by_from!(i16);
 impl_from_for_mont_scalar_for_type_supported_by_from!(i32);
 impl_from_for_mont_scalar_for_type_supported_by_from!(i64);
 impl_from_for_mont_scalar_for_type_supported_by_from!(i128);
-impl_from_for_mont_scalar_for_string!(&str);
-impl_from_for_mont_scalar_for_string!(String);
 
 impl<F: MontConfig<4>, T> From<&T> for MontScalar<F>
 where

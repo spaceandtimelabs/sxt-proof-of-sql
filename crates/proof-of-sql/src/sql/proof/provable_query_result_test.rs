@@ -1,5 +1,5 @@
 use super::{ProvableQueryResult, QueryError};
-use crate::base::scalar::test_scalar::TestScalar;
+use crate::base::scalar::{test_scalar::TestScalar, ScalarExt};
 use crate::{
     base::{
         database::{Column, ColumnField, ColumnType},
@@ -288,7 +288,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     let values3 = ["abc", "de"];
     let scalars3 = values3
         .iter()
-        .map(|v| TestScalar::from(*v))
+        .map(|v| TestScalar::from_str_via_hash(v))
         .collect::<Vec<_>>();
     let values4 = [TestScalar::from(10), TestScalar::MAX_SIGNED];
 

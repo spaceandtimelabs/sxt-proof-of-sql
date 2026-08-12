@@ -177,7 +177,7 @@ mod tests {
     use crate::base::{
         commitment::naive_commitment::NaiveCommitment,
         database::{Column, OwnedColumn},
-        scalar::test_scalar::TestScalar,
+        scalar::{test_scalar::TestScalar, ScalarExt},
     };
     #[test]
     fn we_can_convert_from_columns() {
@@ -206,7 +206,7 @@ mod tests {
             CommittableColumn::VarChar(
                 column_b
                     .iter()
-                    .map(TestScalar::from)
+                    .map(|s| TestScalar::from_str_via_hash(s))
                     .map(<[u64; 4]>::from)
                     .collect(),
             ),
@@ -242,7 +242,7 @@ mod tests {
             CommittableColumn::VarChar(
                 column_b
                     .iter()
-                    .map(TestScalar::from)
+                    .map(|s| TestScalar::from_str_via_hash(s))
                     .map(<[u64; 4]>::from)
                     .collect(),
             ),

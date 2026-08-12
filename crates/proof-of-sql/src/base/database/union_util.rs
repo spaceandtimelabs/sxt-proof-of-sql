@@ -245,7 +245,10 @@ pub fn table_union<'a, S: Scalar>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{map::IndexMap, scalar::test_scalar::TestScalar};
+    use crate::base::{
+        map::IndexMap,
+        scalar::{test_scalar::TestScalar, ScalarExt},
+    };
 
     #[test]
     fn we_can_union_no_columns() {
@@ -268,7 +271,7 @@ mod tests {
         let strings = vec!["a", "b", "c"];
         let scalars = strings
             .iter()
-            .map(|s| TestScalar::from(*s))
+            .map(|s| TestScalar::from_str_via_hash(s))
             .collect::<Vec<_>>();
         let col0: Column<TestScalar> = Column::VarChar((&strings, &scalars));
         let col1: Column<TestScalar> = Column::VarChar((&strings, &scalars));

@@ -1,14 +1,15 @@
 use crate::base::{
     database::{filter_util::*, Column},
     math::decimal::Precision,
-    scalar::test_scalar::TestScalar,
+    scalar::{test_scalar::TestScalar, ScalarExt},
 };
 use bumpalo::Bump;
 
 #[test]
 fn we_can_filter_columns() {
     let selection = vec![true, false, true, false, true];
-    let str_scalars: [TestScalar; 5] = ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
+    let str_scalars: [TestScalar; 5] = ["1", "2", "3", "4", "5"]
+        .map(TestScalar::from_str_via_hash);
     let scalars = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let decimals = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let columns = vec![
@@ -26,7 +27,10 @@ fn we_can_filter_columns() {
         vec![
             Column::BigInt(&[1, 3, 5]),
             Column::Int128(&[1, 3, 5]),
-            Column::VarChar((&["1", "3", "5"], &["1".into(), "3".into(), "5".into()])),
+            Column::VarChar((
+                &["1", "3", "5"],
+                &["1", "3", "5"].map(TestScalar::from_str_via_hash)
+            )),
             Column::Scalar(&[1.into(), 3.into(), 5.into()]),
             Column::Decimal75(
                 Precision::new(75).unwrap(),
@@ -39,7 +43,8 @@ fn we_can_filter_columns() {
 #[test]
 fn we_can_filter_columns_with_empty_result() {
     let selection = vec![false, false, false, false, false];
-    let str_scalars: [TestScalar; 5] = ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
+    let str_scalars: [TestScalar; 5] = ["1", "2", "3", "4", "5"]
+        .map(TestScalar::from_str_via_hash);
     let scalars = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let decimals = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let columns = vec![

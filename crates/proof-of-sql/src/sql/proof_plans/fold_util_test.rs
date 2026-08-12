@@ -1,6 +1,6 @@
 use super::{fold_columns, fold_vals};
 use crate::{
-    base::{database::Column, math::decimal::Precision},
+    base::{database::Column, math::decimal::Precision, scalar::ScalarExt},
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
 };
 use bumpalo::Bump;
@@ -10,19 +10,19 @@ use num_traits::Zero;
 fn we_can_fold_columns_with_scalars() {
     let expected = vec![
         Curve25519Scalar::from(77 + 1602 * 33)
-            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("1"),
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from_str_via_hash("1"),
         Curve25519Scalar::from(77 + 2703 * 33)
-            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("2"),
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from_str_via_hash("2"),
         Curve25519Scalar::from(77 + 3805 * 33)
-            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("3"),
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from_str_via_hash("3"),
         Curve25519Scalar::from(77 + 4907 * 33)
-            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("4"),
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from_str_via_hash("4"),
         Curve25519Scalar::from(77 + 5001 * 33)
-            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("5"),
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from_str_via_hash("5"),
     ];
 
     let str_scalars: [Curve25519Scalar; 5] =
-        ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
+        ["1", "2", "3", "4", "5"].map(Curve25519Scalar::from_str_via_hash);
     let scalars = [2.into(), 3.into(), 5.into(), 7.into(), 1.into()];
     let mut columns = vec![
         Column::BigInt(&[1, 2, 3, 4, 5]),
@@ -51,11 +51,11 @@ fn we_can_fold_columns_with_scalars() {
 fn we_can_fold_columns_with_that_get_padded() {
     let expected = vec![
         Curve25519Scalar::from(77 + 1602 * 33)
-            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("1"),
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from_str_via_hash("1"),
         Curve25519Scalar::from(77 + 2703 * 33)
-            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("2"),
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from_str_via_hash("2"),
         Curve25519Scalar::from(77 + 3800 * 33)
-            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from("3"),
+            + Curve25519Scalar::from(10 * 33) * Curve25519Scalar::from_str_via_hash("3"),
         Curve25519Scalar::from(77 + 4900 * 33),
         Curve25519Scalar::from(77 + 5000 * 33),
         Curve25519Scalar::from(77),
@@ -66,7 +66,8 @@ fn we_can_fold_columns_with_that_get_padded() {
         Curve25519Scalar::from(77),
     ];
 
-    let str_scalars: [Curve25519Scalar; 3] = ["1".into(), "2".into(), "3".into()];
+    let str_scalars: [Curve25519Scalar; 3] =
+        ["1", "2", "3"].map(Curve25519Scalar::from_str_via_hash);
     let scalars = [2.into(), 3.into()];
     let mut columns = vec![
         Column::BigInt(&[1, 2, 3, 4, 5]),

@@ -162,7 +162,7 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
             OwnedColumn::VarChar(strings) => CommittableColumn::VarChar(
                 strings
                     .iter()
-                    .map(Into::<S>::into)
+                    .map(|s| S::from_str_via_hash(s))
                     .map(Into::<[u64; 4]>::into)
                     .collect(),
             ),
@@ -480,7 +480,7 @@ mod tests {
         let bigint_committable_column = CommittableColumn::VarChar(
             ["12", "34", "56"]
                 .map(Into::<String>::into)
-                .map(Into::<TestScalar>::into)
+                .map(|s| TestScalar::from_str_via_hash(&s))
                 .map(Into::<[u64; 4]>::into)
                 .into(),
         );
@@ -663,7 +663,7 @@ mod tests {
         assert_eq!(from_borrowed_column, CommittableColumn::VarChar(Vec::new()));
 
         let varchar_data = ["12", "34", "56"];
-        let scalars = varchar_data.map(TestScalar::from);
+        let scalars = varchar_data.map(TestScalar::from_str_via_hash);
         let from_borrowed_column =
             CommittableColumn::from(&Column::VarChar((&varchar_data, &scalars)));
         assert_eq!(
@@ -807,7 +807,12 @@ mod tests {
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(
             from_owned_column,
-            CommittableColumn::VarChar(strings.map(TestScalar::from).map(<[u64; 4]>::from).into())
+            CommittableColumn::VarChar(
+                strings
+                    .map(|s| TestScalar::from_str_via_hash(&s))
+                    .map(<[u64; 4]>::from)
+                    .into()
+            )
         );
     }
 
@@ -1032,7 +1037,9 @@ mod tests {
         let committable_column = CommittableColumn::from(&owned_column);
 
         let sequence_actual = Sequence::from(&committable_column);
-        let scalars = values.map(TestScalar::from).map(<[u64; 4]>::from);
+        let scalars = values
+            .map(|s| TestScalar::from_str_via_hash(&s))
+            .map(<[u64; 4]>::from);
         let sequence_expected = Sequence::from(scalars.as_slice());
         let mut commitment_buffer = [CompressedRistretto::default(); 2];
         compute_curve25519_commitments(

@@ -1,7 +1,7 @@
 use crate::{
     base::{
         database::{group_by_util::*, Column},
-        scalar::test_scalar::TestScalar,
+        scalar::{test_scalar::TestScalar, ScalarExt},
     },
     proof_primitive::dory::DoryScalar,
 };
@@ -162,7 +162,10 @@ fn we_can_aggregate_columns() {
     let selection = &[
         false, true, true, true, true, true, true, true, true, true, true, true,
     ];
-    let scals_b: Vec<TestScalar> = slice_b.iter().map(core::convert::Into::into).collect();
+    let scals_b: Vec<TestScalar> = slice_b
+        .iter()
+        .map(|s| TestScalar::from_str_via_hash(s))
+        .collect();
     let scals_d: Vec<TestScalar> = slice_d.iter().map(core::convert::Into::into).collect();
     let column_a = Column::BigInt(slice_a);
     let column_b = Column::VarChar((slice_b, &scals_b));
@@ -183,12 +186,12 @@ fn we_can_aggregate_columns() {
     )
     .expect("Aggregation should succeed");
     let scals_res = [
-        TestScalar::from("Cat"),
-        TestScalar::from("Dog"),
-        TestScalar::from("Cat"),
-        TestScalar::from("Dog"),
-        TestScalar::from("Cat"),
-        TestScalar::from("Dog"),
+        TestScalar::from_str_via_hash("Cat"),
+        TestScalar::from_str_via_hash("Dog"),
+        TestScalar::from_str_via_hash("Cat"),
+        TestScalar::from_str_via_hash("Dog"),
+        TestScalar::from_str_via_hash("Cat"),
+        TestScalar::from_str_via_hash("Dog"),
     ];
     let expected_group_by_result = &[
         Column::BigInt(&[1, 1, 2, 2, 3, 3]),

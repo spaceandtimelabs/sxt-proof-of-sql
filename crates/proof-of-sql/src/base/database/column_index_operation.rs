@@ -120,7 +120,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{database::ColumnOperationError, scalar::test_scalar::TestScalar};
+    use crate::base::{
+        database::ColumnOperationError,
+        scalar::{test_scalar::TestScalar, ScalarExt},
+    };
 
     #[test]
     fn test_apply_index_op() {
@@ -138,14 +141,17 @@ mod tests {
         assert_eq!(result, Column::Scalar(&expected_scalars));
 
         let strings = vec!["a", "b", "c"];
-        let scalars = strings.iter().map(TestScalar::from).collect::<Vec<_>>();
+        let scalars = strings
+            .iter()
+            .map(|s| TestScalar::from_str_via_hash(s))
+            .collect::<Vec<_>>();
         let column: Column<TestScalar> = Column::VarChar((&strings, &scalars));
         let indexes = [2, 1, 1];
         let result = apply_column_to_indexes(&column, &bump, &indexes).unwrap();
         let expected_strings = vec!["c", "b", "b"];
         let expected_scalars = expected_strings
             .iter()
-            .map(TestScalar::from)
+            .map(|s| TestScalar::from_str_via_hash(s))
             .collect::<Vec<_>>();
         assert_eq!(
             result,
