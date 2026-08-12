@@ -16,15 +16,31 @@ impl U256 {
     pub const fn from_words(low: u128, high: u128) -> Self {
         U256 { low, high }
     }
+
+    #[inline]
+    pub fn from_limbs(limbs: [u64; 4]) -> Self {
+        let low = u128::from(limbs[0]) | (u128::from(limbs[1]) << 64);
+        let high = u128::from(limbs[2]) | (u128::from(limbs[3]) << 64);
+        U256::from_words(low, high)
+    }
+
+    #[inline]
+    #[expect(clippy::cast_possible_truncation)]
+    pub fn to_limbs(self) -> [u64; 4] {
+        [
+            self.low as u64,
+            (self.low >> 64) as u64,
+            self.high as u64,
+            (self.high >> 64) as u64,
+        ]
+    }
 }
 
 /// This trait converts a dalek scalar into a U256 integer
 impl<T: MontConfig<4>> From<&MontScalar<T>> for U256 {
     fn from(val: &MontScalar<T>) -> Self {
         let buf: [u64; 4] = val.into();
-        let low: u128 = u128::from(buf[0]) | (u128::from(buf[1]) << 64);
-        let high: u128 = u128::from(buf[2]) | (u128::from(buf[3]) << 64);
-        U256::from_words(low, high)
+        U256::from_limbs(buf)
     }
 }
 

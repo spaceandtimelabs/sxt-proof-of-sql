@@ -1,6 +1,6 @@
 #![expect(clippy::module_inception)]
 
-use crate::base::{encode::VarInt, ref_into::RefInto, scalar::ScalarConversionError};
+use crate::base::{ref_into::RefInto, scalar::ScalarConversionError};
 use alloc::string::String;
 use bnum::types::U256;
 use core::ops::Sub;
@@ -53,7 +53,6 @@ pub trait Scalar:
     + core::ops::SubAssign
     + RefInto<[u64; 4]>
     + for<'a> core::convert::From<&'a String>
-    + VarInt
     + core::convert::From<String>
     + core::convert::From<i128>
     + core::convert::From<i64>

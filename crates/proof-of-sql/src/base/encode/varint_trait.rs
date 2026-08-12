@@ -16,10 +16,9 @@ use super::{
     },
     U256,
 };
-use crate::base::scalar::MontScalar;
+use crate::base::scalar::Scalar;
 #[cfg(test)]
 use alloc::{vec, vec::Vec};
-use ark_ff::MontConfig;
 
 /// Most-significant byte, == 0x80
 pub const MSB: u8 = 0b1000_0000;
@@ -282,7 +281,7 @@ impl VarInt for i128 {
     }
 }
 
-impl<T: MontConfig<4>> VarInt for MontScalar<T> {
+impl<S: Scalar> VarInt for S {
     fn required_space(self) -> usize {
         scalar_varint_size(&self)
     }
