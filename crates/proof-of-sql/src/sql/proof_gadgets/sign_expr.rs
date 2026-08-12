@@ -6,7 +6,7 @@ use crate::{
         },
         if_rayon,
         proof::ProofError,
-        scalar::{Scalar, ScalarExt},
+        scalar::Scalar,
     },
     sql::proof::{FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
@@ -159,7 +159,7 @@ mod tests {
         base::{
             bit::BitDistribution,
             proof::ProofError,
-            scalar::{test_scalar::TestScalar, Scalar, ScalarExt},
+            scalar::{test_scalar::TestScalar, Scalar},
         },
         sql::{
             proof::mock_verification_builder::MockVerificationBuilder,

@@ -1,7 +1,7 @@
 use super::bit_mask_utils::{is_bit_mask_negative_representation, make_bit_mask};
 use crate::base::{
     proof::ProofError,
-    scalar::{Scalar, ScalarExt},
+    scalar::Scalar,
     standard_serializations::limbs::{deserialize_to_limbs, serialize_limbs},
 };
 use ark_std::iterable::Iterable;
@@ -129,7 +129,7 @@ impl BitDistribution {
     }
 
     /// Determines the lead (sign) bit.
-    pub fn try_constant_leading_bit_eval<S: ScalarExt>(&self, chi_eval: S) -> Option<S> {
+    pub fn try_constant_leading_bit_eval<S: Scalar>(&self, chi_eval: S) -> Option<S> {
         if U256::from(self.vary_mask) & (U256::ONE.shl(255)) != U256::ZERO {
             None
         } else if U256::from(self.leading_bit_mask) & U256::ONE.shl(255) == U256::ZERO {

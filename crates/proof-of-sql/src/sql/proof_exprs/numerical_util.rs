@@ -2,7 +2,7 @@ use crate::base::{
     database::{try_cast_types, try_scale_cast_types, Column, ColumnOperationResult, ColumnType},
     if_rayon,
     math::decimal::Precision,
-    scalar::{Scalar, ScalarExt},
+    scalar::Scalar,
 };
 use alloc::format;
 use bnum::types::U256;

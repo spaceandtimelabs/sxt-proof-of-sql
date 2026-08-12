@@ -1,6 +1,10 @@
 /// This module contains the definition of the `Scalar` trait, which is used to represent the scalar field used in Proof of SQL.
+mod scalar_ext;
+pub use scalar_ext::ScalarExt;
 mod scalar;
 pub use scalar::Scalar;
+#[cfg(test)]
+pub(crate) use scalar::test_scalar_constants;
 mod error;
 pub use error::ScalarConversionError;
 /// TODO add doc
@@ -13,8 +17,3 @@ pub use mont_scalar::MontScalar;
 pub mod test_scalar;
 #[cfg(test)]
 mod test_scalar_test;
-
-mod scalar_ext;
-#[cfg(test)]
-pub(crate) use scalar_ext::test_scalar_constants;
-pub use scalar_ext::ScalarExt;

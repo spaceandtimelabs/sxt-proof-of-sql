@@ -5,7 +5,7 @@ use super::{
 use crate::base::{
     commitment::{CommitmentEvaluationProof, VecCommitmentExt},
     map::IndexMap,
-    scalar::ScalarExt,
+    scalar::Scalar,
 };
 use alloc::{string::String, vec::Vec};
 use bumpalo::Bump;

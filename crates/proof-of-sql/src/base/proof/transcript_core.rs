@@ -1,8 +1,5 @@
 use super::Transcript;
-use crate::base::{
-    ref_into::RefInto,
-    scalar::{Scalar, ScalarExt},
-};
+use crate::base::scalar::{Scalar, ScalarExt};
 use bnum::types::U256;
 use zerocopy::{AsBytes, FromBytes};
 
@@ -57,12 +54,10 @@ impl<T: TranscriptCore> Transcript for T {
         &mut self,
         messages: impl IntoIterator<Item = &'a S>,
     ) {
-        self.extend_as_be::<[u64; 4]>(messages.into_iter().map(RefInto::ref_into));
+        self.extend_as_be::<[u64; 4]>(messages.into_iter().map(ScalarExt::to_limbs));
     }
     fn scalar_challenge_as_be<S: Scalar>(&mut self) -> S {
-        ScalarExt::from_wrapping(
-            U256::from(receive_challenge_as_be::<[u64; 4]>(self)) & S::CHALLENGE_MASK,
-        )
+        S::from_wrapping(U256::from(receive_challenge_as_be::<[u64; 4]>(self)) & S::CHALLENGE_MASK)
     }
     fn challenge_as_le(&mut self) -> [u8; 32] {
         self.raw_challenge()

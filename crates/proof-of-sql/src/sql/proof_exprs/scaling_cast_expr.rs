@@ -103,7 +103,7 @@ impl ProofExpr for ScalingCastExpr {
     ) -> Result<S, ProofError> {
         self.from_expr
             .verifier_evaluate(builder, accessor, chi_eval, params)
-            .map(|unscaled_eval| S::from(self.scaling_factor) * unscaled_eval)
+            .map(|unscaled_eval| S::from_limbs(self.scaling_factor) * unscaled_eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

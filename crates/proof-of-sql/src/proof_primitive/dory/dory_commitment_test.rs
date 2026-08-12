@@ -1,5 +1,5 @@
 use super::DoryScalar;
-use crate::base::scalar::{Scalar, ScalarConversionError, ScalarExt};
+use crate::base::scalar::{Scalar, ScalarConversionError};
 use core::cmp::Ordering;
 use num_bigint::BigInt;
 

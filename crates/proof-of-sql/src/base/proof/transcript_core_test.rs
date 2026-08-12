@@ -1,5 +1,5 @@
 use super::{transcript_core::TranscriptCore, Keccak256Transcript as T, Transcript};
-use crate::base::scalar::{test_scalar::TestScalar as S, Scalar, ScalarExt};
+use crate::base::scalar::{test_scalar::TestScalar as S, Scalar};
 use bnum::types::U256;
 #[test]
 fn we_can_add_values_to_the_transcript_in_big_endian_form() {

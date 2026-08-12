@@ -1,7 +1,7 @@
 //! Contains the utility functions for ordering.
 use crate::base::{
     database::{Column, TableOperationError, TableOperationResult},
-    scalar::{Scalar, ScalarExt},
+    scalar::Scalar,
 };
 use core::cmp::Ordering;
 

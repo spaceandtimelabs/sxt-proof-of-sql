@@ -8,7 +8,7 @@ use crate::base::{
         ColumnType,
     },
     math::decimal::Precision,
-    scalar::{Scalar, ScalarExt},
+    scalar::Scalar,
 };
 use alloc::vec::Vec;
 use core::{cmp::Ordering, fmt::Debug};

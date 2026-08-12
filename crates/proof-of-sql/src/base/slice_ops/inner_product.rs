@@ -1,6 +1,6 @@
 use crate::base::{
     if_rayon,
-    scalar::{Scalar, ScalarExt},
+    scalar::Scalar,
 };
 use alloc::vec::Vec;
 use core::{iter::Sum, ops::Mul};

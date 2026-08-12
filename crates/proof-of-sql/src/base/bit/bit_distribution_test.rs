@@ -1,6 +1,6 @@
 use super::*;
 use crate::base::{
-    scalar::{test_scalar::TestScalar, Scalar, ScalarExt},
+    scalar::{test_scalar::TestScalar, Scalar},
     try_standard_binary_deserialization, try_standard_binary_serialization,
 };
 use bnum::types::U256;

@@ -1,4 +1,3 @@
-use super::ScalarExt;
 use crate::base::scalar::{test_scalar::TestScalar, test_scalar_constants, Scalar};
 use bnum::types::U256;
 use core::str::FromStr;

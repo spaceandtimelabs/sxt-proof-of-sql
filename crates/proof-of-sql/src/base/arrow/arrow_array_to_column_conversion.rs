@@ -3,7 +3,7 @@ use crate::base::{
     database::Column,
     math::decimal::Precision,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
-    scalar::{Scalar, ScalarExt},
+    scalar::Scalar,
 };
 use arrow::{
     array::{
@@ -323,7 +323,10 @@ mod tests {
 
     use super::*;
     use crate::{
-        base::{database::OwnedColumn, scalar::test_scalar::TestScalar},
+        base::{
+            database::OwnedColumn,
+            scalar::{test_scalar::TestScalar, Scalar},
+        },
         proof_primitive::dory::DoryScalar,
     };
     use alloc::sync::Arc;

@@ -2,7 +2,7 @@ use crate::base::{
     database::ColumnType,
     math::{decimal::Precision, i256::I256},
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    scalar::{Scalar, ScalarExt},
+    scalar::Scalar,
     standard_serializations::limbs::{deserialize_to_limbs, serialize_limbs},
 };
 use alloc::{string::String, vec::Vec};
@@ -85,7 +85,7 @@ impl LiteralValue {
             Self::VarBinary(bytes) => S::from_byte_slice_via_hash(bytes),
             Self::Decimal75(_, _, i) => i.into_scalar(),
             Self::Int128(i) => i.into(),
-            Self::Scalar(limbs) => (*limbs).into(),
+            Self::Scalar(limbs) => S::from_limbs(*limbs),
             Self::TimeStampTZ(_, _, time) => time.into(),
         }
     }

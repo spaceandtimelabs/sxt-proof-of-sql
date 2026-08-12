@@ -464,7 +464,7 @@ mod test {
     use super::*;
     use crate::base::{
         math::decimal::Precision,
-        scalar::{test_scalar::TestScalar, ScalarExt},
+        scalar::{test_scalar::TestScalar, Scalar},
     };
     use alloc::vec;
     use bumpalo::Bump;

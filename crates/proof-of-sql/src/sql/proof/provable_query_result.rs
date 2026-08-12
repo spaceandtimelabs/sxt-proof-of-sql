@@ -2,7 +2,7 @@ use super::{decode_and_convert, decode_multiple_elements, ProvableResultColumn, 
 use crate::base::{
     database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable, Table},
     polynomial::compute_evaluation_vector,
-    scalar::{Scalar, ScalarExt},
+    scalar::Scalar,
 };
 use alloc::{vec, vec::Vec};
 use num_traits::Zero;

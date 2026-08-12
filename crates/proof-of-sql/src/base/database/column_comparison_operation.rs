@@ -254,7 +254,7 @@ pub trait ComparisonOp {
             (
                 OwnedColumn::Decimal75(_, _, lhs_values),
                 OwnedColumn::Decimal75(_, _, rhs_values),
-            ) => Ok(Self::decimal_op_left_upcast(
+            ) => Ok(Self::decimal_op_left_upcast::<S, S>(
                 lhs_values,
                 rhs_values,
                 lhs.column_type(),

@@ -73,7 +73,7 @@ impl ByteDistribution {
 #[cfg(test)]
 mod tests {
     use super::ByteDistribution;
-    use crate::base::scalar::{test_scalar::TestScalar, ScalarExt};
+    use crate::base::scalar::{test_scalar::TestScalar, Scalar};
     use bnum::types::U256;
     use core::ops::{Neg, Shl, Shr};
     use itertools::Itertools;

@@ -2,7 +2,7 @@ use super::{ColumnType, LiteralValue, OwnedColumn};
 use crate::base::{
     math::decimal::Precision,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    scalar::{Scalar, ScalarExt},
+    scalar::Scalar,
     slice_ops::slice_cast_with,
 };
 use alloc::vec::Vec;
@@ -127,7 +127,7 @@ impl<'a, S: Scalar> Column<'a, S> {
                 Column::Int128(alloc.alloc_slice_fill_copy(length, *value))
             }
             LiteralValue::Scalar(value) => {
-                Column::Scalar(alloc.alloc_slice_fill_copy(length, (*value).into()))
+                Column::Scalar(alloc.alloc_slice_fill_copy(length, S::from_limbs(*value)))
             }
             LiteralValue::Decimal75(precision, scale, value) => Column::Decimal75(
                 *precision,

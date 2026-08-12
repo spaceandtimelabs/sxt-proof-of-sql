@@ -1,4 +1,4 @@
-use crate::base::scalar::ScalarExt;
+use crate::base::scalar::Scalar;
 use bnum::types::U256;
 
 /// Mask with only the most significant bit (255) set
@@ -6,7 +6,7 @@ use bnum::types::U256;
 const MSB_MASK: U256 = U256::from_digits([0, 0, 0, 1 << 63]);
 
 #[inline]
-pub fn make_bit_mask<S: ScalarExt>(x: S) -> U256 {
+pub fn make_bit_mask<S: Scalar>(x: S) -> U256 {
     let x_as_u256 = x.into_u256_wrapping();
     if x > S::MAX_SIGNED {
         x_as_u256 - S::MAX_SIGNED_U256 + MSB_MASK - S::MAX_SIGNED_U256 - U256::ONE

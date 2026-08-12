@@ -191,7 +191,7 @@ where
             .take(31)
             .collect();
     for (i, scalar) in column_data.iter().enumerate() {
-        let scalar_array: [u64; 4] = (*scalar).into().into();
+        let scalar_array: [u64; 4] = Into::<S>::into(*scalar).to_limbs();
         // Convert the [u64; 4] into a slice of bytes
         let scalar_bytes = &cast_slice::<u64, u8>(&scalar_array)[..31];
 
