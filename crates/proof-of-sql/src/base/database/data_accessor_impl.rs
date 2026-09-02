@@ -68,7 +68,8 @@ impl<S: Scalar> MetadataAccessor for DataAccessorImpl<'_, S> {
             .get(table_ref)
             .expect("table does not exist")
             .table_data
-            .len()
+            .first()
+            .map_or(0, |(_, col)| col.len())
     }
 
     fn get_offset(&self, table_ref: &TableRef) -> usize {
@@ -109,7 +110,7 @@ mod tests {
     #[test]
     fn we_can_get_offset_and_length() {
         let column_id = Ident::from("test");
-        let column = Column::<TestScalar>::BigInt(&[3i64]);
+        let column = Column::<TestScalar>::BigInt(&[3i64, -2]);
         let table_data_accessor =
             TableDataAccessor::new(2, [(column_id.clone(), column)].into_iter().collect());
         let table_ref = TableRef::from_names(Some("test"), "table");
@@ -118,9 +119,21 @@ mod tests {
                 .into_iter()
                 .collect(),
         );
-        assert_eq!(data_accessor.get_length(&table_ref), 1);
+        assert_eq!(data_accessor.get_length(&table_ref), 2);
         assert_eq!(data_accessor.get_offset(&table_ref), 2);
         assert_eq!(data_accessor.get_column(&table_ref, &column_id), column);
+    }
+
+    #[test]
+    fn we_can_get_length_for_empty_tables() {
+        let table_data_accessor = TableDataAccessor::<TestScalar>::new(2, [].into_iter().collect());
+        let table_ref = TableRef::from_names(Some("test"), "table");
+        let data_accessor = DataAccessorImpl::new(
+            [(table_ref.clone(), table_data_accessor)]
+                .into_iter()
+                .collect(),
+        );
+        assert_eq!(data_accessor.get_length(&table_ref), 0);
     }
 
     #[cfg(feature = "arrow")]
@@ -142,7 +155,7 @@ mod tests {
                 .collect(),
         );
 
-        assert_eq!(data_accessor_impl.get_length(&table_ref), 1);
+        assert_eq!(data_accessor_impl.get_length(&table_ref), 2);
         assert_eq!(data_accessor_impl.get_offset(&table_ref), 1);
         assert_eq!(
             data_accessor_impl.get_column(&table_ref, &Ident::new("BOOLS")),
