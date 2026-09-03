@@ -10,7 +10,7 @@ use arrow::{
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
-use clap::{arg, Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 use commit_accessor::CommitAccessor;
 use csv_accessor::{read_record_batch_from_csv, CsvDataAccessor};
 use datafusion::{arrow::util::pretty::pretty_format_batches, config::ConfigOptions};

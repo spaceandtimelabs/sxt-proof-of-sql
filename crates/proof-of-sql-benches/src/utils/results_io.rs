@@ -39,7 +39,7 @@ pub fn append_to_csv(file_path: &Path, new_row: &[String]) {
         .expect("Failed to open or create the CSV file.");
 
     // Check if the file is empty to determine if we need to write headers
-    let is_empty = file.metadata().map(|m| m.len() == 0).unwrap_or(true);
+    let is_empty = file.metadata().map_or(true, |m| m.len() == 0);
 
     // Create a CSV writer
     let mut writer = WriterBuilder::new().from_writer(BufWriter::new(file));

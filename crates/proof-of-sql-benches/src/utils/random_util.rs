@@ -88,8 +88,7 @@ pub fn generate_random_columns<'a, S: Scalar>(
                     }
                     (ColumnType::VarChar, _) => {
                         let strs = alloc.alloc_slice_fill_with(num_rows, |_| {
-                            let len = rng
-                                .gen_range(0..=bound.map(|b| b(num_rows) as usize).unwrap_or(10));
+                            let len = rng.gen_range(0..=bound.map_or(10, |b| b(num_rows) as usize));
                             alloc.alloc_str(
                                 &rng.sample_iter(&rand::distributions::Alphanumeric)
                                     .take(len)
@@ -104,8 +103,7 @@ pub fn generate_random_columns<'a, S: Scalar>(
                     }
                     (ColumnType::Scalar, _) => {
                         let strs = alloc.alloc_slice_fill_with(num_rows, |_| {
-                            let len = rng
-                                .gen_range(0..=bound.map(|b| b(num_rows) as usize).unwrap_or(10));
+                            let len = rng.gen_range(0..=bound.map_or(10, |b| b(num_rows) as usize));
                             alloc.alloc_str(
                                 &rng.sample_iter(&rand::distributions::Alphanumeric)
                                     .take(len)
@@ -119,8 +117,7 @@ pub fn generate_random_columns<'a, S: Scalar>(
                     }
                     (ColumnType::Decimal75(p, s), _) => {
                         let strs = alloc.alloc_slice_fill_with(num_rows, |_| {
-                            let len = rng
-                                .gen_range(0..=bound.map(|b| b(num_rows) as usize).unwrap_or(10));
+                            let len = rng.gen_range(0..=bound.map_or(10, |b| b(num_rows) as usize));
                             alloc.alloc_str(
                                 &rng.sample_iter(&rand::distributions::Alphanumeric)
                                     .take(len)

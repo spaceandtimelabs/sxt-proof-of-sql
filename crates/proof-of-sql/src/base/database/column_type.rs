@@ -401,8 +401,7 @@ mod tests {
         let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[75, 127]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
-        let expected_column_type =
-            ColumnType::Decimal75(Precision::new(u8::MIN + 1).unwrap(), i8::MIN);
+        let expected_column_type = ColumnType::Decimal75(Precision::new(1).unwrap(), i8::MIN);
         let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[1, -128]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
