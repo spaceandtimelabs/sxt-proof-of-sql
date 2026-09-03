@@ -29,7 +29,7 @@ Get started with Proof of SQL by using the published crate on [crates.io](https:
 
 ## Setup
 
-### Prerequisites
+### For use as a cargo dependency
 
 * Linux `x86_64` (NOTE: Most of the codebase _should_ work for most rust targets. However, proofs are accelerated using NVIDIA GPUs, so other targets would run very slowly and may require modification.)
 * NVIDIA GPU & Drivers (Strongly Recommended)
@@ -54,6 +54,25 @@ Workaround for non-Linux and/or non-GPU machines.
 
 </details>
 
+### For building from source
+This repository provides nix shells for build environments.
+
+Prerequisites:
+* [nix](https://nixos.org/download/) with experimental features "nix-command" and "flakes" [enabled](https://nixos.wiki/wiki/flakes).
+* `x86_64` Linux instance.
+* Optionally, NVIDIA GPU & Drivers
+
+Then, to enter the build environment:
+```bash
+nix develop
+# or, explicitly
+nix develop .#cpu
+```
+
+If an NVIDIA GPU is available, you can use the gpu-enabled shell:
+```bash
+nix develop .#gpu
+```
 
 ## Examples
 

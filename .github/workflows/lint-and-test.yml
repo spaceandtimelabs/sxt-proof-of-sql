@@ -408,3 +408,29 @@ jobs:
         run: nix flake check
       - name: Check project with flake
         run: nix develop --command cargo check
+
+  test-cpu-shell:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Install nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Test project with cpu shell
+        run: nix develop --command cargo test --all-features
+
+  test-gpu-shell:
+    runs-on: nvidia-nc4as-t4
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Install nix
+        uses: cachix/install-nix-action@v31
+        with:
+          install_options: --no-daemon
+
+      - name: Test project with gpu shell
+        run: nix develop --extra-experimental-features "nix-command flakes" ".#gpu" --command cargo test --all-features
