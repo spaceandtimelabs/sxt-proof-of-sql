@@ -18,7 +18,7 @@ use ark_ff::{AdditiveGroup, Field};
 use blitzar::compute::ElementP2;
 #[cfg(feature = "blitzar")]
 use bytemuck::TransparentWrapper;
-use itertools::{Itertools, __std_iter::repeat};
+use itertools::{__std_iter::repeat, Itertools};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
 ///

@@ -175,7 +175,7 @@ impl<C: Commitment> TableCommitment<C> {
         let num_rows = num_rows_of_columns(&committable_columns)?;
 
         let column_commitments = ColumnCommitments::try_from_columns_with_offset(
-            identifiers.into_iter().zip(committable_columns.into_iter()),
+            identifiers.into_iter().zip(committable_columns),
             offset,
             setup,
         )?;
@@ -224,7 +224,7 @@ impl<C: Commitment> TableCommitment<C> {
         let num_rows = num_rows_of_columns(&committable_columns)?;
 
         self.column_commitments.try_append_rows_with_offset(
-            identifiers.into_iter().zip(committable_columns.into_iter()),
+            identifiers.into_iter().zip(committable_columns),
             self.range.end,
             setup,
         )?;
@@ -286,7 +286,7 @@ impl<C: Commitment> TableCommitment<C> {
         }
 
         self.column_commitments.try_extend_columns_with_offset(
-            identifiers.into_iter().zip(committable_columns.into_iter()),
+            identifiers.into_iter().zip(committable_columns),
             self.range.start,
             setup,
         )?;

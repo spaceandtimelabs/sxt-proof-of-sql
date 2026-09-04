@@ -253,10 +253,7 @@ mod tests {
         let dist = Uniform::new(1, usize::MAX);
 
         for _ in 0..100 {
-            let value = match dist.sample(&mut rng).try_into() {
-                Ok(val) => val,
-                Err(_) => i64::MAX,
-            };
+            let value = dist.sample(&mut rng).try_into().unwrap_or(i64::MAX);
 
             let mut out = vec![0_u8; value.required_bytes()];
             value.encode(&mut out[..]);

@@ -211,7 +211,6 @@ impl<S: Scalar> MockVerificationBuilder<S> {
             .all_equal());
         self.identity_subpolynomial_evaluations
             .iter()
-            .cloned()
             .map(|v| v.iter().map(S::is_zero).collect())
             .collect()
     }
