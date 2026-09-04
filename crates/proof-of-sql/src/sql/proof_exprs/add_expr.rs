@@ -65,6 +65,10 @@ impl ProofExpr for AddExpr {
         let lhs_column: Column<'a, S> = self.lhs.first_round_evaluate(alloc, table, params)?;
         let rhs_column: Column<'a, S> = self.rhs.first_round_evaluate(alloc, table, params)?;
         let res = add_subtract_columns(lhs_column, rhs_column, alloc, false);
+        // Scalar-typed sums (e.g. from the CASE lowering) have no precision/scale
+        if self.data_type() == ColumnType::Scalar {
+            return Ok(Column::Scalar(res));
+        }
         Ok(Column::Decimal75(self.precision(), self.scale(), res))
     }
 
@@ -91,6 +95,10 @@ impl ProofExpr for AddExpr {
         let res = add_subtract_columns(lhs_column, rhs_column, alloc, false);
         log::log_memory_usage("End");
 
+        // Scalar-typed sums (e.g. from the CASE lowering) have no precision/scale
+        if self.data_type() == ColumnType::Scalar {
+            return Ok(Column::Scalar(res));
+        }
         Ok(Column::Decimal75(self.precision(), self.scale(), res))
     }
 

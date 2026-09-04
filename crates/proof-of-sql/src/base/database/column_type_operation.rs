@@ -235,6 +235,29 @@ pub fn try_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult
     })
 }
 
+/// Verifies that a value's raw scalar encoding may be relabeled from `from` to `to`
+/// without any conversion or constraint. This is deliberately more permissive than
+/// [`try_cast_types`] but still bounded:
+/// - anything may be relabeled *into* `Scalar`, since `Scalar` is exactly the raw
+///   encoding every column type already lives in (this is what allows a boolean
+///   guard to be multiplied with a value of any type);
+/// - `Scalar` may be relabeled back *out* to any type that can be materialized from
+///   raw scalars (everything except `VarChar`/`VarBinary`, whose scalars are hashes).
+///
+/// The out-of-`Scalar` direction is only correct when every value fits the target
+/// type's range and scale; that guarantee is the responsibility of the composite
+/// expression constructing the relabel (see `sql::proof_exprs::composites`).
+pub fn try_relabel_cast_types(from: ColumnType, to: ColumnType) -> ColumnOperationResult<()> {
+    (to == ColumnType::Scalar
+        || (from == ColumnType::Scalar
+            && !matches!(to, ColumnType::VarChar | ColumnType::VarBinary)))
+    .then_some(())
+    .ok_or(ColumnOperationError::CastingError {
+        left_type: from,
+        right_type: to,
+    })
+}
+
 /// Verifies that `from` can be cast to `to`.
 /// Casting can only be supported if the resulting data type is a superset of the input data type.
 /// For example Deciaml(6,1) can be cast to Decimal(7,1), but not vice versa.

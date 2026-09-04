@@ -1,7 +1,10 @@
-use super::{numerical_util::cast_column, DynProofExpr, ProofExpr};
+use super::{numerical_util::unchecked_cast_column, DynProofExpr, ProofExpr};
 use crate::{
     base::{
-        database::{try_cast_types, Column, ColumnRef, ColumnType, LiteralValue, Table},
+        database::{
+            try_cast_types, try_relabel_cast_types, Column, ColumnRef, ColumnType, LiteralValue,
+            Table,
+        },
         map::{IndexMap, IndexSet},
         proof::{PlaceholderResult, ProofError},
         scalar::Scalar,
@@ -35,6 +38,30 @@ impl CastExpr {
             })
     }
 
+    /// Creates a new `CastExpr` that relabels the raw scalar encoding instead of
+    /// performing a checked cast. The pair must be in the relabel whitelist
+    /// ([`try_relabel_cast_types`]): anything into `Scalar`, or `Scalar` back out to
+    /// a materializable type.
+    ///
+    /// The prover and verifier treat such a cast as a pure relabeling of the raw
+    /// scalar encoding: no constraint is added and no scaling occurs. The caller must
+    /// guarantee that, for every row the expression can produce, the raw scalar is a
+    /// valid encoding of a `to_type` value (correct range and scale). This is only
+    /// intended for composite expressions (see `super::composites`) that can make
+    /// that argument structurally; misuse produces wrong results.
+    pub(super) fn try_new_relabel(
+        from_expr: Box<DynProofExpr>,
+        to_type: ColumnType,
+    ) -> AnalyzeResult<Self> {
+        let from_datatype = from_expr.data_type();
+        try_relabel_cast_types(from_datatype, to_type)
+            .map(|()| Self { from_expr, to_type })
+            .map_err(|_| AnalyzeError::DataTypeMismatch {
+                left_type: from_datatype.to_string(),
+                right_type: to_type.to_string(),
+            })
+    }
+
     /// Returns the from expression
     pub fn get_from_expr(&self) -> &DynProofExpr {
         &self.from_expr
@@ -58,7 +85,7 @@ impl ProofExpr for CastExpr {
         params: &[LiteralValue],
     ) -> PlaceholderResult<Column<'a, S>> {
         let uncasted_result = self.from_expr.first_round_evaluate(alloc, table, params)?;
-        Ok(cast_column(
+        Ok(unchecked_cast_column(
             alloc,
             uncasted_result,
             self.from_expr.data_type(),
@@ -76,7 +103,7 @@ impl ProofExpr for CastExpr {
         let uncasted_result = self
             .from_expr
             .final_round_evaluate(builder, alloc, table, params)?;
-        Ok(cast_column(
+        Ok(unchecked_cast_column(
             alloc,
             uncasted_result,
             self.from_expr.data_type(),

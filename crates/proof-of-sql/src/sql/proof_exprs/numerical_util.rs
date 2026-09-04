@@ -612,6 +612,64 @@ pub fn cast_column<'a, S: Scalar>(
     }
 }
 
+/// Handles the casting of one column to another, including the relabeling casts that
+/// [`CastExpr::try_new_relabel`](super::CastExpr) produces and [`try_cast_types`]
+/// rejects (see `try_relabel_cast_types`): any column type to `Scalar` (the raw
+/// encoding every column already lives in) and `Scalar` back to a typed column. The
+/// latter is only correct when every value's raw scalar is a valid encoding of
+/// `to_type`; the constructor of the relabel cast is responsible for guaranteeing
+/// that (see `super::composites`).
+///
+/// Checked casts are delegated to [`cast_column`] unchanged.
+///
+/// # Panics
+/// Panics if casting is not supported between the two types or a value does not fit
+/// the target type.
+pub(crate) fn unchecked_cast_column<'a, S: Scalar>(
+    alloc: &'a Bump,
+    from_column: Column<'a, S>,
+    from_type: ColumnType,
+    to_type: ColumnType,
+) -> Column<'a, S> {
+    if try_cast_types(from_type, to_type).is_ok() {
+        return cast_column(alloc, from_column, from_type, to_type);
+    }
+    match (from_column, to_type) {
+        (Column::Scalar(vals), ColumnType::Scalar) => Column::Scalar(vals),
+        // Relabel any column as its raw scalar encoding
+        (_, ColumnType::Scalar) => Column::Scalar(
+            alloc.alloc_slice_fill_with(from_column.len(), |i| from_column.scalar_at(i).unwrap())
+                as &[_],
+        ),
+        // Materialize raw scalars back into a typed column
+        (Column::Scalar(vals), ColumnType::Boolean) => {
+            Column::Boolean(alloc.alloc_slice_fill_with(vals.len(), |i| {
+                TryInto::<bool>::try_into(vals[i])
+                    .unwrap_or_else(|_| panic!("unchecked cast to Boolean requires 0/1 scalars"))
+            }) as &[_])
+        }
+        (
+            Column::Scalar(vals),
+            ColumnType::Uint8
+            | ColumnType::TinyInt
+            | ColumnType::SmallInt
+            | ColumnType::Int
+            | ColumnType::BigInt
+            | ColumnType::Int128,
+        ) => cast_scalar_slice_to_int_column(alloc, vals, to_type),
+        (Column::Scalar(vals), ColumnType::TimestampTZ(tu, tz)) => Column::TimestampTZ(
+            tu,
+            tz,
+            cast_scalar_slice_to_int_slice::<i64, S>(alloc, vals),
+        ),
+        // Decimal columns store raw scalars directly; the relabel is free
+        (Column::Scalar(vals), ColumnType::Decimal75(precision, scale)) => {
+            Column::Decimal75(precision, scale, vals)
+        }
+        _ => panic!("Unchecked casting not supported between {from_type} and {to_type}"),
+    }
+}
+
 /// Tries to get the scale factor between the from and to types.
 /// The precision and scale are returned along with the scale so that the unwrapping
 /// can occur in the function that confirms that the types are castable

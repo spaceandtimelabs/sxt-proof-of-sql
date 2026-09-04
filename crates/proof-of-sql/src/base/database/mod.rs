@@ -32,7 +32,7 @@ pub use column_type_operation::{
     try_add_subtract_column_types_with_scaling, try_cast_types, try_divide_column_types,
     try_equals_types, try_equals_types_with_scaling, try_inequality_types,
     try_inequality_types_with_scaling, try_multiply_column_types, try_neg_type,
-    try_scale_cast_types,
+    try_relabel_cast_types, try_scale_cast_types,
 };
 
 mod column_arithmetic_operation;

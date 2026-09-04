@@ -23,6 +23,9 @@ mod multiply_expr_test;
 mod dyn_proof_expr;
 pub use dyn_proof_expr::DynProofExpr;
 
+mod composites;
+pub use composites::try_new_case;
+
 mod literal_expr;
 pub(crate) use literal_expr::LiteralExpr;
 #[cfg(all(test, feature = "blitzar"))]

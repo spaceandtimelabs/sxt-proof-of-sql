@@ -1,7 +1,7 @@
 use super::{EVMProofPlanError, EVMProofPlanResult};
 use crate::{
     base::{
-        database::{ColumnRef, ColumnType, LiteralValue, TableRef},
+        database::{try_cast_types, ColumnRef, ColumnType, LiteralValue, TableRef},
         map::IndexSet,
     },
     sql::proof_exprs::{
@@ -561,6 +561,10 @@ impl EVMCastExpr {
         expr: &CastExpr,
         column_refs: &IndexSet<ColumnRef>,
     ) -> EVMProofPlanResult<Self> {
+        // The EVM verifier only supports checked casts; unchecked relabeling casts
+        // (e.g. from the CASE lowering) must not be serialized for it.
+        try_cast_types(expr.get_from_expr().data_type(), *expr.to_type())
+            .map_err(|_| EVMProofPlanError::NotSupported)?;
         Ok(EVMCastExpr {
             from_expr: Box::new(EVMDynProofExpr::try_from_proof_expr(
                 expr.get_from_expr(),

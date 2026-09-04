@@ -64,6 +64,10 @@ impl ProofExpr for MultiplyExpr {
         let lhs_column: Column<'a, S> = self.lhs.first_round_evaluate(alloc, table, params)?;
         let rhs_column: Column<'a, S> = self.rhs.first_round_evaluate(alloc, table, params)?;
         let res = multiply_columns(&lhs_column, &rhs_column, alloc);
+        // Scalar-typed products (e.g. from the CASE lowering) have no precision/scale
+        if self.data_type() == ColumnType::Scalar {
+            return Ok(Column::Scalar(res));
+        }
         Ok(Column::Decimal75(self.precision(), self.scale(), res))
     }
 
@@ -96,7 +100,12 @@ impl ProofExpr for MultiplyExpr {
                 (-S::one(), vec![Box::new(lhs_column), Box::new(rhs_column)]),
             ],
         );
-        let res = Column::Decimal75(self.precision(), self.scale(), lhs_times_rhs);
+        // Scalar-typed products (e.g. from the CASE lowering) have no precision/scale
+        let res = if self.data_type() == ColumnType::Scalar {
+            Column::Scalar(lhs_times_rhs)
+        } else {
+            Column::Decimal75(self.precision(), self.scale(), lhs_times_rhs)
+        };
 
         log::log_memory_usage("End");
 
